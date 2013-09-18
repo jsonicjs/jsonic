@@ -1,0 +1,32 @@
+{
+  "name": "jsonic",
+  "version": "0.1.0",
+  "description": "JSON parser that isn't strict",
+  "main": "jsonic.js",
+  "scripts": {
+    "test": "node_modules/.bin/mocha test/jsonic.test.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/rjrodger/jsonic.git"
+  },
+  "keywords": [
+    "json",
+    "parser"
+  ],
+  "author": "Richard Rodger (http://richardrodger.com)",
+  "license": "MIT",
+  "readmeFilename": "README.md",
+  "devDependencies": {
+    "mocha": "~1.13.0",
+    "pegjs": "~0.7.0"
+  },
+
+  "files": [
+    "README.md",
+    "LICENSE",
+    "jsonic.js",
+    "jsonic-parser.js",
+    "jsonic-parser.pegjs"
+  ]
+}
