@@ -1,6 +1,7 @@
 # jsonic
 
-### JSON parser that isn't strict
+### A JSON parser for Node.js that isn't strict.
+
 
 A JSON parser that can parse "bad" JSON. Mostly, this is about avoiding the need to quote everything!
 
