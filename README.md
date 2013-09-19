@@ -5,7 +5,7 @@
 
 A JSON parser that can parse "bad" JSON. Mostly, this is about avoiding the need to quote everything!
 
-Strict JSON reuqires you to do this:
+Strict JSON requires you to do this:
 
 ```JavaScript
 { "foo":"bar", "red":1 }
