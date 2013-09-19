@@ -25,6 +25,12 @@ foo:bar, red:1,
 See below for the relaxed JSON rules.
 
 
+
+This module is used by the [Seneca](http://senecajs.org) framework to provide an abbreviated command syntax.
+
+
+
+
 ### Support
 
 If you're using this module, feel free to contact me on twitter if you have any questions! :) [@rjrodger](http://twitter.com/rjrodger)
@@ -64,6 +70,7 @@ JSONIC format is just standard JSON, with a few rule relaxations:
    * You _do_ need to quote strings if they contain a comma or closing brace: <code>icky:"_,_}_"</code>
    * You can use single quotes for strings: <code>Jules:'Cry "Havoc," and let slip the dogs of war!'</code>
    * You can have trailing commas: <code>foo:bar, red:255, </code>
+
 
 
 ## How it Works
