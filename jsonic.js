@@ -11,6 +11,12 @@ var jsonic_parser = require('./jsonic-parser')
  */
 
 function parse( src ) {
+  src = ''+src
+
+  if( '{' != src[0] ) src = '{'+src+'}';
+
+  console.log(src)
+
   return jsonic_parser.parse( src )
 }
 

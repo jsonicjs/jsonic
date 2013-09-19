@@ -19,9 +19,9 @@
   "readmeFilename": "README.md",
   "devDependencies": {
     "mocha": "~1.13.0",
-    "pegjs": "~0.7.0"
+    "pegjs": "~0.7.0",
+    "underscore": "~1.5.2"
   },
-
   "files": [
     "README.md",
     "LICENSE",
