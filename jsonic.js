@@ -15,7 +15,7 @@ function parse( src ) {
 
   if( '{' != src[0] ) src = '{'+src+'}';
 
-  console.log(src)
+  //console.log(src)
 
   return jsonic_parser.parse( src )
 }

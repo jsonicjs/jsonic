@@ -15,14 +15,14 @@ describe('happy', function(){
 
   it('works', function(){
     var out = jsonic("foo:1, bar:zed")
-    console.dir(out)
+    //console.dir(out)
     assert.equal( '{"foo":1,"bar":"zed"}', JSON.stringify(out) )
   })
 
   it('types', function(){
     var out = jsonic("int:100,dec:9.9,t:true,f:false,qs:\"a\\\"a'a\",as:'a\"a\\'a'")
 
-    console.log(JSON.stringify(out))
+    //console.log(JSON.stringify(out))
 
     assert.ok( _.isNumber(out.int) )
     assert.equal( 100, out.int )
@@ -43,11 +43,33 @@ describe('happy', function(){
     assert.equal( "a\"a'a", out.as )
   })
 
-  it('subobj', function(){
-    var out = jsonic("a:{b:'b'},c:2")
 
-    console.log(JSON.stringify(out))
-  }
+  it('subobj', function(){
+    var out = jsonic("a:{b:1},c:2")
+    assert.equal('{"a":{"b":1},"c":2}',JSON.stringify(out))
+
+    var out = jsonic("a:{b:1}")
+    assert.equal('{"a":{"b":1}}',JSON.stringify(out))
+
+    var out = jsonic("a:{b:{c:1}}")
+    assert.equal('{"a":{"b":{"c":1}}}',JSON.stringify(out))
+  })
+
+
+  it('trailing-comma', function(){
+    var out = jsonic("a:1, b:2, ")
+    assert.equal( '{"a":1,"b":2}', JSON.stringify(out) )
+
+    var out = jsonic("a:1,")
+    assert.equal( '{"a":1}', JSON.stringify(out) )
+  })
+
+
+  it('empty', function(){
+    var out = jsonic("")
+    assert.equal( '{}', JSON.stringify(out) )
+  })
+
 })
 
 

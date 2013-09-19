@@ -26,7 +26,7 @@ object
   / "{" _ members:members "}" _ { return members; }
 
 members
-  = head:pair tail:("," _ pair)* {
+  = head:pair tail:("," _ pair)* ","? _ {
       var result = {};
       result[head[0]] = fixNull(head[1]);
       for (var i = 0; i < tail.length; i++) {

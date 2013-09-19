@@ -328,7 +328,28 @@ module.exports = (function(){
             }
           }
           if (result1 !== null) {
-            result0 = [result0, result1];
+            if (input.charCodeAt(pos) === 44) {
+              result2 = ",";
+              pos++;
+            } else {
+              result2 = null;
+              if (reportFailures === 0) {
+                matchFailed("\",\"");
+              }
+            }
+            result2 = result2 !== null ? result2 : "";
+            if (result2 !== null) {
+              result3 = parse__();
+              if (result3 !== null) {
+                result0 = [result0, result1, result2, result3];
+              } else {
+                result0 = null;
+                pos = pos1;
+              }
+            } else {
+              result0 = null;
+              pos = pos1;
+            }
           } else {
             result0 = null;
             pos = pos1;
