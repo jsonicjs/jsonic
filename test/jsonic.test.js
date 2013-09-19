@@ -19,6 +19,7 @@ describe('happy', function(){
     assert.equal( '{"foo":1,"bar":"zed"}', JSON.stringify(out) )
   })
 
+
   it('types', function(){
     var out = jsonic("int:100,dec:9.9,t:true,f:false,qs:\"a\\\"a'a\",as:'a\"a\\'a'")
 
@@ -68,6 +69,18 @@ describe('happy', function(){
   it('empty', function(){
     var out = jsonic("")
     assert.equal( '{}', JSON.stringify(out) )
+  })
+
+
+  it('strings', function(){
+    var out = jsonic("a:''")
+    assert.equal( '{"a":""}', JSON.stringify(out) )
+
+    out = jsonic("a:x y")
+    assert.equal( '{"a":"x y"}', JSON.stringify(out) )
+
+    out = jsonic("a:x, b:y z")
+    assert.equal( '{"a":"x","b":"y z"}', JSON.stringify(out) )
   })
 
 })
