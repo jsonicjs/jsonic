@@ -80,4 +80,11 @@ The parser uses [PEG.js](http://pegjs.majda.cz/) and is an extension of the exam
 
 
 
+# Development
+
+You'll need:
+
+```bash
+sudo npm install phantomjs@1.9.1-0 uglify-js -g
+```
 
