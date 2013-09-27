@@ -36,9 +36,11 @@ This module is used by the [Seneca](http://senecajs.org) framework to provide an
 
 If you're using this module, feel free to contact me on twitter if you have any questions! :) [@rjrodger](http://twitter.com/rjrodger)
 
-Current Version: 0.1.0
+Current Version: 0.1.1
 
-Tested on: node 0.10.6
+Tested on: node 0.10.19, Chrome 29
+
+
 
 
 ### Quick example
