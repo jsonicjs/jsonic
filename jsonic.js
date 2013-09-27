@@ -8,15 +8,6 @@
 
   var has_require = typeof require !== 'undefined'
 
-  var _   = root._
-
-  if( typeof _ === 'undefined' ) {
-    if( has_require ) {
-      _ = require('underscore')
-    }
-    else throw new Error('jsonic requires underscore, see http://underscorejs.org');
-  }
-
 
   var jsonic = root.jsonic = function(src) {
     src = ''+src
