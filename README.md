@@ -40,6 +40,7 @@ Current Version: 0.1.1
 
 Tested on: node 0.10.19, Chrome 29
 
+[![Build Status](https://travis-ci.org/rjrodger/jsonic.png?branch=master)](https://travis-ci.org/rjrodger/jsonic)
 
 
 
