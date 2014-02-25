@@ -91,3 +91,7 @@ You'll need:
 sudo npm install phantomjs@1.9.1-0 uglify-js -g
 ```
 
+
+
+[![Bitdeli Badge](https://d2weczhvl823v0.cloudfront.net/rjrodger/jsonic/trend.png)](https://bitdeli.com/free "Bitdeli Badge")
+
