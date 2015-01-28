@@ -114,18 +114,13 @@ key "key"
 literal
   = [^,}]+
 
+
+/* TODO: if number fails, assume it's just a string, might be an identifier of some kind */
 number "number"
   = int_:int frac:frac exp:exp _ { return parseFloat(int_ + frac + exp); }
   / int_:int frac:frac _         { return parseFloat(int_ + frac);       }
   / int_:int exp:exp _           { return parseFloat(int_ + exp);        }
   / int_:int _                   { return parseFloat(int_);              }
-
-/*
-  = parts:$(int frac exp) _ { return parseFloat(parts); }
-  / parts:$(int frac) _     { return parseFloat(parts); }
-  / parts:$(int exp) _      { return parseFloat(parts); }
-  / parts:$(int) _          { return parseFloat(parts); }
-*/
 
 int
   = digit19:digit19 digits:digits     { return digit19 + digits;       }

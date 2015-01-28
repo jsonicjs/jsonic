@@ -1,3 +1,7 @@
+if [ ! -d "./node_modules/pegjs" ]; then
+  npm install pegjs@0.7.0
+fi
+
 ./node_modules/.bin/pegjs --export-var "var jsonic_parser" jsonic-parser.pegjs
 cat jsonic-head.js jsonic-parser.js jsonic-foot.js > jsonic.js
 

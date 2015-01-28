@@ -36,9 +36,9 @@ This module is used by the [Seneca](http://senecajs.org) framework to provide an
 
 If you're using this module, feel free to contact me on twitter if you have any questions! :) [@rjrodger](http://twitter.com/rjrodger)
 
-Current Version: 0.1.1
+Current Version: 0.1.2
 
-Tested on: node 0.10.19, Chrome 29
+Tested on: node 0.10.35, Chrome 40
 
 [![Build Status](https://travis-ci.org/rjrodger/jsonic.png?branch=master)](https://travis-ci.org/rjrodger/jsonic)
 

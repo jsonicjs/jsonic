@@ -1,8 +1,11 @@
-/* Copyright (c) 2013 Richard Rodger, MIT License, https://github.com/rjrodger/jsonic */
+/* Copyright (c) 2013-2015 Richard Rodger, MIT License, https://github.com/rjrodger/jsonic */
 "use strict";
 
+/* 
+TODO: if number fails, assume it's just a string, might be an identifier of some kindTODO: upgrade to pegjs 0.8 
+*/
 
-(function() {
+;(function() {
   var root           = this
   var previous_jsonic = root.jsonic
 
