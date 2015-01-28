@@ -36,6 +36,8 @@ This module is used by the [Seneca](http://senecajs.org) framework to provide an
 
 If you're using this module, feel free to contact me on twitter if you have any questions! :) [@rjrodger](http://twitter.com/rjrodger)
 
+[![Gitter chat](https://badges.gitter.im/rjrodger/jsonic.png)](https://gitter.im/rjrodger/jsonic)
+
 Current Version: 0.1.2
 
 Tested on: node 0.10.35, Chrome 40
