@@ -21,7 +21,7 @@ TODO: if number fails, assume it's just a string, might be an identifier of some
   }
 
   jsonic.noConflict = function() {
-    root.previous_jsonic = previous_jsonic;
+    root.jsonic = previous_jsonic;
     return self;
   }
 
