@@ -27,9 +27,9 @@ object
   / "{" _ members:members "}" _ { return members; }
 
 members
-  = head:pair tail:("," _ pair)* ","? _ {
+  = ","? head:pair? tail:("," _ pair)* ","? _ {
       var result = {};
-      result[head[0]] = fixNull(head[1]);
+      if( head ) { result[head[0]] = fixNull(head[1]); }
       for (var i = 0; i < tail.length; i++) {
         result[tail[i][2][0]] = fixNull(tail[i][2][1]);
       }
@@ -44,8 +44,9 @@ array
   / "[" _ elements:elements "]" _ { return elements; }
 
 elements
-  = head:value tail:("," _ value)* {
-      var result = [fixNull(head)];
+  = ","? head:value? tail:("," _ value)* ","? _ {
+      var result = [];
+      if( head ) { result.push( fixNull(head) ) }
       for (var i = 0; i < tail.length; i++) {
         result.push(fixNull(tail[i][2]));
       }
