@@ -73,7 +73,7 @@ JSONIC format is just standard JSON, with a few rule relaxations:
    * You don't need to quote property names: <code>{ foo:"bar baz", red:255 }</code>
    * You don't need the top level braces: <code>foo:"bar baz", red:255</code>
    * You don't need to quote strings with spaces: <code>foo:bar baz, red:255</code>
-   * You _do_ need to quote strings if they contain a comma or closing brace: <code>icky:"_,_}_"</code>
+   * You _do_ need to quote strings if they contain a comma or closing brace or square bracket: <code>icky:"_,}]_"</code>
    * You can use single quotes for strings: <code>Jules:'Cry "Havoc," and let slip the dogs of war!'</code>
    * You can have trailing commas: <code>foo:bar, red:255, </code>
 

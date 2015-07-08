@@ -20,6 +20,7 @@
 
 start
   = _ object:object { return object; }
+  / _ array:array   { return array; }
 
 object
   = "{" _ "}" _                 { return {};      }
@@ -54,13 +55,13 @@ elements
 value
   = string
   / single
-  / number
   / object
   / array
   / "true" _  { return true;  }
   / "false" _ { return false; }
   / "null" _  { return null_; }
-  / lit:literal { return lit.join('') }
+  / number
+  / lit:literal { return lit.join('').trim() }
 
 /* ===== Lexical Elements ===== */
 
@@ -112,15 +113,26 @@ key "key"
   / chars:[a-zA-Z0-9_\$]+ { return chars.join('') }
 
 literal
-  = [^,}]+
+  = lit:litchar+
+
+litchar
+  = [^,}\]]
 
 
-/* TODO: if number fails, assume it's just a string, might be an identifier of some kind */
 number "number"
-  = int_:int frac:frac exp:exp _ { return parseFloat(int_ + frac + exp); }
-  / int_:int frac:frac _         { return parseFloat(int_ + frac);       }
-  / int_:int exp:exp _           { return parseFloat(int_ + exp);        }
-  / int_:int _                   { return parseFloat(int_);              }
+
+  = int_:int frac:frac exp:exp _ suffix:litchar*         
+      { return 0 === suffix.length ? parseFloat(int_ + frac + exp) : (int_  + frac + exp + suffix).trim(); }
+
+  / int_:int frac:frac _ suffix:litchar*           
+      { return 0 === suffix.length ? parseFloat(int_ + frac) : (int_ + frac + suffix).trim(); }
+
+  / int_:int exp:exp _ suffix:litchar*
+      { return 0 === suffix.length ? parseFloat(int_ + exp) : (int_ + exp + suffix).trim(); }
+
+  / int_:int _ suffix:litchar*
+      { return 0 === suffix.length ? parseFloat(int_) : (int_ + suffix).trim(); }
+
 
 int
   = digit19:digit19 digits:digits     { return digit19 + digits;       }
@@ -138,14 +150,7 @@ digits
   = digits:digit+ { return digits.join(""); }
 
 e
-  = e:[eE] sign:[+-]? { return e + sign; }
-
-/*
- * The following rules are not present in the original JSON gramar, but they are
- * assumed to exist implicitly.
- *
- * FIXME: Define them according to ECMA-262, 5th ed.
- */
+  = e:[eE] sign:[+-]? { return e + (sign?sign:''); }
 
 digit
   = [0-9]
@@ -155,6 +160,9 @@ digit19
 
 hexDigit
   = [0-9a-fA-F]
+
+
+
 
 /* ===== Whitespace ===== */
 

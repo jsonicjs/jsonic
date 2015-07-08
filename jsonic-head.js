@@ -20,7 +20,11 @@ TODO: if number fails, assume it's just a string, might be an identifier of some
       else return src;
     }
 
-    if( '{' != src[0] ) src = '{'+src+'}';
+    src = src.trim();
+
+    if( '{' != src[0] && '[' != src[0] ) { 
+      src = '{'+src+'}'; 
+    }
 
     return jsonic_parser.parse( src );
   }

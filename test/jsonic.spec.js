@@ -110,18 +110,104 @@ describe('happy', function(){
   })
 
 
+  it('arrays', function(){
+    var out = jsonic("[]")
+    expect( '[]' ).toBe( JSON.stringify(out) )
+
+    var out = jsonic("[1]")
+    expect( '[1]' ).toBe( JSON.stringify(out) )
+
+    var out = jsonic("[1,2]")
+    expect( '[1,2]' ).toBe( JSON.stringify(out) )
+
+    var out = jsonic("[ 1 , 2 ]")
+    expect( '[1,2]' ).toBe( JSON.stringify(out) )
+
+    var out = jsonic("{a:[],b:[1],c:[1,2]}")
+    expect( '{"a":[],"b":[1],"c":[1,2]}' ).toBe( JSON.stringify(out) )
+
+    var out = jsonic("{a: [ ] , b:[b], c:[ c , dd ]}")
+    expect( '{"a":[],"b":[\"b\"],"c":["c",\"dd\"]}' ).toBe( JSON.stringify(out) )
+
+    var out = jsonic("['a']")
+    expect( '["a"]' ).toBe( JSON.stringify(out) )
+
+    var out = jsonic('["a"]')
+    expect( '["a"]' ).toBe( JSON.stringify(out) )
+
+    var out = jsonic("['a',\"b\"]")
+    expect( '["a","b"]' ).toBe( JSON.stringify(out) )
+
+    var out = jsonic("[ 'a' , \"b\" ]")
+    expect( '["a","b"]' ).toBe( JSON.stringify(out) )
+  })
+
+
+  it('deep', function(){
+    var x = '{a:[[{b:1}],{c:[{d:1}]}]}'
+
+    var out = jsonic(x)
+    expect( '{"a":[[{"b":1}],{"c":[{"d":1}]}]}' ).toBe( JSON.stringify(out) )
+
+    var out = jsonic('['+x+']')
+    expect( '[{"a":[[{"b":1}],{"c":[{"d":1}]}]}]' ).toBe( JSON.stringify(out) )
+  })
+
+
   it('strings', function(){
-    var out = jsonic("a:''")
-    expect( '{"a":""}' ).toBe( JSON.stringify(out) )
+    var out = jsonic("a:'',b:\"\"")
+    expect( '{"a":"","b":""}' ).toBe( JSON.stringify(out) )
 
     out = jsonic("a:x y")
     expect( '{"a":"x y"}' ).toBe( JSON.stringify(out) )
 
     out = jsonic("a:x, b:y z")
     expect( '{"a":"x","b":"y z"}' ).toBe( JSON.stringify(out) )
+
+    // trimmed
+    out = jsonic("a: x , b: y z ")
+    expect( '{"a":"x","b":"y z"}' ).toBe( JSON.stringify(out) )
+
+    out = jsonic("a:'x', aa: 'x' , b:'y\"z', bb: 'y\"z' ,bbb:\"y'z\", bbbb: \"y'z\", c:\"\\n\", d:'\\n'")
+    expect( '{"a":"x","aa":"x","b":"y\\"z","bb":"y\\"z","bbb":"y\'z","bbbb":"y\'z","c":"\\n","d":"\\n"}' ).toBe( JSON.stringify(out) )
+  })
+
+
+  it('numbers', function(){
+    var out = jsonic("x:0,a:102,b:1.2,c:-3,d:-4.5")
+    expect( '{"x":0,"a":102,"b":1.2,"c":-3,"d":-4.5}' ).toBe( JSON.stringify(out) )
+
+    var out = jsonic("x:0,a:102,b:1.2,c:1e2,d:1.2e3,e:1e+2,f:1e-2,g:1.2e+3,h:1.2e-3")
+    expect( '{"x":0,"a":102,"b":1.2,"c":100,"d":1200,"e":100,"f":0.01,"g":1200,"h":0.0012}' ).toBe( JSON.stringify(out) )
+
+    // digit prefix, but actually a string - could be an ID etc.
+    var out = jsonic("x:01,a:1a,b:10b,c:1e2e")
+    expect( '{"x":"01","a":"1a","b":"10b","c":"1e2e"}' ).toBe( JSON.stringify(out) )
   })
 
   
+  it( 'json', function(){
+    var js = JSON.stringify
+    var jp = JSON.parse
+    var x,g
+
+    x='{}'; g=js(jp(x)); 
+    expect(js(jsonic(x))).toBe(g)
+
+    x=' \r\n\t{ \r\n\t} \r\n\t'; g=js(jp(x)); 
+    expect(js(jsonic(x))).toBe(g)
+
+    x=' \r\n\t{ \r\n\t"a":1 \r\n\t} \r\n\t'; g=js(jp(x)); 
+    expect(js(jsonic(x))).toBe(g)
+
+    x='{"a":[[{"b":1}],{"c":[{"d":1}]}]}'; g=js(jp(x)); 
+    expect(js(jsonic(x))).toBe(g)
+
+    x='['+x+']'; g=js(jp(x)); 
+    expect(js(jsonic(x))).toBe(g)
+  })
+
+
   it('performance', function(){
     var start = Date.now(), count = 0
     var input = 
