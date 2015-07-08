@@ -98,7 +98,7 @@ For example, you can limit the depth of the object tree printed:
 console.log( jsonic.stringify( {a:{b:{c:1}}}, {depth:2} ) ) // prints {a:{b:{}}} 
 ```
 
-_NOTE: `jsonic.stringify` is intended for debug printing, not data exchange, so the defaults are conservative in the amount of data printed_
+__NOTE: `jsonic.stringify` is intended for debug printing, not data exchange, so the defaults are conservative in the amount of data printed__
 
 The options are:
 
