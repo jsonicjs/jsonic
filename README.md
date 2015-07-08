@@ -38,7 +38,7 @@ If you're using this module, feel free to contact me on twitter if you have any 
 
 [![Gitter chat](https://badges.gitter.im/rjrodger/jsonic.png)](https://gitter.im/rjrodger/jsonic)
 
-Current Version: 0.1.2
+Current Version: 0.2.0
 
 Tested on: node 0.10, 0.11, 0.12, iojs, Chrome 43, Safari 7, Firefox 38
 
@@ -77,6 +77,36 @@ JSONIC format is just standard JSON, with a few rule relaxations:
    * You can use single quotes for strings: <code>Jules:'Cry "Havoc," and let slip the dogs of war!'</code>
    * You can have trailing commas: <code>foo:bar, red:255, </code>
 
+
+# Stringify
+
+The _jsonic_ module provides a `stringify` method:
+
+``` js
+console.log( jsonic.stringify( {a:"bc",d:1} ) ) // prints {a:bc,d:1} 
+```
+
+The `stringify` method converts a plain JavaScript object into a
+string that can be parsed by _jsonic_. It has two parameters:
+
+   * `value`: plain object
+   * `options`: optional options object
+
+For example, you can limit the depth of the object tree printed:
+
+``` js
+console.log( jsonic.stringify( {a:{b:{c:1}}}, {depth:2} ) ) // prints {a:{b:{}}} 
+```
+
+_NOTE: `jsonic.stringify` is intended for debug printing, not data exchange, so the defaults are conservative in the amount of data printed_
+
+The options are:
+
+   * _depth_:    default: __3__; maximum depth of sub-objects printed; _NOTE: there is no infinite-cycle protection, just this finite depth_
+   * _maxitems_: default: __11__; maximum number of array elements or object key/value pairs printed
+   * _maxchars_: default: __111__; maximum number of characters printed
+   * _omit_: default:__[]__; omit listed keys from objects
+   * _exclude_: default:__['$']__; omit keys from objects if they contain any of the listed values
 
 
 ## How it Works

@@ -2107,7 +2107,7 @@ var jsonic_parser = (function() {
       if( depth <= opts.depth ) {
         j = 0
         for( i in val ) {
-          if( j >= opts.maxlen ) break;
+          if( j >= opts.maxitems ) break;
           j++
 
           var pass = true
@@ -2126,7 +2126,7 @@ var jsonic_parser = (function() {
     else if( 'A' === type ) {
       out = []
       if( depth <= opts.depth ) {
-        for( ; i < val.length && i < opts.maxlen; i++ ) {
+        for( ; i < val.length && i < opts.maxitems; i++ ) {
           out.push( stringify(val[i],opts,depth) )
         }
       }
@@ -2152,10 +2152,11 @@ var jsonic_parser = (function() {
       var callopts = callopts || {};
       var opts = {};
 
-      opts.custom  = callopts.custom || callopts.c || false;
-      opts.depth   = callopts.depth || callopts.d || 3;
-      opts.maxlen  = callopts.maxlen || callopts.m || 11;
-      opts.exclude = callopts.exclude || callopts.x || ['$'];
+      opts.custom   = callopts.custom || callopts.c || false;
+      opts.depth    = callopts.depth || callopts.d || 3;
+      opts.maxitems = callopts.maxitems || callopts.mi || 11;
+      opts.maxchars = callopts.maxchars || callopts.mc || 111;
+      opts.exclude  = callopts.exclude || callopts.x || ['$'];
       var omit = callopts.omit || callopts.o || {};
 
       opts.omit = {}
@@ -2163,7 +2164,7 @@ var jsonic_parser = (function() {
         opts.omit[omit[i]] = true;
       }
 
-      return stringify( val, opts, 0 );
+      return stringify( val, opts, 0 ).substring(0,opts.maxchars);
     }
     catch( e ) {
       return 'ERROR: jsonic.stringify is only for plain objects: '+e+

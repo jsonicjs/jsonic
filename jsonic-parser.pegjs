@@ -174,3 +174,4 @@ _ "whitespace"
 // conventional definition consistent with ECMA-262, 5th ed.
 whitespace
   = [ \t\n\r]
+

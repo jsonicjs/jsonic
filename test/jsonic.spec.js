@@ -335,19 +335,22 @@ describe('happy', function(){
     expect( jsonic.stringify(o1,{custom:true}) ).toBe('<A>')
 
 
-    // maxlen
+    // maxitems
     var o2 = [1,2,3,4,5,6,7,8,9,10,11,12]
     expect( jsonic.stringify(o2) ).toBe('[1,2,3,4,5,6,7,8,9,10,11]')
-    expect( jsonic.stringify(o2,{maxlen:12}) ).toBe('[1,2,3,4,5,6,7,8,9,10,11,12]')
-    expect( jsonic.stringify(o2,{maxlen:13}) ).toBe('[1,2,3,4,5,6,7,8,9,10,11,12]')
+    expect( jsonic.stringify(o2,{maxitems:12}) ).toBe('[1,2,3,4,5,6,7,8,9,10,11,12]')
+    expect( jsonic.stringify(o2,{maxitems:13}) ).toBe('[1,2,3,4,5,6,7,8,9,10,11,12]')
 
     var o3 = {a:1,b:2,c:3,d:4,e:5,f:6,g:7,h:8,i:9,j:10,k:11,l:12}
     expect( jsonic.stringify(o3) ).toBe(
       '{a:1,b:2,c:3,d:4,e:5,f:6,g:7,h:8,i:9,j:10,k:11}')
-    expect( jsonic.stringify(o3,{maxlen:12}) ).toBe(
+    expect( jsonic.stringify(o3,{maxitems:12}) ).toBe(
       '{a:1,b:2,c:3,d:4,e:5,f:6,g:7,h:8,i:9,j:10,k:11,l:12}')
-    expect( jsonic.stringify(o3,{maxlen:12}) ).toBe(
+    expect( jsonic.stringify(o3,{maxitems:12}) ).toBe(
       '{a:1,b:2,c:3,d:4,e:5,f:6,g:7,h:8,i:9,j:10,k:11,l:12}')
+
+    // maxchars
+    expect( jsonic.stringify([1,2,3],{maxchars:4}) ).toBe('[1,2')
 
 
     // abbrevs
@@ -370,8 +373,7 @@ describe('happy', function(){
       count++
     }
 
-    console.log( 'parse/sec: '+count )
-    
+    console.log( 'parse/sec: '+count )  
   })
 
 })
