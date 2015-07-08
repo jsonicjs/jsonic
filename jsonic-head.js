@@ -13,15 +13,20 @@ TODO: if number fails, assume it's just a string, might be an identifier of some
 
 
   var jsonic = root.jsonic = function(src) {
-    src = ''+src
+    if( Object.prototype.toString.call(src) !== '[object String]' ) {
+      if( !Object.prototype.toString.call(src).match(/\[object (Object|Array)\]/) ) {
+        throw new Error( "Not an object, array or string: "+src )
+      }
+      else return src;
+    }
 
     if( '{' != src[0] ) src = '{'+src+'}';
 
-    return jsonic_parser.parse( src )
+    return jsonic_parser.parse( src );
   }
 
   jsonic.noConflict = function() {
-    root.previous_jsonic = previous_jsonic;
+    root.jsonic = previous_jsonic;
     return self;
   }
 

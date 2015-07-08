@@ -17,8 +17,44 @@ describe('happy', function(){
 
   it('works', function(){
     var out = jsonic("foo:1, bar:zed")
-    //console.dir(out)
     expect( '{"foo":1,"bar":"zed"}' ).toBe( JSON.stringify(out) )
+  })
+
+
+  it('funky-input', function(){
+
+    // Object values are just returned
+    expect( '{"foo":1,"bar":"zed"}' ).toBe( 
+      JSON.stringify(jsonic( {foo:1,bar:'zed'} )) )
+
+    expect( '["a","b"]' ).toBe( 
+      JSON.stringify(jsonic( ['a','b'] )) )
+
+    // Invalid input
+    try { jsonic( /a/ ); expect('regex').toBe('FAIL') }
+    catch(e) { expect(e.message.match(/^Not/)).toBeTruthy() }
+
+    try { jsonic( new Date ); expect('date').toBe('FAIL') }
+    catch(e) { expect(e.message.match(/^Not/)).toBeTruthy() }
+
+    try { jsonic( NaN ); expect('date').toBe('FAIL') }
+    catch(e) { expect(e.message.match(/^Not/)).toBeTruthy() }
+
+    try { jsonic( null ); expect('date').toBe('FAIL') }
+    catch(e) { expect(e.message.match(/^Not/)).toBeTruthy() }
+
+    try { jsonic( void 0 ); expect('date').toBe('FAIL') }
+    catch(e) { expect(e.message.match(/^Not/)).toBeTruthy() }
+
+    try { jsonic( 1 ); expect('date').toBe('FAIL') }
+    catch(e) { expect(e.message.match(/^Not/)).toBeTruthy() }
+
+    try { jsonic( Number(1) ); expect('date').toBe('FAIL') }
+    catch(e) { expect(e.message.match(/^Not/)).toBeTruthy() }
+
+    try { jsonic( true ); expect('date').toBe('FAIL') }
+    catch(e) { expect(e.message.match(/^Not/)).toBeTruthy() }
+
   })
 
 

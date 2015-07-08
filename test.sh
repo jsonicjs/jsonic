@@ -2,7 +2,7 @@ if [ ! -d "./node_modules/jasmine-node" ]; then
   npm install jasmine-node@1
 fi
 if [ ! -d "./node_modules/phantomjs" ]; then
-  npm install phantomjs@1
+  npm install phantomjs@1.8
 fi
 if [ ! -d "./node_modules/underscore" ]; then
   npm install underscore@1
