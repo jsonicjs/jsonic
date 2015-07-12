@@ -31,7 +31,7 @@ TODO: if number fails, assume it's just a string, might be an identifier of some
 
   jsonic.noConflict = function() {
     root.jsonic = previous_jsonic;
-    return self;
+    return jsonic;
   }
 
 
@@ -172,10 +172,10 @@ var jsonic_parser = (function() {
         peg$c81 = /^[^,}\]]/,
         peg$c82 = { type: "class", value: "[^,}\\]]", description: "[^,}\\]]" },
         peg$c83 = { type: "other", description: "number" },
-        peg$c84 = function(int_, frac, exp, suffix) { return 0 === suffix.length ? parseFloat(int_ + frac + exp) : (int_  + frac + exp + suffix).trim(); },
-        peg$c85 = function(int_, frac, suffix) { return 0 === suffix.length ? parseFloat(int_ + frac) : (int_ + frac + suffix).trim(); },
-        peg$c86 = function(int_, exp, suffix) { return 0 === suffix.length ? parseFloat(int_ + exp) : (int_ + exp + suffix).trim(); },
-        peg$c87 = function(int_, suffix) { return 0 === suffix.length ? parseFloat(int_) : (int_ + suffix).trim(); },
+        peg$c84 = function(int_, frac, exp, suffix) { return 0 === suffix.length ? parseFloat(int_ + frac + exp) : (int_  + frac + exp + suffix.join('')).trim(); },
+        peg$c85 = function(int_, frac, suffix) { return 0 === suffix.length ? parseFloat(int_ + frac) : (int_ + frac + suffix.join('')).trim(); },
+        peg$c86 = function(int_, exp, suffix) { return 0 === suffix.length ? parseFloat(int_ + exp) : (int_ + exp + suffix.join('')).trim(); },
+        peg$c87 = function(int_, suffix) { return 0 === suffix.length ? parseFloat(int_) : (int_ + suffix.join('')).trim(); },
         peg$c88 = function(digit19, digits) { return digit19 + digits;       },
         peg$c89 = "-",
         peg$c90 = { type: "literal", value: "-", description: "\"-\"" },
@@ -2086,6 +2086,9 @@ var jsonic_parser = (function() {
     depth++
     if( null == val ) return 'null';
 
+    var type = Object.prototype.toString.call(val).charAt(8);
+    if( 'F' === type && !opts.showfunc ) return null;
+
     // WARNING: output may not be jsonically parsable!
     if( opts.custom ) {
       if( val.hasOwnProperty('toString') ) {
@@ -2096,7 +2099,7 @@ var jsonic_parser = (function() {
       }
     }
     
-    var type = Object.prototype.toString.call(val).charAt(8);
+
     var out, i = 0, j, k;
 
     if( 'N' === type ) {
@@ -2115,9 +2118,11 @@ var jsonic_parser = (function() {
             pass = !~i.indexOf(opts.exclude[k])
           }
           pass = pass && !opts.omit[i]
-          
-          if( pass ) {
-            out.push( i+':'+stringify(val[i],opts,depth) )
+
+          var str = stringify(val[i],opts,depth)
+
+          if( null != str && pass ) {
+            out.push( i+':'+str )
           }
         }
       }
@@ -2127,7 +2132,10 @@ var jsonic_parser = (function() {
       out = []
       if( depth <= opts.depth ) {
         for( ; i < val.length && i < opts.maxitems; i++ ) {
-          out.push( stringify(val[i],opts,depth) )
+          var str = stringify(val[i],opts,depth)
+          if( null != str ) {
+            out.push( str )
+          }
         }
       }
       return '['+out.join(',')+']'
@@ -2152,11 +2160,12 @@ var jsonic_parser = (function() {
       var callopts = callopts || {};
       var opts = {};
 
-      opts.custom   = callopts.custom || callopts.c || false;
-      opts.depth    = callopts.depth || callopts.d || 3;
+      opts.showfunc = callopts.showfunc || callopts.f  || false;
+      opts.custom   = callopts.custom   || callopts.c  || false;
+      opts.depth    = callopts.depth    || callopts.d  || 3;
       opts.maxitems = callopts.maxitems || callopts.mi || 11;
       opts.maxchars = callopts.maxchars || callopts.mc || 111;
-      opts.exclude  = callopts.exclude || callopts.x || ['$'];
+      opts.exclude  = callopts.exclude  || callopts.x  || ['$'];
       var omit = callopts.omit || callopts.o || {};
 
       opts.omit = {}
@@ -2164,11 +2173,12 @@ var jsonic_parser = (function() {
         opts.omit[omit[i]] = true;
       }
 
-      return stringify( val, opts, 0 ).substring(0,opts.maxchars);
+      var str = stringify( val, opts, 0 );
+      str = null == str ? '' : str.substring(0,opts.maxchars);
+      return str;
     }
     catch( e ) {
-      return 'ERROR: jsonic.stringify is only for plain objects: '+e+
-        ' input was: '+JSON.stringify( val )
+      return 'ERROR: jsonic.stringify: '+e+' input was: '+JSON.stringify( val )
     }
   }
 

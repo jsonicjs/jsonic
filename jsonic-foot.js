@@ -4,6 +4,9 @@
     depth++
     if( null == val ) return 'null';
 
+    var type = Object.prototype.toString.call(val).charAt(8);
+    if( 'F' === type && !opts.showfunc ) return null;
+
     // WARNING: output may not be jsonically parsable!
     if( opts.custom ) {
       if( val.hasOwnProperty('toString') ) {
@@ -14,7 +17,7 @@
       }
     }
     
-    var type = Object.prototype.toString.call(val).charAt(8);
+
     var out, i = 0, j, k;
 
     if( 'N' === type ) {
@@ -33,9 +36,11 @@
             pass = !~i.indexOf(opts.exclude[k])
           }
           pass = pass && !opts.omit[i]
-          
-          if( pass ) {
-            out.push( i+':'+stringify(val[i],opts,depth) )
+
+          var str = stringify(val[i],opts,depth)
+
+          if( null != str && pass ) {
+            out.push( i+':'+str )
           }
         }
       }
@@ -45,7 +50,10 @@
       out = []
       if( depth <= opts.depth ) {
         for( ; i < val.length && i < opts.maxitems; i++ ) {
-          out.push( stringify(val[i],opts,depth) )
+          var str = stringify(val[i],opts,depth)
+          if( null != str ) {
+            out.push( str )
+          }
         }
       }
       return '['+out.join(',')+']'
@@ -70,11 +78,12 @@
       var callopts = callopts || {};
       var opts = {};
 
-      opts.custom   = callopts.custom || callopts.c || false;
-      opts.depth    = callopts.depth || callopts.d || 3;
+      opts.showfunc = callopts.showfunc || callopts.f  || false;
+      opts.custom   = callopts.custom   || callopts.c  || false;
+      opts.depth    = callopts.depth    || callopts.d  || 3;
       opts.maxitems = callopts.maxitems || callopts.mi || 11;
       opts.maxchars = callopts.maxchars || callopts.mc || 111;
-      opts.exclude  = callopts.exclude || callopts.x || ['$'];
+      opts.exclude  = callopts.exclude  || callopts.x  || ['$'];
       var omit = callopts.omit || callopts.o || {};
 
       opts.omit = {}
@@ -82,11 +91,12 @@
         opts.omit[omit[i]] = true;
       }
 
-      return stringify( val, opts, 0 ).substring(0,opts.maxchars);
+      var str = stringify( val, opts, 0 );
+      str = null == str ? '' : str.substring(0,opts.maxchars);
+      return str;
     }
     catch( e ) {
-      return 'ERROR: jsonic.stringify is only for plain objects: '+e+
-        ' input was: '+JSON.stringify( val )
+      return 'ERROR: jsonic.stringify: '+e+' input was: '+JSON.stringify( val )
     }
   }
 

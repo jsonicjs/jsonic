@@ -123,16 +123,16 @@ litchar
 number "number"
 
   = int_:int frac:frac exp:exp _ suffix:litchar*         
-      { return 0 === suffix.length ? parseFloat(int_ + frac + exp) : (int_  + frac + exp + suffix).trim(); }
+      { return 0 === suffix.length ? parseFloat(int_ + frac + exp) : (int_  + frac + exp + suffix.join('')).trim(); }
 
   / int_:int frac:frac _ suffix:litchar*           
-      { return 0 === suffix.length ? parseFloat(int_ + frac) : (int_ + frac + suffix).trim(); }
+      { return 0 === suffix.length ? parseFloat(int_ + frac) : (int_ + frac + suffix.join('')).trim(); }
 
   / int_:int exp:exp _ suffix:litchar*
-      { return 0 === suffix.length ? parseFloat(int_ + exp) : (int_ + exp + suffix).trim(); }
+      { return 0 === suffix.length ? parseFloat(int_ + exp) : (int_ + exp + suffix.join('')).trim(); }
 
   / int_:int _ suffix:litchar*
-      { return 0 === suffix.length ? parseFloat(int_) : (int_ + suffix).trim(); }
+      { return 0 === suffix.length ? parseFloat(int_) : (int_ + suffix.join('')).trim(); }
 
 
 int
