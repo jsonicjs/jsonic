@@ -532,7 +532,7 @@ describe('happy', function(){
   })
 
 
-  xit('performance', function(){
+  it('performance', function(){
     var start = Date.now(), count = 0
     var input = 
           "int:100,dec:9.9,t:true,f:false,qs:"+
