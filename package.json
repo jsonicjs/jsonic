@@ -1,6 +1,6 @@
 {
   "name": "jsonic",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "A JSON parser that isn't strict.",
   "main": "jsonic.js",
   "scripts": {

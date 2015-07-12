@@ -3,7 +3,8 @@
 ### A JSON parser for Node.js that isn't strict.
 
 
-A JSON parser that can parse "bad" JSON. Mostly, this is about avoiding the need to quote everything!
+A JSON parser that can parse "bad" JSON. Mostly, this is about
+avoiding the need to quote everything!
 
 Strict JSON requires you to do this:
 
@@ -27,7 +28,8 @@ See below for the relaxed JSON rules.
 
 
 
-This module is used by the [Seneca](http://senecajs.org) framework to provide an abbreviated command syntax.
+This module is used by the [Seneca](http://senecajs.org) framework to
+provide an abbreviated command syntax.
 
 
 
@@ -38,7 +40,7 @@ If you're using this module, feel free to contact me on twitter if you have any 
 
 [![Gitter chat](https://badges.gitter.im/rjrodger/jsonic.png)](https://gitter.im/rjrodger/jsonic)
 
-Current Version: 0.2.0
+Current Version: 0.2.1
 
 Tested on: node 0.10, 0.11, 0.12, iojs, Chrome 43, Safari 7, Firefox 38
 
