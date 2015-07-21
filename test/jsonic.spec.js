@@ -521,6 +521,10 @@ describe('happy', function(){
     expect( jsonic.stringify({a:1,b:2,c:3},{maxitems:2}) ).toBe('{a:1,b:2}')
 
 
+    // wierd keys
+    expect( jsonic.stringify({"_":0,"$":1,":":2,"":3,"\'":4,"\"":5,"\n":6}) )
+      .toBe( '{_:0,":":2,"":3,"\'":4,"\\"":5,"\\n":6}' )
+
     // abbrevs
     expect( jsonic.stringify({a:1,b:2},{o:['a']}) ).toBe('{b:2}')
     expect( jsonic.stringify({a$:1,b:2,c:3},{x:['b']}) ).toBe('{a$:1,c:3}')

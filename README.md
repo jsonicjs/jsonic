@@ -40,7 +40,7 @@ If you're using this module, feel free to contact me on twitter if you have any 
 
 [![Gitter chat](https://badges.gitter.im/rjrodger/jsonic.png)](https://gitter.im/rjrodger/jsonic)
 
-Current Version: 0.2.1
+Current Version: 0.2.2
 
 Tested on: node 0.10, 0.11, 0.12, iojs, Chrome 43, Safari 7, Firefox 38
 

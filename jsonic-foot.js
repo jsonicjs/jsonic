@@ -40,7 +40,8 @@
           var str = stringify(val[i],opts,depth)
 
           if( null != str && pass ) {
-            out.push( i+':'+str )
+            var n = i.match(/^[a-zA-Z0-9_$]+$/) ? i : JSON.stringify(i)
+            out.push( n+':'+str )
           }
         }
       }
