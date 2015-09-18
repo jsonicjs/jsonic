@@ -18,6 +18,10 @@ describe('happy', function(){
   it('works', function(){
     var out = jsonic("foo:1, bar:zed")
     expect( '{"foo":1,"bar":"zed"}' ).toBe( JSON.stringify(out) )
+    var out = jsonic("foo-foo:1, bar:zed")
+    expect( '{"foo-foo":1,"bar":"zed"}' ).toBe( JSON.stringify(out) )
+    var out = jsonic('"foo-foo":1, bar:zed')
+    expect( '{"foo-foo":1,"bar":"zed"}' ).toBe( JSON.stringify(out) )
   })
 
 

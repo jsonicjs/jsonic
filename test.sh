@@ -1,3 +1,4 @@
+#!/usr/bin/env bash
 if [ ! -d "./node_modules/jasmine-node" ]; then
   npm install jasmine-node@1
 fi

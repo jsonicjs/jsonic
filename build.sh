@@ -1,3 +1,4 @@
+#!/usr/bin/env bash
 if [ ! -d "./node_modules/pegjs" ]; then
   npm install pegjs@0.8.0
 fi
