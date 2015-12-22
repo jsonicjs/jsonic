@@ -4,7 +4,7 @@
   "description": "A JSON parser that isn't strict.",
   "main": "jsonic.js",
   "scripts": {
-    "test": "jasmine-node ./test ; phantomjs test/run-jasmine.js test/jasmine.html",
+    "test": "lab test/*spec.js",
     "build": "./build.sh"
   },
   "repository": {
@@ -28,7 +28,9 @@
     "jsonic-parser.pegjs"
   ],
   "devDependencies": {
-    "pegjs": "^0.8.0",
-    "underscore": "^1.8.3"
+    "code": "^2.0.1",
+    "lab": "^8.0.0",
+    "lodash": "^3.10.1",
+    "pegjs": "^0.8.0"
   }
 }
