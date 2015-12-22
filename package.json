@@ -33,7 +33,7 @@
     "node": ">=0.10.0"
   },
   "devDependencies": {
-    "code": "^2.0.1",
+    "code": "^1.5.0",
     "coveralls": "^2.11.6",
     "lab": "^6.2.0",
     "lodash": "^3.10.1",
