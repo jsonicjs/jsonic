@@ -5,6 +5,7 @@
   "main": "jsonic.js",
   "scripts": {
     "test": "lab test/*spec.js",
+    "coverage": "lab -s test/*.spec.js -r lcov | coveralls",
     "build": "./build.sh"
   },
   "repository": {
@@ -29,6 +30,7 @@
   ],
   "devDependencies": {
     "code": "^2.0.1",
+    "coveralls": "^2.11.6",
     "lab": "^8.0.0",
     "lodash": "^3.10.1",
     "pegjs": "^0.8.0"
