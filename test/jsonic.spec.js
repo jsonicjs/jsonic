@@ -18,20 +18,48 @@ describe('happy', function(){
   it('works', function(){
     var out = jsonic("foo:1, bar:zed")
     expect( '{"foo":1,"bar":"zed"}' ).toBe( JSON.stringify(out) )
-    var out = jsonic("foo-foo:1, bar:zed")
+    out = jsonic("foo-foo:1, bar:zed")
     expect( '{"foo-foo":1,"bar":"zed"}' ).toBe( JSON.stringify(out) )
-    var out = jsonic('"foo-foo":1, bar:zed')
+    out = jsonic('"foo-foo":1, bar:zed')
     expect( '{"foo-foo":1,"bar":"zed"}' ).toBe( JSON.stringify(out) )
+    out = jsonic('"foo-0":1, bar:zed')
+    expect( '{"foo-0":1,"bar":"zed"}' ).toBe( JSON.stringify(out) )
+    out = jsonic('"foo-1":1, bar:zed')
+    expect( '{"foo-1":1,"bar":"zed"}' ).toBe( JSON.stringify(out) )
+    out = jsonic('"-foo":1, bar:zed')
+    expect( '{"-foo":1,"bar":"zed"}' ).toBe( JSON.stringify(out) )
+    out = jsonic('"-foo-":1, bar:zed')
+    expect( '{"-foo-":1,"bar":"zed"}' ).toBe( JSON.stringify(out) )
+    out = jsonic('"foo-":1, bar:zed')
+    expect( '{"foo-":1,"bar":"zed"}' ).toBe( JSON.stringify(out) )
+    out = jsonic('"foo-bar-":1, bar:zed')
+    expect( '{"foo-bar-":1,"bar":"zed"}' ).toBe( JSON.stringify(out) )
+    out = jsonic("foo--foo:1, bar:zed")
+    expect( '{"foo--foo":1,"bar":"zed"}' ).toBe( JSON.stringify(out) )
+    out = jsonic('"foo---foo":1, bar:zed')
+    expect( '{"foo---foo":1,"bar":"zed"}' ).toBe( JSON.stringify(out) )
+    out = jsonic('"foo---0":1, bar:zed')
+    expect( '{"foo---0":1,"bar":"zed"}' ).toBe( JSON.stringify(out) )
+    out = jsonic('"foo--1":1, bar:zed')
+    expect( '{"foo--1":1,"bar":"zed"}' ).toBe( JSON.stringify(out) )
+    out = jsonic('"--foo":1, bar:zed')
+    expect( '{"--foo":1,"bar":"zed"}' ).toBe( JSON.stringify(out) )
+    out = jsonic('"--foo--":1, bar:zed')
+    expect( '{"--foo--":1,"bar":"zed"}' ).toBe( JSON.stringify(out) )
+    out = jsonic('"foo--":1, bar:zed')
+    expect( '{"foo--":1,"bar":"zed"}' ).toBe( JSON.stringify(out) )
+    out = jsonic('"foo--bar-baz":1, "-bar":zed')
+    expect( '{"foo--bar-baz":1,"-bar":"zed"}' ).toBe( JSON.stringify(out) )
   })
 
 
   it('funky-input', function(){
 
     // Object values are just returned
-    expect( '{"foo":1,"bar":"zed"}' ).toBe( 
+    expect( '{"foo":1,"bar":"zed"}' ).toBe(
       JSON.stringify(jsonic( {foo:1,bar:'zed'} )) )
 
-    expect( '["a","b"]' ).toBe( 
+    expect( '["a","b"]' ).toBe(
       JSON.stringify(jsonic( ['a','b'] )) )
 
     // Invalid input
@@ -225,7 +253,7 @@ describe('happy', function(){
     var out = jsonic("x:0,a:102,b:1.2,c:1e2,d:1.2e3,e:1e+2,f:1e-2,"+
                      "g:1.2e+3,h:1.2e-3,i:-1.2e+3,j:-1.2e-3")
     expect( '{"x":0,"a":102,"b":1.2,"c":100,"d":1200,"e":100,"f":0.01,'+
-            '"g":1200,"h":0.0012,"i":-1200,"j":-0.0012}' ).toBe( 
+            '"g":1200,"h":0.0012,"i":-1200,"j":-0.0012}' ).toBe(
               JSON.stringify(out) )
 
     // digit prefix, but actually a string - could be an ID etc.
@@ -268,115 +296,115 @@ describe('happy', function(){
 
 
   it( 'bad', function(){
-    try { jsonic('{'); 
+    try { jsonic('{');
           expect('bad-{').toBe('FAIL') } catch(e) {}
 
-    try { jsonic('}'); 
+    try { jsonic('}');
           expect('bad-}').toBe('FAIL') } catch(e) {}
 
-    try { jsonic('a'); 
+    try { jsonic('a');
           expect('bad-a').toBe('FAIL') } catch(e) {}
 
-    try { jsonic('!'); 
+    try { jsonic('!');
           expect('bad-!').toBe('FAIL') } catch(e) {}
 
-    try { jsonic('0'); 
+    try { jsonic('0');
           expect('bad-0').toBe('FAIL') } catch(e) {}
 
-    try { jsonic('a:,'); 
+    try { jsonic('a:,');
           expect('bad-a:,').toBe('FAIL') } catch(e) {}
 
-    try { jsonic('\\'); 
+    try { jsonic('\\');
           expect('bad-\\').toBe('FAIL') } catch(e) {}
 
-    try { jsonic('"'); 
+    try { jsonic('"');
           expect('bad-"').toBe('FAIL') } catch(e) {}
 
-    try { jsonic('""'); 
+    try { jsonic('""');
           expect('bad-""').toBe('FAIL') } catch(e) {}
 
-    try { jsonic('a:{,'); 
+    try { jsonic('a:{,');
           expect('bad-a:{,').toBe('FAIL') } catch(e) {}
 
-    try { jsonic('a:,}'); 
+    try { jsonic('a:,}');
           expect('bad-a:,}').toBe('FAIL') } catch(e) {}
 
-    try { jsonic('a:'); 
+    try { jsonic('a:');
           expect('bad-a:,}').toBe('FAIL') } catch(e) {}
 
-    try { jsonic('a:"\""'); 
+    try { jsonic('a:"\""');
           expect('bad-a:"\""').toBe('FAIL') } catch(e) {}
 
-    try { jsonic("a:'\''"); 
+    try { jsonic("a:'\''");
           expect("bad-a:'\''").toBe('FAIL') } catch(e) {}
 
-    try { jsonic("a:{{}}"); 
+    try { jsonic("a:{{}}");
           expect("bad-a:{{}}").toBe('FAIL') } catch(e) {}
 
-    try { jsonic("a:{}}"); 
+    try { jsonic("a:{}}");
           expect("bad-a:{}}").toBe('FAIL') } catch(e) {}
 
-    try { jsonic("a:{[]}"); 
+    try { jsonic("a:{[]}");
           expect("bad-a:{[]}").toBe('FAIL') } catch(e) {}
 
-    try { jsonic("a:{[}"); 
+    try { jsonic("a:{[}");
           expect("bad-a:{[}").toBe('FAIL') } catch(e) {}
 
-    try { jsonic("a:{]}"); 
+    try { jsonic("a:{]}");
           expect("bad-a:{]}").toBe('FAIL') } catch(e) {}
 
-    try { jsonic("a:{a}"); 
+    try { jsonic("a:{a}");
           expect("bad-a:{a}").toBe('FAIL') } catch(e) {}
 
-    try { jsonic("a:{a,b}"); 
+    try { jsonic("a:{a,b}");
           expect("bad-a:{a,b}").toBe('FAIL') } catch(e) {}
 
-    try { jsonic("a:{a:1,b}"); 
+    try { jsonic("a:{a:1,b}");
           expect("bad-a:{a:1,b}").toBe('FAIL') } catch(e) {}
 
-    try { jsonic("a:{a:1,b:}"); 
+    try { jsonic("a:{a:1,b:}");
           expect("bad-a:{a:1,b:}").toBe('FAIL') } catch(e) {}
 
-    try { jsonic("a:{a:1,b:,}"); 
+    try { jsonic("a:{a:1,b:,}");
           expect("bad-a:{a:1,b:,}").toBe('FAIL') } catch(e) {}
 
-    try { jsonic("a:{a:1,b:]}"); 
+    try { jsonic("a:{a:1,b:]}");
           expect("bad-a:{a:1,b:]}").toBe('FAIL') } catch(e) {}
 
-    try { jsonic("["); 
+    try { jsonic("[");
           expect("bad-[").toBe('FAIL') } catch(e) {}
 
-    try { jsonic("{"); 
+    try { jsonic("{");
           expect("bad-{").toBe('FAIL') } catch(e) {}
 
-    try { jsonic("}"); 
+    try { jsonic("}");
           expect("bad-}").toBe('FAIL') } catch(e) {}
 
-    try { jsonic("]"); 
+    try { jsonic("]");
           expect("bad-]").toBe('FAIL') } catch(e) {}
 
 
   })
-  
+
 
   it( 'json', function(){
     var js = JSON.stringify
     var jp = JSON.parse
     var x,g
 
-    x='{}'; g=js(jp(x)); 
+    x='{}'; g=js(jp(x));
     expect(js(jsonic(x))).toBe(g)
 
-    x=' \r\n\t{ \r\n\t} \r\n\t'; g=js(jp(x)); 
+    x=' \r\n\t{ \r\n\t} \r\n\t'; g=js(jp(x));
     expect(js(jsonic(x))).toBe(g)
 
-    x=' \r\n\t{ \r\n\t"a":1 \r\n\t} \r\n\t'; g=js(jp(x)); 
+    x=' \r\n\t{ \r\n\t"a":1 \r\n\t} \r\n\t'; g=js(jp(x));
     expect(js(jsonic(x))).toBe(g)
 
-    x='{"a":[[{"b":1}],{"c":[{"d":1}]}]}'; g=js(jp(x)); 
+    x='{"a":[[{"b":1}],{"c":[{"d":1}]}]}'; g=js(jp(x));
     expect(js(jsonic(x))).toBe(g)
 
-    x='['+x+']'; g=js(jp(x)); 
+    x='['+x+']'; g=js(jp(x));
     expect(js(jsonic(x))).toBe(g)
   })
 
@@ -478,7 +506,7 @@ describe('happy', function(){
     expect( jsonic.stringify({a$:1,b:2}) ).toBe('{b:2}')
     expect( jsonic.stringify({a$:1,bx:2,cx:3},{exclude:['b']}) ).toBe('{a$:1,cx:3}')
 
-    
+
     // custom
     var o1 = {a:1,toString:function(){return '<A>'}}
     expect( jsonic.stringify(o1) ).toBe('{a:1}')
@@ -542,7 +570,7 @@ describe('happy', function(){
 
   it('performance', function(){
     var start = Date.now(), count = 0
-    var input = 
+    var input =
           "int:100,dec:9.9,t:true,f:false,qs:"+
           "\"a\\\"a'a\",as:'a\"a\\'a',a:{b:{c:1}}"
 
@@ -551,7 +579,7 @@ describe('happy', function(){
       count++
     }
 
-    console.log( 'parse/sec: '+count )  
+    console.log( 'parse/sec: '+count )
   })
 
 
@@ -561,5 +589,3 @@ describe('happy', function(){
   })
 
 })
-
-
