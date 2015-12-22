@@ -1,5 +1,10 @@
 # jsonic
 
+[![npm version][npm-badge]][npm-url]
+[![Build Status][travis-badge]][travis-url]
+[![Coverage Status][coveralls-badge]][coveralls-url]
+[![Dependency Status][david-badge]][david-url]
+
 ### A JSON parser for Node.js that isn't strict.
 
 
@@ -115,5 +120,12 @@ The options are:
 
 The parser uses [PEG.js](http://pegjs.majda.cz/) and is an extension of the example JSON parser included in that project.
 
-
+[npm-badge]: https://badge.fury.io/js/jsonic.svg
+[npm-url]: https://badge.fury.io/js/jsonic
+[travis-badge]: https://api.travis-ci.org/rjrodger/jsonic.svg
+[travis-url]: https://travis-ci.org/rjrodger/jsonic
+[coveralls-badge]:https://coveralls.io/repos/rjrodger/jsonic/badge.svg?branch=master&service=github
+[coveralls-url]: https://coveralls.io/github/rjrodger/jsonic?branch=master
+[david-badge]: https://david-dm.org/rjrodger/jsonic.svg
+[david-url]: https://david-dm.org/rjrodger/jsonic
 
