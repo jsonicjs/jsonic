@@ -1,14 +1,8 @@
 /* Copyright (c) 2013-2015 Richard Rodger, MIT License */
-"use strict";
+'use strict';
 
-
-if( typeof jsonic === 'undefined' ) {
-  var jsonic = require('..')
-}
-
-if( typeof _ === 'undefined' ) {
-  var _ = require('underscore')
-}
+var jsonic = require('..')
+var _ = require('underscore')
 
 
 
