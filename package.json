@@ -29,10 +29,13 @@
     "jsonic-parser.js",
     "jsonic-parser.pegjs"
   ],
+  "engines": {
+    "node": ">=0.10.0"
+  },
   "devDependencies": {
     "code": "^2.0.1",
     "coveralls": "^2.11.6",
-    "lab": "^8.0.0",
+    "lab": "^6.2.0",
     "lodash": "^3.10.1",
     "pegjs": "^0.8.0"
   }
