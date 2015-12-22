@@ -1,3 +1,5 @@
+#!/usr/bin/env bash
+
 ./node_modules/.bin/pegjs --optimize speed --export-var "var jsonic_parser" jsonic-parser.pegjs
 cat jsonic-head.js jsonic-parser.js jsonic-foot.js > jsonic.js
 
