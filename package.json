@@ -5,6 +5,7 @@
   "main": "jsonic.js",
   "scripts": {
     "test": "lab test/*spec.js",
+    "posttest": "node test/*perf.js",
     "coverage": "lab -s test/*.spec.js -r lcov | coveralls",
     "build": "./build.sh"
   },

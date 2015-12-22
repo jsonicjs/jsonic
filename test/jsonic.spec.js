@@ -494,23 +494,6 @@ describe('jsonic', function(){
       })
     })
 
-  //TODO : extract elsewhere
-  it('performance', function(done){
-    var start = Date.now(), count = 0
-    var input =
-          "int:100,dec:9.9,t:true,f:false,qs:"+
-          "\"a\\\"a'a\",as:'a\"a\\'a',a:{b:{c:1}}"
-
-    while( Date.now()-start < 1000 ) {
-      jsonic(input)
-      count++
-    }
-
-    console.log( 'parse/sec: '+count )
-    done()
-  })
-
-
   it('noc', function(done){
     jsonic = jsonic.noConflict()
     expect( jsonic.stringify([1]) ).to.equal('[1]')
