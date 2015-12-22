@@ -4,6 +4,7 @@
 [![Build Status][travis-badge]][travis-url]
 [![Coverage Status][coveralls-badge]][coveralls-url]
 [![Dependency Status][david-badge]][david-url]
+[![Gitter chat][gitter-badge]][gitter-url]
 
 ### A JSON parser for Node.js that isn't strict.
 
@@ -36,22 +37,9 @@ See below for the relaxed JSON rules.
 This module is used by the [Seneca](http://senecajs.org) framework to
 provide an abbreviated command syntax.
 
-
-
-
 ### Support
 
 If you're using this module, feel free to contact me on twitter if you have any questions! :) [@rjrodger](http://twitter.com/rjrodger)
-
-[![Gitter chat](https://badges.gitter.im/rjrodger/jsonic.png)](https://gitter.im/rjrodger/jsonic)
-
-Current Version: 0.2.2
-
-Tested on: node 0.10, 0.11, 0.12, iojs, Chrome 43, Safari 7, Firefox 38
-
-[![Build Status](https://travis-ci.org/rjrodger/jsonic.png?branch=master)](https://travis-ci.org/rjrodger/jsonic)
-
-
 
 ### Quick example
 
@@ -128,4 +116,5 @@ The parser uses [PEG.js](http://pegjs.majda.cz/) and is an extension of the exam
 [coveralls-url]: https://coveralls.io/github/rjrodger/jsonic?branch=master
 [david-badge]: https://david-dm.org/rjrodger/jsonic.svg
 [david-url]: https://david-dm.org/rjrodger/jsonic
-
+[gitter-badge]: https://badges.gitter.im/rjrodger/jsonic.png
+[gitter-url]: https://gitter.im/rjrodger/jsonic
