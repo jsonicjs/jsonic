@@ -116,5 +116,5 @@ The parser uses [PEG.js](http://pegjs.majda.cz/) and is an extension of the exam
 [coveralls-url]: https://coveralls.io/github/rjrodger/jsonic?branch=master
 [david-badge]: https://david-dm.org/rjrodger/jsonic.svg
 [david-url]: https://david-dm.org/rjrodger/jsonic
-[gitter-badge]: https://badges.gitter.im/rjrodger/jsonic.png
+[gitter-badge]: https://badges.gitter.im/rjrodger/jsonic.svg
 [gitter-url]: https://gitter.im/rjrodger/jsonic
