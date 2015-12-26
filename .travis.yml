@@ -14,4 +14,4 @@ cache:
     node_modules
 
 after_script:
-  npm run coveralls
+  npm run coverage

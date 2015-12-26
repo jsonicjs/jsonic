@@ -78,7 +78,7 @@ JSONIC format is just standard JSON, with a few rule relaxations:
 The _jsonic_ module provides a `stringify` method:
 
 ``` js
-console.log( jsonic.stringify( {a:"bc",d:1} ) ) // prints {a:bc,d:1} 
+console.log( jsonic.stringify( {a:"bc",d:1} ) ) // prints {a:bc,d:1}
 ```
 
 The `stringify` method converts a plain JavaScript object into a
@@ -90,7 +90,7 @@ string that can be parsed by _jsonic_. It has two parameters:
 For example, you can limit the depth of the object tree printed:
 
 ``` js
-console.log( jsonic.stringify( {a:{b:{c:1}}}, {depth:2} ) ) // prints {a:{b:{}}} 
+console.log( jsonic.stringify( {a:{b:{c:1}}}, {depth:2} ) ) // prints {a:{b:{}}}
 ```
 
 __NOTE: `jsonic.stringify` is intended for debug printing, not data exchange, so the defaults are conservative in the amount of data printed__
