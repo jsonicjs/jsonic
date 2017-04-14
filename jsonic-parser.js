@@ -64,7 +64,7 @@ var jsonic_parser = (function() {
         peg$c22 = function(elements) { return elements; },
         peg$c23 = function(head, tail) {
               var result = [];
-              if( head ) { result.push( fixNull(head) ) }
+              if( typeof head !== 'undefined' && head !== null ) { result.push( fixNull(head) ) }
               for (var i = 0; i < tail.length; i++) {
                 result.push(fixNull(tail[i][2]));
               }

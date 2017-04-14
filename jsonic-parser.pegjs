@@ -46,7 +46,7 @@ array
 elements
   = ","? head:value? tail:("," _ value)* ","? _ {
       var result = [];
-      if( head ) { result.push( fixNull(head) ) }
+      if( typeof head !== 'undefined' && head !== null ) { result.push( fixNull(head) ) }
       for (var i = 0; i < tail.length; i++) {
         result.push(fixNull(tail[i][2]));
       }
@@ -122,10 +122,10 @@ litchar
 
 number "number"
 
-  = int_:int frac:frac exp:exp _ suffix:litchar*         
+  = int_:int frac:frac exp:exp _ suffix:litchar*
       { return 0 === suffix.length ? parseFloat(int_ + frac + exp) : (int_  + frac + exp + suffix.join('')).trim(); }
 
-  / int_:int frac:frac _ suffix:litchar*           
+  / int_:int frac:frac _ suffix:litchar*
       { return 0 === suffix.length ? parseFloat(int_ + frac) : (int_ + frac + suffix.join('')).trim(); }
 
   / int_:int exp:exp _ suffix:litchar*
