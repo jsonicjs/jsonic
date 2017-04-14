@@ -111,6 +111,7 @@ schar
 
 key "key"
   = string
+  / single
   / chars:[a-zA-Z0-9_\$\-]+ { return chars.join('') }
 
 literal
