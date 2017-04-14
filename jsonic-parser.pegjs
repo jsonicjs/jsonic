@@ -37,7 +37,7 @@ members
     }
 
 pair
-  = name:key ":" _ value:value { return [name, value]; }
+  = name:key _ ":" _ value:value { return [name, value]; }
 
 array
   = "[" _ "]" _                   { return [];       }

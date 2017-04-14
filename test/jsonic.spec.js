@@ -54,8 +54,8 @@ describe('happy', function(){
     out = jsonic('{foo:"bar", arr:[0,0]}')
     expect( '{"foo":"bar","arr":[0,0]}' ).toBe( JSON.stringify(out) )
 
-    out = jsonic("'a':1,':':2")
-    expect( '{"a":1,":":2}' ).toBe( JSON.stringify(out) )
+    out = jsonic("'a':1,':':2, c : 3")
+    expect( '{"a":1,":":2,"c":3}' ).toBe( JSON.stringify(out) )
   })
 
 
