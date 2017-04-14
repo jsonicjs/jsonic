@@ -15,7 +15,8 @@ TODO: if number fails, assume it's just a string, might be an identifier of some
   var jsonic = root.jsonic = function(src) {
     if( Object.prototype.toString.call(src) !== '[object String]' ) {
       if( !Object.prototype.toString.call(src).match(/\[object (Object|Array)\]/) ) {
-        throw new Error( "Not an object, array or string: "+src )
+        //throw new Error( "Not an object, array or string: "+src )
+        return ''+src;
       }
       else return src;
     }

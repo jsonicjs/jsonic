@@ -30,31 +30,21 @@ describe('happy', function(){
     expect( '["a","b"]' ).toBe( 
       JSON.stringify(jsonic( ['a','b'] )) )
 
-    // Invalid input
-    try { jsonic( /a/ ); expect('regex').toBe('FAIL') }
-    catch(e) { expect(e.message.match(/^Not/)).toBeTruthy() }
+    expect( jsonic( /a/ ) ).toBe('/a/')
+    expect( jsonic( NaN ) ).toBe('NaN')
+    expect( jsonic( null ) ).toBe('null')
+    expect( jsonic( undefined ) ).toBe('undefined')
+    expect( jsonic( void 0 ) ).toBe('undefined')
+    expect( jsonic( 1 ) ).toBe('1')
+    expect( jsonic( Number(1) ) ).toBe('1')
+    expect( jsonic( true ) ).toBe('true')
+    expect( jsonic( false ) ).toBe('false')
+    expect( jsonic( function foo () {} ) ).toBe('function foo() {}')
 
-    try { jsonic( new Date ); expect('date').toBe('FAIL') }
-    catch(e) { expect(e.message.match(/^Not/)).toBeTruthy() }
+    var d = new Date()
+    expect( jsonic( d ) ).toBe(''+d)
 
-    try { jsonic( NaN ); expect('date').toBe('FAIL') }
-    catch(e) { expect(e.message.match(/^Not/)).toBeTruthy() }
-
-    try { jsonic( null ); expect('date').toBe('FAIL') }
-    catch(e) { expect(e.message.match(/^Not/)).toBeTruthy() }
-
-    try { jsonic( void 0 ); expect('date').toBe('FAIL') }
-    catch(e) { expect(e.message.match(/^Not/)).toBeTruthy() }
-
-    try { jsonic( 1 ); expect('date').toBe('FAIL') }
-    catch(e) { expect(e.message.match(/^Not/)).toBeTruthy() }
-
-    try { jsonic( Number(1) ); expect('date').toBe('FAIL') }
-    catch(e) { expect(e.message.match(/^Not/)).toBeTruthy() }
-
-    try { jsonic( true ); expect('date').toBe('FAIL') }
-    catch(e) { expect(e.message.match(/^Not/)).toBeTruthy() }
-
+            
     try { jsonic( 'a:' ); expect('a:').toBe('FAIL') }
     catch(e) { expect(e.message.match(/^Expected/)).toBeTruthy() }
 
