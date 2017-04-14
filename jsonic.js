@@ -2177,7 +2177,7 @@ var jsonic_parser = (function() {
       opts.maxitems = callopts.maxitems || callopts.mi || 11;
       opts.maxchars = callopts.maxchars || callopts.mc || 111;
       opts.exclude  = callopts.exclude  || callopts.x  || ['$'];
-      var omit = callopts.omit || callopts.o || {};
+      var omit = callopts.omit || callopts.o || [];
 
       opts.omit = {}
       for( var i = 0; i < omit.length; i++ ) {
