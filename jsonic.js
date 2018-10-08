@@ -2121,7 +2121,6 @@ var jsonic_parser = (function() {
         j = 0
         for( i in val ) {
           if( j >= opts.maxitems ) break;
-          j++
 
           var pass = true
           for( k = 0; k < opts.exclude.length && pass; k++ ) {
@@ -2134,6 +2133,7 @@ var jsonic_parser = (function() {
           if( null != str && pass ) {
             var n = i.match(/^[a-zA-Z0-9_$]+$/) ? i : JSON.stringify(i)
             out.push( n+':'+str )
+            j++
           }
         }
       }
