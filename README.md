@@ -2,9 +2,8 @@
 
 [![npm version][npm-badge]][npm-url]
 [![Build Status][travis-badge]][travis-url]
-[![Coverage Status][coveralls-badge]][coveralls-url]
 [![Dependency Status][david-badge]][david-url]
-[![Gitter chat][gitter-badge]][gitter-url]
+
 
 ### A JSON parser for Node.js that isn't strict.
 
@@ -112,9 +111,6 @@ The parser uses [PEG.js](http://pegjs.majda.cz/) and is an extension of the exam
 [npm-url]: https://badge.fury.io/js/jsonic
 [travis-badge]: https://api.travis-ci.org/rjrodger/jsonic.svg
 [travis-url]: https://travis-ci.org/rjrodger/jsonic
-[coveralls-badge]:https://coveralls.io/repos/rjrodger/jsonic/badge.svg?branch=master&service=github
-[coveralls-url]: https://coveralls.io/github/rjrodger/jsonic?branch=master
 [david-badge]: https://david-dm.org/rjrodger/jsonic.svg
 [david-url]: https://david-dm.org/rjrodger/jsonic
-[gitter-badge]: https://badges.gitter.im/rjrodger/jsonic.png
-[gitter-url]: https://gitter.im/rjrodger/jsonic
+

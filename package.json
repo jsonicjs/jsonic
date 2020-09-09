@@ -33,7 +33,7 @@
   ],
   "devDependencies": {
     "jasmine-node": "^3.0.0",
-    "pegjs": "^0.8.0",
+    "pegjs": "^0.10.0",
     "phantomjs": "^2.1.7",
     "uglify-js": "^3.10.4"
   }
