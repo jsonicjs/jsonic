@@ -7,8 +7,9 @@
     "test": "jasmine-node ./test ; phantomjs test/run-jasmine.js test/jasmine.html",
     "build": "./build.sh",
     "clean": "rm -rf node_modules yarn.lock package-lock.json",
+    "reset": "npm run clean && npm i && npm run build && npm test",
     "repo-tag": "REPO_VERSION=`node -e \"console.log(require('./package').version)\"`; echo TAG: v$REPO_VERSION; git commit -a -m v$REPO_VERSION; git push; git tag v$REPO_VERSION; git push --tags;",
-    "repo-publish": "npm run repo-tag; npm publish"    
+    "repo-publish": "npm run repo-tag; npm publish"
   },
   "repository": {
     "type": "git",
@@ -31,9 +32,9 @@
     "jsonic-parser.pegjs"
   ],
   "devDependencies": {
-    "jasmine-node": "^1.14.5",
+    "jasmine-node": "^3.0.0",
     "pegjs": "^0.8.0",
-    "phantomjs": "^1.8.2-3",
-    "underscore": "^1.8.3"
+    "phantomjs": "^2.1.7",
+    "uglify-js": "^3.10.4"
   }
 }

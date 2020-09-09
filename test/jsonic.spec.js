@@ -77,7 +77,7 @@ describe('happy', function(){
     expect( jsonic( Number(1) ) ).toBe('1')
     expect( jsonic( true ) ).toBe('true')
     expect( jsonic( false ) ).toBe('false')
-    expect( jsonic( function foo () {} ) ).toBe('function foo() {}')
+    expect( jsonic( function foo () {} ).replace(/ +/g,'') ).toBe('functionfoo(){}')
 
     var d = new Date()
     expect( jsonic( d ) ).toBe(''+d)
