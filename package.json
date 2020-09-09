@@ -1,6 +1,6 @@
 {
   "name": "jsonic",
-  "version": "0.3.1",
+  "version": "1.0.0",
   "description": "A JSON parser that isn't strict.",
   "main": "jsonic.js",
   "scripts": {
@@ -9,7 +9,7 @@
     "clean": "rm -rf node_modules yarn.lock package-lock.json",
     "reset": "npm run clean && npm i && npm run build && npm test",
     "repo-tag": "REPO_VERSION=`node -e \"console.log(require('./package').version)\"`; echo TAG: v$REPO_VERSION; git commit -a -m v$REPO_VERSION; git push; git tag v$REPO_VERSION; git push --tags;",
-    "repo-publish": "npm run repo-tag; npm publish"
+    "repo-publish": "npm run reset && npm run repo-tag && npm publish"
   },
   "repository": {
     "type": "git",
