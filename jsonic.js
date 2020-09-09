@@ -6,7 +6,7 @@ TODO: if number fails, assume it's just a string, might be an identifier of some
 */
 
 ;(function() {
-  var root           = this
+  var root           = this || {}
   var previous_jsonic = root.jsonic
 
   var has_require = typeof require !== 'undefined'
