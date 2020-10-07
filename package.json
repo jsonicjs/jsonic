@@ -31,6 +31,9 @@
     "jsonic-parser.js",
     "jsonic-parser.pegjs"
   ],
+  "bin": {
+    "jsonic": "bin/jsonic"
+  },
   "devDependencies": {
     "jasmine-node": "^3.0.0",
     "pegjs": "^0.10.0",
