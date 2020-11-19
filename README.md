@@ -107,6 +107,16 @@ The options are:
 
 The parser uses [PEG.js](http://pegjs.majda.cz/) and is an extension of the example JSON parser included in that project.
 
+
+
+## Dev Notes
+
+All `ts` files are placed in the project so that plugin imports can take the form:
+```
+import { Stringify } from 'jsonic/stringify'
+```
+
+
 [npm-badge]: https://badge.fury.io/js/jsonic.svg
 [npm-url]: https://badge.fury.io/js/jsonic
 [travis-badge]: https://api.travis-ci.org/rjrodger/jsonic.svg
