@@ -4,7 +4,11 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.Jsonic = void 0;
 // TODO: return non-strings as is
 function parse(src) {
-    return JSON.parse(src);
+    //return JSON.parse(src)
+    if ('string' === typeof (src)) {
+        return process(lexer(src));
+    }
+    return src;
 }
 function use(plugin) {
     plugin(parse);
@@ -337,6 +341,8 @@ let digital = {
     'D': true,
     'f': true,
     'F': true,
+    '+': true,
+    '-': true,
 };
 let spaces = {
     ' ': true,

@@ -20,7 +20,11 @@ type Plugin = (jsonic: Jsonic) => void
 
 // TODO: return non-strings as is
 function parse(src: any): any {
-  return JSON.parse(src)
+  //return JSON.parse(src)
+  if ('string' === typeof (src)) {
+    return process(lexer(src))
+  }
+  return src
 }
 
 
@@ -444,6 +448,8 @@ let digital: { [key: string]: boolean } = {
   'D': true,
   'f': true,
   'F': true,
+  '+': true,
+  '-': true,
 }
 
 let spaces: { [key: string]: boolean } = {

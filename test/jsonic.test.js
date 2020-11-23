@@ -13,6 +13,7 @@ var expect = Code.expect
 
 var { Jsonic } = require('..')
 
+let j = Jsonic
 let lexer = Jsonic.lexer
 let prc = Jsonic.process
 
@@ -484,6 +485,517 @@ describe('jsonic', function () {
     expect(prc(lexer(' a: [ { b: 1 } ] '))).equal({a:[{b:1}]})
     expect(prc(lexer('\na: [\n  {\n     b: 1\n  }\n]\n'))).equal({a:[{b:1}]})
   })
+
+  it('api', () => {
+    expect(Jsonic('a:1')).equal({a:1})
+    expect(Jsonic.parse('a:1')).equal({a:1})
+  })
+  
+
+
+  it('pv-works', function(){
+    expect(j('foo:1, bar:zed')).equal( {"foo":1,"bar":"zed"} )
+    expect(j('foo-foo:1, bar:zed')).equal( {"foo-foo":1,"bar":"zed"} )
+    expect(j('"foo-foo":1, bar:zed')).equal( {"foo-foo":1,"bar":"zed"} )
+    expect(j('"foo-1":1, bar:zed')).equal( {"foo-1":1,"bar":"zed"} )
+    expect(j('"foo-0":1, bar:zed')).equal( {"foo-0":1,"bar":"zed"} )
+    expect(j('"-foo-":1, bar:zed')).equal( {"-foo-":1,"bar":"zed"} )
+    expect(j('"-foo":1, bar:zed')).equal( {"-foo":1,"bar":"zed"} )
+    expect(j('"foo-bar-":1, bar:zed')).equal( {"foo-bar-":1,"bar":"zed"} )
+    expect(j('"foo-":1, bar:zed')).equal( {"foo-":1,"bar":"zed"} )
+    expect(j('"foo---foo":1, bar:zed')).equal( {"foo---foo":1,"bar":"zed"} )
+    expect(j('foo--foo:1, bar:zed')).equal( {"foo--foo":1,"bar":"zed"} )
+    expect(j('"foo--1":1, bar:zed')).equal( {"foo--1":1,"bar":"zed"} )
+    expect(j('"foo---0":1, bar:zed')).equal( {"foo---0":1,"bar":"zed"} )
+    expect(j('"--foo--":1, bar:zed')).equal( {"--foo--":1,"bar":"zed"} )
+    expect(j('"--foo":1, bar:zed')).equal( {"--foo":1,"bar":"zed"} )
+    expect(j('"foo--bar-baz":1, "-bar":zed')).equal( {"foo--bar-baz":1,"-bar":"zed"} )
+    expect(j('"foo--":1, bar:zed')).equal( {"foo--":1,"bar":"zed"} )
+    expect(j('{foo:"bar", arr:[0,0]}')).equal( {"foo":"bar","arr":[0,0]} )
+    expect(j("'a':1,':':2, c : 3")).equal( {"a":1,":":2,"c":3} )
+  })
+
+  
+/*
+  it('funky-input', function(){
+
+    // Object values are just returned
+    expect( '{"foo":1,"bar":"zed"}' ).toBe(
+      JSON.stringify(jsonic( {foo:1,bar:'zed'} )) )
+
+    expect( '["a","b"]' ).toBe(
+      JSON.stringify(jsonic( ['a','b'] )) )
+
+    expect( jsonic( /a/ ) ).toBe('/a/')
+    expect( jsonic( NaN ) ).toBe('NaN')
+    expect( jsonic( null ) ).toBe('null')
+    expect( jsonic( undefined ) ).toBe('undefined')
+    expect( jsonic( void 0 ) ).toBe('undefined')
+    expect( jsonic( 1 ) ).toBe('1')
+    expect( jsonic( Number(1) ) ).toBe('1')
+    expect( jsonic( true ) ).toBe('true')
+    expect( jsonic( false ) ).toBe('false')
+    expect( jsonic( function foo () {} ).replace(/ +/g,'') ).toBe('functionfoo(){}')
+
+    var d = new Date()
+    expect( jsonic( d ) ).toBe(''+d)
+
+            
+    try { jsonic( 'a:' ); expect('a:').toBe('FAIL') }
+    catch(e) { expect(e.message.match(/^Expected/)).toBeTruthy() }
+
+    try { jsonic( 'b:\n}' ); expect('b:}').toBe('FAIL') }
+    catch(e) { expect(e.message.match(/^Expected/)).toBeTruthy() }
+
+    try { jsonic( 'c:\r}' ); expect('c:}').toBe('FAIL') }
+    catch(e) { expect(e.message.match(/^Expected/)).toBeTruthy() }
+
+  })
+
+
+  it('types', function(){
+    var out = jsonic("null:null,int:100,dec:9.9,t:true,f:false,qs:\"a\\\"a'a\",as:'a\"a\\'a'")
+
+    expect( null === out.null ).toBeTruthy()
+    expect( null ).toBe( out.null )
+
+    expect(  _.isNumber(out.int) ).toBeTruthy()
+    expect( 100 ).toBe( out.int )
+
+    expect(  _.isNumber(out.dec) ).toBeTruthy()
+    expect( 9.9 ).toBe( out.dec )
+
+    expect(  _.isBoolean(out.t) ).toBeTruthy()
+    expect( true ).toBe( out.t )
+
+    expect(  _.isBoolean(out.f) ).toBeTruthy()
+    expect( false ).toBe( out.f )
+
+    expect(  _.isString(out.qs) ).toBeTruthy()
+    expect( "a\"a'a" ).toBe( out.qs )
+
+    expect(  _.isString(out.as) ).toBeTruthy()
+    expect( "a\"a'a" ).toBe( out.as )
+  })
+*/
+
+  it('pv-subobj', function(){
+    expect(j("a:{b:1},c:2")).equal({"a":{"b":1},"c":2})
+
+    expect(j("a:{b:1}")).equal({"a":{"b":1}})
+
+    expect(j("a:{b:{c:1}}")).equal({"a":{"b":{"c":1}}})
+  })
+
+
+  it('pv-comma', function(){
+    expect(j("a:1, b:2, ")).equal({"a":1,"b":2})
+
+    expect(j("a:1,")).equal({"a":1})
+
+    // DIFF expect(j(",a:1")).equal({"a":1})
+
+    // DIFF expect(j(",")).equal({})
+
+    // DIFF expect(j(",,")).equal({})
+
+    expect(j("[a,]")).equal(["a"])
+
+    expect(j("[a,1,]")).equal(["a",1])
+
+    // DIFF expect(j("[,a,1,]")).equal(["a",1])
+
+    // DIFF expect(j("[,]")).equal([])
+
+    // DIFF expect(j("[,,]")).equal([])
+  })
+
+
+  it('pv-empty', function(){
+    // DIFF expect(j("")).equal('{}')
+  })
+
+
+  it('pv-arrays', function(){
+    expect(j("[]")).equal([])
+
+    expect(j("[1]")).equal([1])
+
+    expect(j("[1,2]")).equal([1,2])
+
+    expect(j("[ 1 , 2 ]")).equal([1,2])
+
+    expect(j("{a:[],b:[1],c:[1,2]}")).equal({"a":[],"b":[1],"c":[1,2]})
+
+    expect(j("{a: [ ] , b:[b], c:[ c , dd ]}"))
+      .equal({"a":[],"b":["b"],"c":["c","dd"]})
+
+    expect(j("['a']")).equal(["a"])
+
+    expect(j('["a"]')).equal(["a"])
+
+    expect(j("['a',\"b\"]")).equal(["a","b"])
+
+    expect(j("[ 'a' , \"b\" ]")).equal(["a","b"])
+  })
+
+  
+
+  it('pv-deep', function(){
+    var x = '{a:[[{b:1}],{c:[{d:1}]}]}'
+
+    expect(j(x)).equal({"a":[[{"b":1}],{"c":[{"d":1}]}]})
+
+    expect(j('['+x+']')).equal([{"a":[[{"b":1}],{"c":[{"d":1}]}]}])
+  })
+
+  
+
+  it('pv-strings', function(){
+    expect(j("a:'',b:\"\"")).equal({"a":"","b":""})
+
+    // DIFF expect(j("a:x y")).equal({"a":"x y"})
+
+    // DIFF expect(j("a:x, b:y z")).equal({"a":"x","b":"y z"})
+
+    // trimmed
+    // DIFF expect(j("a: x , b: y z ")).equal({"a":"x","b":"y z"})
+
+    expect(j("a:'x', aa: 'x' , b:'y\"z', bb: 'y\"z' ,bbb:\"y'z\", bbbb: \"y'z\", c:\"\\n\", d:'\\n'")).equal({"a":"x","aa":"x","b":"y\"z","bb":"y\"z","bbb":"y'z","bbbb":"y\'z","c":"\n","d":"\n"})
+
+    // chars
+    // FIX expect(j("a:'\\'\\\\\\/\\b\\f\\n\\r\\t\\u0010'")).equal({"a":"\'\\\\/\\b\\f\\n\\r\\t\\u0010"})
+
+    // FIX expect(j('a:"\\"\\\\\\/\\b\\f\\n\\r\\t\\u0010"')).equal({"a":"\\\"\\\\/\\b\\f\\n\\r\\t\\u0010"})
+  })
+
+
+  it('pv-numbers', function(){
+    expect(j("x:0,a:102,b:1.2,c:-3,d:-4.5,e:-10")).equal({"x":0,"a":102,"b":1.2,"c":-3,"d":-4.5,"e":-10})
+
+    expect(j("x:0,a:102,b:1.2,c:1e2,d:1.2e3,e:1e+2,f:1e-2,g:1.2e+3,h:1.2e-3,i:-1.2e+3,j:-1.2e-3")).equal({"x":0,"a":102,"b":1.2,"c":100,"d":1200,"e":100,"f":0.01,"g":1200,"h":0.0012,"i":-1200,"j":-0.0012})
+
+    // digit prefix, but actually a string - could be an ID etc.
+    // DIFF expect(j("x:01,a:1a,b:10b,c:1e2e")).equal({"x":"01","a":"1a","b":"10b","c":"1e2e"})
+  })
+
+
+  it('pv-drop-outs', function(){
+    expect(j("a:0a")).equal({"a":"0a"})
+
+    expect(j("a:-0a")).equal({"a":"-0a"})
+
+    expect(j("a:0.a")).equal({"a":"0.a"})
+
+    // ORIG COMMENTED expect(j("a:-0.a")).equal({"a":"-0.a"})
+
+    expect(j("a:0.0a")).equal({"a":"0.0a"})
+
+    expect(j("a:-0.0a")).equal({"a":"-0.0a"})
+
+    // DIFF expect(j("a:'a,")).equal({"a":"\'a"})
+    
+    // DIFF expect(j("a:'a\"")).equal({"a":"\'a\""})
+
+    // DIFF expect(j("a:'\\u")).equal({"a":"\'\\u"})
+
+    // DIFF expect(j("a:'\\uZ")).equal({"a":"\'\\uZ"})
+  })
+
+/*
+  it( 'bad', function(){
+    try { jsonic('{');
+          expect('bad-{').toBe('FAIL') } catch(e) {}
+
+    try { jsonic('}');
+          expect('bad-}').toBe('FAIL') } catch(e) {}
+
+    try { jsonic('a');
+          expect('bad-a').toBe('FAIL') } catch(e) {}
+
+    try { jsonic('!');
+          expect('bad-!').toBe('FAIL') } catch(e) {}
+
+    try { jsonic('0');
+          expect('bad-0').toBe('FAIL') } catch(e) {}
+
+    try { jsonic('a:,');
+          expect('bad-a:,').toBe('FAIL') } catch(e) {}
+
+    try { jsonic('\\');
+          expect('bad-\\').toBe('FAIL') } catch(e) {}
+
+    try { jsonic('"');
+          expect('bad-"').toBe('FAIL') } catch(e) {}
+
+    try { jsonic('""');
+          expect('bad-""').toBe('FAIL') } catch(e) {}
+
+    try { jsonic('a:{,');
+          expect('bad-a:{,').toBe('FAIL') } catch(e) {}
+
+    try { jsonic('a:,}');
+          expect('bad-a:,}').toBe('FAIL') } catch(e) {}
+
+    try { jsonic('a:');
+          expect('bad-a:,}').toBe('FAIL') } catch(e) {}
+
+    try { jsonic('a:"\""');
+          expect('bad-a:"\""').toBe('FAIL') } catch(e) {}
+
+    try { jsonic("a:'\''");
+          expect("bad-a:'\''").toBe('FAIL') } catch(e) {}
+
+    try { jsonic("a:{{}}");
+          expect("bad-a:{{}}").toBe('FAIL') } catch(e) {}
+
+    try { jsonic("a:{}}");
+          expect("bad-a:{}}").toBe('FAIL') } catch(e) {}
+
+    try { jsonic("a:{[]}");
+          expect("bad-a:{[]}").toBe('FAIL') } catch(e) {}
+
+    try { jsonic("a:{[}");
+          expect("bad-a:{[}").toBe('FAIL') } catch(e) {}
+
+    try { jsonic("a:{]}");
+          expect("bad-a:{]}").toBe('FAIL') } catch(e) {}
+
+    try { jsonic("a:{a}");
+          expect("bad-a:{a}").toBe('FAIL') } catch(e) {}
+
+    try { jsonic("a:{a,b}");
+          expect("bad-a:{a,b}").toBe('FAIL') } catch(e) {}
+
+    try { jsonic("a:{a:1,b}");
+          expect("bad-a:{a:1,b}").toBe('FAIL') } catch(e) {}
+
+    try { jsonic("a:{a:1,b:}");
+          expect("bad-a:{a:1,b:}").toBe('FAIL') } catch(e) {}
+
+    try { jsonic("a:{a:1,b:,}");
+          expect("bad-a:{a:1,b:,}").toBe('FAIL') } catch(e) {}
+
+    try { jsonic("a:{a:1,b:]}");
+          expect("bad-a:{a:1,b:]}").toBe('FAIL') } catch(e) {}
+
+    try { jsonic("[");
+          expect("bad-[").toBe('FAIL') } catch(e) {}
+
+    try { jsonic("{");
+          expect("bad-{").toBe('FAIL') } catch(e) {}
+
+    try { jsonic("}");
+          expect("bad-}").toBe('FAIL') } catch(e) {}
+
+    try { jsonic("]");
+          expect("bad-]").toBe('FAIL') } catch(e) {}
+
+
+  })
+
+
+  it( 'json', function(){
+    var js = JSON.stringify
+    var jp = JSON.parse
+    var x,g
+
+    x='{}'; g=js(jp(x));
+    expect(js(jsonic(x))).toBe(g)
+
+    x=' \r\n\t{ \r\n\t} \r\n\t'; g=js(jp(x));
+    expect(js(jsonic(x))).toBe(g)
+
+    x=' \r\n\t{ \r\n\t"a":1 \r\n\t} \r\n\t'; g=js(jp(x));
+    expect(js(jsonic(x))).toBe(g)
+
+    x='{"a":[[{"b":1}],{"c":[{"d":1}]}]}'; g=js(jp(x));
+    expect(js(jsonic(x))).toBe(g)
+
+    x='['+x+']'; g=js(jp(x));
+    expect(js(jsonic(x))).toBe(g)
+  })
+
+
+  it( 'stringify', function(){
+    expect( jsonic.stringify(null) ).toBe('null')
+    expect( jsonic.stringify(void 0) ).toBe('null')
+    expect( jsonic.stringify(NaN) ).toBe('null')
+    expect( jsonic.stringify(0) ).toBe('0')
+    expect( jsonic.stringify(1.1) ).toBe('1.1')
+    expect( jsonic.stringify(1e-2) ).toBe('0.01')
+    expect( jsonic.stringify(true) ).toBe('true')
+    expect( jsonic.stringify(false) ).toBe('false')
+    expect( jsonic.stringify('') ).toBe('')
+    expect( jsonic.stringify('a') ).toBe('a')
+    expect( jsonic.stringify("a") ).toBe('a')
+    expect( jsonic.stringify("a a") ).toBe('a a')
+    expect( jsonic.stringify(" a") ).toBe("' a'")
+    expect( jsonic.stringify("a ") ).toBe("'a '")
+    expect( jsonic.stringify(" a ") ).toBe("' a '")
+    expect( jsonic.stringify("'a") ).toBe("'\\'a'")
+    expect( jsonic.stringify("a'a") ).toBe("a'a")
+    expect( jsonic.stringify("\"a") ).toBe("'\"a'")
+    expect( jsonic.stringify("a\"a") ).toBe("a\"a")
+    expect( jsonic.stringify( function f(){ return 'f' }) ).toBe('')
+
+
+    var s,d
+
+    s='[]';d=[];
+    expect( jsonic.stringify(d) ).toBe(s)
+    expect( jsonic(s) ).toEqual(d)
+
+    s='[1]';d=[1];
+    expect( jsonic.stringify(d) ).toBe(s)
+    expect( jsonic(s) ).toEqual(d)
+
+    s='[1,2]';d=[1,2];
+    expect( jsonic.stringify(d) ).toBe(s)
+    expect( jsonic(s) ).toEqual(d)
+
+    s='[a,2]';d=['a',2];
+    expect( jsonic.stringify(d) ).toBe(s)
+    expect( jsonic(s) ).toEqual(d)
+
+    s="[' a',2]";d=[' a',2];
+    expect( jsonic.stringify(d) ).toBe(s)
+    expect( jsonic(s) ).toEqual(d)
+
+    s="[a\'a,2]";d=["a'a",2];
+    expect( jsonic.stringify(d) ).toBe(s)
+    expect( jsonic(s) ).toEqual(d)
+
+    // default max depth is 3
+    s='[1,[2,[3,[]]]]';d=[1,[2,[3,[4,[]]]]];
+    expect( jsonic.stringify(d) ).toBe(s)
+
+    s='[1,[2,[3,[4,[]]]]]';d=[1,[2,[3,[4,[]]]]];
+    expect( jsonic(s) ).toEqual(d)
+
+
+    s='{}';d={};
+    expect( jsonic.stringify(d) ).toBe(s)
+    expect( jsonic(s) ).toEqual(d)
+
+    s='{a:1}';d={a:1};
+    expect( jsonic.stringify(d) ).toBe(s)
+    expect( jsonic(s) ).toEqual(d)
+
+    s='{a:a}';d={a:'a'};
+    expect( jsonic.stringify(d) ).toBe(s)
+    expect( jsonic(s) ).toEqual(d)
+
+    s='{a:A,b:B}';d={a:'A',b:'B'};
+    expect( jsonic.stringify(d) ).toBe(s)
+    expect( jsonic(s) ).toEqual(d)
+
+    // default max depth is 3
+    s='{a:{b:{c:{}}}}';d={a:{b:{c:{d:1}}}};
+    expect( jsonic.stringify(d) ).toBe(s)
+
+    s='{a:{b:{c:{d:1}}}}';d={a:{b:{c:{d:1}}}};
+    expect( jsonic(s) ).toEqual(d)
+
+    // custom depth
+    s='{a:{b:{}}}';d={a:{b:{c:{d:1}}}};
+    expect( jsonic.stringify(d,{depth:2}) ).toBe(s)
+
+    // omits
+    expect( jsonic.stringify({a:1,b:2},{omit:[]}) ).toBe('{a:1,b:2}')
+    expect( jsonic.stringify({a:1,b:2},{omit:['c']}) ).toBe('{a:1,b:2}')
+    expect( jsonic.stringify({a:1,b:2},{omit:['a']}) ).toBe('{b:2}')
+    expect( jsonic.stringify({a:1,b:2},{omit:['a','b']}) ).toBe('{}')
+
+    // omits at all depths!
+    expect( jsonic.stringify({b:{a:1,c:2}},{omit:['a']}) ).toBe('{b:{c:2}}')
+
+    // excludes if contains
+    expect( jsonic.stringify({a$:1,b:2}) ).toBe('{b:2}')
+    expect( jsonic.stringify({a$:1,bx:2,cx:3},{exclude:['b']}) ).toBe('{a$:1,cx:3}')
+
+
+    // custom
+    var o1 = {a:1,toString:function(){return '<A>'}}
+    expect( jsonic.stringify(o1) ).toBe('{a:1}')
+    expect( jsonic.stringify(o1,{custom:true}) ).toBe('<A>')
+    var o1_1 = {a:1,inspect:function(){return '<A>'}}
+    expect( jsonic.stringify(o1_1) ).toBe('{a:1}')
+    expect( jsonic.stringify(o1_1,{custom:true}) ).toBe('<A>')
+
+
+    // maxitems
+    var o2 = [1,2,3,4,5,6,7,8,9,10,11,12]
+    expect( jsonic.stringify(o2) ).toBe('[1,2,3,4,5,6,7,8,9,10,11]')
+    expect( jsonic.stringify(o2,{maxitems:12}) ).toBe('[1,2,3,4,5,6,7,8,9,10,11,12]')
+    expect( jsonic.stringify(o2,{maxitems:13}) ).toBe('[1,2,3,4,5,6,7,8,9,10,11,12]')
+
+    var o3 = {a:1,b:2,c:3,d:4,e:5,f:6,g:7,h:8,i:9,j:10,k:11,l:12}
+    expect( jsonic.stringify(o3) ).toBe(
+      '{a:1,b:2,c:3,d:4,e:5,f:6,g:7,h:8,i:9,j:10,k:11}')
+    expect( jsonic.stringify(o3,{maxitems:12}) ).toBe(
+      '{a:1,b:2,c:3,d:4,e:5,f:6,g:7,h:8,i:9,j:10,k:11,l:12}')
+    expect( jsonic.stringify(o3,{maxitems:12}) ).toBe(
+      '{a:1,b:2,c:3,d:4,e:5,f:6,g:7,h:8,i:9,j:10,k:11,l:12}')
+
+
+    // showfunc - needs custom=true as well
+    var o4 = {a:1,b:function b() {}}
+    expect( jsonic.stringify(o4) ).toBe('{a:1}')
+    expect( jsonic.stringify(o4,{showfunc:true}) )
+      .toBe('{a:1,b:function b() {}}')
+
+
+    // exception
+
+    var o5 = {toString:function(){ throw Error('foo') }}
+    expect( jsonic.stringify(o5,{custom:true}) )
+      .toBe( "ERROR: jsonic.stringify: Error: foo input was: {}" )
+
+
+    // maxchars
+    expect( jsonic.stringify([1,2,3],{maxchars:4}) ).toBe('[1,2')
+
+    // maxitems
+    expect( jsonic.stringify([1,2,3],{maxitems:2}) ).toBe('[1,2]')
+    expect( jsonic.stringify({a:1,b:2,c:3},{maxitems:2}) ).toBe('{a:1,b:2}')
+
+
+    // wierd keys
+    expect( jsonic.stringify({"_":0,"$":1,":":2,"":3,"\'":4,"\"":5,"\n":6}) )
+      .toBe( '{_:0,":":2,"":3,"\'":4,"\\"":5,"\\n":6}' )
+
+    // abbrevs
+    expect( jsonic.stringify({a:1,b:2},{o:['a']}) ).toBe('{b:2}')
+    expect( jsonic.stringify({a$:1,b:2,c:3},{x:['b']}) ).toBe('{a$:1,c:3}')
+    s='{a:{b:{}}}';d={a:{b:{c:{d:1}}}};
+    expect( jsonic.stringify(d,{d:2}) ).toBe(s)
+    expect( jsonic.stringify(o1,{c:true}) ).toBe('<A>')
+    expect( jsonic.stringify([1,2,3],{mc:4}) ).toBe('[1,2')
+    expect( jsonic.stringify([1,2,3],{mi:2}) ).toBe('[1,2]')
+  })
+
+
+  it('performance', function(){
+    var start = Date.now(), count = 0
+    var input =
+          "int:100,dec:9.9,t:true,f:false,qs:"+
+          "\"a\\\"a'a\",as:'a\"a\\'a',a:{b:{c:1}}"
+
+    while( Date.now()-start < 1000 ) {
+      jsonic(input)
+      count++
+    }
+
+    console.log( 'parse/sec: '+count )
+  })
+
+
+  it('noc',function(){
+    jsonic = jsonic.noConflict()
+    expect( jsonic.stringify([1]) ).toBe('[1]')
+  })
+*/
 })
 
 
