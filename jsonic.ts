@@ -37,6 +37,9 @@ type Token = {
   why?: string
 }
 
+
+const badunicode = String.fromCharCode('0x0000' as any)
+
 function lexer(src: string): () => Token {
   // NOTE: always returns this object!
   let token: Token = {
@@ -58,7 +61,7 @@ function lexer(src: string): () => Token {
     token.kind = lexer.BAD
     token.index = index
     token.col = cI
-    token.len = 1
+    token.len = index - sI + 1
     token.value = value
     token.why = why
     return token
@@ -73,10 +76,13 @@ function lexer(src: string): () => Token {
     let pI = 0
     let s: string[] = []
     let cc = -1
+    let qc = -1
+    let ec = -1
+    let ts: string
 
     while (sI < srclen) {
       let cur = src[sI]
-      // console.log('L cur', sI, cur[sI])
+
       switch (cur) {
 
         case ' ': case '\t':
@@ -89,6 +95,8 @@ function lexer(src: string): () => Token {
           pI--
 
           token.len = pI - sI
+          token.value = src.substring(sI, pI)
+
           sI = pI
           return token
 
@@ -105,6 +113,8 @@ function lexer(src: string): () => Token {
           pI--
 
           token.len = pI - sI
+          token.value = src.substring(sI, pI)
+
           sI = pI
           return token
 
@@ -126,7 +136,121 @@ function lexer(src: string): () => Token {
           sI++
           return token
 
+        case '[':
+          token.kind = lexer.OPEN_SQUARE
+          token.index = sI
+          token.col = cI++
+          token.len = 1
+          sI++
+          return token
 
+
+        case ']':
+          token.kind = lexer.CLOSE_SQUARE
+          token.index = sI
+          token.col = cI++
+          token.len = 1
+          sI++
+          return token
+
+
+        case ':':
+          token.kind = lexer.COLON
+          token.index = sI
+          token.col = cI++
+          token.len = 1
+          sI++
+          return token
+
+
+        case ',':
+          token.kind = lexer.COMMA
+          token.index = sI
+          token.col = cI++
+          token.len = 1
+          sI++
+          return token
+
+
+        case 't':
+          token.kind = lexer.TRUE
+          token.index = sI
+          token.col = cI
+
+          pI = sI
+
+          if ('rue' === src.substring(pI + 1, pI + 4) &&
+            lexer.ender[src[pI + 4]]) {
+            token.value = true
+            token.len = 4
+            pI += 4
+          }
+
+          // not a true literal
+          else {
+            while (!lexer.ender[src[++pI]]);
+            token.kind = lexer.TEXT
+            token.len = pI - sI
+            token.value = src.substring(sI, pI)
+          }
+
+          sI = cI = pI
+          return token
+
+
+        case 'f':
+          token.kind = lexer.FALSE
+          token.index = sI
+          token.col = cI
+
+          pI = sI
+
+          if ('alse' === src.substring(pI + 1, pI + 5) &&
+            lexer.ender[src[pI + 5]]) {
+            token.value = false
+            token.len = 5
+            pI += 5
+          }
+
+          // not a `false` literal
+          else {
+            while (!lexer.ender[src[++pI]]);
+            token.kind = lexer.TEXT
+            token.len = pI - sI
+            token.value = src.substring(sI, pI)
+          }
+
+          sI = cI = pI
+          return token
+
+
+        case 'n':
+          token.kind = lexer.NULL
+          token.index = sI
+          token.col = cI
+
+          pI = sI
+
+          if ('ull' === src.substring(pI + 1, pI + 4) &&
+            lexer.ender[src[pI + 4]]) {
+            token.value = null
+            token.len = 4
+            pI += 4
+          }
+
+          // not a `null` literal
+          else {
+            while (!lexer.ender[src[++pI]]);
+            token.kind = lexer.TEXT
+            token.len = pI - sI
+            token.value = src.substring(sI, pI)
+          }
+
+          sI = cI = pI
+          return token
+
+
+        case '-':
         case '0':
         case '1':
         case '2':
@@ -141,37 +265,84 @@ function lexer(src: string): () => Token {
           token.index = sI
           token.col = cI++
 
-          pI = sI + 1
-          while (lexer.digits[src[pI++]]) cI++;
-          pI--
+          pI = sI
+          while (lexer.digital[src[++pI]]);
 
-          token.len = pI - sI
-          token.value = +src.substring(sI, pI)
-          sI = pI
+          if (lexer.ender[src[pI]]) {
+            token.len = pI - sI
+            token.value = +(src.substring(sI, pI))
+
+            if (isNaN(token.value)) {
+              token.value = +(src.substring(sI, pI).replace(/_/g, ''))
+            }
+
+            if (isNaN(token.value)) {
+              token.value = null
+              pI--
+            }
+          }
+
+          // not a number
+          if (null == token.value) {
+            while (!lexer.ender[src[++pI]]);
+            token.kind = lexer.TEXT
+            token.len = pI - sI
+            token.value = src.substring(sI, pI)
+          }
+
+          sI = cI = pI
+
           return token
 
-
-        case '"':
+        case '"': case '\'':
           token.kind = lexer.STRING
           token.index = sI
           token.col = cI++
 
+          qc = cur.charCodeAt(0)
           s = []
           cc = -1
 
-          // TODO: paramtrz for " or '
           for (pI = sI + 1; pI < srclen; pI++) {
             cI++
 
             cc = src.charCodeAt(pI)
-            console.log('CC', sI, pI, cc, src.charAt(pI))
 
             if (cc < 32) {
               return bad('unprintable', pI, src.charAt(pI))
             }
-            else if (34 === cc) {
+            else if (qc === cc) {
               pI++
               break
+            }
+            else if (92 === cc) {
+              ec = src.charCodeAt(++pI)
+              cI++
+
+              switch (ec) {
+                case 110:
+                case 116:
+                case 114:
+                case 98:
+                case 102:
+                  s.push(escapes[ec])
+                  break
+
+                case 117:
+                  pI++
+                  ts = String.fromCharCode(('0x' + src.substring(pI, pI + 4)) as any)
+                  if (badunicode === ts) {
+                    return bad('invalid-unicode', pI, src.substring(pI - 2, pI + 4))
+                  }
+
+                  s.push(ts)
+                  pI += 3 // loop increments pI
+                  cI += 4
+                  break
+
+                default:
+                  s.push(src[pI])
+              }
             }
             else {
               let bI = pI
@@ -180,7 +351,7 @@ function lexer(src: string): () => Token {
                 cc = src.charCodeAt(++pI)
                 cI++
               }
-              while (32 <= cc && 34 !== cc);
+              while (32 <= cc && qc !== cc);
               cI--
 
               s.push(src.substring(bI, pI))
@@ -188,11 +359,8 @@ function lexer(src: string): () => Token {
             }
           }
 
-          console.log('BRK', sI, pI, cc)
-
-          //let cc = src.charCodeAt(pI)
-          if (34 !== cc) {
-            // TODO: indicate unterminated quote
+          if (qc !== cc) {
+            cI = sI
             return bad('unterminated', pI - 1, s.join(''))
           }
 
@@ -205,13 +373,17 @@ function lexer(src: string): () => Token {
 
 
         default:
-          token.kind = lexer.BAD
           token.index = sI
-          token.col = cI++
+          token.col = cI
 
-          token.len = 1
-          token.value = src[sI]
-          token.why = "unexpected"
+          pI = sI
+          while (!lexer.ender[src[++pI]]);
+
+          token.kind = lexer.TEXT
+          token.len = pI - sI
+          token.value = src.substring(sI, pI)
+
+          sI = cI = pI
           return token
       }
     }
@@ -224,8 +396,18 @@ function lexer(src: string): () => Token {
   }
 }
 
+let ender: { [key: string]: boolean } = {
+  ',': true,
+  ']': true,
+  '}': true,
+  ' ': true,
+  '\t': true,
+  '\n': true,
+  '\r': true,
+  undefined: true
+}
 
-let digits: { [key: string]: boolean } = {
+let digital: { [key: string]: boolean } = {
   '0': true,
   '1': true,
   '2': true,
@@ -236,6 +418,21 @@ let digits: { [key: string]: boolean } = {
   '7': true,
   '8': true,
   '9': true,
+  '.': true,
+  '_': true,
+  'x': true,
+  'e': true,
+  'E': true,
+  'a': true,
+  'A': true,
+  'b': true,
+  'B': true,
+  'c': true,
+  'C': true,
+  'd': true,
+  'D': true,
+  'f': true,
+  'F': true,
 }
 
 let spaces: { [key: string]: boolean } = {
@@ -248,9 +445,19 @@ let lines: { [key: string]: boolean } = {
   '\r': true,
 }
 
-lexer.digits = digits
+let escapes: string[] = new Array(116)
+escapes[98] = '\b'
+escapes[102] = '\f'
+escapes[110] = '\n'
+escapes[114] = '\r'
+escapes[116] = '\t'
+
+
+lexer.ender = ender
+lexer.digital = digital
 lexer.spaces = spaces
 lexer.lines = lines
+lexer.escapes = escapes
 
 lexer.BAD = 10
 lexer.END = 20
@@ -260,9 +467,18 @@ lexer.LINE = 200
 
 lexer.OPEN_BRACE = 1000
 lexer.CLOSE_BRACE = 2000
+lexer.OPEN_SQUARE = 3000
+lexer.CLOSE_SQUARE = 4000
+lexer.COLON = 5000
+lexer.COMMA = 6000
 
 lexer.NUMBER = 10000
 lexer.STRING = 20000
+lexer.TEXT = 30000
+
+lexer.TRUE = 100000
+lexer.FALSE = 200000
+lexer.NULL = 300000
 
 
 

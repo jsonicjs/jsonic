@@ -12,5 +12,6 @@ module.exports = {
     'no-console': 1,
     'no-unused-vars': [2, { args: 'none' }],
     'no-extra-semi': 0,
+    'no-useless-escape': 0,
   },
 }
