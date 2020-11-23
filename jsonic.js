@@ -2,6 +2,7 @@
 /* Copyright (c) 2013-2020 Richard Rodger, MIT License */
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.Jsonic = void 0;
+// TODO: return non-strings as is
 function parse(src) {
     return JSON.parse(src);
 }
@@ -292,6 +293,7 @@ function lexer(src) {
                     return token;
             }
         }
+        // LN001: keeps returning END past end of input
         token.kind = lexer.END;
         token.index = srclen;
         token.col = cI;
@@ -299,6 +301,7 @@ function lexer(src) {
     };
 }
 let ender = {
+    ':': true,
     ',': true,
     ']': true,
     '}': true,
@@ -370,10 +373,196 @@ lexer.TEXT = 30000;
 lexer.TRUE = 100000;
 lexer.FALSE = 200000;
 lexer.NULL = 300000;
+function process(lex) {
+    let err = undefined;
+    let lexing = true;
+    let tokens = [];
+    let ctx = {
+        tI: 0,
+        po: undefined,
+        pk: -1,
+        tstk: [],
+        nstk: [],
+        // PN007: empty string parse to undefined
+        res: undefined
+    };
+    while (lexing) {
+        // PN001: parse next top level token set, one of:
+        // * scalar - boolean, number, string, text, null
+        // * key colon - start key:value pair
+        // * value - end of key:value pair - implicitly creates parent object if needed
+        // * node open - object or array
+        // * ignorable - comma
+        tokens[ctx.tI] = tokens[ctx.tI] || { ...lex() };
+        let t0 = tokens[ctx.tI];
+        let k0 = t0.kind;
+        // console.log('W', ctx.tI, k0 + '=' + t0.value, ctx.tstk, ctx.nstk)
+        let t1;
+        let k1;
+        if (lexer.SPACE === k0) {
+            // skip, leave ctx.pk alone
+            ctx.tI++;
+            continue;
+        }
+        else if (lexer.LINE === k0) {
+            // skip, leave ctx.pk alone
+            ctx.tI++;
+            continue;
+        }
+        else if (lexer.END === k0) {
+            // console.log('END LEX S')
+            // PN004: top level implicit array does not need closing
+            if (ctx.po && !ctx.po.push) {
+                ctx.res = close_pair(ctx);
+            }
+            // console.log('END LEX res', ctx.res)
+            lexing = false;
+            break;
+        }
+        else if (lexer.BAD === k0) {
+            err = new Error(t0.why);
+            err.token = t0;
+            lexing = false;
+            break;
+        }
+        else if (lexer.OPEN_BRACE === k0) {
+            open_node(k0, ctx);
+            ctx.pk = k0;
+            continue;
+        }
+        else if (lexer.OPEN_SQUARE === k0) {
+            open_node(k0, ctx);
+            ctx.pk = k0;
+            continue;
+        }
+        else if (lexer.CLOSE_BRACE === k0) {
+            close_node(ctx);
+            ctx.pk = k0;
+            // PN002: comma after close brace optional, see PN001
+            continue;
+        }
+        else if (lexer.CLOSE_SQUARE === k0) {
+            close_node(ctx);
+            ctx.pk = k0;
+            // PN002: comma after close square optional, see PN001
+            continue;
+        }
+        // TODO: pair (a:b) or path (a:b:1==={a:{b:1}})?
+        let nI = 1;
+        do {
+            tokens[ctx.tI + nI] = tokens[ctx.tI + nI] || { ...lex() };
+            t1 = tokens[ctx.tI + nI];
+            k1 = t1.kind;
+            nI++;
+        } while (k1 == lexer.SPACE || k1 == lexer.LINE);
+        // console.log('P', ctx.tI, k0 + '=' + t0.value, k1 + '=' + t1.value)
+        if (lexer.COLON === k1) {
+            t0.key = true;
+            ctx.tstk.push(t0);
+            ctx.tI += nI;
+            ctx.pk = k0;
+            continue;
+        }
+        else if (lexer.COMMA === k0) {
+            // console.log('COMMA a', k0, ctx.tI, ctx.pk, ctx.po, ctx.res)
+            // PN004: bare comma implies a preceding null
+            // PN005: top level commas (no colon) imply top level array
+            if (null == ctx.po) {
+                ctx.po = [];
+                ctx.res = undefined === ctx.res ? null : ctx.res;
+                ctx.po.push(ctx.res);
+                ctx.res = ctx.po;
+            }
+            else if (ctx.po.push &&
+                (lexer.COMMA === ctx.pk || lexer.OPEN_SQUARE === ctx.pk)) {
+                ctx.po.push(null);
+            }
+            // PN006: trailing comma is ignored
+            ctx.tI++;
+            // console.log('COMMA z', ctx.tI, ctx.po, ctx.res)
+            ctx.pk = k0;
+            continue;
+        }
+        else if (lexer.NULL === k0) {
+            ctx.res = null;
+        }
+        else if (lexer.TRUE === k0) {
+            ctx.res = true;
+        }
+        else if (lexer.FALSE === k0) {
+            ctx.res = false;
+        }
+        else if (lexer.NUMBER === k0) {
+            ctx.res = t0.value;
+            // console.log('S N=' + ctx.res)
+        }
+        else if (lexer.STRING === k0) {
+            ctx.res = t0.value;
+        }
+        else if (lexer.TEXT === k0) {
+            ctx.res = t0.value;
+        }
+        ctx.pk = k0;
+        ctx.tI++;
+        //console.log('ENDa', ctx.tI, ctx.res, ctx.out, ctx.nstk)
+        // console.log('ENDa', ctx.tI, ctx.res, ctx.nstk)
+        ctx.res = close_pair(ctx);
+        /*
+        let pt = close_pair(ctx)
+      
+        if (!pt) {
+          console.log('ENDb', ctx.nstk)
+      
+          // TODO: close_node - handles missing closes
+          //while (ctx.po = ctx.nstk.pop()) {
+          //  ctx.out = ctx.po
+          //}
+      
+          lexing = false
+          // ctx.out = ctx.out || ctx.res
+        }
+        */
+    }
+    // return err || ctx.out
+    return err || ctx.res;
+}
+function close_pair(ctx) {
+    // console.log('CP', ctx.po)
+    if (ctx.po && ctx.po.push) {
+        ctx.po.push(ctx.res);
+        // console.log('CPa', ctx.po)
+    }
+    else {
+        let pt = ctx.tstk.pop();
+        if (pt && pt.key) {
+            ctx.po = ctx.po || ctx.nstk.pop() || {};
+            ctx.po[pt.value] = ctx.res;
+        }
+    }
+    // PN003: parent object/array || top level scalar
+    return ctx.po || ctx.res;
+}
+function open_node(kind, ctx) {
+    if (ctx.po) {
+        ctx.nstk.push(ctx.po);
+    }
+    ctx.po = lexer.OPEN_BRACE === kind ? {} : [];
+    ctx.tI++;
+    // console.log('ON', ctx.po, ctx.tI, ctx.nstk.length)
+}
+function close_node(ctx) {
+    ctx.res = ctx.po;
+    ctx.po = ctx.nstk.pop();
+    ctx.tI++;
+    close_pair(ctx);
+    // console.log('CNz res', ctx.res)
+    return ctx.res;
+}
 let Jsonic = Object.assign(parse, {
     use,
     parse: (src) => parse(src),
     lexer,
+    process,
 });
 exports.Jsonic = Jsonic;
 //# sourceMappingURL=jsonic.js.map

@@ -3,3 +3,4 @@ test/readme.js
 trial
 dist
 test-web
+*.min.js

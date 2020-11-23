@@ -14,6 +14,7 @@ var expect = Code.expect
 var { Jsonic } = require('..')
 
 let lexer = Jsonic.lexer
+let prc = Jsonic.process
 
 function lexall(src) {
   let lex = lexer(src)
@@ -35,12 +36,12 @@ function alleq(ta) {
 
 
 describe('jsonic', function () {
-  it('happy', async () => {
+  it('happy', () => {
     expect(Jsonic('{"a":1}')).equals({a: 1})
   })
 
 
-  it('lex-specials', async () => {
+  it('lex-specials', () => {
 
     let lex0 = lexer(' {123 ')
     expect(lex0()).equals(
@@ -51,6 +52,12 @@ describe('jsonic', function () {
       { kind: 10000, index: 2, len: 3, row: 0, col: 2, value: 123 })
     expect(lex0()).equals(
       { kind: 100, index: 5, len: 1, row: 0, col: 5, value: ' ' })
+    expect(lex0()).equals(
+      { kind: 20, index: 6, len: 0, row: 0, col: 6, value: null })
+
+    // LN001
+    expect(lex0()).equals(
+      { kind: 20, index: 6, len: 0, row: 0, col: 6, value: null })
     expect(lex0()).equals(
       { kind: 20, index: 6, len: 0, row: 0, col: 6, value: null })
 
@@ -104,7 +111,7 @@ describe('jsonic', function () {
   })
 
   
-  it('lex-space', async () => {
+  it('lex-space', () => {
     let lex0 = lexer(' \t')
     expect(lex0()).equals(
       { kind: 100, index: 0, len: 2, row: 0, col: 0, value: ' \t' })
@@ -123,7 +130,7 @@ describe('jsonic', function () {
   })
 
   
-  it('lex-brace', async () => {
+  it('lex-brace', () => {
     alleq([
       '{', ['{;0;1;0x0','E;1;0;0x1'],
       '{{', ['{;0;1;0x0','{;1;1;0x1','E;2;0;0x2'],
@@ -133,7 +140,7 @@ describe('jsonic', function () {
   })
 
 
-  it('lex-square', async () => {
+  it('lex-square', () => {
     alleq([
       '[', ['[;0;1;0x0','E;1;0;0x1'],
       '[[', ['[;0;1;0x0','[;1;1;0x1','E;2;0;0x2'],
@@ -143,7 +150,7 @@ describe('jsonic', function () {
   })
 
 
-  it('lex-colon', async () => {
+  it('lex-colon', () => {
     alleq([
       ':', ['D;0;1;0x0','E;1;0;0x1'],
       '::', ['D;0;1;0x0','D;1;1;0x1','E;2;0;0x2'],
@@ -151,7 +158,7 @@ describe('jsonic', function () {
   })
 
 
-  it('lex-comma', async () => {
+  it('lex-comma', () => {
     alleq([
       ',', ['C;0;1;0x0','E;1;0;0x1'],
       ',,', ['C;0;1;0x0','C;1;1;0x1','E;2;0;0x2'],
@@ -159,7 +166,7 @@ describe('jsonic', function () {
   })
 
 
-  it('lex-true', async () => {
+  it('lex-true', () => {
     alleq([
       'true', ['T;0;4;0x0;true','E;4;0;0x4'],
       'true ', ['T;0;4;0x0;true','S;4;1;0x4','E;5;0;0x5'],
@@ -170,7 +177,7 @@ describe('jsonic', function () {
   })
 
 
-  it('lex-false', async () => {
+  it('lex-false', () => {
     alleq([
       'false', ['F;0;5;0x0;false','E;5;0;0x5'],
       'false ', ['F;0;5;0x0;false','S;5;1;0x5','E;6;0;0x6'],
@@ -181,7 +188,7 @@ describe('jsonic', function () {
   })
 
   
-  it('lex-null', async () => {
+  it('lex-null', () => {
     alleq([
       'null', ['U;0;4;0x0;null','E;4;0;0x4'],
       'null ', ['U;0;4;0x0;null','S;4;1;0x4','E;5;0;0x5'],
@@ -195,7 +202,11 @@ describe('jsonic', function () {
 
 
 
-  it('lex-number', async () => {
+  it('lex-number', () => {
+    let lex0 = lexer('123')
+    expect(lex0())
+      .equal({ kind: 10000, index: 0, len: 3, row: 0, col: 0, value: 123 })
+    
     alleq([
       '0', ['N;0;1;0x0;0','E;1;0;0x1'],
       '-0', ['N;0;2;0x0;0','E;2;0;0x2'],
@@ -216,7 +227,7 @@ describe('jsonic', function () {
   })
 
 
-  it('lex-double-quote', async () => {
+  it('lex-double-quote', () => {
     alleq([
       '""', ['Q;0;2;0x0;','E;2;0;0x2'],
       '"a"', ['Q;0;3;0x0;a','E;3;0;0x3'],
@@ -244,11 +255,12 @@ describe('jsonic', function () {
       '"\\\\"', ['Q;0;4;0x0;\\','E;4;0;0x4'],
       '"\\u0040"', ['Q;0;8;0x0;@','E;8;0;0x8'],
       '"\\uQQQQ"', ['B;3;4;0x3;\\uQQQQ~invalid-unicode'],
+      '"[{}]:,"', ['Q;0;8;0x0;[{}]:,', 'E;8;0;0x8'],
     ])
   })
 
 
-  it('lex-single-quote', async () => {
+  it('lex-single-quote', () => {
     alleq([
       '\'\'', ['Q;0;2;0x0;','E;2;0;0x2'],
       '\'a\'', ['Q;0;3;0x0;a','E;3;0;0x3'],
@@ -276,11 +288,12 @@ describe('jsonic', function () {
       '\'\\\\\'', ['Q;0;4;0x0;\\','E;4;0;0x4'],
       '\'\\u0040\'', ['Q;0;8;0x0;@','E;8;0;0x8'],
       '\'\\uQQQQ\'', ['B;3;4;0x3;\\uQQQQ~invalid-unicode'],
+      '\'[{}]:,\'', ['Q;0;8;0x0;[{}]:,', 'E;8;0;0x8'],
     ])
   })
 
 
-  it('text', async () => {
+  it('lex-text', () => {
     alleq([
       'a-b', ['X;0;3;0x0;a-b','E;3;0;0x3'],
       '$a_', ['X;0;3;0x0;$a_','E;3;0;0x3'],
@@ -290,24 +303,187 @@ describe('jsonic', function () {
       ' a b ', ['S;0;1;0x0','X;1;1;0x1;a',
                 'S;2;1;0x2','X;3;1;0x3;b',
                 'S;4;1;0x4','E;5;0;0x5'],
+      'a:', ['X;0;1;0x0;a','D;1;1;0x1','E;2;0;0x2'],
     ])
   })
 
 
-  it('line', async () => {
+  it('lex-line', () => {
     alleq([
       '{a:1,\nb:2}', [
         '{;0;1;0x0',
-        'X;1;3;0x1;a:1',
+
+        'X;1;1;0x1;a',
+        'D;2;1;0x2',
+        'N;3;1;0x3;1',
+
         'C;4;1;0x4',
         'R;5;1;0x5',
-        'X;6;3;1x0;b:2',
+
+        'X;6;1;1x0;b',
+        'D;7;1;1x7',
+        'N;8;1;1x8;2',
+
         '};9;1;1x9',
         'E;10;0;1x10'
       ],
     ])
   })
 
+
+  it('process-scalars', () => {
+    expect(prc(lexer(''))).equal(undefined)
+    expect(prc(lexer('null'))).equal(null)
+    expect(prc(lexer('true'))).equal(true)
+    expect(prc(lexer('false'))).equal(false)
+    expect(prc(lexer('123'))).equal(123)
+    expect(prc(lexer('"a"'))).equal('a')
+    expect(prc(lexer('\'b\''))).equal('b')
+    expect(prc(lexer('q'))).equal('q')
+    expect(prc(lexer('x'))).equal('x')
+
+  })
+
+
+  it('process-implicit-object', () => {
+    expect(prc(lexer('a:1'))).equal({a:1})
+    expect(prc(lexer('a:1,b:2'))).equal({a:1, b:2})
+  })
+
+
+  it('process-object-tree', () => {
+    expect(prc(lexer('{}'))).equal({})
+    expect(prc(lexer('{a:1}'))).equal({a:1})
+    expect(prc(lexer('{a:1,b:q}'))).equal({a:1,b:'q'})
+    expect(prc(lexer('{a:1,b:q,c:"w"}'))).equal({a:1,b:'q',c:'w'})
+    
+    expect(prc(lexer('a:1,b:{c:2}'))).equal({a:1, b:{c:2}})
+    expect(prc(lexer('a:1,d:3,b:{c:2}'))).equal({a:1, d:3, b:{c:2}})
+    expect(prc(lexer('a:1,b:{c:2},d:3'))).equal({a:1, d:3, b:{c:2}})
+    expect(prc(lexer('a:1,b:{c:2},e:{f:4}'))).equal({a:1, b:{c:2}, e:{f:4}})
+    expect(prc(lexer('a:1,b:{c:2},d:3,e:{f:4}'))).equal({a:1, d:3, b:{c:2}, e:{f:4}})
+    expect(prc(lexer('a:1,b:{c:2},d:3,e:{f:4},g:5')))
+      .equal({a:1, d:3, b:{c:2}, e:{f:4}, g:5})
+
+    
+    expect(prc(lexer('a:1,b:{c:2},d:{e:{f:3}}')))
+      .equal({a:1, b:{c:2}, d:{e:{f:3}}})
+    expect(prc(lexer('a:1,b:{c:2},d:{e:{f:3}},g:4')))
+      .equal({a:1, b:{c:2}, d:{e:{f:3}}, g:4})
+    expect(prc(lexer('a:1,b:{c:2},d:{e:{f:3}},h:{i:5},g:4')))
+      .equal({a:1, b:{c:2}, d:{e:{f:3}}, g:4, h:{i:5}})
+
+    // PN002
+    expect(prc(lexer('a:1,b:{c:2}d:3'))).equal({ a: 1, b: { c: 2 }, d: 3 })
+  })
+
+  
+  it('process-array', () => {
+
+    // PN004, PN005
+    expect(prc(lexer(','))).equal([null])
+    expect(prc(lexer(',,'))).equal([null, null])
+    expect(prc(lexer('1,'))).equal([1])
+    expect(prc(lexer('0,'))).equal([0])
+    expect(prc(lexer(',1'))).equal([null,1])
+    expect(prc(lexer(',0'))).equal([null,0])
+    expect(prc(lexer(',1,'))).equal([null,1])
+    expect(prc(lexer(',0,'))).equal([null,0])
+    expect(prc(lexer(',1,,'))).equal([null,1,null])
+    expect(prc(lexer(',0,,'))).equal([null,0,null])
+
+    expect(prc(lexer('[]'))).equal([])
+    expect(prc(lexer('[,]'))).equal([null])
+    expect(prc(lexer('[,,]'))).equal([null,null])
+    
+    expect(prc(lexer('[0]'))).equal([0])
+    expect(prc(lexer('[0,1]'))).equal([0,1])
+    expect(prc(lexer('[0,1,2]'))).equal([0,1,2])
+    expect(prc(lexer('[0,]'))).equal([0])
+    expect(prc(lexer('[0,1,]'))).equal([0,1])
+    expect(prc(lexer('[0,1,2,]'))).equal([0,1,2])
+
+    expect(prc(lexer('[q]'))).equal(['q'])
+    expect(prc(lexer('[q,"w"]'))).equal(['q',"w"])
+    expect(prc(lexer('[q,"w",false]'))).equal(['q',"w",false])
+    expect(prc(lexer('[q,"w",false,0x,0x1]'))).equal(['q',"w",false,'0x',1])
+    expect(prc(lexer('[q,"w",false,0x,0x1,$]'))).equal(['q',"w",false,'0x',1,'$'])
+    expect(prc(lexer('[q,]'))).equal(['q'])
+    expect(prc(lexer('[q,"w",]'))).equal(['q',"w"])
+    expect(prc(lexer('[q,"w",false,]'))).equal(['q',"w",false])
+    expect(prc(lexer('[q,"w",false,0x,0x1,$,]'))).equal(['q',"w",false,'0x',1,'$'])
+
+    expect(prc(lexer('0,1'))).equal([0,1])
+
+    // PN006
+    expect(prc(lexer('0,1,'))).equal([0,1])
+    
+    expect(prc(lexer('a:{b:1}'))).equal({a:{b:1}})
+    expect(prc(lexer('a:[1]'))).equal({a:[1]})
+    expect(prc(lexer('a:[0,1]'))).equal({a:[0,1]})
+    expect(prc(lexer('a:[0,1,2]'))).equal({a:[0,1,2]})
+    expect(prc(lexer('{a:[0,1,2]}'))).equal({a:[0,1,2]})
+
+    expect(prc(lexer('a:[1],b:[2,3]'))).equal({a:[1],b:[2,3]})
+
+    expect(prc(lexer('[[]]'))).equal([[]])
+    expect(prc(lexer('[[],]'))).equal([[]])
+    expect(prc(lexer('[[],[]]'))).equal([[],[]])
+    expect(prc(lexer('[[[]],[]]'))).equal([[[]],[]])
+    expect(prc(lexer('[[[],[]],[]]'))).equal([[[],[]],[]])
+    expect(prc(lexer('[[[],[[]]],[]]'))).equal([[[],[[]]],[]])
+    expect(prc(lexer('[[[],[[],[]]],[]]'))).equal([[[],[[],[]]],[]])
+  })
+
+  it('process-mixed-nodes', () => {
+    expect(prc(lexer('a:[{b:1}]'))).equal({a:[{b:1}]})
+    expect(prc(lexer('{a:[{b:1}]}'))).equal({a:[{b:1}]})
+
+    expect(prc(lexer('[{a:1}]'))).equal([{a:1}])
+    expect(prc(lexer('[{a:1},{b:2}]'))).equal([{a:1},{b:2}])
+
+    expect(prc(lexer('[[{a:1}]]'))).equal([[{a:1}]])
+    expect(prc(lexer('[[{a:1},{b:2}]]'))).equal([[{a:1},{b:2}]])
+
+    expect(prc(lexer('[[[{a:1}]]]'))).equal([[[{a:1}]]])
+    expect(prc(lexer('[[[{a:1},{b:2}]]]'))).equal([[[{a:1},{b:2}]]])
+
+    expect(prc(lexer('[{a:[1]}]'))).equal([{a:[1]}])
+    expect(prc(lexer('[{a:[{b:1}]}]'))).equal([{a:[{b:1}]}])
+    expect(prc(lexer('[{a:{b:[1]}}]'))).equal([{a:{b:[1]}}])
+    expect(prc(lexer('[{a:{b:[{c:1}]}}]'))).equal([{a:{b:[{c:1}]}}])
+    expect(prc(lexer('[{a:{b:{c:[1]}}}]'))).equal([{a:{b:{c:[1]}}}])
+
+    expect(prc(lexer('[{},{a:[1]}]'))).equal([{},{a:[1]}])
+    expect(prc(lexer('[{},{a:[{b:1}]}]'))).equal([{},{a:[{b:1}]}])
+    expect(prc(lexer('[{},{a:{b:[1]}}]'))).equal([{},{a:{b:[1]}}])
+    expect(prc(lexer('[{},{a:{b:[{c:1}]}}]'))).equal([{},{a:{b:[{c:1}]}}])
+    expect(prc(lexer('[{},{a:{b:{c:[1]}}}]'))).equal([{},{a:{b:{c:[1]}}}])
+
+    expect(prc(lexer('[[],{a:[1]}]'))).equal([[],{a:[1]}])
+    expect(prc(lexer('[[],{a:[{b:1}]}]'))).equal([[],{a:[{b:1}]}])
+    expect(prc(lexer('[[],{a:{b:[1]}}]'))).equal([[],{a:{b:[1]}}])
+    expect(prc(lexer('[[],{a:{b:[{c:1}]}}]'))).equal([[],{a:{b:[{c:1}]}}])
+    expect(prc(lexer('[[],{a:{b:{c:[1]}}}]'))).equal([[],{a:{b:{c:[1]}}}])
+
+    expect(prc(lexer('[{a:[1]},{a:[1]}]'))).equal([{a:[1]},{a:[1]}])
+    expect(prc(lexer('[{a:[{b:1}]},{a:[{b:1}]}]'))).equal([{a:[{b:1}]},{a:[{b:1}]}])
+    expect(prc(lexer('[{a:{b:[1]}},{a:{b:[1]}}]'))).equal([{a:{b:[1]}},{a:{b:[1]}}])
+    expect(prc(lexer('[{a:{b:[{c:1}]}},{a:{b:[{c:1}]}}]')))
+      .equal([{a:{b:[{c:1}]}},{a:{b:[{c:1}]}}])
+    expect(prc(lexer('[{a:{b:{c:[1]}}},{a:{b:{c:[1]}}}]')))
+      .equal([{a:{b:{c:[1]}}},{a:{b:{c:[1]}}}])
+  })
+
+  it('process-whitespace', () => {
+    expect(prc(lexer('a: 1'))).equal({a:1})
+    expect(prc(lexer(' a: 1'))).equal({a:1})
+    expect(prc(lexer(' a: 1 '))).equal({a:1})
+    expect(prc(lexer(' a : 1 '))).equal({a:1})
+    
+    expect(prc(lexer(' a: [ { b: 1 } ] '))).equal({a:[{b:1}]})
+    expect(prc(lexer('\na: [\n  {\n     b: 1\n  }\n]\n'))).equal({a:[{b:1}]})
+  })
 })
 
 
