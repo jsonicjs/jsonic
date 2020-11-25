@@ -38,9 +38,50 @@ function alleq(ta) {
 
 describe('jsonic', function () {
   it('happy', () => {
-    expect(Jsonic('{"a":1}')).equals({a: 1})
+    expect(Jsonic('{a:1}')).equals({a: 1})
+
+    //expect(Jsonic('a:1')).equals({a: 1})
+    //expect(Jsonic('{"a":1}')).equals({a: 1})
+
+
   })
 
+  it('basic-object-tree', () => {
+    expect(Jsonic('{a:1}')).equals({a: 1})
+    expect(Jsonic('{a:1,b:2}')).equals({a:1,b:2})
+    expect(Jsonic('{a:1,b:2,c:3}')).equals({a:1,b:2,c:3})
+
+    expect(Jsonic('{a:{b:2}}')).equals({a:{b:2}})
+    expect(Jsonic('{a:{b:{c:2}}}')).equals({a:{b:{c:2}}})
+    expect(Jsonic('{a:{b:{c:{d:2}}}}')).equals({a:{b:{c:{d:2}}}})
+
+    expect(Jsonic('{x:10,a:{b:2}}')).equals({x:10,a:{b:2}})
+    expect(Jsonic('{x:10,a:{b:{c:2}}}')).equals({x:10,a:{b:{c:2}}})
+    expect(Jsonic('{x:10,a:{b:{c:{d:2}}}}')).equals({x:10,a:{b:{c:{d:2}}}})
+
+    expect(Jsonic('{a:{b:2},y:20}')).equals({a:{b:2},y:20})
+    expect(Jsonic('{a:{b:{c:2}},y:20}')).equals({a:{b:{c:2}},y:20})
+    expect(Jsonic('{a:{b:{c:{d:2}}},y:20}')).equals({a:{b:{c:{d:2}}},y:20})
+
+    expect(Jsonic('{x:10,a:{b:2},y:20}')).equals({x:10,a:{b:2},y:20})
+    expect(Jsonic('{x:10,a:{b:{c:2}},y:20}')).equals({x:10,a:{b:{c:2}},y:20})
+    expect(Jsonic('{x:10,a:{b:{c:{d:2}}},y:20}')).equals({x:10,a:{b:{c:{d:2}}},y:20})
+
+    expect(Jsonic('{a:{b:2,c:3}}')).equals({a:{b:2,c:3}})
+    expect(Jsonic('{a:{b:2,c:3,d:4}}')).equals({a:{b:2,c:3,d:4}})
+    expect(Jsonic('{a:{b:{e:2},c:3,d:4}}')).equals({a:{b:{e:2},c:3,d:4}})
+    expect(Jsonic('{a:{b:2,c:{e:3},d:4}}')).equals({a:{b:2,c:{e:3},d:4}})
+    expect(Jsonic('{a:{b:2,c:3,d:{e:4}}}')).equals({a:{b:2,c:3,d:{e:4}}})
+    
+    expect(Jsonic('{a:{b:{c:2,d:3}}}')).equals({a:{b:{c:2,d:3}}})
+    expect(Jsonic('{a:{b:{c:2,d:3,e:4}}}')).equals({a:{b:{c:2,d:3,e:4}}})
+    expect(Jsonic('{a:{b:{c:{f:2},d:3,e:4}}}')).equals({a:{b:{c:{f:2},d:3,e:4}}})
+    expect(Jsonic('{a:{b:{c:2,d:{f:3},e:4}}}')).equals({a:{b:{c:2,d:{f:3},e:4}}})
+    expect(Jsonic('{a:{b:{c:2,d:3,e:{f:4}}}}')).equals({a:{b:{c:2,d:3,e:{f:4}}}})
+    
+  })
+
+  
 
   it('lex-specials', () => {
 
@@ -342,10 +383,32 @@ describe('jsonic', function () {
     expect(prc(lexer('\'b\''))).equal('b')
     expect(prc(lexer('q'))).equal('q')
     expect(prc(lexer('x'))).equal('x')
-
   })
 
 
+  it('process-text', () => {
+    expect(prc(lexer('q'))).equal('q')
+    expect(prc(lexer('q w'))).equal('q w')
+    expect(prc(lexer('a:q w'))).equal({a:'q w'})
+    expect(prc(lexer('a:q w, b:1'))).equal({a:'q w', b:1})
+    expect(prc(lexer('a: q w , b:1'))).equal({a:'q w', b:1})
+    expect(prc(lexer('[q w]'))).equal(['q w'])
+    expect(prc(lexer('[ q w ]'))).equal(['q w'])
+    expect(prc(lexer('[ q w, 1 ]'))).equal(['q w', 1])
+    expect(prc(lexer('[ q w , 1 ]'))).equal(['q w', 1])
+    expect(prc(lexer('p:[q w]}'))).equal({p:['q w']})
+    expect(prc(lexer('p:[ q w ]'))).equal({p:['q w']})
+    expect(prc(lexer('p:[ q w, 1 ]'))).equal({p:['q w', 1]})
+    expect(prc(lexer('p:[ q w , 1 ]'))).equal({p:['q w', 1]})
+    expect(prc(lexer('p:[ q w , 1 ]'))).equal({p:['q w', 1]})
+    expect(prc(lexer('[ qq ]'))).equal(['qq'])
+    expect(prc(lexer('[ q ]'))).equal(['q'])
+    expect(prc(lexer('[ c ]'))).equal(['c'])
+    expect(prc(lexer('c:[ c ]'))).equal({c:['c']})
+    expect(prc(lexer('c:[ c , cc ]'))).equal({c:['c', 'cc']})
+  })
+
+  
   it('process-implicit-object', () => {
     expect(prc(lexer('a:1'))).equal({a:1})
     expect(prc(lexer('a:1,b:2'))).equal({a:1, b:2})
@@ -353,6 +416,7 @@ describe('jsonic', function () {
 
 
   it('process-object-tree', () => {
+    /*
     expect(prc(lexer('{}'))).equal({})
     expect(prc(lexer('{a:1}'))).equal({a:1})
     expect(prc(lexer('{a:1,b:q}'))).equal({a:1,b:'q'})
@@ -366,7 +430,16 @@ describe('jsonic', function () {
     expect(prc(lexer('a:1,b:{c:2},d:3,e:{f:4},g:5')))
       .equal({a:1, d:3, b:{c:2}, e:{f:4}, g:5})
 
-    
+    expect(prc(lexer('a:{b:1}'))).equal({a:{b:1}})
+    */
+
+    //expect(prc(lexer('{a:{b:1}}'))).equal({a:{b:1}})
+    //expect(prc(lexer('a:{b:1}'))).equal({a:{b:1}})
+
+    expect(prc(lexer('{a:{b:{c:1}}}'))).equal({a:{b:{c:1}}})
+    //expect(prc(lexer('a:{b:{c:1}}'))).equal({a:{b:{c:1}}})
+
+    /*
     expect(prc(lexer('a:1,b:{c:2},d:{e:{f:3}}')))
       .equal({a:1, b:{c:2}, d:{e:{f:3}}})
     expect(prc(lexer('a:1,b:{c:2},d:{e:{f:3}},g:4')))
@@ -376,6 +449,7 @@ describe('jsonic', function () {
 
     // PN002
     expect(prc(lexer('a:1,b:{c:2}d:3'))).equal({ a: 1, b: { c: 2 }, d: 3 })
+    */
   })
 
   
@@ -436,6 +510,7 @@ describe('jsonic', function () {
     expect(prc(lexer('[[[],[[],[]]],[]]'))).equal([[[],[[],[]]],[]])
   })
 
+  
   it('process-mixed-nodes', () => {
     expect(prc(lexer('a:[{b:1}]'))).equal({a:[{b:1}]})
     expect(prc(lexer('{a:[{b:1}]}'))).equal({a:[{b:1}]})
@@ -476,6 +551,7 @@ describe('jsonic', function () {
       .equal([{a:{b:{c:[1]}}},{a:{b:{c:[1]}}}])
   })
 
+  
   it('process-whitespace', () => {
     expect(prc(lexer('a: 1'))).equal({a:1})
     expect(prc(lexer(' a: 1'))).equal({a:1})
@@ -486,6 +562,7 @@ describe('jsonic', function () {
     expect(prc(lexer('\na: [\n  {\n     b: 1\n  }\n]\n'))).equal({a:[{b:1}]})
   })
 
+  
   it('api', () => {
     expect(Jsonic('a:1')).equal({a:1})
     expect(Jsonic.parse('a:1')).equal({a:1})
@@ -654,12 +731,12 @@ describe('jsonic', function () {
   it('pv-strings', function(){
     expect(j("a:'',b:\"\"")).equal({"a":"","b":""})
 
-    // DIFF expect(j("a:x y")).equal({"a":"x y"})
+    expect(j("a:x y")).equal({"a":"x y"})
 
-    // DIFF expect(j("a:x, b:y z")).equal({"a":"x","b":"y z"})
+    expect(j("a:x, b:y z")).equal({"a":"x","b":"y z"})
 
     // trimmed
-    // DIFF expect(j("a: x , b: y z ")).equal({"a":"x","b":"y z"})
+    expect(j("a: x , b: y z ")).equal({"a":"x","b":"y z"})
 
     expect(j("a:'x', aa: 'x' , b:'y\"z', bb: 'y\"z' ,bbb:\"y'z\", bbbb: \"y'z\", c:\"\\n\", d:'\\n'")).equal({"a":"x","aa":"x","b":"y\"z","bb":"y\"z","bbb":"y'z","bbbb":"y\'z","c":"\n","d":"\n"})
 
@@ -974,28 +1051,22 @@ describe('jsonic', function () {
     expect( jsonic.stringify([1,2,3],{mc:4}) ).toBe('[1,2')
     expect( jsonic.stringify([1,2,3],{mi:2}) ).toBe('[1,2]')
   })
+*/
+  
 
-
-  it('performance', function(){
+  it('pv-performance', function(){
     var start = Date.now(), count = 0
     var input =
           "int:100,dec:9.9,t:true,f:false,qs:"+
           "\"a\\\"a'a\",as:'a\"a\\'a',a:{b:{c:1}}"
 
     while( Date.now()-start < 1000 ) {
-      jsonic(input)
+      j(input)
       count++
     }
 
     console.log( 'parse/sec: '+count )
   })
-
-
-  it('noc',function(){
-    jsonic = jsonic.noConflict()
-    expect( jsonic.stringify([1]) ).toBe('[1]')
-  })
-*/
 })
 
 

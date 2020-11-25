@@ -6,6 +6,12 @@
 // PNnnn: Parse Note number
 
 
+// TODO: replace with jsonic stringify
+function desc(o: any) {
+  return require('util').inspect(o, { depth: null })
+}
+
+
 type Jsonic =
   ((src: any) => any)
   &
@@ -37,7 +43,7 @@ function use(plugin: Plugin): void {
 // TODO convert to on demand!
 
 type Token = {
-  kind: number,
+  kind: symbol,
   index: number,
   len: number,
   row: number,
@@ -56,7 +62,7 @@ function lexer(src: string): Lex {
 
   // NOTE: always returns this object!
   let token: Token = {
-    kind: 0,
+    kind: lexer.END,
     index: 0,
     len: 0,
     row: 0,
@@ -476,261 +482,182 @@ lexer.spaces = spaces
 lexer.lines = lines
 lexer.escapes = escapes
 
-lexer.BAD = 10
-lexer.END = 20
+lexer.BAD = Symbol('Tb')
+lexer.END = Symbol('Te')
 
-lexer.SPACE = 100
-lexer.LINE = 200
+lexer.SPACE = Symbol('T_')
+lexer.LINE = Symbol('Tr')
 
-lexer.OPEN_BRACE = 1000
-lexer.CLOSE_BRACE = 2000
-lexer.OPEN_SQUARE = 3000
-lexer.CLOSE_SQUARE = 4000
-lexer.COLON = 5000
-lexer.COMMA = 6000
+lexer.OPEN_BRACE = Symbol('T{')
+lexer.CLOSE_BRACE = Symbol('T}')
+lexer.OPEN_SQUARE = Symbol('T[')
+lexer.CLOSE_SQUARE = Symbol('T]')
+lexer.COLON = Symbol('T:')
+lexer.COMMA = Symbol('Tc')
 
-lexer.NUMBER = 10000
-lexer.STRING = 20000
-lexer.TEXT = 30000
+lexer.NUMBER = Symbol('Tn')
+lexer.STRING = Symbol('Ts')
+lexer.TEXT = Symbol('Tx')
 
-lexer.TRUE = 100000
-lexer.FALSE = 200000
-lexer.NULL = 300000
+lexer.TRUE = Symbol('Tt')
+lexer.FALSE = Symbol('Tf')
+lexer.NULL = Symbol('Tu')
 
-
-type ProcessContext = {
-  tI: number
-  po: any
-  pk: number // previous non-whitespace kind
-  tstk: any
-  nstk: any
-  res: any
+lexer.end = {
+  kind: lexer.END,
+  index: 0,
+  len: 0,
+  row: 0,
+  col: 0,
+  value: undefined,
 }
+
+
+
+interface Context {
+  node: any
+  t0: Token
+  t1: Token
+  rs: Rule[]
+  next: () => Token
+  consume: (kind: symbol) => Token
+}
+
+abstract class Rule {
+  node: any
+  value: any
+  key: any
+
+  constructor(node: any) {
+    this.node = node
+  }
+
+  abstract process(ctx: Context): Rule | undefined
+  abstract toString(): string
+}
+
+
+class PairRule extends Rule {
+
+  constructor(node: any) {
+    super(node)
+  }
+
+  process(ctx: Context): Rule | undefined {
+    let t: Token = ctx.next()
+    let k = t.kind
+
+    console.log('PR:' + S(k) + '=' + t.value)
+
+    switch (k) {
+      case lexer.TEXT:
+        let key = t.value
+        ctx.consume(lexer.COLON)
+
+        ctx.rs.push(this)
+        return new ValueRule(this.node, key)
+
+      case lexer.COMMA:
+        return this
+
+      default:
+        let rule = ctx.rs.pop()
+        if (rule) {
+          rule.value = this.node
+        }
+        return rule
+    }
+  }
+
+  toString() {
+    return 'Pair: ' + desc(this.node)
+  }
+}
+
+let S = (s: symbol) => s.description
+
+class ValueRule extends Rule {
+
+  constructor(node: any, key: string) {
+    super(node)
+    this.key = key
+  }
+
+  process(ctx: Context): Rule | undefined {
+    if (this.value) {
+      this.node[this.key] = this.value
+      return ctx.rs.pop()
+    }
+
+    let t: Token = ctx.next()
+    let k = t.kind
+
+    console.log('VR:' + S(k) + '=' + t.value)
+
+    switch (k) {
+      case lexer.NUMBER:
+        this.node[this.key] = t.value
+        break
+
+      case lexer.OPEN_BRACE:
+        ctx.rs.push(this)
+        return new PairRule({})
+
+      default:
+        throw new Error('value expected')
+    }
+
+    return ctx.rs.pop()
+  }
+
+  toString() {
+    return 'Value: ' + this.key + '=' + desc(this.value)
+  }
+
+}
+
 
 
 function process(lex: Lex): any {
+  let rule: Rule | undefined = new ValueRule({}, '$')
+  let root = rule
 
+  let t0: Token = lexer.end
+  let t1: Token = lexer.end
 
-  let err: any = undefined
-  let lexing = true
-  let tokens: Token[] = []
-
-  let ctx: ProcessContext = {
-    tI: 0,
-    po: undefined,
-    pk: -1,
-    tstk: [],
-    nstk: [],
-
-    // PN007: empty string parse to undefined
-    res: undefined
+  let ctx: Context = {
+    node: undefined,
+    t0,
+    t1,
+    next,
+    consume,
+    rs: []
   }
 
-  while (lexing) {
-    // PN001: parse next top level token set, one of:
-    // * scalar - boolean, number, string, text, null
-    // * key colon - start key:value pair
-    // * value - end of key:value pair - implicitly creates parent object if needed
-    // * node open - object or array
-    // * ignorable - comma
-
-    tokens[ctx.tI] = tokens[ctx.tI] || { ...lex() }
-    let t0 = tokens[ctx.tI]
-    let k0 = t0.kind
-    // console.log('W', ctx.tI, k0 + '=' + t0.value, ctx.tstk, ctx.nstk)
-
-    let t1: Token
-    let k1: number
-
-    if (lexer.SPACE === k0) {
-      // skip, leave ctx.pk alone
-      ctx.tI++
-      continue;
-    }
-    else if (lexer.LINE === k0) {
-      // skip, leave ctx.pk alone
-      ctx.tI++
-      continue;
-    }
-    else if (lexer.END === k0) {
-      // console.log('END LEX S')
-
-      // PN004: top level implicit array does not need closing
-      if (ctx.po && !ctx.po.push) {
-        ctx.res = close_pair(ctx)
-      }
-
-      // console.log('END LEX res', ctx.res)
-
-      lexing = false
-
-      break
-    }
-    else if (lexer.BAD === k0) {
-      err = new Error(t0.why)
-      err.token = t0
-      lexing = false
-      break
-    }
-    else if (lexer.OPEN_BRACE === k0) {
-      open_node(k0, ctx)
-      ctx.pk = k0
-
-      continue;
-    }
-    else if (lexer.OPEN_SQUARE === k0) {
-      open_node(k0, ctx)
-      ctx.pk = k0
-
-      continue;
-    }
-    else if (lexer.CLOSE_BRACE === k0) {
-      close_node(ctx)
-      ctx.pk = k0
-
-      // PN002: comma after close brace optional, see PN001
-      continue;
-    }
-    else if (lexer.CLOSE_SQUARE === k0) {
-      close_node(ctx)
-      ctx.pk = k0
-
-      // PN002: comma after close square optional, see PN001
-      continue;
-    }
-
-    // TODO: pair (a:b) or path (a:b:1==={a:{b:1}})?
-
-    let nI = 1
-    do {
-      tokens[ctx.tI + nI] = tokens[ctx.tI + nI] || { ...lex() }
-      t1 = tokens[ctx.tI + nI]
-      k1 = t1.kind
-      nI++
-    } while (k1 == lexer.SPACE || k1 == lexer.LINE)
-
-    // console.log('P', ctx.tI, k0 + '=' + t0.value, k1 + '=' + t1.value)
-
-    if (lexer.COLON === k1) {
-      t0.key = true
-      ctx.tstk.push(t0)
-      ctx.tI += nI
-      ctx.pk = k0
-      continue;
-    }
-    else if (lexer.COMMA === k0) {
-      // console.log('COMMA a', k0, ctx.tI, ctx.pk, ctx.po, ctx.res)
-
-      // PN004: bare comma implies a preceding null
-      // PN005: top level commas (no colon) imply top level array
-      if (null == ctx.po) {
-        ctx.po = []
-        ctx.res = undefined === ctx.res ? null : ctx.res
-        ctx.po.push(ctx.res)
-        ctx.res = ctx.po
-      }
-      else if (ctx.po.push &&
-        (lexer.COMMA === ctx.pk || lexer.OPEN_SQUARE === ctx.pk)) {
-        ctx.po.push(null)
-      }
-
-      // PN006: trailing comma is ignored
-
-      ctx.tI++
-      // console.log('COMMA z', ctx.tI, ctx.po, ctx.res)
-
-      ctx.pk = k0
-      continue;
-    }
-    else if (lexer.NULL === k0) {
-      ctx.res = null
-    }
-    else if (lexer.TRUE === k0) {
-      ctx.res = true
-    }
-    else if (lexer.FALSE === k0) {
-      ctx.res = false
-    }
-    else if (lexer.NUMBER === k0) {
-      ctx.res = t0.value
-      // console.log('S N=' + ctx.res)
-    }
-    else if (lexer.STRING === k0) {
-      ctx.res = t0.value
-    }
-    else if (lexer.TEXT === k0) {
-      ctx.res = t0.value
-    }
-
-    ctx.pk = k0
-    ctx.tI++
-    //console.log('ENDa', ctx.tI, ctx.res, ctx.out, ctx.nstk)
-    // console.log('ENDa', ctx.tI, ctx.res, ctx.nstk)
-
-    ctx.res = close_pair(ctx)
-
-    /*
-    let pt = close_pair(ctx)
-  
-    if (!pt) {
-      console.log('ENDb', ctx.nstk)
-  
-      // TODO: close_node - handles missing closes
-      //while (ctx.po = ctx.nstk.pop()) {
-      //  ctx.out = ctx.po
-      //}
-  
-      lexing = false
-      // ctx.out = ctx.out || ctx.res
-    }
-    */
+  function next() {
+    t0 = t1
+    t1 = { ...lex() }
+    return t0
   }
 
-  // return err || ctx.out
-  return err || ctx.res
+  function consume(kind: symbol) {
+    if (kind === t1.kind) {
+      return next()
+    }
+    throw new Error('expected: ' + String(kind) + ' saw:' + String(t1.kind))
+  }
+
+  next()
+
+  while (rule) {
+    console.log('W:' + rule + ' rs:' + ctx.rs.map(r => r.constructor.name))
+    rule = rule.process(ctx)
+  }
+
+  return root.node.$
 }
 
 
-
-function close_pair(ctx: ProcessContext) {
-  // console.log('CP', ctx.po)
-
-  if (ctx.po && ctx.po.push) {
-    ctx.po.push(ctx.res)
-    // console.log('CPa', ctx.po)
-  }
-  else {
-    let pt = ctx.tstk.pop()
-    if (pt && pt.key) {
-      ctx.po = ctx.po || ctx.nstk.pop() || {}
-      ctx.po[pt.value] = ctx.res
-    }
-  }
-
-
-  // PN003: parent object/array || top level scalar
-  return ctx.po || ctx.res
-}
-
-function open_node(kind: number, ctx: ProcessContext) {
-  if (ctx.po) {
-    ctx.nstk.push(ctx.po)
-  }
-  ctx.po = lexer.OPEN_BRACE === kind ? {} : []
-  ctx.tI++
-  // console.log('ON', ctx.po, ctx.tI, ctx.nstk.length)
-}
-
-function close_node(ctx: ProcessContext) {
-  ctx.res = ctx.po
-  ctx.po = ctx.nstk.pop()
-  ctx.tI++
-
-  close_pair(ctx)
-
-  // console.log('CNz res', ctx.res)
-  return ctx.res
-}
 
 
 
