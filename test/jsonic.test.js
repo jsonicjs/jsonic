@@ -41,7 +41,7 @@ describe('jsonic', function () {
     expect(Jsonic('a:1')).equals({a: 1})
     expect(Jsonic('{a:1}')).equals({a: 1})
     expect(Jsonic('{a:q}')).equals({a: 'q'})
-    //expect(Jsonic('{"a":1}')).equals({a: 1})
+    expect(Jsonic('{"a":1}')).equals({a: 1})
   })
 
   it('basic-object-tree', () => {
@@ -81,7 +81,12 @@ describe('jsonic', function () {
     expect(Jsonic('{a:{b:{c:{f:2},d:3,e:4}}}')).equals({a:{b:{c:{f:2},d:3,e:4}}})
     expect(Jsonic('{a:{b:{c:2,d:{f:3},e:4}}}')).equals({a:{b:{c:2,d:{f:3},e:4}}})
     expect(Jsonic('{a:{b:{c:2,d:3,e:{f:4}}}}')).equals({a:{b:{c:2,d:3,e:{f:4}}}})
-    
+
+    // NOTE: important feature!!!
+    expect(Jsonic('a:b:1')).equals({ a: { b: 1 } })
+    expect(Jsonic('a:b:c:1')).equals({ a: { b: {c: 1} } })
+    expect(Jsonic('a:b:1,c:2')).equals({ a: { b: 1, c: 2} })
+
   })
 
   
@@ -142,25 +147,25 @@ describe('jsonic', function () {
 
     let lex0 = lexer(' {123 ')
     expect(lex0()).equals(
-      { kind: 100, index: 0, len: 1, row: 0, col: 0, value: ' ' })
+      { kind: lexer.SPACE, index: 0, len: 1, row: 0, col: 0, value: ' ' })
     expect(lex0()).equals(
-      { kind: 1000, index: 1, len: 1, row: 0, col: 1, value: null })
+      { kind: lexer.OPEN_BRACE, index: 1, len: 1, row: 0, col: 1, value: null })
     expect(lex0()).equals(
-      { kind: 10000, index: 2, len: 3, row: 0, col: 2, value: 123 })
+      { kind: lexer.NUMBER, index: 2, len: 3, row: 0, col: 2, value: 123 })
     expect(lex0()).equals(
-      { kind: 100, index: 5, len: 1, row: 0, col: 5, value: ' ' })
+      { kind: lexer.SPACE, index: 5, len: 1, row: 0, col: 5, value: ' ' })
     expect(lex0()).equals(
-      { kind: 20, index: 6, len: 0, row: 0, col: 6, value: null })
+      { kind: lexer.END, index: 6, len: 0, row: 0, col: 6, value: null })
 
     // LN001
     expect(lex0()).equals(
-      { kind: 20, index: 6, len: 0, row: 0, col: 6, value: null })
+      { kind: lexer.END, index: 6, len: 0, row: 0, col: 6, value: null })
     expect(lex0()).equals(
-      { kind: 20, index: 6, len: 0, row: 0, col: 6, value: null })
+      { kind: lexer.END, index: 6, len: 0, row: 0, col: 6, value: null })
 
     let lex1 = lexer('"\\u0040"')
     expect(lex1()).equals(
-      { kind: 20000, index: 0, len: 8, row: 0, col: 0, value: '@' })
+      { kind: lexer.STRING, index: 0, len: 8, row: 0, col: 0, value: '@' })
 
     
     expect(lexall(' {123')).equals([
@@ -179,31 +184,31 @@ describe('jsonic', function () {
 
     let lex2 = lexer(' m n ')
     expect(lex2()).equals(
-      { kind: 100, index: 0, len: 1, row: 0, col: 0, value: ' ' })
+      { kind: lexer.SPACE, index: 0, len: 1, row: 0, col: 0, value: ' ' })
     expect(lex2()).equals(
-      { kind: 30000, index: 1, len: 1, row: 0, col: 1, value: 'm' })
+      { kind: lexer.TEXT, index: 1, len: 1, row: 0, col: 1, value: 'm' })
     expect(lex2()).equals(
-      { kind: 100, index: 2, len: 1, row: 0, col: 2, value: ' ' })
+      { kind: lexer.SPACE, index: 2, len: 1, row: 0, col: 2, value: ' ' })
     expect(lex2()).equals(
-      { kind: 30000, index: 3, len: 1, row: 0, col: 3, value: 'n' })
+      { kind: lexer.TEXT, index: 3, len: 1, row: 0, col: 3, value: 'n' })
     expect(lex2()).equals(
-      { kind: 100, index: 4, len: 1, row: 0, col: 4, value: ' ' })
+      { kind: lexer.SPACE, index: 4, len: 1, row: 0, col: 4, value: ' ' })
     expect(lex2()).equals(
-      { kind: 20, index: 5, len: 0, row: 0, col: 5, value: null })
+      { kind: lexer.END, index: 5, len: 0, row: 0, col: 5, value: null })
 
     let lex3 = lexer(' b a ')
     expect(lex3()).equals(
-      { kind: 100, index: 0, len: 1, row: 0, col: 0, value: ' ' })
+      { kind: lexer.SPACE, index: 0, len: 1, row: 0, col: 0, value: ' ' })
     expect(lex3()).equals(
-      { kind: 30000, index: 1, len: 1, row: 0, col: 1, value: 'b' })
+      { kind: lexer.TEXT, index: 1, len: 1, row: 0, col: 1, value: 'b' })
     expect(lex3()).equals(
-      { kind: 100, index: 2, len: 1, row: 0, col: 2, value: ' ' })
+      { kind: lexer.SPACE, index: 2, len: 1, row: 0, col: 2, value: ' ' })
     expect(lex3()).equals(
-      { kind: 30000, index: 3, len: 1, row: 0, col: 3, value: 'a' })
+      { kind: lexer.TEXT, index: 3, len: 1, row: 0, col: 3, value: 'a' })
     expect(lex3()).equals(
-      { kind: 100, index: 4, len: 1, row: 0, col: 4, value: ' ' })
+      { kind: lexer.SPACE, index: 4, len: 1, row: 0, col: 4, value: ' ' })
     expect(lex3()).equals(
-      { kind: 20, index: 5, len: 0, row: 0, col: 5, value: null })
+      { kind: lexer.END, index: 5, len: 0, row: 0, col: 5, value: null })
 
   })
 
@@ -428,6 +433,16 @@ describe('jsonic', function () {
   })
 
 
+  it('syntax-errors', () => {
+    /*
+      
+      [a:1]
+
+
+     */
+  })
+  
+
   it('process-scalars', () => {
     expect(prc(lexer(''))).equal(undefined)
     expect(prc(lexer('null'))).equal(null)
@@ -442,6 +457,10 @@ describe('jsonic', function () {
 
 
   it('process-text', () => {
+    expect(prc(lexer('{x y:1}'))).equal({'x y':1})
+    expect(prc(lexer('x y:1'))).equal({'x y':1})
+    expect(prc(lexer('[{x y:1}]'))).equal([{'x y':1}])
+    
     expect(prc(lexer('q'))).equal('q')
     expect(prc(lexer('q w'))).equal('q w')
     expect(prc(lexer('a:q w'))).equal({a:'q w'})
@@ -471,7 +490,6 @@ describe('jsonic', function () {
 
 
   it('process-object-tree', () => {
-    /*
     expect(prc(lexer('{}'))).equal({})
     expect(prc(lexer('{a:1}'))).equal({a:1})
     expect(prc(lexer('{a:1,b:q}'))).equal({a:1,b:'q'})
@@ -486,15 +504,14 @@ describe('jsonic', function () {
       .equal({a:1, d:3, b:{c:2}, e:{f:4}, g:5})
 
     expect(prc(lexer('a:{b:1}'))).equal({a:{b:1}})
-    */
 
-    //expect(prc(lexer('{a:{b:1}}'))).equal({a:{b:1}})
-    //expect(prc(lexer('a:{b:1}'))).equal({a:{b:1}})
+
+    expect(prc(lexer('{a:{b:1}}'))).equal({a:{b:1}})
+    expect(prc(lexer('a:{b:1}'))).equal({a:{b:1}})
 
     expect(prc(lexer('{a:{b:{c:1}}}'))).equal({a:{b:{c:1}}})
-    //expect(prc(lexer('a:{b:{c:1}}'))).equal({a:{b:{c:1}}})
+    expect(prc(lexer('a:{b:{c:1}}'))).equal({a:{b:{c:1}}})
 
-    /*
     expect(prc(lexer('a:1,b:{c:2},d:{e:{f:3}}')))
       .equal({a:1, b:{c:2}, d:{e:{f:3}}})
     expect(prc(lexer('a:1,b:{c:2},d:{e:{f:3}},g:4')))
@@ -504,7 +521,6 @@ describe('jsonic', function () {
 
     // PN002
     expect(prc(lexer('a:1,b:{c:2}d:3'))).equal({ a: 1, b: { c: 2 }, d: 3 })
-    */
   })
 
   
@@ -608,6 +624,17 @@ describe('jsonic', function () {
 
   
   it('process-whitespace', () => {
+
+
+    expect(prc(lexer('[0,1]'))).equal([0,1])
+    expect(prc(lexer('[0, 1]'))).equal([0,1])
+    expect(prc(lexer('[0 ,1]'))).equal([0,1])
+    expect(prc(lexer('[0 ,1 ]'))).equal([0,1])
+    expect(prc(lexer('[0,1 ]'))).equal([0,1])
+    expect(prc(lexer('[ 0,1]'))).equal([0,1])
+    expect(prc(lexer('[ 0,1 ]'))).equal([0,1])
+    return 
+    
     expect(prc(lexer('{a: 1}'))).equal({a:1})
     expect(prc(lexer('{a : 1}'))).equal({a:1})
     expect(prc(lexer('{a: 1,b: 2}'))).equal({a:1,b:2})

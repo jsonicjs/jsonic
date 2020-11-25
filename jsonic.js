@@ -416,13 +416,19 @@ class PairRule extends Rule {
         }
         let t = ctx.next();
         let k = t.kind;
-        console.log('PR:' + S(k) + '=' + t.value);
+        // console.log('PR:' + S(k) + '=' + t.value)
         switch (k) {
             case lexer.TEXT:
-                let key = t.value;
+            case lexer.NUMBER:
+            case lexer.STRING:
+            case lexer.BOOLEAN:
+            case lexer.NULL:
+                // A sequence of literals with internal spaces is concatenated
+                let value = hoover(ctx, [lexer.TEXT, lexer.NUMBER, lexer.STRING, lexer.BOOLEAN, lexer.NULL,], [lexer.SPACE, lexer.LINE]);
+                // console.log('PR val=' + value)
                 ctx.match(lexer.COLON, [lexer.SPACE, lexer.LINE]);
                 ctx.rs.push(this);
-                return new ValueRule(this.node, key);
+                return new ValueRule(this.node, value);
             case lexer.COMMA:
                 return this;
             default:
@@ -443,20 +449,28 @@ class ListRule extends Rule {
         super([]);
     }
     process(ctx) {
-        ctx.ignore([lexer.SPACE, lexer.LINE]);
         if (this.value) {
             this.node.push(this.value);
             this.value = undefined;
         }
         while (true) {
+            ctx.ignore([lexer.SPACE, lexer.LINE]);
             let t = ctx.next();
             let k = t.kind;
-            console.log('LIST:' + S(k) + '=' + t.value);
+            // console.log('LIST:' + S(k) + '=' + t.value)
             switch (k) {
+                case lexer.TEXT:
                 case lexer.NUMBER:
-                    this.node.push(t.value);
+                case lexer.STRING:
+                case lexer.BOOLEAN:
+                case lexer.NULL:
+                    // A sequence of literals with internal spaces is concatenated
+                    let value = hoover(ctx, [lexer.TEXT, lexer.NUMBER, lexer.STRING, lexer.BOOLEAN, lexer.NULL,], [lexer.SPACE, lexer.LINE]);
+                    // console.log('LR val=' + value)
+                    this.node.push(value);
                     break;
                 case lexer.COMMA:
+                    // console.log('LR comma')
                     break;
                 case lexer.OPEN_BRACE:
                     ctx.rs.push(this);
@@ -485,7 +499,7 @@ class ValueRule extends Rule {
     }
     process(ctx) {
         ctx.ignore([lexer.SPACE, lexer.LINE]);
-        //console.log('VR S', this.value)
+        // console.log('VR S', this.value)
         // Child value has resolved
         if (this.value) {
             this.node[this.key] = this.value;
@@ -494,7 +508,7 @@ class ValueRule extends Rule {
         }
         let t = ctx.next();
         let k = t.kind;
-        console.log('VR:' + S(k) + '=' + t.value);
+        // console.log('VR:' + S(k) + '=' + t.value)
         switch (k) {
             case lexer.OPEN_BRACE:
                 ctx.rs.push(this);
@@ -503,25 +517,8 @@ class ValueRule extends Rule {
                 ctx.rs.push(this);
                 return new ListRule();
         }
-        let value = undefined;
-        switch (k) {
-            case lexer.NUMBER:
-                value = t.value;
-                break;
-            case lexer.BOOLEAN:
-                value = t.value;
-                break;
-            case lexer.NULL:
-                value = t.value;
-                break;
-            case lexer.TEXT:
-                console.log('VR TEXT', this, t, ctx.t0, ctx.t1);
-                value = t.value;
-                break;
-            default:
-                throw new Error('value expected, saw: ' + S(k) + '=' + t.value);
-        }
-        ctx.ignore([lexer.SPACE, lexer.LINE]);
+        // Any sequence of literals with internal spaces is considered a single string
+        let value = hoover(ctx, [lexer.TEXT, lexer.NUMBER, lexer.STRING, lexer.BOOLEAN, lexer.NULL,], [lexer.SPACE, lexer.LINE]);
         // Is this an implicit map?
         if (lexer.COLON === ctx.t1.kind) {
             ctx.next();
@@ -535,6 +532,33 @@ class ValueRule extends Rule {
     }
     toString() {
         return 'Value: ' + this.key + '=' + desc(this.value) + ' node=' + desc(this.node);
+    }
+}
+// Hoover up tokens into a string, possible containing whitespace, but trimming end
+// Thus: ['a', ' ', 'b', ' '] => 'a b'
+// NOTE: single tokens return token value, not a string!
+function hoover(ctx, kinds, trims) {
+    // Is this potentially a hoover?
+    let trimC = 0;
+    if ((trims.includes(ctx.t1.kind) && ++trimC) || kinds.includes(ctx.t1.kind)) {
+        let b = [ctx.t0, ctx.t1];
+        ctx.next();
+        while ((trims.includes(ctx.t1.kind) && ++trimC) ||
+            (kinds.includes(ctx.t1.kind) && (trimC = 0, true))) {
+            b.push(ctx.t1);
+            ctx.next();
+        }
+        // Trim end.
+        b = b.splice(0, b.length - trimC);
+        if (1 === b.length) {
+            return b[0].value;
+        }
+        else {
+            return b.map(t => String(t.value)).join('');
+        }
+    }
+    else {
+        return ctx.t0.value;
     }
 }
 function process(lex) {
@@ -563,9 +587,9 @@ function process(lex) {
         }
     }
     function match(kind, ignore) {
-        //console.log('MATCH', kind, ignore, t0, t1)
+        // console.log('MATCH', kind, ignore, t0, t1)
         if (ignore) {
-            //console.log('IGNORE PREFIX', ignore, t0, t1)
+            // console.log('IGNORE PREFIX', ignore, t0, t1)
             while (ignore.includes(ctx.t1.kind)) {
                 next();
             }
@@ -573,7 +597,7 @@ function process(lex) {
         if (kind === ctx.t1.kind) {
             let t = next();
             if (ignore) {
-                //console.log('IGNORE SUFFIX', ignore, t0, t1)
+                // console.log('IGNORE SUFFIX', ignore, t0, t1)
                 while (ignore.includes(ctx.t1.kind)) {
                     next();
                 }
@@ -584,7 +608,7 @@ function process(lex) {
     }
     next();
     while (rule) {
-        console.log('W:' + rule + ' rs:' + ctx.rs.map(r => r.constructor.name));
+        // console.log('W:' + rule + ' rs:' + ctx.rs.map(r => r.constructor.name))
         rule = rule.process(ctx);
     }
     return root.node.$;
