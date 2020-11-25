@@ -129,7 +129,7 @@ function lexer(src) {
                     sI++;
                     return token;
                 case 't':
-                    token.kind = lexer.TRUE;
+                    token.kind = lexer.BOOLEAN;
                     token.index = sI;
                     token.col = cI;
                     pI = sI;
@@ -150,7 +150,7 @@ function lexer(src) {
                     sI = cI = pI;
                     return token;
                 case 'f':
-                    token.kind = lexer.FALSE;
+                    token.kind = lexer.BOOLEAN;
                     token.index = sI;
                     token.col = cI;
                     pI = sI;
@@ -383,8 +383,7 @@ lexer.COMMA = Symbol('Tc');
 lexer.NUMBER = Symbol('Tn');
 lexer.STRING = Symbol('Ts');
 lexer.TEXT = Symbol('Tx');
-lexer.TRUE = Symbol('Tt');
-lexer.FALSE = Symbol('Tf');
+lexer.BOOLEAN = Symbol('To');
 lexer.NULL = Symbol('Tu');
 lexer.end = {
     kind: lexer.END,
@@ -401,11 +400,20 @@ class Rule {
     }
 }
 class PairRule extends Rule {
-    constructor() {
+    constructor(key) {
         super({});
+        // If implicit map, key is already parsed
+        this.key = key;
     }
     process(ctx) {
         ctx.ignore([lexer.SPACE, lexer.LINE]);
+        // Implicit map so key already parsed
+        if (this.key) {
+            ctx.rs.push(this);
+            let key = this.key;
+            delete this.key;
+            return new ValueRule(this.node, key);
+        }
         let t = ctx.next();
         let k = t.kind;
         console.log('PR:' + S(k) + '=' + t.value);
@@ -419,6 +427,7 @@ class PairRule extends Rule {
                 return this;
             default:
                 let rule = ctx.rs.pop();
+                // Return self as value to parent rule
                 if (rule) {
                     rule.value = this.node;
                 }
@@ -457,6 +466,7 @@ class ListRule extends Rule {
                     return new ListRule();
                 default:
                     let rule = ctx.rs.pop();
+                    // Return self as value to parent rule
                     if (rule) {
                         rule.value = this.node;
                     }
@@ -475,6 +485,8 @@ class ValueRule extends Rule {
     }
     process(ctx) {
         ctx.ignore([lexer.SPACE, lexer.LINE]);
+        //console.log('VR S', this.value)
+        // Child value has resolved
         if (this.value) {
             this.node[this.key] = this.value;
             this.value = undefined;
@@ -484,46 +496,69 @@ class ValueRule extends Rule {
         let k = t.kind;
         console.log('VR:' + S(k) + '=' + t.value);
         switch (k) {
-            case lexer.NUMBER:
-                this.node[this.key] = t.value;
-                break;
             case lexer.OPEN_BRACE:
                 ctx.rs.push(this);
                 return new PairRule();
             case lexer.OPEN_SQUARE:
                 ctx.rs.push(this);
                 return new ListRule();
-            default:
-                throw new Error('value expected');
         }
-        return ctx.rs.pop();
+        let value = undefined;
+        switch (k) {
+            case lexer.NUMBER:
+                value = t.value;
+                break;
+            case lexer.BOOLEAN:
+                value = t.value;
+                break;
+            case lexer.NULL:
+                value = t.value;
+                break;
+            case lexer.TEXT:
+                console.log('VR TEXT', this, t, ctx.t0, ctx.t1);
+                value = t.value;
+                break;
+            default:
+                throw new Error('value expected, saw: ' + S(k) + '=' + t.value);
+        }
+        ctx.ignore([lexer.SPACE, lexer.LINE]);
+        // Is this an implicit map?
+        if (lexer.COLON === ctx.t1.kind) {
+            ctx.next();
+            ctx.rs.push(this);
+            return new PairRule(value);
+        }
+        else {
+            this.node[this.key] = value;
+            return ctx.rs.pop();
+        }
     }
     toString() {
-        return 'Value: ' + this.key + '=' + desc(this.value);
+        return 'Value: ' + this.key + '=' + desc(this.value) + ' node=' + desc(this.node);
     }
 }
 function process(lex) {
     let rule = new ValueRule({}, '$');
     let root = rule;
-    let t0 = lexer.end;
-    let t1 = lexer.end;
+    //let t0: Token = lexer.end
+    //let t1: Token = lexer.end
     let ctx = {
         node: undefined,
-        t0,
-        t1,
+        t0: lexer.end,
+        t1: lexer.end,
         next,
         match,
         ignore,
         rs: []
     };
     function next() {
-        t0 = t1;
-        t1 = { ...lex() };
-        return t0;
+        ctx.t0 = ctx.t1;
+        ctx.t1 = { ...lex() };
+        return ctx.t0;
     }
     function ignore(ignore) {
-        console.log('IGNORE', ignore, t0, t1);
-        while (ignore.includes(t1.kind)) {
+        // console.log('IGNORE', ignore, t0, t1)
+        while (ignore.includes(ctx.t1.kind)) {
             next();
         }
     }
@@ -531,21 +566,21 @@ function process(lex) {
         //console.log('MATCH', kind, ignore, t0, t1)
         if (ignore) {
             //console.log('IGNORE PREFIX', ignore, t0, t1)
-            while (ignore.includes(t1.kind)) {
+            while (ignore.includes(ctx.t1.kind)) {
                 next();
             }
         }
-        if (kind === t1.kind) {
+        if (kind === ctx.t1.kind) {
             let t = next();
             if (ignore) {
                 //console.log('IGNORE SUFFIX', ignore, t0, t1)
-                while (ignore.includes(t1.kind)) {
+                while (ignore.includes(ctx.t1.kind)) {
                     next();
                 }
             }
             return t;
         }
-        throw new Error('expected: ' + String(kind) + ' saw:' + String(t1.kind));
+        throw new Error('expected: ' + String(kind) + ' saw:' + String(ctx.t1.kind) + '=' + ctx.t1.value);
     }
     next();
     while (rule) {

@@ -38,12 +38,10 @@ function alleq(ta) {
 
 describe('jsonic', function () {
   it('happy', () => {
+    expect(Jsonic('a:1')).equals({a: 1})
     expect(Jsonic('{a:1}')).equals({a: 1})
-
-    //expect(Jsonic('a:1')).equals({a: 1})
+    expect(Jsonic('{a:q}')).equals({a: 'q'})
     //expect(Jsonic('{"a":1}')).equals({a: 1})
-
-
   })
 
   it('basic-object-tree', () => {
@@ -661,8 +659,6 @@ describe('jsonic', function () {
       .equal({a:1,b:2})
 
 
-    
-    return
     expect(prc(lexer('a: 1'))).equal({a:1})
     expect(prc(lexer(' a: 1'))).equal({a:1})
     expect(prc(lexer(' a: 1 '))).equal({a:1})
