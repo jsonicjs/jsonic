@@ -514,13 +514,18 @@ lexer.end = {
 
 
 
+let S = (s: symbol) => s.description
+
+
+
 interface Context {
   node: any
   t0: Token
   t1: Token
   rs: Rule[]
   next: () => Token
-  consume: (kind: symbol) => Token
+  match: (kind: symbol, ignore?: symbol[]) => Token
+  ignore: (kinds: symbol[]) => void
 }
 
 abstract class Rule {
@@ -539,11 +544,13 @@ abstract class Rule {
 
 class PairRule extends Rule {
 
-  constructor(node: any) {
-    super(node)
+  constructor() {
+    super({})
   }
 
   process(ctx: Context): Rule | undefined {
+    ctx.ignore([lexer.SPACE, lexer.LINE])
+
     let t: Token = ctx.next()
     let k = t.kind
 
@@ -552,7 +559,8 @@ class PairRule extends Rule {
     switch (k) {
       case lexer.TEXT:
         let key = t.value
-        ctx.consume(lexer.COLON)
+
+        ctx.match(lexer.COLON, [lexer.SPACE, lexer.LINE])
 
         ctx.rs.push(this)
         return new ValueRule(this.node, key)
@@ -574,7 +582,59 @@ class PairRule extends Rule {
   }
 }
 
-let S = (s: symbol) => s.description
+
+class ListRule extends Rule {
+
+  constructor() {
+    super([])
+  }
+
+  process(ctx: Context): Rule | undefined {
+    ctx.ignore([lexer.SPACE, lexer.LINE])
+
+    if (this.value) {
+      this.node.push(this.value)
+      this.value = undefined
+    }
+
+    while (true) {
+      let t: Token = ctx.next()
+      let k = t.kind
+
+      console.log('LIST:' + S(k) + '=' + t.value)
+
+      switch (k) {
+        case lexer.NUMBER:
+          this.node.push(t.value)
+          break
+
+        case lexer.COMMA:
+          break
+
+        case lexer.OPEN_BRACE:
+          ctx.rs.push(this)
+          return new PairRule()
+
+        case lexer.OPEN_SQUARE:
+          ctx.rs.push(this)
+          return new ListRule()
+
+        default:
+          let rule = ctx.rs.pop()
+          if (rule) {
+            rule.value = this.node
+          }
+          return rule
+      }
+    }
+  }
+
+  toString() {
+    return 'Pair: ' + desc(this.node)
+  }
+}
+
+
 
 class ValueRule extends Rule {
 
@@ -584,8 +644,11 @@ class ValueRule extends Rule {
   }
 
   process(ctx: Context): Rule | undefined {
+    ctx.ignore([lexer.SPACE, lexer.LINE])
+
     if (this.value) {
       this.node[this.key] = this.value
+      this.value = undefined
       return ctx.rs.pop()
     }
 
@@ -601,7 +664,11 @@ class ValueRule extends Rule {
 
       case lexer.OPEN_BRACE:
         ctx.rs.push(this)
-        return new PairRule({})
+        return new PairRule()
+
+      case lexer.OPEN_SQUARE:
+        ctx.rs.push(this)
+        return new ListRule()
 
       default:
         throw new Error('value expected')
@@ -630,7 +697,8 @@ function process(lex: Lex): any {
     t0,
     t1,
     next,
-    consume,
+    match,
+    ignore,
     rs: []
   }
 
@@ -640,9 +708,37 @@ function process(lex: Lex): any {
     return t0
   }
 
-  function consume(kind: symbol) {
+  function ignore(ignore: symbol[]) {
+    console.log('IGNORE', ignore, t0, t1)
+
+    while (ignore.includes(t1.kind)) {
+      next()
+    }
+
+  }
+
+
+  function match(kind: symbol, ignore?: symbol[]) {
+    //console.log('MATCH', kind, ignore, t0, t1)
+
+    if (ignore) {
+      //console.log('IGNORE PREFIX', ignore, t0, t1)
+      while (ignore.includes(t1.kind)) {
+        next()
+      }
+    }
+
     if (kind === t1.kind) {
-      return next()
+      let t = next()
+
+      if (ignore) {
+        //console.log('IGNORE SUFFIX', ignore, t0, t1)
+        while (ignore.includes(t1.kind)) {
+          next()
+        }
+      }
+
+      return t
     }
     throw new Error('expected: ' + String(kind) + ' saw:' + String(t1.kind))
   }

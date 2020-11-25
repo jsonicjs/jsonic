@@ -394,23 +394,25 @@ lexer.end = {
     col: 0,
     value: undefined,
 };
+let S = (s) => s.description;
 class Rule {
     constructor(node) {
         this.node = node;
     }
 }
 class PairRule extends Rule {
-    constructor(node) {
-        super(node);
+    constructor() {
+        super({});
     }
     process(ctx) {
+        ctx.ignore([lexer.SPACE, lexer.LINE]);
         let t = ctx.next();
         let k = t.kind;
         console.log('PR:' + S(k) + '=' + t.value);
         switch (k) {
             case lexer.TEXT:
                 let key = t.value;
-                ctx.consume(lexer.COLON);
+                ctx.match(lexer.COLON, [lexer.SPACE, lexer.LINE]);
                 ctx.rs.push(this);
                 return new ValueRule(this.node, key);
             case lexer.COMMA:
@@ -427,15 +429,55 @@ class PairRule extends Rule {
         return 'Pair: ' + desc(this.node);
     }
 }
-let S = (s) => s.description;
+class ListRule extends Rule {
+    constructor() {
+        super([]);
+    }
+    process(ctx) {
+        ctx.ignore([lexer.SPACE, lexer.LINE]);
+        if (this.value) {
+            this.node.push(this.value);
+            this.value = undefined;
+        }
+        while (true) {
+            let t = ctx.next();
+            let k = t.kind;
+            console.log('LIST:' + S(k) + '=' + t.value);
+            switch (k) {
+                case lexer.NUMBER:
+                    this.node.push(t.value);
+                    break;
+                case lexer.COMMA:
+                    break;
+                case lexer.OPEN_BRACE:
+                    ctx.rs.push(this);
+                    return new PairRule();
+                case lexer.OPEN_SQUARE:
+                    ctx.rs.push(this);
+                    return new ListRule();
+                default:
+                    let rule = ctx.rs.pop();
+                    if (rule) {
+                        rule.value = this.node;
+                    }
+                    return rule;
+            }
+        }
+    }
+    toString() {
+        return 'Pair: ' + desc(this.node);
+    }
+}
 class ValueRule extends Rule {
     constructor(node, key) {
         super(node);
         this.key = key;
     }
     process(ctx) {
+        ctx.ignore([lexer.SPACE, lexer.LINE]);
         if (this.value) {
             this.node[this.key] = this.value;
+            this.value = undefined;
             return ctx.rs.pop();
         }
         let t = ctx.next();
@@ -447,7 +489,10 @@ class ValueRule extends Rule {
                 break;
             case lexer.OPEN_BRACE:
                 ctx.rs.push(this);
-                return new PairRule({});
+                return new PairRule();
+            case lexer.OPEN_SQUARE:
+                ctx.rs.push(this);
+                return new ListRule();
             default:
                 throw new Error('value expected');
         }
@@ -467,7 +512,8 @@ function process(lex) {
         t0,
         t1,
         next,
-        consume,
+        match,
+        ignore,
         rs: []
     };
     function next() {
@@ -475,9 +521,29 @@ function process(lex) {
         t1 = { ...lex() };
         return t0;
     }
-    function consume(kind) {
+    function ignore(ignore) {
+        console.log('IGNORE', ignore, t0, t1);
+        while (ignore.includes(t1.kind)) {
+            next();
+        }
+    }
+    function match(kind, ignore) {
+        //console.log('MATCH', kind, ignore, t0, t1)
+        if (ignore) {
+            //console.log('IGNORE PREFIX', ignore, t0, t1)
+            while (ignore.includes(t1.kind)) {
+                next();
+            }
+        }
         if (kind === t1.kind) {
-            return next();
+            let t = next();
+            if (ignore) {
+                //console.log('IGNORE SUFFIX', ignore, t0, t1)
+                while (ignore.includes(t1.kind)) {
+                    next();
+                }
+            }
+            return t;
         }
         throw new Error('expected: ' + String(kind) + ' saw:' + String(t1.kind));
     }

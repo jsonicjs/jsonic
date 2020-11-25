@@ -47,6 +47,11 @@ describe('jsonic', function () {
   })
 
   it('basic-object-tree', () => {
+    expect(Jsonic('{}')).equals({})
+    expect(Jsonic('{a:{}}')).equals({a: {}})
+    expect(Jsonic('{a:{b:{}}}')).equals({a: {b: {}}})
+    expect(Jsonic('{a:{b:{c:{}}}}')).equals({a: {b: {c: {}}}})
+
     expect(Jsonic('{a:1}')).equals({a: 1})
     expect(Jsonic('{a:1,b:2}')).equals({a:1,b:2})
     expect(Jsonic('{a:1,b:2,c:3}')).equals({a:1,b:2,c:3})
@@ -82,7 +87,59 @@ describe('jsonic', function () {
   })
 
   
+  it('basic-array-tree', () => {
+    expect(Jsonic('[]')).equals([])
+    expect(Jsonic('[0]')).equals([0])
+    expect(Jsonic('[0,1]')).equals([0,1])
+    expect(Jsonic('[0,1,2]')).equals([0,1,2])
 
+    expect(Jsonic('[[]]')).equals([[]])
+    expect(Jsonic('[0,[]]')).equals([0,[]])
+    expect(Jsonic('[[],1]')).equals([[],1])
+    expect(Jsonic('[0,[],1]')).equals([0,[],1])
+    expect(Jsonic('[[],0,[],1]')).equals([[],0,[],1])
+    expect(Jsonic('[0,[],1,[]]')).equals([0,[],1,[]])
+    expect(Jsonic('[[],0,[],1,[]]')).equals([[],0,[],1,[]])
+
+    expect(Jsonic('[[2]]')).equals([[2]])
+    expect(Jsonic('[0,[2]]')).equals([0,[2]])
+    expect(Jsonic('[[2],1]')).equals([[2],1])
+    expect(Jsonic('[0,[2],1]')).equals([0,[2],1])
+    expect(Jsonic('[[2],0,[3],1]')).equals([[2],0,[3],1])
+    expect(Jsonic('[0,[3],1,[2]]')).equals([0,[3],1,[2]])
+    expect(Jsonic('[[2],0,[4],1,[3]]')).equals([[2],0,[4],1,[3]])
+
+    expect(Jsonic('[[2,9]]')).equals([[2,9]])
+    expect(Jsonic('[0,[2,9]]')).equals([0,[2,9]])
+    expect(Jsonic('[[2,9],1]')).equals([[2,9],1])
+    expect(Jsonic('[0,[2,9],1]')).equals([0,[2,9],1])
+    expect(Jsonic('[[2,9],0,[3,9],1]')).equals([[2,9],0,[3,9],1])
+    expect(Jsonic('[0,[3,9],1,[2,9]]')).equals([0,[3,9],1,[2,9]])
+    expect(Jsonic('[[2,9],0,[4,9],1,[3,9]]')).equals([[2,9],0,[4,9],1,[3,9]])
+
+    expect(Jsonic('[[[[]]]]')).equals([[[[]]]])
+    expect(Jsonic('[[[[0]]]]')).equals([[[[0]]]])
+    expect(Jsonic('[[[1,[0]]]]')).equals([[[1,[0]]]])
+    expect(Jsonic('[[[1,[0],2]]]')).equals([[[1,[0],2]]])
+    expect(Jsonic('[[3,[1,[0],2]]]')).equals([[3,[1,[0],2]]])
+    expect(Jsonic('[[3,[1,[0],2],4]]')).equals([[3,[1,[0],2],4]])
+    expect(Jsonic('[5,[3,[1,[0],2],4]]')).equals([5,[3,[1,[0],2],4]])
+    expect(Jsonic('[5,[3,[1,[0],2],4],6]')).equals([5,[3,[1,[0],2],4],6])
+  })
+
+
+  it('basic-mixed-tree', () => {
+    expect(Jsonic('[{}]')).equals([{}])
+    expect(Jsonic('{a:[]}')).equals({a:[]})
+
+    expect(Jsonic('[{a:[]}]')).equals([{a:[]}])
+    expect(Jsonic('{a:[{}]}')).equals({a:[{}]})
+
+    expect(Jsonic('[{a:[{}]}]')).equals([{a:[{}]}])
+    expect(Jsonic('{a:[{b:[]}]}')).equals({a:[{b:[]}]})
+  })
+  
+  
   it('lex-specials', () => {
 
     let lex0 = lexer(' {123 ')
@@ -553,6 +610,59 @@ describe('jsonic', function () {
 
   
   it('process-whitespace', () => {
+    expect(prc(lexer('{a: 1}'))).equal({a:1})
+    expect(prc(lexer('{a : 1}'))).equal({a:1})
+    expect(prc(lexer('{a: 1,b: 2}'))).equal({a:1,b:2})
+    expect(prc(lexer('{a : 1,b : 2}'))).equal({a:1,b:2})
+
+    expect(prc(lexer('{a:\n1}'))).equal({a:1})
+    expect(prc(lexer('{a\n:\n1}'))).equal({a:1})
+    expect(prc(lexer('{a:\n1,b:\n2}'))).equal({a:1,b:2})
+    expect(prc(lexer('{a\n:\n1,b\n:\n2}'))).equal({a:1,b:2})
+
+    expect(prc(lexer('{a:\r\n1}'))).equal({a:1})
+    expect(prc(lexer('{a\r\n:\r\n1}'))).equal({a:1})
+    expect(prc(lexer('{a:\r\n1,b:\r\n2}'))).equal({a:1,b:2})
+    expect(prc(lexer('{a\r\n:\r\n1,b\r\n:\r\n2}'))).equal({a:1,b:2})
+
+    
+    expect(prc(lexer(' { a: 1 } '))).equal({a:1})
+    expect(prc(lexer(' { a : 1 } '))).equal({a:1})
+    expect(prc(lexer(' { a: 1 , b: 2 } '))).equal({a:1,b:2})
+    expect(prc(lexer(' { a : 1 , b : 2 } '))).equal({a:1,b:2})
+
+    expect(prc(lexer('  {  a:  1  }  '))).equal({a:1})
+    expect(prc(lexer('  {  a  :  1  }  '))).equal({a:1})
+    expect(prc(lexer('  {  a:  1  ,  b:  2  }  '))).equal({a:1,b:2})
+    expect(prc(lexer('  {  a  :  1  ,  b  :  2  }  '))).equal({a:1,b:2})
+
+    expect(prc(lexer('\n  {\n  a:\n  1\n  }\n  '))).equal({a:1})
+    expect(prc(lexer('\n  {\n  a\n  :\n  1\n  }\n  '))).equal({a:1})
+    expect(prc(lexer('\n  {\n  a:\n  1\n  ,\n  b:\n  2\n  }\n  '))).equal({a:1,b:2})
+    expect(prc(lexer('\n  {\n  a\n  :\n  1\n  ,\n  b\n  :\n  2\n  }\n  ')))
+      .equal({a:1,b:2})
+
+    expect(prc(lexer('\n  \n{\n  \na:\n  \n1\n  \n}\n  \n'))).equal({a:1})
+    expect(prc(lexer('\n  \n{\n  \na\n  \n:\n  \n1\n  \n}\n  \n'))).equal({a:1})
+    expect(prc(lexer('\n  \n{\n  \na:\n  \n1\n  \n,\n  \nb:\n  \n2\n  \n}\n  \n'))).equal({a:1,b:2})
+    expect(prc(lexer('\n  \n{\n  \na\n  \n:\n  \n1\n  \n,\n  \nb\n  \n:\n  \n2\n  \n}\n  \n')))
+      .equal({a:1,b:2})
+
+    expect(prc(lexer('\n\n{\n\na:\n\n1\n\n}\n\n'))).equal({a:1})
+    expect(prc(lexer('\n\n{\n\na\n\n:\n\n1\n\n}\n\n'))).equal({a:1})
+    expect(prc(lexer('\n\n{\n\na:\n\n1\n\n,\n\nb:\n\n2\n\n}\n\n'))).equal({a:1,b:2})
+    expect(prc(lexer('\n\n{\n\na\n\n:\n\n1\n\n,\n\nb\n\n:\n\n2\n\n}\n\n')))
+      .equal({a:1,b:2})
+
+    expect(prc(lexer('\r\n{\r\na:\r\n1\r\n}\r\n'))).equal({a:1})
+    expect(prc(lexer('\r\n{\r\na\r\n:\r\n1\r\n}\r\n'))).equal({a:1})
+    expect(prc(lexer('\r\n{\r\na:\r\n1\r\n,\r\nb:\r\n2\r\n}\r\n'))).equal({a:1,b:2})
+    expect(prc(lexer('\r\n{\r\na\r\n:\r\n1\r\n,\r\nb\r\n:\r\n2\r\n}\r\n')))
+      .equal({a:1,b:2})
+
+
+    
+    return
     expect(prc(lexer('a: 1'))).equal({a:1})
     expect(prc(lexer(' a: 1'))).equal({a:1})
     expect(prc(lexer(' a: 1 '))).equal({a:1})
