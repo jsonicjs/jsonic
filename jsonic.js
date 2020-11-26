@@ -209,15 +209,24 @@ function lexer(src) {
                     pI = sI;
                     while (lexer.digital[src[++pI]])
                         ;
+                    // console.log('NR', pI, sI, src[sI], src[sI + 1])
                     if (lexer.ender[src[pI]]) {
                         token.len = pI - sI;
-                        token.value = +(src.substring(sI, pI));
-                        if (isNaN(token.value)) {
-                            token.value = +(src.substring(sI, pI).replace(/_/g, ''));
-                        }
-                        if (isNaN(token.value)) {
+                        // Leading 0s are text unless hex val: if at least two
+                        // digits and does not start with 0x, then text.
+                        if (1 < token.len && '0' === src[sI] && 'x' != src[sI + 1]) {
                             token.value = undefined;
                             pI--;
+                        }
+                        else {
+                            token.value = +(src.substring(sI, pI));
+                            if (isNaN(token.value)) {
+                                token.value = +(src.substring(sI, pI).replace(/_/g, ''));
+                            }
+                            if (isNaN(token.value)) {
+                                token.value = undefined;
+                                pI--;
+                            }
                         }
                     }
                     // not a number

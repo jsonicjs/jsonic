@@ -313,12 +313,17 @@ describe('jsonic', function () {
       '-1.5E2', ['#NR;0;6;0x0;-150','#ZZ;6;0;0x6'],
       '0x', ['#TX;0;2;0x0;0x','#ZZ;2;0;0x2'],
       '-0xA', ['#TX;0;4;0x0;-0xA','#ZZ;4;0;0x4'],
+
+      // leading 0s (but not 0x) considered text - could be an indentifier
+      '01', ['#TX;0;2;0x0;01','#ZZ;2;0;0x2'],
+
       '1x', ['#TX;0;2;0x0;1x','#ZZ;2;0;0x2'],
       '12x', ['#TX;0;3;0x0;12x','#ZZ;3;0;0x3'],
       '1%', ['#TX;0;2;0x0;1%','#ZZ;2;0;0x2'],
       '12%', ['#TX;0;3;0x0;12%','#ZZ;3;0;0x3'],
       '123%', ['#TX;0;4;0x0;123%','#ZZ;4;0;0x4'],
       '1_0_0', ['#NR;0;5;0x0;100','#ZZ;5;0;0x5'],
+
     ])
   })
 
@@ -921,7 +926,7 @@ describe('jsonic', function () {
     expect(j("x:0,a:102,b:1.2,c:1e2,d:1.2e3,e:1e+2,f:1e-2,g:1.2e+3,h:1.2e-3,i:-1.2e+3,j:-1.2e-3")).equal({"x":0,"a":102,"b":1.2,"c":100,"d":1200,"e":100,"f":0.01,"g":1200,"h":0.0012,"i":-1200,"j":-0.0012})
 
     // digit prefix, but actually a string - could be an ID etc.
-    // DIFF expect(j("x:01,a:1a,b:10b,c:1e2e")).equal({"x":"01","a":"1a","b":"10b","c":"1e2e"})
+    expect(j("x:01,a:1a,b:10b,c:1e2e")).equal({"x":"01","a":"1a","b":"10b","c":"1e2e"})
   })
 
 
