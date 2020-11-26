@@ -1,6 +1,6 @@
 /* Copyright (c) 2013-2020 Richard Rodger, MIT License */
 
-// TODO: comments
+// TODO: back ticks or allow newlines in strings?
 
 
 // Edge case notes (see unit tests):
@@ -405,12 +405,27 @@ function lexer(src: string): Lex {
           return token
 
 
+        case '#':
+          token.kind = CM
+          token.index = sI
+          token.col = cI++
+
+          pI = sI
+          while (++pI < srclen && '\n' != src[pI] && '\r' != src[pI]);
+
+          token.len = pI - sI
+          token.value = src.substring(sI, pI)
+
+          sI = cI = pI
+          return token
+
+
         default:
           token.index = sI
           token.col = cI
 
           pI = sI
-          while (!lexer.ender[src[++pI]]);
+          while (!lexer.ender[src[++pI]] && '#' !== src[pI]);
 
           token.kind = lexer.TX
           token.len = pI - sI
@@ -499,6 +514,7 @@ lexer.escapes = escapes
 const BD = lexer.BD = Symbol('#BD') // BAD
 const ZZ = lexer.ZZ = Symbol('#ZZ') // END
 const UK = lexer.UK = Symbol('#UK') // UNKNOWN
+const CM = lexer.CM = Symbol('#CM') // COMMENT
 
 const SP = lexer.SP = Symbol('#SP') // SPACE
 const LN = lexer.LN = Symbol('#LN') // LINE
@@ -518,7 +534,7 @@ const BL = lexer.BL = Symbol('#BL')
 const NL = lexer.NL = Symbol('#NL')
 
 const VAL = [TX, NR, ST, BL, NL]
-const WSP = [SP, LN]
+const WSP = [SP, LN, CM]
 
 lexer.end = {
   kind: ZZ,
@@ -595,7 +611,7 @@ class PairRule extends Rule {
         let value: any = hoover(
           ctx,
           VAL,
-          WSP
+          [SP]
         )
 
         // console.log('PR val=' + value)
@@ -657,7 +673,7 @@ class ListRule extends Rule {
         case NL:
 
           // A sequence of literals with internal spaces is concatenated
-          let value: any = hoover(ctx, VAL, WSP)
+          let value: any = hoover(ctx, VAL, [SP])
 
           // console.log('LR val=' + value)
 
@@ -754,7 +770,7 @@ class ValueRule extends Rule {
     let value: any = hoover(
       ctx,
       VAL,
-      WSP
+      [SP]
     )
 
 

@@ -267,6 +267,12 @@ describe('jsonic', function () {
     ])
   })
 
+  it('lex-comment', () => {
+    alleq([
+      'a#b', ['#TX;0;1;0x0;a','#CM;1;2;0x1;#b','#ZZ;3;0;0x3'],
+    ])
+  })
+
 
   it('lex-boolean', () => {
     alleq([
@@ -645,10 +651,13 @@ describe('jsonic', function () {
       .equal([{a:{b:{c:[1]}}},{a:{b:{c:[1]}}}])
   })
 
+
+  it('process-comments', () => {
+    expect(j('a:q\nb:w #X\nc:r \n\nd:t\n\n#')).equal({a:'q',b:'w',c:'r',d:'t'})
+  })
+  
   
   it('process-whitespace', () => {
-
-
     expect(prc(lexer('[0,1]'))).equal([0,1])
     expect(prc(lexer('[0, 1]'))).equal([0,1])
     expect(prc(lexer('[0 ,1]'))).equal([0,1])
@@ -1297,6 +1306,10 @@ function st(t) {
 
   case lexer.BL:
     out = m(lexer.BL.description,1,t)
+    break
+
+  case lexer.CM:
+    out = m(lexer.CM.description,1,t)
     break
 
   case lexer.NL:

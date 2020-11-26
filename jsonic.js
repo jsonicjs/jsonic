@@ -2,7 +2,7 @@
 /* Copyright (c) 2013-2020 Richard Rodger, MIT License */
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.Jsonic = void 0;
-// TODO: comments
+// TODO: back ticks or allow newlines in strings?
 // Edge case notes (see unit tests):
 // LNnnn: Lex Note number
 // PNnnn: Parse Note number
@@ -301,11 +301,22 @@ function lexer(src) {
                     token.len = pI - sI;
                     sI = pI;
                     return token;
+                case '#':
+                    token.kind = CM;
+                    token.index = sI;
+                    token.col = cI++;
+                    pI = sI;
+                    while (++pI < srclen && '\n' != src[pI] && '\r' != src[pI])
+                        ;
+                    token.len = pI - sI;
+                    token.value = src.substring(sI, pI);
+                    sI = cI = pI;
+                    return token;
                 default:
                     token.index = sI;
                     token.col = cI;
                     pI = sI;
-                    while (!lexer.ender[src[++pI]])
+                    while (!lexer.ender[src[++pI]] && '#' !== src[pI])
                         ;
                     token.kind = lexer.TX;
                     token.len = pI - sI;
@@ -383,6 +394,7 @@ lexer.escapes = escapes;
 const BD = lexer.BD = Symbol('#BD'); // BAD
 const ZZ = lexer.ZZ = Symbol('#ZZ'); // END
 const UK = lexer.UK = Symbol('#UK'); // UNKNOWN
+const CM = lexer.CM = Symbol('#CM'); // COMMENT
 const SP = lexer.SP = Symbol('#SP'); // SPACE
 const LN = lexer.LN = Symbol('#LN'); // LINE
 const OB = lexer.OB = Symbol('#OB'); // OPEN BRACE
@@ -397,7 +409,7 @@ const TX = lexer.TX = Symbol('#TX');
 const BL = lexer.BL = Symbol('#BL');
 const NL = lexer.NL = Symbol('#NL');
 const VAL = [TX, NR, ST, BL, NL];
-const WSP = [SP, LN];
+const WSP = [SP, LN, CM];
 lexer.end = {
     kind: ZZ,
     index: 0,
@@ -437,7 +449,7 @@ class PairRule extends Rule {
             case BL:
             case NL:
                 // A sequence of literals with internal spaces is concatenated
-                let value = hoover(ctx, VAL, WSP);
+                let value = hoover(ctx, VAL, [SP]);
                 // console.log('PR val=' + value)
                 ctx.match(CL, WSP);
                 ctx.rs.push(this);
@@ -481,7 +493,7 @@ class ListRule extends Rule {
                 case BL:
                 case NL:
                     // A sequence of literals with internal spaces is concatenated
-                    let value = hoover(ctx, VAL, WSP);
+                    let value = hoover(ctx, VAL, [SP]);
                     // console.log('LR val=' + value)
                     this.node.push(value);
                     pk = k;
@@ -551,7 +563,7 @@ class ValueRule extends Rule {
                 return new ListRule(null, CA);
         }
         // Any sequence of literals with internal spaces is considered a single string
-        let value = hoover(ctx, VAL, WSP);
+        let value = hoover(ctx, VAL, [SP]);
         // Is this an implicit map?
         if (CL === ctx.t1.kind) {
             this.parent = OB;
