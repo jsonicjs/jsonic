@@ -2,6 +2,7 @@
 /* Copyright (c) 2013-2020 Richard Rodger, MIT License */
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.Jsonic = void 0;
+// TODO: comments
 // Edge case notes (see unit tests):
 // LNnnn: Lex Note number
 // PNnnn: Parse Note number
@@ -24,12 +25,12 @@ const badunicode = String.fromCharCode('0x0000');
 function lexer(src) {
     // NOTE: always returns this object!
     let token = {
-        kind: lexer.END,
+        kind: ZZ,
         index: 0,
         len: 0,
         row: 0,
         col: 0,
-        value: null,
+        value: undefined,
     };
     let sI = 0;
     let srclen = src.length;
@@ -37,7 +38,7 @@ function lexer(src) {
     let cI = 0;
     // TODO: token.why (a code string) needed to indicate cause of lex fail
     function bad(why, index, value) {
-        token.kind = lexer.BAD;
+        token.kind = BD;
         token.index = index;
         token.col = cI;
         token.len = index - sI + 1;
@@ -47,7 +48,7 @@ function lexer(src) {
     }
     return function lex() {
         token.len = 0;
-        token.value = null;
+        token.value = undefined;
         token.row = rI;
         let pI = 0;
         let s = [];
@@ -60,7 +61,7 @@ function lexer(src) {
             switch (cur) {
                 case ' ':
                 case '\t':
-                    token.kind = lexer.SPACE;
+                    token.kind = SP;
                     token.index = sI;
                     token.col = cI++;
                     pI = sI + 1;
@@ -73,7 +74,7 @@ function lexer(src) {
                     return token;
                 case '\n':
                 case '\r':
-                    token.kind = lexer.LINE;
+                    token.kind = lexer.LN;
                     token.index = sI;
                     token.col = cI;
                     pI = sI + 1;
@@ -87,49 +88,49 @@ function lexer(src) {
                     sI = pI;
                     return token;
                 case '{':
-                    token.kind = lexer.OPEN_BRACE;
+                    token.kind = OB;
                     token.index = sI;
                     token.col = cI++;
                     token.len = 1;
                     sI++;
                     return token;
                 case '}':
-                    token.kind = lexer.CLOSE_BRACE;
+                    token.kind = lexer.CB;
                     token.index = sI;
                     token.col = cI++;
                     token.len = 1;
                     sI++;
                     return token;
                 case '[':
-                    token.kind = lexer.OPEN_SQUARE;
+                    token.kind = lexer.OS;
                     token.index = sI;
                     token.col = cI++;
                     token.len = 1;
                     sI++;
                     return token;
                 case ']':
-                    token.kind = lexer.CLOSE_SQUARE;
+                    token.kind = lexer.CS;
                     token.index = sI;
                     token.col = cI++;
                     token.len = 1;
                     sI++;
                     return token;
                 case ':':
-                    token.kind = lexer.COLON;
+                    token.kind = CL;
                     token.index = sI;
                     token.col = cI++;
                     token.len = 1;
                     sI++;
                     return token;
                 case ',':
-                    token.kind = lexer.COMMA;
+                    token.kind = CA;
                     token.index = sI;
                     token.col = cI++;
                     token.len = 1;
                     sI++;
                     return token;
                 case 't':
-                    token.kind = lexer.BOOLEAN;
+                    token.kind = lexer.BL;
                     token.index = sI;
                     token.col = cI;
                     pI = sI;
@@ -143,14 +144,14 @@ function lexer(src) {
                     else {
                         while (!lexer.ender[src[++pI]])
                             ;
-                        token.kind = lexer.TEXT;
+                        token.kind = lexer.TX;
                         token.len = pI - sI;
                         token.value = src.substring(sI, pI);
                     }
                     sI = cI = pI;
                     return token;
                 case 'f':
-                    token.kind = lexer.BOOLEAN;
+                    token.kind = lexer.BL;
                     token.index = sI;
                     token.col = cI;
                     pI = sI;
@@ -164,14 +165,14 @@ function lexer(src) {
                     else {
                         while (!lexer.ender[src[++pI]])
                             ;
-                        token.kind = lexer.TEXT;
+                        token.kind = lexer.TX;
                         token.len = pI - sI;
                         token.value = src.substring(sI, pI);
                     }
                     sI = cI = pI;
                     return token;
                 case 'n':
-                    token.kind = lexer.NULL;
+                    token.kind = NL;
                     token.index = sI;
                     token.col = cI;
                     pI = sI;
@@ -185,7 +186,7 @@ function lexer(src) {
                     else {
                         while (!lexer.ender[src[++pI]])
                             ;
-                        token.kind = lexer.TEXT;
+                        token.kind = lexer.TX;
                         token.len = pI - sI;
                         token.value = src.substring(sI, pI);
                     }
@@ -202,7 +203,7 @@ function lexer(src) {
                 case '7':
                 case '8':
                 case '9':
-                    token.kind = lexer.NUMBER;
+                    token.kind = NR;
                     token.index = sI;
                     token.col = cI++;
                     pI = sI;
@@ -215,7 +216,7 @@ function lexer(src) {
                             token.value = +(src.substring(sI, pI).replace(/_/g, ''));
                         }
                         if (isNaN(token.value)) {
-                            token.value = null;
+                            token.value = undefined;
                             pI--;
                         }
                     }
@@ -223,7 +224,7 @@ function lexer(src) {
                     if (null == token.value) {
                         while (!lexer.ender[src[++pI]])
                             ;
-                        token.kind = lexer.TEXT;
+                        token.kind = lexer.TX;
                         token.len = pI - sI;
                         token.value = src.substring(sI, pI);
                     }
@@ -231,7 +232,7 @@ function lexer(src) {
                     return token;
                 case '"':
                 case '\'':
-                    token.kind = lexer.STRING;
+                    token.kind = ST;
                     token.index = sI;
                     token.col = cI++;
                     qc = cur.charCodeAt(0);
@@ -297,15 +298,15 @@ function lexer(src) {
                     pI = sI;
                     while (!lexer.ender[src[++pI]])
                         ;
-                    token.kind = lexer.TEXT;
+                    token.kind = lexer.TX;
                     token.len = pI - sI;
                     token.value = src.substring(sI, pI);
                     sI = cI = pI;
                     return token;
             }
         }
-        // LN001: keeps returning END past end of input
-        token.kind = lexer.END;
+        // LN001: keeps returning ED past end of input
+        token.kind = ZZ;
         token.index = srclen;
         token.col = cI;
         return token;
@@ -370,23 +371,26 @@ lexer.digital = digital;
 lexer.spaces = spaces;
 lexer.lines = lines;
 lexer.escapes = escapes;
-lexer.BAD = Symbol('Tb');
-lexer.END = Symbol('Te');
-lexer.SPACE = Symbol('T_');
-lexer.LINE = Symbol('Tr');
-lexer.OPEN_BRACE = Symbol('T{');
-lexer.CLOSE_BRACE = Symbol('T}');
-lexer.OPEN_SQUARE = Symbol('T[');
-lexer.CLOSE_SQUARE = Symbol('T]');
-lexer.COLON = Symbol('T:');
-lexer.COMMA = Symbol('Tc');
-lexer.NUMBER = Symbol('Tn');
-lexer.STRING = Symbol('Ts');
-lexer.TEXT = Symbol('Tx');
-lexer.BOOLEAN = Symbol('To');
-lexer.NULL = Symbol('Tu');
+const BD = lexer.BD = Symbol('#BD'); // BAD
+const ZZ = lexer.ZZ = Symbol('#ZZ'); // END
+const UK = lexer.UK = Symbol('#UK'); // UNKNOWN
+const SP = lexer.SP = Symbol('#SP'); // SPACE
+const LN = lexer.LN = Symbol('#LN'); // LINE
+const OB = lexer.OB = Symbol('#OB'); // OPEN BRACE
+const CB = lexer.CB = Symbol('#CB'); // CLOSE BRACE
+const OS = lexer.OS = Symbol('#OS'); // OPEN SQUARE
+const CS = lexer.CS = Symbol('#CS'); // CLOSE SQUARE
+const CL = lexer.CL = Symbol('#CL'); // COLON
+const CA = lexer.CA = Symbol('#CA'); // COMMA
+const NR = lexer.NR = Symbol('#NR');
+const ST = lexer.ST = Symbol('#ST');
+const TX = lexer.TX = Symbol('#TX');
+const BL = lexer.BL = Symbol('#BL');
+const NL = lexer.NL = Symbol('#NL');
+const VAL = [TX, NR, ST, BL, NL];
+const WSP = [SP, LN];
 lexer.end = {
-    kind: lexer.END,
+    kind: ZZ,
     index: 0,
     len: 0,
     row: 0,
@@ -406,30 +410,30 @@ class PairRule extends Rule {
         this.key = key;
     }
     process(ctx) {
-        ctx.ignore([lexer.SPACE, lexer.LINE]);
+        ctx.ignore(WSP);
         // Implicit map so key already parsed
         if (this.key) {
             ctx.rs.push(this);
             let key = this.key;
             delete this.key;
-            return new ValueRule(this.node, key);
+            return new ValueRule(this.node, key, OB);
         }
         let t = ctx.next();
         let k = t.kind;
         // console.log('PR:' + S(k) + '=' + t.value)
         switch (k) {
-            case lexer.TEXT:
-            case lexer.NUMBER:
-            case lexer.STRING:
-            case lexer.BOOLEAN:
-            case lexer.NULL:
+            case TX:
+            case NR:
+            case ST:
+            case BL:
+            case NL:
                 // A sequence of literals with internal spaces is concatenated
-                let value = hoover(ctx, [lexer.TEXT, lexer.NUMBER, lexer.STRING, lexer.BOOLEAN, lexer.NULL,], [lexer.SPACE, lexer.LINE]);
+                let value = hoover(ctx, VAL, WSP);
                 // console.log('PR val=' + value)
-                ctx.match(lexer.COLON, [lexer.SPACE, lexer.LINE]);
+                ctx.match(CL, WSP);
                 ctx.rs.push(this);
-                return new ValueRule(this.node, value);
-            case lexer.COMMA:
+                return new ValueRule(this.node, value, OB);
+            case CA:
                 return this;
             default:
                 let rule = ctx.rs.pop();
@@ -445,39 +449,54 @@ class PairRule extends Rule {
     }
 }
 class ListRule extends Rule {
-    constructor() {
-        super([]);
+    constructor(firstval, firstkind) {
+        super(undefined === firstval ? [] : [firstval]);
+        this.firstkind = firstkind;
     }
     process(ctx) {
         if (this.value) {
             this.node.push(this.value);
             this.value = undefined;
         }
+        let pk = this.firstkind || UK;
+        this.firstkind = undefined;
         while (true) {
-            ctx.ignore([lexer.SPACE, lexer.LINE]);
+            ctx.ignore(WSP);
             let t = ctx.next();
             let k = t.kind;
             // console.log('LIST:' + S(k) + '=' + t.value)
             switch (k) {
-                case lexer.TEXT:
-                case lexer.NUMBER:
-                case lexer.STRING:
-                case lexer.BOOLEAN:
-                case lexer.NULL:
+                case TX:
+                case NR:
+                case ST:
+                case BL:
+                case NL:
                     // A sequence of literals with internal spaces is concatenated
-                    let value = hoover(ctx, [lexer.TEXT, lexer.NUMBER, lexer.STRING, lexer.BOOLEAN, lexer.NULL,], [lexer.SPACE, lexer.LINE]);
+                    let value = hoover(ctx, VAL, WSP);
                     // console.log('LR val=' + value)
                     this.node.push(value);
+                    pk = k;
                     break;
-                case lexer.COMMA:
+                case CA:
                     // console.log('LR comma')
+                    // Insert null before comma if value missing.
+                    // Trailing commas are ignored.
+                    if (CA === pk || 0 === this.node.length) {
+                        this.node.push(null);
+                    }
+                    pk = k;
                     break;
-                case lexer.OPEN_BRACE:
+                case OB:
                     ctx.rs.push(this);
+                    pk = k;
                     return new PairRule();
-                case lexer.OPEN_SQUARE:
+                case OS:
                     ctx.rs.push(this);
+                    pk = k;
                     return new ListRule();
+                case CL:
+                    // TODO: proper error msgs, incl row,col etc
+                    throw new Error('key-value pair inside list');
                 default:
                     let rule = ctx.rs.pop();
                     // Return self as value to parent rule
@@ -493,12 +512,13 @@ class ListRule extends Rule {
     }
 }
 class ValueRule extends Rule {
-    constructor(node, key) {
+    constructor(node, key, parent) {
         super(node);
         this.key = key;
+        this.parent = parent;
     }
     process(ctx) {
-        ctx.ignore([lexer.SPACE, lexer.LINE]);
+        ctx.ignore(WSP);
         // console.log('VR S', this.value)
         // Child value has resolved
         if (this.value) {
@@ -510,20 +530,32 @@ class ValueRule extends Rule {
         let k = t.kind;
         // console.log('VR:' + S(k) + '=' + t.value)
         switch (k) {
-            case lexer.OPEN_BRACE:
+            case OB:
                 ctx.rs.push(this);
                 return new PairRule();
-            case lexer.OPEN_SQUARE:
+            case OS:
                 ctx.rs.push(this);
                 return new ListRule();
+            // Implicit list
+            case CA:
+                ctx.rs.push(this);
+                return new ListRule(null, CA);
         }
         // Any sequence of literals with internal spaces is considered a single string
-        let value = hoover(ctx, [lexer.TEXT, lexer.NUMBER, lexer.STRING, lexer.BOOLEAN, lexer.NULL,], [lexer.SPACE, lexer.LINE]);
+        let value = hoover(ctx, VAL, WSP);
         // Is this an implicit map?
-        if (lexer.COLON === ctx.t1.kind) {
+        if (CL === ctx.t1.kind) {
+            this.parent = OB;
             ctx.next();
             ctx.rs.push(this);
-            return new PairRule(value);
+            return new PairRule(String(value));
+        }
+        // Is this an implicit list (at top level only)?
+        else if (CA === ctx.t1.kind && OB !== this.parent) {
+            this.parent = OS;
+            ctx.next();
+            ctx.rs.push(this);
+            return new ListRule(value, CA);
         }
         else {
             this.node[this.key] = value;
@@ -562,7 +594,7 @@ function hoover(ctx, kinds, trims) {
     }
 }
 function process(lex) {
-    let rule = new ValueRule({}, '$');
+    let rule = new ValueRule({}, '$', UK);
     let root = rule;
     //let t0: Token = lexer.end
     //let t1: Token = lexer.end
@@ -611,6 +643,7 @@ function process(lex) {
         // console.log('W:' + rule + ' rs:' + ctx.rs.map(r => r.constructor.name))
         rule = rule.process(ctx);
     }
+    // console.log('Z:', root.node.$)
     return root.node.$;
 }
 let Jsonic = Object.assign(parse, {

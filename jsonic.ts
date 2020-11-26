@@ -1,5 +1,7 @@
 /* Copyright (c) 2013-2020 Richard Rodger, MIT License */
 
+// TODO: comments
+
 
 // Edge case notes (see unit tests):
 // LNnnn: Lex Note number
@@ -62,12 +64,12 @@ function lexer(src: string): Lex {
 
   // NOTE: always returns this object!
   let token: Token = {
-    kind: lexer.END,
+    kind: ZZ,
     index: 0,
     len: 0,
     row: 0,
     col: 0,
-    value: null,
+    value: undefined,
   }
   let sI = 0
   let srclen = src.length
@@ -77,7 +79,7 @@ function lexer(src: string): Lex {
 
   // TODO: token.why (a code string) needed to indicate cause of lex fail
   function bad(why: string, index: number, value: any): Token {
-    token.kind = lexer.BAD
+    token.kind = BD
     token.index = index
     token.col = cI
     token.len = index - sI + 1
@@ -89,7 +91,7 @@ function lexer(src: string): Lex {
 
   return function lex(): Token {
     token.len = 0
-    token.value = null
+    token.value = undefined
     token.row = rI
 
     let pI = 0
@@ -105,7 +107,7 @@ function lexer(src: string): Lex {
       switch (cur) {
 
         case ' ': case '\t':
-          token.kind = lexer.SPACE
+          token.kind = SP
           token.index = sI
           token.col = cI++
 
@@ -121,7 +123,7 @@ function lexer(src: string): Lex {
 
 
         case '\n': case '\r':
-          token.kind = lexer.LINE
+          token.kind = lexer.LN
           token.index = sI
           token.col = cI
 
@@ -139,7 +141,7 @@ function lexer(src: string): Lex {
 
 
         case '{':
-          token.kind = lexer.OPEN_BRACE
+          token.kind = OB
           token.index = sI
           token.col = cI++
           token.len = 1
@@ -148,7 +150,7 @@ function lexer(src: string): Lex {
 
 
         case '}':
-          token.kind = lexer.CLOSE_BRACE
+          token.kind = lexer.CB
           token.index = sI
           token.col = cI++
           token.len = 1
@@ -156,7 +158,7 @@ function lexer(src: string): Lex {
           return token
 
         case '[':
-          token.kind = lexer.OPEN_SQUARE
+          token.kind = lexer.OS
           token.index = sI
           token.col = cI++
           token.len = 1
@@ -165,7 +167,7 @@ function lexer(src: string): Lex {
 
 
         case ']':
-          token.kind = lexer.CLOSE_SQUARE
+          token.kind = lexer.CS
           token.index = sI
           token.col = cI++
           token.len = 1
@@ -174,7 +176,7 @@ function lexer(src: string): Lex {
 
 
         case ':':
-          token.kind = lexer.COLON
+          token.kind = CL
           token.index = sI
           token.col = cI++
           token.len = 1
@@ -183,7 +185,7 @@ function lexer(src: string): Lex {
 
 
         case ',':
-          token.kind = lexer.COMMA
+          token.kind = CA
           token.index = sI
           token.col = cI++
           token.len = 1
@@ -192,7 +194,7 @@ function lexer(src: string): Lex {
 
 
         case 't':
-          token.kind = lexer.BOOLEAN
+          token.kind = lexer.BL
           token.index = sI
           token.col = cI
 
@@ -208,7 +210,7 @@ function lexer(src: string): Lex {
           // not a true literal
           else {
             while (!lexer.ender[src[++pI]]);
-            token.kind = lexer.TEXT
+            token.kind = lexer.TX
             token.len = pI - sI
             token.value = src.substring(sI, pI)
           }
@@ -218,7 +220,7 @@ function lexer(src: string): Lex {
 
 
         case 'f':
-          token.kind = lexer.BOOLEAN
+          token.kind = lexer.BL
           token.index = sI
           token.col = cI
 
@@ -234,7 +236,7 @@ function lexer(src: string): Lex {
           // not a `false` literal
           else {
             while (!lexer.ender[src[++pI]]);
-            token.kind = lexer.TEXT
+            token.kind = lexer.TX
             token.len = pI - sI
             token.value = src.substring(sI, pI)
           }
@@ -244,7 +246,7 @@ function lexer(src: string): Lex {
 
 
         case 'n':
-          token.kind = lexer.NULL
+          token.kind = NL
           token.index = sI
           token.col = cI
 
@@ -260,7 +262,7 @@ function lexer(src: string): Lex {
           // not a `null` literal
           else {
             while (!lexer.ender[src[++pI]]);
-            token.kind = lexer.TEXT
+            token.kind = lexer.TX
             token.len = pI - sI
             token.value = src.substring(sI, pI)
           }
@@ -280,7 +282,7 @@ function lexer(src: string): Lex {
         case '7':
         case '8':
         case '9':
-          token.kind = lexer.NUMBER
+          token.kind = NR
           token.index = sI
           token.col = cI++
 
@@ -296,7 +298,7 @@ function lexer(src: string): Lex {
             }
 
             if (isNaN(token.value)) {
-              token.value = null
+              token.value = undefined
               pI--
             }
           }
@@ -304,7 +306,7 @@ function lexer(src: string): Lex {
           // not a number
           if (null == token.value) {
             while (!lexer.ender[src[++pI]]);
-            token.kind = lexer.TEXT
+            token.kind = lexer.TX
             token.len = pI - sI
             token.value = src.substring(sI, pI)
           }
@@ -314,7 +316,7 @@ function lexer(src: string): Lex {
           return token
 
         case '"': case '\'':
-          token.kind = lexer.STRING
+          token.kind = ST
           token.index = sI
           token.col = cI++
 
@@ -398,7 +400,7 @@ function lexer(src: string): Lex {
           pI = sI
           while (!lexer.ender[src[++pI]]);
 
-          token.kind = lexer.TEXT
+          token.kind = lexer.TX
           token.len = pI - sI
           token.value = src.substring(sI, pI)
 
@@ -407,8 +409,8 @@ function lexer(src: string): Lex {
       }
     }
 
-    // LN001: keeps returning END past end of input
-    token.kind = lexer.END
+    // LN001: keeps returning ED past end of input
+    token.kind = ZZ
     token.index = srclen
     token.col = cI
 
@@ -482,28 +484,32 @@ lexer.spaces = spaces
 lexer.lines = lines
 lexer.escapes = escapes
 
-lexer.BAD = Symbol('Tb')
-lexer.END = Symbol('Te')
+const BD = lexer.BD = Symbol('#BD') // BAD
+const ZZ = lexer.ZZ = Symbol('#ZZ') // END
+const UK = lexer.UK = Symbol('#UK') // UNKNOWN
 
-lexer.SPACE = Symbol('T_')
-lexer.LINE = Symbol('Tr')
+const SP = lexer.SP = Symbol('#SP') // SPACE
+const LN = lexer.LN = Symbol('#LN') // LINE
 
-lexer.OPEN_BRACE = Symbol('T{')
-lexer.CLOSE_BRACE = Symbol('T}')
-lexer.OPEN_SQUARE = Symbol('T[')
-lexer.CLOSE_SQUARE = Symbol('T]')
-lexer.COLON = Symbol('T:')
-lexer.COMMA = Symbol('Tc')
+const OB = lexer.OB = Symbol('#OB') // OPEN BRACE
+const CB = lexer.CB = Symbol('#CB') // CLOSE BRACE
+const OS = lexer.OS = Symbol('#OS') // OPEN SQUARE
+const CS = lexer.CS = Symbol('#CS') // CLOSE SQUARE
+const CL = lexer.CL = Symbol('#CL') // COLON
+const CA = lexer.CA = Symbol('#CA') // COMMA
 
-lexer.NUMBER = Symbol('Tn')
-lexer.STRING = Symbol('Ts')
-lexer.TEXT = Symbol('Tx')
+const NR = lexer.NR = Symbol('#NR')
+const ST = lexer.ST = Symbol('#ST')
+const TX = lexer.TX = Symbol('#TX')
 
-lexer.BOOLEAN = Symbol('To')
-lexer.NULL = Symbol('Tu')
+const BL = lexer.BL = Symbol('#BL')
+const NL = lexer.NL = Symbol('#NL')
+
+const VAL = [TX, NR, ST, BL, NL]
+const WSP = [SP, LN]
 
 lexer.end = {
-  kind: lexer.END,
+  kind: ZZ,
   index: 0,
   len: 0,
   row: 0,
@@ -551,14 +557,14 @@ class PairRule extends Rule {
   }
 
   process(ctx: Context): Rule | undefined {
-    ctx.ignore([lexer.SPACE, lexer.LINE])
+    ctx.ignore(WSP)
 
     // Implicit map so key already parsed
     if (this.key) {
       ctx.rs.push(this)
       let key = this.key
       delete this.key
-      return new ValueRule(this.node, key)
+      return new ValueRule(this.node, key, OB)
     }
 
     let t: Token = ctx.next()
@@ -567,28 +573,26 @@ class PairRule extends Rule {
     // console.log('PR:' + S(k) + '=' + t.value)
 
     switch (k) {
-      case lexer.TEXT:
-      case lexer.NUMBER:
-      case lexer.STRING:
-      case lexer.BOOLEAN:
-      case lexer.NULL:
+      case TX:
+      case NR:
+      case ST:
+      case BL:
+      case NL:
 
         // A sequence of literals with internal spaces is concatenated
         let value: any = hoover(
           ctx,
-          [lexer.TEXT, lexer.NUMBER, lexer.STRING, lexer.BOOLEAN, lexer.NULL,],
-          [lexer.SPACE, lexer.LINE]
+          VAL,
+          WSP
         )
 
         // console.log('PR val=' + value)
-
-
-        ctx.match(lexer.COLON, [lexer.SPACE, lexer.LINE])
+        ctx.match(CL, WSP)
 
         ctx.rs.push(this)
-        return new ValueRule(this.node, value)
+        return new ValueRule(this.node, value, OB)
 
-      case lexer.COMMA:
+      case CA:
         return this
 
       default:
@@ -609,9 +613,11 @@ class PairRule extends Rule {
 
 
 class ListRule extends Rule {
+  firstkind: symbol | undefined
 
-  constructor() {
-    super([])
+  constructor(firstval?: any, firstkind?: symbol) {
+    super(undefined === firstval ? [] : [firstval])
+    this.firstkind = firstkind
   }
 
   process(ctx: Context): Rule | undefined {
@@ -620,8 +626,11 @@ class ListRule extends Rule {
       this.value = undefined
     }
 
+    let pk: symbol = this.firstkind || UK
+    this.firstkind = undefined
+
     while (true) {
-      ctx.ignore([lexer.SPACE, lexer.LINE])
+      ctx.ignore(WSP)
 
       let t: Token = ctx.next()
       let k = t.kind
@@ -629,35 +638,45 @@ class ListRule extends Rule {
       // console.log('LIST:' + S(k) + '=' + t.value)
 
       switch (k) {
-        case lexer.TEXT:
-        case lexer.NUMBER:
-        case lexer.STRING:
-        case lexer.BOOLEAN:
-        case lexer.NULL:
+        case TX:
+        case NR:
+        case ST:
+        case BL:
+        case NL:
 
           // A sequence of literals with internal spaces is concatenated
-          let value: any = hoover(
-            ctx,
-            [lexer.TEXT, lexer.NUMBER, lexer.STRING, lexer.BOOLEAN, lexer.NULL,],
-            [lexer.SPACE, lexer.LINE]
-          )
+          let value: any = hoover(ctx, VAL, WSP)
 
           // console.log('LR val=' + value)
 
           this.node.push(value)
+          pk = k
           break
 
-        case lexer.COMMA:
+        case CA:
           // console.log('LR comma')
+          // Insert null before comma if value missing.
+          // Trailing commas are ignored.
+          if (CA === pk || 0 === this.node.length) {
+            this.node.push(null)
+          }
+          pk = k
           break
 
-        case lexer.OPEN_BRACE:
+        case OB:
           ctx.rs.push(this)
+          pk = k
           return new PairRule()
 
-        case lexer.OPEN_SQUARE:
+        case OS:
           ctx.rs.push(this)
+          pk = k
           return new ListRule()
+
+        case CL:
+          // TODO: proper error msgs, incl row,col etc
+          throw new Error('key-value pair inside list')
+
 
         default:
           let rule = ctx.rs.pop()
@@ -679,14 +698,16 @@ class ListRule extends Rule {
 
 
 class ValueRule extends Rule {
+  parent: symbol
 
-  constructor(node: any, key: string) {
+  constructor(node: any, key: string, parent: symbol) {
     super(node)
     this.key = key
+    this.parent = parent
   }
 
   process(ctx: Context): Rule | undefined {
-    ctx.ignore([lexer.SPACE, lexer.LINE])
+    ctx.ignore(WSP)
 
     // console.log('VR S', this.value)
     // Child value has resolved
@@ -702,29 +723,44 @@ class ValueRule extends Rule {
     // console.log('VR:' + S(k) + '=' + t.value)
 
     switch (k) {
-      case lexer.OPEN_BRACE:
+      case OB:
         ctx.rs.push(this)
         return new PairRule()
 
-      case lexer.OPEN_SQUARE:
+      case OS:
         ctx.rs.push(this)
         return new ListRule()
+
+      // Implicit list
+      case CA:
+        ctx.rs.push(this)
+        return new ListRule(null, CA)
+
     }
 
     // Any sequence of literals with internal spaces is considered a single string
     let value: any = hoover(
       ctx,
-      [lexer.TEXT, lexer.NUMBER, lexer.STRING, lexer.BOOLEAN, lexer.NULL,],
-      [lexer.SPACE, lexer.LINE]
+      VAL,
+      WSP
     )
 
 
     // Is this an implicit map?
-    if (lexer.COLON === ctx.t1.kind) {
+    if (CL === ctx.t1.kind) {
+      this.parent = OB
       ctx.next()
 
       ctx.rs.push(this)
-      return new PairRule(value)
+      return new PairRule(String(value))
+    }
+    // Is this an implicit list (at top level only)?
+    else if (CA === ctx.t1.kind && OB !== this.parent) {
+      this.parent = OS
+      ctx.next()
+
+      ctx.rs.push(this)
+      return new ListRule(value, CA)
     }
     else {
       this.node[this.key] = value
@@ -774,7 +810,7 @@ function hoover(ctx: Context, kinds: symbol[], trims: symbol[]): any {
 
 
 function process(lex: Lex): any {
-  let rule: Rule | undefined = new ValueRule({}, '$')
+  let rule: Rule | undefined = new ValueRule({}, '$', UK)
   let root = rule
 
   //let t0: Token = lexer.end
@@ -838,6 +874,7 @@ function process(lex: Lex): any {
     rule = rule.process(ctx)
   }
 
+  // console.log('Z:', root.node.$)
   return root.node.$
 }
 

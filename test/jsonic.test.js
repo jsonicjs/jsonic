@@ -24,8 +24,8 @@ function lexall(src) {
     // console.log(out[out.length-1])
     out.push({...lex()})
   }
-  while( lexer.END != out[out.length-1].kind &&
-         lexer.BAD != out[out.length-1].kind )
+  while( lexer.ZZ != out[out.length-1].kind &&
+         lexer.BD != out[out.length-1].kind )
   return out.map(t=>st(t))
 }
 
@@ -147,68 +147,68 @@ describe('jsonic', function () {
 
     let lex0 = lexer(' {123 ')
     expect(lex0()).equals(
-      { kind: lexer.SPACE, index: 0, len: 1, row: 0, col: 0, value: ' ' })
+      { kind: lexer.SP, index: 0, len: 1, row: 0, col: 0, value: ' ' })
     expect(lex0()).equals(
-      { kind: lexer.OPEN_BRACE, index: 1, len: 1, row: 0, col: 1, value: null })
+      { kind: lexer.OB, index: 1, len: 1, row: 0, col: 1, value: undefined })
     expect(lex0()).equals(
-      { kind: lexer.NUMBER, index: 2, len: 3, row: 0, col: 2, value: 123 })
+      { kind: lexer.NR, index: 2, len: 3, row: 0, col: 2, value: 123 })
     expect(lex0()).equals(
-      { kind: lexer.SPACE, index: 5, len: 1, row: 0, col: 5, value: ' ' })
+      { kind: lexer.SP, index: 5, len: 1, row: 0, col: 5, value: ' ' })
     expect(lex0()).equals(
-      { kind: lexer.END, index: 6, len: 0, row: 0, col: 6, value: null })
+      { kind: lexer.ZZ, index: 6, len: 0, row: 0, col: 6, value: undefined })
 
     // LN001
     expect(lex0()).equals(
-      { kind: lexer.END, index: 6, len: 0, row: 0, col: 6, value: null })
+      { kind: lexer.ZZ, index: 6, len: 0, row: 0, col: 6, value: undefined })
     expect(lex0()).equals(
-      { kind: lexer.END, index: 6, len: 0, row: 0, col: 6, value: null })
+      { kind: lexer.ZZ, index: 6, len: 0, row: 0, col: 6, value: undefined })
 
     let lex1 = lexer('"\\u0040"')
     expect(lex1()).equals(
-      { kind: lexer.STRING, index: 0, len: 8, row: 0, col: 0, value: '@' })
+      { kind: lexer.ST, index: 0, len: 8, row: 0, col: 0, value: '@' })
 
     
     expect(lexall(' {123')).equals([
-      'S;0;1;0x0', '{;1;1;0x1', 'N;2;3;0x2;123', 'E;5;0;0x5'
+      '#SP;0;1;0x0', '#OB;1;1;0x1', '#NR;2;3;0x2;123', '#ZZ;5;0;0x5'
     ])
 
     expect(lexall(' {123%')).equals([
-      'S;0;1;0x0', '{;1;1;0x1', 'X;2;4;0x2;123%', 'E;6;0;0x6'
+      '#SP;0;1;0x0', '#OB;1;1;0x1', '#TX;2;4;0x2;123%', '#ZZ;6;0;0x6'
     ])
 
     alleq([
-      '', ['E;0;0;0x0'],
+      '', ['#ZZ;0;0;0x0'],
       
-      '0', ['N;0;1;0x0;0','E;1;0;0x1'],
+      '0', ['#NR;0;1;0x0;0','#ZZ;1;0;0x1'],
     ])
 
     let lex2 = lexer(' m n ')
     expect(lex2()).equals(
-      { kind: lexer.SPACE, index: 0, len: 1, row: 0, col: 0, value: ' ' })
+      { kind: lexer.SP, index: 0, len: 1, row: 0, col: 0, value: ' ' })
     expect(lex2()).equals(
-      { kind: lexer.TEXT, index: 1, len: 1, row: 0, col: 1, value: 'm' })
+      { kind: lexer.TX, index: 1, len: 1, row: 0, col: 1, value: 'm' })
     expect(lex2()).equals(
-      { kind: lexer.SPACE, index: 2, len: 1, row: 0, col: 2, value: ' ' })
+      { kind: lexer.SP, index: 2, len: 1, row: 0, col: 2, value: ' ' })
     expect(lex2()).equals(
-      { kind: lexer.TEXT, index: 3, len: 1, row: 0, col: 3, value: 'n' })
+      { kind: lexer.TX, index: 3, len: 1, row: 0, col: 3, value: 'n' })
     expect(lex2()).equals(
-      { kind: lexer.SPACE, index: 4, len: 1, row: 0, col: 4, value: ' ' })
+      { kind: lexer.SP, index: 4, len: 1, row: 0, col: 4, value: ' ' })
     expect(lex2()).equals(
-      { kind: lexer.END, index: 5, len: 0, row: 0, col: 5, value: null })
+      { kind: lexer.ZZ, index: 5, len: 0, row: 0, col: 5, value: undefined })
 
     let lex3 = lexer(' b a ')
     expect(lex3()).equals(
-      { kind: lexer.SPACE, index: 0, len: 1, row: 0, col: 0, value: ' ' })
+      { kind: lexer.SP, index: 0, len: 1, row: 0, col: 0, value: ' ' })
     expect(lex3()).equals(
-      { kind: lexer.TEXT, index: 1, len: 1, row: 0, col: 1, value: 'b' })
+      { kind: lexer.TX, index: 1, len: 1, row: 0, col: 1, value: 'b' })
     expect(lex3()).equals(
-      { kind: lexer.SPACE, index: 2, len: 1, row: 0, col: 2, value: ' ' })
+      { kind: lexer.SP, index: 2, len: 1, row: 0, col: 2, value: ' ' })
     expect(lex3()).equals(
-      { kind: lexer.TEXT, index: 3, len: 1, row: 0, col: 3, value: 'a' })
+      { kind: lexer.TX, index: 3, len: 1, row: 0, col: 3, value: 'a' })
     expect(lex3()).equals(
-      { kind: lexer.SPACE, index: 4, len: 1, row: 0, col: 4, value: ' ' })
+      { kind: lexer.SP, index: 4, len: 1, row: 0, col: 4, value: ' ' })
     expect(lex3()).equals(
-      { kind: lexer.END, index: 5, len: 0, row: 0, col: 5, value: null })
+      { kind: lexer.ZZ, index: 5, len: 0, row: 0, col: 5, value: undefined })
 
   })
 
@@ -216,17 +216,17 @@ describe('jsonic', function () {
   it('lex-space', () => {
     let lex0 = lexer(' \t')
     expect(lex0()).equals(
-      { kind: 100, index: 0, len: 2, row: 0, col: 0, value: ' \t' })
+      { kind: lexer.SP, index: 0, len: 2, row: 0, col: 0, value: ' \t' })
 
     alleq([
-      ' ', ['S;0;1;0x0','E;1;0;0x1'],
-      '  ', ['S;0;2;0x0','E;2;0;0x2'],
-      ' \t', ['S;0;2;0x0','E;2;0;0x2'],
-      ' \t ', ['S;0;3;0x0','E;3;0;0x3'],
-      '\t \t', ['S;0;3;0x0','E;3;0;0x3'],
-      '\t ', ['S;0;2;0x0','E;2;0;0x2'],
-      '\t\t', ['S;0;2;0x0','E;2;0;0x2'],
-      '\t', ['S;0;1;0x0','E;1;0;0x1'],
+      ' ', ['#SP;0;1;0x0','#ZZ;1;0;0x1'],
+      '  ', ['#SP;0;2;0x0','#ZZ;2;0;0x2'],
+      ' \t', ['#SP;0;2;0x0','#ZZ;2;0;0x2'],
+      ' \t ', ['#SP;0;3;0x0','#ZZ;3;0;0x3'],
+      '\t \t', ['#SP;0;3;0x0','#ZZ;3;0;0x3'],
+      '\t ', ['#SP;0;2;0x0','#ZZ;2;0;0x2'],
+      '\t\t', ['#SP;0;2;0x0','#ZZ;2;0;0x2'],
+      '\t', ['#SP;0;1;0x0','#ZZ;1;0;0x1'],
 
     ])
   })
@@ -234,71 +234,65 @@ describe('jsonic', function () {
   
   it('lex-brace', () => {
     alleq([
-      '{', ['{;0;1;0x0','E;1;0;0x1'],
-      '{{', ['{;0;1;0x0','{;1;1;0x1','E;2;0;0x2'],
-      '}', ['};0;1;0x0','E;1;0;0x1'],
-      '}}', ['};0;1;0x0','};1;1;0x1','E;2;0;0x2'],
+      '{', ['#OB;0;1;0x0','#ZZ;1;0;0x1'],
+      '{{', ['#OB;0;1;0x0','#OB;1;1;0x1','#ZZ;2;0;0x2'],
+      '}', ['#CB;0;1;0x0','#ZZ;1;0;0x1'],
+      '}}', ['#CB;0;1;0x0','#CB;1;1;0x1','#ZZ;2;0;0x2'],
     ])
   })
 
 
   it('lex-square', () => {
     alleq([
-      '[', ['[;0;1;0x0','E;1;0;0x1'],
-      '[[', ['[;0;1;0x0','[;1;1;0x1','E;2;0;0x2'],
-      ']', ['];0;1;0x0','E;1;0;0x1'],
-      ']]', ['];0;1;0x0','];1;1;0x1','E;2;0;0x2'],
+      '[', ['#OS;0;1;0x0','#ZZ;1;0;0x1'],
+      '[[', ['#OS;0;1;0x0','#OS;1;1;0x1','#ZZ;2;0;0x2'],
+      ']', ['#CS;0;1;0x0','#ZZ;1;0;0x1'],
+      ']]', ['#CS;0;1;0x0','#CS;1;1;0x1','#ZZ;2;0;0x2'],
     ])
   })
 
 
   it('lex-colon', () => {
     alleq([
-      ':', ['D;0;1;0x0','E;1;0;0x1'],
-      '::', ['D;0;1;0x0','D;1;1;0x1','E;2;0;0x2'],
+      ':', ['#CL;0;1;0x0','#ZZ;1;0;0x1'],
+      '::', ['#CL;0;1;0x0','#CL;1;1;0x1','#ZZ;2;0;0x2'],
     ])
   })
 
 
   it('lex-comma', () => {
     alleq([
-      ',', ['C;0;1;0x0','E;1;0;0x1'],
-      ',,', ['C;0;1;0x0','C;1;1;0x1','E;2;0;0x2'],
+      ',', ['#CA;0;1;0x0','#ZZ;1;0;0x1'],
+      ',,', ['#CA;0;1;0x0','#CA;1;1;0x1','#ZZ;2;0;0x2'],
     ])
   })
 
 
-  it('lex-true', () => {
+  it('lex-boolean', () => {
     alleq([
-      'true', ['T;0;4;0x0;true','E;4;0;0x4'],
-      'true ', ['T;0;4;0x0;true','S;4;1;0x4','E;5;0;0x5'],
-      ' true', ['S;0;1;0x0','T;1;4;0x1;true','E;5;0;0x5'],
-      'truex', ['X;0;5;0x0;truex','E;5;0;0x5'],
-      'truex ', ['X;0;5;0x0;truex','S;5;1;0x5','E;6;0;0x6'],
-    ])
-  })
-
-
-  it('lex-false', () => {
-    alleq([
-      'false', ['F;0;5;0x0;false','E;5;0;0x5'],
-      'false ', ['F;0;5;0x0;false','S;5;1;0x5','E;6;0;0x6'],
-      ' false', ['S;0;1;0x0','F;1;5;0x1;false','E;6;0;0x6'],
-      'falsex', ['X;0;6;0x0;falsex','E;6;0;0x6'],
-      'falsex ', ['X;0;6;0x0;falsex','S;6;1;0x6','E;7;0;0x7'],
+      'true', ['#BL;0;4;0x0;true','#ZZ;4;0;0x4'],
+      'true ', ['#BL;0;4;0x0;true','#SP;4;1;0x4','#ZZ;5;0;0x5'],
+      ' true', ['#SP;0;1;0x0','#BL;1;4;0x1;true','#ZZ;5;0;0x5'],
+      'truex', ['#TX;0;5;0x0;truex','#ZZ;5;0;0x5'],
+      'truex ', ['#TX;0;5;0x0;truex','#SP;5;1;0x5','#ZZ;6;0;0x6'],
+      'false', ['#BL;0;5;0x0;false','#ZZ;5;0;0x5'],
+      'false ', ['#BL;0;5;0x0;false','#SP;5;1;0x5','#ZZ;6;0;0x6'],
+      ' false', ['#SP;0;1;0x0','#BL;1;5;0x1;false','#ZZ;6;0;0x6'],
+      'falsex', ['#TX;0;6;0x0;falsex','#ZZ;6;0;0x6'],
+      'falsex ', ['#TX;0;6;0x0;falsex','#SP;6;1;0x6','#ZZ;7;0;0x7'],
     ])
   })
 
   
   it('lex-null', () => {
     alleq([
-      'null', ['U;0;4;0x0;null','E;4;0;0x4'],
-      'null ', ['U;0;4;0x0;null','S;4;1;0x4','E;5;0;0x5'],
-      ' null', ['S;0;1;0x0','U;1;4;0x1;null','E;5;0;0x5'],
-      'nullx', ['X;0;5;0x0;nullx','E;5;0;0x5'],
-      'nullx ', ['X;0;5;0x0;nullx','S;5;1;0x5','E;6;0;0x6'],
-      'nulx ', ['X;0;4;0x0;nulx','S;4;1;0x4','E;5;0;0x5'],
-      'nulx', ['X;0;4;0x0;nulx','E;4;0;0x4'],
+      'null', ['#NL;0;4;0x0;null','#ZZ;4;0;0x4'],
+      'null ', ['#NL;0;4;0x0;null','#SP;4;1;0x4','#ZZ;5;0;0x5'],
+      ' null', ['#SP;0;1;0x0','#NL;1;4;0x1;null','#ZZ;5;0;0x5'],
+      'nullx', ['#TX;0;5;0x0;nullx','#ZZ;5;0;0x5'],
+      'nullx ', ['#TX;0;5;0x0;nullx','#SP;5;1;0x5','#ZZ;6;0;0x6'],
+      'nulx ', ['#TX;0;4;0x0;nulx','#SP;4;1;0x4','#ZZ;5;0;0x5'],
+      'nulx', ['#TX;0;4;0x0;nulx','#ZZ;4;0;0x4'],
     ])
   })
 
@@ -307,105 +301,105 @@ describe('jsonic', function () {
   it('lex-number', () => {
     let lex0 = lexer('123')
     expect(lex0())
-      .equal({ kind: 10000, index: 0, len: 3, row: 0, col: 0, value: 123 })
+      .equal({ kind: lexer.NR, index: 0, len: 3, row: 0, col: 0, value: 123 })
     
     alleq([
-      '0', ['N;0;1;0x0;0','E;1;0;0x1'],
-      '-0', ['N;0;2;0x0;0','E;2;0;0x2'],
-      '1.2', ['N;0;3;0x0;1.2','E;3;0;0x3'],
-      '-1.2', ['N;0;4;0x0;-1.2','E;4;0;0x4'],
-      '0xA', ['N;0;3;0x0;10','E;3;0;0x3'],
-      '1e2', ['N;0;3;0x0;100','E;3;0;0x3'],
-      '-1.5E2', ['N;0;6;0x0;-150','E;6;0;0x6'],
-      '0x', ['X;0;2;0x0;0x','E;2;0;0x2'],
-      '-0xA', ['X;0;4;0x0;-0xA','E;4;0;0x4'],
-      '1x', ['X;0;2;0x0;1x','E;2;0;0x2'],
-      '12x', ['X;0;3;0x0;12x','E;3;0;0x3'],
-      '1%', ['X;0;2;0x0;1%','E;2;0;0x2'],
-      '12%', ['X;0;3;0x0;12%','E;3;0;0x3'],
-      '123%', ['X;0;4;0x0;123%','E;4;0;0x4'],
-      '1_0_0', ['N;0;5;0x0;100','E;5;0;0x5'],
+      '0', ['#NR;0;1;0x0;0','#ZZ;1;0;0x1'],
+      '-0', ['#NR;0;2;0x0;0','#ZZ;2;0;0x2'],
+      '1.2', ['#NR;0;3;0x0;1.2','#ZZ;3;0;0x3'],
+      '-1.2', ['#NR;0;4;0x0;-1.2','#ZZ;4;0;0x4'],
+      '0xA', ['#NR;0;3;0x0;10','#ZZ;3;0;0x3'],
+      '1e2', ['#NR;0;3;0x0;100','#ZZ;3;0;0x3'],
+      '-1.5E2', ['#NR;0;6;0x0;-150','#ZZ;6;0;0x6'],
+      '0x', ['#TX;0;2;0x0;0x','#ZZ;2;0;0x2'],
+      '-0xA', ['#TX;0;4;0x0;-0xA','#ZZ;4;0;0x4'],
+      '1x', ['#TX;0;2;0x0;1x','#ZZ;2;0;0x2'],
+      '12x', ['#TX;0;3;0x0;12x','#ZZ;3;0;0x3'],
+      '1%', ['#TX;0;2;0x0;1%','#ZZ;2;0;0x2'],
+      '12%', ['#TX;0;3;0x0;12%','#ZZ;3;0;0x3'],
+      '123%', ['#TX;0;4;0x0;123%','#ZZ;4;0;0x4'],
+      '1_0_0', ['#NR;0;5;0x0;100','#ZZ;5;0;0x5'],
     ])
   })
 
 
   it('lex-double-quote', () => {
     alleq([
-      '""', ['Q;0;2;0x0;','E;2;0;0x2'],
-      '"a"', ['Q;0;3;0x0;a','E;3;0;0x3'],
-      '"ab"', ['Q;0;4;0x0;ab','E;4;0;0x4'],
-      '"abc"', ['Q;0;5;0x0;abc','E;5;0;0x5'],
-      '"a b"', ['Q;0;5;0x0;a b','E;5;0;0x5'],
-      ' "a"', ['S;0;1;0x0','Q;1;3;0x1;a','E;4;0;0x4'],
-      '"a" ', ['Q;0;3;0x0;a','S;3;1;0x3','E;4;0;0x4'],
-      ' "a" ', ['S;0;1;0x0','Q;1;3;0x1;a','S;4;1;0x4','E;5;0;0x5'],
-      '"', ['B;0;1;0x0;~unterminated'],
-      '"a', ['B;1;2;0x0;a~unterminated'],
-      '"ab', ['B;2;3;0x0;ab~unterminated'],
-      ' "', ['S;0;1;0x0','B;1;1;0x1;~unterminated'],
-      ' "a', ['S;0;1;0x0','B;2;2;0x1;a~unterminated'],
-      ' "ab', ['S;0;1;0x0','B;3;3;0x1;ab~unterminated'],
-      '"a\'b"', ['Q;0;5;0x0;a\'b','E;5;0;0x5'],
-      '"\'a\'b"', ['Q;0;6;0x0;\'a\'b','E;6;0;0x6'],
-      '"\'a\'b\'"', ['Q;0;7;0x0;\'a\'b\'','E;7;0;0x7'],
-      '"\\t"', ['Q;0;4;0x0;\t','E;4;0;0x4'],
-      '"\\r"', ['Q;0;4;0x0;\r','E;4;0;0x4'],
-      '"\\n"', ['Q;0;4;0x0;\n','E;4;0;0x4'],
-      '"\\\""', ['Q;0;4;0x0;"','E;4;0;0x4'],
-      '"\\q"', ['Q;0;4;0x0;q','E;4;0;0x4'],
-      '"\\\'"', ['Q;0;4;0x0;\'','E;4;0;0x4'],
-      '"\\\\"', ['Q;0;4;0x0;\\','E;4;0;0x4'],
-      '"\\u0040"', ['Q;0;8;0x0;@','E;8;0;0x8'],
-      '"\\uQQQQ"', ['B;3;4;0x3;\\uQQQQ~invalid-unicode'],
-      '"[{}]:,"', ['Q;0;8;0x0;[{}]:,', 'E;8;0;0x8'],
+      '""', ['#ST;0;2;0x0;','#ZZ;2;0;0x2'],
+      '"a"', ['#ST;0;3;0x0;a','#ZZ;3;0;0x3'],
+      '"ab"', ['#ST;0;4;0x0;ab','#ZZ;4;0;0x4'],
+      '"abc"', ['#ST;0;5;0x0;abc','#ZZ;5;0;0x5'],
+      '"a b"', ['#ST;0;5;0x0;a b','#ZZ;5;0;0x5'],
+      ' "a"', ['#SP;0;1;0x0','#ST;1;3;0x1;a','#ZZ;4;0;0x4'],
+      '"a" ', ['#ST;0;3;0x0;a','#SP;3;1;0x3','#ZZ;4;0;0x4'],
+      ' "a" ', ['#SP;0;1;0x0','#ST;1;3;0x1;a','#SP;4;1;0x4','#ZZ;5;0;0x5'],
+      '"', ['#BD;0;1;0x0;~unterminated'],
+      '"a', ['#BD;1;2;0x0;a~unterminated'],
+      '"ab', ['#BD;2;3;0x0;ab~unterminated'],
+      ' "', ['#SP;0;1;0x0','#BD;1;1;0x1;~unterminated'],
+      ' "a', ['#SP;0;1;0x0','#BD;2;2;0x1;a~unterminated'],
+      ' "ab', ['#SP;0;1;0x0','#BD;3;3;0x1;ab~unterminated'],
+      '"a\'b"', ['#ST;0;5;0x0;a\'b','#ZZ;5;0;0x5'],
+      '"\'a\'b"', ['#ST;0;6;0x0;\'a\'b','#ZZ;6;0;0x6'],
+      '"\'a\'b\'"', ['#ST;0;7;0x0;\'a\'b\'','#ZZ;7;0;0x7'],
+      '"\\t"', ['#ST;0;4;0x0;\t','#ZZ;4;0;0x4'],
+      '"\\r"', ['#ST;0;4;0x0;\r','#ZZ;4;0;0x4'],
+      '"\\n"', ['#ST;0;4;0x0;\n','#ZZ;4;0;0x4'],
+      '"\\\""', ['#ST;0;4;0x0;"','#ZZ;4;0;0x4'],
+      '"\\q"', ['#ST;0;4;0x0;q','#ZZ;4;0;0x4'],
+      '"\\\'"', ['#ST;0;4;0x0;\'','#ZZ;4;0;0x4'],
+      '"\\\\"', ['#ST;0;4;0x0;\\','#ZZ;4;0;0x4'],
+      '"\\u0040"', ['#ST;0;8;0x0;@','#ZZ;8;0;0x8'],
+      '"\\uQQQQ"', ['#BD;3;4;0x3;\\uQQQQ~invalid-unicode'],
+      '"[{}]:,"', ['#ST;0;8;0x0;[{}]:,', '#ZZ;8;0;0x8'],
     ])
   })
 
 
   it('lex-single-quote', () => {
     alleq([
-      '\'\'', ['Q;0;2;0x0;','E;2;0;0x2'],
-      '\'a\'', ['Q;0;3;0x0;a','E;3;0;0x3'],
-      '\'ab\'', ['Q;0;4;0x0;ab','E;4;0;0x4'],
-      '\'abc\'', ['Q;0;5;0x0;abc','E;5;0;0x5'],
-      '\'a b\'', ['Q;0;5;0x0;a b','E;5;0;0x5'],
-      ' \'a\'', ['S;0;1;0x0','Q;1;3;0x1;a','E;4;0;0x4'],
-      '\'a\' ', ['Q;0;3;0x0;a','S;3;1;0x3','E;4;0;0x4'],
-      ' \'a\' ', ['S;0;1;0x0','Q;1;3;0x1;a','S;4;1;0x4','E;5;0;0x5'],
-      '\'', ['B;0;1;0x0;~unterminated'],
-      '\'a', ['B;1;2;0x0;a~unterminated'],
-      '\'ab', ['B;2;3;0x0;ab~unterminated'],
-      ' \'', ['S;0;1;0x0','B;1;1;0x1;~unterminated'],
-      ' \'a', ['S;0;1;0x0','B;2;2;0x1;a~unterminated'],
-      ' \'ab', ['S;0;1;0x0','B;3;3;0x1;ab~unterminated'],
-      '\'a"b\'', ['Q;0;5;0x0;a"b','E;5;0;0x5'],
-      '\'"a"b\'', ['Q;0;6;0x0;"a"b','E;6;0;0x6'],
-      '\'"a"b"\'', ['Q;0;7;0x0;"a"b"','E;7;0;0x7'],
-      '\'\\t\'', ['Q;0;4;0x0;\t','E;4;0;0x4'],
-      '\'\\r\'', ['Q;0;4;0x0;\r','E;4;0;0x4'],
-      '\'\\n\'', ['Q;0;4;0x0;\n','E;4;0;0x4'],
-      '\'\\\'\'', ['Q;0;4;0x0;\'','E;4;0;0x4'],
-      '\'\\q\'', ['Q;0;4;0x0;q','E;4;0;0x4'],
-      '\'\\"\'', ['Q;0;4;0x0;"','E;4;0;0x4'],
-      '\'\\\\\'', ['Q;0;4;0x0;\\','E;4;0;0x4'],
-      '\'\\u0040\'', ['Q;0;8;0x0;@','E;8;0;0x8'],
-      '\'\\uQQQQ\'', ['B;3;4;0x3;\\uQQQQ~invalid-unicode'],
-      '\'[{}]:,\'', ['Q;0;8;0x0;[{}]:,', 'E;8;0;0x8'],
+      '\'\'', ['#ST;0;2;0x0;','#ZZ;2;0;0x2'],
+      '\'a\'', ['#ST;0;3;0x0;a','#ZZ;3;0;0x3'],
+      '\'ab\'', ['#ST;0;4;0x0;ab','#ZZ;4;0;0x4'],
+      '\'abc\'', ['#ST;0;5;0x0;abc','#ZZ;5;0;0x5'],
+      '\'a b\'', ['#ST;0;5;0x0;a b','#ZZ;5;0;0x5'],
+      ' \'a\'', ['#SP;0;1;0x0','#ST;1;3;0x1;a','#ZZ;4;0;0x4'],
+      '\'a\' ', ['#ST;0;3;0x0;a','#SP;3;1;0x3','#ZZ;4;0;0x4'],
+      ' \'a\' ', ['#SP;0;1;0x0','#ST;1;3;0x1;a','#SP;4;1;0x4','#ZZ;5;0;0x5'],
+      '\'', ['#BD;0;1;0x0;~unterminated'],
+      '\'a', ['#BD;1;2;0x0;a~unterminated'],
+      '\'ab', ['#BD;2;3;0x0;ab~unterminated'],
+      ' \'', ['#SP;0;1;0x0','#BD;1;1;0x1;~unterminated'],
+      ' \'a', ['#SP;0;1;0x0','#BD;2;2;0x1;a~unterminated'],
+      ' \'ab', ['#SP;0;1;0x0','#BD;3;3;0x1;ab~unterminated'],
+      '\'a"b\'', ['#ST;0;5;0x0;a"b','#ZZ;5;0;0x5'],
+      '\'"a"b\'', ['#ST;0;6;0x0;"a"b','#ZZ;6;0;0x6'],
+      '\'"a"b"\'', ['#ST;0;7;0x0;"a"b"','#ZZ;7;0;0x7'],
+      '\'\\t\'', ['#ST;0;4;0x0;\t','#ZZ;4;0;0x4'],
+      '\'\\r\'', ['#ST;0;4;0x0;\r','#ZZ;4;0;0x4'],
+      '\'\\n\'', ['#ST;0;4;0x0;\n','#ZZ;4;0;0x4'],
+      '\'\\\'\'', ['#ST;0;4;0x0;\'','#ZZ;4;0;0x4'],
+      '\'\\q\'', ['#ST;0;4;0x0;q','#ZZ;4;0;0x4'],
+      '\'\\"\'', ['#ST;0;4;0x0;"','#ZZ;4;0;0x4'],
+      '\'\\\\\'', ['#ST;0;4;0x0;\\','#ZZ;4;0;0x4'],
+      '\'\\u0040\'', ['#ST;0;8;0x0;@','#ZZ;8;0;0x8'],
+      '\'\\uQQQQ\'', ['#BD;3;4;0x3;\\uQQQQ~invalid-unicode'],
+      '\'[{}]:,\'', ['#ST;0;8;0x0;[{}]:,', '#ZZ;8;0;0x8'],
     ])
   })
 
 
   it('lex-text', () => {
     alleq([
-      'a-b', ['X;0;3;0x0;a-b','E;3;0;0x3'],
-      '$a_', ['X;0;3;0x0;$a_','E;3;0;0x3'],
-      '!%~', ['X;0;3;0x0;!%~','E;3;0;0x3'],
-      'a"b', ['X;0;3;0x0;a"b','E;3;0;0x3'],
-      'a\'b', ['X;0;3;0x0;a\'b','E;3;0;0x3'],
-      ' a b ', ['S;0;1;0x0','X;1;1;0x1;a',
-                'S;2;1;0x2','X;3;1;0x3;b',
-                'S;4;1;0x4','E;5;0;0x5'],
-      'a:', ['X;0;1;0x0;a','D;1;1;0x1','E;2;0;0x2'],
+      'a-b', ['#TX;0;3;0x0;a-b','#ZZ;3;0;0x3'],
+      '$a_', ['#TX;0;3;0x0;$a_','#ZZ;3;0;0x3'],
+      '!%~', ['#TX;0;3;0x0;!%~','#ZZ;3;0;0x3'],
+      'a"b', ['#TX;0;3;0x0;a"b','#ZZ;3;0;0x3'],
+      'a\'b', ['#TX;0;3;0x0;a\'b','#ZZ;3;0;0x3'],
+      ' a b ', ['#SP;0;1;0x0','#TX;1;1;0x1;a',
+                '#SP;2;1;0x2','#TX;3;1;0x3;b',
+                '#SP;4;1;0x4','#ZZ;5;0;0x5'],
+      'a:', ['#TX;0;1;0x0;a','#CL;1;1;0x1','#ZZ;2;0;0x2'],
     ])
   })
 
@@ -413,33 +407,41 @@ describe('jsonic', function () {
   it('lex-line', () => {
     alleq([
       '{a:1,\nb:2}', [
-        '{;0;1;0x0',
+        '#OB;0;1;0x0',
 
-        'X;1;1;0x1;a',
-        'D;2;1;0x2',
-        'N;3;1;0x3;1',
+        '#TX;1;1;0x1;a',
+        '#CL;2;1;0x2',
+        '#NR;3;1;0x3;1',
 
-        'C;4;1;0x4',
-        'R;5;1;0x5',
+        '#CA;4;1;0x4',
+        '#LN;5;1;0x5',
 
-        'X;6;1;1x0;b',
-        'D;7;1;1x7',
-        'N;8;1;1x8;2',
+        '#TX;6;1;1x0;b',
+        '#CL;7;1;1x7',
+        '#NR;8;1;1x8;2',
 
-        '};9;1;1x9',
-        'E;10;0;1x10'
+        '#CB;9;1;1x9',
+        '#ZZ;10;0;1x10'
       ],
     ])
   })
 
 
   it('syntax-errors', () => {
-    /*
-      
-      [a:1]
+    // TODO: validate errors
+    
+    // pairs not valid inside list
+    expect(()=>j('[a:1]')).throws()
 
+    // top level already a map
+    expect(()=>j('a:1,2')).throws() 
 
-     */
+    // can't mix pairs and values list
+    expect(()=>j('x:[a:1,2,b:3]')).throws() 
+
+    // values not valid inside map
+    expect(()=>j('x:{1,2}') ).throws()
+
   })
   
 
@@ -525,8 +527,24 @@ describe('jsonic', function () {
 
   
   it('process-array', () => {
+    expect(prc(lexer('[a]'))).equal(['a'])
+    expect(prc(lexer('[a,]'))).equal(['a'])
+    expect(prc(lexer('[a,,]'))).equal(['a',null])
+    expect(prc(lexer('[,a]'))).equal([null,'a'])
+    expect(prc(lexer('[,a,]'))).equal([null,'a'])
+    expect(prc(lexer('[,,a]'))).equal([null,null,'a'])
+    expect(prc(lexer('[,,a,]'))).equal([null,null,'a'])
+    expect(prc(lexer('[,,a,,]'))).equal([null,null,'a',null])
 
-    // PN004, PN005
+    expect(prc(lexer(' [ a ] '))).equal( ['a'])
+    expect(prc(lexer(' [ a , ] '))).equal(['a'])
+    expect(prc(lexer(' [ a , , ] '))).equal(['a',null])
+    expect(prc(lexer(' [ , a ] '))).equal([null,'a'])
+    expect(prc(lexer(' [ , a , ] '))).equal([null,'a'])
+    expect(prc(lexer(' [ , , a ] '))).equal([null,null,'a'])
+    expect(prc(lexer(' [ , , a , ] '))).equal([null,null,'a'])
+    expect(prc(lexer(' [ , , a , , ] '))).equal([null,null,'a',null])
+
     expect(prc(lexer(','))).equal([null])
     expect(prc(lexer(',,'))).equal([null, null])
     expect(prc(lexer('1,'))).equal([1])
@@ -696,6 +714,20 @@ describe('jsonic', function () {
   })
 
   
+  it('funky-keys', () => {
+    expect(j('x:1')).equal({'x':1})
+    expect(j('null:1')).equal({'null':1})
+    expect(j('true:1')).equal({'true':1})
+    expect(j('false:1')).equal({'false':1})
+
+    expect(j('{a:{x:1}}')).equal({a:{x:1}})
+    expect(j('a:{x:1}')).equal({a:{x:1}})
+    expect(j('a:{null:1}')).equal({a:{'null':1}})
+    expect(j('a:{true:1}')).equal({a:{'true':1}})
+    expect(j('a:{false:1}')).equal({a:{'false':1}})
+  })
+
+  
   it('api', () => {
     expect(Jsonic('a:1')).equal({a:1})
     expect(Jsonic.parse('a:1')).equal({a:1})
@@ -726,68 +758,71 @@ describe('jsonic', function () {
   })
 
   
-/*
-  it('funky-input', function(){
+  it('pv-funky-input', function(){
 
     // Object values are just returned
-    expect( '{"foo":1,"bar":"zed"}' ).toBe(
-      JSON.stringify(jsonic( {foo:1,bar:'zed'} )) )
+    expect( '{"foo":1,"bar":"zed"}' ).equal(
+      JSON.stringify(j( {foo:1,bar:'zed'} )) )
 
-    expect( '["a","b"]' ).toBe(
-      JSON.stringify(jsonic( ['a','b'] )) )
+    expect( '["a","b"]' ).equal(
+      JSON.stringify(j( ['a','b'] )) )
 
-    expect( jsonic( /a/ ) ).toBe('/a/')
-    expect( jsonic( NaN ) ).toBe('NaN')
-    expect( jsonic( null ) ).toBe('null')
-    expect( jsonic( undefined ) ).toBe('undefined')
-    expect( jsonic( void 0 ) ).toBe('undefined')
-    expect( jsonic( 1 ) ).toBe('1')
-    expect( jsonic( Number(1) ) ).toBe('1')
-    expect( jsonic( true ) ).toBe('true')
-    expect( jsonic( false ) ).toBe('false')
-    expect( jsonic( function foo () {} ).replace(/ +/g,'') ).toBe('functionfoo(){}')
+    // TODO: api change - return non-strings as is!
+    // DIFF expect( j( /a/ ) ).equal('/a/')
+    // DIFF expect( j( NaN ) ).equal('NaN')
+    // DIFF expect( j( null ) ).equal('null')
+    // DIFF expect( j( undefined ) ).equal('undefined')
+    // DIFF expect( j( void 0 ) ).equal('undefined')
+    // DIFF expect( j( 1 ) ).equal('1')
+    // DIFF expect( j( Number(1) ) ).equal('1')
+    // DIFF expect( j( true ) ).equal('true')
+    // DIFF expect( j( false ) ).equal('false')
+    // DIFF expect( j( function foo () {} ).replace(/ +/g,'') ).equal('functionfoo(){}')
 
     var d = new Date()
-    expect( jsonic( d ) ).toBe(''+d)
+    // DIFF expect( j( d ) ).equal(''+d)
 
-            
-    try { jsonic( 'a:' ); expect('a:').toBe('FAIL') }
+
+    /*
+    try { j( 'a:' ); expect('a:').toBe('FAIL') }
     catch(e) { expect(e.message.match(/^Expected/)).toBeTruthy() }
 
-    try { jsonic( 'b:\n}' ); expect('b:}').toBe('FAIL') }
+    try { j( 'b:\n}' ); expect('b:}').toBe('FAIL') }
     catch(e) { expect(e.message.match(/^Expected/)).toBeTruthy() }
 
-    try { jsonic( 'c:\r}' ); expect('c:}').toBe('FAIL') }
+    try { j( 'c:\r}' ); expect('c:}').toBe('FAIL') }
     catch(e) { expect(e.message.match(/^Expected/)).toBeTruthy() }
-
+    */
+    
   })
 
-
-  it('types', function(){
-    var out = jsonic("null:null,int:100,dec:9.9,t:true,f:false,qs:\"a\\\"a'a\",as:'a\"a\\'a'")
-
-    expect( null === out.null ).toBeTruthy()
-    expect( null ).toBe( out.null )
-
-    expect(  _.isNumber(out.int) ).toBeTruthy()
-    expect( 100 ).toBe( out.int )
-
-    expect(  _.isNumber(out.dec) ).toBeTruthy()
-    expect( 9.9 ).toBe( out.dec )
-
-    expect(  _.isBoolean(out.t) ).toBeTruthy()
-    expect( true ).toBe( out.t )
-
-    expect(  _.isBoolean(out.f) ).toBeTruthy()
-    expect( false ).toBe( out.f )
-
-    expect(  _.isString(out.qs) ).toBeTruthy()
-    expect( "a\"a'a" ).toBe( out.qs )
-
-    expect(  _.isString(out.as) ).toBeTruthy()
-    expect( "a\"a'a" ).toBe( out.as )
+  
+  it('pv-types', function(){
+    let out = j("t:{null:null,int:100,dec:9.9,t:true,f:false,qs:\"a\\\"a'a\",as:'a\"a\\'a'}")
+    expect(out).equal({
+      t: {
+        null: null,
+        int: 100,
+        dec: 9.9,
+        t: true,
+        f: false,
+        qs: `a\\a'a"`,
+        as: `a"a\\a'`
+      }
+    })
+    
+    let out1 = j("null:null,int:100,dec:9.9,t:true,f:false,qs:\"a\\\"a'a\",as:'a\"a\\'a'")
+    expect(out1).equal({
+      null: null,
+      int: 100,
+      dec: 9.9,
+      t: true,
+      f: false,
+      qs: `a\\a'a"`,
+      as: `a"a\\a'`
+    })
   })
-*/
+
 
   it('pv-subobj', function(){
     expect(j("a:{b:1},c:2")).equal({"a":{"b":1},"c":2})
@@ -913,7 +948,7 @@ describe('jsonic', function () {
   })
 
 /*
-  it( 'bad', function(){
+  it( 'pv-bad', function(){
     try { jsonic('{');
           expect('bad-{').toBe('FAIL') } catch(e) {}
 
@@ -1003,30 +1038,30 @@ describe('jsonic', function () {
 
 
   })
+*/
 
-
-  it( 'json', function(){
+  it( 'pv-json', function(){
     var js = JSON.stringify
     var jp = JSON.parse
     var x,g
 
     x='{}'; g=js(jp(x));
-    expect(js(jsonic(x))).toBe(g)
+    expect(js(j(x))).equal(g)
 
     x=' \r\n\t{ \r\n\t} \r\n\t'; g=js(jp(x));
-    expect(js(jsonic(x))).toBe(g)
+    expect(js(j(x))).equal(g)
 
     x=' \r\n\t{ \r\n\t"a":1 \r\n\t} \r\n\t'; g=js(jp(x));
-    expect(js(jsonic(x))).toBe(g)
+    expect(js(j(x))).equal(g)
 
     x='{"a":[[{"b":1}],{"c":[{"d":1}]}]}'; g=js(jp(x));
-    expect(js(jsonic(x))).toBe(g)
+    expect(js(j(x))).equal(g)
 
     x='['+x+']'; g=js(jp(x));
-    expect(js(jsonic(x))).toBe(g)
+    expect(js(j(x))).equal(g)
   })
 
-
+/*
   it( 'stringify', function(){
     expect( jsonic.stringify(null) ).toBe('null')
     expect( jsonic.stringify(void 0) ).toBe('null')
@@ -1052,63 +1087,63 @@ describe('jsonic', function () {
 
     var s,d
 
-    s='[]';d=[];
+    s='[]';d=[]
     expect( jsonic.stringify(d) ).toBe(s)
     expect( jsonic(s) ).toEqual(d)
 
-    s='[1]';d=[1];
+    s='[1]';d=[1]
     expect( jsonic.stringify(d) ).toBe(s)
     expect( jsonic(s) ).toEqual(d)
 
-    s='[1,2]';d=[1,2];
+    s='[1,2]';d=[1,2]
     expect( jsonic.stringify(d) ).toBe(s)
     expect( jsonic(s) ).toEqual(d)
 
-    s='[a,2]';d=['a',2];
+    s='[a,2]';d=['a',2]
     expect( jsonic.stringify(d) ).toBe(s)
     expect( jsonic(s) ).toEqual(d)
 
-    s="[' a',2]";d=[' a',2];
+    s="[' a',2]";d=[' a',2]
     expect( jsonic.stringify(d) ).toBe(s)
     expect( jsonic(s) ).toEqual(d)
 
-    s="[a\'a,2]";d=["a'a",2];
-    expect( jsonic.stringify(d) ).toBe(s)
-    expect( jsonic(s) ).toEqual(d)
-
-    // default max depth is 3
-    s='[1,[2,[3,[]]]]';d=[1,[2,[3,[4,[]]]]];
-    expect( jsonic.stringify(d) ).toBe(s)
-
-    s='[1,[2,[3,[4,[]]]]]';d=[1,[2,[3,[4,[]]]]];
-    expect( jsonic(s) ).toEqual(d)
-
-
-    s='{}';d={};
-    expect( jsonic.stringify(d) ).toBe(s)
-    expect( jsonic(s) ).toEqual(d)
-
-    s='{a:1}';d={a:1};
-    expect( jsonic.stringify(d) ).toBe(s)
-    expect( jsonic(s) ).toEqual(d)
-
-    s='{a:a}';d={a:'a'};
-    expect( jsonic.stringify(d) ).toBe(s)
-    expect( jsonic(s) ).toEqual(d)
-
-    s='{a:A,b:B}';d={a:'A',b:'B'};
+    s="[a\'a,2]";d=["a'a",2]
     expect( jsonic.stringify(d) ).toBe(s)
     expect( jsonic(s) ).toEqual(d)
 
     // default max depth is 3
-    s='{a:{b:{c:{}}}}';d={a:{b:{c:{d:1}}}};
+    s='[1,[2,[3,[]]]]';d=[1,[2,[3,[4,[]]]]]
     expect( jsonic.stringify(d) ).toBe(s)
 
-    s='{a:{b:{c:{d:1}}}}';d={a:{b:{c:{d:1}}}};
+    s='[1,[2,[3,[4,[]]]]]';d=[1,[2,[3,[4,[]]]]]
+    expect( jsonic(s) ).toEqual(d)
+
+
+    s='{}';d={}
+    expect( jsonic.stringify(d) ).toBe(s)
+    expect( jsonic(s) ).toEqual(d)
+
+    s='{a:1}';d={a:1}
+    expect( jsonic.stringify(d) ).toBe(s)
+    expect( jsonic(s) ).toEqual(d)
+
+    s='{a:a}';d={a:'a'}
+    expect( jsonic.stringify(d) ).toBe(s)
+    expect( jsonic(s) ).toEqual(d)
+
+    s='{a:A,b:B}';d={a:'A',b:'B'}
+    expect( jsonic.stringify(d) ).toBe(s)
+    expect( jsonic(s) ).toEqual(d)
+
+    // default max depth is 3
+    s='{a:{b:{c:{}}}}';d={a:{b:{c:{d:1}}}}
+    expect( jsonic.stringify(d) ).toBe(s)
+
+    s='{a:{b:{c:{d:1}}}}';d={a:{b:{c:{d:1}}}}
     expect( jsonic(s) ).toEqual(d)
 
     // custom depth
-    s='{a:{b:{}}}';d={a:{b:{c:{d:1}}}};
+    s='{a:{b:{}}}';d={a:{b:{c:{d:1}}}}
     expect( jsonic.stringify(d,{depth:2}) ).toBe(s)
 
     // omits
@@ -1178,7 +1213,7 @@ describe('jsonic', function () {
     // abbrevs
     expect( jsonic.stringify({a:1,b:2},{o:['a']}) ).toBe('{b:2}')
     expect( jsonic.stringify({a$:1,b:2,c:3},{x:['b']}) ).toBe('{a$:1,c:3}')
-    s='{a:{b:{}}}';d={a:{b:{c:{d:1}}}};
+    s='{a:{b:{}}}';d={a:{b:{c:{d:1}}}}
     expect( jsonic.stringify(d,{d:2}) ).toBe(s)
     expect( jsonic.stringify(o1,{c:true}) ).toBe('<A>')
     expect( jsonic.stringify([1,2,3],{mc:4}) ).toBe('[1,2')
@@ -1211,68 +1246,64 @@ function st(t) {
   }
 
   switch(t.kind) {
-  case lexer.SPACE:
-    out = m('S',0,t)
+  case lexer.SP:
+    out = m(lexer.SP.description,0,t)
     break
 
-  case lexer.LINE:
-    out = m('R',0,t)
+  case lexer.LN:
+    out = m(lexer.LN.description,0,t)
     break
 
-  case lexer.OPEN_BRACE:
-    out = m('{',0,t)
+  case lexer.OB:
+    out = m(lexer.OB.description,0,t)
     break
 
-  case lexer.CLOSE_BRACE:
-    out = m('}',0,t)
+  case lexer.CB:
+    out = m(lexer.CB.description,0,t)
     break
 
-  case lexer.OPEN_SQUARE:
-    out = m('[',0,t)
+  case lexer.OS:
+    out = m(lexer.OS.description,0,t)
     break
 
-  case lexer.CLOSE_SQUARE:
-    out = m(']',0,t)
+  case lexer.CS:
+    out = m(lexer.CS.description,0,t)
     break
 
-  case lexer.COLON:
-    out = m('D',0,t)
+  case lexer.CL:
+    out = m(lexer.CL.description,0,t)
     break
 
-  case lexer.COMMA:
-    out = m('C',0,t)
+  case lexer.CA:
+    out = m(lexer.CA.description,0,t)
     break
 
-  case lexer.NUMBER:
-    out = m('N',1,t)
+  case lexer.NR:
+    out = m(lexer.NR.description,1,t)
     break
 
-  case lexer.STRING:
-    out = m('Q',1,t)
+  case lexer.ST:
+    out = m(lexer.ST.description,1,t)
     break
 
-  case lexer.TEXT:
-    out = m('X',1,t)
+  case lexer.TX:
+    out = m(lexer.TX.description,1,t)
     break
 
-  case lexer.TRUE:
-    out = m('T',1,t)
+  case lexer.BL:
+    out = m(lexer.BL.description,1,t)
     break
 
-  case lexer.FALSE:
-    out = m('F',1,t)
-    break
+  case lexer.NL:
+    return lexer.NL.description+';'+t.index+';'+t.len+';'+t.row+'x'+t.col+';'+t.value
 
-  case lexer.NULL:
-    return 'U;'+t.index+';'+t.len+';'+t.row+'x'+t.col+';'+t.value
-
-  case lexer.BAD:
+  case lexer.BD:
     t.value = t.value+'~'+t.why
-    out = m('B',1,t)
+    out = m(lexer.BD.description,1,t)
     break
 
-  case lexer.END:
-    out = m('E',0,t)
+  case lexer.ZZ:
+    out = m(lexer.ZZ.description,0,t)
     break
   }
 
