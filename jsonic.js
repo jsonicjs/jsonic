@@ -21,9 +21,9 @@ function lexer(src) {
     let token = {
         pin: ZZ,
         loc: 0,
-        len: 0,
         row: 0,
         col: 0,
+        len: 0,
         val: undefined,
     };
     // Main indexes.
@@ -31,16 +31,6 @@ function lexer(src) {
     let rI = 0; // Source row index.
     let cI = 0; // Source column index.
     let srclen = src.length;
-    // TODO: token.why (a code string) needed to indicate cause of lex fail
-    function bad(why, index, val) {
-        token.pin = BD;
-        token.loc = index;
-        token.col = cI;
-        token.len = index - sI + 1;
-        token.val = val;
-        token.why = why;
-        return token;
-    }
     // Parse next Token.
     return function lex() {
         token.len = 0;
@@ -62,9 +52,8 @@ function lexer(src) {
                     token.loc = sI;
                     token.col = cI++;
                     pI = sI + 1;
-                    while (lexer.spaces[src[pI++]])
-                        cI++;
-                    pI--;
+                    while (lexer.spaces[src[pI]])
+                        cI++, pI++;
                     token.len = pI - sI;
                     token.val = src.substring(sI, pI);
                     sI = pI;
@@ -77,9 +66,8 @@ function lexer(src) {
                     pI = sI + 1;
                     cI = 0;
                     rI++;
-                    while (lexer.lines[src[pI++]])
-                        rI++;
-                    pI--;
+                    while (lexer.lines[src[pI]])
+                        rI++, pI++;
                     token.len = pI - sI;
                     token.val = src.substring(sI, pI);
                     sI = pI;
@@ -248,7 +236,7 @@ function lexer(src) {
                         cI++;
                         cc = src.charCodeAt(pI);
                         if (cc < 32) {
-                            return bad('unprintable', pI, src.charAt(pI));
+                            return lexer.bad('unprintable', token, sI, pI, rI, cI, src.charAt(pI));
                         }
                         else if (qc === cc) {
                             pI++;
@@ -269,7 +257,7 @@ function lexer(src) {
                                     pI++;
                                     ts = String.fromCharCode(('0x' + src.substring(pI, pI + 4)));
                                     if (BAD_UNICODE_CHAR === ts) {
-                                        return bad('invalid-unicode', pI, src.substring(pI - 2, pI + 4));
+                                        return lexer.bad('invalid-unicode', token, sI, pI, rI, cI, src.substring(pI - 2, pI + 4));
                                     }
                                     s.push(ts);
                                     pI += 3; // loop increments pI
@@ -292,7 +280,7 @@ function lexer(src) {
                     }
                     if (qc !== cc) {
                         cI = sI;
-                        return bad('unterminated', pI - 1, s.join(''));
+                        return lexer.bad('unterminated', token, sI, pI - 1, rI, cI, s.join(''));
                     }
                     token.val = s.join('');
                     token.len = pI - sI;
@@ -328,6 +316,17 @@ function lexer(src) {
         token.col = cI;
         return token;
     };
+}
+function bad(why, token, sI, pI, rI, cI, val, use) {
+    token.pin = BD;
+    token.loc = pI;
+    token.row = rI;
+    token.col = cI;
+    token.len = pI - sI + 1;
+    token.val = val;
+    token.why = why;
+    token.use = use;
+    return token;
 }
 let ender = {
     ':': true,
@@ -383,6 +382,7 @@ escapes[102] = '\f';
 escapes[110] = '\n';
 escapes[114] = '\r';
 escapes[116] = '\t';
+lexer.bad = bad;
 lexer.ender = ender;
 lexer.digital = digital;
 lexer.spaces = spaces;
@@ -400,9 +400,9 @@ const OS = lexer.OS = Symbol('#OS'); // OPEN SQUARE
 const CS = lexer.CS = Symbol('#CS'); // CLOSE SQUARE
 const CL = lexer.CL = Symbol('#CL'); // COLON
 const CA = lexer.CA = Symbol('#CA'); // COMMA
-const NR = lexer.NR = Symbol('#NR');
-const ST = lexer.ST = Symbol('#ST');
-const TX = lexer.TX = Symbol('#TX');
+const NR = lexer.NR = Symbol('#NR'); // NUMBER
+const ST = lexer.ST = Symbol('#ST'); // STRING
+const TX = lexer.TX = Symbol('#TX'); // TEXT
 const BL = lexer.BL = Symbol('#BL');
 const NL = lexer.NL = Symbol('#NL');
 const VAL = [TX, NR, ST, BL, NL];

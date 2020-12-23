@@ -2,7 +2,7 @@
 
 
 /* Specific Features
-   
+   - comment TODO test
    
 */
 
@@ -65,7 +65,7 @@ type Token = {
   col: number,   // Column location of token in source text.
   val: any,      // Value of Token if literal (eg. number).
   why?: string,  // Error code.
-  custom?: any,  // Custom meta data.
+  use?: any,     // Custom meta data from plugins goes here.
 }
 
 
@@ -83,9 +83,9 @@ function lexer(src: string): Lex {
   let token: Token = {
     pin: ZZ,
     loc: 0,
-    len: 0,
     row: 0,
     col: 0,
+    len: 0,
     val: undefined,
   }
 
@@ -95,18 +95,6 @@ function lexer(src: string): Lex {
   let cI = 0 // Source column index.
 
   let srclen = src.length
-
-
-  // TODO: token.why (a code string) needed to indicate cause of lex fail
-  function bad(why: string, index: number, val: any): Token {
-    token.pin = BD
-    token.loc = index
-    token.col = cI
-    token.len = index - sI + 1
-    token.val = val
-    token.why = why
-    return token
-  }
 
 
   // Parse next Token.
@@ -135,8 +123,7 @@ function lexer(src: string): Lex {
           token.col = cI++
 
           pI = sI + 1
-          while (lexer.spaces[src[pI++]]) cI++;
-          pI--
+          while (lexer.spaces[src[pI]]) cI++, pI++;
 
           token.len = pI - sI
           token.val = src.substring(sI, pI)
@@ -153,8 +140,8 @@ function lexer(src: string): Lex {
           pI = sI + 1
           cI = 0
           rI++
-          while (lexer.lines[src[pI++]]) rI++;
-          pI--
+
+          while (lexer.lines[src[pI]]) rI++, pI++;
 
           token.len = pI - sI
           token.val = src.substring(sI, pI)
@@ -366,7 +353,7 @@ function lexer(src: string): Lex {
             cc = src.charCodeAt(pI)
 
             if (cc < 32) {
-              return bad('unprintable', pI, src.charAt(pI))
+              return lexer.bad('unprintable', token, sI, pI, rI, cI, src.charAt(pI))
             }
             else if (qc === cc) {
               pI++
@@ -389,7 +376,8 @@ function lexer(src: string): Lex {
                   pI++
                   ts = String.fromCharCode(('0x' + src.substring(pI, pI + 4)) as any)
                   if (BAD_UNICODE_CHAR === ts) {
-                    return bad('invalid-unicode', pI, src.substring(pI - 2, pI + 4))
+                    return lexer.bad('invalid-unicode',
+                      token, sI, pI, rI, cI, src.substring(pI - 2, pI + 4))
                   }
 
                   s.push(ts)
@@ -418,7 +406,7 @@ function lexer(src: string): Lex {
 
           if (qc !== cc) {
             cI = sI
-            return bad('unterminated', pI - 1, s.join(''))
+            return lexer.bad('unterminated', token, sI, pI - 1, rI, cI, s.join(''))
           }
 
           token.val = s.join('')
@@ -468,6 +456,30 @@ function lexer(src: string): Lex {
     return token
   }
 }
+
+
+function bad(
+  why: string,
+  token: Token,
+  sI: number,
+  pI: number,
+  rI: number,
+  cI: number,
+  val?: any,
+  use?: any
+): Token {
+  token.pin = BD
+  token.loc = pI
+  token.row = rI
+  token.col = cI
+  token.len = pI - sI + 1
+  token.val = val
+  token.why = why
+  token.use = use
+  return token
+}
+
+
 
 let ender: { [key: string]: boolean } = {
   ':': true,
@@ -529,6 +541,7 @@ escapes[114] = '\r'
 escapes[116] = '\t'
 
 
+lexer.bad = bad
 lexer.ender = ender
 lexer.digital = digital
 lexer.spaces = spaces
@@ -550,9 +563,9 @@ const CS = lexer.CS = Symbol('#CS') // CLOSE SQUARE
 const CL = lexer.CL = Symbol('#CL') // COLON
 const CA = lexer.CA = Symbol('#CA') // COMMA
 
-const NR = lexer.NR = Symbol('#NR')
-const ST = lexer.ST = Symbol('#ST')
-const TX = lexer.TX = Symbol('#TX')
+const NR = lexer.NR = Symbol('#NR') // NUMBER
+const ST = lexer.ST = Symbol('#ST') // STRING
+const TX = lexer.TX = Symbol('#TX') // TEXT
 
 const BL = lexer.BL = Symbol('#BL')
 const NL = lexer.NL = Symbol('#NL')
