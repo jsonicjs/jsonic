@@ -24,8 +24,8 @@ function lexall(src) {
     // console.log(out[out.length-1])
     out.push({...lex()})
   }
-  while( lexer.ZZ != out[out.length-1].kind &&
-         lexer.BD != out[out.length-1].kind )
+  while( lexer.ZZ != out[out.length-1].pin &&
+         lexer.BD != out[out.length-1].pin )
   return out.map(t=>st(t))
 }
 
@@ -147,25 +147,25 @@ describe('jsonic', function () {
 
     let lex0 = lexer(' {123 ')
     expect(lex0()).equals(
-      { kind: lexer.SP, index: 0, len: 1, row: 0, col: 0, value: ' ' })
+      { pin: lexer.SP, loc: 0, len: 1, row: 0, col: 0, val: ' ' })
     expect(lex0()).equals(
-      { kind: lexer.OB, index: 1, len: 1, row: 0, col: 1, value: undefined })
+      { pin: lexer.OB, loc: 1, len: 1, row: 0, col: 1, val: undefined })
     expect(lex0()).equals(
-      { kind: lexer.NR, index: 2, len: 3, row: 0, col: 2, value: 123 })
+      { pin: lexer.NR, loc: 2, len: 3, row: 0, col: 2, val: 123 })
     expect(lex0()).equals(
-      { kind: lexer.SP, index: 5, len: 1, row: 0, col: 5, value: ' ' })
+      { pin: lexer.SP, loc: 5, len: 1, row: 0, col: 5, val: ' ' })
     expect(lex0()).equals(
-      { kind: lexer.ZZ, index: 6, len: 0, row: 0, col: 6, value: undefined })
+      { pin: lexer.ZZ, loc: 6, len: 0, row: 0, col: 6, val: undefined })
 
     // LN001
     expect(lex0()).equals(
-      { kind: lexer.ZZ, index: 6, len: 0, row: 0, col: 6, value: undefined })
+      { pin: lexer.ZZ, loc: 6, len: 0, row: 0, col: 6, val: undefined })
     expect(lex0()).equals(
-      { kind: lexer.ZZ, index: 6, len: 0, row: 0, col: 6, value: undefined })
+      { pin: lexer.ZZ, loc: 6, len: 0, row: 0, col: 6, val: undefined })
 
     let lex1 = lexer('"\\u0040"')
     expect(lex1()).equals(
-      { kind: lexer.ST, index: 0, len: 8, row: 0, col: 0, value: '@' })
+      { pin: lexer.ST, loc: 0, len: 8, row: 0, col: 0, val: '@' })
 
     
     expect(lexall(' {123')).equals([
@@ -184,31 +184,31 @@ describe('jsonic', function () {
 
     let lex2 = lexer(' m n ')
     expect(lex2()).equals(
-      { kind: lexer.SP, index: 0, len: 1, row: 0, col: 0, value: ' ' })
+      { pin: lexer.SP, loc: 0, len: 1, row: 0, col: 0, val: ' ' })
     expect(lex2()).equals(
-      { kind: lexer.TX, index: 1, len: 1, row: 0, col: 1, value: 'm' })
+      { pin: lexer.TX, loc: 1, len: 1, row: 0, col: 1, val: 'm' })
     expect(lex2()).equals(
-      { kind: lexer.SP, index: 2, len: 1, row: 0, col: 2, value: ' ' })
+      { pin: lexer.SP, loc: 2, len: 1, row: 0, col: 2, val: ' ' })
     expect(lex2()).equals(
-      { kind: lexer.TX, index: 3, len: 1, row: 0, col: 3, value: 'n' })
+      { pin: lexer.TX, loc: 3, len: 1, row: 0, col: 3, val: 'n' })
     expect(lex2()).equals(
-      { kind: lexer.SP, index: 4, len: 1, row: 0, col: 4, value: ' ' })
+      { pin: lexer.SP, loc: 4, len: 1, row: 0, col: 4, val: ' ' })
     expect(lex2()).equals(
-      { kind: lexer.ZZ, index: 5, len: 0, row: 0, col: 5, value: undefined })
+      { pin: lexer.ZZ, loc: 5, len: 0, row: 0, col: 5, val: undefined })
 
     let lex3 = lexer(' b a ')
     expect(lex3()).equals(
-      { kind: lexer.SP, index: 0, len: 1, row: 0, col: 0, value: ' ' })
+      { pin: lexer.SP, loc: 0, len: 1, row: 0, col: 0, val: ' ' })
     expect(lex3()).equals(
-      { kind: lexer.TX, index: 1, len: 1, row: 0, col: 1, value: 'b' })
+      { pin: lexer.TX, loc: 1, len: 1, row: 0, col: 1, val: 'b' })
     expect(lex3()).equals(
-      { kind: lexer.SP, index: 2, len: 1, row: 0, col: 2, value: ' ' })
+      { pin: lexer.SP, loc: 2, len: 1, row: 0, col: 2, val: ' ' })
     expect(lex3()).equals(
-      { kind: lexer.TX, index: 3, len: 1, row: 0, col: 3, value: 'a' })
+      { pin: lexer.TX, loc: 3, len: 1, row: 0, col: 3, val: 'a' })
     expect(lex3()).equals(
-      { kind: lexer.SP, index: 4, len: 1, row: 0, col: 4, value: ' ' })
+      { pin: lexer.SP, loc: 4, len: 1, row: 0, col: 4, val: ' ' })
     expect(lex3()).equals(
-      { kind: lexer.ZZ, index: 5, len: 0, row: 0, col: 5, value: undefined })
+      { pin: lexer.ZZ, loc: 5, len: 0, row: 0, col: 5, val: undefined })
 
   })
 
@@ -216,7 +216,7 @@ describe('jsonic', function () {
   it('lex-space', () => {
     let lex0 = lexer(' \t')
     expect(lex0()).equals(
-      { kind: lexer.SP, index: 0, len: 2, row: 0, col: 0, value: ' \t' })
+      { pin: lexer.SP, loc: 0, len: 2, row: 0, col: 0, val: ' \t' })
 
     alleq([
       ' ', ['#SP;0;1;0x0','#ZZ;1;0;0x1'],
@@ -307,7 +307,7 @@ describe('jsonic', function () {
   it('lex-number', () => {
     let lex0 = lexer('123')
     expect(lex0())
-      .equal({ kind: lexer.NR, index: 0, len: 3, row: 0, col: 0, value: 123 })
+      .equal({ pin: lexer.NR, loc: 0, len: 3, row: 0, col: 0, val: 123 })
     
     alleq([
       '0', ['#NR;0;1;0x0;0','#ZZ;1;0;0x1'],
@@ -1256,10 +1256,10 @@ function st(t) {
   let out = []
 
   function m(s,v,t) {
-    return [s,t.index,t.len,t.row+'x'+t.col,v?t.value:null]
+    return [s,t.loc,t.len,t.row+'x'+t.col,v?t.val:null]
   }
 
-  switch(t.kind) {
+  switch(t.pin) {
   case lexer.SP:
     out = m(lexer.SP.description,0,t)
     break
@@ -1313,10 +1313,10 @@ function st(t) {
     break
 
   case lexer.NL:
-    return lexer.NL.description+';'+t.index+';'+t.len+';'+t.row+'x'+t.col+';'+t.value
+    return lexer.NL.description+';'+t.loc+';'+t.len+';'+t.row+'x'+t.col+';'+t.val
 
   case lexer.BD:
-    t.value = t.value+'~'+t.why
+    t.val = t.val+'~'+t.why
     out = m(lexer.BD.description,1,t)
     break
 

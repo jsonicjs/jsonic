@@ -2,54 +2,51 @@
 /* Copyright (c) 2013-2020 Richard Rodger, MIT License */
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.Jsonic = void 0;
-// TODO: back ticks or allow newlines in strings?
-// Edge case notes (see unit tests):
-// LNnnn: Lex Note number
-// PNnnn: Parse Note number
-// TODO: replace with jsonic stringify
-function desc(o) {
-    return require('util').inspect(o, { depth: null });
-}
-// TODO: return non-strings as is
+// This function is the core Jsonic object.
+// Only parses strings, everything else is returned as-is.
 function parse(src) {
-    //return JSON.parse(src)
     if ('string' === typeof (src)) {
         return process(lexer(src));
     }
     return src;
 }
+// Plugins are given the core Jsonic object (`parse`) to modify.
 function use(plugin) {
     plugin(parse);
 }
-const badunicode = String.fromCharCode('0x0000');
+const BAD_UNICODE_CHAR = String.fromCharCode('0x0000');
+// Create the lexing function.
 function lexer(src) {
     // NOTE: always returns this object!
     let token = {
-        kind: ZZ,
-        index: 0,
+        pin: ZZ,
+        loc: 0,
         len: 0,
         row: 0,
         col: 0,
-        value: undefined,
+        val: undefined,
     };
-    let sI = 0;
+    // Main indexes.
+    let sI = 0; // Source text index.
+    let rI = 0; // Source row index.
+    let cI = 0; // Source column index.
     let srclen = src.length;
-    let rI = 0;
-    let cI = 0;
     // TODO: token.why (a code string) needed to indicate cause of lex fail
-    function bad(why, index, value) {
-        token.kind = BD;
-        token.index = index;
+    function bad(why, index, val) {
+        token.pin = BD;
+        token.loc = index;
         token.col = cI;
         token.len = index - sI + 1;
-        token.value = value;
+        token.val = val;
         token.why = why;
         return token;
     }
+    // Parse next Token.
     return function lex() {
         token.len = 0;
-        token.value = undefined;
+        token.val = undefined;
         token.row = rI;
+        // Current lex position (only update sI at end of rule)
         let pI = 0;
         let s = [];
         let cc = -1;
@@ -61,21 +58,21 @@ function lexer(src) {
             switch (cur) {
                 case ' ':
                 case '\t':
-                    token.kind = SP;
-                    token.index = sI;
+                    token.pin = SP;
+                    token.loc = sI;
                     token.col = cI++;
                     pI = sI + 1;
                     while (lexer.spaces[src[pI++]])
                         cI++;
                     pI--;
                     token.len = pI - sI;
-                    token.value = src.substring(sI, pI);
+                    token.val = src.substring(sI, pI);
                     sI = pI;
                     return token;
                 case '\n':
                 case '\r':
-                    token.kind = lexer.LN;
-                    token.index = sI;
+                    token.pin = lexer.LN;
+                    token.loc = sI;
                     token.col = cI;
                     pI = sI + 1;
                     cI = 0;
@@ -84,59 +81,59 @@ function lexer(src) {
                         rI++;
                     pI--;
                     token.len = pI - sI;
-                    token.value = src.substring(sI, pI);
+                    token.val = src.substring(sI, pI);
                     sI = pI;
                     return token;
                 case '{':
-                    token.kind = OB;
-                    token.index = sI;
+                    token.pin = OB;
+                    token.loc = sI;
                     token.col = cI++;
                     token.len = 1;
                     sI++;
                     return token;
                 case '}':
-                    token.kind = lexer.CB;
-                    token.index = sI;
+                    token.pin = lexer.CB;
+                    token.loc = sI;
                     token.col = cI++;
                     token.len = 1;
                     sI++;
                     return token;
                 case '[':
-                    token.kind = lexer.OS;
-                    token.index = sI;
+                    token.pin = lexer.OS;
+                    token.loc = sI;
                     token.col = cI++;
                     token.len = 1;
                     sI++;
                     return token;
                 case ']':
-                    token.kind = lexer.CS;
-                    token.index = sI;
+                    token.pin = lexer.CS;
+                    token.loc = sI;
                     token.col = cI++;
                     token.len = 1;
                     sI++;
                     return token;
                 case ':':
-                    token.kind = CL;
-                    token.index = sI;
+                    token.pin = CL;
+                    token.loc = sI;
                     token.col = cI++;
                     token.len = 1;
                     sI++;
                     return token;
                 case ',':
-                    token.kind = CA;
-                    token.index = sI;
+                    token.pin = CA;
+                    token.loc = sI;
                     token.col = cI++;
                     token.len = 1;
                     sI++;
                     return token;
                 case 't':
-                    token.kind = lexer.BL;
-                    token.index = sI;
+                    token.pin = lexer.BL;
+                    token.loc = sI;
                     token.col = cI;
                     pI = sI;
                     if ('rue' === src.substring(pI + 1, pI + 4) &&
                         lexer.ender[src[pI + 4]]) {
-                        token.value = true;
+                        token.val = true;
                         token.len = 4;
                         pI += 4;
                     }
@@ -144,20 +141,20 @@ function lexer(src) {
                     else {
                         while (!lexer.ender[src[++pI]])
                             ;
-                        token.kind = lexer.TX;
+                        token.pin = lexer.TX;
                         token.len = pI - sI;
-                        token.value = src.substring(sI, pI);
+                        token.val = src.substring(sI, pI);
                     }
                     sI = cI = pI;
                     return token;
                 case 'f':
-                    token.kind = lexer.BL;
-                    token.index = sI;
+                    token.pin = lexer.BL;
+                    token.loc = sI;
                     token.col = cI;
                     pI = sI;
                     if ('alse' === src.substring(pI + 1, pI + 5) &&
                         lexer.ender[src[pI + 5]]) {
-                        token.value = false;
+                        token.val = false;
                         token.len = 5;
                         pI += 5;
                     }
@@ -165,20 +162,20 @@ function lexer(src) {
                     else {
                         while (!lexer.ender[src[++pI]])
                             ;
-                        token.kind = lexer.TX;
+                        token.pin = lexer.TX;
                         token.len = pI - sI;
-                        token.value = src.substring(sI, pI);
+                        token.val = src.substring(sI, pI);
                     }
                     sI = cI = pI;
                     return token;
                 case 'n':
-                    token.kind = NL;
-                    token.index = sI;
+                    token.pin = NL;
+                    token.loc = sI;
                     token.col = cI;
                     pI = sI;
                     if ('ull' === src.substring(pI + 1, pI + 4) &&
                         lexer.ender[src[pI + 4]]) {
-                        token.value = null;
+                        token.val = null;
                         token.len = 4;
                         pI += 4;
                     }
@@ -186,9 +183,9 @@ function lexer(src) {
                     else {
                         while (!lexer.ender[src[++pI]])
                             ;
-                        token.kind = lexer.TX;
+                        token.pin = lexer.TX;
                         token.len = pI - sI;
-                        token.value = src.substring(sI, pI);
+                        token.val = src.substring(sI, pI);
                     }
                     sI = cI = pI;
                     return token;
@@ -203,8 +200,8 @@ function lexer(src) {
                 case '7':
                 case '8':
                 case '9':
-                    token.kind = NR;
-                    token.index = sI;
+                    token.pin = NR;
+                    token.loc = sI;
                     token.col = cI++;
                     pI = sI;
                     while (lexer.digital[src[++pI]])
@@ -215,34 +212,34 @@ function lexer(src) {
                         // Leading 0s are text unless hex val: if at least two
                         // digits and does not start with 0x, then text.
                         if (1 < token.len && '0' === src[sI] && 'x' != src[sI + 1]) {
-                            token.value = undefined;
+                            token.val = undefined;
                             pI--;
                         }
                         else {
-                            token.value = +(src.substring(sI, pI));
-                            if (isNaN(token.value)) {
-                                token.value = +(src.substring(sI, pI).replace(/_/g, ''));
+                            token.val = +(src.substring(sI, pI));
+                            if (isNaN(token.val)) {
+                                token.val = +(src.substring(sI, pI).replace(/_/g, ''));
                             }
-                            if (isNaN(token.value)) {
-                                token.value = undefined;
+                            if (isNaN(token.val)) {
+                                token.val = undefined;
                                 pI--;
                             }
                         }
                     }
                     // not a number
-                    if (null == token.value) {
+                    if (null == token.val) {
                         while (!lexer.ender[src[++pI]])
                             ;
-                        token.kind = lexer.TX;
+                        token.pin = lexer.TX;
                         token.len = pI - sI;
-                        token.value = src.substring(sI, pI);
+                        token.val = src.substring(sI, pI);
                     }
                     sI = cI = pI;
                     return token;
                 case '"':
                 case '\'':
-                    token.kind = ST;
-                    token.index = sI;
+                    token.pin = ST;
+                    token.loc = sI;
                     token.col = cI++;
                     qc = cur.charCodeAt(0);
                     s = [];
@@ -271,7 +268,7 @@ function lexer(src) {
                                 case 117:
                                     pI++;
                                     ts = String.fromCharCode(('0x' + src.substring(pI, pI + 4)));
-                                    if (badunicode === ts) {
+                                    if (BAD_UNICODE_CHAR === ts) {
                                         return bad('invalid-unicode', pI, src.substring(pI - 2, pI + 4));
                                     }
                                     s.push(ts);
@@ -297,37 +294,37 @@ function lexer(src) {
                         cI = sI;
                         return bad('unterminated', pI - 1, s.join(''));
                     }
-                    token.value = s.join('');
+                    token.val = s.join('');
                     token.len = pI - sI;
                     sI = pI;
                     return token;
                 case '#':
-                    token.kind = CM;
-                    token.index = sI;
+                    token.pin = CM;
+                    token.loc = sI;
                     token.col = cI++;
                     pI = sI;
                     while (++pI < srclen && '\n' != src[pI] && '\r' != src[pI])
                         ;
                     token.len = pI - sI;
-                    token.value = src.substring(sI, pI);
+                    token.val = src.substring(sI, pI);
                     sI = cI = pI;
                     return token;
                 default:
-                    token.index = sI;
+                    token.loc = sI;
                     token.col = cI;
                     pI = sI;
                     while (!lexer.ender[src[++pI]] && '#' !== src[pI])
                         ;
-                    token.kind = lexer.TX;
+                    token.pin = lexer.TX;
                     token.len = pI - sI;
-                    token.value = src.substring(sI, pI);
+                    token.val = src.substring(sI, pI);
                     sI = cI = pI;
                     return token;
             }
         }
         // LN001: keeps returning ED past end of input
-        token.kind = ZZ;
-        token.index = srclen;
+        token.pin = ZZ;
+        token.loc = srclen;
         token.col = cI;
         return token;
     };
@@ -411,12 +408,12 @@ const NL = lexer.NL = Symbol('#NL');
 const VAL = [TX, NR, ST, BL, NL];
 const WSP = [SP, LN, CM];
 lexer.end = {
-    kind: ZZ,
-    index: 0,
+    pin: ZZ,
+    loc: 0,
     len: 0,
     row: 0,
     col: 0,
-    value: undefined,
+    val: undefined,
 };
 let S = (s) => s.description;
 class Rule {
@@ -440,7 +437,7 @@ class PairRule extends Rule {
             return new ValueRule(this.node, key, OB);
         }
         let t = ctx.next();
-        let k = t.kind;
+        let k = t.pin;
         // console.log('PR:' + S(k) + '=' + t.value)
         switch (k) {
             case TX:
@@ -460,7 +457,7 @@ class PairRule extends Rule {
                 let rule = ctx.rs.pop();
                 // Return self as value to parent rule
                 if (rule) {
-                    rule.value = this.node;
+                    rule.val = this.node;
                 }
                 return rule;
         }
@@ -470,21 +467,21 @@ class PairRule extends Rule {
     }
 }
 class ListRule extends Rule {
-    constructor(firstval, firstkind) {
+    constructor(firstval, firstpin) {
         super(undefined === firstval ? [] : [firstval]);
-        this.firstkind = firstkind;
+        this.firstpin = firstpin;
     }
     process(ctx) {
-        if (this.value) {
-            this.node.push(this.value);
-            this.value = undefined;
+        if (this.val) {
+            this.node.push(this.val);
+            this.val = undefined;
         }
-        let pk = this.firstkind || UK;
-        this.firstkind = undefined;
+        let pk = this.firstpin || UK;
+        this.firstpin = undefined;
         while (true) {
             ctx.ignore(WSP);
             let t = ctx.next();
-            let k = t.kind;
+            let k = t.pin;
             // console.log('LIST:' + S(k) + '=' + t.value)
             switch (k) {
                 case TX:
@@ -522,7 +519,7 @@ class ListRule extends Rule {
                     let rule = ctx.rs.pop();
                     // Return self as value to parent rule
                     if (rule) {
-                        rule.value = this.node;
+                        rule.val = this.node;
                     }
                     return rule;
             }
@@ -542,13 +539,13 @@ class ValueRule extends Rule {
         ctx.ignore(WSP);
         // console.log('VR S', this.value)
         // Child value has resolved
-        if (this.value) {
-            this.node[this.key] = this.value;
-            this.value = undefined;
+        if (this.val) {
+            this.node[this.key] = this.val;
+            this.val = undefined;
             return ctx.rs.pop();
         }
         let t = ctx.next();
-        let k = t.kind;
+        let k = t.pin;
         // console.log('VR:' + S(k) + '=' + t.value)
         switch (k) {
             case OB:
@@ -565,14 +562,14 @@ class ValueRule extends Rule {
         // Any sequence of literals with internal spaces is considered a single string
         let value = hoover(ctx, VAL, [SP]);
         // Is this an implicit map?
-        if (CL === ctx.t1.kind) {
+        if (CL === ctx.t1.pin) {
             this.parent = OB;
             ctx.next();
             ctx.rs.push(this);
             return new PairRule(String(value));
         }
         // Is this an implicit list (at top level only)?
-        else if (CA === ctx.t1.kind && OB !== this.parent) {
+        else if (CA === ctx.t1.pin && OB !== this.parent) {
             this.parent = OS;
             ctx.next();
             ctx.rs.push(this);
@@ -584,34 +581,34 @@ class ValueRule extends Rule {
         }
     }
     toString() {
-        return 'Value: ' + this.key + '=' + desc(this.value) + ' node=' + desc(this.node);
+        return 'Value: ' + this.key + '=' + desc(this.val) + ' node=' + desc(this.node);
     }
 }
 // Hoover up tokens into a string, possible containing whitespace, but trimming end
 // Thus: ['a', ' ', 'b', ' '] => 'a b'
 // NOTE: single tokens return token value, not a string!
-function hoover(ctx, kinds, trims) {
+function hoover(ctx, pins, trims) {
     // Is this potentially a hoover?
     let trimC = 0;
-    if ((trims.includes(ctx.t1.kind) && ++trimC) || kinds.includes(ctx.t1.kind)) {
+    if ((trims.includes(ctx.t1.pin) && ++trimC) || pins.includes(ctx.t1.pin)) {
         let b = [ctx.t0, ctx.t1];
         ctx.next();
-        while ((trims.includes(ctx.t1.kind) && ++trimC) ||
-            (kinds.includes(ctx.t1.kind) && (trimC = 0, true))) {
+        while ((trims.includes(ctx.t1.pin) && ++trimC) ||
+            (pins.includes(ctx.t1.pin) && (trimC = 0, true))) {
             b.push(ctx.t1);
             ctx.next();
         }
         // Trim end.
         b = b.splice(0, b.length - trimC);
         if (1 === b.length) {
-            return b[0].value;
+            return b[0].val;
         }
         else {
-            return b.map(t => String(t.value)).join('');
+            return b.map(t => String(t.val)).join('');
         }
     }
     else {
-        return ctx.t0.value;
+        return ctx.t0.val;
     }
 }
 function process(lex) {
@@ -635,29 +632,29 @@ function process(lex) {
     }
     function ignore(ignore) {
         // console.log('IGNORE', ignore, t0, t1)
-        while (ignore.includes(ctx.t1.kind)) {
+        while (ignore.includes(ctx.t1.pin)) {
             next();
         }
     }
-    function match(kind, ignore) {
-        // console.log('MATCH', kind, ignore, t0, t1)
+    function match(pin, ignore) {
+        // console.log('MATCH', pin, ignore, t0, t1)
         if (ignore) {
             // console.log('IGNORE PREFIX', ignore, t0, t1)
-            while (ignore.includes(ctx.t1.kind)) {
+            while (ignore.includes(ctx.t1.pin)) {
                 next();
             }
         }
-        if (kind === ctx.t1.kind) {
+        if (pin === ctx.t1.pin) {
             let t = next();
             if (ignore) {
                 // console.log('IGNORE SUFFIX', ignore, t0, t1)
-                while (ignore.includes(ctx.t1.kind)) {
+                while (ignore.includes(ctx.t1.pin)) {
                     next();
                 }
             }
             return t;
         }
-        throw new Error('expected: ' + String(kind) + ' saw:' + String(ctx.t1.kind) + '=' + ctx.t1.value);
+        throw new Error('expected: ' + String(pin) + ' saw:' + String(ctx.t1.pin) + '=' + ctx.t1.val);
     }
     next();
     while (rule) {
@@ -666,6 +663,10 @@ function process(lex) {
     }
     // console.log('Z:', root.node.$)
     return root.node.$;
+}
+// TODO: replace with jsonic stringify
+function desc(o) {
+    return require('util').inspect(o, { depth: null });
 }
 let Jsonic = Object.assign(parse, {
     use,
