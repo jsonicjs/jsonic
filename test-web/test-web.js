@@ -1,6 +1,6 @@
-(function(f){if(typeof exports==="object"&&typeof module!=="undefined"){module.exports=f()}else if(typeof define==="function"&&define.amd){define([],f)}else{var g;if(typeof window!=="undefined"){g=window}else if(typeof global!=="undefined"){g=global}else if(typeof self!=="undefined"){g=self}else{g=this}g.Jsonic = f()}})(function(){var define,module,exports;return (function(){function r(e,n,t){function o(i,f){if(!n[i]){if(!e[i]){var c="function"==typeof require&&require;if(!f&&c)return c(i,!0);if(u)return u(i,!0);var a=new Error("Cannot find module '"+i+"'");throw a.code="MODULE_NOT_FOUND",a}var p=n[i]={exports:{}};e[i][0].call(p.exports,function(r){var n=e[i][1][r];return o(n||r)},p,p.exports,r,e,n,t)}return n[i].exports}for(var u="function"==typeof require&&require,i=0;i<t.length;i++)o(t[i]);return o}return r})()({1:[function(require,module,exports){
+(function(f){if(typeof exports==="object"&&typeof module!=="undefined"){module.exports=f()}else if(typeof define==="function"&&define.amd){define([],f)}else{var g;if(typeof window!=="undefined"){g=window}else if(typeof global!=="undefined"){g=global}else if(typeof self!=="undefined"){g=self}else{g=this}g.All = f()}})(function(){var define,module,exports;return (function(){function r(e,n,t){function o(i,f){if(!n[i]){if(!e[i]){var c="function"==typeof require&&require;if(!f&&c)return c(i,!0);if(u)return u(i,!0);var a=new Error("Cannot find module '"+i+"'");throw a.code="MODULE_NOT_FOUND",a}var p=n[i]={exports:{}};e[i][0].call(p.exports,function(r){var n=e[i][1][r];return o(n||r)},p,p.exports,r,e,n,t)}return n[i].exports}for(var u="function"==typeof require&&require,i=0;i<t.length;i++)o(t[i]);return o}return r})()({1:[function(require,module,exports){
 (function (global){(function (){
-!function(e){if("object"==typeof exports&&"undefined"!=typeof module)module.exports=e();else if("function"==typeof define&&define.amd)define([],e);else{("undefined"!=typeof window?window:"undefined"!=typeof global?global:"undefined"!=typeof self?self:this).Jsonic=e()}}((function(){var e={exports:{}};(function(t){(function(){!function(n){"object"==typeof e.exports?e.exports=n():("undefined"!=typeof window?window:void 0!==t?t:"undefined"!=typeof self?self:this).Gex=n()}((function(){var e={};Object.defineProperty(e,"__esModule",{value:!0}),e.Gex=void 0;class t{constructor(e){this.desc="",this.gexmap={},(Array.isArray(e)?e:[e]).forEach(e=>{this.gexmap[e]=this.re(this.clean(e))})}dodgy(e){return null==e||Number.isNaN(e)}clean(e){let t=""+e;return this.dodgy(e)?"":t}match(e){e=""+e;let t=!1,n=Object.keys(this.gexmap);for(let r=0;r<n.length&&!t;r++)t=!!this.gexmap[n[r]].exec(e);return t}on(e){if(null==e)return null;let t=typeof e;if("string"===t||"number"===t||"boolean"===t||e instanceof Date||e instanceof RegExp)return this.match(e)?e:null;if(Array.isArray(e)){let t=[];for(let n=0;n<e.length;n++)!this.dodgy(e[n])&&this.match(e[n])&&t.push(e[n]);return t}{let t={};for(let n in e)Object.prototype.hasOwnProperty.call(e,n)&&this.match(n)&&(t[n]=e[n]);return t}}esc(e){let t=this.clean(e);return(t=t.replace(/\*/g,"**")).replace(/\?/g,"*?")}escregexp(e){return e?(""+e).replace(/[-[\]{}()*+?.,\\^$|#\s]/g,"\\$&"):""}re(e){if(""===e||e)return e="^"+(e=(e=(e=(e=(e=this.escregexp(e)).replace(/\\\*/g,"[\\s\\S]*")).replace(/\\\?/g,"[\\s\\S]")).replace(/\[\\s\\S\]\*\[\\s\\S\]\*/g,"\\*")).replace(/\[\\s\\S\]\*\[\\s\\S\]/g,"\\?"))+"$",new RegExp(e);{let e=Object.keys(this.gexmap);return 1==e.length?this.gexmap[e[0]]:{...this.gexmap}}}toString(){let e=this.desc;return""!=e?e:this.desc="Gex["+Object.keys(this.gexmap)+"]"}inspect(){return this.toString()}}return e.Gex=function(e){return new t(e)},e}))}).call(this)}).call(this,"undefined"!=typeof global?global:"undefined"!=typeof self?self:"undefined"!=typeof window?window:{}),e=e.exports;var t,n,r,i,s,l,o,u,a,f={},h=this&&this.__classPrivateFieldGet||function(e,t){if(!t.has(e))throw new TypeError("attempted to get private field on non-instance");return t.get(e)};Object.defineProperty(f,"__esModule",{value:!0}),f.IntervalMatcher=f.GexMatcher=void 0,f.GexMatcher=class{constructor(){}make(t,n){if("string"==typeof n&&n.match(/[*?]/)){let t=e.Gex(n);return{kind:"gex",match:e=>null!=t.on(e),fix:n,meta:{},same(e){return null!=e&&e.kind===this.kind&&e.fix===this.fix}}}}scan(e,t){let n=e.filter(e=>"*"===e.fix).length>0;return{complete:n,sound:n,gaps:[],overs:[],why:"no-star"}}};const p=new RegExp(["^/s*","(=*[<>/(/[]?=*)?/s*([-+0-9a-fA-FeEoOxX]+(/.([0-9a-fA-FeEoOxX]+))?)([/)/]]?)(/s*(,|&+|/|+|/./.)/s*(=*[<>]?=*)/s*([-+.0-9a-fA-FeEoOxX]+)/s*([/)/]]?))?/s*$"].join("").replace(/\//g,"\\"));class c{constructor(){this.kind="interval",t.set(this,(e,t)=>function(n){return e(n)&&t(n)}),n.set(this,(e,t)=>function(n){return e(n)||t(n)}),r.set(this,e=>function(e){return!1}),i.set(this,e=>function(e){return!1}),s.set(this,e=>function(t){return t>e}),l.set(this,e=>function(t){return t>=e}),o.set(this,e=>function(t){return t<e}),u.set(this,e=>function(t){return t<=e}),a.set(this,e=>function(t){return t===e})}make(e,f){if("string"==typeof f&&f.match(/[=<>.[()\]]/)){let e=f.match(p),d={jo:"and",o0:"err",n0:NaN,o1:"err",n1:NaN},g=e=>!1;if(null!=e){let p=c.normop(e[1])||c.normop(e[5]),m=c.normop(e[8])||c.normop(e[10]),v=h(this,"="===p?a:"<"===p||")"===p?o:"<="===p||"]"===p?u:">"===p||"("===p?s:">="===p||"["===p?l:i),k=Number(e[2]),y=null==e[9]?NaN:Number(e[9]),x=e[7],N=null==x?h(this,n):"&"===x.substring(0,1)||","===x.substring(0,1)?h(this,t):h(this,n);".."===x&&(N=h(this,t),v=h(this,i)===v?h(this,l):v,m=""===m?"<=":m);let w=h(this,null==m?r:"="===m?a:"<"===m||")"===m?o:"<="===m||"]"===m?u:">"===m?s:">="===m?l:i);if(k===y&&("="===p&&null!=m?(y=NaN,w=h(this,r),v=m.includes("<")?h(this,u):m.includes(">")?h(this,l):m.includes("=")?h(this,a):h(this,i)):"="===m&&null!=p&&(y=NaN,w=h(this,r),v=p.includes("<")?h(this,u):p.includes(">")?h(this,l):h(this,i))),h(this,i)!==v&&h(this,r)===w&&(h(this,o)===v||h(this,u)===v?(w=v,y=k,v=h(this,l),k=Number.NEGATIVE_INFINITY,N=h(this,t)):h(this,s)!==v&&h(this,l)!==v||(w=h(this,u),y=Number.POSITIVE_INFINITY,N=h(this,t))),!isNaN(y)&&y<k){let e=w,t=y;y=k,k=t,".."!==x&&(w=v,v=e)}let b=v(k),O=w(y),j=N(b,O);return{kind:"interval",fix:f,meta:d={jo:j.name,o0:b.name,n0:k,o1:O.name,n1:y},match:g=e=>{let t=!1,n=parseFloat(e);return isNaN(n)||(t=j(n)),t},same(e){return null!=e&&e.kind===this.kind&&e.meta.jo===this.meta.jo&&e.meta.o0===this.meta.o0&&e.meta.n0===this.meta.n0&&e.meta.o1===this.meta.o1&&e.meta.n1===this.meta.n1}}}}}scan(e,t){let n={complete:!1,sound:!1,gaps:[],overs:[],lower:null,upper:null},r=Number.NEGATIVE_INFINITY,i=Number.POSITIVE_INFINITY,s=this.half_intervals(e);s.reduce((e,t)=>{let n="eq"===t.o,i="lt"===t.o,s="lte"===t.o,l="gt"===t.o,o="gte"===t.o,u=t.n;if(null==e.lower){let i={n:r,o:"gte"};e.lower=i,e.upper=t,r==u&&o||(l||o?e.gaps.push([i,{n:u,o:l?"lte":"lt",m:0}]):n&&e.gaps.push([i,{n:u,o:"lte",m:1}]))}else{let r="eq"===e.upper.o,a="lt"===e.upper.o,f="lte"===e.upper.o,h=(e.upper.o,e.upper.o,e.upper.n),p=e.upper;u===h?a&&(o||n)||(f||r)&&l||(r||a||f)&&e.gaps.push([{n:h,o:r||f?"gt":"gte",m:2,d:{u:p,h:t}},{n:u,o:n||o?"lt":"lte",m:3}]):h<u?i||s||(r||a||f)&&e.gaps.push([{n:h,o:r||f?"gt":"gte",m:4},{n:u,o:n||o?"lt":"lte",m:5}]):e.overs.push([{n:u,o:n||o?"gte":"gt",m:10},{n:h,o:r||f?"lte":"lt",m:11}]),e.upper=t}return e},n);let l=0<s.length&&s[s.length-1];return l&&i!==l.n&&"gt"!==l.o&&"gte"!==l.o&&n.gaps.push([{n:l.n,o:"eq"===l.o||"lte"===l.o?"gt":"gte",m:6},{n:i,o:"lte",m:7}]),n.complete=0===n.gaps.length,n.sound=0===n.overs.length,n}half_intervals(e){let t=[];for(let r of e)t.push([{n:r.meta.n0,o:r.meta.o0},{n:r.meta.n1,o:r.meta.o1}]);var n=["lt","lte","eq","gte","gt"];return t.map(e=>[isNaN(e[0].n)||null==e[0].n?null:e[0],isNaN(e[1].n)||null==e[1].n?null:e[1]].filter(e=>null!=e)).sort((e,t)=>{if(e[0].n<t[0].n)return-1;if(t[0].n<e[0].n)return 1;var r=n.indexOf(e[0].o),i=n.indexOf(t[0].o);if(r<i)return-1;if(i<r)return 1;if(e[1].n<t[1].n)return-1;if(t[1].n<e[1].n)return 1;var s=n.indexOf(e[1].o),l=n.indexOf(t[1].o);return s<l?-1:l<s?1:0}).reduce((e,t)=>e.concat(...t),[])}}f.IntervalMatcher=c,t=new WeakMap,n=new WeakMap,r=new WeakMap,i=new WeakMap,s=new WeakMap,l=new WeakMap,o=new WeakMap,u=new WeakMap,a=new WeakMap,c.normop=e=>null==e?null:((e.match(/([<>\(\)\[\]])/)||[])[1]||"")+((e.match(/(=)/)||[])[1]||"");var d={};function g(t){var n={},r={};let i=[];return(t=t||{}).gex&&i.push(new f.GexMatcher),t.interval&&i.push(new f.IntervalMatcher),n.top=function(){return r},n.add=function(e,s){e={...e};var l="function"==typeof t?t.call(n,e,s):null,o=Object.keys(e).filter(t=>null!=e[t]).sort();o.forEach((function(t){e[t]=String(e[t])}));for(var u,a=r,f=0;f<o.length;f++){var h=o[f],p=e[h];let t=i.reduce((e,t)=>e||t.make(h,p),void 0);if((u=a.v)&&h==a.k)if(t){var c=(g=a.g=a.g||{})[h]=g[h]||[];a=(t=c.find(e=>e.same(t))||(c.push(t),t)).keymap||(t.keymap={})}else a=u[p]||(u[p]={});else if(a.k)if(h<a.k){var d=a.s;g=a.g,a.s={k:a.k,v:a.v},d&&(a.s.s=d),g&&(a.s.g=g),a.g&&(a.g={}),a.k=h,a.v={},t?(c=(g=a.g=a.g||{})[h]=g[h]||[],a=(t=c.find(e=>e.same(t))||(c.push(t),t)).keymap||(t.keymap={})):a=a.v[p]={}}else a=a.s||(a.s={}),f--;else if(a.k=h,a.v={},t){var g;c=(g=a.g=a.g||{})[h]=g[h]||[];a=(t=c.find(e=>e.same(t))||(c.push(t),t)).keymap||(t.keymap={})}else a=a.v[p]={}}return void 0!==s&&a&&(a.d=s,l&&(a.f="function"==typeof l?l:l.find,a.r="function"==typeof l.remove?l.remove:void 0)),n},n.findexact=function(e){return n.find(e,!0)},n.find=function(e,t,i){if(null==e)return null;var s=r,l=void 0===r.d?null:r.d,o=r.f,u=null,a=[],f={},h=Object.keys(e).length,p=[];void 0!==r.d&&p.push(r.d);do{if(u=s.k,s.v){var c=e[u],d=s.v[c];if(!d&&s.g&&s.g[u])for(var g=s.g[u],m=0;m<g.length;m++)if(g[m].match(c)){d=g[m].keymap;break}d?(f[u]=!0,s.s&&a.push(s.s),l=void 0===d.d?t?null:l:d.d,i&&void 0!==d.d&&p.push(d.d),o=d.f,s=d):s=s.s}else s=null;null==s&&0<a.length&&(null==l||i&&!t)&&(s=a.pop())}while(s);return t?Object.keys(f).length!==h&&(l=null):null==l&&void 0!==r.d&&(l=r.d),o&&(l=o.call(n,e,l)),i?p:l},n.remove=function(e){var t,n=r,i=null,s=[];do{if(t=n.k,n.v||n.g){if(n.v){var l=n.v[e[t]];l&&s.push({km:n,v:e[t]})}if(null==l&&n.g){let r=n.g[t]||[];for(let i=0;i<r.length;i++)if(r[i].fix===e[t]){s.push({km:n,v:e[t],mv:r[i]}),l=r[i].keymap;break}}l?(i=l.d,n=l):n=n.s}else n=null}while(n);if(void 0!==i){var o=s[s.length-1];if(o&&o.km&&o.km.v){var u=o.km.v[o.v]||o.mv&&o.mv.keymap;!u||u.r&&!u.r(e,u.d)||delete u.d}}},n.list=function(t,n){t=t||{};var i=[];return r.d&&i.push({match:{},data:r.d,find:r.f}),function r(i,s,l,o){if(i.v){var u,a=i.k,f=e.Gex(t?null==t[a]?n?null:"*":t[a]:"*"),h={...s},p={...l};for(var c in i.v)if(c===t[a]||!n&&null==t[a]||f.on(c)){var d={...h};d[a]=c;var g={...p};delete g[a],u=i.v[c],0===Object.keys(g).length&&u&&u.d&&o.push({match:d,data:u.d,find:u.f}),u&&null!=u.v&&r(u,{...d},{...g},o)}(u=i.s)&&r(u,{...h},{...p},o)}}(r,{},{...t},i),i},n.toString=function(e,t){var n=!0===e||!!t,i="function"==typeof e?e:function(e){return"function"==typeof e?"<"+e.name+">":"<"+e+">"};function s(e,t){for(var n=0;n<t;n++)e.push(" ")}var l=[],o=[];return function e(t,n,r,o){var u;if(void 0!==t.d&&(n.push(" "+i(t.d)),l.push(o.join(", ")+" -> "+i(t.d))),t.k&&(n.push("\n"),s(n,r),n.push(t.k+":")),(t.v||t.s||t.g)&&r++,t.v)for(var a=Object.keys(t.v).sort(),f=0;f<a.length;f++){var h=a[f];n.push("\n"),s(n,r),n.push(h+" ->"),(u=o.slice()).push(t.k+"="+h),e(t.v[h],n,r+1,u)}if(t.g)for(a=Object.keys(t.g).sort(),f=0;f<a.length;f++)for(var p=t.g[a[f]],c=0;c<p.length;c++){var d=p[c];n.push("\n"),s(n,r),n.push(d.fix+" ~>"),(u=o.slice()).push(t.k+"~"+d.fix),e(d.keymap,n,r+1,u)}t.s&&(n.push("\n"),s(n,r),n.push("|"),u=o.slice(),e(t.s,n,r+1,u))}(r,o,0,[]),n?o.join(""):l.join("\n")},n.inspect=n.toString,n.toJSON=function(e){return JSON.stringify(r,(function(e,t){return"function"==typeof t?"[Function]":t}),e)},n}return Object.defineProperty(d,"__esModule",{value:!0}),d=function(e){return new g(e)}}));
+!function(e){if("object"==typeof exports&&"undefined"!=typeof module)module.exports=e();else if("function"==typeof define&&define.amd)define([],e);else{("undefined"!=typeof window?window:"undefined"!=typeof global?global:"undefined"!=typeof self?self:this).Jsonic=e()}}((function(){var e,t,r,n=(e=function(e,t){(function(e){(function(){var r=Object.getOwnPropertyDescriptors||function(e){for(var t=Object.keys(e),r={},n=0;n<t.length;n++)r[t[n]]=Object.getOwnPropertyDescriptor(e,t[n]);return r};if(e.env.NODE_DEBUG){var n=e.env.NODE_DEBUG;n=n.replace(/[|\\{}()[\]^$+?.]/g,"\\$&").replace(/\*/g,".*").replace(/,/g,"$|^").toUpperCase(),new RegExp("^"+n+"$","i")}function o(e,r){var n={seen:[],stylize:a};return arguments.length>=3&&(n.depth=arguments[2]),arguments.length>=4&&(n.colors=arguments[3]),l(r)?n.showHidden=r:r&&t._extend(n,r),b(n.showHidden)&&(n.showHidden=!1),b(n.depth)&&(n.depth=2),b(n.colors)&&(n.colors=!1),b(n.customInspect)&&(n.customInspect=!0),n.colors&&(n.stylize=i),u(n,e,n.depth)}function i(e,t){var r=o.styles[t];return r?"\x1b["+o.colors[r][0]+"m"+e+"\x1b["+o.colors[r][1]+"m":e}function a(e,t){return e}function u(e,r,n){if(e.customInspect&&r&&S(r.inspect)&&r.inspect!==t.inspect&&(!r.constructor||r.constructor.prototype!==r)){var o=r.inspect(n,e);return d(o)||(o=u(e,o,n)),o}var i=function(e,t){if(b(t))return e.stylize("undefined","undefined");if(d(t)){var r="'"+JSON.stringify(t).replace(/^"|"$/g,"").replace(/'/g,"\\'").replace(/\\"/g,'"')+"'";return e.stylize(r,"string")}return s(t)?e.stylize(""+t,"number"):l(t)?e.stylize(""+t,"boolean"):y(t)?e.stylize("null","null"):void 0}(e,r);if(i)return i;var a=Object.keys(r),h=function(e){var t={};return e.forEach((function(e,r){t[e]=!0})),t}(a);if(e.showHidden&&(a=Object.getOwnPropertyNames(r)),m(r)&&(a.indexOf("message")>=0||a.indexOf("description")>=0))return c(r);if(0===a.length){if(S(r)){var A=r.name?": "+r.name:"";return e.stylize("[Function"+A+"]","special")}if(g(r))return e.stylize(RegExp.prototype.toString.call(r),"regexp");if(v(r))return e.stylize(Date.prototype.toString.call(r),"date");if(m(r))return c(r)}var O,P="",j=!1,E=["{","}"];return p(r)&&(j=!0,E=["[","]"]),S(r)&&(P=" [Function"+(r.name?": "+r.name:"")+"]"),g(r)&&(P=" "+RegExp.prototype.toString.call(r)),v(r)&&(P=" "+Date.prototype.toUTCString.call(r)),m(r)&&(P=" "+c(r)),0!==a.length||j&&0!=r.length?n<0?g(r)?e.stylize(RegExp.prototype.toString.call(r),"regexp"):e.stylize("[Object]","special"):(e.seen.push(r),O=j?function(e,t,r,n,o){for(var i=[],a=0,u=t.length;a<u;++a)w(t,String(a))?i.push(f(e,t,r,n,String(a),!0)):i.push("");return o.forEach((function(o){o.match(/^\d+$/)||i.push(f(e,t,r,n,o,!0))})),i}(e,r,n,h,a):a.map((function(t){return f(e,r,n,h,t,j)})),e.seen.pop(),function(e,t,r){return e.reduce((function(e,t){return t.indexOf("\n"),e+t.replace(/\u001b\[\d\d?m/g,"").length+1}),0)>60?r[0]+(""===t?"":t+"\n ")+" "+e.join(",\n  ")+" "+r[1]:r[0]+t+" "+e.join(", ")+" "+r[1]}(O,P,E)):E[0]+P+E[1]}function c(e){return"["+Error.prototype.toString.call(e)+"]"}function f(e,t,r,n,o,i){var a,c,f;if((f=Object.getOwnPropertyDescriptor(t,o)||{value:t[o]}).get?c=f.set?e.stylize("[Getter/Setter]","special"):e.stylize("[Getter]","special"):f.set&&(c=e.stylize("[Setter]","special")),w(n,o)||(a="["+o+"]"),c||(e.seen.indexOf(f.value)<0?(c=y(r)?u(e,f.value,null):u(e,f.value,r-1)).indexOf("\n")>-1&&(c=i?c.split("\n").map((function(e){return"  "+e})).join("\n").substr(2):"\n"+c.split("\n").map((function(e){return"   "+e})).join("\n")):c=e.stylize("[Circular]","special")),b(a)){if(i&&o.match(/^\d+$/))return c;(a=JSON.stringify(""+o)).match(/^"([a-zA-Z_][a-zA-Z_0-9]*)"$/)?(a=a.substr(1,a.length-2),a=e.stylize(a,"name")):(a=a.replace(/'/g,"\\'").replace(/\\"/g,'"').replace(/(^"|"$)/g,"'"),a=e.stylize(a,"string"))}return a+": "+c}function p(e){return Array.isArray(e)}function l(e){return"boolean"==typeof e}function y(e){return null===e}function s(e){return"number"==typeof e}function d(e){return"string"==typeof e}function b(e){return void 0===e}function g(e){return h(e)&&"[object RegExp]"===A(e)}function h(e){return"object"==typeof e&&null!==e}function v(e){return h(e)&&"[object Date]"===A(e)}function m(e){return h(e)&&("[object Error]"===A(e)||e instanceof Error)}function S(e){return"function"==typeof e}function A(e){return Object.prototype.toString.call(e)}function w(e,t){return Object.prototype.hasOwnProperty.call(e,t)}t.inspect=o,o.colors={bold:[1,22],italic:[3,23],underline:[4,24],inverse:[7,27],white:[37,39],grey:[90,39],black:[30,39],blue:[34,39],cyan:[36,39],green:[32,39],magenta:[35,39],red:[31,39],yellow:[33,39]},o.styles={special:"cyan",number:"yellow",boolean:"yellow",undefined:"grey",null:"bold",string:"green",date:"magenta",regexp:"red"},t.types=H,t.types.isRegExp=g,t.types.isDate=v,t.types.isNativeError=m,t._extend=function(e,t){if(!t||!h(t))return e;for(var r=Object.keys(t),n=r.length;n--;)e[r[n]]=t[r[n]];return e};var O="undefined"!=typeof Symbol?Symbol("util.promisify.custom"):void 0;t.promisify=function(e){if("function"!=typeof e)throw new TypeError('The "original" argument must be of type Function');if(O&&e[O]){var t;if("function"!=typeof(t=e[O]))throw new TypeError('The "util.promisify.custom" argument must be of type Function');return Object.defineProperty(t,O,{value:t,enumerable:!1,writable:!1,configurable:!0}),t}function t(){for(var t,r,n=new Promise((function(e,n){t=e,r=n})),o=[],i=0;i<arguments.length;i++)o.push(arguments[i]);o.push((function(e,n){e?r(e):t(n)}));try{e.apply(this,o)}catch(a){r(a)}return n}return Object.setPrototypeOf(t,Object.getPrototypeOf(e)),O&&Object.defineProperty(t,O,{value:t,enumerable:!1,writable:!1,configurable:!0}),Object.defineProperties(t,r(e))},t.promisify.custom=O}).call(this)}).call(this,Oe)},function(r){return t||e(t={exports:{},parent:r},t.exports),t.exports}),o="function"==typeof Symbol&&"symbol"==typeof Symbol.toStringTag,i=Object.prototype.toString,a=function(e){return!(o&&e&&"object"==typeof e&&Symbol.toStringTag in e)&&"[object Arguments]"===i.call(e)},u=function(e){return!!a(e)||null!==e&&"object"==typeof e&&"number"==typeof e.length&&e.length>=0&&"[object Array]"!==i.call(e)&&"[object Function]"===i.call(e.callee)},c=function(){return a(arguments)}();a.isLegacyArguments=u,r=c?a:u;var f=Object.prototype.toString,p=Function.prototype.toString,l=/^\s*(?:function)?\*/,y="function"==typeof Symbol&&"symbol"==typeof Symbol.toStringTag,s=Object.getPrototypeOf,d=function(){if(!y)return!1;try{return Function("return function*() {}")()}catch(t){}}(),b=d?s(d):{},g=Object.prototype.hasOwnProperty,h=Object.prototype.toString,v=function(e,t,r){if("[object Function]"!==h.call(t))throw new TypeError("iterator must be a function");var n=e.length;if(n===+n)for(var o=0;o<n;o++)t.call(r,e[o],o,e);else for(var i in e)g.call(e,i)&&t.call(r,e[i],i,e)},m=Object.prototype.hasOwnProperty,S={};(function(e){(function(){"use strict";S=function(){return function(e,t,r){if(e.filter)return e.filter(t,r);if(null==e)throw new TypeError;if("function"!=typeof t)throw new TypeError;for(var n=[],o=0;o<e.length;o++)if(m.call(e,o)){var i=e[o];t.call(r,i,o,e)&&n.push(i)}return n}(["BigInt64Array","BigUint64Array","Float32Array","Float64Array","Int16Array","Int32Array","Int8Array","Uint16Array","Uint32Array","Uint8Array","Uint8ClampedArray"],(function(t){return"function"==typeof e[t]}))}}).call(this)}).call(this,"undefined"!=typeof global?global:"undefined"!=typeof self?self:"undefined"!=typeof window?window:{});var A={};(function(e){(function(){"use strict";var t=e.Symbol;A=function(){return"function"==typeof t&&"function"==typeof Symbol&&"symbol"==typeof t("foo")&&"symbol"==typeof Symbol("bar")&&function(){if("function"!=typeof Symbol||"function"!=typeof Object.getOwnPropertySymbols)return!1;if("symbol"==typeof Symbol.iterator)return!0;var e={},t=Symbol("test"),r=Object(t);if("string"==typeof t)return!1;if("[object Symbol]"!==Object.prototype.toString.call(t))return!1;if("[object Symbol]"!==Object.prototype.toString.call(r))return!1;for(t in e[t]=42,e)return!1;if("function"==typeof Object.keys&&0!==Object.keys(e).length)return!1;if("function"==typeof Object.getOwnPropertyNames&&0!==Object.getOwnPropertyNames(e).length)return!1;var n=Object.getOwnPropertySymbols(e);if(1!==n.length||n[0]!==t)return!1;if(!Object.prototype.propertyIsEnumerable.call(e,t))return!1;if("function"==typeof Object.getOwnPropertyDescriptor){var o=Object.getOwnPropertyDescriptor(e,t);if(42!==o.value||!0!==o.enumerable)return!1}return!0}()}}).call(this)}).call(this,"undefined"!=typeof global?global:"undefined"!=typeof self?self:"undefined"!=typeof window?window:{});var w=Array.prototype.slice,O=Object.prototype.toString,P=Function.prototype.bind||function(e){var t=this;if("function"!=typeof t||"[object Function]"!==O.call(t))throw new TypeError("Function.prototype.bind called on incompatible "+t);for(var r,n=w.call(arguments,1),o=Math.max(0,t.length-n.length),i=[],a=0;a<o;a++)i.push("$"+a);if(r=Function("binder","return function ("+i.join(",")+"){ return binder.apply(this,arguments); }")((function(){if(this instanceof r){var o=t.apply(this,n.concat(w.call(arguments)));return Object(o)===o?o:this}return t.apply(e,n.concat(w.call(arguments)))})),t.prototype){var u=function(){};u.prototype=t.prototype,r.prototype=new u,u.prototype=null}return r},j=TypeError,E=Object.getOwnPropertyDescriptor;if(E)try{E({},"")}catch(t){E=null}var I,B=function(){throw new j},x=E?function(){try{return B}catch(e){try{return E(arguments,"callee").get}catch(t){return B}}}():B,U=A(),k=Object.getPrototypeOf||function(e){return e.__proto__},T="undefined"==typeof Uint8Array?void 0:k(Uint8Array),F={"%Array%":Array,"%ArrayBuffer%":"undefined"==typeof ArrayBuffer?void 0:ArrayBuffer,"%ArrayBufferPrototype%":"undefined"==typeof ArrayBuffer?void 0:ArrayBuffer.prototype,"%ArrayIteratorPrototype%":U?k([][Symbol.iterator]()):void 0,"%ArrayPrototype%":Array.prototype,"%ArrayProto_entries%":Array.prototype.entries,"%ArrayProto_forEach%":Array.prototype.forEach,"%ArrayProto_keys%":Array.prototype.keys,"%ArrayProto_values%":Array.prototype.values,"%AsyncFromSyncIteratorPrototype%":void 0,"%AsyncFunction%":void 0,"%AsyncFunctionPrototype%":void 0,"%AsyncGenerator%":void 0,"%AsyncGeneratorFunction%":void 0,"%AsyncGeneratorPrototype%":void 0,"%AsyncIteratorPrototype%":void 0,"%Atomics%":"undefined"==typeof Atomics?void 0:Atomics,"%Boolean%":Boolean,"%BooleanPrototype%":Boolean.prototype,"%DataView%":"undefined"==typeof DataView?void 0:DataView,"%DataViewPrototype%":"undefined"==typeof DataView?void 0:DataView.prototype,"%Date%":Date,"%DatePrototype%":Date.prototype,"%decodeURI%":decodeURI,"%decodeURIComponent%":decodeURIComponent,"%encodeURI%":encodeURI,"%encodeURIComponent%":encodeURIComponent,"%Error%":Error,"%ErrorPrototype%":Error.prototype,"%eval%":eval,"%EvalError%":EvalError,"%EvalErrorPrototype%":EvalError.prototype,"%Float32Array%":"undefined"==typeof Float32Array?void 0:Float32Array,"%Float32ArrayPrototype%":"undefined"==typeof Float32Array?void 0:Float32Array.prototype,"%Float64Array%":"undefined"==typeof Float64Array?void 0:Float64Array,"%Float64ArrayPrototype%":"undefined"==typeof Float64Array?void 0:Float64Array.prototype,"%Function%":Function,"%FunctionPrototype%":Function.prototype,"%Generator%":void 0,"%GeneratorFunction%":void 0,"%GeneratorPrototype%":void 0,"%Int8Array%":"undefined"==typeof Int8Array?void 0:Int8Array,"%Int8ArrayPrototype%":"undefined"==typeof Int8Array?void 0:Int8Array.prototype,"%Int16Array%":"undefined"==typeof Int16Array?void 0:Int16Array,"%Int16ArrayPrototype%":"undefined"==typeof Int16Array?void 0:Int8Array.prototype,"%Int32Array%":"undefined"==typeof Int32Array?void 0:Int32Array,"%Int32ArrayPrototype%":"undefined"==typeof Int32Array?void 0:Int32Array.prototype,"%isFinite%":isFinite,"%isNaN%":isNaN,"%IteratorPrototype%":U?k(k([][Symbol.iterator]())):void 0,"%JSON%":"object"==typeof JSON?JSON:void 0,"%JSONParse%":"object"==typeof JSON?JSON.parse:void 0,"%Map%":"undefined"==typeof Map?void 0:Map,"%MapIteratorPrototype%":"undefined"!=typeof Map&&U?k((new Map)[Symbol.iterator]()):void 0,"%MapPrototype%":"undefined"==typeof Map?void 0:Map.prototype,"%Math%":Math,"%Number%":Number,"%NumberPrototype%":Number.prototype,"%Object%":Object,"%ObjectPrototype%":Object.prototype,"%ObjProto_toString%":Object.prototype.toString,"%ObjProto_valueOf%":Object.prototype.valueOf,"%parseFloat%":parseFloat,"%parseInt%":parseInt,"%Promise%":"undefined"==typeof Promise?void 0:Promise,"%PromisePrototype%":"undefined"==typeof Promise?void 0:Promise.prototype,"%PromiseProto_then%":"undefined"==typeof Promise?void 0:Promise.prototype.then,"%Promise_all%":"undefined"==typeof Promise?void 0:Promise.all,"%Promise_reject%":"undefined"==typeof Promise?void 0:Promise.reject,"%Promise_resolve%":"undefined"==typeof Promise?void 0:Promise.resolve,"%Proxy%":"undefined"==typeof Proxy?void 0:Proxy,"%RangeError%":RangeError,"%RangeErrorPrototype%":RangeError.prototype,"%ReferenceError%":ReferenceError,"%ReferenceErrorPrototype%":ReferenceError.prototype,"%Reflect%":"undefined"==typeof Reflect?void 0:Reflect,"%RegExp%":RegExp,"%RegExpPrototype%":RegExp.prototype,"%Set%":"undefined"==typeof Set?void 0:Set,"%SetIteratorPrototype%":"undefined"!=typeof Set&&U?k((new Set)[Symbol.iterator]()):void 0,"%SetPrototype%":"undefined"==typeof Set?void 0:Set.prototype,"%SharedArrayBuffer%":"undefined"==typeof SharedArrayBuffer?void 0:SharedArrayBuffer,"%SharedArrayBufferPrototype%":"undefined"==typeof SharedArrayBuffer?void 0:SharedArrayBuffer.prototype,"%String%":String,"%StringIteratorPrototype%":U?k(""[Symbol.iterator]()):void 0,"%StringPrototype%":String.prototype,"%Symbol%":U?Symbol:void 0,"%SymbolPrototype%":U?Symbol.prototype:void 0,"%SyntaxError%":SyntaxError,"%SyntaxErrorPrototype%":SyntaxError.prototype,"%ThrowTypeError%":x,"%TypedArray%":T,"%TypedArrayPrototype%":T?T.prototype:void 0,"%TypeError%":j,"%TypeErrorPrototype%":j.prototype,"%Uint8Array%":"undefined"==typeof Uint8Array?void 0:Uint8Array,"%Uint8ArrayPrototype%":"undefined"==typeof Uint8Array?void 0:Uint8Array.prototype,"%Uint8ClampedArray%":"undefined"==typeof Uint8ClampedArray?void 0:Uint8ClampedArray,"%Uint8ClampedArrayPrototype%":"undefined"==typeof Uint8ClampedArray?void 0:Uint8ClampedArray.prototype,"%Uint16Array%":"undefined"==typeof Uint16Array?void 0:Uint16Array,"%Uint16ArrayPrototype%":"undefined"==typeof Uint16Array?void 0:Uint16Array.prototype,"%Uint32Array%":"undefined"==typeof Uint32Array?void 0:Uint32Array,"%Uint32ArrayPrototype%":"undefined"==typeof Uint32Array?void 0:Uint32Array.prototype,"%URIError%":URIError,"%URIErrorPrototype%":URIError.prototype,"%WeakMap%":"undefined"==typeof WeakMap?void 0:WeakMap,"%WeakMapPrototype%":"undefined"==typeof WeakMap?void 0:WeakMap.prototype,"%WeakSet%":"undefined"==typeof WeakSet?void 0:WeakSet,"%WeakSetPrototype%":"undefined"==typeof WeakSet?void 0:WeakSet.prototype},M=P.call(Function.call,String.prototype.replace),C=/[^%.[\]]+|\[(?:(-?\d+(?:\.\d+)?)|(["'])((?:(?!\2)[^\\]|\\.)*?)\2)\]|(?=(?:\.|\[\])(?:\.|\[\]|%$))/g,N=/\\(\\)?/g,R=function(e,t){if("string"!=typeof e||0===e.length)throw new TypeError("intrinsic name must be a non-empty string");if(arguments.length>1&&"boolean"!=typeof t)throw new TypeError('"allowMissing" argument must be a boolean');for(var r,n=(r=[],M(e,C,(function(e,t,n,o){r[r.length]=n?M(o,N,"$1"):t||e})),r),o=function(e,t){if(!(e in F))throw new SyntaxError("intrinsic "+e+" does not exist!");if(void 0===F[e]&&!t)throw new j("intrinsic "+e+" exists, but is not available. Please file an issue!");return F[e]}("%"+(n.length>0?n[0]:"")+"%",t),i=1;i<n.length;i+=1)if(null!=o)if(E&&i+1>=n.length){var a=E(o,n[i]);if(!t&&!(n[i]in o))throw new j("base intrinsic for "+e+" exists, but the property is not available.");o=a&&"get"in a&&!("originalValue"in a.get)?a.get:o[n[i]]}else o=o[n[i]];return o},D=R("%Function.prototype.apply%"),W=R("%Function.prototype.call%"),_=R("%Reflect.apply%",!0)||P.call(W,D),z=R("%Object.defineProperty%",!0);if(z)try{z({},"a",{value:1})}catch(t){z=null}I=function(){return _(P,W,arguments)};var L=function(){return _(P,D,arguments)};z?z(I,"apply",{value:L}):I.apply=L;var V=I(R("String.prototype.indexOf")),G=function(e,t){var r=R(e,!!t);return"function"==typeof r&&V(e,".prototype.")?I(r):r},$=R("%Object.getOwnPropertyDescriptor%");if($)try{$([],"length")}catch(t){$=null}var J=$,X={};(function(e){(function(){"use strict";var r=G("Object.prototype.toString"),n=A()&&"symbol"==typeof Symbol.toStringTag,o=S(),i=G("Array.prototype.indexOf",!0)||function(e,t){for(var r=0;r<e.length;r+=1)if(e[r]===t)return r;return-1},a=G("String.prototype.slice"),u={},c=Object.getPrototypeOf;n&&J&&c&&v(o,(function(t){var r=new e[t];if(!(Symbol.toStringTag in r))throw new EvalError("this engine has support for Symbol.toStringTag, but "+t+" does not have the property! Please report this.");var n=c(r),o=J(n,Symbol.toStringTag);if(!o){var i=c(n);o=J(i,Symbol.toStringTag)}u[t]=o.get})),X=function(e){if(!e||"object"!=typeof e)return!1;if(!n){var c=a(r(e),8,-1);return i(o,c)>-1}return!!J&&function(e){var r=!1;return v(u,(function(n,o){if(!r)try{r=n.call(e)===o}catch(t){}})),r}(e)}}).call(this)}).call(this,"undefined"!=typeof global?global:"undefined"!=typeof self?self:"undefined"!=typeof window?window:{});var Z={};(function(e){(function(){"use strict";var r=G("Object.prototype.toString"),n=A()&&"symbol"==typeof Symbol.toStringTag,o=S(),i=G("String.prototype.slice"),a={},u=Object.getPrototypeOf;n&&J&&u&&v(o,(function(t){if("function"==typeof e[t]){var r=new e[t];if(!(Symbol.toStringTag in r))throw new EvalError("this engine has support for Symbol.toStringTag, but "+t+" does not have the property! Please report this.");var n=u(r),o=J(n,Symbol.toStringTag);if(!o){var i=u(n);o=J(i,Symbol.toStringTag)}a[t]=o.get}})),Z=function(e){return!!X(e)&&(n?function(e){var r=!1;return v(a,(function(n,o){if(!r)try{var i=n.call(e);i===o&&(r=i)}catch(t){}})),r}(e):i(r(e),8,-1))}}).call(this)}).call(this,"undefined"!=typeof global?global:"undefined"!=typeof self?self:"undefined"!=typeof window?window:{});var H={};function K(e){return e.call.bind(e)}var q="undefined"!=typeof BigInt,Q="undefined"!=typeof Symbol,Y=K(Object.prototype.toString),ee=K(Number.prototype.valueOf),te=K(String.prototype.valueOf),re=K(Boolean.prototype.valueOf);if(q)var ne=K(BigInt.prototype.valueOf);if(Q)var oe=K(Symbol.prototype.valueOf);function ie(e,r){if("object"!=typeof e)return!1;try{return r(e),!0}catch(t){return!1}}function ae(e){return"[object Map]"===Y(e)}function ue(e){return"[object Set]"===Y(e)}function ce(e){return"[object WeakMap]"===Y(e)}function fe(e){return"[object WeakSet]"===Y(e)}function pe(e){return"[object ArrayBuffer]"===Y(e)}function le(e){return"undefined"!=typeof ArrayBuffer&&(pe.working?pe(e):e instanceof ArrayBuffer)}function ye(e){return"[object DataView]"===Y(e)}function se(e){return"undefined"!=typeof DataView&&(ye.working?ye(e):e instanceof DataView)}function de(e){return"[object SharedArrayBuffer]"===Y(e)}function be(e){return"undefined"!=typeof SharedArrayBuffer&&(de.working?de(e):e instanceof SharedArrayBuffer)}function ge(e){return ie(e,ee)}function he(e){return ie(e,te)}function ve(e){return ie(e,re)}function me(e){return q&&ie(e,ne)}function Se(e){return Q&&ie(e,oe)}H.isArgumentsObject=r,H.isGeneratorFunction=function(e){return"function"==typeof e&&(!!l.test(p.call(e))||(y?s(e)===b:"[object GeneratorFunction]"===f.call(e)))},H.isTypedArray=X,H.isPromise=function(e){return"undefined"!=typeof Promise&&e instanceof Promise||null!==e&&"object"==typeof e&&"function"==typeof e.then&&"function"==typeof e.catch},H.isArrayBufferView=function(e){return"undefined"!=typeof ArrayBuffer&&ArrayBuffer.isView?ArrayBuffer.isView(e):X(e)||se(e)},H.isUint8Array=function(e){return"Uint8Array"===Z(e)},H.isUint8ClampedArray=function(e){return"Uint8ClampedArray"===Z(e)},H.isUint16Array=function(e){return"Uint16Array"===Z(e)},H.isUint32Array=function(e){return"Uint32Array"===Z(e)},H.isInt8Array=function(e){return"Int8Array"===Z(e)},H.isInt16Array=function(e){return"Int16Array"===Z(e)},H.isInt32Array=function(e){return"Int32Array"===Z(e)},H.isFloat32Array=function(e){return"Float32Array"===Z(e)},H.isFloat64Array=function(e){return"Float64Array"===Z(e)},H.isBigInt64Array=function(e){return"BigInt64Array"===Z(e)},H.isBigUint64Array=function(e){return"BigUint64Array"===Z(e)},ae.working="undefined"!=typeof Map&&ae(new Map),H.isMap=function(e){return"undefined"!=typeof Map&&(ae.working?ae(e):e instanceof Map)},ue.working="undefined"!=typeof Set&&ue(new Set),H.isSet=function(e){return"undefined"!=typeof Set&&(ue.working?ue(e):e instanceof Set)},ce.working="undefined"!=typeof WeakMap&&ce(new WeakMap),H.isWeakMap=function(e){return"undefined"!=typeof WeakMap&&(ce.working?ce(e):e instanceof WeakMap)},fe.working="undefined"!=typeof WeakSet&&fe(new WeakSet),H.isWeakSet=function(e){return fe(e)},pe.working="undefined"!=typeof ArrayBuffer&&pe(new ArrayBuffer),H.isArrayBuffer=le,ye.working="undefined"!=typeof ArrayBuffer&&"undefined"!=typeof DataView&&ye(new DataView(new ArrayBuffer(1),0,1)),H.isDataView=se,de.working="undefined"!=typeof SharedArrayBuffer&&de(new SharedArrayBuffer),H.isSharedArrayBuffer=be,H.isAsyncFunction=function(e){return"[object AsyncFunction]"===Y(e)},H.isMapIterator=function(e){return"[object Map Iterator]"===Y(e)},H.isSetIterator=function(e){return"[object Set Iterator]"===Y(e)},H.isGeneratorObject=function(e){return"[object Generator]"===Y(e)},H.isWebAssemblyCompiledModule=function(e){return"[object WebAssembly.Module]"===Y(e)},H.isNumberObject=ge,H.isStringObject=he,H.isBooleanObject=ve,H.isBigIntObject=me,H.isSymbolObject=Se,H.isBoxedPrimitive=function(e){return ge(e)||he(e)||ve(e)||me(e)||Se(e)},H.isAnyArrayBuffer=function(e){return"undefined"!=typeof Uint8Array&&(le(e)||be(e))},["isProxy","isExternal","isModuleNamespaceObject"].forEach((function(e){Object.defineProperty(H,e,{enumerable:!1,value:function(){throw new Error(e+" is not supported in userland")}})}));Object.create;var Ae,we,Oe={},Pe=Oe={};function je(){throw new Error("setTimeout has not been defined")}function Ee(){throw new Error("clearTimeout has not been defined")}function Ie(e){if(Ae===setTimeout)return setTimeout(e,0);if((Ae===je||!Ae)&&setTimeout)return Ae=setTimeout,setTimeout(e,0);try{return Ae(e,0)}catch(t){try{return Ae.call(null,e,0)}catch(t){return Ae.call(this,e,0)}}}!function(){try{Ae="function"==typeof setTimeout?setTimeout:je}catch(t){Ae=je}try{we="function"==typeof clearTimeout?clearTimeout:Ee}catch(t){we=Ee}}();var Be,xe=[],Ue=!1,ke=-1;function Te(){Ue&&Be&&(Ue=!1,Be.length?xe=Be.concat(xe):ke=-1,xe.length&&Fe())}function Fe(){if(!Ue){var e=Ie(Te);Ue=!0;for(var r=xe.length;r;){for(Be=xe,xe=[];++ke<r;)Be&&Be[ke].run();ke=-1,r=xe.length}Be=null,Ue=!1,function(e){if(we===clearTimeout)return clearTimeout(e);if((we===Ee||!we)&&clearTimeout)return we=clearTimeout,clearTimeout(e);try{we(e)}catch(t){try{return we.call(null,e)}catch(t){return we.call(this,e)}}}(e)}}function Me(e,t){this.fun=e,this.array=t}function Ce(){}Pe.nextTick=function(e){var t=new Array(arguments.length-1);if(arguments.length>1)for(var r=1;r<arguments.length;r++)t[r-1]=arguments[r];xe.push(new Me(e,t)),1!==xe.length||Ue||Ie(Fe)},Me.prototype.run=function(){this.fun.apply(null,this.array)},Pe.title="browser",Pe.browser=!0,Pe.env={},Pe.argv=[],Pe.version="",Pe.versions={},Pe.on=Ce,Pe.addListener=Ce,Pe.once=Ce,Pe.off=Ce,Pe.removeListener=Ce,Pe.removeAllListeners=Ce,Pe.emit=Ce,Pe.prependListener=Ce,Pe.prependOnceListener=Ce,Pe.listeners=function(e){return[]},Pe.binding=function(e){throw new Error("process.binding is not supported")},Pe.cwd=function(){return"/"},Pe.chdir=function(e){throw new Error("process.chdir is not supported")},Pe.umask=function(){return 0};var Ne={};return function(e){(function(){"use strict";function e(e){return"string"==typeof e?I(r(e)):e}Object.defineProperty(Ne,"__esModule",{value:!0}),Ne.Jsonic=void 0;const t=String.fromCharCode("0x0000");function r(e){let n={pin:a,loc:0,row:0,col:0,len:0,val:void 0},i=0,u=0,p=0,y=e.length;return function(){n.len=0,n.val=void 0,n.row=u;let h,v=0,S=[],A=-1,w=-1,O=-1;for(;i<y;){let a=e[i];switch(a){case" ":case"\t":for(n.pin=f,n.loc=i,n.col=p++,v=i+1;r.spaces[e[v]];)p++,v++;return n.len=v-i,n.val=e.substring(i,v),i=v,n;case"\n":case"\r":for(n.pin=r.LN,n.loc=i,n.col=p,v=i+1,p=0,u++;r.lines[e[v]];)u++,v++;return n.len=v-i,n.val=e.substring(i,v),i=v,n;case"{":return n.pin=l,n.loc=i,n.col=p++,n.len=1,i++,n;case"}":return n.pin=r.CB,n.loc=i,n.col=p++,n.len=1,i++,n;case"[":return n.pin=r.OS,n.loc=i,n.col=p++,n.len=1,i++,n;case"]":return n.pin=r.CS,n.loc=i,n.col=p++,n.len=1,i++,n;case":":return n.pin=s,n.loc=i,n.col=p++,n.len=1,i++,n;case",":return n.pin=d,n.loc=i,n.col=p++,n.len=1,i++,n;case"t":if(n.pin=r.BL,n.loc=i,n.col=p,v=i,"rue"===e.substring(v+1,v+4)&&r.ender[e[v+4]])n.val=!0,n.len=4,v+=4;else{for(;!r.ender[e[++v]];);n.pin=r.TX,n.len=v-i,n.val=e.substring(i,v)}return i=p=v,n;case"f":if(n.pin=r.BL,n.loc=i,n.col=p,v=i,"alse"===e.substring(v+1,v+5)&&r.ender[e[v+5]])n.val=!1,n.len=5,v+=5;else{for(;!r.ender[e[++v]];);n.pin=r.TX,n.len=v-i,n.val=e.substring(i,v)}return i=p=v,n;case"n":if(n.pin=m,n.loc=i,n.col=p,v=i,"ull"===e.substring(v+1,v+4)&&r.ender[e[v+4]])n.val=null,n.len=4,v+=4;else{for(;!r.ender[e[++v]];);n.pin=r.TX,n.len=v-i,n.val=e.substring(i,v)}return i=p=v,n;case"-":case"0":case"1":case"2":case"3":case"4":case"5":case"6":case"7":case"8":case"9":for(n.pin=b,n.loc=i,n.col=p++,v=i;r.digital[e[++v]];);if(r.ender[e[v]]&&(n.len=v-i,1<n.len&&"0"===e[i]&&"x"!=e[i+1]?(n.val=void 0,v--):(n.val=+e.substring(i,v),isNaN(n.val)&&(n.val=+e.substring(i,v).replace(/_/g,"")),isNaN(n.val)&&(n.val=void 0,v--))),null==n.val){for(;!r.ender[e[++v]];);n.pin=r.TX,n.len=v-i,n.val=e.substring(i,v)}return i=p=v,n;case'"':case"'":for(n.pin=g,n.loc=i,n.col=p++,w=a.charCodeAt(0),S=[],A=-1,v=i+1;v<y;v++){if(p++,(A=e.charCodeAt(v))<32)return r.bad("unprintable",n,i,v,u,p,e.charAt(v));if(w===A){v++;break}if(92===A)switch(O=e.charCodeAt(++v),p++,O){case 110:case 116:case 114:case 98:case 102:S.push(o[O]);break;case 117:if(v++,h=String.fromCharCode("0x"+e.substring(v,v+4)),t===h)return r.bad("invalid-unicode",n,i,v,u,p,e.substring(v-2,v+4));S.push(h),v+=3,p+=4;break;default:S.push(e[v])}else{let t=v;do{A=e.charCodeAt(++v),p++}while(32<=A&&w!==A);p--,S.push(e.substring(t,v)),v--}}return w!==A?(p=i,r.bad("unterminated",n,i,v-1,u,p,S.join(""))):(n.val=S.join(""),n.len=v-i,i=v,n);case"#":for(n.pin=c,n.loc=i,n.col=p++,v=i;++v<y&&"\n"!=e[v]&&"\r"!=e[v];);return n.len=v-i,n.val=e.substring(i,v),i=p=v,n;default:for(n.loc=i,n.col=p,v=i;!r.ender[e[++v]]&&"#"!==e[v];);return n.pin=r.TX,n.len=v-i,n.val=e.substring(i,v),i=p=v,n}}return n.pin=a,n.loc=y,n.col=p,n}}let o=new Array(116);o[98]="\b",o[102]="\f",o[110]="\n",o[114]="\r",o[116]="\t",r.bad=function(e,t,r,n,o,a,u,c){return t.pin=i,t.loc=n,t.row=o,t.col=a,t.len=n-r+1,t.val=u,t.why=e,t.use=c,t},r.ender={":":!0,",":!0,"]":!0,"}":!0," ":!0,"\t":!0,"\n":!0,"\r":!0,undefined:!0},r.digital={0:!0,1:!0,2:!0,3:!0,4:!0,5:!0,6:!0,7:!0,8:!0,9:!0,".":!0,_:!0,x:!0,e:!0,E:!0,a:!0,A:!0,b:!0,B:!0,c:!0,C:!0,d:!0,D:!0,f:!0,F:!0,"+":!0,"-":!0},r.spaces={" ":!0,"\t":!0},r.lines={"\n":!0,"\r":!0},r.escapes=o;const i=r.BD=Symbol("#BD"),a=r.ZZ=Symbol("#ZZ"),u=r.UK=Symbol("#UK"),c=r.CM=Symbol("#CM"),f=r.SP=Symbol("#SP"),p=r.LN=Symbol("#LN"),l=r.OB=Symbol("#OB"),y=(r.CB=Symbol("#CB"),r.OS=Symbol("#OS")),s=(r.CS=Symbol("#CS"),r.CL=Symbol("#CL")),d=r.CA=Symbol("#CA"),b=r.NR=Symbol("#NR"),g=r.ST=Symbol("#ST"),h=r.TX=Symbol("#TX"),v=r.BL=Symbol("#BL"),m=r.NL=Symbol("#NL"),S=[h,b,g,v,m],A=[f,p,c];r.end={pin:a,loc:0,len:0,row:0,col:0,val:void 0};class w{constructor(e){this.node=e}}class O extends w{constructor(e){super({}),this.key=e}process(e){if(e.ignore(A),this.key){e.rs.push(this);let t=this.key;return delete this.key,new j(this.node,t,l)}switch(e.next().pin){case h:case b:case g:case v:case m:let t=E(e,S,[f]);return e.match(s,A),e.rs.push(this),new j(this.node,t,l);case d:return this;default:let r=e.rs.pop();return r&&(r.val=this.node),r}}toString(){return"Pair: "+B(this.node)}}class P extends w{constructor(e,t){super(void 0===e?[]:[e]),this.firstpin=t}process(e){this.val&&(this.node.push(this.val),this.val=void 0);let t=this.firstpin||u;for(this.firstpin=void 0;;){e.ignore(A);let r=e.next().pin;switch(r){case h:case b:case g:case v:case m:let n=E(e,S,[f]);this.node.push(n),t=r;break;case d:d!==t&&0!==this.node.length||this.node.push(null),t=r;break;case l:return e.rs.push(this),t=r,new O;case y:return e.rs.push(this),t=r,new P;case s:throw new Error("key-value pair inside list");default:let o=e.rs.pop();return o&&(o.val=this.node),o}}}toString(){return"Pair: "+B(this.node)}}class j extends w{constructor(e,t,r){super(e),this.key=t,this.parent=r}process(e){if(e.ignore(A),this.val)return this.node[this.key]=this.val,this.val=void 0,e.rs.pop();switch(e.next().pin){case l:return e.rs.push(this),new O;case y:return e.rs.push(this),new P;case d:return e.rs.push(this),new P(null,d)}let t=E(e,S,[f]);return s===e.t1.pin?(this.parent=l,e.next(),e.rs.push(this),new O(String(t))):d===e.t1.pin&&l!==this.parent?(this.parent=y,e.next(),e.rs.push(this),new P(t,d)):(this.node[this.key]=t,e.rs.pop())}toString(){return"Value: "+this.key+"="+B(this.val)+" node="+B(this.node)}}function E(e,t,r){let n=0;if(r.includes(e.t1.pin)&&++n||t.includes(e.t1.pin)){let o=[e.t0,e.t1];for(e.next();r.includes(e.t1.pin)&&++n||t.includes(e.t1.pin)&&(n=0,1);)o.push(e.t1),e.next();return 1===(o=o.splice(0,o.length-n)).length?o[0].val:o.map(e=>String(e.val)).join("")}return e.t0.val}function I(e){let t=new j({},"$",u),n=t,o={node:void 0,t0:r.end,t1:r.end,next:i,match:function(e,t){if(t)for(;t.includes(o.t1.pin);)i();if(e===o.t1.pin){let e=i();if(t)for(;t.includes(o.t1.pin);)i();return e}throw new Error("expected: "+String(e)+" saw:"+String(o.t1.pin)+"="+o.t1.val)},ignore:function(e){for(;e.includes(o.t1.pin);)i()},rs:[]};function i(){return o.t0=o.t1,o.t1={...e()},o.t0}for(i();t;)t=t.process(o);return n.node.$}function B(e){return n({}).inspect(e,{depth:null})}let x=Object.assign(e,{use:function(t){t(e)},parse:t=>e(t),lexer:r,process:I});Ne.Jsonic=x}).call(this)}.call(this,Oe),Ne}));
 }).call(this)}).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
 },{}],2:[function(require,module,exports){
 (function (Buffer,__dirname){(function (){
@@ -566,7 +566,7 @@ internals.assert = function (assertion, condition, error) {
 };
 
 }).call(this)}).call(this,{"isBuffer":require("../../../is-buffer/index.js")},"/node_modules/@hapi/code/lib")
-},{"../../../is-buffer/index.js":47,"@hapi/hoek":17,"util":53}],3:[function(require,module,exports){
+},{"../../../is-buffer/index.js":46,"@hapi/hoek":17,"util":52}],3:[function(require,module,exports){
 'use strict';
 
 const Assert = require('./assert');
@@ -719,7 +719,7 @@ module.exports = internals.Bench = class {
 };
 
 }).call(this)}).call(this,require('_process'))
-},{"_process":50}],6:[function(require,module,exports){
+},{"_process":49}],6:[function(require,module,exports){
 'use strict';
 
 const Ignore = require('./ignore');
@@ -4140,7 +4140,7 @@ function numberIsNaN (obj) {
 }
 
 }).call(this)}).call(this,require("buffer").Buffer)
-},{"base64-js":30,"buffer":32,"ieee754":44}],33:[function(require,module,exports){
+},{"base64-js":30,"buffer":32,"ieee754":43}],33:[function(require,module,exports){
 'use strict';
 
 /* globals
@@ -4367,7 +4367,7 @@ module.exports = function GetIntrinsic(name, allowMissing) {
 	return value;
 };
 
-},{"function-bind":39,"has-symbols":42}],34:[function(require,module,exports){
+},{"function-bind":39,"has-symbols":41}],34:[function(require,module,exports){
 'use strict';
 
 var bind = require('function-bind');
@@ -4523,10 +4523,6 @@ var implementation = require('./implementation');
 module.exports = Function.prototype.bind || implementation;
 
 },{"./implementation":38}],40:[function(require,module,exports){
-(function (global){(function (){
-!function(e){if("object"==typeof exports&&"undefined"!=typeof module)module.exports=e();else if("function"==typeof define&&define.amd)define([],e);else{("undefined"!=typeof window?window:"undefined"!=typeof global?global:"undefined"!=typeof self?self:this).Gex=e()}}((function(){var e={};Object.defineProperty(e,"__esModule",{value:!0}),e.Gex=void 0;class t{constructor(e){this.desc="",this.gexmap={},(Array.isArray(e)?e:[e]).forEach(e=>{this.gexmap[e]=this.re(this.clean(e))})}dodgy(e){return null==e||Number.isNaN(e)}clean(e){let t=""+e;return this.dodgy(e)?"":t}match(e){e=""+e;let t=!1,r=Object.keys(this.gexmap);for(let n=0;n<r.length&&!t;n++)t=!!this.gexmap[r[n]].exec(e);return t}on(e){if(null==e)return null;let t=typeof e;if("string"===t||"number"===t||"boolean"===t||e instanceof Date||e instanceof RegExp)return this.match(e)?e:null;if(Array.isArray(e)){let t=[];for(let r=0;r<e.length;r++)!this.dodgy(e[r])&&this.match(e[r])&&t.push(e[r]);return t}{let t={};for(let r in e)Object.prototype.hasOwnProperty.call(e,r)&&this.match(r)&&(t[r]=e[r]);return t}}esc(e){let t=this.clean(e);return(t=t.replace(/\*/g,"**")).replace(/\?/g,"*?")}escregexp(e){return e?(""+e).replace(/[-[\]{}()*+?.,\\^$|#\s]/g,"\\$&"):""}re(e){if(""===e||e)return e="^"+(e=(e=(e=(e=(e=this.escregexp(e)).replace(/\\\*/g,"[\\s\\S]*")).replace(/\\\?/g,"[\\s\\S]")).replace(/\[\\s\\S\]\*\[\\s\\S\]\*/g,"\\*")).replace(/\[\\s\\S\]\*\[\\s\\S\]/g,"\\?"))+"$",new RegExp(e);{let e=Object.keys(this.gexmap);return 1==e.length?this.gexmap[e[0]]:{...this.gexmap}}}toString(){let e=this.desc;return""!=e?e:this.desc="Gex["+Object.keys(this.gexmap)+"]"}inspect(){return this.toString()}}return e.Gex=function(e){return new t(e)},e}));
-}).call(this)}).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{}],41:[function(require,module,exports){
 /* Copyright (c) 2020 Richard Rodger, MIT License */
 'use strict'
 
@@ -4587,7 +4583,7 @@ function runtest(test) {
 
 module.exports = Lab
 
-},{}],42:[function(require,module,exports){
+},{}],41:[function(require,module,exports){
 (function (global){(function (){
 'use strict';
 
@@ -4604,7 +4600,7 @@ module.exports = function hasNativeSymbols() {
 };
 
 }).call(this)}).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"./shams":43}],43:[function(require,module,exports){
+},{"./shams":42}],42:[function(require,module,exports){
 'use strict';
 
 /* eslint complexity: [2, 18], max-statements: [2, 33] */
@@ -4648,7 +4644,7 @@ module.exports = function hasSymbols() {
 	return true;
 };
 
-},{}],44:[function(require,module,exports){
+},{}],43:[function(require,module,exports){
 /*! ieee754. BSD-3-Clause License. Feross Aboukhadijeh <https://feross.org/opensource> */
 exports.read = function (buffer, offset, isLE, mLen, nBytes) {
   var e, m
@@ -4735,7 +4731,7 @@ exports.write = function (buffer, value, offset, isLE, mLen, nBytes) {
   buffer[offset + i - d] |= s * 128
 }
 
-},{}],45:[function(require,module,exports){
+},{}],44:[function(require,module,exports){
 if (typeof Object.create === 'function') {
   // implementation from standard node.js 'util' module
   module.exports = function inherits(ctor, superCtor) {
@@ -4764,7 +4760,7 @@ if (typeof Object.create === 'function') {
   }
 }
 
-},{}],46:[function(require,module,exports){
+},{}],45:[function(require,module,exports){
 'use strict';
 
 var hasToStringTag = typeof Symbol === 'function' && typeof Symbol.toStringTag === 'symbol';
@@ -4797,7 +4793,7 @@ isStandardArguments.isLegacyArguments = isLegacyArguments; // for tests
 
 module.exports = supportsStandardArguments ? isStandardArguments : isLegacyArguments;
 
-},{}],47:[function(require,module,exports){
+},{}],46:[function(require,module,exports){
 /*!
  * Determine if an object is a Buffer
  *
@@ -4820,7 +4816,7 @@ function isSlowBuffer (obj) {
   return typeof obj.readFloatLE === 'function' && typeof obj.slice === 'function' && isBuffer(obj.slice(0, 0))
 }
 
-},{}],48:[function(require,module,exports){
+},{}],47:[function(require,module,exports){
 'use strict';
 
 var toStr = Object.prototype.toString;
@@ -4854,7 +4850,7 @@ module.exports = function isGeneratorFunction(fn) {
 	return getProto(fn) === GeneratorFunction;
 };
 
-},{}],49:[function(require,module,exports){
+},{}],48:[function(require,module,exports){
 (function (global){(function (){
 'use strict';
 
@@ -4919,7 +4915,7 @@ module.exports = function isTypedArray(value) {
 };
 
 }).call(this)}).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"available-typed-arrays":29,"es-abstract/helpers/callBound":35,"es-abstract/helpers/getOwnPropertyDescriptor":36,"foreach":37,"has-symbols":42}],50:[function(require,module,exports){
+},{"available-typed-arrays":29,"es-abstract/helpers/callBound":35,"es-abstract/helpers/getOwnPropertyDescriptor":36,"foreach":37,"has-symbols":41}],49:[function(require,module,exports){
 // shim for using process in browser
 var process = module.exports = {};
 
@@ -5105,14 +5101,14 @@ process.chdir = function (dir) {
 };
 process.umask = function() { return 0; };
 
-},{}],51:[function(require,module,exports){
+},{}],50:[function(require,module,exports){
 module.exports = function isBuffer(arg) {
   return arg && typeof arg === 'object'
     && typeof arg.copy === 'function'
     && typeof arg.fill === 'function'
     && typeof arg.readUInt8 === 'function';
 }
-},{}],52:[function(require,module,exports){
+},{}],51:[function(require,module,exports){
 // Currently in sync with Node.js lib/internal/util/types.js
 // https://github.com/nodejs/node/commit/112cc7c27551254aa2b17098fb774867f05ed0d9
 
@@ -5446,7 +5442,7 @@ exports.isAnyArrayBuffer = isAnyArrayBuffer;
   });
 });
 
-},{"is-arguments":46,"is-generator-function":48,"is-typed-array":49,"which-typed-array":54}],53:[function(require,module,exports){
+},{"is-arguments":45,"is-generator-function":47,"is-typed-array":48,"which-typed-array":53}],52:[function(require,module,exports){
 (function (process){(function (){
 // Copyright Joyent, Inc. and other Node contributors.
 //
@@ -6165,7 +6161,7 @@ function callbackify(original) {
 exports.callbackify = callbackify;
 
 }).call(this)}).call(this,require('_process'))
-},{"./support/isBuffer":51,"./support/types":52,"_process":50,"inherits":45}],54:[function(require,module,exports){
+},{"./support/isBuffer":50,"./support/types":51,"_process":49,"inherits":44}],53:[function(require,module,exports){
 (function (global){(function (){
 'use strict';
 
@@ -6225,7 +6221,11 @@ module.exports = function whichTypedArray(value) {
 };
 
 }).call(this)}).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"available-typed-arrays":29,"es-abstract/helpers/callBound":35,"es-abstract/helpers/getOwnPropertyDescriptor":36,"foreach":37,"has-symbols":42,"is-typed-array":49}],55:[function(require,module,exports){
+},{"available-typed-arrays":29,"es-abstract/helpers/callBound":35,"es-abstract/helpers/getOwnPropertyDescriptor":36,"foreach":37,"has-symbols":41,"is-typed-array":48}],54:[function(require,module,exports){
+require('./jsonic.test.js')
+require('./feature.test.js')
+
+},{"./feature.test.js":55,"./jsonic.test.js":56}],55:[function(require,module,exports){
 /* Copyright (c) 2013-2020 Richard Rodger and other contributors, MIT License */
 'use strict'
 
@@ -6239,1226 +6239,1353 @@ var describe = lab.describe
 var it = lab.it
 var expect = Code.expect
 
-var Jsonic = require('..')
-var { Gex } = require('gex')
+var { Jsonic } = require('..')
 
-function rs(x) {
-  return x.toString(true).replace(/\s+/g, '').replace(/\n+/g, '')
-}
+let j = Jsonic
+let lexer = Jsonic.lexer
+let prc = Jsonic.process
 
-describe('jsonic', function () {
-  it('toString', async () => {
-    var r = Jsonic()
-    r.add({}, 'R')
-    expect(r.toString(true)).to.equal(' <R>')
-    expect(r.toString(false)).to.equal(' -> <R>')
-    expect(r.toString((d) => 'D:' + d)).to.equal(' -> D:R')
-    expect(r.toString((d) => 'D:' + d, true)).to.equal(' D:R')
-    expect(r.toString((d) => 'D:' + d, false)).to.equal(' -> D:R')
+describe('feature', function () {
+  it('comment', () => {
 
-    r.add({ a: 1 }, 'S')
-    expect(r.toString(true)).to.equal(' <R>\na:\n 1 -> <S>')
-    expect(r.toString(false)).to.equal(' -> <R>\na=1 -> <S>')
-    expect(r.toString((d) => 'D:' + d)).to.equal(' -> D:R\na=1 -> D:S')
-    expect(r.toString((d) => 'D:' + d, true)).to.equal(' D:R\na:\n 1 -> D:S')
-    expect(r.toString((d) => 'D:' + d, false)).to.equal(' -> D:R\na=1 -> D:S')
+    expect(Jsonic('#a:1')).equals(undefined)
+    expect(Jsonic('#a:1\nb:2')).equals({b:2})
+    expect(Jsonic('b:2\n#a:1')).equals({b:2})
+    expect(Jsonic('b:2\n#a:1\nc:3')).equals({b:2,c:3})
 
-    r.add({ a: 1, b: 2 }, function foo() {})
-    expect(r.toString(true)).to.equal(
-      ' <R>\na:\n 1 -> <S>\n  b:\n   2 -> <foo>'
-    )
-    expect(r.toString(false)).to.equal(' -> <R>\na=1 -> <S>\na=1, b=2 -> <foo>')
-    expect(r.toString((d) => 'D:' + d)).to.equal(
-      ' -> D:R\na=1 -> D:S\na=1, b=2 -> D:function foo() {}'
-    )
-    expect(r.toString((d) => 'D:' + d, true)).to.equal(
-      ' D:R\na:\n 1 -> D:S\n  b:\n   2 -> D:function foo() {}'
-    )
-    expect(r.toString((d) => 'D:' + d, false)).to.equal(
-      ' -> D:R\na=1 -> D:S\na=1, b=2 -> D:function foo() {}'
-    )
-  })
-
-  it('empty', async () => {
-    var r = Jsonic()
-    expect(r.toString()).to.equal('')
-
-    expect(r.find(NaN)).to.not.exist()
-    expect(r.find(void 0)).to.not.exist()
-    expect(r.find(null)).to.not.exist()
-    expect(r.find({})).to.not.exist()
-    expect(r.find({ a: 1 })).to.not.exist()
-
-    r.add({ a: 1 }, 'A')
-
-    expect(r.find(NaN)).to.not.exist()
-    expect(r.find(void 0)).to.not.exist()
-    expect(r.find(null)).to.not.exist()
-    expect(r.find({})).to.not.exist()
-    expect(r.find({ a: 1 })).to.equal('A')
-  })
-
-  it('toString-matchers', async () => {
-    var s = (r) => ('' + r).replace(/\n/g, ' ; ')
-    var t = (r) => r.toString(true) + '\n'
-
-    var r = Jsonic({ gex: true })
-    r.add({ a: 'a' }, 'Aa')
-    r.add({ a: '*' }, 'A*')
-
-    expect(s(r)).equal('a=a -> <Aa> ; a~* -> <A*>')
-    expect(t(r)).equal(`
-a:
- a -> <Aa>
- * ~> <A*>
-`)
-
-    r.add({ b: 'b' }, 'Bb')
-    r.add({ b: '*' }, 'B*')
-
-    expect(s(r)).equal('a=a -> <Aa> ; a~* -> <A*> ; b=b -> <Bb> ; b~* -> <B*>')
-    expect(t(r)).equal(`
-a:
- a -> <Aa>
- * ~> <A*>
- |
-  b:
-   b -> <Bb>
-   * ~> <B*>
-`)
-
-    r.add({ a: 'a', b: 'b' }, 'AB')
-    r.add({ a: '*', b: '*' }, 'AB*')
-    expect(s(r)).equal(
-      'a=a -> <Aa> ; a=a, b=b -> <AB> ;' +
-        ' a~* -> <A*> ; a~*, b~* -> <AB*> ; b=b -> <Bb> ; b~* -> <B*>'
-    )
-    //console.log(r.toString(true))
-    expect(t(r)).equal(`
-a:
- a -> <Aa>
-  b:
-   b -> <AB>
- * ~> <A*>
-  b:
-   * ~> <AB*>
- |
-  b:
-   b -> <Bb>
-   * ~> <B*>
-`)
-  })
-
-  it('root-data', async () => {
-    var r = Jsonic()
-    r.add({}, 'R')
-    expect('' + r).to.equal(' -> <R>')
-    expect(rs(r)).to.equal('<R>')
-    expect(JSON.stringify(r.list())).to.equal('[{"match":{},"data":"R"}]')
-
-    expect(r.find({})).to.equal('R')
-    expect(r.find({ x: 1 })).to.equal('R')
-
-    r.add({ a: '1' }, 'r1')
-    expect('' + r).to.equal(' -> <R>\na=1 -> <r1>')
-    expect(rs(r)).to.equal('<R>a:1-><r1>')
-
-    expect(r.find({ x: 1 })).equal('R')
-    expect(r.find({ a: 1 })).equal('r1')
-    expect(r.find({ a: 2 })).equal('R')
-
-    r.add({ a: '1', b: '1' }, 'r2')
-    expect(r.find({ x: 1 })).equal('R')
-    expect(r.find({ a: 1 })).equal('r1')
-    expect(r.find({ a: 1, b: 1 })).equal('r2')
-    expect(r.find({ a: 2 })).equal('R')
-    expect(r.find({ a: 1, b: 2 })).equal('r1') // a:1 is defined
-    expect(r.find({ a: 1, b: 2 }, true)).equal(null) // exact must be ... exact
-    expect(r.find({ a: 2, b: 2 })).equal('R')
-    expect(r.find({ b: 2 })).equal('R')
-
-    r.add({ x: '1', y: '1' }, 'r3')
-    expect(r.find({ x: 1 })).equal('R')
-
-    expect(r.find({ x: 1 }, true)).equal(null)
-
-    expect(JSON.stringify(r.list())).equal(
-      '[{"match":{},"data":"R"},{"match":{"a":"1"},"data":"r1"},{"match":{"a":"1","b":"1"},"data":"r2"},{"match":{"x":"1","y":"1"},"data":"r3"}]'
-    )
-  })
-
-  it('add', async () => {
-    var r
-
-    r = Jsonic()
-    r.add({ a: '1' }, 'r1')
-    expect('' + r).to.equal('a=1 -> <r1>')
-    expect(rs(r)).to.equal('a:1-><r1>')
-
-    expect(JSON.stringify(r.list())).to.equal(
-      '[{"match":{"a":"1"},"data":"r1"}]'
-    )
-
-    r = Jsonic()
-    r.add({ a: '1', b: '2' }, 'r1')
-    expect(rs(r)).to.equal('a:1->b:2-><r1>')
-
-    r = Jsonic()
-    r.add({ a: '1', b: '2', c: '3' }, 'r1')
-    expect(rs(r)).to.equal('a:1->b:2->c:3-><r1>')
-
-    r = Jsonic()
-    r.add({ a: '1', b: '2' }, 'r1')
-    r.add({ a: '1', b: '3' }, 'r2')
-    expect('' + r).to.equal('a=1, b=2 -> <r1>\na=1, b=3 -> <r2>')
-    expect(rs(r)).to.equal('a:1->b:2-><r1>3-><r2>')
-
-    r = Jsonic()
-    r.add({ a: '1', b: '2' }, 'r1')
-    r.add({ a: '1', c: '3' }, 'r2')
-    expect(rs(r)).to.equal('a:1->b:2-><r1>|c:3-><r2>')
-
-    r.add({ a: '1', d: '4' }, 'r3')
-    expect(rs(r)).to.equal('a:1->b:2-><r1>|c:3-><r2>|d:4-><r3>')
-
-    r = Jsonic()
-    r.add({ a: '1', c: '2' }, 'r1')
-    r.add({ a: '1', b: '3' }, 'r2')
-    expect(rs(r)).to.equal('a:1->b:3-><r2>|c:2-><r1>')
-
-    expect(JSON.stringify(r.list())).to.equal(
-      '[{"match":{"a":"1","b":"3"},"data":"r2"},{"match":{"a":"1","c":"2"},"data":"r1"}]'
-    )
-  })
-
-  it('basic', async () => {
-    var rt1 = Jsonic()
-
-    rt1.add({ p1: 'v1' }, 'r1')
-    // console.log('---')
-    expect('r1').to.equal(rt1.find({ p1: 'v1' }))
-    expect(null).to.equal(rt1.find({ p2: 'v1' }))
-
-    rt1.add({ p1: 'v1' }, 'r1x')
-    // console.log('---')
-    expect('r1x').to.equal(rt1.find({ p1: 'v1' }))
-    expect(null).to.equal(rt1.find({ p2: 'v1' }))
-
-    rt1.add({ p1: 'v2' }, 'r2')
-    // console.log('---')
-    expect('r2').to.equal(rt1.find({ p1: 'v2' }))
-    expect(null).to.equal(rt1.find({ p2: 'v2' }))
-
-    rt1.add({ p2: 'v3' }, 'r3')
-    // console.log('---')
-    expect('r3').to.equal(rt1.find({ p2: 'v3' }))
-    expect(null).to.equal(rt1.find({ p2: 'v2' }))
-    expect(null).to.equal(rt1.find({ p2: 'v1' }))
-
-    rt1.add({ p1: 'v1', p3: 'v4' }, 'r4')
-    // console.log('---')
-    expect('r4').to.equal(rt1.find({ p1: 'v1', p3: 'v4' }))
-    expect('r1x').to.equal(rt1.find({ p1: 'v1', p3: 'v5' }))
-    expect(null).to.equal(rt1.find({ p2: 'v1' }))
-
-    rt1.add({ p1: 'v1', p2: 'v5' }, 'r5')
-    expect(rt1.find({ p1: 'v1', p2: 'v5' })).equal('r5')
-    // console.log('---')
-    // console.log(rt1.toString(true))
-  })
-
-  it('culdesac', async () => {
-    var rt1 = Jsonic()
-
-    rt1.add({ p1: 'v1' }, 'r1')
-    rt1.add({ p1: 'v1', p2: 'v2' }, 'r2')
-    rt1.add({ p1: 'v1', p3: 'v3' }, 'r3')
-
-    expect('r1').to.equal(rt1.find({ p1: 'v1', p2: 'x' }))
-    expect('r3').to.equal(rt1.find({ p1: 'v1', p2: 'x', p3: 'v3' }))
-  })
-
-  it('falsy-values', async () => {
-    var rt1 = Jsonic()
-
-    rt1.add({ p1: 0 }, 'r1')
-    rt1.add({ p1: 0, p2: '' }, 'r2')
-    rt1.add({ p1: 0, p2: '', p3: false }, 'r3')
-
-    expect(null).to.equal(rt1.find({ p1: null }))
-    expect('r1').to.equal(rt1.find({ p1: 0 }))
-    expect('r2').to.equal(rt1.find({ p1: 0, p2: '' }))
-    expect('r3').to.equal(rt1.find({ p1: 0, p2: '', p3: false }))
-
-    expect(rt1.list().map((x) => x.data)).equal(['r1', 'r2', 'r3'])
-    expect(rt1.list({}).map((x) => x.data)).equal(['r1', 'r2', 'r3'])
-    expect(rt1.list({}, true).map((x) => x.data)).equal([])
-
-    expect(rt1.list({ p1: 0 }).map((x) => x.data)).equal(['r1', 'r2', 'r3'])
-    expect(rt1.list({ p2: '' }).map((x) => x.data)).equal(['r2', 'r3'])
-    expect(rt1.list({ p3: false }).map((x) => x.data)).equal(['r3'])
-
-    expect(rt1.list({ p1: 0 }, true).map((x) => x.data)).equal(['r1'])
-    expect(rt1.list({ p1: 0, p2: '' }, true).map((x) => x.data)).equal(['r2'])
-    expect(
-      rt1.list({ p1: 0, p2: '', p3: false }, true).map((x) => x.data)
-    ).equal(['r3'])
-
-    expect(rt1.list({ p2: '' }, true).map((x) => x.data)).equal([])
-    expect(rt1.list({ p2: '', p3: false }, true).map((x) => x.data)).equal([])
-    expect(rt1.list({ p3: false }, true).map((x) => x.data)).equal([])
-  })
-
-  it('find-exact-collect', async () => {
-    var rt1 = Jsonic()
-
-    rt1.add({ x0: 'y0' }, 'e0') // deliberate noise
-    rt1.add({ p1: 'v1' }, 'r1')
-    rt1.add({ p1: 'v1', p2: 'v2' }, 'r2')
-    rt1.add({ p1: 'v1', p3: 'v3' }, 'r3')
-
-    rt1.add({ q1: 'w1' }, 's1')
-    rt1.add({ q1: 'w1', q2: 'w2' }, 's2')
-    rt1.add({ q1: 'w1', q3: 'w3' }, 's3')
-    rt1.add({ q2: 'w2' }, 's4')
-
-    //console.log(''+rt1)
-    //console.log(rt1.toString(true))
-
-    expect('r1').to.equal(rt1.find({ p1: 'v1' }, true)) // exact
-    expect('r1').to.equal(rt1.find({ p1: 'v1' }, false)) // not exact
-    expect(null).to.equal(rt1.find({ p1: 'v1', p2: 'x' }, true)) // exact
-    expect('r1').to.equal(rt1.find({ p1: 'v1', p2: 'x' }, false)) // not exact
-    expect('r2').to.equal(rt1.find({ p1: 'v1', p2: 'v2' }, false)) // not exact
-    expect('r2').to.equal(rt1.find({ p1: 'v1', p2: 'v2' }, true)) // exact
-
-    expect(rt1.find({ p1: 'x' }, false, true)).equal([])
-    expect(rt1.find({ p1: 'v1' }, false, true)).equal(['r1'])
-    expect(rt1.find({ p1: 'x' }, true, true)).equal([])
-    expect(rt1.find({ p1: 'v1' }, true, true)).equal(['r1'])
-
-    // there only is a matching trail
-    expect(rt1.find({ p1: 'v1', p2: 'v2' }, false, true)).equal(['r1', 'r2'])
-    expect(rt1.find({ p1: 'v1', p3: 'v3' }, false, true)).equal(['r1', 'r3'])
-
-    // just follows matching trail
-    expect(rt1.find({ p1: 'v1', p2: 'v2' }, true, true)).equal(['r1', 'r2'])
-    expect(rt1.find({ p1: 'v1', p3: 'v3' }, true, true)).equal(['r1', 'r3'])
-
-    expect(rt1.find({ q1: 'x' }, false, true)).equal([])
-    expect(rt1.find({ q1: 'w1' }, false, true)).equal(['s1'])
-    expect(rt1.find({ q1: 'x' }, true, true)).equal([])
-    expect(rt1.find({ q1: 'w1' }, true, true)).equal(['s1'])
-
-    expect(rt1.find({ q2: 'x' }, false, true)).equal([])
-    expect(rt1.find({ q2: 'w2' }, false, true)).equal(['s4'])
-    expect(rt1.find({ q2: 'x' }, true, true)).equal([])
-    expect(rt1.find({ q2: 'w2' }, true, true)).equal(['s4'])
-
-    // followed a remainder path (q1 removed)
-    expect(rt1.find({ q1: 'w1', q2: 'w2' }, false, true).sort()).equal(
-      ['s4', 's1', 's2'].sort()
-    )
-    expect(rt1.find({ q1: 'w1', q3: 'w3' }, false, true)).equal(['s1', 's3'])
-
-    // but exact does not follow remainders
-    expect(rt1.find({ q1: 'w1', q2: 'w2' }, true, true)).equal(['s1', 's2'])
-    expect(rt1.find({ q1: 'w1', q3: 'w3' }, true, true)).equal(['s1', 's3'])
-
-    // add another remainder trail
-    rt1.add({ q3: 'w3' }, 's5')
-
-    // followed a remainder path (q1 removed)
-    expect(rt1.find({ q1: 'w1', q2: 'w2' }, false, true).sort()).equal(
-      ['s4', 's1', 's2'].sort()
-    )
-    expect(rt1.find({ q1: 'w1', q3: 'w3' }, false, true).sort()).equal(
-      ['s5', 's1', 's3'].sort()
-    )
-
-    // but exact does not follow remainders
-    expect(rt1.find({ q1: 'w1', q2: 'w2' }, true, true)).equal(['s1', 's2'])
-    expect(rt1.find({ q1: 'w1', q3: 'w3' }, true, true)).equal(['s1', 's3'])
-
-    expect(rt1.find({ q1: 'x' }, false, true)).equal([])
-    expect(rt1.find({ q1: 'w1' }, false, true)).equal(['s1'])
-    expect(rt1.find({ q1: 'x' }, true, true)).equal([])
-    expect(rt1.find({ q1: 'w1' }, true, true)).equal(['s1'])
-
-    expect(rt1.find({ q2: 'x' }, false, true)).equal([])
-    expect(rt1.find({ q2: 'w2' }, false, true)).equal(['s4'])
-    expect(rt1.find({ q2: 'x' }, true, true)).equal([])
-    expect(rt1.find({ q2: 'w2' }, true, true)).equal(['s4'])
-
-    expect(rt1.find({ q3: 'x' }, false, true)).equal([])
-    expect(rt1.find({ q3: 'w3' }, false, true)).equal(['s5'])
-    expect(rt1.find({ q3: 'x' }, true, true)).equal([])
-    expect(rt1.find({ q3: 'w3' }, true, true)).equal(['s5'])
-
-    // add a top
-    rt1.add({}, 't')
-    expect(rt1.find({}, false, true)).equal(['t'])
-
-    expect(rt1.find({ q1: 'x' }, false, true)).equal(['t'])
-    expect(rt1.find({ q1: 'w1' }, false, true)).equal(['t', 's1'])
-    expect(rt1.find({ q1: 'x' }, true, true)).equal(['t'])
-    expect(rt1.find({ q1: 'w1' }, true, true)).equal(['t', 's1'])
-
-    // followed a remainder path (q1 removed)
-    expect(rt1.find({ q1: 'w1', q2: 'w2' }, false, true)).equal([
-      't',
-      's1',
-      's2',
-      's4',
-    ])
-    expect(rt1.find({ q1: 'w1', q3: 'w3' }, false, true)).equal([
-      't',
-      's1',
-      's3',
-      's5',
-    ])
-  })
-
-  it('remove', async () => {
-    var rt1 = Jsonic()
-    rt1.remove({ p1: 'v1' })
-
-    rt1.add({ p1: 'v1' }, 'r0')
-    expect('r0').to.equal(rt1.find({ p1: 'v1' }))
-
-    rt1.remove({ p1: 'v1' })
-    expect(null).to.equal(rt1.find({ p1: 'v1' }))
-
-    rt1.add({ p2: 'v2', p3: 'v3' }, 'r1')
-    rt1.add({ p2: 'v2', p4: 'v4' }, 'r2')
-    expect('r1').to.equal(rt1.find({ p2: 'v2', p3: 'v3' }))
-    expect('r2').to.equal(rt1.find({ p2: 'v2', p4: 'v4' }))
-
-    rt1.remove({ p2: 'v2', p3: 'v3' })
-    expect(null).to.equal(rt1.find({ p2: 'v2', p3: 'v3' }))
-    expect('r2').to.equal(rt1.find({ p2: 'v2', p4: 'v4' }))
-  })
-
-  function listtest(mode) {
-    return async () => {
-      var rt1 = Jsonic()
-
-      if ('subvals' === mode) {
-        rt1.add({ a: '1' }, 'x')
-      }
-
-      rt1.add({ p1: 'v1' }, 'r0')
-
-      rt1.add({ p1: 'v1', p2: 'v2a' }, 'r1')
-      rt1.add({ p1: 'v1', p2: 'v2b' }, 'r2')
-
-      var found = rt1.list({ p1: 'v1' })
-      expect(found).equal([
-        { match: { p1: 'v1' }, data: 'r0', find: undefined },
-        { match: { p1: 'v1', p2: 'v2a' }, data: 'r1', find: undefined },
-        { match: { p1: 'v1', p2: 'v2b' }, data: 'r2', find: undefined },
-      ])
-
-      found = rt1.list({ p1: 'v1', p2: '*' })
-      expect(found).equal([
-        { match: { p1: 'v1', p2: 'v2a' }, data: 'r1', find: undefined },
-        { match: { p1: 'v1', p2: 'v2b' }, data: 'r2', find: undefined },
-      ])
-
-      rt1.add({ p1: 'v1', p2: 'v2c', p3: 'v3a' }, 'r3a')
-      rt1.add({ p1: 'v1', p2: 'v2d', p3: 'v3b' }, 'r3b')
-      found = rt1.list({ p1: 'v1', p2: '*', p3: 'v3a' })
-      expect(found).equal([
-        {
-          match: { p1: 'v1', p2: 'v2c', p3: 'v3a' },
-          data: 'r3a',
-          find: undefined,
-        },
-      ])
-
-      // gex can accept a list of globs
-      found = rt1.list({ p1: 'v1', p2: ['v2a', 'v2b', 'not-a-value'] })
-      expect(found).equal([
-        { match: { p1: 'v1', p2: 'v2a' }, data: 'r1', find: undefined },
-        { match: { p1: 'v1', p2: 'v2b' }, data: 'r2', find: undefined },
-      ])
-    }
-  }
-
-  it('list.topvals', listtest('topvals'))
-  it('list.subvals', listtest('subvals'))
-
-  it('null-undef-nan', async () => {
-    var rt1 = Jsonic()
-
-    rt1.add({ p1: null }, 'r1')
-    expect('{"d":"r1"}').to.equal(rt1.toJSON())
-
-    rt1.add({ p2: void 0 }, 'r2')
-    expect('{"d":"r2"}').to.equal(rt1.toJSON())
-
-    rt1.add({ p99: 'v99' }, 'r99')
-    //expect('{"d":"r2","k":"p99","sk":"0~p99","v":{"v99":{"d":"r99"}}}').equal(
-    //  rt1.toJSON()
-    //)
-
-    expect('{"d":"r2","k":"p99","v":{"v99":{"d":"r99"}}}').equal(rt1.toJSON())
-  })
-
-  it('multi-star', async () => {
-    var p = Jsonic()
-
-    p.add({ a: 1 }, 'A')
-    p.add({ a: 1, b: 2 }, 'B')
-    p.add({ c: 3 }, 'C')
-    p.add({ b: 1, c: 4 }, 'D')
-
-    expect(rs(p)).to.equal('a:1-><A>b:2-><B>|b:1->c:4-><D>|c:3-><C>')
-    expect('' + p).to.equal(
-      'a=1 -> <A>\na=1, b=2 -> <B>\nb=1, c=4 -> <D>\nc=3 -> <C>'
-    )
-
-    expect(p.find({ c: 3 })).to.equal('C')
-    expect(p.find({ c: 3, a: 0 })).to.equal('C')
-    expect(p.find({ c: 3, a: 0, b: 0 })).to.equal('C')
-  })
-
-  it('star-backtrack', async () => {
-    var p = Jsonic()
-
-    p.add({ a: 1, b: 2 }, 'X')
-    p.add({ c: 3 }, 'Y')
-
-    expect(p.find({ a: 1, b: 2 })).to.equal('X')
-    expect(p.find({ a: 1, b: 0, c: 3 })).to.equal('Y')
-
-    p.add({ a: 1, b: 2, d: 4 }, 'XX')
-    p.add({ c: 3, d: 4 }, 'YY')
-
-    expect(p.find({ a: 1, b: 2, d: 4 })).to.equal('XX')
-    expect(p.find({ a: 1, c: 3, d: 4 })).to.equal('YY')
-    expect(p.find({ a: 1, b: 2 })).to.equal('X')
-    expect(p.find({ a: 1, b: 0, c: 3 })).to.equal('Y')
-
-    expect(p.list({ a: 1, b: '*' })[0].data).to.equal('X')
-    expect(p.list({ c: 3 })[0].data).to.equal('Y')
-    expect(p.list({ c: 3, d: '*' })[0].data).to.equal('YY')
-    expect(p.list({ a: 1, b: '*', d: '*' })[0].data).to.equal('XX')
-
-    expect('' + p).to.equal(
-      'a=1, b=2 -> <X>\na=1, b=2, d=4 -> <XX>\nc=3 -> <Y>\nc=3, d=4 -> <YY>'
-    )
-  })
-
-  it('remove-intermediate', async () => {
-    var p = Jsonic()
-
-    p.add({ a: 1, b: 2, d: 4 }, 'XX')
-    p.add({ c: 3, d: 4 }, 'YY')
-    p.add({ a: 1, b: 2 }, 'X')
-    p.add({ c: 3 }, 'Y')
-
-    p.remove({ c: 3 })
-
-    expect(p.find({ c: 3 })).to.not.exist()
-    expect(p.find({ a: 1, c: 3, d: 4 })).to.equal('YY')
-    expect(p.find({ a: 1, b: 2, d: 4 })).to.equal('XX')
-    expect(p.find({ a: 1, b: 2 })).to.equal('X')
-
-    p.remove({ a: 1, b: 2 })
-
-    expect(p.find({ c: 3 })).to.not.exist()
-    expect(p.find({ a: 1, c: 3, d: 4 })).to.equal('YY')
-    expect(p.find({ a: 1, b: 2, d: 4 })).to.equal('XX')
-    expect(p.find({ a: 1, b: 2 })).to.not.exist()
-  })
-
-  it('exact', async () => {
-    var p = Jsonic()
-
-    p.add({ a: 1 }, 'X')
-
-    expect(p.findexact({ a: 1 })).to.equal('X')
-    expect(p.findexact({ a: 1, b: 2 })).to.not.exist()
-  })
-
-  it('all', async () => {
-    var p = Jsonic()
-
-    p.add({ a: 1 }, 'X')
-    p.add({ b: 2 }, 'Y')
-
-    expect(JSON.stringify(p.list())).to.equal(
-      '[{"match":{"a":"1"},"data":"X"},{"match":{"b":"2"},"data":"Y"}]'
-    )
-  })
-
-  it('custom-happy', async () => {
-    var p1 = Jsonic(function (pat) {
-      pat.q = 9
-    })
-
-    p1.add({ a: 1 }, 'Q')
-
-    expect(p1.find({ a: 1 })).to.not.exist()
-    expect(p1.find({ a: 1, q: 9 })).to.equal('Q')
-  })
-
-  it('custom-many', async () => {
-    var p1 = Jsonic(function (pat, data) {
-      var items = this.find(pat, true) || []
-      items.push(data)
-
-      return {
-        find: function (args, data) {
-          return 0 < items.length ? items : null
-        },
-        remove: function (args, data) {
-          items.pop()
-          return 0 == items.length
-        },
-      }
-    })
-
-    p1.add({ a: 1 }, 'A')
-    p1.add({ a: 1 }, 'B')
-    p1.add({ b: 1 }, 'C')
-
-    expect(p1.find({ a: 1 }).toString()).to.equal(['A', 'B'].toString())
-    expect(p1.find({ b: 1 }).toString()).to.equal(['C'].toString())
-    expect(p1.list().length).to.equal(2)
-
-    p1.remove({ b: 1 })
-    expect(p1.list().length).to.equal(1)
-    expect(p1.find({ b: 1 })).to.not.exist()
-    expect(p1.find({ a: 1 }).toString()).to.equal(['A', 'B'].toString())
-
-    p1.remove({ a: 1 })
-    expect(p1.list().length).to.equal(1)
-    expect(p1.find({ b: 1 })).to.not.exist()
-
-    expect(JSON.stringify(p1.find({ a: 1 })).toString()).to.equal('["A"]')
-
-    p1.remove({ a: 1 })
-    expect(p1.list().length).to.equal(0)
-    expect(p1.find({ b: 1 })).to.not.exist()
-    expect(p1.find({ a: 1 })).to.not.exist()
-  })
-
-  it('custom-gex', async () => {
-    // this custom function matches glob expressions
-    var p2 = Jsonic(function (pat, data) {
-      var gexers = {}
-      Object.keys(pat).forEach(function (k) {
-        var v = pat[k]
-        if ('string' === typeof v && ~v.indexOf('*')) {
-          delete pat[k]
-          gexers[k] = Gex(v)
-        }
-      })
-
-      // handle previous patterns that match this pattern
-      var prev = this.list(pat)
-      var prevfind = prev[0] && prev[0].find
-      var prevdata = prev[0] && this.findexact(prev[0].match)
-
-      return function (args, data) {
-        var out = data
-        Object.keys(gexers).forEach(function (k) {
-          var g = gexers[k]
-          var v = null == args[k] ? '' : args[k]
-          if (null == g.on(v)) {
-            out = null
-          }
-        })
-
-        if (prevfind && null == out) {
-          out = prevfind.call(this, args, prevdata)
-        }
-
-        return out
-      }
-    })
-
-    p2.add({ a: 1, b: '*' }, 'X')
-    // console.dir(p2.top(),{depth:null})
-
-    expect(p2.find({ a: 1 })).to.equal('X')
-    expect(p2.find({ a: 1, b: 'x' })).to.equal('X')
-
-    p2.add({ a: 1, b: '*', c: 'q*z' }, 'Y')
-
-    expect(p2.find({ a: 1 })).to.equal('X')
-    expect(p2.find({ a: 1, b: 'x' })).to.equal('X')
-    expect(p2.find({ a: 1, b: 'x', c: 'qaz' })).to.equal('Y')
-
-    p2.add({ w: 1 }, 'W')
-    expect(p2.find({ w: 1 })).to.equal('W')
-    expect(p2.find({ w: 1, q: 'x' })).to.equal('W')
-
-    p2.add({ w: 1, q: 'x*' }, 'Q')
-    expect(p2.find({ w: 1 })).to.equal('W')
-    expect(p2.find({ w: 1, q: 'x' })).to.equal('Q')
-    expect(p2.find({ w: 1, q: 'y' })).to.equal('W')
-  })
-
-  it('find-exact', async () => {
-    var p1 = Jsonic()
-    p1.add({ a: 1 }, 'A')
-    p1.add({ a: 1, b: 2 }, 'B')
-    p1.add({ a: 1, b: 2, c: 3 }, 'C')
-
-    expect(p1.find({ a: 1 })).to.equal('A')
-    expect(p1.find({ a: 1 }, true)).to.equal('A')
-    expect(p1.find({ a: 1, b: 8 })).to.equal('A')
-    expect(p1.find({ a: 1, b: 8 }, true)).to.equal(null)
-    expect(p1.find({ a: 1, b: 8, c: 3 })).to.equal('A')
-    expect(p1.find({ a: 1, b: 8, c: 3 }, true)).to.equal(null)
-
-    expect(p1.find({ a: 1, b: 2 })).to.equal('B')
-    expect(p1.find({ a: 1, b: 2 }, true)).to.equal('B')
-    expect(p1.find({ a: 1, b: 2, c: 9 })).to.equal('B')
-    expect(p1.find({ a: 1, b: 2, c: 9 }, true)).to.equal(null)
-
-    expect(p1.find({ a: 1, b: 2, c: 3 })).to.equal('C')
-    expect(p1.find({ a: 1, b: 2, c: 3 }, true)).to.equal('C')
-    expect(p1.find({ a: 1, b: 2, c: 3, d: 7 })).to.equal('C')
-    expect(p1.find({ a: 1, b: 2, c: 3, d: 7 }, true)).to.equal(null)
-  })
-
-  it('list-any', async () => {
-    var p1 = Jsonic()
-    p1.add({ a: 1 }, 'A')
-    p1.add({ a: 1, b: 2 }, 'B')
-    p1.add({ a: 1, b: 2, c: 3 }, 'C')
-
-    var mA = '{"match":{"a":"1"},"data":"A"}'
-    var mB = '{"match":{"a":"1","b":"2"},"data":"B"}'
-    var mC = '{"match":{"a":"1","b":"2","c":"3"},"data":"C"}'
-
-    expect(JSON.stringify(p1.list())).to.equal('[' + [mA, mB, mC] + ']')
-
-    expect(JSON.stringify(p1.list({ a: 1 }))).to.equal('[' + [mA, mB, mC] + ']')
-    expect(JSON.stringify(p1.list({ b: 2 }))).to.equal('[' + [mB, mC] + ']')
-    expect(JSON.stringify(p1.list({ c: 3 }))).to.equal('[' + [mC] + ']')
-
-    expect(JSON.stringify(p1.list({ a: '*' }))).to.equal(
-      '[' + [mA, mB, mC] + ']'
-    )
-    expect(JSON.stringify(p1.list({ b: '*' }))).to.equal('[' + [mB, mC] + ']')
-    expect(JSON.stringify(p1.list({ c: '*' }))).to.equal('[' + [mC] + ']')
-
-    expect(JSON.stringify(p1.list({ a: 1, b: 2 }))).to.equal(
-      '[' + [mB, mC] + ']'
-    )
-    expect(JSON.stringify(p1.list({ a: 1, b: '*' }))).to.equal(
-      '[' + [mB, mC] + ']'
-    )
-    expect(JSON.stringify(p1.list({ a: 1, b: '*', c: 3 }))).to.equal(
-      '[' + [mC] + ']'
-    )
-    expect(JSON.stringify(p1.list({ a: 1, b: '*', c: '*' }))).to.equal(
-      '[' + [mC] + ']'
-    )
-
-    expect(JSON.stringify(p1.list({ a: 1, c: '*' }))).to.equal('[' + [mC] + ']')
-
-    // test star descent
-
-    p1.add({ a: 1, d: 4 }, 'D')
-    var mD = '{"match":{"a":"1","d":"4"},"data":"D"}'
-
-    expect(JSON.stringify(p1.list())).to.equal('[' + [mA, mB, mC, mD] + ']')
-    expect(JSON.stringify(p1.list({ a: 1 }))).to.equal(
-      '[' + [mA, mB, mC, mD] + ']'
-    )
-    expect(JSON.stringify(p1.list({ d: 4 }))).to.equal('[' + [mD] + ']')
-    expect(JSON.stringify(p1.list({ a: 1, d: 4 }))).to.equal('[' + [mD] + ']')
-    expect(JSON.stringify(p1.list({ a: 1, d: '*' }))).to.equal('[' + [mD] + ']')
-    expect(JSON.stringify(p1.list({ d: '*' }))).to.equal('[' + [mD] + ']')
-
-    p1.add({ a: 1, c: 33 }, 'CC')
-    var mCC = '{"match":{"a":"1","c":"33"},"data":"CC"}'
-
-    expect(JSON.stringify(p1.list())).to.equal(
-      '[' + [mA, mB, mC, mCC, mD] + ']'
-    )
-    expect(JSON.stringify(p1.list({ a: 1 }))).to.equal(
-      '[' + [mA, mB, mC, mCC, mD] + ']'
-    )
-
-    expect(JSON.stringify(p1.list({ d: 4 }))).to.equal('[' + [mD] + ']')
-    expect(JSON.stringify(p1.list({ a: 1, d: 4 }))).to.equal('[' + [mD] + ']')
-    expect(JSON.stringify(p1.list({ a: 1, d: '*' }))).to.equal('[' + [mD] + ']')
-    expect(JSON.stringify(p1.list({ d: '*' }))).to.equal('[' + [mD] + ']')
-
-    expect(JSON.stringify(p1.list({ c: 33 }))).to.equal('[' + [mCC] + ']')
-    expect(JSON.stringify(p1.list({ a: 1, c: 33 }))).to.equal('[' + [mCC] + ']')
-    expect(JSON.stringify(p1.list({ a: 1, c: '*' }))).to.equal(
-      '[' + [mC, mCC] + ']'
-    )
-    expect(JSON.stringify(p1.list({ c: '*' }))).to.equal('[' + [mC, mCC] + ']')
-
-    // exact
-    expect(JSON.stringify(p1.list({ a: 1 }, true))).to.equal('[' + [mA] + ']')
-    expect(JSON.stringify(p1.list({ a: '*' }, true))).to.equal('[' + [mA] + ']')
-    expect(JSON.stringify(p1.list({ a: 1, b: 2 }, true))).to.equal(
-      '[' + [mB] + ']'
-    )
-    expect(JSON.stringify(p1.list({ a: 1, b: '*' }, true))).to.equal(
-      '[' + [mB] + ']'
-    )
-    expect(JSON.stringify(p1.list({ a: 1, c: 3 }, true))).to.equal('[]')
-    expect(JSON.stringify(p1.list({ a: 1, c: 33 }, true))).to.equal(
-      '[' + [mCC] + ']'
-    )
-    expect(JSON.stringify(p1.list({ a: 1, c: '*' }, true))).to.equal(
-      '[' + [mCC] + ']'
-    )
-  })
-
-  it('top-custom', async () => {
-    var p1 = Jsonic(function (pat, data) {
-      return function (args, data) {
-        data += '!'
-        return data
-      }
-    })
-
-    p1.add({}, 'Q')
-    p1.add({ a: 1 }, 'A')
-    p1.add({ a: 1, b: 2 }, 'B')
-    p1.add({ a: 1, b: 2, c: 3 }, 'C')
-
-    expect(p1.find({})).to.equal('Q!')
-    expect(p1.find({ a: 1 })).to.equal('A!')
-    expect(p1.find({ a: 1, b: 2 })).to.equal('B!')
-    expect(p1.find({ a: 1, b: 2, c: 3 })).to.equal('C!')
-  })
-
-  it('mixed-values', async () => {
-    var p1 = Jsonic()
-
-    p1.add({ a: 1 }, 'A')
-    p1.add({ a: true }, 'AA')
-    p1.add({ a: 0 }, 'AAA')
-    p1.add({ a: 'A', b: 2 }, 'B')
-    p1.add({ a: 'A', b: 'B', c: 3 }, 'C')
-
-    expect(p1.find({ a: 1 })).to.equal('A')
-    expect(p1.find({ a: true })).to.equal('AA')
-    expect(p1.find({ a: 0 })).to.equal('AAA')
-    expect(p1.find({ a: 'A', b: 2 })).to.equal('B')
-    expect(p1.find({ a: 'A', b: 'B', c: 3 })).to.equal('C')
-
-    expect(p1.list({ a: 1 }).length).to.equal(1)
-    expect(p1.list({ a: true }).length).to.equal(1)
-    expect(p1.list({ a: 0 }).length).to.equal(1)
-
-    p1.add({}, 'Q')
-    expect(p1.find({})).to.equal('Q')
-  })
-
-  it('no-props', async () => {
-    var p1 = Jsonic()
-    p1.add({}, 'Z')
-    expect(p1.find({})).to.equal('Z')
-
-    p1.add({ a: 1 }, 'X')
-    expect(p1.find({})).to.equal('Z')
-
-    p1.add({ b: 2 }, 'Y')
-    expect(p1.find({})).to.equal('Z')
-
-    p1.remove({ b: 2 })
-    expect(p1.find({})).to.equal('Z')
-  })
-
-  it('zero', async () => {
-    var p1 = Jsonic()
-    p1.add({ a: 0 }, 'X')
-    expect(p1.find({ a: 0 })).to.equal('X')
-  })
-
-  it('multi-match', async () => {
-    var p1 = Jsonic()
-    p1.add({ a: 0 }, 'P')
-    p1.add({ b: 1 }, 'Q')
-    p1.add({ c: 2 }, 'R')
-
-    expect(p1.find({ a: 0 })).to.equal('P')
-    expect(p1.find({ a: 0, b: 1 })).to.equal('P')
-    expect(p1.find({ a: 0, c: 2 })).to.equal('P')
-    expect(p1.find({ a: 0, b: 1, c: 2 })).to.equal('P')
-    expect(p1.find({ a: 0, c: 2 })).to.equal('P')
-    expect(p1.find({ b: 1, c: 2 })).to.equal('Q')
-    expect(p1.find({ c: 2 })).to.equal('R')
-
-    p1.add({ a: 0, b: 1 }, 'S')
-    expect(p1.find({ a: 0, b: 1 })).to.equal('S')
-    expect(p1.find({ a: 0, c: 2 })).to.equal('P')
-
-    p1.add({ b: 1, c: 2 }, 'T')
-    expect(p1.find({ a: 0, b: 1 })).to.equal('S')
-    expect(p1.find({ a: 0, c: 2 })).to.equal('P')
-    expect(p1.find({ b: 1, c: 2 })).to.equal('T')
-
-    p1.add({ d: 3 }, 'U')
-    expect(p1.find({ d: 3 })).to.equal('U')
-    expect(p1.find({ a: 0, d: 3 })).to.equal('P')
-    expect(p1.find({ b: 1, d: 3 })).to.equal('Q')
-    expect(p1.find({ c: 2, d: 3 })).to.equal('R')
-
-    p1.add({ c: 2, d: 3 }, 'V')
-    expect(p1.find({ c: 2, d: 3 })).to.equal('V')
-    expect(p1.find({ a: 0, b: 1 })).to.equal('S')
-    expect(p1.find({ a: 0, b: 1, c: 2, d: 3 })).to.equal('S')
-  })
-
-  it('partial-match', async () => {
-    var p1 = Jsonic()
-    p1.add({ a: 0 }, 'P')
-    p1.add({ a: 0, b: 1, c: 2 }, 'Q')
-
-    expect(p1.find({ a: 0, b: 1, c: 2 })).to.equal('Q')
-    expect(p1.find({ a: 0, b: 1 })).to.equal('P')
-    expect(p1.find({ a: 0 })).to.equal('P')
-
-    p1.add({ a: 0, d: 3 }, 'S')
-    expect(p1.find({ a: 0, b: 1, c: 2 })).to.equal('Q')
-    expect(p1.find({ a: 0, b: 1 })).to.equal('P')
-    expect(p1.find({ a: 0 })).to.equal('P')
-    expect(p1.find({ a: 0, d: 3 })).to.equal('S')
-
-    p1.add({ a: 0, b: 1, c: 2, e: 4, f: 5 }, 'T')
-    expect(p1.find({ a: 0, b: 1, c: 2 })).to.equal('Q')
-    expect(p1.find({ a: 0, b: 1 })).to.equal('P')
-    expect(p1.find({ a: 0 })).to.equal('P')
-    expect(p1.find({ a: 0, d: 3 })).to.equal('S')
-    expect(p1.find({ a: 0, b: 1, c: 2, e: 4, f: 5 })).to.equal('T')
-    expect(p1.find({ a: 0, b: 1, c: 2, e: 4 })).to.equal('Q')
-
-    p1.add({ a: 0, b: 1 }, 'M')
-    expect(p1.find({ a: 0, b: 1, c: 2 })).to.equal('Q')
-    expect(p1.find({ a: 0, b: 1 })).to.equal('M')
-    expect(p1.find({ a: 0 })).to.equal('P')
-    expect(p1.find({ a: 0, d: 3 })).to.equal('S')
-    expect(p1.find({ a: 0, b: 1, c: 2, e: 4, f: 5 })).to.equal('T')
-    expect(p1.find({ a: 0, b: 1, c: 2, e: 4 })).to.equal('Q')
-
-    p1.add({ a: 0, b: 1, c: 2, e: 4 }, 'N')
-    expect(p1.find({ a: 0, b: 1, c: 2 })).to.equal('Q')
-    expect(p1.find({ a: 0, b: 1 })).to.equal('M')
-    expect(p1.find({ a: 0 })).to.equal('P')
-    expect(p1.find({ a: 0, d: 3 })).to.equal('S')
-    expect(p1.find({ a: 0, b: 1, c: 2, e: 4, f: 5 })).to.equal('T')
-    expect(p1.find({ a: 0, b: 1, c: 2, e: 4 })).to.equal('N')
-  })
-
-  it('partial-match-remove', async () => {
-    var p1 = Jsonic()
-    p1.add({ a: 0 }, 'P')
-    p1.add({ a: 0, b: 1, c: 2 }, 'Q')
-
-    expect(p1.find({ a: 0, b: 1, c: 2 })).to.equal('Q')
-    expect(p1.find({ a: 0, b: 1 })).to.equal('P')
-    expect(p1.find({ a: 0 })).to.equal('P')
-
-    p1.add({ a: 0, d: 3 }, 'S')
-    expect(p1.find({ a: 0, b: 1, c: 2 })).to.equal('Q')
-    expect(p1.find({ a: 0, b: 1 })).to.equal('P')
-    expect(p1.find({ a: 0 })).to.equal('P')
-    expect(p1.find({ a: 0, d: 3 })).to.equal('S')
-
-    p1.add({ a: 0, b: 1, c: 2, e: 4, f: 5 }, 'T')
-    expect(p1.find({ a: 0, b: 1, c: 2 })).to.equal('Q')
-    expect(p1.find({ a: 0, b: 1 })).to.equal('P')
-    expect(p1.find({ a: 0 })).to.equal('P')
-    expect(p1.find({ a: 0, d: 3 })).to.equal('S')
-    expect(p1.find({ a: 0, b: 1, c: 2, e: 4, f: 5 })).to.equal('T')
-    expect(p1.find({ a: 0, b: 1, c: 2, e: 4 })).to.equal('Q')
-
-    p1.remove({ a: 0 })
-    expect(p1.find({ a: 0, b: 1, c: 2 })).to.equal('Q')
-    expect(p1.find({ a: 0, b: 1 })).to.equal(null)
-    expect(p1.find({ a: 0 })).to.equal(null)
-    expect(p1.find({ a: 0, d: 3 })).to.equal('S')
-    expect(p1.find({ a: 0, b: 1, c: 2, e: 4, f: 5 })).to.equal('T')
-    expect(p1.find({ a: 0, b: 1, c: 2, e: 4 })).to.equal('Q')
-
-    p1.remove({ a: 0, b: 1, c: 2 })
-    expect(p1.find({ a: 0, b: 1, c: 2 })).to.equal(null)
-    expect(p1.find({ a: 0, b: 1 })).to.equal(null)
-    expect(p1.find({ a: 0 })).to.equal(null)
-    expect(p1.find({ a: 0, d: 3 })).to.equal('S')
-    expect(p1.find({ a: 0, b: 1, c: 2, e: 4, f: 5 })).to.equal('T')
-    expect(p1.find({ a: 0, b: 1, c: 2, e: 4 })).to.equal(null)
-  })
-
-  it('top', async () => {
-    var r = Jsonic()
-    r.add({}, 'R')
-    expect(r.top()).equals({ d: 'R' })
-  })
-
-  it('add-gex', async () => {
-    var p1 = Jsonic({ gex: true })
-
-    p1.add({ a: 'A' }, 'XA')
-    expect(p1.find({ a: 'A' })).to.equal('XA')
-    expect(p1.find({})).to.not.exist()
-
-    p1.add({ b: '*' }, 'XB')
-    expect(p1.find({ b: 'A' })).to.equal('XB')
-    expect(p1.find({ b: 'B' })).to.equal('XB')
-    expect(p1.find({ b: '0' })).to.equal('XB')
-    expect(p1.find({ b: 2 })).to.equal('XB')
-    expect(p1.find({ b: 1 })).to.equal('XB')
-    expect(p1.find({ b: 0 })).to.equal('XB')
-    expect(p1.find({ b: '' })).to.equal('XB') // this is correct
-    expect(p1.find({})).to.not.exist()
-
-    p1.add({ c: '*' }, 'XC')
-    expect(p1.find({ c: 'A' })).to.equal('XC')
-    expect(p1.find({ c: 'B' })).to.equal('XC')
-    expect(p1.find({ c: '0' })).to.equal('XC')
-    expect(p1.find({ c: 2 })).to.equal('XC')
-    expect(p1.find({ c: 1 })).to.equal('XC')
-    expect(p1.find({ c: 0 })).to.equal('XC')
-    expect(p1.find({ c: '' })).to.equal('XC') // this is correct
-    expect(p1.find({})).to.not.exist()
-
-    expect(p1.find({ b: 'A', c: 'A' })).to.equal('XB')
-
-    p1.add({ e: '*' }, 'XE')
-    p1.add({ d: '*' }, 'XD')
-
-    // console.dir(p1.top(),{depth:null})
-
-    // alphanumeric ordering
-    expect(p1.find({ d: 'A', e: 'A' })).to.equal('XD')
-
-    p1.add({ b: 0 }, 'XB0')
-    //console.log(require('util').inspect(p1.top,{depth:99}))
-
-    p1.add({ b: 'B' }, 'XBB')
-    expect(p1.find({ b: 'A' })).to.equal('XB')
-    expect(p1.find({ b: 0 })).to.equal('XB0')
-    expect(p1.find({ b: 'B' })).to.equal('XBB')
-  })
-
-  it('add-mixed-gex', async () => {
-    var p1 = Jsonic({ gex: true })
-
-    p1.add({ a: '*' }, 'XAS')
-    p1.add({ a: 'A' }, 'XA')
-
-    p1.add({ b: 'A' }, 'XB')
-    p1.add({ b: '*' }, 'XBS')
-
-    expect(p1.find({ a: 'A' })).to.equal('XA')
-    expect(p1.find({ a: 'Q' })).to.equal('XAS')
-
-    expect(p1.find({ b: 'A' })).to.equal('XB')
-    expect(p1.find({ b: 'Q' })).to.equal('XBS')
-
-    p1.add({ c: 'B' }, 'XCB')
-    p1.add({ c: 'A' }, 'XCA')
-    p1.add({ c: '*b' }, 'XCBe')
-    p1.add({ c: '*a' }, 'XCAe')
-    p1.add({ c: 'b*' }, 'XCsB')
-    p1.add({ c: 'a*' }, 'XCsA')
-
-    expect(p1.find({ c: 'A' })).to.equal('XCA')
-    expect(p1.find({ c: 'B' })).to.equal('XCB')
-    expect(p1.find({ c: 'qb' })).to.equal('XCBe')
-    expect(p1.find({ c: 'qa' })).to.equal('XCAe')
-    expect(p1.find({ c: 'bq' })).to.equal('XCsB')
-    expect(p1.find({ c: 'aq' })).to.equal('XCsA')
-
-    expect(p1.find({ a: 'A' })).to.equal('XA')
-    expect(p1.find({ a: 'Q' })).to.equal('XAS')
-    expect(p1.find({ b: 'A' })).to.equal('XB')
-    expect(p1.find({ b: 'Q' })).to.equal('XBS')
-  })
-
-  it('add-order-gex', async () => {
-    var p1 = Jsonic({ gex: true })
-
-    p1.add({ c: 'A' }, 'XC')
-    p1.add({ c: '*' }, 'XCS')
-
-    p1.add({ a: 'A' }, 'XA')
-    p1.add({ a: '*' }, 'XAS')
-
-    p1.add({ b: 'A' }, 'XB')
-    p1.add({ b: '*' }, 'XBS')
-
-    //console.log('\n'+require('util').inspect(p1.top,{depth:99}))
-    //console.log(p1.toString(true))
-
-    expect(p1.find({ c: 'A' })).to.equal('XC')
-    expect(p1.find({ b: 'A' })).to.equal('XB')
-    expect(p1.find({ a: 'A' })).to.equal('XA')
-
-    expect(p1.find({ c: 'Q' })).to.equal('XCS')
-    expect(p1.find({ b: 'Q' })).to.equal('XBS')
-    expect(p1.find({ a: 'Q' })).to.equal('XAS')
-  })
-
-  it('multi-gex', async () => {
-    var p1 = Jsonic({ gex: true })
-
-    p1.add({ a: 1, b: 2 }, 'Xa1b2')
-    p1.add({ a: 1, b: '*' }, 'Xa1b*')
-    p1.add({ a: 1, c: 3 }, 'Xa1c3')
-    p1.add({ a: 1, c: '*' }, 'Xa1c*')
-    p1.add({ a: 1, b: 4, c: 5 }, 'Xa1b4c5')
-    p1.add({ a: 1, b: '*', c: 5 }, 'Xa1b*c5')
-    p1.add({ a: 1, b: 4, c: '*' }, 'Xa1b4c*')
-    p1.add({ a: 1, b: '*', c: '*' }, 'Xa1b*c*')
-
-    // console.log(p1.toString(true))
-
-    expect(p1.find({ a: 1, b: 2 })).to.equal('Xa1b2')
-    expect(p1.find({ a: 1, b: 0 })).to.equal('Xa1b*')
-    expect(p1.find({ a: 1, c: 3 })).to.equal('Xa1c3')
-    expect(p1.find({ a: 1, c: 0 })).to.equal('Xa1c*')
-    expect(p1.find({ a: 1, b: 4, c: 5 })).to.equal('Xa1b4c5')
-    expect(p1.find({ a: 1, b: 0, c: 5 })).to.equal('Xa1b*c5')
-    expect(p1.find({ a: 1, b: 4, c: 0 })).to.equal('Xa1b4c*')
-    expect(p1.find({ a: 1, b: 0, c: 0 })).to.equal('Xa1b*c*')
-  })
-
-  it('remove-gex', async () => {
-    var p1 = Jsonic({ gex: true })
-
-    p1.add({ a: 'A' }, 'XA')
-    expect(p1.find({ a: 'A' })).to.equal('XA')
-    expect(p1.find({})).to.not.exist()
-
-    p1.add({ b: '*' }, 'XB')
-    expect(p1.find({ b: 'A' })).to.equal('XB')
-    expect(p1.find({ b: 'B' })).to.equal('XB')
-    expect(p1.find({})).to.not.exist()
-    expect(p1.find({ a: 'A' })).to.equal('XA')
-
-    p1.remove({ b: '*' })
-    expect(p1.find({ b: 'A' })).to.not.exist()
-    expect(p1.find({ b: 'B' })).to.not.exist()
-    expect(p1.find({})).to.not.exist()
-    expect(p1.find({ a: 'A' })).to.equal('XA')
-  })
-
-  it('add-interval', async () => {
-    var p1 = Jsonic({ interval: true })
-
-    p1.add({ a: 'A' }, 'XA')
-    expect(p1.find({ a: 'A' })).to.equal('XA')
-    expect(p1.find({})).to.not.exist()
-
-    p1.add({ b: '>10' }, 'XB')
-    //console.log(p1+'')
-
-    expect(p1.find({ b: 11 })).to.equal('XB')
-    expect(p1.find({ b: 12.5 })).to.equal('XB')
-    expect(p1.find({ b: '11' })).to.equal('XB')
-    expect(p1.find({ b: '12.5' })).to.equal('XB')
-    expect(p1.find({ b: 1 })).to.not.exist()
-    expect(p1.find({ b: 0 })).to.not.exist()
-    expect(p1.find({ b: '' })).not.exist()
-    expect(p1.find({})).to.not.exist()
-  })
-
-  it('add-gex-interval', async () => {
-    var p1 = Jsonic({ gex: true, interval: true })
-
-    p1.add({ a: 'A', c: '>10&<20', e: '*a' }, 'A0')
-    expect(p1.find({ a: 'A', c: 11, e: 'xa' })).to.equal('A0')
-    expect(p1.find({ a: 'B', c: 11, e: 'xa' })).to.not.exist()
-    expect(p1.find({ a: 'A', c: 9, e: 'xa' })).to.not.exist()
-    expect(p1.find({ a: 'A', c: 11, e: 'ax' })).to.not.exist()
-
-    // ensure key path ordering is preserved
-    p1.add({ a: 'A', b: 'B' }, 'AB0')
-    expect(p1.find({ a: 'A', b: 'B' })).to.equal('AB0')
-    expect(p1.find({ a: 'A', c: 11, e: 'xa' })).to.equal('A0')
-
-    // uses vm arrays
-    p1.add({ a: 'A', c: '<=10' }, 'AC0')
-    expect(p1.find({ a: 'A', b: 'B' })).to.equal('AB0')
-    expect(p1.find({ a: 'A', c: 11, e: 'xa' })).to.equal('A0')
-    expect(p1.find({ a: 'A', c: 9 })).to.equal('AC0')
-
-    //console.log(p1.toString(true))
-  })
-
-  it('collect-once', async () => {
-    var p1 = Jsonic({ gex: true })
-    p1.add({ d: 1, b: 1, a: 1 }, 'A')
-    p1.add({ d: 1 }, 'B')
-    expect(p1.find({ d: 1, b: 1 }, false, true)).equal(['B'])
-
-    var p2 = Jsonic({ gex: true })
-    p2.add({ d: 1, b: 1, c: 1 }, 'A')
-    p2.add({ d: 1 }, 'B')
-    expect(p2.find({ d: 1, b: 1 }, false, true)).equal(['B'])
-
-    var p3 = Jsonic({ gex: true })
-    p3.add({ d: 1, b: 1, e: 1 }, 'A')
-    p3.add({ d: 1 }, 'B')
-    expect(p3.find({ d: 1, b: 1 }, false, true)).equal(['B'])
-  })
-
-  it('collect-powerset', async () => {
-    var p1 = Jsonic({ gex: true })
-
-    p1.add({ a: 1, b: 2 }, 'AB')
-    p1.add({ a: 1, c: 3 }, 'AC')
-    p1.add({ b: 2, c: 3 }, 'BC')
-    p1.add({ a: 1, d: 4 }, 'AD')
-
-    //console.log(''+p1)
-    //console.log(p1.toString(true))
-
-    expect(p1.find({ a: 1, b: 2, x: 1 }, false, true)).equal(['AB'])
-    expect(p1.find({ a: 1, c: 3, x: 1 }, false, true)).equal(['AC'])
-    expect(p1.find({ b: 2, c: 3, x: 1 }, false, true)).equal(['BC'])
-    expect(p1.find({ a: 1, d: 4, x: 1 }, false, true)).equal(['AD'])
-
-    expect(p1.find({ a: 1, b: 2, c: 3 }, false)).equal('AB')
-    expect(p1.find({ a: 1, b: 2, c: 3 }, true)).equal(null)
-    expect(p1.find({ a: 1, b: 2, c: 3, x: 2 }, false, true)).equal([
-      'AB',
-      'AC',
-      'BC',
-    ])
-
-    p1.add({ b: 1, e: 5 }, 'BE')
-    expect(p1.find({ a: 1, b: 2, c: 3, x: 2 }, false, true)).equal([
-      'AB',
-      'AC',
-      'BC',
-    ])
-
-    p1.add({ a: 1, b: 2, c: 3 }, 'ABC')
-    expect(p1.find({ a: 1, b: 2, c: 3, x: 2 }, false, true)).equal([
-      'AB',
-      'ABC',
-      'AC',
-      'BC',
-    ])
-
-    expect(p1.find({ a: 1, b: 2, d: 4, x: 2 }, false, true)).equal(['AB', 'AD'])
-    expect(p1.find({ a: 1, b: 2, c: 3, d: 4, x: 2 }, false, true)).equal([
-      'AB',
-      'ABC',
-      'AC',
-      'AD',
-      'BC',
-    ])
   })
 })
 
-},{"..":1,"@hapi/code":2,"@hapi/lab":31,"gex":40,"hapi-lab-shim":41}]},{},[55])(55)
+},{"..":1,"@hapi/code":2,"@hapi/lab":31,"hapi-lab-shim":40}],56:[function(require,module,exports){
+/* Copyright (c) 2013-2020 Richard Rodger and other contributors, MIT License */
+'use strict'
+
+var Lab = require('@hapi/lab')
+Lab = null != Lab.script ? Lab : require('hapi-lab-shim')
+
+var Code = require('@hapi/code')
+
+var lab = (exports.lab = Lab.script())
+var describe = lab.describe
+var it = lab.it
+var expect = Code.expect
+
+var { Jsonic } = require('..')
+
+let j = Jsonic
+let lexer = Jsonic.lexer
+let prc = Jsonic.process
+
+function lexall(src) {
+  let lex = lexer(src)
+  let out = []
+  do {
+    // console.log(out[out.length-1])
+    out.push({...lex()})
+  }
+  while( lexer.ZZ != out[out.length-1].pin &&
+         lexer.BD != out[out.length-1].pin )
+  return out.map(t=>st(t))
+}
+
+function alleq(ta) {
+  for(let i = 0; i < ta.length; i+=2) {
+    expect(lexall(ta[i]),'case:'+(i/2)).equal(ta[i+1])
+  }
+}
+
+
+describe('jsonic', function () {
+  it('happy', () => {
+    expect(Jsonic('a:1')).equals({a: 1})
+    expect(Jsonic('{a:1}')).equals({a: 1})
+    expect(Jsonic('{a:q}')).equals({a: 'q'})
+    expect(Jsonic('{"a":1}')).equals({a: 1})
+  })
+
+  it('basic-object-tree', () => {
+    expect(Jsonic('{}')).equals({})
+    expect(Jsonic('{a:{}}')).equals({a: {}})
+    expect(Jsonic('{a:{b:{}}}')).equals({a: {b: {}}})
+    expect(Jsonic('{a:{b:{c:{}}}}')).equals({a: {b: {c: {}}}})
+
+    expect(Jsonic('{a:1}')).equals({a: 1})
+    expect(Jsonic('{a:1,b:2}')).equals({a:1,b:2})
+    expect(Jsonic('{a:1,b:2,c:3}')).equals({a:1,b:2,c:3})
+
+    expect(Jsonic('{a:{b:2}}')).equals({a:{b:2}})
+    expect(Jsonic('{a:{b:{c:2}}}')).equals({a:{b:{c:2}}})
+    expect(Jsonic('{a:{b:{c:{d:2}}}}')).equals({a:{b:{c:{d:2}}}})
+
+    expect(Jsonic('{x:10,a:{b:2}}')).equals({x:10,a:{b:2}})
+    expect(Jsonic('{x:10,a:{b:{c:2}}}')).equals({x:10,a:{b:{c:2}}})
+    expect(Jsonic('{x:10,a:{b:{c:{d:2}}}}')).equals({x:10,a:{b:{c:{d:2}}}})
+
+    expect(Jsonic('{a:{b:2},y:20}')).equals({a:{b:2},y:20})
+    expect(Jsonic('{a:{b:{c:2}},y:20}')).equals({a:{b:{c:2}},y:20})
+    expect(Jsonic('{a:{b:{c:{d:2}}},y:20}')).equals({a:{b:{c:{d:2}}},y:20})
+
+    expect(Jsonic('{x:10,a:{b:2},y:20}')).equals({x:10,a:{b:2},y:20})
+    expect(Jsonic('{x:10,a:{b:{c:2}},y:20}')).equals({x:10,a:{b:{c:2}},y:20})
+    expect(Jsonic('{x:10,a:{b:{c:{d:2}}},y:20}')).equals({x:10,a:{b:{c:{d:2}}},y:20})
+
+    expect(Jsonic('{a:{b:2,c:3}}')).equals({a:{b:2,c:3}})
+    expect(Jsonic('{a:{b:2,c:3,d:4}}')).equals({a:{b:2,c:3,d:4}})
+    expect(Jsonic('{a:{b:{e:2},c:3,d:4}}')).equals({a:{b:{e:2},c:3,d:4}})
+    expect(Jsonic('{a:{b:2,c:{e:3},d:4}}')).equals({a:{b:2,c:{e:3},d:4}})
+    expect(Jsonic('{a:{b:2,c:3,d:{e:4}}}')).equals({a:{b:2,c:3,d:{e:4}}})
+    
+    expect(Jsonic('{a:{b:{c:2,d:3}}}')).equals({a:{b:{c:2,d:3}}})
+    expect(Jsonic('{a:{b:{c:2,d:3,e:4}}}')).equals({a:{b:{c:2,d:3,e:4}}})
+    expect(Jsonic('{a:{b:{c:{f:2},d:3,e:4}}}')).equals({a:{b:{c:{f:2},d:3,e:4}}})
+    expect(Jsonic('{a:{b:{c:2,d:{f:3},e:4}}}')).equals({a:{b:{c:2,d:{f:3},e:4}}})
+    expect(Jsonic('{a:{b:{c:2,d:3,e:{f:4}}}}')).equals({a:{b:{c:2,d:3,e:{f:4}}}})
+
+    // NOTE: important feature!!!
+    expect(Jsonic('a:b:1')).equals({ a: { b: 1 } })
+    expect(Jsonic('a:b:c:1')).equals({ a: { b: {c: 1} } })
+    expect(Jsonic('a:b:1,c:2')).equals({ a: { b: 1, c: 2} })
+
+  })
+
+  
+  it('basic-array-tree', () => {
+    expect(Jsonic('[]')).equals([])
+    expect(Jsonic('[0]')).equals([0])
+    expect(Jsonic('[0,1]')).equals([0,1])
+    expect(Jsonic('[0,1,2]')).equals([0,1,2])
+
+    expect(Jsonic('[[]]')).equals([[]])
+    expect(Jsonic('[0,[]]')).equals([0,[]])
+    expect(Jsonic('[[],1]')).equals([[],1])
+    expect(Jsonic('[0,[],1]')).equals([0,[],1])
+    expect(Jsonic('[[],0,[],1]')).equals([[],0,[],1])
+    expect(Jsonic('[0,[],1,[]]')).equals([0,[],1,[]])
+    expect(Jsonic('[[],0,[],1,[]]')).equals([[],0,[],1,[]])
+
+    expect(Jsonic('[[2]]')).equals([[2]])
+    expect(Jsonic('[0,[2]]')).equals([0,[2]])
+    expect(Jsonic('[[2],1]')).equals([[2],1])
+    expect(Jsonic('[0,[2],1]')).equals([0,[2],1])
+    expect(Jsonic('[[2],0,[3],1]')).equals([[2],0,[3],1])
+    expect(Jsonic('[0,[3],1,[2]]')).equals([0,[3],1,[2]])
+    expect(Jsonic('[[2],0,[4],1,[3]]')).equals([[2],0,[4],1,[3]])
+
+    expect(Jsonic('[[2,9]]')).equals([[2,9]])
+    expect(Jsonic('[0,[2,9]]')).equals([0,[2,9]])
+    expect(Jsonic('[[2,9],1]')).equals([[2,9],1])
+    expect(Jsonic('[0,[2,9],1]')).equals([0,[2,9],1])
+    expect(Jsonic('[[2,9],0,[3,9],1]')).equals([[2,9],0,[3,9],1])
+    expect(Jsonic('[0,[3,9],1,[2,9]]')).equals([0,[3,9],1,[2,9]])
+    expect(Jsonic('[[2,9],0,[4,9],1,[3,9]]')).equals([[2,9],0,[4,9],1,[3,9]])
+
+    expect(Jsonic('[[[[]]]]')).equals([[[[]]]])
+    expect(Jsonic('[[[[0]]]]')).equals([[[[0]]]])
+    expect(Jsonic('[[[1,[0]]]]')).equals([[[1,[0]]]])
+    expect(Jsonic('[[[1,[0],2]]]')).equals([[[1,[0],2]]])
+    expect(Jsonic('[[3,[1,[0],2]]]')).equals([[3,[1,[0],2]]])
+    expect(Jsonic('[[3,[1,[0],2],4]]')).equals([[3,[1,[0],2],4]])
+    expect(Jsonic('[5,[3,[1,[0],2],4]]')).equals([5,[3,[1,[0],2],4]])
+    expect(Jsonic('[5,[3,[1,[0],2],4],6]')).equals([5,[3,[1,[0],2],4],6])
+  })
+
+
+  it('basic-mixed-tree', () => {
+    expect(Jsonic('[{}]')).equals([{}])
+    expect(Jsonic('{a:[]}')).equals({a:[]})
+
+    expect(Jsonic('[{a:[]}]')).equals([{a:[]}])
+    expect(Jsonic('{a:[{}]}')).equals({a:[{}]})
+
+    expect(Jsonic('[{a:[{}]}]')).equals([{a:[{}]}])
+    expect(Jsonic('{a:[{b:[]}]}')).equals({a:[{b:[]}]})
+  })
+  
+  
+  it('lex-specials', () => {
+
+    let lex0 = lexer(' {123 ')
+    expect(lex0()).equals(
+      { pin: lexer.SP, loc: 0, len: 1, row: 0, col: 0, val: ' ' })
+    expect(lex0()).equals(
+      { pin: lexer.OB, loc: 1, len: 1, row: 0, col: 1, val: undefined })
+    expect(lex0()).equals(
+      { pin: lexer.NR, loc: 2, len: 3, row: 0, col: 2, val: 123 })
+    expect(lex0()).equals(
+      { pin: lexer.SP, loc: 5, len: 1, row: 0, col: 5, val: ' ' })
+    expect(lex0()).equals(
+      { pin: lexer.ZZ, loc: 6, len: 0, row: 0, col: 6, val: undefined })
+
+    // LN001
+    expect(lex0()).equals(
+      { pin: lexer.ZZ, loc: 6, len: 0, row: 0, col: 6, val: undefined })
+    expect(lex0()).equals(
+      { pin: lexer.ZZ, loc: 6, len: 0, row: 0, col: 6, val: undefined })
+
+    let lex1 = lexer('"\\u0040"')
+    expect(lex1()).equals(
+      { pin: lexer.ST, loc: 0, len: 8, row: 0, col: 0, val: '@' })
+
+    
+    expect(lexall(' {123')).equals([
+      '#SP;0;1;0x0', '#OB;1;1;0x1', '#NR;2;3;0x2;123', '#ZZ;5;0;0x5'
+    ])
+
+    expect(lexall(' {123%')).equals([
+      '#SP;0;1;0x0', '#OB;1;1;0x1', '#TX;2;4;0x2;123%', '#ZZ;6;0;0x6'
+    ])
+
+    alleq([
+      '', ['#ZZ;0;0;0x0'],
+      
+      '0', ['#NR;0;1;0x0;0','#ZZ;1;0;0x1'],
+    ])
+
+    let lex2 = lexer(' m n ')
+    expect(lex2()).equals(
+      { pin: lexer.SP, loc: 0, len: 1, row: 0, col: 0, val: ' ' })
+    expect(lex2()).equals(
+      { pin: lexer.TX, loc: 1, len: 1, row: 0, col: 1, val: 'm' })
+    expect(lex2()).equals(
+      { pin: lexer.SP, loc: 2, len: 1, row: 0, col: 2, val: ' ' })
+    expect(lex2()).equals(
+      { pin: lexer.TX, loc: 3, len: 1, row: 0, col: 3, val: 'n' })
+    expect(lex2()).equals(
+      { pin: lexer.SP, loc: 4, len: 1, row: 0, col: 4, val: ' ' })
+    expect(lex2()).equals(
+      { pin: lexer.ZZ, loc: 5, len: 0, row: 0, col: 5, val: undefined })
+
+    let lex3 = lexer(' b a ')
+    expect(lex3()).equals(
+      { pin: lexer.SP, loc: 0, len: 1, row: 0, col: 0, val: ' ' })
+    expect(lex3()).equals(
+      { pin: lexer.TX, loc: 1, len: 1, row: 0, col: 1, val: 'b' })
+    expect(lex3()).equals(
+      { pin: lexer.SP, loc: 2, len: 1, row: 0, col: 2, val: ' ' })
+    expect(lex3()).equals(
+      { pin: lexer.TX, loc: 3, len: 1, row: 0, col: 3, val: 'a' })
+    expect(lex3()).equals(
+      { pin: lexer.SP, loc: 4, len: 1, row: 0, col: 4, val: ' ' })
+    expect(lex3()).equals(
+      { pin: lexer.ZZ, loc: 5, len: 0, row: 0, col: 5, val: undefined })
+
+  })
+
+  
+  it('lex-space', () => {
+    let lex0 = lexer(' \t')
+    expect(lex0()).equals(
+      { pin: lexer.SP, loc: 0, len: 2, row: 0, col: 0, val: ' \t' })
+
+    alleq([
+      ' ', ['#SP;0;1;0x0','#ZZ;1;0;0x1'],
+      '  ', ['#SP;0;2;0x0','#ZZ;2;0;0x2'],
+      ' \t', ['#SP;0;2;0x0','#ZZ;2;0;0x2'],
+      ' \t ', ['#SP;0;3;0x0','#ZZ;3;0;0x3'],
+      '\t \t', ['#SP;0;3;0x0','#ZZ;3;0;0x3'],
+      '\t ', ['#SP;0;2;0x0','#ZZ;2;0;0x2'],
+      '\t\t', ['#SP;0;2;0x0','#ZZ;2;0;0x2'],
+      '\t', ['#SP;0;1;0x0','#ZZ;1;0;0x1'],
+
+    ])
+  })
+
+  
+  it('lex-brace', () => {
+    alleq([
+      '{', ['#OB;0;1;0x0','#ZZ;1;0;0x1'],
+      '{{', ['#OB;0;1;0x0','#OB;1;1;0x1','#ZZ;2;0;0x2'],
+      '}', ['#CB;0;1;0x0','#ZZ;1;0;0x1'],
+      '}}', ['#CB;0;1;0x0','#CB;1;1;0x1','#ZZ;2;0;0x2'],
+    ])
+  })
+
+
+  it('lex-square', () => {
+    alleq([
+      '[', ['#OS;0;1;0x0','#ZZ;1;0;0x1'],
+      '[[', ['#OS;0;1;0x0','#OS;1;1;0x1','#ZZ;2;0;0x2'],
+      ']', ['#CS;0;1;0x0','#ZZ;1;0;0x1'],
+      ']]', ['#CS;0;1;0x0','#CS;1;1;0x1','#ZZ;2;0;0x2'],
+    ])
+  })
+
+
+  it('lex-colon', () => {
+    alleq([
+      ':', ['#CL;0;1;0x0','#ZZ;1;0;0x1'],
+      '::', ['#CL;0;1;0x0','#CL;1;1;0x1','#ZZ;2;0;0x2'],
+    ])
+  })
+
+
+  it('lex-comma', () => {
+    alleq([
+      ',', ['#CA;0;1;0x0','#ZZ;1;0;0x1'],
+      ',,', ['#CA;0;1;0x0','#CA;1;1;0x1','#ZZ;2;0;0x2'],
+    ])
+  })
+
+  it('lex-comment', () => {
+    alleq([
+      'a#b', ['#TX;0;1;0x0;a','#CM;1;2;0x1;#b','#ZZ;3;0;0x3'],
+    ])
+  })
+
+
+  it('lex-boolean', () => {
+    alleq([
+      'true', ['#BL;0;4;0x0;true','#ZZ;4;0;0x4'],
+      'true ', ['#BL;0;4;0x0;true','#SP;4;1;0x4','#ZZ;5;0;0x5'],
+      ' true', ['#SP;0;1;0x0','#BL;1;4;0x1;true','#ZZ;5;0;0x5'],
+      'truex', ['#TX;0;5;0x0;truex','#ZZ;5;0;0x5'],
+      'truex ', ['#TX;0;5;0x0;truex','#SP;5;1;0x5','#ZZ;6;0;0x6'],
+      'false', ['#BL;0;5;0x0;false','#ZZ;5;0;0x5'],
+      'false ', ['#BL;0;5;0x0;false','#SP;5;1;0x5','#ZZ;6;0;0x6'],
+      ' false', ['#SP;0;1;0x0','#BL;1;5;0x1;false','#ZZ;6;0;0x6'],
+      'falsex', ['#TX;0;6;0x0;falsex','#ZZ;6;0;0x6'],
+      'falsex ', ['#TX;0;6;0x0;falsex','#SP;6;1;0x6','#ZZ;7;0;0x7'],
+    ])
+  })
+
+  
+  it('lex-null', () => {
+    alleq([
+      'null', ['#NL;0;4;0x0;null','#ZZ;4;0;0x4'],
+      'null ', ['#NL;0;4;0x0;null','#SP;4;1;0x4','#ZZ;5;0;0x5'],
+      ' null', ['#SP;0;1;0x0','#NL;1;4;0x1;null','#ZZ;5;0;0x5'],
+      'nullx', ['#TX;0;5;0x0;nullx','#ZZ;5;0;0x5'],
+      'nullx ', ['#TX;0;5;0x0;nullx','#SP;5;1;0x5','#ZZ;6;0;0x6'],
+      'nulx ', ['#TX;0;4;0x0;nulx','#SP;4;1;0x4','#ZZ;5;0;0x5'],
+      'nulx', ['#TX;0;4;0x0;nulx','#ZZ;4;0;0x4'],
+    ])
+  })
+
+
+
+  it('lex-number', () => {
+    let lex0 = lexer('123')
+    expect(lex0())
+      .equal({ pin: lexer.NR, loc: 0, len: 3, row: 0, col: 0, val: 123 })
+    
+    alleq([
+      '0', ['#NR;0;1;0x0;0','#ZZ;1;0;0x1'],
+      '-0', ['#NR;0;2;0x0;0','#ZZ;2;0;0x2'],
+      '1.2', ['#NR;0;3;0x0;1.2','#ZZ;3;0;0x3'],
+      '-1.2', ['#NR;0;4;0x0;-1.2','#ZZ;4;0;0x4'],
+      '0xA', ['#NR;0;3;0x0;10','#ZZ;3;0;0x3'],
+      '1e2', ['#NR;0;3;0x0;100','#ZZ;3;0;0x3'],
+      '-1.5E2', ['#NR;0;6;0x0;-150','#ZZ;6;0;0x6'],
+      '0x', ['#TX;0;2;0x0;0x','#ZZ;2;0;0x2'],
+      '-0xA', ['#TX;0;4;0x0;-0xA','#ZZ;4;0;0x4'],
+
+      // leading 0s (but not 0x) considered text - could be an indentifier
+      '01', ['#TX;0;2;0x0;01','#ZZ;2;0;0x2'],
+
+      '1x', ['#TX;0;2;0x0;1x','#ZZ;2;0;0x2'],
+      '12x', ['#TX;0;3;0x0;12x','#ZZ;3;0;0x3'],
+      '1%', ['#TX;0;2;0x0;1%','#ZZ;2;0;0x2'],
+      '12%', ['#TX;0;3;0x0;12%','#ZZ;3;0;0x3'],
+      '123%', ['#TX;0;4;0x0;123%','#ZZ;4;0;0x4'],
+      '1_0_0', ['#NR;0;5;0x0;100','#ZZ;5;0;0x5'],
+
+    ])
+  })
+
+
+  it('lex-double-quote', () => {
+    alleq([
+      '""', ['#ST;0;2;0x0;','#ZZ;2;0;0x2'],
+      '"a"', ['#ST;0;3;0x0;a','#ZZ;3;0;0x3'],
+      '"ab"', ['#ST;0;4;0x0;ab','#ZZ;4;0;0x4'],
+      '"abc"', ['#ST;0;5;0x0;abc','#ZZ;5;0;0x5'],
+      '"a b"', ['#ST;0;5;0x0;a b','#ZZ;5;0;0x5'],
+      ' "a"', ['#SP;0;1;0x0','#ST;1;3;0x1;a','#ZZ;4;0;0x4'],
+      '"a" ', ['#ST;0;3;0x0;a','#SP;3;1;0x3','#ZZ;4;0;0x4'],
+      ' "a" ', ['#SP;0;1;0x0','#ST;1;3;0x1;a','#SP;4;1;0x4','#ZZ;5;0;0x5'],
+      '"', ['#BD;0;1;0x0;~unterminated'],
+      '"a', ['#BD;1;2;0x0;a~unterminated'],
+      '"ab', ['#BD;2;3;0x0;ab~unterminated'],
+      ' "', ['#SP;0;1;0x0','#BD;1;1;0x1;~unterminated'],
+      ' "a', ['#SP;0;1;0x0','#BD;2;2;0x1;a~unterminated'],
+      ' "ab', ['#SP;0;1;0x0','#BD;3;3;0x1;ab~unterminated'],
+      '"a\'b"', ['#ST;0;5;0x0;a\'b','#ZZ;5;0;0x5'],
+      '"\'a\'b"', ['#ST;0;6;0x0;\'a\'b','#ZZ;6;0;0x6'],
+      '"\'a\'b\'"', ['#ST;0;7;0x0;\'a\'b\'','#ZZ;7;0;0x7'],
+      '"\\t"', ['#ST;0;4;0x0;\t','#ZZ;4;0;0x4'],
+      '"\\r"', ['#ST;0;4;0x0;\r','#ZZ;4;0;0x4'],
+      '"\\n"', ['#ST;0;4;0x0;\n','#ZZ;4;0;0x4'],
+      '"\\\""', ['#ST;0;4;0x0;"','#ZZ;4;0;0x4'],
+      '"\\q"', ['#ST;0;4;0x0;q','#ZZ;4;0;0x4'],
+      '"\\\'"', ['#ST;0;4;0x0;\'','#ZZ;4;0;0x4'],
+      '"\\\\"', ['#ST;0;4;0x0;\\','#ZZ;4;0;0x4'],
+      '"\\u0040"', ['#ST;0;8;0x0;@','#ZZ;8;0;0x8'],
+      '"\\uQQQQ"', ['#BD;3;4;0x3;\\uQQQQ~invalid-unicode'],
+      '"[{}]:,"', ['#ST;0;8;0x0;[{}]:,', '#ZZ;8;0;0x8'],
+    ])
+  })
+
+
+  it('lex-single-quote', () => {
+    alleq([
+      '\'\'', ['#ST;0;2;0x0;','#ZZ;2;0;0x2'],
+      '\'a\'', ['#ST;0;3;0x0;a','#ZZ;3;0;0x3'],
+      '\'ab\'', ['#ST;0;4;0x0;ab','#ZZ;4;0;0x4'],
+      '\'abc\'', ['#ST;0;5;0x0;abc','#ZZ;5;0;0x5'],
+      '\'a b\'', ['#ST;0;5;0x0;a b','#ZZ;5;0;0x5'],
+      ' \'a\'', ['#SP;0;1;0x0','#ST;1;3;0x1;a','#ZZ;4;0;0x4'],
+      '\'a\' ', ['#ST;0;3;0x0;a','#SP;3;1;0x3','#ZZ;4;0;0x4'],
+      ' \'a\' ', ['#SP;0;1;0x0','#ST;1;3;0x1;a','#SP;4;1;0x4','#ZZ;5;0;0x5'],
+      '\'', ['#BD;0;1;0x0;~unterminated'],
+      '\'a', ['#BD;1;2;0x0;a~unterminated'],
+      '\'ab', ['#BD;2;3;0x0;ab~unterminated'],
+      ' \'', ['#SP;0;1;0x0','#BD;1;1;0x1;~unterminated'],
+      ' \'a', ['#SP;0;1;0x0','#BD;2;2;0x1;a~unterminated'],
+      ' \'ab', ['#SP;0;1;0x0','#BD;3;3;0x1;ab~unterminated'],
+      '\'a"b\'', ['#ST;0;5;0x0;a"b','#ZZ;5;0;0x5'],
+      '\'"a"b\'', ['#ST;0;6;0x0;"a"b','#ZZ;6;0;0x6'],
+      '\'"a"b"\'', ['#ST;0;7;0x0;"a"b"','#ZZ;7;0;0x7'],
+      '\'\\t\'', ['#ST;0;4;0x0;\t','#ZZ;4;0;0x4'],
+      '\'\\r\'', ['#ST;0;4;0x0;\r','#ZZ;4;0;0x4'],
+      '\'\\n\'', ['#ST;0;4;0x0;\n','#ZZ;4;0;0x4'],
+      '\'\\\'\'', ['#ST;0;4;0x0;\'','#ZZ;4;0;0x4'],
+      '\'\\q\'', ['#ST;0;4;0x0;q','#ZZ;4;0;0x4'],
+      '\'\\"\'', ['#ST;0;4;0x0;"','#ZZ;4;0;0x4'],
+      '\'\\\\\'', ['#ST;0;4;0x0;\\','#ZZ;4;0;0x4'],
+      '\'\\u0040\'', ['#ST;0;8;0x0;@','#ZZ;8;0;0x8'],
+      '\'\\uQQQQ\'', ['#BD;3;4;0x3;\\uQQQQ~invalid-unicode'],
+      '\'[{}]:,\'', ['#ST;0;8;0x0;[{}]:,', '#ZZ;8;0;0x8'],
+    ])
+  })
+
+
+  it('lex-text', () => {
+    alleq([
+      'a-b', ['#TX;0;3;0x0;a-b','#ZZ;3;0;0x3'],
+      '$a_', ['#TX;0;3;0x0;$a_','#ZZ;3;0;0x3'],
+      '!%~', ['#TX;0;3;0x0;!%~','#ZZ;3;0;0x3'],
+      'a"b', ['#TX;0;3;0x0;a"b','#ZZ;3;0;0x3'],
+      'a\'b', ['#TX;0;3;0x0;a\'b','#ZZ;3;0;0x3'],
+      ' a b ', ['#SP;0;1;0x0','#TX;1;1;0x1;a',
+                '#SP;2;1;0x2','#TX;3;1;0x3;b',
+                '#SP;4;1;0x4','#ZZ;5;0;0x5'],
+      'a:', ['#TX;0;1;0x0;a','#CL;1;1;0x1','#ZZ;2;0;0x2'],
+    ])
+  })
+
+
+  it('lex-line', () => {
+    alleq([
+      '{a:1,\nb:2}', [
+        '#OB;0;1;0x0',
+
+        '#TX;1;1;0x1;a',
+        '#CL;2;1;0x2',
+        '#NR;3;1;0x3;1',
+
+        '#CA;4;1;0x4',
+        '#LN;5;1;0x5',
+
+        '#TX;6;1;1x0;b',
+        '#CL;7;1;1x7',
+        '#NR;8;1;1x8;2',
+
+        '#CB;9;1;1x9',
+        '#ZZ;10;0;1x10'
+      ],
+    ])
+  })
+
+
+  it('syntax-errors', () => {
+    // TODO: validate errors
+    
+    // pairs not valid inside list
+    expect(()=>j('[a:1]')).throws()
+
+    // top level already a map
+    expect(()=>j('a:1,2')).throws() 
+
+    // can't mix pairs and values list
+    expect(()=>j('x:[a:1,2,b:3]')).throws() 
+
+    // values not valid inside map
+    expect(()=>j('x:{1,2}') ).throws()
+
+  })
+  
+
+  it('process-scalars', () => {
+    expect(prc(lexer(''))).equal(undefined)
+    expect(prc(lexer('null'))).equal(null)
+    expect(prc(lexer('true'))).equal(true)
+    expect(prc(lexer('false'))).equal(false)
+    expect(prc(lexer('123'))).equal(123)
+    expect(prc(lexer('"a"'))).equal('a')
+    expect(prc(lexer('\'b\''))).equal('b')
+    expect(prc(lexer('q'))).equal('q')
+    expect(prc(lexer('x'))).equal('x')
+  })
+
+
+  it('process-text', () => {
+    expect(prc(lexer('{x y:1}'))).equal({'x y':1})
+    expect(prc(lexer('x y:1'))).equal({'x y':1})
+    expect(prc(lexer('[{x y:1}]'))).equal([{'x y':1}])
+    
+    expect(prc(lexer('q'))).equal('q')
+    expect(prc(lexer('q w'))).equal('q w')
+    expect(prc(lexer('a:q w'))).equal({a:'q w'})
+    expect(prc(lexer('a:q w, b:1'))).equal({a:'q w', b:1})
+    expect(prc(lexer('a: q w , b:1'))).equal({a:'q w', b:1})
+    expect(prc(lexer('[q w]'))).equal(['q w'])
+    expect(prc(lexer('[ q w ]'))).equal(['q w'])
+    expect(prc(lexer('[ q w, 1 ]'))).equal(['q w', 1])
+    expect(prc(lexer('[ q w , 1 ]'))).equal(['q w', 1])
+    expect(prc(lexer('p:[q w]}'))).equal({p:['q w']})
+    expect(prc(lexer('p:[ q w ]'))).equal({p:['q w']})
+    expect(prc(lexer('p:[ q w, 1 ]'))).equal({p:['q w', 1]})
+    expect(prc(lexer('p:[ q w , 1 ]'))).equal({p:['q w', 1]})
+    expect(prc(lexer('p:[ q w , 1 ]'))).equal({p:['q w', 1]})
+    expect(prc(lexer('[ qq ]'))).equal(['qq'])
+    expect(prc(lexer('[ q ]'))).equal(['q'])
+    expect(prc(lexer('[ c ]'))).equal(['c'])
+    expect(prc(lexer('c:[ c ]'))).equal({c:['c']})
+    expect(prc(lexer('c:[ c , cc ]'))).equal({c:['c', 'cc']})
+  })
+
+  
+  it('process-implicit-object', () => {
+    expect(prc(lexer('a:1'))).equal({a:1})
+    expect(prc(lexer('a:1,b:2'))).equal({a:1, b:2})
+  })
+
+
+  it('process-object-tree', () => {
+    expect(prc(lexer('{}'))).equal({})
+    expect(prc(lexer('{a:1}'))).equal({a:1})
+    expect(prc(lexer('{a:1,b:q}'))).equal({a:1,b:'q'})
+    expect(prc(lexer('{a:1,b:q,c:"w"}'))).equal({a:1,b:'q',c:'w'})
+    
+    expect(prc(lexer('a:1,b:{c:2}'))).equal({a:1, b:{c:2}})
+    expect(prc(lexer('a:1,d:3,b:{c:2}'))).equal({a:1, d:3, b:{c:2}})
+    expect(prc(lexer('a:1,b:{c:2},d:3'))).equal({a:1, d:3, b:{c:2}})
+    expect(prc(lexer('a:1,b:{c:2},e:{f:4}'))).equal({a:1, b:{c:2}, e:{f:4}})
+    expect(prc(lexer('a:1,b:{c:2},d:3,e:{f:4}'))).equal({a:1, d:3, b:{c:2}, e:{f:4}})
+    expect(prc(lexer('a:1,b:{c:2},d:3,e:{f:4},g:5')))
+      .equal({a:1, d:3, b:{c:2}, e:{f:4}, g:5})
+
+    expect(prc(lexer('a:{b:1}'))).equal({a:{b:1}})
+
+
+    expect(prc(lexer('{a:{b:1}}'))).equal({a:{b:1}})
+    expect(prc(lexer('a:{b:1}'))).equal({a:{b:1}})
+
+    expect(prc(lexer('{a:{b:{c:1}}}'))).equal({a:{b:{c:1}}})
+    expect(prc(lexer('a:{b:{c:1}}'))).equal({a:{b:{c:1}}})
+
+    expect(prc(lexer('a:1,b:{c:2},d:{e:{f:3}}')))
+      .equal({a:1, b:{c:2}, d:{e:{f:3}}})
+    expect(prc(lexer('a:1,b:{c:2},d:{e:{f:3}},g:4')))
+      .equal({a:1, b:{c:2}, d:{e:{f:3}}, g:4})
+    expect(prc(lexer('a:1,b:{c:2},d:{e:{f:3}},h:{i:5},g:4')))
+      .equal({a:1, b:{c:2}, d:{e:{f:3}}, g:4, h:{i:5}})
+
+    // PN002
+    expect(prc(lexer('a:1,b:{c:2}d:3'))).equal({ a: 1, b: { c: 2 }, d: 3 })
+  })
+
+  
+  it('process-array', () => {
+    expect(prc(lexer('[a]'))).equal(['a'])
+    expect(prc(lexer('[a,]'))).equal(['a'])
+    expect(prc(lexer('[a,,]'))).equal(['a',null])
+    expect(prc(lexer('[,a]'))).equal([null,'a'])
+    expect(prc(lexer('[,a,]'))).equal([null,'a'])
+    expect(prc(lexer('[,,a]'))).equal([null,null,'a'])
+    expect(prc(lexer('[,,a,]'))).equal([null,null,'a'])
+    expect(prc(lexer('[,,a,,]'))).equal([null,null,'a',null])
+
+    expect(prc(lexer(' [ a ] '))).equal( ['a'])
+    expect(prc(lexer(' [ a , ] '))).equal(['a'])
+    expect(prc(lexer(' [ a , , ] '))).equal(['a',null])
+    expect(prc(lexer(' [ , a ] '))).equal([null,'a'])
+    expect(prc(lexer(' [ , a , ] '))).equal([null,'a'])
+    expect(prc(lexer(' [ , , a ] '))).equal([null,null,'a'])
+    expect(prc(lexer(' [ , , a , ] '))).equal([null,null,'a'])
+    expect(prc(lexer(' [ , , a , , ] '))).equal([null,null,'a',null])
+
+    expect(prc(lexer(','))).equal([null])
+    expect(prc(lexer(',,'))).equal([null, null])
+    expect(prc(lexer('1,'))).equal([1])
+    expect(prc(lexer('0,'))).equal([0])
+    expect(prc(lexer(',1'))).equal([null,1])
+    expect(prc(lexer(',0'))).equal([null,0])
+    expect(prc(lexer(',1,'))).equal([null,1])
+    expect(prc(lexer(',0,'))).equal([null,0])
+    expect(prc(lexer(',1,,'))).equal([null,1,null])
+    expect(prc(lexer(',0,,'))).equal([null,0,null])
+
+    expect(prc(lexer('[]'))).equal([])
+    expect(prc(lexer('[,]'))).equal([null])
+    expect(prc(lexer('[,,]'))).equal([null,null])
+    
+    expect(prc(lexer('[0]'))).equal([0])
+    expect(prc(lexer('[0,1]'))).equal([0,1])
+    expect(prc(lexer('[0,1,2]'))).equal([0,1,2])
+    expect(prc(lexer('[0,]'))).equal([0])
+    expect(prc(lexer('[0,1,]'))).equal([0,1])
+    expect(prc(lexer('[0,1,2,]'))).equal([0,1,2])
+
+    expect(prc(lexer('[q]'))).equal(['q'])
+    expect(prc(lexer('[q,"w"]'))).equal(['q',"w"])
+    expect(prc(lexer('[q,"w",false]'))).equal(['q',"w",false])
+    expect(prc(lexer('[q,"w",false,0x,0x1]'))).equal(['q',"w",false,'0x',1])
+    expect(prc(lexer('[q,"w",false,0x,0x1,$]'))).equal(['q',"w",false,'0x',1,'$'])
+    expect(prc(lexer('[q,]'))).equal(['q'])
+    expect(prc(lexer('[q,"w",]'))).equal(['q',"w"])
+    expect(prc(lexer('[q,"w",false,]'))).equal(['q',"w",false])
+    expect(prc(lexer('[q,"w",false,0x,0x1,$,]'))).equal(['q',"w",false,'0x',1,'$'])
+
+    expect(prc(lexer('0,1'))).equal([0,1])
+
+    // PN006
+    expect(prc(lexer('0,1,'))).equal([0,1])
+    
+    expect(prc(lexer('a:{b:1}'))).equal({a:{b:1}})
+    expect(prc(lexer('a:[1]'))).equal({a:[1]})
+    expect(prc(lexer('a:[0,1]'))).equal({a:[0,1]})
+    expect(prc(lexer('a:[0,1,2]'))).equal({a:[0,1,2]})
+    expect(prc(lexer('{a:[0,1,2]}'))).equal({a:[0,1,2]})
+
+    expect(prc(lexer('a:[1],b:[2,3]'))).equal({a:[1],b:[2,3]})
+
+    expect(prc(lexer('[[]]'))).equal([[]])
+    expect(prc(lexer('[[],]'))).equal([[]])
+    expect(prc(lexer('[[],[]]'))).equal([[],[]])
+    expect(prc(lexer('[[[]],[]]'))).equal([[[]],[]])
+    expect(prc(lexer('[[[],[]],[]]'))).equal([[[],[]],[]])
+    expect(prc(lexer('[[[],[[]]],[]]'))).equal([[[],[[]]],[]])
+    expect(prc(lexer('[[[],[[],[]]],[]]'))).equal([[[],[[],[]]],[]])
+  })
+
+  
+  it('process-mixed-nodes', () => {
+    expect(prc(lexer('a:[{b:1}]'))).equal({a:[{b:1}]})
+    expect(prc(lexer('{a:[{b:1}]}'))).equal({a:[{b:1}]})
+
+    expect(prc(lexer('[{a:1}]'))).equal([{a:1}])
+    expect(prc(lexer('[{a:1},{b:2}]'))).equal([{a:1},{b:2}])
+
+    expect(prc(lexer('[[{a:1}]]'))).equal([[{a:1}]])
+    expect(prc(lexer('[[{a:1},{b:2}]]'))).equal([[{a:1},{b:2}]])
+
+    expect(prc(lexer('[[[{a:1}]]]'))).equal([[[{a:1}]]])
+    expect(prc(lexer('[[[{a:1},{b:2}]]]'))).equal([[[{a:1},{b:2}]]])
+
+    expect(prc(lexer('[{a:[1]}]'))).equal([{a:[1]}])
+    expect(prc(lexer('[{a:[{b:1}]}]'))).equal([{a:[{b:1}]}])
+    expect(prc(lexer('[{a:{b:[1]}}]'))).equal([{a:{b:[1]}}])
+    expect(prc(lexer('[{a:{b:[{c:1}]}}]'))).equal([{a:{b:[{c:1}]}}])
+    expect(prc(lexer('[{a:{b:{c:[1]}}}]'))).equal([{a:{b:{c:[1]}}}])
+
+    expect(prc(lexer('[{},{a:[1]}]'))).equal([{},{a:[1]}])
+    expect(prc(lexer('[{},{a:[{b:1}]}]'))).equal([{},{a:[{b:1}]}])
+    expect(prc(lexer('[{},{a:{b:[1]}}]'))).equal([{},{a:{b:[1]}}])
+    expect(prc(lexer('[{},{a:{b:[{c:1}]}}]'))).equal([{},{a:{b:[{c:1}]}}])
+    expect(prc(lexer('[{},{a:{b:{c:[1]}}}]'))).equal([{},{a:{b:{c:[1]}}}])
+
+    expect(prc(lexer('[[],{a:[1]}]'))).equal([[],{a:[1]}])
+    expect(prc(lexer('[[],{a:[{b:1}]}]'))).equal([[],{a:[{b:1}]}])
+    expect(prc(lexer('[[],{a:{b:[1]}}]'))).equal([[],{a:{b:[1]}}])
+    expect(prc(lexer('[[],{a:{b:[{c:1}]}}]'))).equal([[],{a:{b:[{c:1}]}}])
+    expect(prc(lexer('[[],{a:{b:{c:[1]}}}]'))).equal([[],{a:{b:{c:[1]}}}])
+
+    expect(prc(lexer('[{a:[1]},{a:[1]}]'))).equal([{a:[1]},{a:[1]}])
+    expect(prc(lexer('[{a:[{b:1}]},{a:[{b:1}]}]'))).equal([{a:[{b:1}]},{a:[{b:1}]}])
+    expect(prc(lexer('[{a:{b:[1]}},{a:{b:[1]}}]'))).equal([{a:{b:[1]}},{a:{b:[1]}}])
+    expect(prc(lexer('[{a:{b:[{c:1}]}},{a:{b:[{c:1}]}}]')))
+      .equal([{a:{b:[{c:1}]}},{a:{b:[{c:1}]}}])
+    expect(prc(lexer('[{a:{b:{c:[1]}}},{a:{b:{c:[1]}}}]')))
+      .equal([{a:{b:{c:[1]}}},{a:{b:{c:[1]}}}])
+  })
+
+
+  it('process-comments', () => {
+    expect(j('a:q\nb:w #X\nc:r \n\nd:t\n\n#')).equal({a:'q',b:'w',c:'r',d:'t'})
+  })
+  
+  
+  it('process-whitespace', () => {
+    expect(prc(lexer('[0,1]'))).equal([0,1])
+    expect(prc(lexer('[0, 1]'))).equal([0,1])
+    expect(prc(lexer('[0 ,1]'))).equal([0,1])
+    expect(prc(lexer('[0 ,1 ]'))).equal([0,1])
+    expect(prc(lexer('[0,1 ]'))).equal([0,1])
+    expect(prc(lexer('[ 0,1]'))).equal([0,1])
+    expect(prc(lexer('[ 0,1 ]'))).equal([0,1])
+    return 
+    
+    expect(prc(lexer('{a: 1}'))).equal({a:1})
+    expect(prc(lexer('{a : 1}'))).equal({a:1})
+    expect(prc(lexer('{a: 1,b: 2}'))).equal({a:1,b:2})
+    expect(prc(lexer('{a : 1,b : 2}'))).equal({a:1,b:2})
+
+    expect(prc(lexer('{a:\n1}'))).equal({a:1})
+    expect(prc(lexer('{a\n:\n1}'))).equal({a:1})
+    expect(prc(lexer('{a:\n1,b:\n2}'))).equal({a:1,b:2})
+    expect(prc(lexer('{a\n:\n1,b\n:\n2}'))).equal({a:1,b:2})
+
+    expect(prc(lexer('{a:\r\n1}'))).equal({a:1})
+    expect(prc(lexer('{a\r\n:\r\n1}'))).equal({a:1})
+    expect(prc(lexer('{a:\r\n1,b:\r\n2}'))).equal({a:1,b:2})
+    expect(prc(lexer('{a\r\n:\r\n1,b\r\n:\r\n2}'))).equal({a:1,b:2})
+
+    
+    expect(prc(lexer(' { a: 1 } '))).equal({a:1})
+    expect(prc(lexer(' { a : 1 } '))).equal({a:1})
+    expect(prc(lexer(' { a: 1 , b: 2 } '))).equal({a:1,b:2})
+    expect(prc(lexer(' { a : 1 , b : 2 } '))).equal({a:1,b:2})
+
+    expect(prc(lexer('  {  a:  1  }  '))).equal({a:1})
+    expect(prc(lexer('  {  a  :  1  }  '))).equal({a:1})
+    expect(prc(lexer('  {  a:  1  ,  b:  2  }  '))).equal({a:1,b:2})
+    expect(prc(lexer('  {  a  :  1  ,  b  :  2  }  '))).equal({a:1,b:2})
+
+    expect(prc(lexer('\n  {\n  a:\n  1\n  }\n  '))).equal({a:1})
+    expect(prc(lexer('\n  {\n  a\n  :\n  1\n  }\n  '))).equal({a:1})
+    expect(prc(lexer('\n  {\n  a:\n  1\n  ,\n  b:\n  2\n  }\n  '))).equal({a:1,b:2})
+    expect(prc(lexer('\n  {\n  a\n  :\n  1\n  ,\n  b\n  :\n  2\n  }\n  ')))
+      .equal({a:1,b:2})
+
+    expect(prc(lexer('\n  \n{\n  \na:\n  \n1\n  \n}\n  \n'))).equal({a:1})
+    expect(prc(lexer('\n  \n{\n  \na\n  \n:\n  \n1\n  \n}\n  \n'))).equal({a:1})
+    expect(prc(lexer('\n  \n{\n  \na:\n  \n1\n  \n,\n  \nb:\n  \n2\n  \n}\n  \n'))).equal({a:1,b:2})
+    expect(prc(lexer('\n  \n{\n  \na\n  \n:\n  \n1\n  \n,\n  \nb\n  \n:\n  \n2\n  \n}\n  \n')))
+      .equal({a:1,b:2})
+
+    expect(prc(lexer('\n\n{\n\na:\n\n1\n\n}\n\n'))).equal({a:1})
+    expect(prc(lexer('\n\n{\n\na\n\n:\n\n1\n\n}\n\n'))).equal({a:1})
+    expect(prc(lexer('\n\n{\n\na:\n\n1\n\n,\n\nb:\n\n2\n\n}\n\n'))).equal({a:1,b:2})
+    expect(prc(lexer('\n\n{\n\na\n\n:\n\n1\n\n,\n\nb\n\n:\n\n2\n\n}\n\n')))
+      .equal({a:1,b:2})
+
+    expect(prc(lexer('\r\n{\r\na:\r\n1\r\n}\r\n'))).equal({a:1})
+    expect(prc(lexer('\r\n{\r\na\r\n:\r\n1\r\n}\r\n'))).equal({a:1})
+    expect(prc(lexer('\r\n{\r\na:\r\n1\r\n,\r\nb:\r\n2\r\n}\r\n'))).equal({a:1,b:2})
+    expect(prc(lexer('\r\n{\r\na\r\n:\r\n1\r\n,\r\nb\r\n:\r\n2\r\n}\r\n')))
+      .equal({a:1,b:2})
+
+
+    expect(prc(lexer('a: 1'))).equal({a:1})
+    expect(prc(lexer(' a: 1'))).equal({a:1})
+    expect(prc(lexer(' a: 1 '))).equal({a:1})
+    expect(prc(lexer(' a : 1 '))).equal({a:1})
+    
+    expect(prc(lexer(' a: [ { b: 1 } ] '))).equal({a:[{b:1}]})
+    expect(prc(lexer('\na: [\n  {\n     b: 1\n  }\n]\n'))).equal({a:[{b:1}]})
+  })
+
+  
+  it('funky-keys', () => {
+    expect(j('x:1')).equal({'x':1})
+    expect(j('null:1')).equal({'null':1})
+    expect(j('true:1')).equal({'true':1})
+    expect(j('false:1')).equal({'false':1})
+
+    expect(j('{a:{x:1}}')).equal({a:{x:1}})
+    expect(j('a:{x:1}')).equal({a:{x:1}})
+    expect(j('a:{null:1}')).equal({a:{'null':1}})
+    expect(j('a:{true:1}')).equal({a:{'true':1}})
+    expect(j('a:{false:1}')).equal({a:{'false':1}})
+  })
+
+  
+  it('api', () => {
+    expect(Jsonic('a:1')).equal({a:1})
+    expect(Jsonic.parse('a:1')).equal({a:1})
+  })
+  
+
+
+  it('pv-works', function(){
+    expect(j('foo:1, bar:zed')).equal( {"foo":1,"bar":"zed"} )
+    expect(j('foo-foo:1, bar:zed')).equal( {"foo-foo":1,"bar":"zed"} )
+    expect(j('"foo-foo":1, bar:zed')).equal( {"foo-foo":1,"bar":"zed"} )
+    expect(j('"foo-1":1, bar:zed')).equal( {"foo-1":1,"bar":"zed"} )
+    expect(j('"foo-0":1, bar:zed')).equal( {"foo-0":1,"bar":"zed"} )
+    expect(j('"-foo-":1, bar:zed')).equal( {"-foo-":1,"bar":"zed"} )
+    expect(j('"-foo":1, bar:zed')).equal( {"-foo":1,"bar":"zed"} )
+    expect(j('"foo-bar-":1, bar:zed')).equal( {"foo-bar-":1,"bar":"zed"} )
+    expect(j('"foo-":1, bar:zed')).equal( {"foo-":1,"bar":"zed"} )
+    expect(j('"foo---foo":1, bar:zed')).equal( {"foo---foo":1,"bar":"zed"} )
+    expect(j('foo--foo:1, bar:zed')).equal( {"foo--foo":1,"bar":"zed"} )
+    expect(j('"foo--1":1, bar:zed')).equal( {"foo--1":1,"bar":"zed"} )
+    expect(j('"foo---0":1, bar:zed')).equal( {"foo---0":1,"bar":"zed"} )
+    expect(j('"--foo--":1, bar:zed')).equal( {"--foo--":1,"bar":"zed"} )
+    expect(j('"--foo":1, bar:zed')).equal( {"--foo":1,"bar":"zed"} )
+    expect(j('"foo--bar-baz":1, "-bar":zed')).equal( {"foo--bar-baz":1,"-bar":"zed"} )
+    expect(j('"foo--":1, bar:zed')).equal( {"foo--":1,"bar":"zed"} )
+    expect(j('{foo:"bar", arr:[0,0]}')).equal( {"foo":"bar","arr":[0,0]} )
+    expect(j("'a':1,':':2, c : 3")).equal( {"a":1,":":2,"c":3} )
+  })
+
+  
+  it('pv-funky-input', function(){
+
+    // Object values are just returned
+    expect( '{"foo":1,"bar":"zed"}' ).equal(
+      JSON.stringify(j( {foo:1,bar:'zed'} )) )
+
+    expect( '["a","b"]' ).equal(
+      JSON.stringify(j( ['a','b'] )) )
+
+    // TODO: api change - return non-strings as is!
+    // DIFF expect( j( /a/ ) ).equal('/a/')
+    // DIFF expect( j( NaN ) ).equal('NaN')
+    // DIFF expect( j( null ) ).equal('null')
+    // DIFF expect( j( undefined ) ).equal('undefined')
+    // DIFF expect( j( void 0 ) ).equal('undefined')
+    // DIFF expect( j( 1 ) ).equal('1')
+    // DIFF expect( j( Number(1) ) ).equal('1')
+    // DIFF expect( j( true ) ).equal('true')
+    // DIFF expect( j( false ) ).equal('false')
+    // DIFF expect( j( function foo () {} ).replace(/ +/g,'') ).equal('functionfoo(){}')
+
+    var d = new Date()
+    // DIFF expect( j( d ) ).equal(''+d)
+
+
+    /*
+    try { j( 'a:' ); expect('a:').toBe('FAIL') }
+    catch(e) { expect(e.message.match(/^Expected/)).toBeTruthy() }
+
+    try { j( 'b:\n}' ); expect('b:}').toBe('FAIL') }
+    catch(e) { expect(e.message.match(/^Expected/)).toBeTruthy() }
+
+    try { j( 'c:\r}' ); expect('c:}').toBe('FAIL') }
+    catch(e) { expect(e.message.match(/^Expected/)).toBeTruthy() }
+    */
+    
+  })
+
+  
+  it('pv-types', function(){
+    let out = j("t:{null:null,int:100,dec:9.9,t:true,f:false,qs:\"a\\\"a'a\",as:'a\"a\\'a'}")
+    expect(out).equal({
+      t: {
+        null: null,
+        int: 100,
+        dec: 9.9,
+        t: true,
+        f: false,
+        qs: `a\\a'a"`,
+        as: `a"a\\a'`
+      }
+    })
+    
+    let out1 = j("null:null,int:100,dec:9.9,t:true,f:false,qs:\"a\\\"a'a\",as:'a\"a\\'a'")
+    expect(out1).equal({
+      null: null,
+      int: 100,
+      dec: 9.9,
+      t: true,
+      f: false,
+      qs: `a\\a'a"`,
+      as: `a"a\\a'`
+    })
+  })
+
+
+  it('pv-subobj', function(){
+    expect(j("a:{b:1},c:2")).equal({"a":{"b":1},"c":2})
+
+    expect(j("a:{b:1}")).equal({"a":{"b":1}})
+
+    expect(j("a:{b:{c:1}}")).equal({"a":{"b":{"c":1}}})
+  })
+
+
+  it('pv-comma', function(){
+    expect(j("a:1, b:2, ")).equal({"a":1,"b":2})
+
+    expect(j("a:1,")).equal({"a":1})
+
+    // DIFF expect(j(",a:1")).equal({"a":1})
+
+    // DIFF expect(j(",")).equal({})
+
+    // DIFF expect(j(",,")).equal({})
+
+    expect(j("[a,]")).equal(["a"])
+
+    expect(j("[a,1,]")).equal(["a",1])
+
+    // DIFF expect(j("[,a,1,]")).equal(["a",1])
+
+    // DIFF expect(j("[,]")).equal([])
+
+    // DIFF expect(j("[,,]")).equal([])
+  })
+
+
+  it('pv-empty', function(){
+    // DIFF expect(j("")).equal('{}')
+  })
+
+
+  it('pv-arrays', function(){
+    expect(j("[]")).equal([])
+
+    expect(j("[1]")).equal([1])
+
+    expect(j("[1,2]")).equal([1,2])
+
+    expect(j("[ 1 , 2 ]")).equal([1,2])
+
+    expect(j("{a:[],b:[1],c:[1,2]}")).equal({"a":[],"b":[1],"c":[1,2]})
+
+    expect(j("{a: [ ] , b:[b], c:[ c , dd ]}"))
+      .equal({"a":[],"b":["b"],"c":["c","dd"]})
+
+    expect(j("['a']")).equal(["a"])
+
+    expect(j('["a"]')).equal(["a"])
+
+    expect(j("['a',\"b\"]")).equal(["a","b"])
+
+    expect(j("[ 'a' , \"b\" ]")).equal(["a","b"])
+  })
+
+  
+
+  it('pv-deep', function(){
+    var x = '{a:[[{b:1}],{c:[{d:1}]}]}'
+
+    expect(j(x)).equal({"a":[[{"b":1}],{"c":[{"d":1}]}]})
+
+    expect(j('['+x+']')).equal([{"a":[[{"b":1}],{"c":[{"d":1}]}]}])
+  })
+
+  
+
+  it('pv-strings', function(){
+    expect(j("a:'',b:\"\"")).equal({"a":"","b":""})
+
+    expect(j("a:x y")).equal({"a":"x y"})
+
+    expect(j("a:x, b:y z")).equal({"a":"x","b":"y z"})
+
+    // trimmed
+    expect(j("a: x , b: y z ")).equal({"a":"x","b":"y z"})
+
+    expect(j("a:'x', aa: 'x' , b:'y\"z', bb: 'y\"z' ,bbb:\"y'z\", bbbb: \"y'z\", c:\"\\n\", d:'\\n'")).equal({"a":"x","aa":"x","b":"y\"z","bb":"y\"z","bbb":"y'z","bbbb":"y\'z","c":"\n","d":"\n"})
+
+    // chars
+    // FIX expect(j("a:'\\'\\\\\\/\\b\\f\\n\\r\\t\\u0010'")).equal({"a":"\'\\\\/\\b\\f\\n\\r\\t\\u0010"})
+
+    // FIX expect(j('a:"\\"\\\\\\/\\b\\f\\n\\r\\t\\u0010"')).equal({"a":"\\\"\\\\/\\b\\f\\n\\r\\t\\u0010"})
+  })
+
+
+  it('pv-numbers', function(){
+    expect(j("x:0,a:102,b:1.2,c:-3,d:-4.5,e:-10")).equal({"x":0,"a":102,"b":1.2,"c":-3,"d":-4.5,"e":-10})
+
+    expect(j("x:0,a:102,b:1.2,c:1e2,d:1.2e3,e:1e+2,f:1e-2,g:1.2e+3,h:1.2e-3,i:-1.2e+3,j:-1.2e-3")).equal({"x":0,"a":102,"b":1.2,"c":100,"d":1200,"e":100,"f":0.01,"g":1200,"h":0.0012,"i":-1200,"j":-0.0012})
+
+    // digit prefix, but actually a string - could be an ID etc.
+    expect(j("x:01,a:1a,b:10b,c:1e2e")).equal({"x":"01","a":"1a","b":"10b","c":"1e2e"})
+  })
+
+
+  it('pv-drop-outs', function(){
+    expect(j("a:0a")).equal({"a":"0a"})
+
+    expect(j("a:-0a")).equal({"a":"-0a"})
+
+    expect(j("a:0.a")).equal({"a":"0.a"})
+
+    // ORIG COMMENTED expect(j("a:-0.a")).equal({"a":"-0.a"})
+
+    expect(j("a:0.0a")).equal({"a":"0.0a"})
+
+    expect(j("a:-0.0a")).equal({"a":"-0.0a"})
+
+    // DIFF expect(j("a:'a,")).equal({"a":"\'a"})
+    
+    // DIFF expect(j("a:'a\"")).equal({"a":"\'a\""})
+
+    // DIFF expect(j("a:'\\u")).equal({"a":"\'\\u"})
+
+    // DIFF expect(j("a:'\\uZ")).equal({"a":"\'\\uZ"})
+  })
+
+/*
+  it( 'pv-bad', function(){
+    try { jsonic('{');
+          expect('bad-{').toBe('FAIL') } catch(e) {}
+
+    try { jsonic('}');
+          expect('bad-}').toBe('FAIL') } catch(e) {}
+
+    try { jsonic('a');
+          expect('bad-a').toBe('FAIL') } catch(e) {}
+
+    try { jsonic('!');
+          expect('bad-!').toBe('FAIL') } catch(e) {}
+
+    try { jsonic('0');
+          expect('bad-0').toBe('FAIL') } catch(e) {}
+
+    try { jsonic('a:,');
+          expect('bad-a:,').toBe('FAIL') } catch(e) {}
+
+    try { jsonic('\\');
+          expect('bad-\\').toBe('FAIL') } catch(e) {}
+
+    try { jsonic('"');
+          expect('bad-"').toBe('FAIL') } catch(e) {}
+
+    try { jsonic('""');
+          expect('bad-""').toBe('FAIL') } catch(e) {}
+
+    try { jsonic('a:{,');
+          expect('bad-a:{,').toBe('FAIL') } catch(e) {}
+
+    try { jsonic('a:,}');
+          expect('bad-a:,}').toBe('FAIL') } catch(e) {}
+
+    try { jsonic('a:');
+          expect('bad-a:,}').toBe('FAIL') } catch(e) {}
+
+    try { jsonic('a:"\""');
+          expect('bad-a:"\""').toBe('FAIL') } catch(e) {}
+
+    try { jsonic("a:'\''");
+          expect("bad-a:'\''").toBe('FAIL') } catch(e) {}
+
+    try { jsonic("a:{{}}");
+          expect("bad-a:{{}}").toBe('FAIL') } catch(e) {}
+
+    try { jsonic("a:{}}");
+          expect("bad-a:{}}").toBe('FAIL') } catch(e) {}
+
+    try { jsonic("a:{[]}");
+          expect("bad-a:{[]}").toBe('FAIL') } catch(e) {}
+
+    try { jsonic("a:{[}");
+          expect("bad-a:{[}").toBe('FAIL') } catch(e) {}
+
+    try { jsonic("a:{]}");
+          expect("bad-a:{]}").toBe('FAIL') } catch(e) {}
+
+    try { jsonic("a:{a}");
+          expect("bad-a:{a}").toBe('FAIL') } catch(e) {}
+
+    try { jsonic("a:{a,b}");
+          expect("bad-a:{a,b}").toBe('FAIL') } catch(e) {}
+
+    try { jsonic("a:{a:1,b}");
+          expect("bad-a:{a:1,b}").toBe('FAIL') } catch(e) {}
+
+    try { jsonic("a:{a:1,b:}");
+          expect("bad-a:{a:1,b:}").toBe('FAIL') } catch(e) {}
+
+    try { jsonic("a:{a:1,b:,}");
+          expect("bad-a:{a:1,b:,}").toBe('FAIL') } catch(e) {}
+
+    try { jsonic("a:{a:1,b:]}");
+          expect("bad-a:{a:1,b:]}").toBe('FAIL') } catch(e) {}
+
+    try { jsonic("[");
+          expect("bad-[").toBe('FAIL') } catch(e) {}
+
+    try { jsonic("{");
+          expect("bad-{").toBe('FAIL') } catch(e) {}
+
+    try { jsonic("}");
+          expect("bad-}").toBe('FAIL') } catch(e) {}
+
+    try { jsonic("]");
+          expect("bad-]").toBe('FAIL') } catch(e) {}
+
+
+  })
+*/
+
+  it( 'pv-json', function(){
+    var js = JSON.stringify
+    var jp = JSON.parse
+    var x,g
+
+    x='{}'; g=js(jp(x));
+    expect(js(j(x))).equal(g)
+
+    x=' \r\n\t{ \r\n\t} \r\n\t'; g=js(jp(x));
+    expect(js(j(x))).equal(g)
+
+    x=' \r\n\t{ \r\n\t"a":1 \r\n\t} \r\n\t'; g=js(jp(x));
+    expect(js(j(x))).equal(g)
+
+    x='{"a":[[{"b":1}],{"c":[{"d":1}]}]}'; g=js(jp(x));
+    expect(js(j(x))).equal(g)
+
+    x='['+x+']'; g=js(jp(x));
+    expect(js(j(x))).equal(g)
+  })
+
+/*
+  it( 'stringify', function(){
+    expect( jsonic.stringify(null) ).toBe('null')
+    expect( jsonic.stringify(void 0) ).toBe('null')
+    expect( jsonic.stringify(NaN) ).toBe('null')
+    expect( jsonic.stringify(0) ).toBe('0')
+    expect( jsonic.stringify(1.1) ).toBe('1.1')
+    expect( jsonic.stringify(1e-2) ).toBe('0.01')
+    expect( jsonic.stringify(true) ).toBe('true')
+    expect( jsonic.stringify(false) ).toBe('false')
+    expect( jsonic.stringify('') ).toBe('')
+    expect( jsonic.stringify('a') ).toBe('a')
+    expect( jsonic.stringify("a") ).toBe('a')
+    expect( jsonic.stringify("a a") ).toBe('a a')
+    expect( jsonic.stringify(" a") ).toBe("' a'")
+    expect( jsonic.stringify("a ") ).toBe("'a '")
+    expect( jsonic.stringify(" a ") ).toBe("' a '")
+    expect( jsonic.stringify("'a") ).toBe("'\\'a'")
+    expect( jsonic.stringify("a'a") ).toBe("a'a")
+    expect( jsonic.stringify("\"a") ).toBe("'\"a'")
+    expect( jsonic.stringify("a\"a") ).toBe("a\"a")
+    expect( jsonic.stringify( function f(){ return 'f' }) ).toBe('')
+
+
+    var s,d
+
+    s='[]';d=[]
+    expect( jsonic.stringify(d) ).toBe(s)
+    expect( jsonic(s) ).toEqual(d)
+
+    s='[1]';d=[1]
+    expect( jsonic.stringify(d) ).toBe(s)
+    expect( jsonic(s) ).toEqual(d)
+
+    s='[1,2]';d=[1,2]
+    expect( jsonic.stringify(d) ).toBe(s)
+    expect( jsonic(s) ).toEqual(d)
+
+    s='[a,2]';d=['a',2]
+    expect( jsonic.stringify(d) ).toBe(s)
+    expect( jsonic(s) ).toEqual(d)
+
+    s="[' a',2]";d=[' a',2]
+    expect( jsonic.stringify(d) ).toBe(s)
+    expect( jsonic(s) ).toEqual(d)
+
+    s="[a\'a,2]";d=["a'a",2]
+    expect( jsonic.stringify(d) ).toBe(s)
+    expect( jsonic(s) ).toEqual(d)
+
+    // default max depth is 3
+    s='[1,[2,[3,[]]]]';d=[1,[2,[3,[4,[]]]]]
+    expect( jsonic.stringify(d) ).toBe(s)
+
+    s='[1,[2,[3,[4,[]]]]]';d=[1,[2,[3,[4,[]]]]]
+    expect( jsonic(s) ).toEqual(d)
+
+
+    s='{}';d={}
+    expect( jsonic.stringify(d) ).toBe(s)
+    expect( jsonic(s) ).toEqual(d)
+
+    s='{a:1}';d={a:1}
+    expect( jsonic.stringify(d) ).toBe(s)
+    expect( jsonic(s) ).toEqual(d)
+
+    s='{a:a}';d={a:'a'}
+    expect( jsonic.stringify(d) ).toBe(s)
+    expect( jsonic(s) ).toEqual(d)
+
+    s='{a:A,b:B}';d={a:'A',b:'B'}
+    expect( jsonic.stringify(d) ).toBe(s)
+    expect( jsonic(s) ).toEqual(d)
+
+    // default max depth is 3
+    s='{a:{b:{c:{}}}}';d={a:{b:{c:{d:1}}}}
+    expect( jsonic.stringify(d) ).toBe(s)
+
+    s='{a:{b:{c:{d:1}}}}';d={a:{b:{c:{d:1}}}}
+    expect( jsonic(s) ).toEqual(d)
+
+    // custom depth
+    s='{a:{b:{}}}';d={a:{b:{c:{d:1}}}}
+    expect( jsonic.stringify(d,{depth:2}) ).toBe(s)
+
+    // omits
+    expect( jsonic.stringify({a:1,b:2},{omit:[]}) ).toBe('{a:1,b:2}')
+    expect( jsonic.stringify({a:1,b:2},{omit:['c']}) ).toBe('{a:1,b:2}')
+    expect( jsonic.stringify({a:1,b:2},{omit:['a']}) ).toBe('{b:2}')
+    expect( jsonic.stringify({a:1,b:2},{omit:['a','b']}) ).toBe('{}')
+
+    // omits at all depths!
+    expect( jsonic.stringify({b:{a:1,c:2}},{omit:['a']}) ).toBe('{b:{c:2}}')
+
+    // excludes if contains
+    expect( jsonic.stringify({a$:1,b:2}) ).toBe('{b:2}')
+    expect( jsonic.stringify({a$:1,bx:2,cx:3},{exclude:['b']}) ).toBe('{a$:1,cx:3}')
+
+
+    // custom
+    var o1 = {a:1,toString:function(){return '<A>'}}
+    expect( jsonic.stringify(o1) ).toBe('{a:1}')
+    expect( jsonic.stringify(o1,{custom:true}) ).toBe('<A>')
+    var o1_1 = {a:1,inspect:function(){return '<A>'}}
+    expect( jsonic.stringify(o1_1) ).toBe('{a:1}')
+    expect( jsonic.stringify(o1_1,{custom:true}) ).toBe('<A>')
+
+
+    // maxitems
+    var o2 = [1,2,3,4,5,6,7,8,9,10,11,12]
+    expect( jsonic.stringify(o2) ).toBe('[1,2,3,4,5,6,7,8,9,10,11]')
+    expect( jsonic.stringify(o2,{maxitems:12}) ).toBe('[1,2,3,4,5,6,7,8,9,10,11,12]')
+    expect( jsonic.stringify(o2,{maxitems:13}) ).toBe('[1,2,3,4,5,6,7,8,9,10,11,12]')
+
+    var o3 = {a:1,b:2,c:3,d:4,e:5,f:6,g:7,h:8,i:9,j:10,k:11,l:12}
+    expect( jsonic.stringify(o3) ).toBe(
+      '{a:1,b:2,c:3,d:4,e:5,f:6,g:7,h:8,i:9,j:10,k:11}')
+    expect( jsonic.stringify(o3,{maxitems:12}) ).toBe(
+      '{a:1,b:2,c:3,d:4,e:5,f:6,g:7,h:8,i:9,j:10,k:11,l:12}')
+    expect( jsonic.stringify(o3,{maxitems:12}) ).toBe(
+      '{a:1,b:2,c:3,d:4,e:5,f:6,g:7,h:8,i:9,j:10,k:11,l:12}')
+
+
+    // showfunc - needs custom=true as well
+    var o4 = {a:1,b:function b() {}}
+    expect( jsonic.stringify(o4) ).toBe('{a:1}')
+    expect( jsonic.stringify(o4,{showfunc:true}) )
+      .toBe('{a:1,b:function b() {}}')
+
+
+    // exception
+
+    var o5 = {toString:function(){ throw Error('foo') }}
+    expect( jsonic.stringify(o5,{custom:true}) )
+      .toBe( "ERROR: jsonic.stringify: Error: foo input was: {}" )
+
+
+    // maxchars
+    expect( jsonic.stringify([1,2,3],{maxchars:4}) ).toBe('[1,2')
+
+    // maxitems
+    expect( jsonic.stringify([1,2,3],{maxitems:2}) ).toBe('[1,2]')
+    expect( jsonic.stringify({a:1,b:2,c:3},{maxitems:2}) ).toBe('{a:1,b:2}')
+
+
+    // wierd keys
+    expect( jsonic.stringify({"_":0,"$":1,":":2,"":3,"\'":4,"\"":5,"\n":6}) )
+      .toBe( '{_:0,":":2,"":3,"\'":4,"\\"":5,"\\n":6}' )
+
+    // abbrevs
+    expect( jsonic.stringify({a:1,b:2},{o:['a']}) ).toBe('{b:2}')
+    expect( jsonic.stringify({a$:1,b:2,c:3},{x:['b']}) ).toBe('{a$:1,c:3}')
+    s='{a:{b:{}}}';d={a:{b:{c:{d:1}}}}
+    expect( jsonic.stringify(d,{d:2}) ).toBe(s)
+    expect( jsonic.stringify(o1,{c:true}) ).toBe('<A>')
+    expect( jsonic.stringify([1,2,3],{mc:4}) ).toBe('[1,2')
+    expect( jsonic.stringify([1,2,3],{mi:2}) ).toBe('[1,2]')
+  })
+*/
+  
+
+  it('pv-performance', function(){
+    var start = Date.now(), count = 0
+    var input =
+          "int:100,dec:9.9,t:true,f:false,qs:"+
+          "\"a\\\"a'a\",as:'a\"a\\'a',a:{b:{c:1}}"
+
+    while( Date.now()-start < 1000 ) {
+      j(input)
+      count++
+    }
+
+    console.log( 'parse/sec: '+count )
+  })
+})
+
+
+function st(t) {
+  let out = []
+
+  function m(s,v,t) {
+    return [s,t.loc,t.len,t.row+'x'+t.col,v?t.val:null]
+  }
+
+  switch(t.pin) {
+  case lexer.SP:
+    out = m(lexer.SP.description,0,t)
+    break
+
+  case lexer.LN:
+    out = m(lexer.LN.description,0,t)
+    break
+
+  case lexer.OB:
+    out = m(lexer.OB.description,0,t)
+    break
+
+  case lexer.CB:
+    out = m(lexer.CB.description,0,t)
+    break
+
+  case lexer.OS:
+    out = m(lexer.OS.description,0,t)
+    break
+
+  case lexer.CS:
+    out = m(lexer.CS.description,0,t)
+    break
+
+  case lexer.CL:
+    out = m(lexer.CL.description,0,t)
+    break
+
+  case lexer.CA:
+    out = m(lexer.CA.description,0,t)
+    break
+
+  case lexer.NR:
+    out = m(lexer.NR.description,1,t)
+    break
+
+  case lexer.ST:
+    out = m(lexer.ST.description,1,t)
+    break
+
+  case lexer.TX:
+    out = m(lexer.TX.description,1,t)
+    break
+
+  case lexer.BL:
+    out = m(lexer.BL.description,1,t)
+    break
+
+  case lexer.CM:
+    out = m(lexer.CM.description,1,t)
+    break
+
+  case lexer.NL:
+    return lexer.NL.description+';'+t.loc+';'+t.len+';'+t.row+'x'+t.col+';'+t.val
+
+  case lexer.BD:
+    t.val = t.val+'~'+t.why
+    out = m(lexer.BD.description,1,t)
+    break
+
+  case lexer.ZZ:
+    out = m(lexer.ZZ.description,0,t)
+    break
+  }
+
+  return out.filter(x=>null!=x).join(';')
+}
+
+},{"..":1,"@hapi/code":2,"@hapi/lab":31,"hapi-lab-shim":40}]},{},[54])(54)
 });
