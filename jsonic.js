@@ -23,6 +23,7 @@ const lexer_opts = {
     SC_NUMBER: s2cca('-0123456789'),
     SC_STRING: s2cca('"\''),
     SC_COMMENT: s2cca('#'),
+    SC_SINGLES: s2cca('{}[]:,'),
     SC_NONE: s2cca(''),
     SC_OB: s2cca('{'),
     SC_CB: s2cca('}'),
@@ -30,6 +31,7 @@ const lexer_opts = {
     SC_CS: s2cca(']'),
     SC_CL: s2cca(':'),
     SC_CA: s2cca(','),
+    SINGLES: [],
     CHARS_END: '\n\r',
 };
 // Create the lexing function.
@@ -95,54 +97,8 @@ function lexer(src, param_opts) {
                     sI = pI;
                     return token;
                 }
-                //case '{':
-                if (opts.SC_OB.includes(curc)) {
-                    token.pin = OB;
-                    token.loc = sI;
-                    token.col = cI++;
-                    token.len = 1;
-                    sI++;
-                    return token;
-                }
-                //case '}':
-                if (opts.SC_CB.includes(curc)) {
-                    token.pin = lexer.CB;
-                    token.loc = sI;
-                    token.col = cI++;
-                    token.len = 1;
-                    sI++;
-                    return token;
-                }
-                //case '[':
-                if (opts.SC_OS.includes(curc)) {
-                    token.pin = lexer.OS;
-                    token.loc = sI;
-                    token.col = cI++;
-                    token.len = 1;
-                    sI++;
-                    return token;
-                }
-                //case ']':
-                if (opts.SC_CS.includes(curc)) {
-                    token.pin = lexer.CS;
-                    token.loc = sI;
-                    token.col = cI++;
-                    token.len = 1;
-                    sI++;
-                    return token;
-                }
-                //case ':':
-                if (opts.SC_CL.includes(curc)) {
-                    token.pin = CL;
-                    token.loc = sI;
-                    token.col = cI++;
-                    token.len = 1;
-                    sI++;
-                    return token;
-                }
-                //case ',':
-                if (opts.SC_CA.includes(curc)) {
-                    token.pin = CA;
+                if (opts.SC_SINGLES.includes(curc)) {
+                    token.pin = opts.SINGLES[curc];
                     token.loc = sI;
                     token.col = cI++;
                     token.len = 1;
@@ -220,17 +176,6 @@ function lexer(src, param_opts) {
                     sI = pI;
                     return token;
                 }
-                // case '-':
-                // case '0':
-                // case '1':
-                // case '2':
-                // case '3':
-                // case '4':
-                // case '5':
-                // case '6':
-                // case '7':
-                // case '8':
-                // case '9':
                 if (opts.SC_NUMBER.includes(curc)) {
                     token.pin = NR;
                     token.loc = sI;
@@ -347,18 +292,6 @@ function lexer(src, param_opts) {
                     token.val = cur;
                     state = LS_CONSUME;
                     endchars = opts.CHARS_END;
-                    // console.log('COMMENT', state, token)
-                    /*
-                    pI = sI
-                    while (++pI < srclen && '\n' != src[pI] && '\r' != src[pI]);
-          
-                    token.len = pI - sI
-                    token.val = src.substring(sI, pI)
-          
-                    sI = cI = pI
-                    //        console.log('#CM:' + I(token))
-                    return token
-                    */
                 }
                 else {
                     //default:
@@ -372,22 +305,17 @@ function lexer(src, param_opts) {
                     token.pin = lexer.TX;
                     token.len = pI - sI;
                     token.val = src.substring(sI, pI);
-                    //sI = cI = pI
                     sI = pI;
                     return token;
                 }
             }
             else if (LS_CONSUME === state) {
                 pI = sI;
-                //while (++pI < srclen && '\n' != src[pI] && '\r' != src[pI]);
-                //while (++pI < srclen && !endchars.includes(src[pI]));
                 while (pI < srclen && !endchars.includes(src[pI]))
                     pI++, cI++;
-                //while (pI < srclen && endchars.includes(src[pI])) pI++;
                 token.val += src.substring(sI, pI);
                 token.len = token.val.length;
                 sI = pI;
-                // console.log('#CM:' + I(token))
                 state = LS_TOP;
                 return token;
             }
@@ -494,6 +422,12 @@ const BL = lexer.BL = Symbol('#BL');
 const NL = lexer.NL = Symbol('#NL');
 const VAL = [TX, NR, ST, BL, NL];
 const WSP = [SP, LN, CM];
+lexer_opts.SINGLES['{'.charCodeAt(0)] = lexer.OB;
+lexer_opts.SINGLES['}'.charCodeAt(0)] = lexer.CB;
+lexer_opts.SINGLES['['.charCodeAt(0)] = lexer.OS;
+lexer_opts.SINGLES[']'.charCodeAt(0)] = lexer.CS;
+lexer_opts.SINGLES[':'.charCodeAt(0)] = lexer.CL;
+lexer_opts.SINGLES[','.charCodeAt(0)] = lexer.CA;
 lexer.end = {
     pin: ZZ,
     loc: 0,
