@@ -280,14 +280,14 @@ describe('jsonic', function () {
 
   it('lex-boolean', () => {
     alleq([
-      'true', ['#BL;0;4;0x0;true','#ZZ;4;0;0x4'],
-      'true ', ['#BL;0;4;0x0;true','#SP;4;1;0x4','#ZZ;5;0;0x5'],
-      ' true', ['#SP;0;1;0x0','#BL;1;4;0x1;true','#ZZ;5;0;0x5'],
+      'true', ['#VL;0;4;0x0;true','#ZZ;4;0;0x4'],
+      'true ', ['#VL;0;4;0x0;true','#SP;4;1;0x4','#ZZ;5;0;0x5'],
+      ' true', ['#SP;0;1;0x0','#VL;1;4;0x1;true','#ZZ;5;0;0x5'],
       'truex', ['#TX;0;5;0x0;truex','#ZZ;5;0;0x5'],
       'truex ', ['#TX;0;5;0x0;truex','#SP;5;1;0x5','#ZZ;6;0;0x6'],
-      'false', ['#BL;0;5;0x0;false','#ZZ;5;0;0x5'],
-      'false ', ['#BL;0;5;0x0;false','#SP;5;1;0x5','#ZZ;6;0;0x6'],
-      ' false', ['#SP;0;1;0x0','#BL;1;5;0x1;false','#ZZ;6;0;0x6'],
+      'false', ['#VL;0;5;0x0;false','#ZZ;5;0;0x5'],
+      'false ', ['#VL;0;5;0x0;false','#SP;5;1;0x5','#ZZ;6;0;0x6'],
+      ' false', ['#SP;0;1;0x0','#VL;1;5;0x1;false','#ZZ;6;0;0x6'],
       'falsex', ['#TX;0;6;0x0;falsex','#ZZ;6;0;0x6'],
       'falsex ', ['#TX;0;6;0x0;falsex','#SP;6;1;0x6','#ZZ;7;0;0x7'],
     ])
@@ -296,9 +296,9 @@ describe('jsonic', function () {
   
   it('lex-null', () => {
     alleq([
-      'null', ['#NL;0;4;0x0;null','#ZZ;4;0;0x4'],
-      'null ', ['#NL;0;4;0x0;null','#SP;4;1;0x4','#ZZ;5;0;0x5'],
-      ' null', ['#SP;0;1;0x0','#NL;1;4;0x1;null','#ZZ;5;0;0x5'],
+      'null', ['#VL;0;4;0x0;null','#ZZ;4;0;0x4'],
+      'null ', ['#VL;0;4;0x0;null','#SP;4;1;0x4','#ZZ;5;0;0x5'],
+      ' null', ['#SP;0;1;0x0','#VL;1;4;0x1;null','#ZZ;5;0;0x5'],
       'nullx', ['#TX;0;5;0x0;nullx','#ZZ;5;0;0x5'],
       'nullx ', ['#TX;0;5;0x0;nullx','#SP;5;1;0x5','#ZZ;6;0;0x6'],
       'nulx ', ['#TX;0;4;0x0;nulx','#SP;4;1;0x4','#ZZ;5;0;0x5'],
@@ -1268,7 +1268,7 @@ function st(t) {
   let out = []
 
   function m(s,v,t) {
-    return [s,t.loc,t.len,t.row+'x'+t.col,v?t.val:null]
+    return [s,t.loc,t.len,t.row+'x'+t.col,v?(''+t.val):null]
   }
 
   switch(t.pin) {
@@ -1316,16 +1316,20 @@ function st(t) {
     out = m(lexer.TX.description,1,t)
     break
 
-  case lexer.BL:
-    out = m(lexer.BL.description,1,t)
+  case lexer.VL:
+    out = m(lexer.VL.description,1,t)
     break
+
+  //case lexer.BL:
+  //  out = m(lexer.BL.description,1,t)
+  //  break
 
   case lexer.CM:
     out = m(lexer.CM.description,1,t)
     break
 
-  case lexer.NL:
-    return lexer.NL.description+';'+t.loc+';'+t.len+';'+t.row+'x'+t.col+';'+t.val
+  //case lexer.NL:
+  //  return lexer.NL.description+';'+t.loc+';'+t.len+';'+t.row+'x'+t.col+';'+t.val
 
   case lexer.BD:
     t.val = t.val+'~'+t.why

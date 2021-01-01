@@ -92,21 +92,33 @@ const lexer_opts = {
   SC_COMMENT: s2cca('#'),
   SC_SINGLES: s2cca('{}[]:,'),
   SC_NONE: s2cca(''),
-  SC_OB: s2cca('{'),
-  SC_CB: s2cca('}'),
-  SC_OS: s2cca('['),
-  SC_CS: s2cca(']'),
-  SC_CL: s2cca(':'),
-  SC_CA: s2cca(','),
 
   SINGLES: ([] as symbol[]),
   CHARS_END: '\n\r',
+  VALUES: ({
+    'null': null,
+    'true': true,
+    'false': false,
+  } as any),
+  MAXVLEN: 0,
+  VREGEXP: new RegExp('')
 }
 
 
+let vstrs = Object.keys(lexer_opts.VALUES)
+lexer_opts.MAXVLEN = vstrs.reduce((a, s) => a < s.length ? s.length : a, 0)
+
+// TODO: insert enders dynamically
+lexer_opts.VREGEXP =
+  new RegExp('^(' + vstrs.join('|') + ')([ \\t\\r\\n{}:,[\\]]|$)')
+
+
+
+// TODO: convert to class and make resetable for easier customization
 // Create the lexing function.
 function lexer(src: string, param_opts?: { [k: string]: any }): Lex {
   const opts = { ...lexer_opts, ...param_opts }
+
 
   // NOTE: always returns this object!
   let token: Token = {
@@ -164,7 +176,7 @@ function lexer(src: string, param_opts?: { [k: string]: any }): Lex {
           return token
         }
 
-        if (opts.SC_LINE.includes(curc)) {
+        else if (opts.SC_LINE.includes(curc)) {
 
           token.pin = lexer.LN
           token.loc = sI
@@ -186,7 +198,8 @@ function lexer(src: string, param_opts?: { [k: string]: any }): Lex {
           return token
         }
 
-        if (opts.SC_SINGLES.includes(curc)) {
+
+        else if (opts.SC_SINGLES.includes(curc)) {
           token.pin = opts.SINGLES[curc]
           token.loc = sI
           token.col = cI++
@@ -195,91 +208,8 @@ function lexer(src: string, param_opts?: { [k: string]: any }): Lex {
           return token
         }
 
-        //case 't':
-        if ('t' === cur) {
-          token.pin = lexer.BL
-          token.loc = sI
-          token.col = cI
 
-          pI = sI
-
-          if ('rue' === src.substring(pI + 1, pI + 4) &&
-            lexer.ender[src[pI + 4]]) {
-            token.val = true
-            token.len = 4
-            pI += 4
-          }
-
-          // not a true literal
-          else {
-            while (!lexer.ender[src[++pI]]);
-            token.pin = lexer.TX
-            token.len = pI - sI
-            token.val = src.substring(sI, pI)
-          }
-
-          cI += token.len
-          sI = pI
-          return token
-        }
-
-        //case 'f':
-        if ('f' === cur) {
-          token.pin = lexer.BL
-          token.loc = sI
-          token.col = cI
-
-          pI = sI
-
-          if ('alse' === src.substring(pI + 1, pI + 5) &&
-            lexer.ender[src[pI + 5]]) {
-            token.val = false
-            token.len = 5
-            pI += 5
-          }
-
-          // not a `false` literal
-          else {
-            while (!lexer.ender[src[++pI]]);
-            token.pin = lexer.TX
-            token.len = pI - sI
-            token.val = src.substring(sI, pI)
-          }
-
-          sI = cI = pI
-          return token
-        }
-
-
-        //case 'n':
-        if ('n' === cur) {
-          token.pin = NL
-          token.loc = sI
-          token.col = cI
-
-          pI = sI
-
-          if ('ull' === src.substring(pI + 1, pI + 4) &&
-            lexer.ender[src[pI + 4]]) {
-            token.val = null
-            token.len = 4
-            pI += 4
-          }
-
-          // not a `null` literal
-          else {
-            while (!lexer.ender[src[++pI]]);
-            token.pin = lexer.TX
-            token.len = pI - sI
-            token.val = src.substring(sI, pI)
-          }
-
-          cI += token.len
-          sI = pI
-          return token
-        }
-
-        if (opts.SC_NUMBER.includes(curc)) {
+        else if (opts.SC_NUMBER.includes(curc)) {
           token.pin = NR
           token.loc = sI
           token.col = cI
@@ -328,7 +258,7 @@ function lexer(src: string, param_opts?: { [k: string]: any }): Lex {
         }
 
         //case '"': case '\'':
-        if (opts.SC_STRING.includes(curc)) {
+        else if (opts.SC_STRING.includes(curc)) {
           // console.log('STRING:' + src.substring(sI))
           token.pin = ST
           token.loc = sI
@@ -417,7 +347,7 @@ function lexer(src: string, param_opts?: { [k: string]: any }): Lex {
 
 
         //case '#':
-        if (opts.SC_COMMENT.includes(curc)) {
+        else if (opts.SC_COMMENT.includes(curc)) {
           token.pin = CM
           token.loc = sI++
           token.col = cI++
@@ -427,22 +357,36 @@ function lexer(src: string, param_opts?: { [k: string]: any }): Lex {
         }
 
         else {
-          //default:
-          // TEXT
           token.loc = sI
           token.col = cI
 
-          pI = sI
+          // VALUE
+          let m = src.substring(sI, sI + opts.MAXVLEN + 1).match(opts.VREGEXP)
+          if (m) {
+            token.pin = lexer.VL
+            token.len = m[1].length
+            token.val = opts.VALUES[m[1]]
 
-          do {
-            cI++
-          } while (!lexer.ender[src[++pI]] && '#' !== src[pI])
+            cI += token.len
+            sI += token.len
+          }
 
-          token.pin = lexer.TX
-          token.len = pI - sI
-          token.val = src.substring(sI, pI)
+          // TEXT
+          else {
 
-          sI = pI
+            pI = sI
+
+            do {
+              cI++
+            } while (!lexer.ender[src[++pI]] && '#' !== src[pI])
+
+            token.pin = lexer.TX
+            token.len = pI - sI
+            token.val = src.substring(sI, pI)
+
+            sI = pI
+          }
+
           return token
         }
       }
@@ -593,10 +537,12 @@ const NR = lexer.NR = Symbol('#NR') // NUMBER
 const ST = lexer.ST = Symbol('#ST') // STRING
 const TX = lexer.TX = Symbol('#TX') // TEXT
 
-const BL = lexer.BL = Symbol('#BL')
-const NL = lexer.NL = Symbol('#NL')
+//const BL = lexer.BL = Symbol('#BL')
+//const NL = lexer.NL = Symbol('#NL')
+const VL = lexer.VL = Symbol('#VL')
 
-const VAL = [TX, NR, ST, BL, NL]
+//const VAL = [TX, NR, ST, BL, NL]
+const VAL = [TX, NR, ST, VL]
 const WSP = [SP, LN, CM]
 
 
@@ -606,9 +552,6 @@ lexer_opts.SINGLES['['.charCodeAt(0)] = lexer.OS
 lexer_opts.SINGLES[']'.charCodeAt(0)] = lexer.CS
 lexer_opts.SINGLES[':'.charCodeAt(0)] = lexer.CL
 lexer_opts.SINGLES[','.charCodeAt(0)] = lexer.CA
-
-
-
 
 
 lexer.end = {
@@ -679,8 +622,9 @@ class PairRule extends Rule {
       case TX:
       case NR:
       case ST:
-      case BL:
-      case NL:
+      //case BL:
+      //case NL:
+      case VL:
 
         // A sequence of literals with internal spaces is concatenated
         let value: any = hoover(
@@ -744,8 +688,9 @@ class ListRule extends Rule {
         case TX:
         case NR:
         case ST:
-        case BL:
-        case NL:
+        //case BL:
+        //case NL:
+        case VL:
 
           // A sequence of literals with internal spaces is concatenated
           let value: any = hoover(ctx, VAL, [SP])
