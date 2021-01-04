@@ -5,6 +5,9 @@ declare type Jsonic = ((src: any) => any) & {
     [prop: string]: any;
 };
 declare type Plugin = (jsonic: Jsonic) => void;
+declare type Opts = {
+    [k: string]: any;
+};
 declare type Token = {
     pin: symbol;
     loc: number;
@@ -27,10 +30,9 @@ declare class Lexer {
     });
     start(src: string): Lex;
 }
-declare function deep(base?: {
-    [k: string]: any;
-}, parent?: {
-    [k: string]: any;
-}): any;
+declare let util: {
+    deep: (base?: any, over?: any) => any;
+    norm_options: (opts: Opts) => Opts;
+};
 declare let Jsonic: Jsonic;
-export { Jsonic, Plugin, Lexer, deep };
+export { Jsonic, Plugin, Lexer, util };

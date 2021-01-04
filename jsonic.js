@@ -1,7 +1,7 @@
 "use strict";
 /* Copyright (c) 2013-2020 Richard Rodger, MIT License */
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.deep = exports.Lexer = exports.Jsonic = void 0;
+exports.util = exports.Lexer = exports.Jsonic = void 0;
 /* Specific Features
    - comment TODO test
    
@@ -13,6 +13,7 @@ exports.deep = exports.Lexer = exports.Jsonic = void 0;
 // NEXT: optimise/parameterize string lex
 // NEXT: text hoovering (optional) 
 // NEXT: error messages
+// NEXT: Parser class
 // TODO: back ticks or allow newlines in strings?
 // TODO: nested comments? also support //?
 // TODO: parsing options? e.g. hoovering on/off?
@@ -130,7 +131,7 @@ function s2cca(s) { return s.split('').map((c) => c.charCodeAt(0)); }
 class Lexer {
     constructor(opts) {
         this.options = STANDARD_OPTIONS;
-        let options = this.options = deep(this.options, opts);
+        let options = this.options = util.deep(this.options, opts);
         this.end = {
             pin: options.ZZ,
             loc: 0,
@@ -641,18 +642,35 @@ let Jsonic: Jsonic = Object.assign(parse, {
   process,
 })
 */
-function deep(base, parent) {
-    // TODO: implement
-    return parent || base;
-}
-exports.deep = deep;
+let util = {
+    deep: function (base, over) {
+        if (null != base && null != over) {
+            for (let k in over) {
+                base[k] = ('object' === typeof (base[k]) &&
+                    'object' === typeof (over[k]) &&
+                    (Array.isArray(base[k]) === Array.isArray(over[k]))) ? util.deep(base[k], over[k]) : over[k];
+            }
+            return base;
+        }
+        else {
+            return null != over ? over : null != base ? base :
+                undefined != over ? over : base;
+        }
+    },
+    // Idempotent normalization of options
+    norm_options: function (opts) {
+        let vstrs = Object.keys(opts.VALUES);
+        opts.MAXVLEN = vstrs.reduce((a, s) => a < s.length ? s.length : a, 0);
+        // TODO: insert enders dynamically
+        opts.VREGEXP =
+            new RegExp('^(' + vstrs.join('|') + ')([ \\t\\r\\n{}:,[\\]]|$)');
+        return opts;
+    }
+};
+exports.util = util;
 function make(param_opts, parent) {
-    let opts = deep(param_opts, parent ? parent.options : STANDARD_OPTIONS);
-    let vstrs = Object.keys(opts.VALUES);
-    opts.MAXVLEN = vstrs.reduce((a, s) => a < s.length ? s.length : a, 0);
-    // TODO: insert enders dynamically
-    opts.VREGEXP =
-        new RegExp('^(' + vstrs.join('|') + ')([ \\t\\r\\n{}:,[\\]]|$)');
+    let opts = util.deep(param_opts, parent ? parent.options : STANDARD_OPTIONS);
+    opts = util.norm_options(opts);
     let self = parent ? { ...parent } : function (src) {
         if ('string' === typeof (src)) {
             return process(opts, self.lexer.start(src));

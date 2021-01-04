@@ -14,6 +14,8 @@
 // NEXT: text hoovering (optional) 
 // NEXT: error messages
 
+// NEXT: Parser class
+
 
 // TODO: back ticks or allow newlines in strings?
 // TODO: nested comments? also support //?
@@ -29,6 +31,7 @@
 
 
 let STANDARD_OPTIONS = {
+
   // Token start characters.
   SC_SPACE: s2cca(' \t'),
   SC_LINE: s2cca('\r\n'),
@@ -212,7 +215,7 @@ class Lexer {
   bad: any
 
   constructor(opts?: { [k: string]: any }) {
-    let options = this.options = deep(this.options, opts)
+    let options = this.options = util.deep(this.options, opts)
 
     this.end = {
       pin: options.ZZ,
@@ -929,24 +932,44 @@ let Jsonic: Jsonic = Object.assign(parse, {
 */
 
 
-function deep(base?: { [k: string]: any }, parent?: { [k: string]: any }): any {
-  // TODO: implement
-  return parent || base
-}
+let util = {
 
+  deep: function(base?: any, over?: any): any {
+    if (null != base && null != over) {
+      for (let k in over) {
+        base[k] = (
+          'object' === typeof (base[k]) &&
+          'object' === typeof (over[k]) &&
+          (Array.isArray(base[k]) === Array.isArray(over[k]))
+        ) ? util.deep(base[k], over[k]) : over[k]
+      }
+      return base
+    }
+    else {
+      return null != over ? over : null != base ? base :
+        undefined != over ? over : base
+    }
+  },
+
+
+  // Idempotent normalization of options
+  norm_options: function(opts: Opts) {
+    let vstrs = Object.keys(opts.VALUES)
+    opts.MAXVLEN = vstrs.reduce((a, s) => a < s.length ? s.length : a, 0)
+
+    // TODO: insert enders dynamically
+    opts.VREGEXP =
+      new RegExp('^(' + vstrs.join('|') + ')([ \\t\\r\\n{}:,[\\]]|$)')
+
+    return opts
+  }
+}
 
 
 function make(param_opts?: Opts, parent?: Jsonic): Jsonic {
 
-  let opts = deep(param_opts, parent ? parent.options : STANDARD_OPTIONS)
-
-  let vstrs = Object.keys(opts.VALUES)
-  opts.MAXVLEN = vstrs.reduce((a, s) => a < s.length ? s.length : a, 0)
-
-  // TODO: insert enders dynamically
-  opts.VREGEXP =
-    new RegExp('^(' + vstrs.join('|') + ')([ \\t\\r\\n{}:,[\\]]|$)')
-
+  let opts = util.deep(param_opts, parent ? parent.options : STANDARD_OPTIONS)
+  opts = util.norm_options(opts)
 
   let self: any = parent ? { ...parent } : function(src: any): any {
     if ('string' === typeof (src)) {
@@ -984,5 +1007,5 @@ function make(param_opts?: Opts, parent?: Jsonic): Jsonic {
 
 let Jsonic: Jsonic = make()
 
-export { Jsonic, Plugin, Lexer, deep }
+export { Jsonic, Plugin, Lexer, util }
 
