@@ -1,8 +1,9 @@
 const Util = require('util')
 
-const Jsonic = require('..').Jsonic
+const { Jsonic, Lexer } = require('..')
+const lexer = new Lexer()
 
-const ZZ = Jsonic.lexer.ZZ
+const ZZ = lexer.options.ZZ
 
 
 let inputs = [
@@ -25,7 +26,7 @@ function run_lex() {
   console.log( '==================' )
   
   inputs.forEach(input=>{
-    let count = lex(input.src)
+    let count = count_lex(input.src)
     console.log(
       input.src.padEnd(44,' '),
       ' >> ',
@@ -40,7 +41,7 @@ function run_parse() {
   console.log( '==================' )
   
   inputs.forEach(input=>{
-    let [count, out] = parse(input.src)
+    let [count, out] = count_parse(input.src)
     console.log(
       input.src.padEnd(44,' '),
       ' >> ',
@@ -51,13 +52,13 @@ function run_parse() {
 
 
 
-function lex(input) {
+function count_lex(input) {
   let start = Date.now()
   let lex = null
   
   // warm up
   while( Date.now()-start < 1000 ) {
-    lex = Jsonic.lexer(input)
+    lex = lexer.start(input)
     while( ZZ !== lex().pin );
   }
   
@@ -65,7 +66,7 @@ function lex(input) {
   start = Date.now()
 
   while( Date.now()-start < 1000 ) {
-    lex = Jsonic.lexer(input)
+    lex = lexer.start(input)
     while( ZZ !== lex().pin ) count++;
   }
 
@@ -73,7 +74,7 @@ function lex(input) {
 }
 
 
-function parse(input) {
+function count_parse(input) {
   let start = Date.now()
 
   // warm up
