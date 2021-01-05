@@ -100,19 +100,6 @@ let STANDARD_OPTIONS = {
   VL: Symbol('#VL'), // VALUE
 
 
-
-
-  spaces: {
-    ' ': true,
-    '\t': true,
-  },
-
-  lines: {
-    '\n': true,
-    '\r': true,
-  },
-
-
   // Lexer states
   LS_TOP: Symbol('@TOP'), // TOP
   LS_CONSUME: Symbol('@CONSUME'), // CONSUME
@@ -122,15 +109,6 @@ let STANDARD_OPTIONS = {
   VAL: ([] as Symbol[]),
   WSP: ([] as Symbol[]),
 }
-
-
-let so = STANDARD_OPTIONS
-
-
-
-so.VAL = [so.TX, so.NR, so.ST, so.VL]
-so.WSP = [so.SP, so.LN, so.CM]
-
 
 
 type Jsonic =
@@ -273,7 +251,8 @@ class Lexer {
             token.col = cI++
 
             pI = sI + 1
-            while (opts.spaces[src[pI]]) cI++, pI++;
+            //while (opts.spaces[src[pI]]) cI++, pI++;
+            while (opts.sc_space.includes(src[pI])) cI++, pI++;
 
             token.len = pI - sI
             token.val = src.substring(sI, pI)
@@ -291,7 +270,7 @@ class Lexer {
             pI = sI
             cI = 0
 
-            while (opts.lines[src[pI]]) {
+            while (opts.sc_line.includes(src[pI])) {
               // Only count \n as a row increment
               rI += ('\n' === src[pI] ? 1 : 0)
               pI++
@@ -1064,6 +1043,10 @@ let util = {
 
     opts.VALUES = opts.values || {}
 
+
+    // Token sets
+    opts.VAL = [opts.TX, opts.NR, opts.ST, opts.VL]
+    opts.WSP = [opts.SP, opts.LN, opts.CM]
 
     return opts
   }

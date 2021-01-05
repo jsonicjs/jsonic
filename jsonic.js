@@ -75,14 +75,6 @@ let STANDARD_OPTIONS = {
     ST: Symbol('#ST'),
     TX: Symbol('#TX'),
     VL: Symbol('#VL'),
-    spaces: {
-        ' ': true,
-        '\t': true,
-    },
-    lines: {
-        '\n': true,
-        '\r': true,
-    },
     // Lexer states
     LS_TOP: Symbol('@TOP'),
     LS_CONSUME: Symbol('@CONSUME'),
@@ -90,9 +82,6 @@ let STANDARD_OPTIONS = {
     VAL: [],
     WSP: [],
 };
-let so = STANDARD_OPTIONS;
-so.VAL = [so.TX, so.NR, so.ST, so.VL];
-so.WSP = [so.SP, so.LN, so.CM];
 const BAD_UNICODE_CHAR = String.fromCharCode('0x0000');
 class Lexer {
     constructor(opts) {
@@ -159,7 +148,8 @@ class Lexer {
                         token.loc = sI;
                         token.col = cI++;
                         pI = sI + 1;
-                        while (opts.spaces[src[pI]])
+                        //while (opts.spaces[src[pI]]) cI++, pI++;
+                        while (opts.sc_space.includes(src[pI]))
                             cI++, pI++;
                         token.len = pI - sI;
                         token.val = src.substring(sI, pI);
@@ -172,7 +162,7 @@ class Lexer {
                         token.col = cI;
                         pI = sI;
                         cI = 0;
-                        while (opts.lines[src[pI]]) {
+                        while (opts.sc_line.includes(src[pI])) {
                             // Only count \n as a row increment
                             rI += ('\n' === src[pI] ? 1 : 0);
                             pI++;
@@ -726,6 +716,9 @@ let util = {
             opts.SC_COMMENT.map((cc) => String.fromCharCode(cc)).join('');
         opts.TEXT_ENDERS = opts.VALUE_ENDERS;
         opts.VALUES = opts.values || {};
+        // Token sets
+        opts.VAL = [opts.TX, opts.NR, opts.ST, opts.VL];
+        opts.WSP = [opts.SP, opts.LN, opts.CM];
         return opts;
     }
 };
