@@ -6,10 +6,10 @@
    
 */
 
-// NEXT: tidy up lookahead
+// NEXT: norm enders
+// NEXT: backticks multiline
 // NEXT: organize option names
 // NEXT: remove hard-coded chars
-// NEXT: multi-char single-line comments
 // NEXT: keywords
 // NEXT: optimise/parameterize string lex
 // NEXT: text hoovering (optional) 
@@ -59,6 +59,10 @@ let STANDARD_OPTIONS = {
     '#': true,
     '//': true,
     '/*': '*/'
+  },
+
+  balance: {
+    comments: true,
   },
 
   values: {
@@ -160,9 +164,9 @@ let STANDARD_OPTIONS = {
 
 
   // Lexer states
-  LS_TOP: Symbol('@TOP'), // LEXER STATE TOP
-  LS_CONSUME: Symbol('@CONSUME'), // LEXER STATE CONSUME
-
+  LS_TOP: Symbol('@TOP'), // TOP
+  LS_CONSUME: Symbol('@CONSUME'), // CONSUME
+  LS_MULTILINE: Symbol('@MULTILINE'), // MULTILINE
 
 
   VAL: ([] as Symbol[]),
@@ -294,7 +298,9 @@ class Lexer {
       token.row = rI
 
       let state = opts.LS_TOP
+      let state_param: any = null
       let enders = ''
+
       let pI = 0 // Current lex position (only update sI at end of rule).
       let s: string[] = [] // Parsed string characters and substrings.
       let cc = -1 // Character code.
@@ -495,26 +501,33 @@ class Lexer {
 
 
           else if (opts.SC_COMMENT.includes(c0c)) {
-            let is_comment = opts.COMMENT_SINGLE.includes(c0)
+            let is_line_comment = opts.COMMENT_SINGLE.includes(c0)
 
-            if (!is_comment) {
-              let marker = src.substring(sI, sI + opts.COMMENT_MARKER_MAXLEN)
-              for (let cm of opts.COMMENT_MARKER) {
-                if (marker.startsWith(cm)) {
+            //if (!is_line_comment) {
+            let marker = src.substring(sI, sI + opts.COMMENT_MARKER_MAXLEN)
+            for (let cm of opts.COMMENT_MARKER) {
+              if (marker.startsWith(cm)) {
 
-                  // Multi-line comment
-                  if (true !== opts.comments[cm]) {
+                // Multi-line comment
+                if (true !== opts.comments[cm]) {
+                  token.pin = opts.CM
+                  token.loc = sI
+                  token.col = cI
+                  token.val = ''
 
-                  }
-                  else {
-                    is_comment = true
-                  }
-                  break;
+                  state = opts.LS_MULTILINE
+                  state_param = [cm, opts.comments[cm], 'comments']
+                  continue next_char
                 }
+                else {
+                  is_line_comment = true
+                }
+                break;
               }
             }
+            //}
 
-            if (is_comment) {
+            if (is_line_comment) {
               token.pin = opts.CM
               token.loc = sI
               token.col = cI
@@ -524,8 +537,6 @@ class Lexer {
               enders = opts.line_enders
               continue next_char
             }
-
-            // TODO: also match multichar comments here
           }
 
 
@@ -558,11 +569,55 @@ class Lexer {
           return token
         }
 
+
+        // Lexer State: CONSUME => all chars up to first ender
         else if (opts.LS_CONSUME === state) {
           pI = sI
           while (pI < srclen && !enders.includes(src[pI])) pI++, cI++;
 
           token.val += src.substring(sI, pI)
+          token.len = token.val.length
+
+          sI = pI
+
+          state = opts.LS_TOP
+          return token
+        }
+
+
+        // Lexer State: MULTILINE => all chars up to last close marker, or end
+        else if (opts.LS_MULTILINE === state) {
+          pI = sI
+
+          let depth = 1
+          let open = state_param[0]
+          let close = state_param[1]
+          let balance = opts.balance[state_param[2]]
+          let openlen = open.length
+          let closelen = close.length
+
+          // Assume starts with open string
+          pI += open.length
+
+          while (pI < srclen && 0 < depth) {
+
+            // Close first so that open === close case works
+            if (close[0] === src[pI] &&
+              close === src.substring(pI, pI + closelen)) {
+              pI += closelen
+              depth--
+            }
+            else if (balance && open[0] === src[pI] &&
+              open === src.substring(pI, pI + openlen)) {
+              pI += openlen
+              depth++
+            }
+            else {
+              pI++
+            }
+          }
+
+          token.val = src.substring(sI, pI)
           token.len = token.val.length
 
           sI = pI
@@ -1042,16 +1097,31 @@ let util = {
 }
 
 
-function make(param_opts?: Opts, parent?: Jsonic): Jsonic {
+function make(first?: Opts | Jsonic, parent?: Jsonic): Jsonic {
 
-  let opts = util.deep(param_opts, parent ? parent.options : STANDARD_OPTIONS)
+  let param_opts = (first as Opts)
+  if ('function' === typeof (first)) {
+    param_opts = {}
+    parent = (first as Jsonic)
+  }
+
+  let opts = util.deep(util.deep(
+    {}, parent ? parent.options : STANDARD_OPTIONS), param_opts)
   opts = util.norm_options(opts)
 
-  let self: any = parent ? { ...parent } : function(src: any): any {
+  let self: any = function Jsonic(src: any): any {
     if ('string' === typeof (src)) {
       return process(opts, self.lexer.start(src))
     }
     return src
+  }
+
+  if (parent) {
+    for (let k in parent) {
+      self[k] = parent
+    }
+
+    self.parent = parent
   }
 
 

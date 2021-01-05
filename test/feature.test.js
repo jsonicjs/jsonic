@@ -34,6 +34,46 @@ describe('feature', function () {
   })
 
 
+  it('multi-comment', () => {
+    expect(Jsonic('/*a:1*/')).equals(undefined)
+    expect(Jsonic('/*a:1*/\nb:2')).equals({b:2})
+    expect(Jsonic('/*a:1\n*/b:2')).equals({b:2})
+    expect(Jsonic('b:2\n/*a:1*/')).equals({b:2})
+    expect(Jsonic('b:2\n/*\na:1\n*/\nc:3')).equals({b:2,c:3})
+
+    // Balanced multiline comments!
+    expect(Jsonic('/*/*/*a:1*/*/*/b:2')).equals({b:2})
+    expect(Jsonic('b:2,/*a:1,/*c:3,*/*/,d:4')).equals({b:2,d:4})
+    expect(Jsonic('\nb:2\n/*\na:1\n/*\nc:3\n*/\n*/\n,d:4')).equals({b:2,d:4})
+
+    // Implicit close
+    expect(Jsonic('b:2\n/*a:1')).equals({b:2})
+    expect(Jsonic('b:2\n/*/*/*a:1')).equals({b:2})
+  })
+
+
+  it('balanced-multi-comment', () => {
+    // Active by default
+    expect(Jsonic('/*/*/*a:1*/*/*/b:2')).equals({b:2})
+
+    
+    let nobal = Jsonic.make({balance:{comments:false}})
+    expect(nobal.options.balance.comments).false()
+
+    // NOTE: comment markers *inside* text or string are not active!
+    // NOTE: a:b:2 -> {a:{b:2}}, which is the pattern here
+    expect(nobal('/*/*/*a:1*/*/*/b:2')).equal({ '*a': { '1*/*/*/b': 2 } })
+
+
+    // Custom multiline comments
+    let coffee = Jsonic.make({comments:{'###':'###'}})
+    expect(Jsonic('\n###a:1\nb:2\n###\nc:3')).equals({c:3})
+
+    // NOTE: no balancing if open === close
+    expect(Jsonic('\n###a:1\n###b:2\n###\nc:3\n###\nd:4')).equals({b:2,d:4})
+  })
+
+
   it('value', () => {
     expect(Jsonic('true')).equals(true)
     expect(Jsonic('false')).equals(false)
