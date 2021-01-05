@@ -1269,7 +1269,7 @@ function st(t) {
   let opts = lexer.options
   
   function m(s,v,t) {
-    return [s,t.loc,t.len,t.row+'x'+t.col,v?(''+t.val):null]
+    return [s.substring(0,3),t.loc,t.len,t.row+'x'+t.col,v?(''+t.val):null]
   }
 
   switch(t.pin) {

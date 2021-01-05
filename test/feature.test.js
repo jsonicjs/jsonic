@@ -18,7 +18,7 @@ let lexer = Jsonic.lexer
 let prc = Jsonic.process
 
 describe('feature', function () {
-  it('comment', () => {
+  it('comment-line', () => {
 
     expect(Jsonic('#a:1')).equals(undefined)
     expect(Jsonic('#a:1\nb:2')).equals({b:2})
@@ -26,4 +26,17 @@ describe('feature', function () {
     expect(Jsonic('b:2\n#a:1\nc:3')).equals({b:2,c:3})
 
   })
+
+
+  it('multi-comment-line', () => {
+
+    // expect(Jsonic('QQa:1')).equals(undefined)
+    
+    expect(Jsonic('//a:1')).equals(undefined)
+    expect(Jsonic('//a:1\nb:2')).equals({b:2})
+    expect(Jsonic('b:2\n//a:1')).equals({b:2})
+    expect(Jsonic('b:2\n//a:1\nc:3')).equals({b:2,c:3})
+
+  })
+
 })

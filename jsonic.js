@@ -6,6 +6,7 @@ exports.util = exports.Lexer = exports.Jsonic = void 0;
    - comment TODO test
    
 */
+// NEXT: tidy up lookahead
 // NEXT: organize option names
 // NEXT: remove hard-coded chars
 // NEXT: multi-char single-line comments
@@ -24,15 +25,50 @@ exports.util = exports.Lexer = exports.Jsonic = void 0;
 // const I = require('util').inspect
 let STANDARD_OPTIONS = {
     // Token start characters.
-    SC_SPACE: s2cca(' \t'),
-    SC_LINE: s2cca('\r\n'),
-    SC_NUMBER: s2cca('-0123456789'),
-    SC_STRING: s2cca('"\''),
-    SC_COMMENT: s2cca('#'),
-    SC_SINGLES: s2cca('{}[]:,'),
-    SC_NONE: s2cca(''),
-    SINGLES: [],
-    CHARS_END: '\n\r',
+    sc_space: ' \t',
+    sc_line: '\r\n',
+    sc_number: '-0123456789',
+    sc_string: '"\'',
+    sc_none: '',
+    // String escape chars.
+    // Denoting char (follows escape char) => actual char.
+    escapes: {
+        b: '\b',
+        f: '\f',
+        n: '\n',
+        r: '\r',
+        t: '\t',
+    },
+    // Multi-charater token ending characters.
+    enders: ':,[]{} \t\n\r',
+    line_enders: '\n\r',
+    comments: {
+        '#': true,
+        '//': true,
+        '/*': '*/'
+    },
+    // Single character tokens.
+    // NOTE: character is final char of Symbol name.
+    OB: Symbol('#OB{'),
+    CB: Symbol('#CB}'),
+    OS: Symbol('#OS['),
+    CS: Symbol('#CS]'),
+    CL: Symbol('#CL:'),
+    CA: Symbol('#CA,'),
+    // Multi character tokens.
+    BD: Symbol('#BD'),
+    ZZ: Symbol('#ZZ'),
+    UK: Symbol('#UK'),
+    CM: Symbol('#CM'),
+    SP: Symbol('#SP'),
+    LN: Symbol('#LN'),
+    NR: Symbol('#NR'),
+    ST: Symbol('#ST'),
+    TX: Symbol('#TX'),
+    VL: Symbol('#VL'),
+    // TODO: calc in norm func
+    LOOKAHEAD_LEN: 6,
+    LOOKAHEAD_REGEXP: new RegExp(''),
     VALUES: {
         'null': null,
         'true': true,
@@ -40,6 +76,7 @@ let STANDARD_OPTIONS = {
     },
     MAXVLEN: 0,
     VREGEXP: new RegExp(''),
+    // TODO: build from enders
     ender: {
         ':': true,
         ',': true,
@@ -88,46 +125,16 @@ let STANDARD_OPTIONS = {
         '\n': true,
         '\r': true,
     },
-    escapes: new Array(256),
     // Lexer states
     LS_TOP: Symbol('@TOP'),
     LS_CONSUME: Symbol('@CONSUME'),
-    // Character classes
-    BD: Symbol('#BD'),
-    ZZ: Symbol('#ZZ'),
-    UK: Symbol('#UK'),
-    CM: Symbol('#CM'),
-    SP: Symbol('#SP'),
-    LN: Symbol('#LN'),
-    OB: Symbol('#OB'),
-    CB: Symbol('#CB'),
-    OS: Symbol('#OS'),
-    CS: Symbol('#CS'),
-    CL: Symbol('#CL'),
-    CA: Symbol('#CA'),
-    NR: Symbol('#NR'),
-    ST: Symbol('#ST'),
-    TX: Symbol('#TX'),
-    VL: Symbol('#VL'),
     VAL: [],
     WSP: [],
 };
 let so = STANDARD_OPTIONS;
-so.escapes[98] = '\b';
-so.escapes[102] = '\f';
-so.escapes[110] = '\n';
-so.escapes[114] = '\r';
-so.escapes[116] = '\t';
 so.VAL = [so.TX, so.NR, so.ST, so.VL];
 so.WSP = [so.SP, so.LN, so.CM];
-so.SINGLES['{'.charCodeAt(0)] = so.OB;
-so.SINGLES['}'.charCodeAt(0)] = so.CB;
-so.SINGLES['['.charCodeAt(0)] = so.OS;
-so.SINGLES[']'.charCodeAt(0)] = so.CS;
-so.SINGLES[':'.charCodeAt(0)] = so.CL;
-so.SINGLES[','.charCodeAt(0)] = so.CA;
 const BAD_UNICODE_CHAR = String.fromCharCode('0x0000');
-function s2cca(s) { return s.split('').map((c) => c.charCodeAt(0)); }
 class Lexer {
     constructor(opts) {
         this.options = STANDARD_OPTIONS;
@@ -169,25 +176,25 @@ class Lexer {
         let rI = 0; // Source row index.
         let cI = 0; // Source column index.
         let srclen = src.length;
-        // Parse next Token.
+        // Lex next Token.
         return function lex() {
             token.len = 0;
             token.val = undefined;
             token.row = rI;
             let state = opts.LS_TOP;
-            let endchars = '';
+            let enders = '';
             let pI = 0; // Current lex position (only update sI at end of rule).
             let s = []; // Parsed string characters and substrings.
             let cc = -1; // Character code.
             let qc = -1; // Quote character code.
             let ec = -1; // Escape character code.
             let us; // Unicode character string.
-            while (sI < srclen) {
-                let cur = src[sI];
-                let curc = src.charCodeAt(sI);
+            next_char: while (sI < srclen) {
+                let c0 = src[sI];
+                let c0c = src.charCodeAt(sI);
                 // console.log('LEXW', state, cur, sI, src.substring(sI, sI + 11))
                 if (opts.LS_TOP === state) {
-                    if (opts.SC_SPACE.includes(curc)) {
+                    if (opts.SC_SPACE.includes(c0c)) {
                         token.pin = opts.SP;
                         token.loc = sI;
                         token.col = cI++;
@@ -199,7 +206,7 @@ class Lexer {
                         sI = pI;
                         return token;
                     }
-                    else if (opts.SC_LINE.includes(curc)) {
+                    else if (opts.SC_LINE.includes(c0c)) {
                         token.pin = opts.LN;
                         token.loc = sI;
                         token.col = cI;
@@ -215,15 +222,15 @@ class Lexer {
                         sI = pI;
                         return token;
                     }
-                    else if (opts.SC_SINGLES.includes(curc)) {
-                        token.pin = opts.SINGLES[curc];
+                    else if (null != opts.SINGLES[c0c]) {
+                        token.pin = opts.SINGLES[c0c];
                         token.loc = sI;
                         token.col = cI++;
                         token.len = 1;
                         sI++;
                         return token;
                     }
-                    else if (opts.SC_NUMBER.includes(curc)) {
+                    else if (opts.SC_NUMBER.includes(c0c)) {
                         token.pin = opts.NR;
                         token.loc = sI;
                         token.col = cI;
@@ -263,12 +270,12 @@ class Lexer {
                         return token;
                     }
                     //case '"': case '\'':
-                    else if (opts.SC_STRING.includes(curc)) {
+                    else if (opts.SC_STRING.includes(c0c)) {
                         // console.log('STRING:' + src.substring(sI))
                         token.pin = opts.ST;
                         token.loc = sI;
                         token.col = cI++;
-                        qc = cur.charCodeAt(0);
+                        qc = c0.charCodeAt(0);
                         s = [];
                         cc = -1;
                         for (pI = sI + 1; pI < srclen; pI++) {
@@ -285,7 +292,6 @@ class Lexer {
                             }
                             else if (92 === cc) {
                                 ec = src.charCodeAt(++pI);
-                                // console.log('B', pI, ec, src[pI])
                                 cI++;
                                 switch (ec) {
                                     case 110:
@@ -293,7 +299,7 @@ class Lexer {
                                     case 114:
                                     case 98:
                                     case 102:
-                                        s.push(opts.escapes[ec]);
+                                        s.push(opts.ESCAPES[ec]);
                                         break;
                                     case 117:
                                         pI++;
@@ -331,24 +337,46 @@ class Lexer {
                         sI = pI;
                         return token;
                     }
-                    //case '#':
-                    else if (opts.SC_COMMENT.includes(curc)) {
+                    else if (opts.SINGLE_COMMENT.includes(c0c)) {
                         token.pin = opts.CM;
                         token.loc = sI++;
                         token.col = cI++;
-                        token.val = cur;
+                        token.val = c0;
                         state = opts.LS_CONSUME;
-                        endchars = opts.CHARS_END;
+                        enders = opts.line_enders;
+                        continue next_char;
+                    }
+                    let lookahead_str = src.substring(sI, sI + opts.LOOKAHEAD_LEN);
+                    let lookahead_match = lookahead_str.match(opts.LOOKAHEAD_REGEXP);
+                    let lookahead = lookahead_match ? lookahead_match[1] : null;
+                    // console.log('lookahead', lookahead, lookahead_str)
+                    // TODO: nested multilines
+                    if (null != lookahead && opts.MULTI_COMMENT[lookahead]) {
+                        token.pin = opts.CM;
+                        token.loc = sI++;
+                        token.col = cI++;
+                        token.val = c0;
+                        state = opts.LS_CONSUME;
+                        enders = opts.line_enders;
+                        continue next_char;
                     }
                     else {
                         token.loc = sI;
                         token.col = cI;
+                        // TODO: also match multichar comments here
                         // VALUE
-                        let m = src.substring(sI, sI + opts.MAXVLEN + 1).match(opts.VREGEXP);
-                        if (m) {
+                        //let m = src.substring(sI, sI + opts.MAXVLEN + 1).match(opts.VREGEXP)
+                        //let m = lookahead.match(opts.VREGEXP)
+                        //if (m) {
+                        // console.log('lookahead-value', lookahead, srclen, lookahead && sI + lookahead.length + 1, lookahead && src[sI + lookahead.length], lookahead_str)
+                        if (null != lookahead &&
+                            (srclen < sI + lookahead.length + 1 ||
+                                opts.enders.includes(src[sI + lookahead.length]))) {
                             token.pin = opts.VL;
-                            token.len = m[1].length;
-                            token.val = opts.VALUES[m[1]];
+                            //token.len = m[1].length
+                            //token.val = opts.VALUES[m[1]]
+                            token.len = lookahead.length;
+                            token.val = opts.VALUES[lookahead];
                             cI += token.len;
                             sI += token.len;
                         }
@@ -368,7 +396,7 @@ class Lexer {
                 }
                 else if (opts.LS_CONSUME === state) {
                     pI = sI;
-                    while (pI < srclen && !endchars.includes(src[pI]))
+                    while (pI < srclen && !enders.includes(src[pI]))
                         pI++, cI++;
                     token.val += src.substring(sI, pI);
                     token.len = token.val.length;
@@ -608,16 +636,12 @@ function process(opts, lex) {
     }
     function match(pin, ignore) {
         if (ignore) {
-            while (ignore.includes(ctx.t1.pin)) {
-                next();
-            }
+            ignorable(ignore);
         }
         if (pin === ctx.t1.pin) {
             let t = next();
             if (ignore) {
-                while (ignore.includes(ctx.t1.pin)) {
-                    next();
-                }
+                ignorable(ignore);
             }
             return t;
         }
@@ -633,16 +657,10 @@ function process(opts, lex) {
 function desc(o) {
     return require('util').inspect(o, { depth: null });
 }
-/*
-let Jsonic: Jsonic = Object.assign(parse, {
-  use,
-  parse: (src: any) => parse(src),
-
-  lexer,
-  process,
-})
-*/
 let util = {
+    // Deep override for plain objects. Retains base object.
+    // Array indexes are treated as properties.
+    // Over wins non-matching types, except at top level.
     deep: function (base, over) {
         if (null != base && null != over) {
             for (let k in over) {
@@ -657,13 +675,54 @@ let util = {
                 undefined != over ? over : base;
         }
     },
-    // Idempotent normalization of options
+    // Convert string to character code array.
+    // 'ab' -> [97,98]
+    s2cca: function (s) {
+        return s.split('').map((c) => c.charCodeAt(0));
+    },
+    // Idempotent normalization of options.
     norm_options: function (opts) {
-        let vstrs = Object.keys(opts.VALUES);
-        opts.MAXVLEN = vstrs.reduce((a, s) => a < s.length ? s.length : a, 0);
-        // TODO: insert enders dynamically
-        opts.VREGEXP =
-            new RegExp('^(' + vstrs.join('|') + ')([ \\t\\r\\n{}:,[\\]]|$)');
+        let keys = Object.keys(opts);
+        // Convert character list strings to code arrays.
+        // sc_foo:'ab' -> SC_FOO:[97,98]
+        keys.filter(k => k.startsWith('sc_')).forEach(k => {
+            opts[k.toUpperCase()] = util.s2cca(opts[k]);
+        });
+        // Lookup table for single character tokens, indexed by char code.
+        opts.SINGLES = keys
+            .filter(k => 2 === k.length &&
+            'symbol' === typeof (opts[k]) &&
+            4 === opts[k].description.length)
+            .reduce((a, k) => (a[opts[k].description.charCodeAt(3)] = opts[k], a), []);
+        // lookup table for escape chars, indexed by denotating char (e.g. n for \n).
+        opts.escapes = opts.escapes || {};
+        opts.ESCAPES = Object.keys(opts.escapes)
+            .reduce((a, ed) => (a[ed.charCodeAt(0)] = opts.escapes[ed], a), []);
+        opts.SINGLE_COMMENT = [];
+        opts.MULTI_COMMENT = {};
+        if (opts.comments) {
+            Object.keys(opts.comments).forEach(k => {
+                if (1 === k.length) {
+                    opts.SINGLE_COMMENT = [k.charCodeAt(0)];
+                }
+                else {
+                    opts.MULTI_COMMENT[k] = opts.comments[k];
+                }
+            });
+        }
+        if (opts.VALUES) {
+            let vstrs = Object.keys(opts.VALUES)
+                .concat(Object.keys(opts.comments).filter(k => 1 < k.length));
+            opts.MAXVLEN = vstrs.reduce((a, s) => a < s.length ? s.length : a, 0);
+            // TODO: insert enders dynamically
+            // TODO: escape properly!
+            opts.VREGEXP =
+                //new RegExp('^(' + vstrs.join('|') + ')([ \\t\\r\\n{}:,[\\]]|$)')
+                new RegExp('^(' + vstrs.join('|') + ')');
+            opts.LOOKAHEAD_LEN = opts.MAXVLEN;
+            opts.LOOKAHEAD_REGEXP = opts.VREGEXP;
+            // console.log(opts.LOOKAHEAD_REGEXP)
+        }
         return opts;
     }
 };

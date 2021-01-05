@@ -13,6 +13,9 @@ const expect = Code.expect
 
 const { util } = require('..')
 const deep = util.deep
+const s2cca = util.s2cca
+const norm_options = util.norm_options
+
 
 describe('util', () => {
   it('deep', () => {
@@ -70,7 +73,7 @@ describe('util', () => {
     expect(deep({a:1,b:[2],c:[{d:3}]},{a:4,b:[5],c:[{d:6}]}))
       .equals({a:4,b:[5],c:[{d:6}]})
 
-    // does not override top level
+    // NOTE: does not override top level
     expect(deep([],{})).equals([])
     expect(deep({},[])).equals({})
 
@@ -81,4 +84,50 @@ describe('util', () => {
     expect(deep([{}],[[]])).equals([[]])
 
   })
+
+
+  it('s2cca', () => {
+    expect(s2cca('')).equal([])
+    expect(s2cca('a')).equal([97])
+    expect(s2cca('ab')).equal([97,98])
+  })
+
+
+  it('norm_options', () => {
+    expect(norm_options({
+      sc_foo: ' \t',
+      sc_bar: 'ab',
+      sc_escapes: '\r\n'
+    })).includes({
+      SC_FOO: [32,9],
+      SC_BAR: [97,98],
+      SC_ESCAPES: [13,10],
+    })
+
+    
+    let singles = []
+    singles[97] = Symbol('#AAa')
+    singles[98] = Symbol('#BBb')
+    expect(norm_options({
+      AA: singles[97],
+      BB: singles[98],
+    })).includes({
+      SINGLES: singles
+    })
+
+    
+    let escapes = []
+    escapes[110] = '\n'
+    escapes[116] = '\t'
+    expect(norm_options({
+      escapes: {
+        n: '\n',
+        t: '\t',
+      },
+    })).includes({
+      ESCAPES: escapes
+    })
+
+  })
+
 })
