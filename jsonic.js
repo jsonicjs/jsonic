@@ -47,6 +47,11 @@ let STANDARD_OPTIONS = {
         '//': true,
         '/*': '*/'
     },
+    values: {
+        'null': null,
+        'true': true,
+        'false': false,
+    },
     // Single character tokens.
     // NOTE: character is final char of Symbol name.
     OB: Symbol('#OB{'),
@@ -71,11 +76,6 @@ let STANDARD_OPTIONS = {
     // TODO: calc in norm func
     LOOKAHEAD_LEN: 6,
     LOOKAHEAD_REGEXP: new RegExp(''),
-    VALUES: {
-        'null': null,
-        'true': true,
-        'false': false,
-    },
     MAXVLEN: 0,
     VREGEXP: new RegExp(''),
     // TODO: build from enders
@@ -345,7 +345,12 @@ class Lexer {
                             let marker = src.substring(sI, sI + opts.COMMENT_MARKER_MAXLEN);
                             for (let cm of opts.COMMENT_MARKER) {
                                 if (marker.startsWith(cm)) {
-                                    is_comment = true;
+                                    // Multi-line comment
+                                    if (true !== opts.comments[cm]) {
+                                    }
+                                    else {
+                                        is_comment = true;
+                                    }
                                     break;
                                 }
                             }
@@ -695,37 +700,18 @@ let util = {
             comment_markers.forEach(k => {
                 // Single character comment marker (eg. `#`)
                 if (1 === k.length) {
-                    //opts.COMMENT_START += k
                     opts.SC_COMMENT.push(k.charCodeAt(0));
                     opts.COMMENT_SINGLE += k;
-                    //opts.SINGLE_COMMENT = [k.charCodeAt(0)]
                 }
                 // String comment marker (eg. `//`)
-                else if (true === opts.comments[k]) {
-                    //opts.COMMENT_START += k[0]
+                else {
                     opts.SC_COMMENT.push(k.charCodeAt(0));
                     opts.COMMENT_MARKER.push(k);
-                }
-                // Multi-line comment start and end markers (eg. `/*`,`*/`)
-                else {
-                    //opts.MULTI_COMMENT[k] = opts.comments[k]
                 }
             });
             opts.COMMENT_MARKER_MAXLEN = util.longest(comment_markers);
         }
-        if (opts.VALUES) {
-            let vstrs = Object.keys(opts.VALUES)
-                .concat(Object.keys(opts.comments).filter(k => 1 < k.length));
-            opts.MAXVLEN = vstrs.reduce((a, s) => a < s.length ? s.length : a, 0);
-            // TODO: insert enders dynamically
-            // TODO: escape properly!
-            opts.VREGEXP =
-                //new RegExp('^(' + vstrs.join('|') + ')([ \\t\\r\\n{}:,[\\]]|$)')
-                new RegExp('^(' + vstrs.join('|') + ')');
-            opts.LOOKAHEAD_LEN = opts.MAXVLEN;
-            opts.LOOKAHEAD_REGEXP = opts.VREGEXP;
-            // console.log(opts.LOOKAHEAD_REGEXP)
-        }
+        opts.VALUES = opts.values || {};
         return opts;
     }
 };
