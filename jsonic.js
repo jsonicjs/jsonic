@@ -74,25 +74,20 @@ let STANDARD_OPTIONS = {
     ST: Symbol('#ST'),
     TX: Symbol('#TX'),
     VL: Symbol('#VL'),
-    // TODO: generate from singles, line ends, comment start chars
-    ENDERS: ':,[]{} \t\n\r#/',
-    // TODO: calc in norm func
-    LOOKAHEAD_LEN: 6,
-    LOOKAHEAD_REGEXP: new RegExp(''),
-    MAXVLEN: 0,
-    VREGEXP: new RegExp(''),
+    /*
     // TODO: build from enders
     ender: {
-        ':': true,
-        ',': true,
-        ']': true,
-        '}': true,
-        ' ': true,
-        '\t': true,
-        '\n': true,
-        '\r': true,
-        undefined: true
+      ':': true,
+      ',': true,
+      ']': true,
+      '}': true,
+      ' ': true,
+      '\t': true,
+      '\n': true,
+      '\r': true,
+      undefined: true
     },
+    */
     digital: {
         '0': true,
         '1': true,
@@ -244,8 +239,7 @@ class Lexer {
                         pI = sI;
                         while (opts.digital[src[++pI]])
                             ;
-                        // console.log('NR', pI, sI, src[sI], src[sI + 1])
-                        if (opts.ender[src[pI]]) {
+                        if (null == src[pI] || opts.VALUE_ENDERS.includes(src[pI])) {
                             token.len = pI - sI;
                             // Leading 0s are text unless hex val: if at least two
                             // digits and does not start with 0x, then text.
@@ -264,17 +258,13 @@ class Lexer {
                                 }
                             }
                         }
-                        // not a number
-                        if (null == token.val) {
-                            while (!opts.ender[src[++pI]])
-                                ;
-                            token.pin = opts.TX;
-                            token.len = pI - sI;
-                            token.val = src.substring(sI, pI);
+                        if (null != token.val) {
+                            cI += token.len;
+                            sI = pI;
+                            return token;
                         }
-                        cI += token.len;
-                        sI = pI;
-                        return token;
+                        // NOTE: else drop through to default, as this must be literal text
+                        // prefixed with digits.
                     }
                     //case '"': case '\'':
                     else if (opts.SC_STRING.includes(c0c)) {
@@ -377,25 +367,40 @@ class Lexer {
                             continue next_char;
                         }
                     }
+                    // NOTE: default section. Cases above can bail to here if lookaheads
+                    // fail to match (eg. SC_NUMBER).
+                    // No explicit token recognized. That leaves:
+                    // - keyword literal values (from opts.values)
+                    // - text values (everything up to an end char)
                     token.loc = sI;
                     token.col = cI;
                     pI = sI;
+                    // Literal values must be terminated, otherwise they are just
+                    // accidental prefixes to literal text
+                    // (e.g truex -> "truex" not `true` "x")
                     do {
                         cI++;
                         pI++;
-                    } while (null != src[pI] && !opts.ENDERS.includes(src[pI]));
+                    } while (null != src[pI] && !opts.VALUE_ENDERS.includes(src[pI]));
                     let txt = src.substring(sI, pI);
-                    token.len = pI - sI;
-                    sI = pI;
-                    // A literal value
+                    // A keyword literal value? (eg. true, false, null)
                     let val = opts.VALUES[txt];
                     if (undefined !== val) {
                         token.pin = opts.VL;
                         token.val = val;
+                        token.len = pI - sI;
+                        sI = pI;
                         return token;
                     }
+                    // Only thing left is literal text
+                    while (null != src[pI] && !opts.TEXT_ENDERS.includes(src[pI])) {
+                        cI++;
+                        pI++;
+                    }
+                    token.len = pI - sI;
                     token.pin = opts.TX;
-                    token.val = txt;
+                    token.val = src.substring(sI, pI);
+                    sI = pI;
                     return token;
                 }
                 // Lexer State: CONSUME => all chars up to first ender
@@ -756,6 +761,11 @@ let util = {
             });
             opts.COMMENT_MARKER_MAXLEN = util.longest(comment_markers);
         }
+        opts.SINGLE_CHARS =
+            opts.SINGLES.map((s, cc) => String.fromCharCode(cc)).join('');
+        opts.VALUE_ENDERS = opts.sc_space + opts.sc_line + opts.SINGLE_CHARS +
+            opts.SC_COMMENT.map((cc) => String.fromCharCode(cc)).join('');
+        opts.TEXT_ENDERS = opts.VALUE_ENDERS;
         opts.VALUES = opts.values || {};
         return opts;
     }

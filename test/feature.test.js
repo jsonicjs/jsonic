@@ -60,9 +60,8 @@ describe('feature', function () {
     let nobal = Jsonic.make({balance:{comments:false}})
     expect(nobal.options.balance.comments).false()
 
-    // NOTE: comment markers *inside* text or string are not active!
-    // NOTE: a:b:2 -> {a:{b:2}}, which is the pattern here
-    expect(nobal('/*/*/*a:1*/*/*/b:2')).equal({ '*a': { '1*/*/*/b': 2 } })
+    // NOTE: comment markers inside text are active!
+    expect(nobal('/*/*/*a:1*/*/*/b:2')).equal({ '*a': '1*', b: 2 })
 
 
     // Custom multiline comments
