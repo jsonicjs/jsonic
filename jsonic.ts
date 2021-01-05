@@ -88,6 +88,9 @@ let STANDARD_OPTIONS = {
   VL: Symbol('#VL'), // VALUE
 
 
+  // TODO: generate from singles, line ends, comment start chars
+  ENDERS: ':,[]{} \t\n\r#/',
+
 
   // TODO: calc in norm func
   LOOKAHEAD_LEN: 6,
@@ -491,75 +494,61 @@ class Lexer {
           }
 
 
-          else if (opts.SINGLE_COMMENT.includes(c0c)) {
-            token.pin = opts.CM
-            token.loc = sI++
-            token.col = cI++
-            token.val = c0
-            state = opts.LS_CONSUME
-            enders = opts.line_enders
-            continue next_char
-          }
+          else if (opts.SC_COMMENT.includes(c0c)) {
+            let is_comment = opts.COMMENT_SINGLE.includes(c0)
 
+            if (!is_comment) {
+              let marker = src.substring(sI, sI + opts.COMMENT_MARKER_MAXLEN)
+              for (let cm of opts.COMMENT_MARKER) {
+                if (marker.startsWith(cm)) {
+                  is_comment = true
+                  break;
+                }
+              }
+            }
 
-          let lookahead_str = src.substring(sI, sI + opts.LOOKAHEAD_LEN)
-          let lookahead_match = lookahead_str.match(opts.LOOKAHEAD_REGEXP)
-          let lookahead = lookahead_match ? lookahead_match[1] : null
-          // console.log('lookahead', lookahead, lookahead_str)
+            if (is_comment) {
+              token.pin = opts.CM
+              token.loc = sI
+              token.col = cI
+              token.val = ''
 
-          // TODO: nested multilines
-          if (null != lookahead && opts.MULTI_COMMENT[lookahead]) {
-            token.pin = opts.CM
-            token.loc = sI++
-            token.col = cI++
-            token.val = c0
-            state = opts.LS_CONSUME
-            enders = opts.line_enders
-            continue next_char
-          }
-
-
-          else {
-            token.loc = sI
-            token.col = cI
+              state = opts.LS_CONSUME
+              enders = opts.line_enders
+              continue next_char
+            }
 
             // TODO: also match multichar comments here
-            // VALUE
-            //let m = src.substring(sI, sI + opts.MAXVLEN + 1).match(opts.VREGEXP)
-            //let m = lookahead.match(opts.VREGEXP)
-            //if (m) {
-            // console.log('lookahead-value', lookahead, srclen, lookahead && sI + lookahead.length + 1, lookahead && src[sI + lookahead.length], lookahead_str)
-            if (null != lookahead &&
-              (srclen < sI + lookahead.length + 1 ||
-                opts.enders.includes(src[sI + lookahead.length]))) {
-              token.pin = opts.VL
-              //token.len = m[1].length
-              //token.val = opts.VALUES[m[1]]
-              token.len = lookahead.length
-              token.val = opts.VALUES[lookahead]
+          }
 
-              cI += token.len
-              sI += token.len
-            }
 
-            // TEXT
-            else {
+          token.loc = sI
+          token.col = cI
 
-              pI = sI
+          pI = sI
 
-              do {
-                cI++
-              } while (!opts.ender[src[++pI]] && '#' !== src[pI])
+          do {
+            cI++
+            pI++
+          } while (null != src[pI] && !opts.ENDERS.includes(src[pI]))
 
-              token.pin = opts.TX
-              token.len = pI - sI
-              token.val = src.substring(sI, pI)
+          let txt = src.substring(sI, pI)
+          token.len = pI - sI
+          sI = pI
 
-              sI = pI
-            }
+          // A literal value
+          let val = opts.VALUES[txt]
 
+          if (undefined !== val) {
+            token.pin = opts.VL
+            token.val = val
             return token
           }
+
+          token.pin = opts.TX
+          token.val = txt
+
+          return token
         }
 
         else if (opts.LS_CONSUME === state) {
@@ -985,6 +974,9 @@ let util = {
   },
 
 
+  longest: (strs: string[]) =>
+    strs.reduce((a, s) => a < s.length ? s.length : a, 0),
+
   // Idempotent normalization of options.
   norm_options: function(opts: Opts) {
     let keys = Object.keys(opts)
@@ -1009,17 +1001,38 @@ let util = {
       .reduce((a: string[], ed: string) =>
         (a[ed.charCodeAt(0)] = opts.escapes[ed], a), [])
 
-    opts.SINGLE_COMMENT = []
-    opts.MULTI_COMMENT = {}
+    opts.SC_COMMENT = []
+    opts.COMMENT_SINGLE = ''
+    opts.COMMENT_MARKER = []
+
     if (opts.comments) {
-      Object.keys(opts.comments).forEach(k => {
+      let comment_markers = Object.keys(opts.comments)
+
+      comment_markers.forEach(k => {
+
+        // Single character comment marker (eg. `#`)
         if (1 === k.length) {
-          opts.SINGLE_COMMENT = [k.charCodeAt(0)]
+          //opts.COMMENT_START += k
+          opts.SC_COMMENT.push(k.charCodeAt(0))
+          opts.COMMENT_SINGLE += k
+
+          //opts.SINGLE_COMMENT = [k.charCodeAt(0)]
         }
+
+        // String comment marker (eg. `//`)
+        else if (true === opts.comments[k]) {
+          //opts.COMMENT_START += k[0]
+          opts.SC_COMMENT.push(k.charCodeAt(0))
+          opts.COMMENT_MARKER.push(k)
+        }
+
+        // Multi-line comment start and end markers (eg. `/*`,`*/`)
         else {
-          opts.MULTI_COMMENT[k] = opts.comments[k]
+          //opts.MULTI_COMMENT[k] = opts.comments[k]
         }
       })
+
+      opts.COMMENT_MARKER_MAXLEN = util.longest(comment_markers)
     }
 
     if (opts.VALUES) {

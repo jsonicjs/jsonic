@@ -33,6 +33,7 @@ declare class Lexer {
 declare let util: {
     deep: (base?: any, over?: any) => any;
     s2cca: (s: string) => number[];
+    longest: (strs: string[]) => number;
     norm_options: (opts: Opts) => Opts;
 };
 declare let Jsonic: Jsonic;
