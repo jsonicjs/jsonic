@@ -55,6 +55,7 @@ let STANDARD_OPTIONS = {
         'true': true,
         'false': false,
     },
+    digital: '-1023456789._xeEaAbBcCdDfF+',
     // Single character tokens.
     // NOTE: character is final char of Symbol name.
     OB: Symbol('#OB{'),
@@ -74,49 +75,6 @@ let STANDARD_OPTIONS = {
     ST: Symbol('#ST'),
     TX: Symbol('#TX'),
     VL: Symbol('#VL'),
-    /*
-    // TODO: build from enders
-    ender: {
-      ':': true,
-      ',': true,
-      ']': true,
-      '}': true,
-      ' ': true,
-      '\t': true,
-      '\n': true,
-      '\r': true,
-      undefined: true
-    },
-    */
-    digital: {
-        '0': true,
-        '1': true,
-        '2': true,
-        '3': true,
-        '4': true,
-        '5': true,
-        '6': true,
-        '7': true,
-        '8': true,
-        '9': true,
-        '.': true,
-        '_': true,
-        'x': true,
-        'e': true,
-        'E': true,
-        'a': true,
-        'A': true,
-        'b': true,
-        'B': true,
-        'c': true,
-        'C': true,
-        'd': true,
-        'D': true,
-        'f': true,
-        'F': true,
-        '+': true,
-        '-': true,
-    },
     spaces: {
         ' ': true,
         '\t': true,
@@ -237,7 +195,7 @@ class Lexer {
                         token.loc = sI;
                         token.col = cI;
                         pI = sI;
-                        while (opts.digital[src[++pI]])
+                        while (opts.DIGITAL.includes(src[++pI]))
                             ;
                         if (null == src[pI] || opts.VALUE_ENDERS.includes(src[pI])) {
                             token.len = pI - sI;
@@ -742,6 +700,7 @@ let util = {
         opts.escapes = opts.escapes || {};
         opts.ESCAPES = Object.keys(opts.escapes)
             .reduce((a, ed) => (a[ed.charCodeAt(0)] = opts.escapes[ed], a), []);
+        opts.DIGITAL = opts.digital || '';
         opts.SC_COMMENT = [];
         opts.COMMENT_SINGLE = '';
         opts.COMMENT_MARKER = [];
