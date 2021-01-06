@@ -1,5 +1,6 @@
 declare type Jsonic = ((src: any) => any) & {
     parse: (src: any) => any;
+    make: (opts: Opts) => Jsonic;
     use: (plugin: Plugin) => void;
 } & {
     [prop: string]: any;
@@ -20,14 +21,10 @@ declare type Token = {
 };
 declare type Lex = () => Token;
 declare class Lexer {
-    options: {
-        [k: string]: any;
-    };
+    options: Opts;
     end: Token;
     bad: any;
-    constructor(opts?: {
-        [k: string]: any;
-    });
+    constructor(options?: Opts);
     start(src: string): Lex;
 }
 declare let util: {

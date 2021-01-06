@@ -6,7 +6,8 @@
    
 */
 
-// NEXT: lex text hoovering
+// NEXT plugin: load file: { foo: @filepath }
+
 // NEXT: error messages
 
 // NEXT: Parser class
@@ -58,6 +59,10 @@ let STANDARD_OPTIONS = {
 
   string: {
     multiline: '`'
+  },
+
+  text: {
+    hoover: true,
   },
 
   values: {
@@ -118,7 +123,8 @@ type Jsonic =
   // A utility with methods.
   {
     parse: (src: any) => any,
-    use: (plugin: Plugin) => void
+    make: (opts: Opts) => Jsonic,
+    use: (plugin: Plugin) => void,
   }
 
   // Extensible by plugin decoration. Example: `stringify`.
@@ -155,15 +161,15 @@ type Lex = () => Token
 
 class Lexer {
 
-  options: { [k: string]: any } = STANDARD_OPTIONS
+  options: Opts = STANDARD_OPTIONS
   end: Token
   bad: any
 
-  constructor(opts?: { [k: string]: any }) {
-    let options = this.options = util.deep(this.options, opts)
+  constructor(options?: Opts) {
+    let opts = this.options = util.deep(this.options, options)
 
     this.end = {
-      pin: options.ZZ,
+      pin: opts.ZZ,
       loc: 0,
       len: 0,
       row: 0,
@@ -171,7 +177,7 @@ class Lexer {
       val: undefined,
     }
 
-    options.bad = function(
+    opts.bad = function(
       why: string,
       token: Token,
       sI: number,
@@ -181,7 +187,7 @@ class Lexer {
       val?: any,
       use?: any
     ): Token {
-      token.pin = options.BD
+      token.pin = opts.BD
       token.loc = pI
       token.row = rI
       token.col = cI
@@ -490,8 +496,9 @@ class Lexer {
 
 
           // Only thing left is literal text
+          let text_enders = opts.text.hoover ? opts.HOOVER_ENDERS : opts.TEXT_ENDERS
 
-          while (null != src[pI] && !opts.TEXT_ENDERS.includes(src[pI])) {
+          while (null != src[pI] && !text_enders.includes(src[pI])) {
             cI++
             pI++
           }
@@ -500,7 +507,27 @@ class Lexer {
           token.pin = opts.TX
           token.val = src.substring(sI, pI)
 
-          sI = pI
+          // If hoovering, separate space at end from text
+          if (opts.text.hoover &&
+            opts.sc_space.includes(token.val[token.val.length - 1])) {
+
+            // Find last non-space char
+            let tI = token.val.length - 2
+            while (0 < tI && opts.sc_space.includes(token.val[tI])) tI--;
+            token.val = token.val.substring(0, tI + 1)
+
+            // Adjust column counter backwards by end space length
+            cI -= (token.len - tI - 1)
+
+            token.len = token.val.length
+
+            // Ensures end space will be seen as the next token 
+            sI += token.len
+          }
+          else {
+            sI = pI
+          }
+
           return token
         }
 
@@ -591,6 +618,7 @@ let S = (s: symbol) => s.description
 
 
 interface Context {
+  opts: Opts
   node: any
   t0: Token
   t1: Token
@@ -645,13 +673,7 @@ class PairRule extends Rule {
       case opts.NR:
       case opts.ST:
       case opts.VL:
-
-        // A sequence of literals with internal spaces is concatenated
-        let value: any = hoover(
-          ctx,
-          opts.VAL,
-          [opts.SP]
-        )
+        let value = ctx.t0.val
 
         ctx.match(opts.CL, opts.WSP)
 
@@ -710,7 +732,7 @@ class ListRule extends Rule {
         case opts.VL:
 
           // A sequence of literals with internal spaces is concatenated
-          let value: any = hoover(ctx, opts.VAL, [opts.SP])
+          let value = ctx.t0.val
 
           this.node.push(value)
           pk = k
@@ -801,13 +823,7 @@ class ValueRule extends Rule {
         throw new Error(t.why)
     }
 
-    // Any sequence of literals with internal spaces is considered a single string
-    let value: any = hoover(
-      ctx,
-      opts.VAL,
-      [opts.SP]
-    )
-
+    let value = ctx.t0.val
 
     // Is this an implicit map?
     if (opts.CL === ctx.t1.pin) {
@@ -838,93 +854,68 @@ class ValueRule extends Rule {
 }
 
 
-// Hoover up tokens into a string, possible containing whitespace, but trimming end
-// Thus: ['a', ' ', 'b', ' '] => 'a b'
-// NOTE: single tokens return token value, not a string!
-function hoover(ctx: Context, pins: symbol[], trims: symbol[]): any {
+class Parser {
 
-  // Is this potentially a hoover?
-  let trimC = 0
-  if ((trims.includes(ctx.t1.pin) && ++trimC) || pins.includes(ctx.t1.pin)) {
-    let b: Token[] = [ctx.t0, ctx.t1]
+  options: Opts = STANDARD_OPTIONS
 
-    ctx.next()
-
-    while ((trims.includes(ctx.t1.pin) && ++trimC) ||
-      (pins.includes(ctx.t1.pin) && (trimC = 0, true))) {
-      b.push(ctx.t1)
-      ctx.next()
-    }
-
-    // Trim end.
-    b = b.splice(0, b.length - trimC)
-
-    if (1 === b.length) {
-      return b[0].val
-    }
-    else {
-      return b.map(t => String(t.val)).join('')
-    }
-  }
-  else {
-    return ctx.t0.val
-  }
-}
-
-
-// TODO: move inside a Parser object
-function process(opts: Opts, lex: Lex): any {
-  let rule: Rule | undefined = new ValueRule(opts, {}, '$', opts.UK)
-  let root = rule
-
-  let ctx: Context = {
-    node: undefined,
-    t0: opts.end,
-    t1: opts.end,
-    next,
-    match,
-    ignore: ignorable,
-    rs: []
+  constructor(options?: Opts) {
+    let opts = this.options = util.deep(this.options, options)
   }
 
-  function next() {
-    ctx.t0 = ctx.t1
-    ctx.t1 = { ...lex() }
-    return ctx.t0
-  }
+  start(lex: Lex): any {
+    let opts = this.options
+    let rule: Rule | undefined = new ValueRule(opts, {}, '$', opts.UK)
+    let root = rule
 
-  function ignorable(ignore: symbol[]) {
-    while (ignore.includes(ctx.t1.pin)) {
-      next()
+    let ctx: Context = {
+      opts: opts,
+      node: undefined,
+      t0: opts.end,
+      t1: opts.end,
+      next,
+      match,
+      ignore: ignorable,
+      rs: []
     }
-  }
 
-  function match(pin: symbol, ignore?: symbol[]) {
-    if (ignore) {
-      ignorable(ignore)
+    function next() {
+      ctx.t0 = ctx.t1
+      ctx.t1 = { ...lex() }
+      return ctx.t0
     }
 
-    if (pin === ctx.t1.pin) {
-      let t = next()
+    function ignorable(ignore: symbol[]) {
+      while (ignore.includes(ctx.t1.pin)) {
+        next()
+      }
+    }
 
+    function match(pin: symbol, ignore?: symbol[]) {
       if (ignore) {
         ignorable(ignore)
       }
 
-      return t
+      if (pin === ctx.t1.pin) {
+        let t = next()
+
+        if (ignore) {
+          ignorable(ignore)
+        }
+
+        return t
+      }
+      throw new Error('expected: ' + String(pin) + ' saw:' + String(ctx.t1.pin) + '=' + ctx.t1.val)
     }
-    throw new Error('expected: ' + String(pin) + ' saw:' + String(ctx.t1.pin) + '=' + ctx.t1.val)
+
+    next()
+
+    while (rule) {
+      rule = rule.process(ctx)
+    }
+
+    return root.node.$
   }
-
-  next()
-
-  while (rule) {
-    rule = rule.process(ctx)
-  }
-
-  return root.node.$
 }
-
 
 // TODO: replace with jsonic stringify
 function desc(o: any) {
@@ -1018,13 +1009,19 @@ let util = {
       opts.COMMENT_MARKER_MAXLEN = util.longest(comment_markers)
     }
 
+    opts.SC_COMMENT_CHARS =
+      opts.SC_COMMENT.map((cc: number) => String.fromCharCode(cc)).join('')
+
     opts.SINGLE_CHARS =
       opts.SINGLES.map((s: symbol, cc: number) => String.fromCharCode(cc)).join('')
 
-    opts.VALUE_ENDERS = opts.sc_space + opts.sc_line + opts.SINGLE_CHARS +
-      opts.SC_COMMENT.map((cc: number) => String.fromCharCode(cc)).join('')
+    opts.VALUE_ENDERS =
+      opts.sc_space + opts.sc_line + opts.SINGLE_CHARS + opts.SC_COMMENT_CHARS
+
 
     opts.TEXT_ENDERS = opts.VALUE_ENDERS
+
+    opts.HOOVER_ENDERS = opts.sc_line + opts.SINGLE_CHARS + opts.SC_COMMENT_CHARS
 
     opts.VALUES = opts.values || {}
 
@@ -1052,7 +1049,7 @@ function make(first?: Opts | Jsonic, parent?: Jsonic): Jsonic {
 
   let self: any = function Jsonic(src: any): any {
     if ('string' === typeof (src)) {
-      return process(opts, self.lexer.start(src))
+      return self._parser.start(self._lexer.start(src))
     }
     return src
   }
@@ -1066,14 +1063,11 @@ function make(first?: Opts | Jsonic, parent?: Jsonic): Jsonic {
   }
 
 
+  self._lexer = new Lexer(opts)
+  self._parser = new Parser(opts)
+
+
   self.options = opts
-
-
-  self.lexer = new Lexer(opts)
-
-  // TODO
-  // self._parser = new Parser(opts, self._lexer)
-
 
   self.parse = self
 

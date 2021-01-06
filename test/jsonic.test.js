@@ -186,11 +186,11 @@ describe('jsonic', function () {
     expect(lex2()).equals(
       { pin: lexer.options.SP, loc: 0, len: 1, row: 0, col: 0, val: ' ' })
     expect(lex2()).equals(
-      { pin: lexer.options.TX, loc: 1, len: 1, row: 0, col: 1, val: 'm' })
-    expect(lex2()).equals(
-      { pin: lexer.options.SP, loc: 2, len: 1, row: 0, col: 2, val: ' ' })
-    expect(lex2()).equals(
-      { pin: lexer.options.TX, loc: 3, len: 1, row: 0, col: 3, val: 'n' })
+      { pin: lexer.options.TX, loc: 1, len: 3, row: 0, col: 1, val: 'm n' })
+//    expect(lex2()).equals(
+//      { pin: lexer.options.SP, loc: 2, len: 1, row: 0, col: 2, val: ' ' })
+//    expect(lex2()).equals(
+//      { pin: lexer.options.TX, loc: 3, len: 1, row: 0, col: 3, val: 'n' })
     expect(lex2()).equals(
       { pin: lexer.options.SP, loc: 4, len: 1, row: 0, col: 4, val: ' ' })
     expect(lex2()).equals(
@@ -200,11 +200,11 @@ describe('jsonic', function () {
     expect(lex3()).equals(
       { pin: lexer.options.SP, loc: 0, len: 1, row: 0, col: 0, val: ' ' })
     expect(lex3()).equals(
-      { pin: lexer.options.TX, loc: 1, len: 1, row: 0, col: 1, val: 'b' })
-    expect(lex3()).equals(
-      { pin: lexer.options.SP, loc: 2, len: 1, row: 0, col: 2, val: ' ' })
-    expect(lex3()).equals(
-      { pin: lexer.options.TX, loc: 3, len: 1, row: 0, col: 3, val: 'a' })
+      { pin: lexer.options.TX, loc: 1, len: 3, row: 0, col: 1, val: 'b a' })
+//    expect(lex3()).equals(
+//      { pin: lexer.options.SP, loc: 2, len: 1, row: 0, col: 2, val: ' ' })
+//    expect(lex3()).equals(
+//      { pin: lexer.options.TX, loc: 3, len: 1, row: 0, col: 3, val: 'a' })
     expect(lex3()).equals(
       { pin: lexer.options.SP, loc: 4, len: 1, row: 0, col: 4, val: ' ' })
     expect(lex3()).equals(
@@ -419,8 +419,7 @@ describe('jsonic', function () {
       '!%~', ['#TX;0;3;0x0;!%~','#ZZ;3;0;0x3'],
       'a"b', ['#TX;0;3;0x0;a"b','#ZZ;3;0;0x3'],
       'a\'b', ['#TX;0;3;0x0;a\'b','#ZZ;3;0;0x3'],
-      ' a b ', ['#SP;0;1;0x0','#TX;1;1;0x1;a',
-                '#SP;2;1;0x2','#TX;3;1;0x3;b',
+      ' a b ', ['#SP;0;1;0x0','#TX;1;3;0x1;a b',
                 '#SP;4;1;0x4','#ZZ;5;0;0x5'],
       'a:', ['#TX;0;1;0x0;a','#CL;1;1;0x1','#ZZ;2;0;0x2'],
     ])

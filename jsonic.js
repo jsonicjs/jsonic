@@ -6,7 +6,7 @@ exports.util = exports.Lexer = exports.Jsonic = void 0;
    - comment TODO test
    
 */
-// NEXT: lex text hoovering
+// NEXT plugin: load file: { foo: @filepath }
 // NEXT: error messages
 // NEXT: Parser class
 // Edge case notes (see unit tests):
@@ -45,6 +45,9 @@ let STANDARD_OPTIONS = {
     string: {
         multiline: '`'
     },
+    text: {
+        hoover: true,
+    },
     values: {
         'null': null,
         'true': true,
@@ -79,19 +82,19 @@ let STANDARD_OPTIONS = {
     WSP: [],
 };
 class Lexer {
-    constructor(opts) {
+    constructor(options) {
         this.options = STANDARD_OPTIONS;
-        let options = this.options = util.deep(this.options, opts);
+        let opts = this.options = util.deep(this.options, options);
         this.end = {
-            pin: options.ZZ,
+            pin: opts.ZZ,
             loc: 0,
             len: 0,
             row: 0,
             col: 0,
             val: undefined,
         };
-        options.bad = function (why, token, sI, pI, rI, cI, val, use) {
-            token.pin = options.BD;
+        opts.bad = function (why, token, sI, pI, rI, cI, val, use) {
+            token.pin = opts.BD;
             token.loc = pI;
             token.row = rI;
             token.col = cI;
@@ -329,14 +332,31 @@ class Lexer {
                         return token;
                     }
                     // Only thing left is literal text
-                    while (null != src[pI] && !opts.TEXT_ENDERS.includes(src[pI])) {
+                    let text_enders = opts.text.hoover ? opts.HOOVER_ENDERS : opts.TEXT_ENDERS;
+                    while (null != src[pI] && !text_enders.includes(src[pI])) {
                         cI++;
                         pI++;
                     }
                     token.len = pI - sI;
                     token.pin = opts.TX;
                     token.val = src.substring(sI, pI);
-                    sI = pI;
+                    // If hoovering, separate space at end from text
+                    if (opts.text.hoover &&
+                        opts.sc_space.includes(token.val[token.val.length - 1])) {
+                        // Find last non-space char
+                        let tI = token.val.length - 2;
+                        while (0 < tI && opts.sc_space.includes(token.val[tI]))
+                            tI--;
+                        token.val = token.val.substring(0, tI + 1);
+                        // Adjust column counter backwards by end space length
+                        cI -= (token.len - tI - 1);
+                        token.len = token.val.length;
+                        // Ensures end space will be seen as the next token 
+                        sI += token.len;
+                    }
+                    else {
+                        sI = pI;
+                    }
                     return token;
                 }
                 // Lexer State: CONSUME => all chars up to first ender
@@ -423,8 +443,7 @@ class PairRule extends Rule {
             case opts.NR:
             case opts.ST:
             case opts.VL:
-                // A sequence of literals with internal spaces is concatenated
-                let value = hoover(ctx, opts.VAL, [opts.SP]);
+                let value = ctx.t0.val;
                 ctx.match(opts.CL, opts.WSP);
                 ctx.rs.push(this);
                 return new ValueRule(opts, this.node, value, opts.OB);
@@ -466,7 +485,7 @@ class ListRule extends Rule {
                 case opts.ST:
                 case opts.VL:
                     // A sequence of literals with internal spaces is concatenated
-                    let value = hoover(ctx, opts.VAL, [opts.SP]);
+                    let value = ctx.t0.val;
                     this.node.push(value);
                     pk = k;
                     break;
@@ -535,8 +554,7 @@ class ValueRule extends Rule {
             case opts.BD:
                 throw new Error(t.why);
         }
-        // Any sequence of literals with internal spaces is considered a single string
-        let value = hoover(ctx, opts.VAL, [opts.SP]);
+        let value = ctx.t0.val;
         // Is this an implicit map?
         if (opts.CL === ctx.t1.pin) {
             this.parent = opts.OB;
@@ -560,74 +578,54 @@ class ValueRule extends Rule {
         return 'Value: ' + this.key + '=' + desc(this.val) + ' node=' + desc(this.node);
     }
 }
-// Hoover up tokens into a string, possible containing whitespace, but trimming end
-// Thus: ['a', ' ', 'b', ' '] => 'a b'
-// NOTE: single tokens return token value, not a string!
-function hoover(ctx, pins, trims) {
-    // Is this potentially a hoover?
-    let trimC = 0;
-    if ((trims.includes(ctx.t1.pin) && ++trimC) || pins.includes(ctx.t1.pin)) {
-        let b = [ctx.t0, ctx.t1];
-        ctx.next();
-        while ((trims.includes(ctx.t1.pin) && ++trimC) ||
-            (pins.includes(ctx.t1.pin) && (trimC = 0, true))) {
-            b.push(ctx.t1);
-            ctx.next();
-        }
-        // Trim end.
-        b = b.splice(0, b.length - trimC);
-        if (1 === b.length) {
-            return b[0].val;
-        }
-        else {
-            return b.map(t => String(t.val)).join('');
-        }
+class Parser {
+    constructor(options) {
+        this.options = STANDARD_OPTIONS;
+        let opts = this.options = util.deep(this.options, options);
     }
-    else {
-        return ctx.t0.val;
-    }
-}
-// TODO: move inside a Parser object
-function process(opts, lex) {
-    let rule = new ValueRule(opts, {}, '$', opts.UK);
-    let root = rule;
-    let ctx = {
-        node: undefined,
-        t0: opts.end,
-        t1: opts.end,
-        next,
-        match,
-        ignore: ignorable,
-        rs: []
-    };
-    function next() {
-        ctx.t0 = ctx.t1;
-        ctx.t1 = { ...lex() };
-        return ctx.t0;
-    }
-    function ignorable(ignore) {
-        while (ignore.includes(ctx.t1.pin)) {
-            next();
+    start(lex) {
+        let opts = this.options;
+        let rule = new ValueRule(opts, {}, '$', opts.UK);
+        let root = rule;
+        let ctx = {
+            opts: opts,
+            node: undefined,
+            t0: opts.end,
+            t1: opts.end,
+            next,
+            match,
+            ignore: ignorable,
+            rs: []
+        };
+        function next() {
+            ctx.t0 = ctx.t1;
+            ctx.t1 = { ...lex() };
+            return ctx.t0;
         }
-    }
-    function match(pin, ignore) {
-        if (ignore) {
-            ignorable(ignore);
+        function ignorable(ignore) {
+            while (ignore.includes(ctx.t1.pin)) {
+                next();
+            }
         }
-        if (pin === ctx.t1.pin) {
-            let t = next();
+        function match(pin, ignore) {
             if (ignore) {
                 ignorable(ignore);
             }
-            return t;
+            if (pin === ctx.t1.pin) {
+                let t = next();
+                if (ignore) {
+                    ignorable(ignore);
+                }
+                return t;
+            }
+            throw new Error('expected: ' + String(pin) + ' saw:' + String(ctx.t1.pin) + '=' + ctx.t1.val);
         }
-        throw new Error('expected: ' + String(pin) + ' saw:' + String(ctx.t1.pin) + '=' + ctx.t1.val);
+        next();
+        while (rule) {
+            rule = rule.process(ctx);
+        }
+        return root.node.$;
     }
-    next();
-    while (rule) {
-        rule = rule.process(ctx);
-    }
-    return root.node.$;
 }
 // TODO: replace with jsonic stringify
 function desc(o) {
@@ -695,11 +693,14 @@ let util = {
             });
             opts.COMMENT_MARKER_MAXLEN = util.longest(comment_markers);
         }
+        opts.SC_COMMENT_CHARS =
+            opts.SC_COMMENT.map((cc) => String.fromCharCode(cc)).join('');
         opts.SINGLE_CHARS =
             opts.SINGLES.map((s, cc) => String.fromCharCode(cc)).join('');
-        opts.VALUE_ENDERS = opts.sc_space + opts.sc_line + opts.SINGLE_CHARS +
-            opts.SC_COMMENT.map((cc) => String.fromCharCode(cc)).join('');
+        opts.VALUE_ENDERS =
+            opts.sc_space + opts.sc_line + opts.SINGLE_CHARS + opts.SC_COMMENT_CHARS;
         opts.TEXT_ENDERS = opts.VALUE_ENDERS;
+        opts.HOOVER_ENDERS = opts.sc_line + opts.SINGLE_CHARS + opts.SC_COMMENT_CHARS;
         opts.VALUES = opts.values || {};
         // Token sets
         opts.VAL = [opts.TX, opts.NR, opts.ST, opts.VL];
@@ -718,7 +719,7 @@ function make(first, parent) {
     opts = util.norm_options(opts);
     let self = function Jsonic(src) {
         if ('string' === typeof (src)) {
-            return process(opts, self.lexer.start(src));
+            return self._parser.start(self._lexer.start(src));
         }
         return src;
     };
@@ -728,10 +729,9 @@ function make(first, parent) {
         }
         self.parent = parent;
     }
+    self._lexer = new Lexer(opts);
+    self._parser = new Parser(opts);
     self.options = opts;
-    self.lexer = new Lexer(opts);
-    // TODO
-    // self._parser = new Parser(opts, self._lexer)
     self.parse = self;
     self.use = function use(plugin) {
         plugin(self);
