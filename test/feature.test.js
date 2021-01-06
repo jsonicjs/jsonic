@@ -103,5 +103,16 @@ describe('feature', function () {
       .equals({a:true,b:false,c:null,d:{e:true,f:false,g:null},h:[true,false,null]})
   })
 
+
+  it('multiline-string', () => {
+    expect(Jsonic('`a`')).equals('a')
+    expect(Jsonic('`a\n`')).equals('a\n')
+    expect(Jsonic('`\na`')).equals('\na')
+    expect(Jsonic('`\na\n`')).equals('\na\n')
+    expect(Jsonic('`a\nb`')).equals('a\nb')
+    expect(Jsonic('`a\n\nb`')).equals('a\n\nb')
+    expect(Jsonic('`a\nc\nb`')).equals('a\nc\nb')
+    expect(Jsonic('`a\r\n\r\nb`')).equals('a\r\n\r\nb')
+  })
   
 })

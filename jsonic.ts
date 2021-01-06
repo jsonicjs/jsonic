@@ -6,22 +6,11 @@
    
 */
 
-// NEXT: norm enders
-// NEXT: backticks multiline
-// NEXT: organize option names
-// NEXT: remove hard-coded chars
-// NEXT: keywords
-// NEXT: optimise/parameterize string lex
-// NEXT: text hoovering (optional) 
+// NEXT: lex text hoovering
 // NEXT: error messages
 
 // NEXT: Parser class
 
-
-// TODO: back ticks or allow newlines in strings?
-// TODO: nested comments? also support //?
-// TODO: parsing options? e.g. hoovering on/off?
-// TODO: hoovering should happen at lex time
 
 
 // Edge case notes (see unit tests):
@@ -35,9 +24,9 @@ let STANDARD_OPTIONS = {
 
   // Token start characters.
   sc_space: ' \t',
-  sc_line: '\r\n',
+  sc_line: '\n\r',
   sc_number: '-0123456789',
-  sc_string: '"\'',
+  sc_string: '"\'`',
   sc_none: '',
 
   // String escape chars.
@@ -53,8 +42,6 @@ let STANDARD_OPTIONS = {
   // Multi-charater token ending characters.
   enders: ':,[]{} \t\n\r',
 
-  line_enders: '\n\r',
-
   comments: {
     '#': true,
     '//': true,
@@ -63,6 +50,14 @@ let STANDARD_OPTIONS = {
 
   balance: {
     comments: true,
+  },
+
+  number: {
+    underscore: true,
+  },
+
+  string: {
+    multiline: '`'
   },
 
   values: {
@@ -74,6 +69,8 @@ let STANDARD_OPTIONS = {
 
   digital: '-1023456789._xeEaAbBcCdDfF+',
 
+
+  bad_unicode_char: String.fromCharCode('0x0000' as any),
 
   // Single character tokens.
   // NOTE: character is final char of Symbol name.
@@ -108,6 +105,8 @@ let STANDARD_OPTIONS = {
 
   VAL: ([] as Symbol[]),
   WSP: ([] as Symbol[]),
+
+
 }
 
 
@@ -131,7 +130,6 @@ type Plugin = (jsonic: Jsonic) => void
 
 type Opts = { [k: string]: any }
 
-
 // Tokens from the lexer.
 type Token = {
   pin: symbol,  // Token kind.
@@ -144,12 +142,11 @@ type Token = {
   use?: any,     // Custom meta data from plugins goes here.
 }
 
-
 // The lexing function returns the next token.
 type Lex = () => Token
 
 
-const BAD_UNICODE_CHAR = String.fromCharCode('0x0000' as any)
+
 
 
 
@@ -232,16 +229,11 @@ class Lexer {
       let pI = 0 // Current lex position (only update sI at end of rule).
       let s: string[] = [] // Parsed string characters and substrings.
       let cc = -1 // Character code.
-      let qc = -1 // Quote character code.
-      let ec = -1 // Escape character code.
-      let us: string // Unicode character string.
 
       next_char:
       while (sI < srclen) {
         let c0 = src[sI]
         let c0c = src.charCodeAt(sI)
-
-        // console.log('LEXW', state, cur, sI, src.substring(sI, sI + 11))
 
         if (opts.LS_TOP === state) {
           if (opts.SC_SPACE.includes(c0c)) {
@@ -251,7 +243,6 @@ class Lexer {
             token.col = cI++
 
             pI = sI + 1
-            //while (opts.spaces[src[pI]]) cI++, pI++;
             while (opts.sc_space.includes(src[pI])) cI++, pI++;
 
             token.len = pI - sI
@@ -314,7 +305,8 @@ class Lexer {
               else {
                 token.val = +(src.substring(sI, pI))
 
-                if (isNaN(token.val)) {
+                // Allow number format 1000_000_000 === 1e9
+                if (opts.number.underscore && isNaN(token.val)) {
                   token.val = +(src.substring(sI, pI).replace(/_/g, ''))
                 }
 
@@ -336,14 +328,14 @@ class Lexer {
             // prefixed with digits.
           }
 
-          //case '"': case '\'':
           else if (opts.SC_STRING.includes(c0c)) {
-            // console.log('STRING:' + src.substring(sI))
             token.pin = opts.ST
             token.loc = sI
             token.col = cI++
 
-            qc = c0.charCodeAt(0)
+            let qc = c0.charCodeAt(0)
+            let multiline = opts.string.multiline.includes(c0)
+
             s = []
             cc = -1
 
@@ -351,45 +343,47 @@ class Lexer {
               cI++
 
               cc = src.charCodeAt(pI)
-              // console.log(src[pI] + '=' + cc, 's[' + s + ']')
 
-              if (cc < 32) {
-                return opts.bad('unprintable', token, sI, pI, rI, cI, src.charAt(pI))
-              }
-              else if (qc === cc) {
-                // console.log('qc === cc', qc, cc, sI, pI)
+              if (qc === cc) {
                 pI++
-                break
+                break // String finished.
               }
               else if (92 === cc) {
-                ec = src.charCodeAt(++pI)
+                let ec = src.charCodeAt(++pI)
                 cI++
 
-                switch (ec) {
-                  case 110:
-                  case 116:
-                  case 114:
-                  case 98:
-                  case 102:
-                    s.push(opts.ESCAPES[ec])
-                    break
+                let es = opts.ESCAPES[ec]
+                if (null != es) {
+                  s.push(es)
+                }
 
-                  case 117:
-                    pI++
-                    us = String.fromCharCode(('0x' + src.substring(pI, pI + 4)) as any)
-                    if (BAD_UNICODE_CHAR === us) {
-                      return opts.bad('invalid-unicode',
-                        token, sI, pI, rI, cI, src.substring(pI - 2, pI + 4))
-                    }
+                // Unicode escape \u****
+                else if (117 === ec) {
+                  pI++
+                  let us =
+                    String.fromCharCode(('0x' + src.substring(pI, pI + 4)) as any)
 
-                    s.push(us)
-                    pI += 3 // loop increments pI
-                    cI += 4
-                    break
+                  if (opts.bad_unicode_char === us) {
+                    return opts.bad(
+                      'invalid-unicode',
+                      token, sI, pI, rI, cI, src.substring(pI - 2, pI + 4))
+                  }
 
-                  default:
-                    // console.log('D', sI, pI, src.substring(pI))
-                    s.push(src[pI])
+                  s.push(us)
+                  pI += 3 // loop increments pI
+                  cI += 4
+                }
+                else {
+                  s.push(src[pI])
+                }
+              }
+              else if (cc < 32) {
+                if (multiline && opts.SC_LINE.includes(cc)) {
+                  s.push(src[pI])
+                }
+                else {
+                  return opts.bad(
+                    'unprintable', token, sI, pI, rI, cI, src.charAt(pI))
                 }
               }
               else {
@@ -402,9 +396,8 @@ class Lexer {
                 while (32 <= cc && qc !== cc && 92 !== cc);
                 cI--
 
-                // console.log('T', bI, pI, src.substring(bI, pI))
-
                 s.push(src.substring(bI, pI))
+
                 pI--
               }
             }
@@ -426,7 +419,8 @@ class Lexer {
           else if (opts.SC_COMMENT.includes(c0c)) {
             let is_line_comment = opts.COMMENT_SINGLE.includes(c0)
 
-            //if (!is_line_comment) {
+            // Also check for comment markers as single comment char could be
+            // a comment marker prefix (eg. # and ###)
             let marker = src.substring(sI, sI + opts.COMMENT_MARKER_MAXLEN)
             for (let cm of opts.COMMENT_MARKER) {
               if (marker.startsWith(cm)) {
@@ -448,7 +442,6 @@ class Lexer {
                 break;
               }
             }
-            //}
 
             if (is_line_comment) {
               token.pin = opts.CM
@@ -457,7 +450,7 @@ class Lexer {
               token.val = ''
 
               state = opts.LS_CONSUME
-              enders = opts.line_enders
+              enders = opts.sc_line
               continue next_char
             }
           }
@@ -575,10 +568,7 @@ class Lexer {
       token.loc = srclen
       token.col = cI
 
-      // console.log('ZZ', token)
-
       return token
-
     }
   }
 }
@@ -713,8 +703,6 @@ class ListRule extends Rule {
       let t: Token = ctx.next()
       let k = t.pin
 
-      // console.log('LIST:' + S(k) + '=' + t.value)
-
       switch (k) {
         case opts.TX:
         case opts.NR:
@@ -724,14 +712,11 @@ class ListRule extends Rule {
           // A sequence of literals with internal spaces is concatenated
           let value: any = hoover(ctx, opts.VAL, [opts.SP])
 
-          // console.log('LR val=' + value)
-
           this.node.push(value)
           pk = k
           break
 
         case opts.CA:
-          // console.log('LR comma')
           // Insert null before comma if value missing.
           // Trailing commas are ignored.
           if (opts.CA === pk || 0 === this.node.length) {
@@ -787,7 +772,6 @@ class ValueRule extends Rule {
     let opts = this.opts
     ctx.ignore(opts.WSP)
 
-    // console.log('VR S', this.value)
     // Child value has resolved
     if (this.val) {
       this.node[this.key] = this.val
@@ -797,8 +781,6 @@ class ValueRule extends Rule {
 
     let t: Token = ctx.next()
     let k = t.pin
-
-    // console.log('VR:' + S(k) + '=' + t.value)
 
     switch (k) {
       case opts.OB:
@@ -814,6 +796,9 @@ class ValueRule extends Rule {
         ctx.rs.push(this)
         return new ListRule(opts, null, opts.CA)
 
+      // TODO: proper error messages
+      case opts.BD:
+        throw new Error(t.why)
     }
 
     // Any sequence of literals with internal spaces is considered a single string
