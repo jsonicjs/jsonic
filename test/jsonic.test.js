@@ -44,6 +44,15 @@ describe('jsonic', function () {
     expect(Jsonic('{"a":1}')).equals({a: 1})
   })
 
+  it('basic-json', () => {
+    expect(Jsonic('"a"')).equals('a')
+    expect(Jsonic('{"a":1}')).equals({a: 1})
+    expect(Jsonic('{"a":{"b":1}}')).equals({a: {b: 1}})
+    expect(Jsonic('{"a":[1]}')).equals({a: [1]})
+    expect(Jsonic('{"a":[1,{"b":2}]}')).equals({a: [1, {b: 2}]})
+  })
+
+  
   it('basic-object-tree', () => {
     expect(Jsonic('{}')).equals({})
     expect(Jsonic('{a:{}}')).equals({a: {}})

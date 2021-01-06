@@ -18,7 +18,7 @@
 // LNnnn: Lex Note number
 // PNnnn: Parse Note number
 
-// const I = require('util').inspect
+const I = require('util').inspect
 
 
 let STANDARD_OPTIONS = {
@@ -91,6 +91,7 @@ let STANDARD_OPTIONS = {
   ZZ: Symbol('#ZZ'), // END
   UK: Symbol('#UK'), // UNKNOWN
   CM: Symbol('#CM'), // COMMENT
+  AA: Symbol('#AA'), // ANY
 
   SP: Symbol('#SP'), // SPACE
   LN: Symbol('#LN'), // LINE
@@ -628,22 +629,167 @@ interface Context {
   ignore: (pins: symbol[]) => void
 }
 
-abstract class Rule {
-  node: any
-  opts: Opts
-  val: any
-  key: any
 
-  constructor(opts: Opts, node: any) {
-    this.node = node
-    this.opts = opts
-  }
-
-  abstract process(ctx: Context): Rule | undefined
-  abstract toString(): string
+enum RuleState {
+  open,
+  close,
 }
 
 
+class Rule {
+  spec: RuleSpec
+  node: any
+  opts: Opts
+  state: RuleState
+  child: Rule
+  open: Token[]
+  close: Token[]
+
+  val: any
+  key: any
+
+  constructor(spec: RuleSpec, opts: Opts) {
+    this.spec = spec
+    this.node = undefined
+    this.opts = opts
+    this.state = RuleState.open
+    this.child = norule
+    this.open = []
+    this.close = []
+  }
+
+
+  process(ctx: Context) {
+    let rule = norule
+
+    if (RuleState.open === this.state) {
+      rule = this.spec.open(this, ctx)
+    }
+    else if (RuleState.close === this.state) {
+      rule = this.spec.close(this, ctx)
+    }
+
+    return rule
+  }
+
+  toString() {
+    return I(this.spec)
+  }
+}
+
+
+let norule = ({} as Rule) //new Rule(({} as RuleSpec), {})
+
+
+
+
+
+class RuleSpec {
+  name: string
+  def: any
+  rm: { [name: string]: RuleSpec }
+  child: Rule
+  match: any
+
+  constructor(name: string, def: any, rm: { [name: string]: RuleSpec }) {
+    this.name = name
+    this.def = def
+    this.rm = rm
+    this.child = norule
+  }
+
+  open(rule: Rule, ctx: Context) {
+    let next: Rule = norule
+
+    if (this.def.before_open) {
+      let out = this.def.before_open.call(this, rule)
+      rule.node = out.node || rule.node
+    }
+
+    let act = this.match_alts(this.def.open, ctx)
+
+    if (act.e) {
+      throw new Error('unexpected token: ' + I(act.e))
+    }
+
+    rule.open = act.m
+
+    if (act.p) {
+      ctx.rs.push(rule)
+      next = rule.child = new Rule(this.rm[act.p], rule.opts)
+    }
+    else if (act.r) {
+      next = new Rule(this.rm[act.r], rule.opts)
+    }
+
+    if (this.def.after_open) {
+      this.def.after_open.call(this, rule, next)
+    }
+
+    return next
+  }
+
+
+  close(rule: Rule, ctx: Context) {
+    let next: Rule = norule
+
+    if (this.def.before_close) {
+      this.def.before_close.call(this, rule)
+    }
+
+    let act = this.match_alts(this.def.open, ctx)
+
+    if (act.e) {
+      throw new Error('unexpected token: ' + act.e.pin + act.e.val)
+    }
+
+    if (act.r) {
+      next = new Rule(this.rm[act.r], rule.opts)
+    }
+
+    if (this.def.after_close) {
+      this.def.after_close.call(this, rule, next)
+    }
+
+    return next
+  }
+
+
+  // first match wins
+  match_alts(alts: any[], ctx: Context): any {
+    if (0 < alts.length) {
+      for (let alt of alts) {
+        if (alt.t === ctx.opts.AA) {
+          return alt
+        }
+
+        else if (alt.t === ctx.t0) {
+          return alt
+        }
+
+        // 2 token lookahead
+        else if (alt.s) {
+          if (1 === alt.s.length && alt.s[0] === ctx.t0) {
+            return alt
+          }
+          else if (2 === alt.s.length && alt.s[0] === ctx.t0 && alt.s[1] === ctx.t1) {
+            return alt
+          }
+        }
+      }
+
+      return { e: ctx.t0 }
+    }
+
+    return {}
+  }
+}
+
+
+
+
+
+/*
 class PairRule extends Rule {
 
   constructor(opts: Opts, key?: string) {
@@ -852,19 +998,102 @@ class ValueRule extends Rule {
   }
 
 }
+*/
 
 
 class Parser {
 
   options: Opts = STANDARD_OPTIONS
+  rules: { [name: string]: any }
+  rulespecs: { [name: string]: RuleSpec }
 
   constructor(options?: Opts) {
-    let opts = this.options = util.deep(this.options, options)
+    let o = this.options = util.deep(this.options, options)
+
+    this.rules = {
+      value: {
+        open: [ // alternatives
+          { t: o.OB, p: 'map' },  // p:push onto rule stack
+          { t: o.OS, p: 'list' },
+          //{ t: o.CA, r: 'list' },
+          //{ s: [o.ST, o.CL], r: 'pair' },
+          //{ s: [o.TX, o.CL], r: 'pair' },
+          { t: o.AA },   // pop and return token value
+        ],
+        close: [],
+        before_close: (rule: Rule) => {
+          rule.node = rule.child.node ?? rule.open[0].val
+        },
+      },
+
+
+      map: {
+        before_open: () => {
+          return { node: {} }
+        },
+        open: [
+          { p: 'pair' } // no tokens, pass node
+        ],
+        close: []
+      },
+
+      list: {
+        before_open: () => {
+          return { node: [] }
+        },
+        open: [
+          { p: 'elem' } // no tokens, pass node
+        ],
+        close: []
+        // default output is node
+      },
+
+
+      // sets key:val on node
+      pair: {
+        state: {
+          open: [
+            { s: [o.ST, o.CL], p: 'value' }
+          ],
+          close: [
+            { s: [o.CA], r: 'pair' }, // next rule (no stack push)
+            { s: [o.CB] },
+          ]
+        },
+        before_close: (rule: Rule) => {
+          rule.node[rule.open[0].val] = rule.child.node
+        },
+        // default output is node
+      },
+
+
+      // push onto node
+      elem: {
+        open: [
+          { s: [o.TX], p: 'value' }
+        ],
+        close: [
+          { s: [o.CA], r: 'elem' }
+        ],
+        before_close: (open: any) => {
+          open.node.push(open.output)
+        },
+        // default output is node
+      }
+    }
+
+
+    this.rulespecs = Object.keys(this.rules).reduce((rs: any, rn: string) => {
+      rs[rn] = new RuleSpec(rn, this.rules[rn], rs)
+      return rs
+    }, {})
   }
+
 
   start(lex: Lex): any {
     let opts = this.options
-    let rule: Rule | undefined = new ValueRule(opts, {}, '$', opts.UK)
+    //let rule: Rule | undefined = new ValueRule(opts, {}, '$', opts.UK)
+    let rule = new Rule(this.rulespecs.value, opts)
     let root = rule
 
     let ctx: Context = {
@@ -909,19 +1138,20 @@ class Parser {
 
     next()
 
-    while (rule) {
+    while (norule !== rule) {
       rule = rule.process(ctx)
     }
 
-    return root.node.$
+    return root.node
   }
 }
 
+/*
 // TODO: replace with jsonic stringify
 function desc(o: any) {
   return require('util').inspect(o, { depth: null })
 }
-
+*/
 
 
 let util = {

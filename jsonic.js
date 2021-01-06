@@ -12,7 +12,7 @@ exports.util = exports.Lexer = exports.Jsonic = void 0;
 // Edge case notes (see unit tests):
 // LNnnn: Lex Note number
 // PNnnn: Parse Note number
-// const I = require('util').inspect
+const I = require('util').inspect;
 let STANDARD_OPTIONS = {
     // Token start characters.
     sc_space: ' \t',
@@ -68,6 +68,7 @@ let STANDARD_OPTIONS = {
     ZZ: Symbol('#ZZ'),
     UK: Symbol('#UK'),
     CM: Symbol('#CM'),
+    AA: Symbol('#AA'),
     SP: Symbol('#SP'),
     LN: Symbol('#LN'),
     NR: Symbol('#NR'),
@@ -414,178 +415,394 @@ class Lexer {
 }
 exports.Lexer = Lexer;
 let S = (s) => s.description;
+var RuleState;
+(function (RuleState) {
+    RuleState[RuleState["open"] = 0] = "open";
+    RuleState[RuleState["close"] = 1] = "close";
+})(RuleState || (RuleState = {}));
 class Rule {
-    constructor(opts, node) {
-        this.node = node;
+    constructor(spec, opts) {
+        this.spec = spec;
+        this.node = undefined;
         this.opts = opts;
-    }
-}
-class PairRule extends Rule {
-    constructor(opts, key) {
-        super(opts, {});
-        // If implicit map, key is already parsed
-        this.key = key;
+        this.state = RuleState.open;
+        this.child = norule;
+        this.open = [];
+        this.close = [];
     }
     process(ctx) {
-        let opts = this.opts;
-        ctx.ignore(opts.WSP);
-        // Implicit map so key already parsed
-        if (this.key) {
-            ctx.rs.push(this);
-            let key = this.key;
-            delete this.key;
-            return new ValueRule(opts, this.node, key, opts.OB);
+        let rule = norule;
+        if (RuleState.open === this.state) {
+            rule = this.spec.open(this, ctx);
         }
-        let t = ctx.next();
-        let k = t.pin;
-        switch (k) {
-            case opts.TX:
-            case opts.NR:
-            case opts.ST:
-            case opts.VL:
-                let value = ctx.t0.val;
-                ctx.match(opts.CL, opts.WSP);
-                ctx.rs.push(this);
-                return new ValueRule(opts, this.node, value, opts.OB);
-            case opts.CA:
-                return this;
-            default:
-                let rule = ctx.rs.pop();
-                // Return self as value to parent rule
-                if (rule) {
-                    rule.val = this.node;
+        else if (RuleState.close === this.state) {
+            rule = this.spec.close(this, ctx);
+        }
+        return rule;
+    }
+    toString() {
+        return I(this.spec);
+    }
+}
+let norule = {}; //new Rule(({} as RuleSpec), {})
+class RuleSpec {
+    constructor(name, def, rm) {
+        this.name = name;
+        this.def = def;
+        this.rm = rm;
+        this.child = norule;
+    }
+    open(rule, ctx) {
+        let next = norule;
+        if (this.def.before_open) {
+            let out = this.def.before_open.call(this, rule);
+            rule.node = out.node || rule.node;
+        }
+        let act = this.match_alts(this.def.open, ctx);
+        if (act.e) {
+            throw new Error('unexpected token: ' + I(act.e));
+        }
+        rule.open = act.m;
+        if (act.p) {
+            ctx.rs.push(rule);
+            next = rule.child = new Rule(this.rm[act.p], rule.opts);
+        }
+        else if (act.r) {
+            next = new Rule(this.rm[act.r], rule.opts);
+        }
+        if (this.def.after_open) {
+            this.def.after_open.call(this, rule, next);
+        }
+        return next;
+    }
+    close(rule, ctx) {
+        let next = norule;
+        if (this.def.before_close) {
+            this.def.before_close.call(this, rule);
+        }
+        let act = this.match_alts(this.def.open, ctx);
+        if (act.e) {
+            throw new Error('unexpected token: ' + act.e.pin + act.e.val);
+        }
+        if (act.r) {
+            next = new Rule(this.rm[act.r], rule.opts);
+        }
+        if (this.def.after_close) {
+            this.def.after_close.call(this, rule, next);
+        }
+        return next;
+    }
+    // first match wins
+    match_alts(alts, ctx) {
+        if (0 < alts.length) {
+            for (let alt of alts) {
+                if (alt.t === ctx.opts.AA) {
+                    return alt;
                 }
-                return rule;
-        }
-    }
-    toString() {
-        return 'Pair: ' + desc(this.node);
-    }
-}
-class ListRule extends Rule {
-    constructor(opts, firstval, firstpin) {
-        super(opts, undefined === firstval ? [] : [firstval]);
-        this.firstpin = firstpin;
-    }
-    process(ctx) {
-        let opts = this.opts;
-        if (this.val) {
-            this.node.push(this.val);
-            this.val = undefined;
-        }
-        let pk = this.firstpin || opts.UK;
-        this.firstpin = undefined;
-        while (true) {
-            ctx.ignore(opts.WSP);
-            let t = ctx.next();
-            let k = t.pin;
-            switch (k) {
-                case opts.TX:
-                case opts.NR:
-                case opts.ST:
-                case opts.VL:
-                    // A sequence of literals with internal spaces is concatenated
-                    let value = ctx.t0.val;
-                    this.node.push(value);
-                    pk = k;
-                    break;
-                case opts.CA:
-                    // Insert null before comma if value missing.
-                    // Trailing commas are ignored.
-                    if (opts.CA === pk || 0 === this.node.length) {
-                        this.node.push(null);
+                else if (alt.t === ctx.t0) {
+                    return alt;
+                }
+                // 2 token lookahead
+                else if (alt.s) {
+                    if (1 === alt.s.length && alt.s[0] === ctx.t0) {
+                        return alt;
                     }
-                    pk = k;
-                    break;
-                case opts.OB:
-                    ctx.rs.push(this);
-                    pk = k;
-                    return new PairRule(opts);
-                case opts.OS:
-                    ctx.rs.push(this);
-                    pk = k;
-                    return new ListRule(opts);
-                case opts.CL:
-                    // TODO: proper error msgs, incl row,col etc
-                    throw new Error('key-value pair inside list');
-                default:
-                    let rule = ctx.rs.pop();
-                    // Return self as value to parent rule
-                    if (rule) {
-                        rule.val = this.node;
+                    else if (2 === alt.s.length && alt.s[0] === ctx.t0 && alt.s[1] === ctx.t1) {
+                        return alt;
                     }
-                    return rule;
+                }
             }
+            return { e: ctx.t0 };
         }
-    }
-    toString() {
-        return 'Pair: ' + desc(this.node);
+        return {};
     }
 }
+/*
+class PairRule extends Rule {
+
+  constructor(opts: Opts, key?: string) {
+    super(opts, {})
+
+    // If implicit map, key is already parsed
+    this.key = key
+  }
+
+  process(ctx: Context): Rule | undefined {
+    let opts = this.opts
+    ctx.ignore(opts.WSP)
+
+    // Implicit map so key already parsed
+    if (this.key) {
+      ctx.rs.push(this)
+      let key = this.key
+      delete this.key
+      return new ValueRule(opts, this.node, key, opts.OB)
+    }
+
+    let t: Token = ctx.next()
+    let k = t.pin
+
+    switch (k) {
+      case opts.TX:
+      case opts.NR:
+      case opts.ST:
+      case opts.VL:
+        let value = ctx.t0.val
+
+        ctx.match(opts.CL, opts.WSP)
+
+        ctx.rs.push(this)
+        return new ValueRule(opts, this.node, value, opts.OB)
+
+      case opts.CA:
+        return this
+
+      default:
+        let rule = ctx.rs.pop()
+
+        // Return self as value to parent rule
+        if (rule) {
+          rule.val = this.node
+        }
+        return rule
+    }
+  }
+
+  toString() {
+    return 'Pair: ' + desc(this.node)
+  }
+}
+
+
+class ListRule extends Rule {
+  firstpin: symbol | undefined
+
+  constructor(opts: Opts, firstval?: any, firstpin?: symbol) {
+    super(opts, undefined === firstval ? [] : [firstval])
+    this.firstpin = firstpin
+  }
+
+  process(ctx: Context): Rule | undefined {
+    let opts = this.opts
+
+    if (this.val) {
+      this.node.push(this.val)
+      this.val = undefined
+    }
+
+    let pk: symbol = this.firstpin || opts.UK
+    this.firstpin = undefined
+
+    while (true) {
+      ctx.ignore(opts.WSP)
+
+      let t: Token = ctx.next()
+      let k = t.pin
+
+      switch (k) {
+        case opts.TX:
+        case opts.NR:
+        case opts.ST:
+        case opts.VL:
+
+          // A sequence of literals with internal spaces is concatenated
+          let value = ctx.t0.val
+
+          this.node.push(value)
+          pk = k
+          break
+
+        case opts.CA:
+          // Insert null before comma if value missing.
+          // Trailing commas are ignored.
+          if (opts.CA === pk || 0 === this.node.length) {
+            this.node.push(null)
+          }
+          pk = k
+          break
+
+        case opts.OB:
+          ctx.rs.push(this)
+          pk = k
+          return new PairRule(opts,)
+
+        case opts.OS:
+          ctx.rs.push(this)
+          pk = k
+          return new ListRule(opts,)
+
+        case opts.CL:
+          // TODO: proper error msgs, incl row,col etc
+          throw new Error('key-value pair inside list')
+
+
+        default:
+          let rule = ctx.rs.pop()
+
+          // Return self as value to parent rule
+          if (rule) {
+            rule.val = this.node
+          }
+          return rule
+      }
+    }
+  }
+
+  toString() {
+    return 'Pair: ' + desc(this.node)
+  }
+}
+
+
+
 class ValueRule extends Rule {
-    constructor(opts, node, key, parent) {
-        super(opts, node);
-        this.key = key;
-        this.parent = parent;
+  parent: symbol
+
+  constructor(opts: Opts, node: any, key: string, parent: symbol) {
+    super(opts, node)
+    this.key = key
+    this.parent = parent
+  }
+
+  process(ctx: Context): Rule | undefined {
+    let opts = this.opts
+    ctx.ignore(opts.WSP)
+
+    // Child value has resolved
+    if (this.val) {
+      this.node[this.key] = this.val
+      this.val = undefined
+      return ctx.rs.pop()
     }
-    process(ctx) {
-        let opts = this.opts;
-        ctx.ignore(opts.WSP);
-        // Child value has resolved
-        if (this.val) {
-            this.node[this.key] = this.val;
-            this.val = undefined;
-            return ctx.rs.pop();
-        }
-        let t = ctx.next();
-        let k = t.pin;
-        switch (k) {
-            case opts.OB:
-                ctx.rs.push(this);
-                return new PairRule(opts);
-            case opts.OS:
-                ctx.rs.push(this);
-                return new ListRule(opts);
-            // Implicit list
-            case opts.CA:
-                ctx.rs.push(this);
-                return new ListRule(opts, null, opts.CA);
-            // TODO: proper error messages
-            case opts.BD:
-                throw new Error(t.why);
-        }
-        let value = ctx.t0.val;
-        // Is this an implicit map?
-        if (opts.CL === ctx.t1.pin) {
-            this.parent = opts.OB;
-            ctx.next();
-            ctx.rs.push(this);
-            return new PairRule(opts, String(value));
-        }
-        // Is this an implicit list (at top level only)?
-        else if (opts.CA === ctx.t1.pin && opts.OB !== this.parent) {
-            this.parent = opts.OS;
-            ctx.next();
-            ctx.rs.push(this);
-            return new ListRule(opts, value, opts.CA);
-        }
-        else {
-            this.node[this.key] = value;
-            return ctx.rs.pop();
-        }
+
+    let t: Token = ctx.next()
+    let k = t.pin
+
+    switch (k) {
+      case opts.OB:
+        ctx.rs.push(this)
+        return new PairRule(opts)
+
+      case opts.OS:
+        ctx.rs.push(this)
+        return new ListRule(opts)
+
+      // Implicit list
+      case opts.CA:
+        ctx.rs.push(this)
+        return new ListRule(opts, null, opts.CA)
+
+      // TODO: proper error messages
+      case opts.BD:
+        throw new Error(t.why)
     }
-    toString() {
-        return 'Value: ' + this.key + '=' + desc(this.val) + ' node=' + desc(this.node);
+
+    let value = ctx.t0.val
+
+    // Is this an implicit map?
+    if (opts.CL === ctx.t1.pin) {
+      this.parent = opts.OB
+      ctx.next()
+
+      ctx.rs.push(this)
+      return new PairRule(opts, String(value))
     }
+    // Is this an implicit list (at top level only)?
+    else if (opts.CA === ctx.t1.pin && opts.OB !== this.parent) {
+      this.parent = opts.OS
+      ctx.next()
+
+      ctx.rs.push(this)
+      return new ListRule(opts, value, opts.CA)
+    }
+    else {
+      this.node[this.key] = value
+      return ctx.rs.pop()
+    }
+  }
+
+  toString() {
+    return 'Value: ' + this.key + '=' + desc(this.val) + ' node=' + desc(this.node)
+  }
+
 }
+*/
 class Parser {
     constructor(options) {
         this.options = STANDARD_OPTIONS;
-        let opts = this.options = util.deep(this.options, options);
+        let o = this.options = util.deep(this.options, options);
+        this.rules = {
+            value: {
+                open: [
+                    { t: o.OB, p: 'map' },
+                    { t: o.OS, p: 'list' },
+                    //{ t: o.CA, r: 'list' },
+                    //{ s: [o.ST, o.CL], r: 'pair' },
+                    //{ s: [o.TX, o.CL], r: 'pair' },
+                    { t: o.AA },
+                ],
+                close: [],
+                before_close: (rule) => {
+                    var _a;
+                    rule.node = (_a = rule.child.node) !== null && _a !== void 0 ? _a : rule.open[0].val;
+                },
+            },
+            map: {
+                before_open: () => {
+                    return { node: {} };
+                },
+                open: [
+                    { p: 'pair' } // no tokens, pass node
+                ],
+                close: []
+            },
+            list: {
+                before_open: () => {
+                    return { node: [] };
+                },
+                open: [
+                    { p: 'elem' } // no tokens, pass node
+                ],
+                close: []
+                // default output is node
+            },
+            // sets key:val on node
+            pair: {
+                state: {
+                    open: [
+                        { s: [o.ST, o.CL], p: 'value' }
+                    ],
+                    close: [
+                        { s: [o.CA], r: 'pair' },
+                        { s: [o.CB] },
+                    ]
+                },
+                before_close: (rule) => {
+                    rule.node[rule.open[0].val] = rule.child.node;
+                },
+            },
+            // push onto node
+            elem: {
+                open: [
+                    { s: [o.TX], p: 'value' }
+                ],
+                close: [
+                    { s: [o.CA], r: 'elem' }
+                ],
+                before_close: (open) => {
+                    open.node.push(open.output);
+                },
+            }
+        };
+        this.rulespecs = Object.keys(this.rules).reduce((rs, rn) => {
+            rs[rn] = new RuleSpec(rn, this.rules[rn], rs);
+            return rs;
+        }, {});
     }
     start(lex) {
         let opts = this.options;
-        let rule = new ValueRule(opts, {}, '$', opts.UK);
+        //let rule: Rule | undefined = new ValueRule(opts, {}, '$', opts.UK)
+        let rule = new Rule(this.rulespecs.value, opts);
         let root = rule;
         let ctx = {
             opts: opts,
@@ -621,16 +838,18 @@ class Parser {
             throw new Error('expected: ' + String(pin) + ' saw:' + String(ctx.t1.pin) + '=' + ctx.t1.val);
         }
         next();
-        while (rule) {
+        while (norule !== rule) {
             rule = rule.process(ctx);
         }
-        return root.node.$;
+        return root.node;
     }
 }
+/*
 // TODO: replace with jsonic stringify
-function desc(o) {
-    return require('util').inspect(o, { depth: null });
+function desc(o: any) {
+  return require('util').inspect(o, { depth: null })
 }
+*/
 let util = {
     // Deep override for plain objects. Retains base object.
     // Array indexes are treated as properties.
