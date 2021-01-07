@@ -421,9 +421,9 @@ var RuleState;
     RuleState[RuleState["close"] = 1] = "close";
 })(RuleState || (RuleState = {}));
 class Rule {
-    constructor(spec, opts) {
+    constructor(spec, opts, node) {
         this.spec = spec;
-        this.node = undefined;
+        this.node = node;
         this.opts = opts;
         this.state = RuleState.open;
         this.child = norule;
@@ -444,7 +444,7 @@ class Rule {
         return I(this.spec);
     }
 }
-let norule = {}; //new Rule(({} as RuleSpec), {})
+let norule = { spec: { name: 'norule' } };
 class RuleSpec {
     constructor(name, def, rm) {
         this.name = name;
@@ -453,7 +453,8 @@ class RuleSpec {
         this.child = norule;
     }
     open(rule, ctx) {
-        let next = norule;
+        var _a, _b, _c, _d;
+        let next = rule;
         if (this.def.before_open) {
             let out = this.def.before_open.call(this, rule);
             rule.node = out.node || rule.node;
@@ -465,7 +466,7 @@ class RuleSpec {
         rule.open = act.m;
         if (act.p) {
             ctx.rs.push(rule);
-            next = rule.child = new Rule(this.rm[act.p], rule.opts);
+            next = rule.child = new Rule(this.rm[act.p], rule.opts, rule.node);
         }
         else if (act.r) {
             next = new Rule(this.rm[act.r], rule.opts);
@@ -473,48 +474,78 @@ class RuleSpec {
         if (this.def.after_open) {
             this.def.after_open.call(this, rule, next);
         }
+        rule.state = RuleState.close;
+        console.log('Oe', this.name, ctx.t0.pin, ctx.t1.pin, ctx.t0.val, ctx.t1.val, 'A', act.t, act.s, 'M', (_a = act.m[0]) === null || _a === void 0 ? void 0 : _a.pin, (_b = act.m[0]) === null || _b === void 0 ? void 0 : _b.val, (_c = act.m[1]) === null || _c === void 0 ? void 0 : _c.pin, (_d = act.m[1]) === null || _d === void 0 ? void 0 : _d.val, 'R', rule.spec.name, rule.node, next.spec.name);
         return next;
     }
     close(rule, ctx) {
+        var _a, _b;
         let next = norule;
         if (this.def.before_close) {
             this.def.before_close.call(this, rule);
         }
-        let act = this.match_alts(this.def.open, ctx);
+        let act = this.match_alts(this.def.close, ctx);
         if (act.e) {
-            throw new Error('unexpected token: ' + act.e.pin + act.e.val);
+            throw new Error('unexpected token: ' + act.e.pin.description + act.e.val);
         }
         if (act.r) {
             next = new Rule(this.rm[act.r], rule.opts);
         }
+        else {
+            next = ctx.rs.pop() || norule;
+        }
         if (this.def.after_close) {
             this.def.after_close.call(this, rule, next);
         }
+        console.log('Ce', this.name, ctx.t0, ctx.t1, 'A', act.t, act.s, act.m && ((_a = act.m[0]) === null || _a === void 0 ? void 0 : _a.pin), act.m && ((_b = act.m[1]) === null || _b === void 0 ? void 0 : _b.pin), 'R', rule.spec.name, rule.node, next.spec.name);
         return next;
     }
     // first match wins
     match_alts(alts, ctx) {
+        let out = undefined;
         if (0 < alts.length) {
             for (let alt of alts) {
-                if (alt.t === ctx.opts.AA) {
-                    return alt;
+                console.log('MA', alt.t === ctx.t0.pin, alt.t, ctx.t0.pin, alt.s);
+                if (null == alt.t && null == alt.s) {
+                    out = { ...alt, m: [] };
+                    break;
                 }
-                else if (alt.t === ctx.t0) {
-                    return alt;
+                else if (alt.t === ctx.opts.AA) {
+                    out = { ...alt, m: [ctx.t0] };
+                    break;
+                }
+                else if (alt.t === ctx.t0.pin) {
+                    out = { ...alt, m: [ctx.t0] };
+                    break;
+                }
+                else if (ctx.opts.ZZ === ctx.t0.pin) {
+                    out = { ...alt };
+                    break;
                 }
                 // 2 token lookahead
                 else if (alt.s) {
-                    if (1 === alt.s.length && alt.s[0] === ctx.t0) {
-                        return alt;
+                    if (1 === alt.s.length && alt.s[0] === ctx.t0.pin) {
+                        out = { ...alt, m: [ctx.t0] };
+                        break;
                     }
-                    else if (2 === alt.s.length && alt.s[0] === ctx.t0 && alt.s[1] === ctx.t1) {
-                        return alt;
+                    else if (2 === alt.s.length &&
+                        alt.s[0] === ctx.t0.pin &&
+                        alt.s[1] === ctx.t1.pin) {
+                        out = { ...alt, m: [ctx.t0, ctx.t1] };
+                        break;
                     }
                 }
             }
-            return { e: ctx.t0 };
+            out = out || { e: ctx.t0, m: [] };
         }
-        return {};
+        out = out || { m: [] };
+        if (out.m) {
+            let mI = 0;
+            while (mI++ < out.m.length) {
+                ctx.next();
+            }
+        }
+        return out;
     }
 }
 /*
@@ -768,32 +799,34 @@ class Parser {
             },
             // sets key:val on node
             pair: {
-                state: {
-                    open: [
-                        { s: [o.ST, o.CL], p: 'value' }
-                    ],
-                    close: [
-                        { s: [o.CA], r: 'pair' },
-                        { s: [o.CB] },
-                    ]
-                },
+                open: [
+                    { s: [o.ST, o.CL], p: 'value' }
+                ],
+                close: [
+                    { s: [o.CA], r: 'pair' },
+                    { s: [o.CB] },
+                ],
                 before_close: (rule) => {
+                    console.log('PAIR BC', rule.open[0].val, rule.child.node);
                     rule.node[rule.open[0].val] = rule.child.node;
                 },
             },
             // push onto node
             elem: {
                 open: [
-                    { s: [o.TX], p: 'value' }
+                    { s: [o.TX], p: 'value' },
+                    { s: [o.NR], p: 'value' },
                 ],
                 close: [
                     { s: [o.CA], r: 'elem' }
                 ],
-                before_close: (open) => {
-                    open.node.push(open.output);
+                before_close: (rule) => {
+                    rule.node.push(rule.child.node);
                 },
             }
         };
+        // TODO: rulespec should normalize
+        // eg. t:o.QQ => s:[o.QQ]
         this.rulespecs = Object.keys(this.rules).reduce((rs, rn) => {
             rs[rn] = new RuleSpec(rn, this.rules[rn], rs);
             return rs;
@@ -838,8 +871,16 @@ class Parser {
             throw new Error('expected: ' + String(pin) + ' saw:' + String(ctx.t1.pin) + '=' + ctx.t1.val);
         }
         next();
+        next();
         while (norule !== rule) {
+            if (rule.state == RuleState.open) {
+                console.log('\n~O:' + I(ctx.t0) + ' ' + I(ctx.t1));
+            }
+            else if (rule.state == RuleState.close) {
+                console.log('\n~C:' + I(ctx.t0) + ' ' + I(ctx.t1));
+            }
             rule = rule.process(ctx);
+            console.log('~R:' + rule.spec.name);
         }
         return root.node;
     }
