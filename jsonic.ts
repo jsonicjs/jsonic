@@ -20,6 +20,7 @@
 
 const I = require('util').inspect
 
+let NONE: any[] = []
 
 let STANDARD_OPTIONS = {
 
@@ -74,6 +75,11 @@ let STANDARD_OPTIONS = {
 
   digital: '-1023456789._xeEaAbBcCdDfF+',
 
+  tokens: {
+    value: (NONE as Symbol[]),
+    ignore: (NONE as Symbol[]),
+  },
+
 
   bad_unicode_char: String.fromCharCode('0x0000' as any),
 
@@ -108,9 +114,6 @@ let STANDARD_OPTIONS = {
   LS_CONSUME: Symbol('@CONSUME'), // CONSUME
   LS_MULTILINE: Symbol('@MULTILINE'), // MULTILINE
 
-
-  VAL: ([] as Symbol[]),
-  WSP: ([] as Symbol[]),
 
 
 }
@@ -619,14 +622,15 @@ let S = (s: symbol) => s.description
 
 
 interface Context {
+  rI: number
   opts: Opts
   node: any
   t0: Token
   t1: Token
   rs: Rule[]
   next: () => Token
-  match: (pin: symbol, ignore?: symbol[]) => Token
-  ignore: (pins: symbol[]) => void
+  //match: (pin: symbol, ignore?: symbol[]) => Token
+  //ignore: (pins: symbol[]) => void
 }
 
 
@@ -637,7 +641,9 @@ enum RuleState {
 
 
 class Rule {
+  id: number
   spec: RuleSpec
+  ctx: Context
   node: any
   opts: Opts
   state: RuleState
@@ -648,9 +654,11 @@ class Rule {
   val: any
   key: any
 
-  constructor(spec: RuleSpec, opts: Opts, node?: any) {
+  constructor(spec: RuleSpec, ctx: Context, opts: Opts, node?: any) {
+    this.id = ctx.rI++
     this.spec = spec
     this.node = node
+    this.ctx = ctx
     this.opts = opts
     this.state = RuleState.open
     this.child = norule
@@ -678,7 +686,7 @@ class Rule {
 }
 
 
-let norule = ({ spec: { name: 'norule' } } as Rule)
+let norule = ({ id: 0, spec: { name: 'norule' } } as Rule)
 
 
 
@@ -716,10 +724,10 @@ class RuleSpec {
 
     if (act.p) {
       ctx.rs.push(rule)
-      next = rule.child = new Rule(this.rm[act.p], rule.opts, rule.node)
+      next = rule.child = new Rule(this.rm[act.p], ctx, rule.opts, rule.node)
     }
     else if (act.r) {
-      next = new Rule(this.rm[act.r], rule.opts)
+      next = new Rule(this.rm[act.r], ctx, rule.opts, rule.node)
     }
 
     if (this.def.after_open) {
@@ -728,7 +736,7 @@ class RuleSpec {
 
     rule.state = RuleState.close
 
-    console.log('Oe', this.name, ctx.t0.pin, ctx.t1.pin, ctx.t0.val, ctx.t1.val, 'A', act.t, act.s, 'M', act.m[0]?.pin, act.m[0]?.val, act.m[1]?.pin, act.m[1]?.val, 'R', rule.spec.name, rule.node, next.spec.name)
+    //console.log('Oe', this.name, ctx.t0.pin, ctx.t1.pin, ctx.t0.val, ctx.t1.val, 'A', act.t, act.s, 'M', act.m[0]?.pin, act.m[0]?.val, act.m[1]?.pin, act.m[1]?.val, 'R', rule.spec.name, rule.node, next.spec.name)
 
     return next
   }
@@ -738,6 +746,7 @@ class RuleSpec {
     let next: Rule = norule
 
     if (this.def.before_close) {
+      // console.log('before_close', rule.child.spec.name, rule.child.node)
       this.def.before_close.call(this, rule)
     }
 
@@ -748,7 +757,7 @@ class RuleSpec {
     }
 
     if (act.r) {
-      next = new Rule(this.rm[act.r], rule.opts)
+      next = new Rule(this.rm[act.r], ctx, rule.opts, rule.node)
     }
     else {
       next = ctx.rs.pop() || norule
@@ -759,7 +768,7 @@ class RuleSpec {
     }
 
 
-    console.log('Ce', this.name, ctx.t0, ctx.t1, 'A', act.t, act.s, act.m && act.m[0]?.pin, act.m && act.m[1]?.pin, 'R', rule.spec.name, rule.node, next.spec.name)
+    //console.log('Ce', this.name, ctx.t0, ctx.t1, 'A', act.t, act.s, act.m && act.m[0]?.pin, act.m && act.m[1]?.pin, 'R', rule.spec.name, rule.node, next.spec.name)
 
     return next
   }
@@ -770,7 +779,7 @@ class RuleSpec {
     let out = undefined
     if (0 < alts.length) {
       for (let alt of alts) {
-        console.log('MA', alt.t === ctx.t0.pin, alt.t, ctx.t0.pin, alt.s)
+        // console.log('MA', alt.t === ctx.t0.pin, alt.t, ctx.t0.pin, alt.s)
 
         if (null == alt.t && null == alt.s) {
           out = { ...alt, m: [] }
@@ -822,6 +831,349 @@ class RuleSpec {
     return out
   }
 }
+
+
+class Parser {
+
+  options: Opts = STANDARD_OPTIONS
+  rules: { [name: string]: any }
+  rulespecs: { [name: string]: RuleSpec }
+
+  constructor(options?: Opts) {
+    let o = this.options = util.deep(this.options, options)
+
+    this.rules = {
+      value: {
+        open: [ // alternatives
+          { t: o.OB, p: 'map' },  // p:push onto rule stack
+          { t: o.OS, p: 'list' },
+
+          // TODO: need to rewind tokens?
+          //{ t: o.CA, r: 'list' },
+          //{ s: [o.ST, o.CL], r: 'pair' },
+          //{ s: [o.TX, o.CL], p: 'map' },
+          // { t: o.AA },   // pop and return token value
+
+          { s: [o.TX] },
+          { s: [o.NR] },
+          { s: [o.ST] },
+          { s: [o.VL] },
+        ],
+        close: [],
+        before_close: (rule: Rule) => {
+          rule.node = rule.child.node ?? rule.open[0].val
+        },
+      },
+
+
+      map: {
+        before_open: () => {
+          return { node: {} }
+        },
+        open: [
+          { p: 'pair' } // no tokens, pass node
+        ],
+        close: []
+      },
+
+      list: {
+        before_open: () => {
+          return { node: [] }
+        },
+        open: [
+          { p: 'elem' } // no tokens, pass node
+        ],
+        close: []
+      },
+
+
+      // sets key:val on node
+      pair: {
+        open: [
+          { s: [o.ST, o.CL], p: 'value' },
+          { s: [o.TX, o.CL], p: 'value' },
+
+          // TODO: use literal string value of token
+          { s: [o.NR, o.CL], p: 'value' },
+          { s: [o.VL, o.CL], p: 'value' },
+        ],
+        close: [
+          { s: [o.CA], r: 'pair' }, // next rule (no stack push)
+          { s: [o.CB] },
+          // TODO: implicit close?
+        ],
+        before_close: (rule: Rule) => {
+          rule.node[rule.open[0].val] = rule.child.node
+        },
+      },
+
+
+      // push onto node
+      elem: {
+        open: [
+          { s: [o.OB], p: 'map' },
+          { s: [o.OS], p: 'list' },
+          { s: [o.TX] },
+          { s: [o.NR] },
+          { s: [o.ST] },
+          { s: [o.VL] },
+        ],
+        close: [
+          { s: [o.CA], r: 'elem' },
+          { s: [o.CS] },
+        ],
+        after_open: (rule: Rule, next: Rule) => {
+          if (rule === next) {
+            rule.node.push(rule.open[0].val)
+          }
+        },
+        before_close: (rule: Rule) => {
+          if (rule.child.node) {
+            rule.node.push(rule.child.node)
+          }
+        },
+      }
+    }
+
+    // TODO: rulespec should normalize
+    // eg. t:o.QQ => s:[o.QQ]
+    this.rulespecs = Object.keys(this.rules).reduce((rs: any, rn: string) => {
+      rs[rn] = new RuleSpec(rn, this.rules[rn], rs)
+      return rs
+    }, {})
+  }
+
+
+  start(lex: Lex): any {
+    let opts = this.options
+
+    let ctx: Context = {
+      rI: 1,
+      opts: opts,
+      node: undefined,
+      t0: opts.end,
+      t1: opts.end,
+      next,
+      //match,
+      //ignore: ignorable,
+      rs: []
+    }
+
+    let rule = new Rule(this.rulespecs.value, ctx, opts)
+
+    let root = rule
+
+
+    // Lex next token.
+    function next() {
+      ctx.t0 = ctx.t1
+
+      let t1
+      do {
+        t1 = lex()
+      } while (opts.tokens.ignore.includes(t1.pin))
+
+      ctx.t1 = { ...t1 }
+
+      return ctx.t0
+    }
+
+
+    // Prime two token lookahead
+    next()
+    next()
+
+
+    // Process rules over tokens
+    while (norule !== rule) {
+      // TODO: instrument this
+      // console.log('~R:', ctx.rs.length, rule.spec.name + '/' + rule.id + '/' + rule.state, ctx.t0.pin, ctx.t1.pin, ctx.t0.val + '::' + ctx.t1.val, rule.node)
+
+      rule = rule.process(ctx)
+    }
+
+    return root.node
+  }
+}
+
+/*
+// TODO: replace with jsonic stringify
+function desc(o: any) {
+  return require('util').inspect(o, { depth: null })
+}
+*/
+
+
+let util = {
+
+  // Deep override for plain objects. Retains base object.
+  // Array indexes are treated as properties.
+  // Over wins non-matching types, except at top level.
+  deep: function(base?: any, over?: any): any {
+    if (null != base && null != over) {
+      for (let k in over) {
+        base[k] = (
+          'object' === typeof (base[k]) &&
+          'object' === typeof (over[k]) &&
+          (Array.isArray(base[k]) === Array.isArray(over[k]))
+        ) ? util.deep(base[k], over[k]) : over[k]
+      }
+      return base
+    }
+    else {
+      return null != over ? over : null != base ? base :
+        undefined != over ? over : base
+    }
+  },
+
+
+  // Convert string to character code array.
+  // 'ab' -> [97,98]
+  s2cca: function(s: string): number[] {
+    return s.split('').map((c: string) => c.charCodeAt(0))
+  },
+
+
+  longest: (strs: string[]) =>
+    strs.reduce((a, s) => a < s.length ? s.length : a, 0),
+
+  // Idempotent normalization of options.
+  norm_options: function(opts: Opts) {
+    let keys = Object.keys(opts)
+
+    // Convert character list strings to code arrays.
+    // sc_foo:'ab' -> SC_FOO:[97,98]
+    keys.filter(k => k.startsWith('sc_')).forEach(k => {
+      opts[k.toUpperCase()] = util.s2cca(opts[k])
+    })
+
+    // Lookup table for single character tokens, indexed by char code.
+    opts.SINGLES = keys
+      .filter(k => 2 === k.length &&
+        'symbol' === typeof (opts[k]) &&
+        4 === opts[k].description.length)
+      .reduce((a: number[], k) =>
+        (a[opts[k].description.charCodeAt(3)] = opts[k], a), [])
+
+    // lookup table for escape chars, indexed by denotating char (e.g. n for \n).
+    opts.escapes = opts.escapes || {}
+    opts.ESCAPES = Object.keys(opts.escapes)
+      .reduce((a: string[], ed: string) =>
+        (a[ed.charCodeAt(0)] = opts.escapes[ed], a), [])
+
+    opts.DIGITAL = opts.digital || ''
+
+
+    opts.SC_COMMENT = []
+    opts.COMMENT_SINGLE = ''
+    opts.COMMENT_MARKER = []
+
+    if (opts.comments) {
+      let comment_markers = Object.keys(opts.comments)
+
+      comment_markers.forEach(k => {
+
+        // Single character comment marker (eg. `#`)
+        if (1 === k.length) {
+          opts.SC_COMMENT.push(k.charCodeAt(0))
+          opts.COMMENT_SINGLE += k
+        }
+
+        // String comment marker (eg. `//`)
+        else {
+          opts.SC_COMMENT.push(k.charCodeAt(0))
+          opts.COMMENT_MARKER.push(k)
+        }
+      })
+
+      opts.COMMENT_MARKER_MAXLEN = util.longest(comment_markers)
+    }
+
+    opts.SC_COMMENT_CHARS =
+      opts.SC_COMMENT.map((cc: number) => String.fromCharCode(cc)).join('')
+
+    opts.SINGLE_CHARS =
+      opts.SINGLES.map((s: symbol, cc: number) => String.fromCharCode(cc)).join('')
+
+    opts.VALUE_ENDERS =
+      opts.sc_space + opts.sc_line + opts.SINGLE_CHARS + opts.SC_COMMENT_CHARS
+
+
+    opts.TEXT_ENDERS = opts.VALUE_ENDERS
+
+    opts.HOOVER_ENDERS = opts.sc_line + opts.SINGLE_CHARS + opts.SC_COMMENT_CHARS
+
+    opts.VALUES = opts.values || {}
+
+
+    // Token sets
+    opts.tokens.value = NONE !== opts.tokens.value ? opts.tokens.value :
+      [opts.TX, opts.NR, opts.ST, opts.VL]
+    opts.tokens.ignore = NONE !== opts.tokens.ignore ? opts.tokens.ignore :
+      [opts.SP, opts.LN, opts.CM]
+
+    return opts
+  }
+}
+
+
+function make(first?: Opts | Jsonic, parent?: Jsonic): Jsonic {
+
+  let param_opts = (first as Opts)
+  if ('function' === typeof (first)) {
+    param_opts = {}
+    parent = (first as Jsonic)
+  }
+
+  let opts = util.deep(util.deep(
+    {}, parent ? parent.options : STANDARD_OPTIONS), param_opts)
+  opts = util.norm_options(opts)
+
+  let self: any = function Jsonic(src: any): any {
+    if ('string' === typeof (src)) {
+      return self._parser.start(self._lexer.start(src))
+    }
+    return src
+  }
+
+  if (parent) {
+    for (let k in parent) {
+      self[k] = parent
+    }
+
+    self.parent = parent
+  }
+
+
+  self._lexer = new Lexer(opts)
+  self._parser = new Parser(opts)
+
+
+  self.options = opts
+
+  self.parse = self
+
+
+  self.use = function use(plugin: Plugin): void {
+    plugin(self)
+  }
+
+
+  self.make = function(opts: Opts) {
+    return make(opts, self)
+  }
+
+  return (self as Jsonic)
+}
+
+
+
+let Jsonic: Jsonic = make()
+
+export { Jsonic, Plugin, Lexer, util }
+
+
+
 
 
 
@@ -1039,334 +1391,4 @@ class ValueRule extends Rule {
 */
 
 
-class Parser {
-
-  options: Opts = STANDARD_OPTIONS
-  rules: { [name: string]: any }
-  rulespecs: { [name: string]: RuleSpec }
-
-  constructor(options?: Opts) {
-    let o = this.options = util.deep(this.options, options)
-
-    this.rules = {
-      value: {
-        open: [ // alternatives
-          { t: o.OB, p: 'map' },  // p:push onto rule stack
-          { t: o.OS, p: 'list' },
-          //{ t: o.CA, r: 'list' },
-          //{ s: [o.ST, o.CL], r: 'pair' },
-          //{ s: [o.TX, o.CL], r: 'pair' },
-          { t: o.AA },   // pop and return token value
-        ],
-        close: [],
-        before_close: (rule: Rule) => {
-          rule.node = rule.child.node ?? rule.open[0].val
-        },
-      },
-
-
-      map: {
-        before_open: () => {
-          return { node: {} }
-        },
-        open: [
-          { p: 'pair' } // no tokens, pass node
-        ],
-        close: []
-      },
-
-      list: {
-        before_open: () => {
-          return { node: [] }
-        },
-        open: [
-          { p: 'elem' } // no tokens, pass node
-        ],
-        close: []
-        // default output is node
-      },
-
-
-      // sets key:val on node
-      pair: {
-        open: [
-          { s: [o.ST, o.CL], p: 'value' }
-        ],
-        close: [
-          { s: [o.CA], r: 'pair' }, // next rule (no stack push)
-          { s: [o.CB] },
-        ],
-        before_close: (rule: Rule) => {
-          console.log('PAIR BC', rule.open[0].val, rule.child.node)
-          rule.node[rule.open[0].val] = rule.child.node
-        },
-        // default output is node
-      },
-
-
-      // push onto node
-      elem: {
-        open: [
-          { s: [o.TX], p: 'value' },
-          { s: [o.NR], p: 'value' },
-        ],
-        close: [
-          { s: [o.CA], r: 'elem' }
-        ],
-        before_close: (rule: Rule) => {
-          rule.node.push(rule.child.node)
-        },
-        // default output is node
-      }
-    }
-
-    // TODO: rulespec should normalize
-    // eg. t:o.QQ => s:[o.QQ]
-    this.rulespecs = Object.keys(this.rules).reduce((rs: any, rn: string) => {
-      rs[rn] = new RuleSpec(rn, this.rules[rn], rs)
-      return rs
-    }, {})
-  }
-
-
-  start(lex: Lex): any {
-    let opts = this.options
-    //let rule: Rule | undefined = new ValueRule(opts, {}, '$', opts.UK)
-    let rule = new Rule(this.rulespecs.value, opts)
-    let root = rule
-
-    let ctx: Context = {
-      opts: opts,
-      node: undefined,
-      t0: opts.end,
-      t1: opts.end,
-      next,
-      match,
-      ignore: ignorable,
-      rs: []
-    }
-
-    function next() {
-      ctx.t0 = ctx.t1
-      ctx.t1 = { ...lex() }
-      return ctx.t0
-    }
-
-    function ignorable(ignore: symbol[]) {
-      while (ignore.includes(ctx.t1.pin)) {
-        next()
-      }
-    }
-
-
-    function match(pin: symbol, ignore?: symbol[]) {
-      if (ignore) {
-        ignorable(ignore)
-      }
-
-      if (pin === ctx.t1.pin) {
-        let t = next()
-
-        if (ignore) {
-          ignorable(ignore)
-        }
-
-        return t
-      }
-      throw new Error('expected: ' + String(pin) + ' saw:' + String(ctx.t1.pin) + '=' + ctx.t1.val)
-    }
-
-
-    next()
-    next()
-
-    while (norule !== rule) {
-      if (rule.state == RuleState.open) {
-        console.log('\n~O:' + I(ctx.t0) + ' ' + I(ctx.t1))
-      }
-      else if (rule.state == RuleState.close) {
-        console.log('\n~C:' + I(ctx.t0) + ' ' + I(ctx.t1))
-      }
-
-      rule = rule.process(ctx)
-      console.log('~R:' + rule.spec.name)
-    }
-
-    return root.node
-  }
-}
-
-/*
-// TODO: replace with jsonic stringify
-function desc(o: any) {
-  return require('util').inspect(o, { depth: null })
-}
-*/
-
-
-let util = {
-
-  // Deep override for plain objects. Retains base object.
-  // Array indexes are treated as properties.
-  // Over wins non-matching types, except at top level.
-  deep: function(base?: any, over?: any): any {
-    if (null != base && null != over) {
-      for (let k in over) {
-        base[k] = (
-          'object' === typeof (base[k]) &&
-          'object' === typeof (over[k]) &&
-          (Array.isArray(base[k]) === Array.isArray(over[k]))
-        ) ? util.deep(base[k], over[k]) : over[k]
-      }
-      return base
-    }
-    else {
-      return null != over ? over : null != base ? base :
-        undefined != over ? over : base
-    }
-  },
-
-
-  // Convert string to character code array.
-  // 'ab' -> [97,98]
-  s2cca: function(s: string): number[] {
-    return s.split('').map((c: string) => c.charCodeAt(0))
-  },
-
-
-  longest: (strs: string[]) =>
-    strs.reduce((a, s) => a < s.length ? s.length : a, 0),
-
-  // Idempotent normalization of options.
-  norm_options: function(opts: Opts) {
-    let keys = Object.keys(opts)
-
-    // Convert character list strings to code arrays.
-    // sc_foo:'ab' -> SC_FOO:[97,98]
-    keys.filter(k => k.startsWith('sc_')).forEach(k => {
-      opts[k.toUpperCase()] = util.s2cca(opts[k])
-    })
-
-    // Lookup table for single character tokens, indexed by char code.
-    opts.SINGLES = keys
-      .filter(k => 2 === k.length &&
-        'symbol' === typeof (opts[k]) &&
-        4 === opts[k].description.length)
-      .reduce((a: number[], k) =>
-        (a[opts[k].description.charCodeAt(3)] = opts[k], a), [])
-
-    // lookup table for escape chars, indexed by denotating char (e.g. n for \n).
-    opts.escapes = opts.escapes || {}
-    opts.ESCAPES = Object.keys(opts.escapes)
-      .reduce((a: string[], ed: string) =>
-        (a[ed.charCodeAt(0)] = opts.escapes[ed], a), [])
-
-    opts.DIGITAL = opts.digital || ''
-
-
-    opts.SC_COMMENT = []
-    opts.COMMENT_SINGLE = ''
-    opts.COMMENT_MARKER = []
-
-    if (opts.comments) {
-      let comment_markers = Object.keys(opts.comments)
-
-      comment_markers.forEach(k => {
-
-        // Single character comment marker (eg. `#`)
-        if (1 === k.length) {
-          opts.SC_COMMENT.push(k.charCodeAt(0))
-          opts.COMMENT_SINGLE += k
-        }
-
-        // String comment marker (eg. `//`)
-        else {
-          opts.SC_COMMENT.push(k.charCodeAt(0))
-          opts.COMMENT_MARKER.push(k)
-        }
-      })
-
-      opts.COMMENT_MARKER_MAXLEN = util.longest(comment_markers)
-    }
-
-    opts.SC_COMMENT_CHARS =
-      opts.SC_COMMENT.map((cc: number) => String.fromCharCode(cc)).join('')
-
-    opts.SINGLE_CHARS =
-      opts.SINGLES.map((s: symbol, cc: number) => String.fromCharCode(cc)).join('')
-
-    opts.VALUE_ENDERS =
-      opts.sc_space + opts.sc_line + opts.SINGLE_CHARS + opts.SC_COMMENT_CHARS
-
-
-    opts.TEXT_ENDERS = opts.VALUE_ENDERS
-
-    opts.HOOVER_ENDERS = opts.sc_line + opts.SINGLE_CHARS + opts.SC_COMMENT_CHARS
-
-    opts.VALUES = opts.values || {}
-
-
-    // Token sets
-    opts.VAL = [opts.TX, opts.NR, opts.ST, opts.VL]
-    opts.WSP = [opts.SP, opts.LN, opts.CM]
-
-    return opts
-  }
-}
-
-
-function make(first?: Opts | Jsonic, parent?: Jsonic): Jsonic {
-
-  let param_opts = (first as Opts)
-  if ('function' === typeof (first)) {
-    param_opts = {}
-    parent = (first as Jsonic)
-  }
-
-  let opts = util.deep(util.deep(
-    {}, parent ? parent.options : STANDARD_OPTIONS), param_opts)
-  opts = util.norm_options(opts)
-
-  let self: any = function Jsonic(src: any): any {
-    if ('string' === typeof (src)) {
-      return self._parser.start(self._lexer.start(src))
-    }
-    return src
-  }
-
-  if (parent) {
-    for (let k in parent) {
-      self[k] = parent
-    }
-
-    self.parent = parent
-  }
-
-
-  self._lexer = new Lexer(opts)
-  self._parser = new Parser(opts)
-
-
-  self.options = opts
-
-  self.parse = self
-
-
-  self.use = function use(plugin: Plugin): void {
-    plugin(self)
-  }
-
-
-  self.make = function(opts: Opts) {
-    return make(opts, self)
-  }
-
-  return (self as Jsonic)
-}
-
-
-
-let Jsonic: Jsonic = make()
-
-export { Jsonic, Plugin, Lexer, util }
 
