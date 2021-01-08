@@ -781,38 +781,33 @@ class RuleSpec {
       for (let alt of alts) {
         // console.log('MA', alt.t === ctx.t0.pin, alt.t, ctx.t0.pin, alt.s)
 
-        if (null == alt.t && null == alt.s) {
+        // No tokens to match.
+        if (null == alt.s || 0 === alt.s.length) {
           out = { ...alt, m: [] }
           break
         }
 
-        else if (alt.t === ctx.opts.AA) {
-          out = { ...alt, m: [ctx.t0] }
+        // Match 1 or 2 tokens in sequence.
+        else if (alt.s[0] === ctx.t0.pin) {
+          if (alt.s[1] === ctx.t1.pin) {
+            out = { ...alt, m: [ctx.t0, ctx.t1] }
+          }
+          else {
+            out = { ...alt, m: [ctx.t0] }
+          }
           break
         }
 
-        else if (alt.t === ctx.t0.pin) {
-          out = { ...alt, m: [ctx.t0] }
-          break
-        }
-
+        // End token reached.
         else if (ctx.opts.ZZ === ctx.t0.pin) {
           out = { ...alt }
           break
         }
 
-        // 2 token lookahead
-        else if (alt.s) {
-          if (1 === alt.s.length && alt.s[0] === ctx.t0.pin) {
-            out = { ...alt, m: [ctx.t0] }
-            break
-          }
-          else if (2 === alt.s.length &&
-            alt.s[0] === ctx.t0.pin &&
-            alt.s[1] === ctx.t1.pin) {
-            out = { ...alt, m: [ctx.t0, ctx.t1] }
-            break
-          }
+        // Match any token.
+        else if (ctx.opts.AA === alt.s[0]) {
+          out = { ...alt, m: [ctx.t0] }
+          break
         }
       }
 
@@ -845,13 +840,15 @@ class Parser {
     this.rules = {
       value: {
         open: [ // alternatives
-          { t: o.OB, p: 'map' },  // p:push onto rule stack
-          { t: o.OS, p: 'list' },
+          { s: [o.OB], p: 'map' },  // p:push onto rule stack
+          { s: [o.OS], p: 'list' },
 
           // TODO: need to rewind tokens?
           //{ t: o.CA, r: 'list' },
           //{ s: [o.ST, o.CL], r: 'pair' },
-          //{ s: [o.TX, o.CL], p: 'map' },
+
+          { s: [o.TX, o.CL], p: 'map' },
+
           // { t: o.AA },   // pop and return token value
 
           { s: [o.TX] },
