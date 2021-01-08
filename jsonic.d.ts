@@ -19,7 +19,9 @@ declare type Token = {
     why?: string;
     use?: any;
 };
-declare type Lex = () => Token;
+declare type Lex = (() => Token) & {
+    src: string;
+};
 declare class Lexer {
     options: Opts;
     end: Token;

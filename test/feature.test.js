@@ -22,7 +22,7 @@ describe('feature', function () {
     expect(j('#a:1')).equals(undefined)
     expect(j('#a:1\nb:2')).equals({b:2})
     expect(j('b:2\n#a:1')).equals({b:2})
-    expect(j('b:2\n#a:1\nc:3')).equals({b:2,c:3})
+    expect(j('b:2,\n#a:1\nc:3')).equals({b:2,c:3})
   })
 
 
@@ -30,7 +30,7 @@ describe('feature', function () {
     expect(j('//a:1')).equals(undefined)
     expect(j('//a:1\nb:2')).equals({b:2})
     expect(j('b:2\n//a:1')).equals({b:2})
-    expect(j('b:2\n//a:1\nc:3')).equals({b:2,c:3})
+    expect(j('b:2,\n//a:1\nc:3')).equals({b:2,c:3})
   })
 
 
@@ -39,11 +39,11 @@ describe('feature', function () {
     expect(j('/*a:1*/\nb:2')).equals({b:2})
     expect(j('/*a:1\n*/b:2')).equals({b:2})
     expect(j('b:2\n/*a:1*/')).equals({b:2})
-    expect(j('b:2\n/*\na:1\n*/\nc:3')).equals({b:2,c:3})
+    expect(j('b:2,\n/*\na:1,\n*/\nc:3')).equals({b:2,c:3})
 
     // Balanced multiline comments!
     expect(j('/*/*/*a:1*/*/*/b:2')).equals({b:2})
-    expect(j('b:2,/*a:1,/*c:3,*/*/,d:4')).equals({b:2,d:4})
+    expect(j('b:2,/*a:1,/*c:3,*/*/d:4')).equals({b:2,d:4})
     expect(j('\nb:2\n/*\na:1\n/*\nc:3\n*/\n*/\n,d:4')).equals({b:2,d:4})
 
     // Implicit close
@@ -61,7 +61,7 @@ describe('feature', function () {
     expect(nobal.options.balance.comments).false()
 
     // NOTE: comment markers inside text are active!
-    expect(nobal('/*/*/*a:1*/*/*/b:2')).equal({ '*a': '1*', b: 2 })
+    expect(nobal('/*/*/*a:1*/*/*/,b:2')).equal({ '*a': '1*', b: 2 })
 
 
     // Custom multiline comments

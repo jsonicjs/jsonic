@@ -127,7 +127,7 @@ class Lexer {
         let cI = 0; // Source column index.
         let srclen = src.length;
         // Lex next Token.
-        return function lex() {
+        let lex = function lex() {
             token.len = 0;
             token.val = undefined;
             token.row = rI;
@@ -414,6 +414,8 @@ class Lexer {
             token.col = cI;
             return token;
         };
+        lex.src = src;
+        return lex;
     }
 }
 exports.Lexer = Lexer;
@@ -484,6 +486,7 @@ class RuleSpec {
     }
     close(rule, ctx) {
         let next = norule;
+        let why = 's';
         if (this.def.before_close) {
             // console.log('before_close', rule.child.spec.name, rule.child.node)
             this.def.before_close.call(this, rule);
@@ -494,22 +497,28 @@ class RuleSpec {
         }
         if (act.r) {
             next = new Rule(this.rm[act.r], ctx, rule.opts, rule.node);
+            why = 'r';
         }
         else {
             next = ctx.rs.pop() || norule;
+            why = 'p';
         }
         if (this.def.after_close) {
             this.def.after_close.call(this, rule, next);
         }
-        //console.log('Ce', this.name, ctx.t0, ctx.t1, 'A', act.t, act.s, act.m && act.m[0]?.pin, act.m && act.m[1]?.pin, 'R', rule.spec.name, rule.node, next.spec.name)
+        // console.log('Ce', this.name, ctx.t0, ctx.t1, 'A', act.t, act.s, act.m && act.m[0]?.pin, act.m && act.m[1]?.pin, 'R', rule.spec.name, rule.node, next.spec.name, why)
         return next;
     }
     // first match wins
     match_alts(alts, ctx) {
         let out = undefined;
-        if (0 < alts.length) {
+        // End token reached.
+        if (ctx.opts.ZZ === ctx.t0.pin) {
+            out = { m: [] };
+        }
+        else if (0 < alts.length) {
             for (let alt of alts) {
-                // console.log('MA', alt.t === ctx.t0.pin, alt.t, ctx.t0.pin, alt.s)
+                // console.log('MA', ctx.t0.pin, alt.s)
                 // No tokens to match.
                 if (null == alt.s || 0 === alt.s.length) {
                     out = { ...alt, m: [] };
@@ -517,18 +526,14 @@ class RuleSpec {
                 }
                 // Match 1 or 2 tokens in sequence.
                 else if (alt.s[0] === ctx.t0.pin) {
-                    if (alt.s[1] === ctx.t1.pin) {
-                        out = { ...alt, m: [ctx.t0, ctx.t1] };
-                    }
-                    else {
+                    if (1 === alt.s.length) {
                         out = { ...alt, m: [ctx.t0] };
+                        break;
                     }
-                    break;
-                }
-                // End token reached.
-                else if (ctx.opts.ZZ === ctx.t0.pin) {
-                    out = { ...alt };
-                    break;
+                    else if (alt.s[1] === ctx.t1.pin) {
+                        out = { ...alt, m: [ctx.t0, ctx.t1] };
+                        break;
+                    }
                 }
                 // Match any token.
                 else if (ctx.opts.AA === alt.s[0]) {
@@ -541,7 +546,10 @@ class RuleSpec {
         out = out || { m: [] };
         if (out.m) {
             let mI = 0;
-            while (mI++ < out.m.length) {
+            let rewind = out.m.length - (out.b || 0);
+            //console.log('rewind', out.m.length, out.b, rewind)
+            while (mI++ < rewind) {
+                //while (mI++ < out.m.length) {
                 ctx.next();
             }
         }
@@ -557,11 +565,12 @@ class Parser {
                 open: [
                     { s: [o.OB], p: 'map' },
                     { s: [o.OS], p: 'list' },
-                    // TODO: need to rewind tokens?
-                    //{ t: o.CA, r: 'list' },
-                    //{ s: [o.ST, o.CL], r: 'pair' },
-                    { s: [o.TX, o.CL], p: 'map' },
-                    // { t: o.AA },   // pop and return token value
+                    // TODO o.NR, o.VL - use src string not val! 
+                    // beware prefixes
+                    { s: [o.TX, o.CL], p: 'map', b: 2 },
+                    { s: [o.ST, o.CL], p: 'map', b: 2 },
+                    { s: [o.TX, o.CA], p: 'list', b: 2 },
+                    { s: [o.ST, o.CA], p: 'list', b: 2 },
                     { s: [o.TX] },
                     { s: [o.NR] },
                     { s: [o.ST] },
@@ -569,8 +578,8 @@ class Parser {
                 ],
                 close: [],
                 before_close: (rule) => {
-                    var _a;
-                    rule.node = (_a = rule.child.node) !== null && _a !== void 0 ? _a : rule.open[0].val;
+                    var _a, _b;
+                    rule.node = (_a = rule.child.node) !== null && _a !== void 0 ? _a : (_b = rule.open[0]) === null || _b === void 0 ? void 0 : _b.val;
                 },
             },
             map: {
@@ -623,7 +632,7 @@ class Parser {
                     { s: [o.CS] },
                 ],
                 after_open: (rule, next) => {
-                    if (rule === next) {
+                    if (rule === next && rule.open[0]) {
                         rule.node.push(rule.open[0].val);
                     }
                 },
@@ -656,6 +665,9 @@ class Parser {
         };
         let rule = new Rule(this.rulespecs.value, ctx, opts);
         let root = rule;
+        // Maximum rule iterations. Allow for rule open and close,
+        // and for each rule on each char to be virtual (like map, list)
+        let maxr = 2 * Object.keys(this.rulespecs).length * lex.src.length;
         // Lex next token.
         function next() {
             ctx.t0 = ctx.t1;
@@ -670,11 +682,14 @@ class Parser {
         next();
         next();
         // Process rules over tokens
-        while (norule !== rule) {
+        let rI = 0;
+        while (norule !== rule && rI < maxr) {
             // TODO: instrument this
             // console.log('~R:', ctx.rs.length, rule.spec.name + '/' + rule.id + '/' + rule.state, ctx.t0.pin, ctx.t1.pin, ctx.t0.val + '::' + ctx.t1.val, rule.node)
             rule = rule.process(ctx);
+            rI++;
         }
+        // TODO: must end with o.ZZ token else error
         return root.node;
     }
 }

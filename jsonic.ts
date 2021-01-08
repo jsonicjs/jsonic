@@ -153,7 +153,7 @@ type Token = {
 }
 
 // The lexing function returns the next token.
-type Lex = () => Token
+type Lex = (() => Token) & { src: string }
 
 
 
@@ -227,7 +227,7 @@ class Lexer {
 
 
     // Lex next Token.
-    return function lex(): Token {
+    let lex: Lex = (function lex(): Token {
       token.len = 0
       token.val = undefined
       token.row = rI
@@ -600,7 +600,11 @@ class Lexer {
       token.col = cI
 
       return token
-    }
+    } as Lex)
+
+    lex.src = src
+
+    return lex
   }
 }
 
@@ -744,6 +748,7 @@ class RuleSpec {
 
   close(rule: Rule, ctx: Context) {
     let next: Rule = norule
+    let why = 's'
 
     if (this.def.before_close) {
       // console.log('before_close', rule.child.spec.name, rule.child.node)
@@ -758,17 +763,18 @@ class RuleSpec {
 
     if (act.r) {
       next = new Rule(this.rm[act.r], ctx, rule.opts, rule.node)
+      why = 'r'
     }
     else {
       next = ctx.rs.pop() || norule
+      why = 'p'
     }
 
     if (this.def.after_close) {
       this.def.after_close.call(this, rule, next)
     }
 
-
-    //console.log('Ce', this.name, ctx.t0, ctx.t1, 'A', act.t, act.s, act.m && act.m[0]?.pin, act.m && act.m[1]?.pin, 'R', rule.spec.name, rule.node, next.spec.name)
+    // console.log('Ce', this.name, ctx.t0, ctx.t1, 'A', act.t, act.s, act.m && act.m[0]?.pin, act.m && act.m[1]?.pin, 'R', rule.spec.name, rule.node, next.spec.name, why)
 
     return next
   }
@@ -777,9 +783,15 @@ class RuleSpec {
   // first match wins
   match_alts(alts: any[], ctx: Context): any {
     let out = undefined
-    if (0 < alts.length) {
+
+    // End token reached.
+    if (ctx.opts.ZZ === ctx.t0.pin) {
+      out = { m: [] }
+    }
+
+    else if (0 < alts.length) {
       for (let alt of alts) {
-        // console.log('MA', alt.t === ctx.t0.pin, alt.t, ctx.t0.pin, alt.s)
+        // console.log('MA', ctx.t0.pin, alt.s)
 
         // No tokens to match.
         if (null == alt.s || 0 === alt.s.length) {
@@ -789,19 +801,14 @@ class RuleSpec {
 
         // Match 1 or 2 tokens in sequence.
         else if (alt.s[0] === ctx.t0.pin) {
-          if (alt.s[1] === ctx.t1.pin) {
-            out = { ...alt, m: [ctx.t0, ctx.t1] }
-          }
-          else {
+          if (1 === alt.s.length) {
             out = { ...alt, m: [ctx.t0] }
+            break
           }
-          break
-        }
-
-        // End token reached.
-        else if (ctx.opts.ZZ === ctx.t0.pin) {
-          out = { ...alt }
-          break
+          else if (alt.s[1] === ctx.t1.pin) {
+            out = { ...alt, m: [ctx.t0, ctx.t1] }
+            break
+          }
         }
 
         // Match any token.
@@ -818,7 +825,11 @@ class RuleSpec {
 
     if (out.m) {
       let mI = 0
-      while (mI++ < out.m.length) {
+      let rewind = out.m.length - (out.b || 0)
+      //console.log('rewind', out.m.length, out.b, rewind)
+      while (mI++ < rewind) {
+
+        //while (mI++ < out.m.length) {
         ctx.next()
       }
     }
@@ -843,13 +854,13 @@ class Parser {
           { s: [o.OB], p: 'map' },  // p:push onto rule stack
           { s: [o.OS], p: 'list' },
 
-          // TODO: need to rewind tokens?
-          //{ t: o.CA, r: 'list' },
-          //{ s: [o.ST, o.CL], r: 'pair' },
+          // TODO o.NR, o.VL - use src string not val! 
+          // beware prefixes
+          { s: [o.TX, o.CL], p: 'map', b: 2 },
+          { s: [o.ST, o.CL], p: 'map', b: 2 },
 
-          { s: [o.TX, o.CL], p: 'map' },
-
-          // { t: o.AA },   // pop and return token value
+          { s: [o.TX, o.CA], p: 'list', b: 2 },
+          { s: [o.ST, o.CA], p: 'list', b: 2 },
 
           { s: [o.TX] },
           { s: [o.NR] },
@@ -858,7 +869,7 @@ class Parser {
         ],
         close: [],
         before_close: (rule: Rule) => {
-          rule.node = rule.child.node ?? rule.open[0].val
+          rule.node = rule.child.node ?? rule.open[0]?.val
         },
       },
 
@@ -920,7 +931,7 @@ class Parser {
           { s: [o.CS] },
         ],
         after_open: (rule: Rule, next: Rule) => {
-          if (rule === next) {
+          if (rule === next && rule.open[0]) {
             rule.node.push(rule.open[0].val)
           }
         },
@@ -960,6 +971,9 @@ class Parser {
 
     let root = rule
 
+    // Maximum rule iterations. Allow for rule open and close,
+    // and for each rule on each char to be virtual (like map, list)
+    let maxr = 2 * Object.keys(this.rulespecs).length * lex.src.length
 
     // Lex next token.
     function next() {
@@ -982,12 +996,17 @@ class Parser {
 
 
     // Process rules over tokens
-    while (norule !== rule) {
+    let rI = 0
+
+    while (norule !== rule && rI < maxr) {
       // TODO: instrument this
       // console.log('~R:', ctx.rs.length, rule.spec.name + '/' + rule.id + '/' + rule.state, ctx.t0.pin, ctx.t1.pin, ctx.t0.val + '::' + ctx.t1.val, rule.node)
 
       rule = rule.process(ctx)
+      rI++
     }
+
+    // TODO: must end with o.ZZ token else error
 
     return root.node
   }
