@@ -176,25 +176,28 @@ describe('jsonic', function () {
 
     let lex0 = lexer.start(' {123 ')
     expect(lex0()).equals(
-      { pin: lexer.options.SP, loc: 0, len: 1, row: 0, col: 0, val: ' ' })
+      { pin: lexer.options.SP, loc: 0, len: 1, row: 0, col: 0, val: ' ', src: ' ' })
     expect(lex0()).equals(
-      { pin: lexer.options.OB, loc: 1, len: 1, row: 0, col: 1, val: undefined })
+      { pin: lexer.options.OB, loc: 1, len: 1, row: 0, col: 1, val: undefined, src: '{' })
     expect(lex0()).equals(
-      { pin: lexer.options.NR, loc: 2, len: 3, row: 0, col: 2, val: 123 })
+      { pin: lexer.options.NR, loc: 2, len: 3, row: 0, col: 2, val: 123, src: '123'  })
     expect(lex0()).equals(
-      { pin: lexer.options.SP, loc: 5, len: 1, row: 0, col: 5, val: ' ' })
+      { pin: lexer.options.SP, loc: 5, len: 1, row: 0, col: 5, val: ' ', src: ' ' })
     expect(lex0()).equals(
-      { pin: lexer.options.ZZ, loc: 6, len: 0, row: 0, col: 6, val: undefined })
+      { pin: lexer.options.ZZ, loc: 6, len: 0, row: 0, col: 6,
+        val: undefined, src: undefined })
 
     // LN001
     expect(lex0()).equals(
-      { pin: lexer.options.ZZ, loc: 6, len: 0, row: 0, col: 6, val: undefined })
+      { pin: lexer.options.ZZ, loc: 6, len: 0, row: 0, col: 6,
+        val: undefined, src: undefined })
     expect(lex0()).equals(
-      { pin: lexer.options.ZZ, loc: 6, len: 0, row: 0, col: 6, val: undefined })
+      { pin: lexer.options.ZZ, loc: 6, len: 0, row: 0, col: 6,
+        val: undefined, src: undefined })
 
     let lex1 = lexer.start('"\\u0040"')
     expect(lex1()).equals(
-      { pin: lexer.options.ST, loc: 0, len: 8, row: 0, col: 0, val: '@' })
+      { pin: lexer.options.ST, loc: 0, len: 8, row: 0, col: 0, val: '@', src:'"\\u0040"' })
 
     
     expect(lexall(' {123')).equals([
@@ -213,31 +216,23 @@ describe('jsonic', function () {
 
     let lex2 = lexer.start(' m n ')
     expect(lex2()).equals(
-      { pin: lexer.options.SP, loc: 0, len: 1, row: 0, col: 0, val: ' ' })
+      { pin: lexer.options.SP, loc: 0, len: 1, row: 0, col: 0, val: ' ', src: ' ' })
     expect(lex2()).equals(
-      { pin: lexer.options.TX, loc: 1, len: 3, row: 0, col: 1, val: 'm n' })
-//    expect(lex2()).equals(
-//      { pin: lexer.options.SP, loc: 2, len: 1, row: 0, col: 2, val: ' ' })
-//    expect(lex2()).equals(
-//      { pin: lexer.options.TX, loc: 3, len: 1, row: 0, col: 3, val: 'n' })
+      { pin: lexer.options.TX, loc: 1, len: 3, row: 0, col: 1, val: 'm n', src: 'm n' })
     expect(lex2()).equals(
-      { pin: lexer.options.SP, loc: 4, len: 1, row: 0, col: 4, val: ' ' })
+      { pin: lexer.options.SP, loc: 4, len: 1, row: 0, col: 4, val: ' ', src: ' ' })
     expect(lex2()).equals(
-      { pin: lexer.options.ZZ, loc: 5, len: 0, row: 0, col: 5, val: undefined })
+      { pin: lexer.options.ZZ, loc: 5, len: 0, row: 0, col: 5, val: undefined, src: undefined })
 
     let lex3 = lexer.start(' b a ')
     expect(lex3()).equals(
-      { pin: lexer.options.SP, loc: 0, len: 1, row: 0, col: 0, val: ' ' })
+      { pin: lexer.options.SP, loc: 0, len: 1, row: 0, col: 0, val: ' ', src: ' ' })
     expect(lex3()).equals(
-      { pin: lexer.options.TX, loc: 1, len: 3, row: 0, col: 1, val: 'b a' })
-//    expect(lex3()).equals(
-//      { pin: lexer.options.SP, loc: 2, len: 1, row: 0, col: 2, val: ' ' })
-//    expect(lex3()).equals(
-//      { pin: lexer.options.TX, loc: 3, len: 1, row: 0, col: 3, val: 'a' })
+      { pin: lexer.options.TX, loc: 1, len: 3, row: 0, col: 1, val: 'b a', src: 'b a' })
     expect(lex3()).equals(
-      { pin: lexer.options.SP, loc: 4, len: 1, row: 0, col: 4, val: ' ' })
+      { pin: lexer.options.SP, loc: 4, len: 1, row: 0, col: 4, val: ' ', src: ' ' })
     expect(lex3()).equals(
-      { pin: lexer.options.ZZ, loc: 5, len: 0, row: 0, col: 5, val: undefined })
+      { pin: lexer.options.ZZ, loc: 5, len: 0, row: 0, col: 5, val: undefined, src: undefined })
 
   })
 
@@ -245,7 +240,8 @@ describe('jsonic', function () {
   it('lex-space', () => {
     let lex0 = lexer.start(' \t')
     expect(lex0()).equals(
-      { pin: lexer.options.SP, loc: 0, len: 2, row: 0, col: 0, val: ' \t' })
+      { pin: lexer.options.SP,
+        loc: 0, len: 2, row: 0, col: 0, val: ' \t', src: ' \t' })
 
     alleq([
       ' ', ['#SP;0;1;0x0','#ZZ;1;0;0x1'],
@@ -340,7 +336,9 @@ describe('jsonic', function () {
   it('lex-number', () => {
     let lex0 = lexer.start('123')
     expect(lex0())
-      .equal({ pin: lexer.options.NR, loc: 0, len: 3, row: 0, col: 0, val: 123 })
+      .equal({
+        pin: lexer.options.NR, loc: 0, len: 3, row: 0, col: 0, val: 123, src: '123'
+      })
     
     alleq([
       '0', ['#NR;0;1;0x0;0','#ZZ;1;0;0x1'],
@@ -1302,64 +1300,64 @@ function st(t) {
 
   switch(t.pin) {
   case opts.SP:
-    out = m(opts.SP.description,0,t)
+    out = m(opts.SP[0],0,t)
     break
 
   case opts.LN:
-    out = m(opts.LN.description,0,t)
+    out = m(opts.LN[0],0,t)
     break
 
   case opts.OB:
-    out = m(opts.OB.description,0,t)
+    out = m(opts.OB[0],0,t)
     break
 
   case opts.CB:
-    out = m(opts.CB.description,0,t)
+    out = m(opts.CB[0],0,t)
     break
 
   case opts.OS:
-    out = m(opts.OS.description,0,t)
+    out = m(opts.OS[0],0,t)
     break
 
   case opts.CS:
-    out = m(opts.CS.description,0,t)
+    out = m(opts.CS[0],0,t)
     break
 
   case opts.CL:
-    out = m(opts.CL.description,0,t)
+    out = m(opts.CL[0],0,t)
     break
 
   case opts.CA:
-    out = m(opts.CA.description,0,t)
+    out = m(opts.CA[0],0,t)
     break
 
   case opts.NR:
-    out = m(opts.NR.description,1,t)
+    out = m(opts.NR[0],1,t)
     break
 
   case opts.ST:
-    out = m(opts.ST.description,1,t)
+    out = m(opts.ST[0],1,t)
     break
 
   case opts.TX:
-    out = m(opts.TX.description,1,t)
+    out = m(opts.TX[0],1,t)
     break
 
   case opts.VL:
-    out = m(opts.VL.description,1,t)
+    out = m(opts.VL[0],1,t)
     break
 
   case opts.CM:
-    out = m(opts.CM.description,1,t)
+    out = m(opts.CM[0],1,t)
     break
 
   case opts.BD:
     t.val = t.val+'~'+t.why
-    out = m(opts.BD.description,1,t)
+    out = m(opts.BD[0],1,t)
     break
 
   case opts.ZZ:
-    out = m(opts.ZZ.description,0,t)
+    out = m(opts.ZZ[0],0,t)
     break
   }
 

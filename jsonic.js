@@ -12,9 +12,9 @@ exports.util = exports.Lexer = exports.Jsonic = void 0;
 // Edge case notes (see unit tests):
 // LNnnn: Lex Note number
 // PNnnn: Parse Note number
-const I = require('util').inspect;
-let NONE = [];
-let STANDARD_OPTIONS = {
+//const I = require('util').inspect
+const NONE = [];
+const STANDARD_OPTIONS = {
     // Token start characters.
     sc_space: ' \t',
     sc_line: '\n\r',
@@ -56,34 +56,68 @@ let STANDARD_OPTIONS = {
     },
     digital: '-1023456789._xeEaAbBcCdDfF+',
     tokens: {
+        //value: (NONE as Symbol[]),
+        //ignore: (NONE as Symbol[]),
         value: NONE,
         ignore: NONE,
     },
     bad_unicode_char: String.fromCharCode('0x0000'),
+    /*
     // Single character tokens.
     // NOTE: character is final char of Symbol name.
-    OB: Symbol('#OB{'),
-    CB: Symbol('#CB}'),
-    OS: Symbol('#OS['),
-    CS: Symbol('#CS]'),
-    CL: Symbol('#CL:'),
-    CA: Symbol('#CA,'),
+    OB: Symbol('#OB{'), // OPEN BRACE
+    CB: Symbol('#CB}'), // CLOSE BRACE
+    OS: Symbol('#OS['), // OPEN SQUARE
+    CS: Symbol('#CS]'), // CLOSE SQUARE
+    CL: Symbol('#CL:'), // COLON
+    CA: Symbol('#CA,'), // COMMA
+  
     // Multi character tokens.
-    BD: Symbol('#BD'),
-    ZZ: Symbol('#ZZ'),
-    UK: Symbol('#UK'),
-    CM: Symbol('#CM'),
-    AA: Symbol('#AA'),
-    SP: Symbol('#SP'),
-    LN: Symbol('#LN'),
-    NR: Symbol('#NR'),
-    ST: Symbol('#ST'),
-    TX: Symbol('#TX'),
-    VL: Symbol('#VL'),
+    BD: Symbol('#BD'), // BAD
+    ZZ: Symbol('#ZZ'), // END
+    UK: Symbol('#UK'), // UNKNOWN
+    CM: Symbol('#CM'), // COMMENT
+    AA: Symbol('#AA'), // ANY
+  
+    SP: Symbol('#SP'), // SPACE
+    LN: Symbol('#LN'), // LINE
+  
+    NR: Symbol('#NR'), // NUMBER
+    ST: Symbol('#ST'), // STRING
+    TX: Symbol('#TX'), // TEXT
+  
+    VL: Symbol('#VL'), // VALUE
+  
+  
     // Lexer states
-    LS_TOP: Symbol('@TOP'),
-    LS_CONSUME: Symbol('@CONSUME'),
-    LS_MULTILINE: Symbol('@MULTILINE'),
+    LS_TOP: Symbol('@TOP'), // TOP
+    LS_CONSUME: Symbol('@CONSUME'), // CONSUME
+    LS_MULTILINE: Symbol('@MULTILINE'), // MULTILINE
+    */
+    // Single character tokens.
+    // NOTE: character is final char of Symbol name.
+    OB: ['#OB{'],
+    CB: ['#CB}'],
+    OS: ['#OS['],
+    CS: ['#CS]'],
+    CL: ['#CL:'],
+    CA: ['#CA,'],
+    // Multi character tokens.
+    BD: ['#BD'],
+    ZZ: ['#ZZ'],
+    UK: ['#UK'],
+    CM: ['#CM'],
+    AA: ['#AA'],
+    SP: ['#SP'],
+    LN: ['#LN'],
+    NR: ['#NR'],
+    ST: ['#ST'],
+    TX: ['#TX'],
+    VL: ['#VL'],
+    // Lexer states
+    LS_TOP: ['@TOP'],
+    LS_CONSUME: ['@CONSUME'],
+    LS_MULTILINE: ['@MULTILINE'],
 };
 class Lexer {
     constructor(options) {
@@ -96,21 +130,27 @@ class Lexer {
             row: 0,
             col: 0,
             val: undefined,
+            src: undefined,
         };
-        opts.bad = function (why, token, sI, pI, rI, cI, val, use) {
+        opts.bad = function (log, why, token, sI, pI, rI, cI, val, src, use) {
+            token.why = why;
             token.pin = opts.BD;
             token.loc = pI;
             token.row = rI;
             token.col = cI;
             token.len = pI - sI + 1;
             token.val = val;
-            token.why = why;
+            token.src = src;
             token.use = use;
+            log && log({ ...token });
             return token;
         };
     }
     // Create the lexing function.
-    start(src) {
+    start(src, 
+    // Workaround for unexplained TS2722
+    //ctx?: (Context & { log: any })
+    ctx) {
         const opts = this.options;
         // NOTE: always returns this object!
         let token = {
@@ -120,16 +160,23 @@ class Lexer {
             col: 0,
             len: 0,
             val: undefined,
+            src: undefined,
         };
         // Main indexes.
         let sI = 0; // Source text index.
         let rI = 0; // Source row index.
         let cI = 0; // Source column index.
         let srclen = src.length;
+        // TS2722 impedes this definition unless Context is
+        // refined to (Context & { log: any })
+        let log = (null != ctx && null != ctx.log) ?
+            ((...rest) => ctx.log('lex', ...rest)) :
+            undefined;
         // Lex next Token.
         let lex = function lex() {
             token.len = 0;
             token.val = undefined;
+            token.src = undefined;
             token.row = rI;
             let state = opts.LS_TOP;
             let state_param = null;
@@ -150,7 +197,9 @@ class Lexer {
                             cI++, pI++;
                         token.len = pI - sI;
                         token.val = src.substring(sI, pI);
+                        token.src = token.val;
                         sI = pI;
+                        log && log({ ...token });
                         return token;
                     }
                     else if (opts.SC_LINE.includes(c0c)) {
@@ -166,7 +215,9 @@ class Lexer {
                         }
                         token.len = pI - sI;
                         token.val = src.substring(sI, pI);
+                        token.src = token.val;
                         sI = pI;
+                        log && log({ ...token });
                         return token;
                     }
                     else if (null != opts.SINGLES[c0c]) {
@@ -174,7 +225,9 @@ class Lexer {
                         token.loc = sI;
                         token.col = cI++;
                         token.len = 1;
+                        token.src = c0;
                         sI++;
+                        log && log({ ...token });
                         return token;
                     }
                     else if (opts.SC_NUMBER.includes(c0c)) {
@@ -189,7 +242,7 @@ class Lexer {
                             // Leading 0s are text unless hex val: if at least two
                             // digits and does not start with 0x, then text.
                             if (1 < token.len && '0' === src[sI] && 'x' != src[sI + 1]) {
-                                token.val = undefined;
+                                token.val = undefined; // unset if not a hex value
                                 pI--;
                             }
                             else {
@@ -205,8 +258,10 @@ class Lexer {
                             }
                         }
                         if (null != token.val) {
+                            token.src = src.substring(sI, pI); // src="1e6" -> val=1000000
                             cI += token.len;
                             sI = pI;
+                            log && log({ ...token });
                             return token;
                         }
                         // NOTE: else drop through to default, as this must be literal text
@@ -239,7 +294,7 @@ class Lexer {
                                     pI++;
                                     let us = String.fromCharCode(('0x' + src.substring(pI, pI + 4)));
                                     if (opts.bad_unicode_char === us) {
-                                        return opts.bad('invalid-unicode', token, sI, pI, rI, cI, src.substring(pI - 2, pI + 4));
+                                        return opts.bad(log, 'invalid-unicode', token, sI, pI, rI, cI, src.substring(pI - 2, pI + 4));
                                     }
                                     s.push(us);
                                     pI += 3; // loop increments pI
@@ -254,7 +309,7 @@ class Lexer {
                                     s.push(src[pI]);
                                 }
                                 else {
-                                    return opts.bad('unprintable', token, sI, pI, rI, cI, src.charAt(pI));
+                                    return opts.bad(log, 'unprintable', token, sI, pI, rI, cI, src.charAt(pI));
                                 }
                             }
                             else {
@@ -270,11 +325,13 @@ class Lexer {
                         }
                         if (qc !== cc) {
                             cI = sI;
-                            return opts.bad('unterminated', token, sI, pI - 1, rI, cI, s.join(''));
+                            return opts.bad(log, 'unterminated', token, sI, pI - 1, rI, cI, s.join(''));
                         }
                         token.val = s.join('');
+                        token.src = src.substring(sI, pI);
                         token.len = pI - sI;
                         sI = pI;
+                        log && log({ ...token });
                         return token;
                     }
                     else if (opts.SC_COMMENT.includes(c0c)) {
@@ -289,7 +346,7 @@ class Lexer {
                                     token.pin = opts.CM;
                                     token.loc = sI;
                                     token.col = cI;
-                                    token.val = '';
+                                    token.val = ''; // intialize for LS_CONSUME
                                     state = opts.LS_MULTILINE;
                                     state_param = [cm, opts.comments[cm], 'comments'];
                                     continue next_char;
@@ -304,7 +361,7 @@ class Lexer {
                             token.pin = opts.CM;
                             token.loc = sI;
                             token.col = cI;
-                            token.val = '';
+                            token.val = ''; // intialize for LS_CONSUME
                             state = opts.LS_CONSUME;
                             enders = opts.sc_line;
                             continue next_char;
@@ -331,8 +388,10 @@ class Lexer {
                     if (undefined !== val) {
                         token.pin = opts.VL;
                         token.val = val;
+                        token.src = txt;
                         token.len = pI - sI;
                         sI = pI;
+                        log && log({ ...token });
                         return token;
                     }
                     // Only thing left is literal text
@@ -344,6 +403,7 @@ class Lexer {
                     token.len = pI - sI;
                     token.pin = opts.TX;
                     token.val = src.substring(sI, pI);
+                    token.src = token.val;
                     // If hoovering, separate space at end from text
                     if (opts.text.hoover &&
                         opts.sc_space.includes(token.val[token.val.length - 1])) {
@@ -352,6 +412,7 @@ class Lexer {
                         while (0 < tI && opts.sc_space.includes(token.val[tI]))
                             tI--;
                         token.val = token.val.substring(0, tI + 1);
+                        token.src = token.val;
                         // Adjust column counter backwards by end space length
                         cI -= (token.len - tI - 1);
                         token.len = token.val.length;
@@ -361,6 +422,7 @@ class Lexer {
                     else {
                         sI = pI;
                     }
+                    log && log({ ...token });
                     return token;
                 }
                 // Lexer State: CONSUME => all chars up to first ender
@@ -369,9 +431,11 @@ class Lexer {
                     while (pI < srclen && !enders.includes(src[pI]))
                         pI++, cI++;
                     token.val += src.substring(sI, pI);
+                    token.src = token.val;
                     token.len = token.val.length;
                     sI = pI;
                     state = opts.LS_TOP;
+                    log && log({ ...token });
                     return token;
                 }
                 // Lexer State: MULTILINE => all chars up to last close marker, or end
@@ -402,9 +466,11 @@ class Lexer {
                         }
                     }
                     token.val = src.substring(sI, pI);
+                    token.src = token.val;
                     token.len = token.val.length;
                     sI = pI;
                     state = opts.LS_TOP;
+                    log && log({ ...token });
                     return token;
                 }
             }
@@ -412,6 +478,7 @@ class Lexer {
             token.pin = opts.ZZ;
             token.loc = srclen;
             token.col = cI;
+            log && log({ ...token });
             return token;
         };
         lex.src = src;
@@ -419,7 +486,7 @@ class Lexer {
     }
 }
 exports.Lexer = Lexer;
-let S = (s) => s.description;
+// let S = (s: symbol) => s.description
 var RuleState;
 (function (RuleState) {
     RuleState[RuleState["open"] = 0] = "open";
@@ -428,6 +495,7 @@ var RuleState;
 class Rule {
     constructor(spec, ctx, opts, node) {
         this.id = ctx.rI++;
+        this.name = spec.name;
         this.spec = spec;
         this.node = node;
         this.ctx = ctx;
@@ -448,7 +516,7 @@ class Rule {
         return rule;
     }
     toString() {
-        return I(this.spec);
+        return JSON.stringify(this.spec);
     }
 }
 let norule = { id: 0, spec: { name: 'norule' } };
@@ -465,9 +533,9 @@ class RuleSpec {
             let out = this.def.before_open.call(this, rule);
             rule.node = out.node || rule.node;
         }
-        let act = this.match_alts(this.def.open, ctx);
+        let act = this.parse_alts(this.def.open, ctx);
         if (act.e) {
-            throw new Error('unexpected token: ' + I(act.e));
+            throw new Error('unexpected token: ' + JSON.stringify(act.e));
         }
         rule.open = act.m;
         if (act.p) {
@@ -491,9 +559,10 @@ class RuleSpec {
             // console.log('before_close', rule.child.spec.name, rule.child.node)
             this.def.before_close.call(this, rule);
         }
-        let act = this.match_alts(this.def.close, ctx);
+        let act = 0 < this.def.close.length ? this.parse_alts(this.def.close, ctx) : {};
         if (act.e) {
-            throw new Error('unexpected token: ' + act.e.pin.description + act.e.val);
+            //throw new Error('unexpected token: ' + act.e.pin.description + act.e.val)
+            throw new Error('unexpected token: ' + act.e.pin[0] + ' ' + act.e.val);
         }
         if (act.r) {
             next = new Rule(this.rm[act.r], ctx, rule.opts, rule.node);
@@ -510,7 +579,7 @@ class RuleSpec {
         return next;
     }
     // first match wins
-    match_alts(alts, ctx) {
+    parse_alts(alts, ctx) {
         let out = undefined;
         // End token reached.
         if (ctx.opts.ZZ === ctx.t0.pin) {
@@ -544,12 +613,11 @@ class RuleSpec {
             out = out || { e: ctx.t0, m: [] };
         }
         out = out || { m: [] };
+        ctx.log && ctx.log('parse', 'alts', out);
         if (out.m) {
             let mI = 0;
             let rewind = out.m.length - (out.b || 0);
-            //console.log('rewind', out.m.length, out.b, rewind)
             while (mI++ < rewind) {
-                //while (mI++ < out.m.length) {
                 ctx.next();
             }
         }
@@ -568,9 +636,10 @@ class Parser {
                     // TODO o.NR, o.VL - use src string not val! 
                     // beware prefixes
                     { s: [o.TX, o.CL], p: 'map', b: 2 },
-                    { s: [o.ST, o.CL], p: 'map', b: 2 },
+                    //{ s: [o.ST, o.CL], p: 'map', b: 2 },
+                    { s: [o.NR, o.CL], p: 'map', b: 2 },
                     { s: [o.TX, o.CA], p: 'list', b: 2 },
-                    { s: [o.ST, o.CA], p: 'list', b: 2 },
+                    //{ s: [o.ST, o.CA], p: 'list', b: 2 },
                     { s: [o.TX] },
                     { s: [o.NR] },
                     { s: [o.ST] },
@@ -605,7 +674,6 @@ class Parser {
                 open: [
                     { s: [o.ST, o.CL], p: 'value' },
                     { s: [o.TX, o.CL], p: 'value' },
-                    // TODO: use literal string value of token
                     { s: [o.NR, o.CL], p: 'value' },
                     { s: [o.VL, o.CL], p: 'value' },
                 ],
@@ -614,7 +682,7 @@ class Parser {
                     { s: [o.CB] },
                 ],
                 before_close: (rule) => {
-                    rule.node[rule.open[0].val] = rule.child.node;
+                    rule.node[rule.open[0].src] = rule.child.node;
                 },
             },
             // push onto node
@@ -630,6 +698,13 @@ class Parser {
                 close: [
                     { s: [o.CA], r: 'elem' },
                     { s: [o.CS] },
+                    // Who needs commas anyway?
+                    { s: [o.OB], p: 'map', b: 1 },
+                    { s: [o.OS], p: 'list', b: 1 },
+                    { s: [o.TX], r: 'elem', b: 1 },
+                    { s: [o.NR], r: 'elem', b: 1 },
+                    { s: [o.ST], r: 'elem', b: 1 },
+                    { s: [o.VL], r: 'elem', b: 1 },
                 ],
                 after_open: (rule, next) => {
                     if (rule === next && rule.open[0]) {
@@ -650,7 +725,7 @@ class Parser {
             return rs;
         }, {});
     }
-    start(lex) {
+    start(lexer, src, parse_config) {
         let opts = this.options;
         let ctx = {
             rI: 1,
@@ -658,11 +733,12 @@ class Parser {
             node: undefined,
             t0: opts.end,
             t1: opts.end,
+            tI: -2,
             next,
-            //match,
-            //ignore: ignorable,
-            rs: []
+            rs: [],
+            log: (parse_config && parse_config.log) || undefined
         };
+        let lex = lexer.start(src, ctx);
         let rule = new Rule(this.rulespecs.value, ctx, opts);
         let root = rule;
         // Maximum rule iterations. Allow for rule open and close,
@@ -674,6 +750,7 @@ class Parser {
             let t1;
             do {
                 t1 = lex();
+                ctx.tI++;
             } while (opts.tokens.ignore.includes(t1.pin));
             ctx.t1 = { ...t1 };
             return ctx.t0;
@@ -684,8 +761,8 @@ class Parser {
         // Process rules over tokens
         let rI = 0;
         while (norule !== rule && rI < maxr) {
-            // TODO: instrument this
-            // console.log('~R:', ctx.rs.length, rule.spec.name + '/' + rule.id + '/' + rule.state, ctx.t0.pin, ctx.t1.pin, ctx.t0.val + '::' + ctx.t1.val, rule.node)
+            ctx.log &&
+                ctx.log('rule', RuleState[rule.state], rule.name, ctx.tI, ctx.t0.pin + ' ' + ctx.t1.pin, rule, ctx);
             rule = rule.process(ctx);
             rI++;
         }
@@ -734,9 +811,14 @@ let util = {
         // Lookup table for single character tokens, indexed by char code.
         opts.SINGLES = keys
             .filter(k => 2 === k.length &&
-            'symbol' === typeof (opts[k]) &&
-            4 === opts[k].description.length)
-            .reduce((a, k) => (a[opts[k].description.charCodeAt(3)] = opts[k], a), []);
+            Array.isArray(opts[k]) &&
+            '#' === opts[k][0][0] &&
+            4 === opts[k][0].length)
+            //'symbol' === typeof (opts[k]) &&
+            //4 === opts[k].description.length)
+            .reduce((a, k) => 
+        //(a[opts[k].description.charCodeAt(3)] = opts[k], a), [])
+        (a[opts[k][0].charCodeAt(3)] = opts[k], a), []);
         // lookup table for escape chars, indexed by denotating char (e.g. n for \n).
         opts.escapes = opts.escapes || {};
         opts.ESCAPES = Object.keys(opts.escapes)
@@ -764,6 +846,7 @@ let util = {
         opts.SC_COMMENT_CHARS =
             opts.SC_COMMENT.map((cc) => String.fromCharCode(cc)).join('');
         opts.SINGLE_CHARS =
+            //opts.SINGLES.map((s: symbol, cc: number) => String.fromCharCode(cc)).join('')
             opts.SINGLES.map((s, cc) => String.fromCharCode(cc)).join('');
         opts.VALUE_ENDERS =
             opts.sc_space + opts.sc_line + opts.SINGLE_CHARS + opts.SC_COMMENT_CHARS;
@@ -787,9 +870,9 @@ function make(first, parent) {
     }
     let opts = util.deep(util.deep({}, parent ? parent.options : STANDARD_OPTIONS), param_opts);
     opts = util.norm_options(opts);
-    let self = function Jsonic(src) {
+    let self = function Jsonic(src, parse_config) {
         if ('string' === typeof (src)) {
-            return self._parser.start(self._lexer.start(src));
+            return self._parser.start(self._lexer, src, parse_config);
         }
         return src;
     };
@@ -823,7 +906,7 @@ class PairRule extends Rule {
     this.key = key
   }
 
-  process(ctx: Context): Rule | undefined {
+  process(ctx: Context): Rule | U {
     let opts = this.opts
     ctx.ignore(opts.WSP)
 
@@ -871,23 +954,23 @@ class PairRule extends Rule {
 
 
 class ListRule extends Rule {
-  firstpin: symbol | undefined
+  firstpin: symbol | U
 
   constructor(opts: Opts, firstval?: any, firstpin?: symbol) {
-    super(opts, undefined === firstval ? [] : [firstval])
+    super(opts, U === firstval ? [] : [firstval])
     this.firstpin = firstpin
   }
 
-  process(ctx: Context): Rule | undefined {
+  process(ctx: Context): Rule | U {
     let opts = this.opts
 
     if (this.val) {
       this.node.push(this.val)
-      this.val = undefined
+      this.val = U
     }
 
     let pk: symbol = this.firstpin || opts.UK
-    this.firstpin = undefined
+    this.firstpin = U
 
     while (true) {
       ctx.ignore(opts.WSP)
@@ -960,14 +1043,14 @@ class ValueRule extends Rule {
     this.parent = parent
   }
 
-  process(ctx: Context): Rule | undefined {
+  process(ctx: Context): Rule | U {
     let opts = this.opts
     ctx.ignore(opts.WSP)
 
     // Child value has resolved
     if (this.val) {
       this.node[this.key] = this.val
-      this.val = undefined
+      this.val = U
       return ctx.rs.pop()
     }
 
