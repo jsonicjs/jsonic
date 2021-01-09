@@ -12,10 +12,13 @@ var it = lab.it
 var expect = Code.expect
 
 var { Jsonic, Lexer } = require('..')
+var pv_perf = require('./pv-perf')
 
 let j = Jsonic
 let lexer = new Lexer()
-let prc = Jsonic.process
+//let prc = Jsonic.process
+
+
 
 function lexall(src) {
   let lex = lexer.start(src)
@@ -1280,7 +1283,9 @@ describe('jsonic', function () {
 */
   
 
-  it('pv-performance', function(){
+  it('pv-performance', {timeout:3333}, function(){
+    pv_perf()
+    /*
     var start = Date.now(), count = 0
     var input =
           "int:100,dec:9.9,t:true,f:false,qs:"+
@@ -1292,6 +1297,7 @@ describe('jsonic', function () {
     }
 
     console.log( 'parse/sec: '+count )
+    */
   })
 })
 
