@@ -56,8 +56,6 @@ const STANDARD_OPTIONS = {
     },
     digital: '-1023456789._xeEaAbBcCdDfF+',
     tokens: {
-        //value: (NONE as Symbol[]),
-        //ignore: (NONE as Symbol[]),
         value: NONE,
         ignore: NONE,
     },
@@ -142,7 +140,7 @@ class Lexer {
             token.val = val;
             token.src = src;
             token.use = use;
-            log && log({ ...token });
+            log && log(token.pin[0], token.src, { ...token });
             return token;
         };
     }
@@ -199,7 +197,7 @@ class Lexer {
                         token.val = src.substring(sI, pI);
                         token.src = token.val;
                         sI = pI;
-                        log && log({ ...token });
+                        log && log(token.pin[0], token.src, { ...token });
                         return token;
                     }
                     else if (opts.SC_LINE.includes(c0c)) {
@@ -217,7 +215,7 @@ class Lexer {
                         token.val = src.substring(sI, pI);
                         token.src = token.val;
                         sI = pI;
-                        log && log({ ...token });
+                        log && log(token.pin[0], token.src, { ...token });
                         return token;
                     }
                     else if (null != opts.SINGLES[c0c]) {
@@ -227,7 +225,7 @@ class Lexer {
                         token.len = 1;
                         token.src = c0;
                         sI++;
-                        log && log({ ...token });
+                        log && log(token.pin[0], token.src, { ...token });
                         return token;
                     }
                     else if (opts.SC_NUMBER.includes(c0c)) {
@@ -261,7 +259,7 @@ class Lexer {
                             token.src = src.substring(sI, pI); // src="1e6" -> val=1000000
                             cI += token.len;
                             sI = pI;
-                            log && log({ ...token });
+                            log && log(token.pin[0], token.src, { ...token });
                             return token;
                         }
                         // NOTE: else drop through to default, as this must be literal text
@@ -331,7 +329,7 @@ class Lexer {
                         token.src = src.substring(sI, pI);
                         token.len = pI - sI;
                         sI = pI;
-                        log && log({ ...token });
+                        log && log(token.pin[0], token.src, { ...token });
                         return token;
                     }
                     else if (opts.SC_COMMENT.includes(c0c)) {
@@ -391,7 +389,7 @@ class Lexer {
                         token.src = txt;
                         token.len = pI - sI;
                         sI = pI;
-                        log && log({ ...token });
+                        log && log(token.pin[0], token.src, { ...token });
                         return token;
                     }
                     // Only thing left is literal text
@@ -422,7 +420,7 @@ class Lexer {
                     else {
                         sI = pI;
                     }
-                    log && log({ ...token });
+                    log && log(token.pin[0], token.src, { ...token });
                     return token;
                 }
                 // Lexer State: CONSUME => all chars up to first ender
@@ -435,7 +433,7 @@ class Lexer {
                     token.len = token.val.length;
                     sI = pI;
                     state = opts.LS_TOP;
-                    log && log({ ...token });
+                    log && log(token.pin[0], token.src, { ...token });
                     return token;
                 }
                 // Lexer State: MULTILINE => all chars up to last close marker, or end
@@ -470,7 +468,7 @@ class Lexer {
                     token.len = token.val.length;
                     sI = pI;
                     state = opts.LS_TOP;
-                    log && log({ ...token });
+                    log && log(token.pin[0], token.src, { ...token });
                     return token;
                 }
             }
@@ -478,7 +476,7 @@ class Lexer {
             token.pin = opts.ZZ;
             token.loc = srclen;
             token.col = cI;
-            log && log({ ...token });
+            log && log(token.pin[0], token.src, { ...token });
             return token;
         };
         lex.src = src;
@@ -486,7 +484,6 @@ class Lexer {
     }
 }
 exports.Lexer = Lexer;
-// let S = (s: symbol) => s.description
 var RuleState;
 (function (RuleState) {
     RuleState[RuleState["open"] = 0] = "open";
@@ -564,6 +561,13 @@ class RuleSpec {
             //throw new Error('unexpected token: ' + act.e.pin.description + act.e.val)
             throw new Error('unexpected token: ' + act.e.pin[0] + ' ' + act.e.val);
         }
+        if (act.h) {
+            next = act.h(this, rule, ctx) || next;
+        }
+        if (act.p) {
+            ctx.rs.push(rule);
+            next = rule.child = new Rule(this.rm[act.p], ctx, rule.opts, rule.node);
+        }
         if (act.r) {
             next = new Rule(this.rm[act.r], ctx, rule.opts, rule.node);
             why = 'r';
@@ -587,33 +591,36 @@ class RuleSpec {
         }
         else if (0 < alts.length) {
             for (let alt of alts) {
-                // console.log('MA', ctx.t0.pin, alt.s)
-                // No tokens to match.
-                if (null == alt.s || 0 === alt.s.length) {
-                    out = { ...alt, m: [] };
-                    break;
-                }
-                // Match 1 or 2 tokens in sequence.
-                else if (alt.s[0] === ctx.t0.pin) {
-                    if (1 === alt.s.length) {
+                // Optional custom condition
+                let cond = alt.c ? alt.c(alt, ctx) : true;
+                if (cond) {
+                    // No tokens to match.
+                    if (null == alt.s || 0 === alt.s.length) {
+                        out = { ...alt, m: [] };
+                        break;
+                    }
+                    // Match 1 or 2 tokens in sequence.
+                    else if (alt.s[0] === ctx.t0.pin) {
+                        if (1 === alt.s.length) {
+                            out = { ...alt, m: [ctx.t0] };
+                            break;
+                        }
+                        else if (alt.s[1] === ctx.t1.pin) {
+                            out = { ...alt, m: [ctx.t0, ctx.t1] };
+                            break;
+                        }
+                    }
+                    // Match any token.
+                    else if (ctx.opts.AA === alt.s[0]) {
                         out = { ...alt, m: [ctx.t0] };
                         break;
                     }
-                    else if (alt.s[1] === ctx.t1.pin) {
-                        out = { ...alt, m: [ctx.t0, ctx.t1] };
-                        break;
-                    }
-                }
-                // Match any token.
-                else if (ctx.opts.AA === alt.s[0]) {
-                    out = { ...alt, m: [ctx.t0] };
-                    break;
                 }
             }
             out = out || { e: ctx.t0, m: [] };
         }
         out = out || { m: [] };
-        ctx.log && ctx.log('parse', 'alts', out);
+        ctx.log && ctx.log('parse', 'alts', out.m.map((t) => t.pin).join(' '), out);
         if (out.m) {
             let mI = 0;
             let rewind = out.m.length - (out.b || 0);
@@ -628,24 +635,32 @@ class Parser {
     constructor(options) {
         this.options = STANDARD_OPTIONS;
         let o = this.options = util.deep(this.options, options);
+        let top = (alt, ctx) => 0 === ctx.rs.length;
         this.rules = {
             value: {
                 open: [
                     { s: [o.OB], p: 'map' },
                     { s: [o.OS], p: 'list' },
-                    // TODO o.NR, o.VL - use src string not val! 
-                    // beware prefixes
+                    // Implicit map - operates at any depth
                     { s: [o.TX, o.CL], p: 'map', b: 2 },
-                    //{ s: [o.ST, o.CL], p: 'map', b: 2 },
+                    { s: [o.ST, o.CL], p: 'map', b: 2 },
                     { s: [o.NR, o.CL], p: 'map', b: 2 },
-                    { s: [o.TX, o.CA], p: 'list', b: 2 },
-                    //{ s: [o.ST, o.CA], p: 'list', b: 2 },
+                    { s: [o.VL, o.CL], p: 'map', b: 2 },
                     { s: [o.TX] },
                     { s: [o.NR] },
                     { s: [o.ST] },
                     { s: [o.VL] },
                 ],
-                close: [],
+                close: [
+                    // Implicit list works only at top level
+                    {
+                        s: [o.CA], c: top, r: 'elem',
+                        h: (spec, rule, ctx) => {
+                            rule.node = [rule.node];
+                        }
+                    },
+                    { s: [o.AA], b: 1 },
+                ],
                 before_close: (rule) => {
                     var _a, _b;
                     rule.node = (_a = rule.child.node) !== null && _a !== void 0 ? _a : (_b = rule.open[0]) === null || _b === void 0 ? void 0 : _b.val;
@@ -656,6 +671,7 @@ class Parser {
                     return { node: {} };
                 },
                 open: [
+                    { s: [o.CB] },
                     { p: 'pair' } // no tokens, pass node
                 ],
                 close: []
@@ -665,6 +681,7 @@ class Parser {
                     return { node: [] };
                 },
                 open: [
+                    { s: [o.CS] },
                     { p: 'elem' } // no tokens, pass node
                 ],
                 close: []
@@ -682,7 +699,11 @@ class Parser {
                     { s: [o.CB] },
                 ],
                 before_close: (rule) => {
-                    rule.node[rule.open[0].src] = rule.child.node;
+                    let token = rule.open[0];
+                    if (token) {
+                        let key = o.ST === token.pin ? token.val : token.src;
+                        rule.node[key] = rule.child.node;
+                    }
                 },
             },
             // push onto node
@@ -694,10 +715,16 @@ class Parser {
                     { s: [o.NR] },
                     { s: [o.ST] },
                     { s: [o.VL] },
+                    // Insert null for initial comma
+                    { s: [o.CA] },
                 ],
                 close: [
-                    { s: [o.CA], r: 'elem' },
                     { s: [o.CS] },
+                    // Ignore trailing comma
+                    { s: [o.CA, o.CS] },
+                    // Insert nulls for repeated commas
+                    { s: [o.CA, o.CA], b: 2, r: 'elem' },
+                    { s: [o.CA], r: 'elem' },
                     // Who needs commas anyway?
                     { s: [o.OB], p: 'map', b: 1 },
                     { s: [o.OS], p: 'list', b: 1 },
@@ -708,7 +735,9 @@ class Parser {
                 ],
                 after_open: (rule, next) => {
                     if (rule === next && rule.open[0]) {
-                        rule.node.push(rule.open[0].val);
+                        let val = rule.open[0].val;
+                        // Insert `null` if no value preceeded the comma (eg. [,1] -> [null, 1])
+                        rule.node.push(null != val ? val : null);
                     }
                 },
                 before_close: (rule) => {
@@ -854,6 +883,7 @@ let util = {
         opts.HOOVER_ENDERS = opts.sc_line + opts.SINGLE_CHARS + opts.SC_COMMENT_CHARS;
         opts.VALUES = opts.values || {};
         // Token sets
+        opts.tokens = opts.tokens || {};
         opts.tokens.value = NONE !== opts.tokens.value ? opts.tokens.value :
             [opts.TX, opts.NR, opts.ST, opts.VL];
         opts.tokens.ignore = NONE !== opts.tokens.ignore ? opts.tokens.ignore :

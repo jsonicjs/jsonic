@@ -76,8 +76,6 @@ const STANDARD_OPTIONS = {
   digital: '-1023456789._xeEaAbBcCdDfF+',
 
   tokens: {
-    //value: (NONE as Symbol[]),
-    //ignore: (NONE as Symbol[]),
     value: (NONE as any[]),
     ignore: (NONE as any[]),
   },
@@ -256,7 +254,7 @@ class Lexer {
       token.src = src
       token.use = use
 
-      log && log({ ...token })
+      log && log(token.pin[0], token.src, { ...token })
       return token
     }
   }
@@ -334,7 +332,7 @@ class Lexer {
 
             sI = pI
 
-            log && log({ ...token })
+            log && log(token.pin[0], token.src, { ...token })
             return token
           }
 
@@ -359,7 +357,7 @@ class Lexer {
 
             sI = pI
 
-            log && log({ ...token })
+            log && log(token.pin[0], token.src, { ...token })
             return token
           }
 
@@ -372,7 +370,7 @@ class Lexer {
             token.src = c0
             sI++
 
-            log && log({ ...token })
+            log && log(token.pin[0], token.src, { ...token })
             return token
           }
 
@@ -414,7 +412,7 @@ class Lexer {
               cI += token.len
               sI = pI
 
-              log && log({ ...token })
+              log && log(token.pin[0], token.src, { ...token })
               return token
             }
 
@@ -509,7 +507,7 @@ class Lexer {
             token.len = pI - sI
             sI = pI
 
-            log && log({ ...token })
+            log && log(token.pin[0], token.src, { ...token })
             return token
           }
 
@@ -585,7 +583,7 @@ class Lexer {
             token.len = pI - sI
             sI = pI
 
-            log && log({ ...token })
+            log && log(token.pin[0], token.src, { ...token })
             return token
           }
 
@@ -625,7 +623,7 @@ class Lexer {
             sI = pI
           }
 
-          log && log({ ...token })
+          log && log(token.pin[0], token.src, { ...token })
           return token
         }
 
@@ -643,7 +641,7 @@ class Lexer {
 
           state = opts.LS_TOP
 
-          log && log({ ...token })
+          log && log(token.pin[0], token.src, { ...token })
           return token
         }
 
@@ -688,7 +686,7 @@ class Lexer {
 
           state = opts.LS_TOP
 
-          log && log({ ...token })
+          log && log(token.pin[0], token.src, { ...token })
           return token
         }
       }
@@ -699,7 +697,7 @@ class Lexer {
       token.loc = srclen
       token.col = cI
 
-      log && log({ ...token })
+      log && log(token.pin[0], token.src, { ...token })
       return token
     } as Lex)
 
@@ -708,24 +706,6 @@ class Lexer {
     return lex
   }
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-// let S = (s: symbol) => s.description
-
-
-
 
 
 enum RuleState {
@@ -855,6 +835,14 @@ class RuleSpec {
       throw new Error('unexpected token: ' + act.e.pin[0] + ' ' + act.e.val)
     }
 
+    if (act.h) {
+      next = act.h(this, rule, ctx) || next
+    }
+
+    if (act.p) {
+      ctx.rs.push(rule)
+      next = rule.child = new Rule(this.rm[act.p], ctx, rule.opts, rule.node)
+    }
     if (act.r) {
       next = new Rule(this.rm[act.r], ctx, rule.opts, rule.node)
       why = 'r'
@@ -885,30 +873,34 @@ class RuleSpec {
 
     else if (0 < alts.length) {
       for (let alt of alts) {
-        // console.log('MA', ctx.t0.pin, alt.s)
 
-        // No tokens to match.
-        if (null == alt.s || 0 === alt.s.length) {
-          out = { ...alt, m: [] }
-          break
-        }
+        // Optional custom condition
+        let cond = alt.c ? alt.c(alt, ctx) : true
+        if (cond) {
 
-        // Match 1 or 2 tokens in sequence.
-        else if (alt.s[0] === ctx.t0.pin) {
-          if (1 === alt.s.length) {
+          // No tokens to match.
+          if (null == alt.s || 0 === alt.s.length) {
+            out = { ...alt, m: [] }
+            break
+          }
+
+          // Match 1 or 2 tokens in sequence.
+          else if (alt.s[0] === ctx.t0.pin) {
+            if (1 === alt.s.length) {
+              out = { ...alt, m: [ctx.t0] }
+              break
+            }
+            else if (alt.s[1] === ctx.t1.pin) {
+              out = { ...alt, m: [ctx.t0, ctx.t1] }
+              break
+            }
+          }
+
+          // Match any token.
+          else if (ctx.opts.AA === alt.s[0]) {
             out = { ...alt, m: [ctx.t0] }
             break
           }
-          else if (alt.s[1] === ctx.t1.pin) {
-            out = { ...alt, m: [ctx.t0, ctx.t1] }
-            break
-          }
-        }
-
-        // Match any token.
-        else if (ctx.opts.AA === alt.s[0]) {
-          out = { ...alt, m: [ctx.t0] }
-          break
         }
       }
 
@@ -916,7 +908,7 @@ class RuleSpec {
     }
 
     out = out || { m: [] }
-    ctx.log && ctx.log('parse', 'alts', out)
+    ctx.log && ctx.log('parse', 'alts', out.m.map((t: Token) => t.pin).join(' '), out)
 
     if (out.m) {
       let mI = 0
@@ -940,29 +932,35 @@ class Parser {
   constructor(options?: Opts) {
     let o = this.options = util.deep(this.options, options)
 
+    let top = (alt: any, ctx: Context) => 0 === ctx.rs.length
+
     this.rules = {
       value: {
         open: [ // alternatives
           { s: [o.OB], p: 'map' },  // p:push onto rule stack
           { s: [o.OS], p: 'list' },
 
-          // TODO o.NR, o.VL - use src string not val! 
-          // beware prefixes
-
+          // Implicit map - operates at any depth
           { s: [o.TX, o.CL], p: 'map', b: 2 },
-          //{ s: [o.ST, o.CL], p: 'map', b: 2 },
+          { s: [o.ST, o.CL], p: 'map', b: 2 },
           { s: [o.NR, o.CL], p: 'map', b: 2 },
-
-          { s: [o.TX, o.CA], p: 'list', b: 2 },
-          //{ s: [o.ST, o.CA], p: 'list', b: 2 },
-
+          { s: [o.VL, o.CL], p: 'map', b: 2 },
 
           { s: [o.TX] },
           { s: [o.NR] },
           { s: [o.ST] },
           { s: [o.VL] },
         ],
-        close: [],
+        close: [
+          // Implicit list works only at top level
+          {
+            s: [o.CA], c: top, r: 'elem',
+            h: (spec: RuleSpec, rule: Rule, ctx: Context) => {
+              rule.node = [rule.node]
+            }
+          },
+          { s: [o.AA], b: 1 },
+        ],
         before_close: (rule: Rule) => {
           rule.node = rule.child.node ?? rule.open[0]?.val
         },
@@ -974,6 +972,7 @@ class Parser {
           return { node: {} }
         },
         open: [
+          { s: [o.CB] }, // empty
           { p: 'pair' } // no tokens, pass node
         ],
         close: []
@@ -984,6 +983,7 @@ class Parser {
           return { node: [] }
         },
         open: [
+          { s: [o.CS] }, // empty
           { p: 'elem' } // no tokens, pass node
         ],
         close: []
@@ -1004,7 +1004,11 @@ class Parser {
           // TODO: implicit close?
         ],
         before_close: (rule: Rule) => {
-          rule.node[rule.open[0].src] = rule.child.node
+          let token = rule.open[0]
+          if (token) {
+            let key = o.ST === token.pin ? token.val : token.src
+            rule.node[key] = rule.child.node
+          }
         },
       },
 
@@ -1018,10 +1022,18 @@ class Parser {
           { s: [o.NR] },
           { s: [o.ST] },
           { s: [o.VL] },
+          // Insert null for initial comma
+          { s: [o.CA] },
         ],
         close: [
-          { s: [o.CA], r: 'elem' },
           { s: [o.CS] },
+
+          // Ignore trailing comma
+          { s: [o.CA, o.CS] },
+
+          // Insert nulls for repeated commas
+          { s: [o.CA, o.CA], b: 2, r: 'elem' },
+          { s: [o.CA], r: 'elem' },
 
           // Who needs commas anyway?
           { s: [o.OB], p: 'map', b: 1 },
@@ -1033,7 +1045,9 @@ class Parser {
         ],
         after_open: (rule: Rule, next: Rule) => {
           if (rule === next && rule.open[0]) {
-            rule.node.push(rule.open[0].val)
+            let val = rule.open[0].val
+            // Insert `null` if no value preceeded the comma (eg. [,1] -> [null, 1])
+            rule.node.push(null != val ? val : null)
           }
         },
         before_close: (rule: Rule) => {
@@ -1232,6 +1246,7 @@ let util = {
 
 
     // Token sets
+    opts.tokens = opts.tokens || {}
     opts.tokens.value = NONE !== opts.tokens.value ? opts.tokens.value :
       [opts.TX, opts.NR, opts.ST, opts.VL]
     opts.tokens.ignore = NONE !== opts.tokens.ignore ? opts.tokens.ignore :

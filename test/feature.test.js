@@ -15,7 +15,10 @@ var { Jsonic } = require('..')
 
 let j = Jsonic
 let lexer = Jsonic.lexer
-let prc = Jsonic.process
+
+function testlog(...rest) {
+  console.log(rest.filter(x=>'object'!=typeof(x)))
+}
 
 describe('feature', function () {
   it('test-util-match', () => {
@@ -131,6 +134,8 @@ describe('feature', function () {
       }
       expect(match(b,p),s).undefined()
     }
+
+    // TODO: add missing entry items
     
     tlog('1',1,[
       ['lex',{pin:t.NR,val:1}],
@@ -226,12 +231,51 @@ describe('feature', function () {
     expect(j('a b')).equals('a b')
     expect(j('a: b c')).equals({a:'b c'})
     expect(j('{a: {b: c d}}')).equals({a:{b:'c d'}})
+    expect(j(' x , y z ')).equal(['x', 'y z'])
     expect(j('a: x , b: y z ')).equal({a:'x', b:'y z'})
   })
   
 
   it('optional-comma', () => {
+    expect(j('[1,]')).equals([1])
+    expect(j('[,1]')).equals([null,1])
+    expect(j('[1,,]')).equals([1,null])
+    expect(j('[1,,,]')).equals([1,null,null])
+    expect(j('[1,,,,]')).equals([1,null,null,null])
     expect(j('[1\n2]')).equals([1,2])
+    expect(j('{a:1},')).equals([{a:1}])
+
+    // NOTE: these are not implicit lists!
+    expect(j('a:1,')).equals({a:1}) 
+    expect(j('a:b:1,')).equals({a:{b:1}})
+  })
+
+
+  it('implicit-list', () => {
+    expect(j('a,')).equals(['a'])
+    expect(j('"a",')).equals(['a'])
+    expect(j('true,')).equals([true])
+    expect(j('1,')).equals([1])
+    expect(j('a,1')).equals(['a',1])
+    expect(j('"a",1')).equals(['a',1])
+    expect(j('true,1')).equals([true,1])
+    expect(j('1,1')).equals([1,1])
+
+    expect(j('a,b')).equals(['a','b'])
+    expect(j('{a:1},')).equals([{a:1}])
+    expect(j('[1],')).equals([[1]])
+  })
+
+
+  it('implicit-map', () => {
+    expect(j('a:1')).equals({a:1})
+    expect(j('a:1,b:2')).equals({a:1,b:2})
+    expect(j('a:b:1')).equals({a:{b:1}})
+    expect(j('a:b:c:1')).equals({a:{b:{c:1}}})
+    expect(j('a:b:1,d:2')).equals({a:{b:1,d:2}})
+    expect(j('a:b:c:1,d:2')).equals({a:{b:{c:1,d:2}}})
+    expect(j('{a:b:1}')).equals({a:{b:1}})
+    expect(j('a:{b:c:1}')).equals({a:{b:{c:1}}})
   })
 
 

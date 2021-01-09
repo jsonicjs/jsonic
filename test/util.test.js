@@ -106,8 +106,8 @@ describe('util', () => {
 
     
     let singles = []
-    singles[97] = Symbol('#AAa')
-    singles[98] = Symbol('#BBb')
+    singles[97] = ['#AAa']
+    singles[98] = ['#BBb']
     expect(norm_options({
       AA: singles[97],
       BB: singles[98],
