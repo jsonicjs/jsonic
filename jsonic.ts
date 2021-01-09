@@ -25,6 +25,7 @@ const NONE: any[] = []
 const STANDARD_OPTIONS = {
 
   // Token start characters.
+  // NOTE: All sc_* string properties generate SC_* char code arrays.
   sc_space: ' \t',
   sc_line: '\n\r',
   sc_number: '-0123456789',
@@ -83,39 +84,13 @@ const STANDARD_OPTIONS = {
 
   bad_unicode_char: String.fromCharCode('0x0000' as any),
 
-  /*
-  // Single character tokens.
-  // NOTE: character is final char of Symbol name.
-  OB: Symbol('#OB{'), // OPEN BRACE
-  CB: Symbol('#CB}'), // CLOSE BRACE
-  OS: Symbol('#OS['), // OPEN SQUARE
-  CS: Symbol('#CS]'), // CLOSE SQUARE
-  CL: Symbol('#CL:'), // COLON
-  CA: Symbol('#CA,'), // COMMA
-
-  // Multi character tokens.
-  BD: Symbol('#BD'), // BAD
-  ZZ: Symbol('#ZZ'), // END
-  UK: Symbol('#UK'), // UNKNOWN
-  CM: Symbol('#CM'), // COMMENT
-  AA: Symbol('#AA'), // ANY
-
-  SP: Symbol('#SP'), // SPACE
-  LN: Symbol('#LN'), // LINE
-
-  NR: Symbol('#NR'), // NUMBER
-  ST: Symbol('#ST'), // STRING
-  TX: Symbol('#TX'), // TEXT
-
-  VL: Symbol('#VL'), // VALUE
+  // Default console for logging
+  console,
 
 
-  // Lexer states
-  LS_TOP: Symbol('@TOP'), // TOP
-  LS_CONSUME: Symbol('@CONSUME'), // CONSUME
-  LS_MULTILINE: Symbol('@MULTILINE'), // MULTILINE
-  */
-
+  // Arrays ([String]) are used for tokens to create unique internal
+  // tokens protected from plugin tokens. Symbols are not used as they
+  // create edge cases for string conversion.
 
   // Single character tokens.
   // NOTE: character is final char of Symbol name.
@@ -147,8 +122,6 @@ const STANDARD_OPTIONS = {
   LS_TOP: ['@TOP'], // TOP
   LS_CONSUME: ['@CONSUME'], // CONSUME
   LS_MULTILINE: ['@MULTILINE'], // MULTILINE
-
-
 }
 
 
@@ -263,10 +236,6 @@ class Lexer {
   // Create the lexing function.
   start(
     src: string,
-
-    // Workaround for unexplained TS2722
-    //ctx?: (Context & { log: any })
-
     ctx?: Context
   ): Lex {
     const opts = this.options
@@ -291,7 +260,7 @@ class Lexer {
 
     // TS2722 impedes this definition unless Context is
     // refined to (Context & { log: any })
-    let log: ((...rest: any) => undefined) | undefined =
+    let lexlog: ((...rest: any) => undefined) | undefined =
       (null != ctx && null != ctx.log) ?
         ((...rest: any) => (ctx as (Context & { log: any })).log('lex', ...rest)) :
         undefined
@@ -332,7 +301,7 @@ class Lexer {
 
             sI = pI
 
-            log && log(token.pin[0], token.src, { ...token })
+            lexlog && lexlog(token.pin[0], token.src, { ...token })
             return token
           }
 
@@ -357,7 +326,7 @@ class Lexer {
 
             sI = pI
 
-            log && log(token.pin[0], token.src, { ...token })
+            lexlog && lexlog(token.pin[0], token.src, { ...token })
             return token
           }
 
@@ -370,7 +339,7 @@ class Lexer {
             token.src = c0
             sI++
 
-            log && log(token.pin[0], token.src, { ...token })
+            lexlog && lexlog(token.pin[0], token.src, { ...token })
             return token
           }
 
@@ -412,7 +381,7 @@ class Lexer {
               cI += token.len
               sI = pI
 
-              log && log(token.pin[0], token.src, { ...token })
+              lexlog && lexlog(token.pin[0], token.src, { ...token })
               return token
             }
 
@@ -457,7 +426,7 @@ class Lexer {
 
                   if (opts.bad_unicode_char === us) {
                     return opts.bad(
-                      log,
+                      lexlog,
                       'invalid-unicode',
                       token, sI, pI, rI, cI, src.substring(pI - 2, pI + 4))
                   }
@@ -476,7 +445,7 @@ class Lexer {
                 }
                 else {
                   return opts.bad(
-                    log, 'unprintable', token, sI, pI, rI, cI, src.charAt(pI))
+                    lexlog, 'unprintable', token, sI, pI, rI, cI, src.charAt(pI))
                 }
               }
               else {
@@ -498,7 +467,7 @@ class Lexer {
             if (qc !== cc) {
               cI = sI
               return opts.bad(
-                log, 'unterminated', token, sI, pI - 1, rI, cI, s.join(''))
+                lexlog, 'unterminated', token, sI, pI - 1, rI, cI, s.join(''))
             }
 
             token.val = s.join('')
@@ -507,7 +476,7 @@ class Lexer {
             token.len = pI - sI
             sI = pI
 
-            log && log(token.pin[0], token.src, { ...token })
+            lexlog && lexlog(token.pin[0], token.src, { ...token })
             return token
           }
 
@@ -583,7 +552,7 @@ class Lexer {
             token.len = pI - sI
             sI = pI
 
-            log && log(token.pin[0], token.src, { ...token })
+            lexlog && lexlog(token.pin[0], token.src, { ...token })
             return token
           }
 
@@ -623,7 +592,7 @@ class Lexer {
             sI = pI
           }
 
-          log && log(token.pin[0], token.src, { ...token })
+          lexlog && lexlog(token.pin[0], token.src, { ...token })
           return token
         }
 
@@ -641,7 +610,7 @@ class Lexer {
 
           state = opts.LS_TOP
 
-          log && log(token.pin[0], token.src, { ...token })
+          lexlog && lexlog(token.pin[0], token.src, { ...token })
           return token
         }
 
@@ -686,7 +655,7 @@ class Lexer {
 
           state = opts.LS_TOP
 
-          log && log(token.pin[0], token.src, { ...token })
+          lexlog && lexlog(token.pin[0], token.src, { ...token })
           return token
         }
       }
@@ -697,7 +666,7 @@ class Lexer {
       token.loc = srclen
       token.col = cI
 
-      log && log(token.pin[0], token.src, { ...token })
+      lexlog && lexlog(token.pin[0], token.src, { ...token })
       return token
     } as Lex)
 
@@ -812,8 +781,6 @@ class RuleSpec {
 
     rule.state = RuleState.close
 
-    //console.log('Oe', this.name, ctx.t0.pin, ctx.t1.pin, ctx.t0.val, ctx.t1.val, 'A', act.t, act.s, 'M', act.m[0]?.pin, act.m[0]?.val, act.m[1]?.pin, act.m[1]?.val, 'R', rule.spec.name, rule.node, next.spec.name)
-
     return next
   }
 
@@ -823,7 +790,6 @@ class RuleSpec {
     let why = 's'
 
     if (this.def.before_close) {
-      // console.log('before_close', rule.child.spec.name, rule.child.node)
       this.def.before_close.call(this, rule)
     }
 
@@ -831,7 +797,6 @@ class RuleSpec {
       0 < this.def.close.length ? this.parse_alts(this.def.close, ctx) : {}
 
     if (act.e) {
-      //throw new Error('unexpected token: ' + act.e.pin.description + act.e.val)
       throw new Error('unexpected token: ' + act.e.pin[0] + ' ' + act.e.val)
     }
 
@@ -856,8 +821,6 @@ class RuleSpec {
       this.def.after_close.call(this, rule, next)
     }
 
-    // console.log('Ce', this.name, ctx.t0, ctx.t1, 'A', act.t, act.s, act.m && act.m[0]?.pin, act.m && act.m[1]?.pin, 'R', rule.spec.name, rule.node, next.spec.name, why)
-
     return next
   }
 
@@ -865,6 +828,7 @@ class RuleSpec {
   // first match wins
   parse_alts(alts: any[], ctx: Context): any {
     let out = undefined
+    let alt
 
     // End token reached.
     if (ctx.opts.ZZ === ctx.t0.pin) {
@@ -872,7 +836,7 @@ class RuleSpec {
     }
 
     else if (0 < alts.length) {
-      for (let alt of alts) {
+      for (alt of alts) {
 
         // Optional custom condition
         let cond = alt.c ? alt.c(alt, ctx) : true
@@ -908,7 +872,14 @@ class RuleSpec {
     }
 
     out = out || { m: [] }
-    ctx.log && ctx.log('parse', 'alts', out.m.map((t: Token) => t.pin).join(' '), out)
+    ctx.log && ctx.log('parse', 'alts',
+
+      // TODO: indicate none found (don't just show last)
+      alt && alt.s ? alt.s.join('') : '',
+      ctx.tI,
+      out.m.map((t: Token) => t.pin).join(' '),
+      out.m.map((t: Token) => t.src).join(''),
+      out)
 
     if (out.m) {
       let mI = 0
@@ -939,6 +910,8 @@ class Parser {
         open: [ // alternatives
           { s: [o.OB], p: 'map' },  // p:push onto rule stack
           { s: [o.OS], p: 'list' },
+
+          { s: [o.CA], p: 'list', b: 1 },
 
           // Implicit map - operates at any depth
           { s: [o.TX, o.CL], p: 'map', b: 2 },
@@ -1002,6 +975,12 @@ class Parser {
           { s: [o.CA], r: 'pair' }, // next rule (no stack push)
           { s: [o.CB] },
           // TODO: implicit close?
+
+          // Who needs commas anyway?
+          { s: [o.ST, o.CL], r: 'pair', b: 2 },
+          { s: [o.TX, o.CL], r: 'pair', b: 2 },
+          { s: [o.NR, o.CL], r: 'pair', b: 2 },
+          { s: [o.VL, o.CL], r: 'pair', b: 2 },
         ],
         before_close: (rule: Rule) => {
           let token = rule.open[0]
@@ -1022,7 +1001,9 @@ class Parser {
           { s: [o.NR] },
           { s: [o.ST] },
           { s: [o.VL] },
+
           // Insert null for initial comma
+          { s: [o.CA, o.CA], b: 2 },
           { s: [o.CA] },
         ],
         close: [
@@ -1032,7 +1013,8 @@ class Parser {
           { s: [o.CA, o.CS] },
 
           // Insert nulls for repeated commas
-          { s: [o.CA, o.CA], b: 2, r: 'elem' },
+          //{ s: [o.CA, o.CA], b: 2, r: 'elem' },
+
           { s: [o.CA], r: 'elem' },
 
           // Who needs commas anyway?
@@ -1044,8 +1026,10 @@ class Parser {
           { s: [o.VL], r: 'elem', b: 1 },
         ],
         after_open: (rule: Rule, next: Rule) => {
+          //console.log('after_open', rule === next, rule.open[0])
           if (rule === next && rule.open[0]) {
             let val = rule.open[0].val
+            //console.log('VAL', val)
             // Insert `null` if no value preceeded the comma (eg. [,1] -> [null, 1])
             rule.node.push(null != val ? val : null)
           }
@@ -1081,6 +1065,25 @@ class Parser {
       rs: [],
       log: (parse_config && parse_config.log) || undefined
     }
+
+    // Special debug logging to console.
+    // log:N -> console.dir to depth N
+    // log:-1 -> console.dir to depth 1, omitting objects (good summary!)
+    if ('number' === typeof ctx.log) {
+      let exclude_objects = false
+      let logdepth = (ctx.log as number)
+      if (-1 === logdepth) {
+        logdepth = 1
+        exclude_objects = true
+      }
+      ctx.log = (...rest: any) => {
+        rest = exclude_objects ?
+          rest.filter((item: any) => 'object' != typeof (item)) : rest
+        opts.console.dir(rest, { depth: logdepth })
+        return undefined
+      }
+    }
+
 
     let lex = lexer.start(src, ctx)
 
@@ -1118,7 +1121,7 @@ class Parser {
 
     while (norule !== rule && rI < maxr) {
       ctx.log &&
-        ctx.log('rule', RuleState[rule.state], rule.name, ctx.tI, ctx.t0.pin + ' ' + ctx.t1.pin, rule, ctx)
+        ctx.log('rule', RuleState[rule.state], ctx.rs.length, rule.name + '/' + rule.id, ctx.tI, ctx.t0.pin + ' ' + ctx.t1.pin, rule, ctx)
 
       rule = rule.process(ctx)
       rI++

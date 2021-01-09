@@ -130,48 +130,46 @@ describe('feature', function () {
       b = []
       expect(j(s,{log}),s).equals(v)
       if(d) {
-        console.dir(b,{depth:d})
+        console.dir(b.map(e=>e.filter(x=>'object'!=typeof x)),{depth:d})
       }
       expect(match(b,p),s).undefined()
     }
 
-    // TODO: add missing entry items
-    
     tlog('1',1,[
-      ['lex',{pin:t.NR,val:1}],
-      ['lex',{pin:t.ZZ}],
-      ['rule','open','value',0,'#NR #ZZ',{node:undefined}],
-      ['parse','alts',{s:[t.NR],m:[{pin:t.NR}]}],
-      ['lex',{pin:t.ZZ}],
-      ['rule','close','value',1,'#ZZ #ZZ',{node:1}],
-    ],1)
+      ['lex','#NR', '1', {pin:t.NR,val:1}],
+      ['lex','#ZZ', undefined, {pin:t.ZZ}],
+      ['rule','open',0,'value/1',0,'#NR #ZZ',{node:undefined}],
+      ['parse','alts','#NR', 0, '#NR', '1', {s:[t.NR],m:[{pin:t.NR}]}],
+      ['lex','#ZZ', undefined,{pin:t.ZZ}],
+      ['rule','close',0,'value/1',1,'#ZZ #ZZ',{node:1}],
+    ]) // ],1) to print
 
     tlog('a','a',[
-      ['lex',{pin:t.TX,val:'a'}],
-      ['lex',{pin:t.ZZ}],
-      ['rule','open','value',0,'#TX #ZZ',{node:'a'}],
-      ['parse','alts',{s:[t.TX],m:[{pin:t.TX}]}],
-      ['lex',{pin:t.ZZ}],
-      ['rule','close','value',1,'#ZZ #ZZ',{node:'a'}],
-    ])
+      ['lex','#TX', 'a', {pin:t.TX,val:'a'}],
+      ['lex','#ZZ', undefined,{pin:t.ZZ}],
+      ['rule','open',0,'value/1',0,'#TX #ZZ',{node:'a'}],
+      ['parse','alts','#TX', 0, '#TX', 'a' , {s:[t.TX],m:[{pin:t.TX}]}],
+      ['lex','#ZZ', undefined,{pin:t.ZZ}],
+      ['rule','close',0,'value/1',1,'#ZZ #ZZ',{node:'a'}],
+    ]) // ],1) to print
 
     tlog('[1]',[1],[
-      ['lex', {pin:t.OS} ],
-      ['lex', {pin:t.NR,val:1} ],
-      ['rule', 'open','value',0,'#OS[ #NR',{node:undefined}],
-      ['parse','alts',{p:'list',s:[t.OS],m:[{pin:t.OS}]}],
-      ['lex', {pin:t.CS} ],
-      ['rule', 'open','list',1,'#NR #CS]',{node:[]}],
-      ['parse','alts',{p:'elem'}],
-      ['rule', 'open','elem',1,'#NR #CS]',{node:[1]}],
-      ['parse','alts',{s:[t.NR],m:[{pin:t.NR}]}],
-      ['lex',{pin:t.ZZ}],
-      ['rule', 'close','elem',2,'#CS] #ZZ',{node:[1]}],
-      ['parse','alts',{s:[t.CS],m:[{pin:t.CS}]}],
-      ['lex',{pin:t.ZZ}],
-      ['rule', 'close','list',3,'#ZZ #ZZ',{node:[1]}],
-      ['rule', 'close','value',3,'#ZZ #ZZ',{node:[1]}],
-    ],1)
+      ['lex', '#OS[', '[', {pin:t.OS} ],
+      ['lex', '#NR', '1', {pin:t.NR,val:1} ],
+      ['rule', 'open',0,'value/1',0,'#OS[ #NR',{node:undefined}],
+      ['parse','alts','#OS[', 0, '#OS[', '[', {p:'list',s:[t.OS],m:[{pin:t.OS}]}],
+      ['lex', '#CS]', ']', {pin:t.CS} ],
+      ['rule', 'open',1,'list/2',1,'#NR #CS]',{node:[]}],
+      ['parse','alts', '', 1, '', '', {p:'elem'}],
+      ['rule', 'open',2,'elem/3',1,'#NR #CS]',{node:[1]}],
+      ['parse','alts','#NR', 1, '#NR', '1',{s:[t.NR],m:[{pin:t.NR}]}],
+      ['lex','#ZZ', undefined,{pin:t.ZZ}],
+      ['rule', 'close',2,'elem/3',2,'#CS] #ZZ',{node:[1]}],
+      ['parse','alts','#CS]', 2, '#CS]', ']', {s:[t.CS],m:[{pin:t.CS}]}],
+      ['lex','#ZZ', undefined,{pin:t.ZZ}],
+      ['rule', 'close',1,'list/2',3,'#ZZ #ZZ',{node:[1]}],
+      ['rule', 'close',0,'value/1',3,'#ZZ #ZZ',{node:[1]}],
+    ]) // ],1) to print
   })
   
   
@@ -236,12 +234,13 @@ describe('feature', function () {
   })
   
 
-  it('optional-comma', () => {
+  it('optional-comma-qqq', () => {
     expect(j('[1,]')).equals([1])
     expect(j('[,1]')).equals([null,1])
     expect(j('[1,,]')).equals([1,null])
     expect(j('[1,,,]')).equals([1,null,null])
     expect(j('[1,,,,]')).equals([1,null,null,null])
+    expect(j('[1,,,,,]')).equals([1,null,null,null,null])
     expect(j('[1\n2]')).equals([1,2])
     expect(j('{a:1},')).equals([{a:1}])
 
