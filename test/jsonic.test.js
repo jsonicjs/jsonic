@@ -15,7 +15,7 @@ var { Jsonic, Lexer } = require('..')
 var pv_perf = require('./pv-perf')
 
 let j = Jsonic
-let lexer = new Lexer()
+let lexer = j._lexer //new Lexer()
 //let prc = Jsonic.process
 
 
@@ -1284,20 +1284,7 @@ describe('jsonic', function () {
   
 
   it('pv-performance', {timeout:3333}, function(){
-    pv_perf()
-    /*
-    var start = Date.now(), count = 0
-    var input =
-          "int:100,dec:9.9,t:true,f:false,qs:"+
-          "\"a\\\"a'a\",as:'a\"a\\'a',a:{b:{c:1}}"
-
-    while( Date.now()-start < 1000 ) {
-      j(input)
-      count++
-    }
-
-    console.log( 'parse/sec: '+count )
-    */
+    pv_perf(200)
   })
 })
 

@@ -1,6 +1,6 @@
 declare type Jsonic = ((src: any) => any) & {
     parse: (src: any) => any;
-    make: (opts: Opts) => Jsonic;
+    make: (opts?: Opts) => Jsonic;
     use: (plugin: Plugin) => void;
 } & {
     [prop: string]: any;

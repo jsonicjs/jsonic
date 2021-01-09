@@ -1,3 +1,3 @@
-import { Plugin } from './jsonic';
+import { Plugin } from '../jsonic';
 declare let Stringify: Plugin;
 export { Stringify };

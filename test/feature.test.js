@@ -92,10 +92,10 @@ describe('feature', function () {
 
     // Custom multiline comments
     let coffee = Jsonic.make({comments:{'###':'###'}})
-    expect(j('\n###a:1\nb:2\n###\nc:3')).equals({c:3})
+    expect(coffee('\n###a:1\nb:2\n###\nc:3')).equals({c:3})
 
     // NOTE: no balancing if open === close
-    expect(j('\n###a:1\n###b:2\n###\nc:3\n###\nd:4')).equals({b:2,d:4})
+    expect(coffee('\n###a:1\n###b:2\n###\nc:3\n###\nd:4')).equals({b:2,d:4})
   })
 
 

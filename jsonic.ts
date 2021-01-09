@@ -133,7 +133,7 @@ type Jsonic =
   // A utility with methods.
   {
     parse: (src: any) => any,
-    make: (opts: Opts) => Jsonic,
+    make: (opts?: Opts) => Jsonic,
     use: (plugin: Plugin) => void,
   }
 
@@ -188,12 +188,12 @@ type Lex = (() => Token) & { src: string }
 
 class Lexer {
 
-  options: Opts = STANDARD_OPTIONS
+  options: Opts// = STANDARD_OPTIONS
   end: Token
   bad: any
 
   constructor(options?: Opts) {
-    let opts = this.options = util.deep(this.options, options)
+    let opts = this.options = options || util.deep({}, STANDARD_OPTIONS)
 
     this.end = {
       pin: opts.ZZ,
@@ -896,12 +896,13 @@ class RuleSpec {
 
 class Parser {
 
-  options: Opts = STANDARD_OPTIONS
+  options: Opts// = STANDARD_OPTIONS
   rules: { [name: string]: any }
   rulespecs: { [name: string]: RuleSpec }
 
   constructor(options?: Opts) {
-    let o = this.options = util.deep(this.options, options)
+    let o = this.options = options || util.deep({}, STANDARD_OPTIONS)
+    //let o = this.options = util.deep(this.options, options)
 
     let top = (alt: any, ctx: Context) => 0 === ctx.rs.length
 
@@ -1273,6 +1274,7 @@ function make(first?: Opts | Jsonic, parent?: Jsonic): Jsonic {
   opts = util.norm_options(opts)
 
   let self: any = function Jsonic(src: any, parse_config?: any): any {
+    // console.log('Po', '[', opts.sc_space, opts.SC_SPACE, ']')
     if ('string' === typeof (src)) {
       return self._parser.start(self._lexer, src, parse_config)
     }
@@ -1281,7 +1283,7 @@ function make(first?: Opts | Jsonic, parent?: Jsonic): Jsonic {
 
   if (parent) {
     for (let k in parent) {
-      self[k] = parent
+      self[k] = parent[k]
     }
 
     self.parent = parent
@@ -1292,7 +1294,14 @@ function make(first?: Opts | Jsonic, parent?: Jsonic): Jsonic {
   self._parser = new Parser(opts)
 
 
-  self.options = opts
+  self.options = util.deep((change_opts?: Opts) => {
+    if (null != change_opts && 'object' === typeof (change_opts)) {
+      opts = util.norm_options(util.deep(opts, change_opts))
+      for (let k in opts) {
+        self.options[k] = opts[k]
+      }
+    }
+  }, opts)
 
   self.parse = self
 
@@ -1302,7 +1311,7 @@ function make(first?: Opts | Jsonic, parent?: Jsonic): Jsonic {
   }
 
 
-  self.make = function(opts: Opts) {
+  self.make = function(opts?: Opts) {
     return make(opts, self)
   }
 

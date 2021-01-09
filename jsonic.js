@@ -93,8 +93,7 @@ const STANDARD_OPTIONS = {
 };
 class Lexer {
     constructor(options) {
-        this.options = STANDARD_OPTIONS;
-        let opts = this.options = util.deep(this.options, options);
+        let opts = this.options = options || util.deep({}, STANDARD_OPTIONS);
         this.end = {
             pin: opts.ZZ,
             loc: 0,
@@ -603,8 +602,8 @@ class RuleSpec {
 }
 class Parser {
     constructor(options) {
-        this.options = STANDARD_OPTIONS;
-        let o = this.options = util.deep(this.options, options);
+        let o = this.options = options || util.deep({}, STANDARD_OPTIONS);
+        //let o = this.options = util.deep(this.options, options)
         let top = (alt, ctx) => 0 === ctx.rs.length;
         this.rules = {
             value: {
@@ -898,6 +897,7 @@ function make(first, parent) {
     let opts = util.deep(util.deep({}, parent ? parent.options : STANDARD_OPTIONS), param_opts);
     opts = util.norm_options(opts);
     let self = function Jsonic(src, parse_config) {
+        // console.log('Po', '[', opts.sc_space, opts.SC_SPACE, ']')
         if ('string' === typeof (src)) {
             return self._parser.start(self._lexer, src, parse_config);
         }
@@ -905,13 +905,20 @@ function make(first, parent) {
     };
     if (parent) {
         for (let k in parent) {
-            self[k] = parent;
+            self[k] = parent[k];
         }
         self.parent = parent;
     }
     self._lexer = new Lexer(opts);
     self._parser = new Parser(opts);
-    self.options = opts;
+    self.options = util.deep((change_opts) => {
+        if (null != change_opts && 'object' === typeof (change_opts)) {
+            opts = util.norm_options(util.deep(opts, change_opts));
+            for (let k in opts) {
+                self.options[k] = opts[k];
+            }
+        }
+    }, opts);
     self.parse = self;
     self.use = function use(plugin) {
         plugin(self);
