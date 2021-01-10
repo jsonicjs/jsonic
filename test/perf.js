@@ -1,7 +1,7 @@
 const Util = require('util')
 
 const { Jsonic, Lexer } = require('..')
-const lexer = new Lexer()
+const lexer = Jsonic._lexer
 
 const ZZ = lexer.options.ZZ
 

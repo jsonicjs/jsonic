@@ -32,6 +32,8 @@ const STANDARD_OPTIONS = {
   sc_string: '"\'`',
   sc_none: '',
 
+  singles: '',
+
   // String escape chars.
   // Denoting char (follows escape char) => actual char.
   escapes: {
@@ -41,9 +43,6 @@ const STANDARD_OPTIONS = {
     r: '\r',
     t: '\t',
   },
-
-  // Multi-charater token ending characters.
-  enders: ':,[]{} \t\n\r',
 
   comments: {
     '#': true,
@@ -285,7 +284,10 @@ class Lexer {
         let c0 = src[sI]
         let c0c = src.charCodeAt(sI)
 
+
         if (opts.LS_TOP === state) {
+          // TODO: implement custom lexing functions for state, lookup goes here
+
           if (opts.SC_SPACE.includes(c0c)) {
 
             token.pin = opts.SP
@@ -520,6 +522,9 @@ class Lexer {
             }
           }
 
+
+
+
           // NOTE: default section. Cases above can bail to here if lookaheads
           // fail to match (eg. SC_NUMBER).
 
@@ -599,6 +604,8 @@ class Lexer {
 
         // Lexer State: CONSUME => all chars up to first ender
         else if (opts.LS_CONSUME === state) {
+          // TODO: implement custom lexing functions for state, lookup goes here
+
           pI = sI
           while (pI < srclen && !enders.includes(src[pI])) pI++, cI++;
 
@@ -617,6 +624,8 @@ class Lexer {
 
         // Lexer State: MULTILINE => all chars up to last close marker, or end
         else if (opts.LS_MULTILINE === state) {
+          // TODO: implement custom lexing functions for state, lookup goes here
+
           pI = sI
 
           let depth = 1
@@ -741,14 +750,14 @@ class RuleSpec {
   name: string
   def: any
   rm: { [name: string]: RuleSpec }
-  child: Rule
+  //child: Rule
   match: any
 
   constructor(name: string, def: any, rm: { [name: string]: RuleSpec }) {
     this.name = name
     this.def = def
     this.rm = rm
-    this.child = norule
+    //this.child = norule
   }
 
   open(rule: Rule, ctx: Context) {
@@ -1052,6 +1061,11 @@ class Parser {
   }
 
 
+  rule(name: string, define: (rs: RuleSpec) => RuleSpec) {
+    this.rulespecs[name] = define(this.rulespecs[name]) || this.rulespecs[name]
+  }
+
+
   start(lexer: Lexer, src: string, parse_config?: any): any {
     let opts = this.options
 
@@ -1134,13 +1148,6 @@ class Parser {
   }
 }
 
-/*
-// TODO: replace with jsonic stringify
-function desc(o: any) {
-  return require('util').inspect(o, { depth: null })
-}
-*/
-
 
 let util = {
 
@@ -1191,11 +1198,21 @@ let util = {
         Array.isArray(opts[k]) &&
         '#' === opts[k][0][0] &&
         4 === opts[k][0].length)
-      //'symbol' === typeof (opts[k]) &&
-      //4 === opts[k].description.length)
       .reduce((a: number[], k) =>
-        //(a[opts[k].description.charCodeAt(3)] = opts[k], a), [])
         (a[opts[k][0].charCodeAt(3)] = opts[k], a), [])
+
+    // Custom singles.
+    // TODO: prevent override of builtins
+    opts.singles = null == opts.singles ? '' : opts.singles
+    opts.singles.split('').forEach((s: string, i: number) => {
+      opts.SINGLES[s.charCodeAt(0)] = ['#' + s + '#' + i]
+    })
+
+    opts.TOKENS = opts.SINGLES
+      .map((t: any, i: number) => null == t ? null : i)
+      .filter((i: number) => null != + i)
+      .reduce((a: any, i: number) =>
+        (a[String.fromCharCode(i)] = opts.SINGLES[i], a), {})
 
     // lookup table for escape chars, indexed by denotating char (e.g. n for \n).
     opts.escapes = opts.escapes || {}
@@ -1235,7 +1252,6 @@ let util = {
       opts.SC_COMMENT.map((cc: number) => String.fromCharCode(cc)).join('')
 
     opts.SINGLE_CHARS =
-      //opts.SINGLES.map((s: symbol, cc: number) => String.fromCharCode(cc)).join('')
       opts.SINGLES.map((s: any, cc: number) => String.fromCharCode(cc)).join('')
 
     opts.VALUE_ENDERS =
@@ -1274,7 +1290,6 @@ function make(first?: Opts | Jsonic, parent?: Jsonic): Jsonic {
   opts = util.norm_options(opts)
 
   let self: any = function Jsonic(src: any, parse_config?: any): any {
-    // console.log('Po', '[', opts.sc_space, opts.SC_SPACE, ']')
     if ('string' === typeof (src)) {
       return self._parser.start(self._lexer, src, parse_config)
     }
@@ -1311,6 +1326,10 @@ function make(first?: Opts | Jsonic, parent?: Jsonic): Jsonic {
   }
 
 
+  self.rule = function(name: string, define: (rs: RuleSpec) => RuleSpec) {
+    self._parser.rule(name, define)
+  }
+
   self.make = function(opts?: Opts) {
     return make(opts, self)
   }
@@ -1322,225 +1341,9 @@ function make(first?: Opts | Jsonic, parent?: Jsonic): Jsonic {
 
 let Jsonic: Jsonic = make()
 
-export { Jsonic, Plugin, Lexer, util }
+export { Jsonic, Plugin, Lexer, Parser, RuleSpec, Token, Context, util }
 
 
-
-
-
-
-
-
-/*
-class PairRule extends Rule {
-
-  constructor(opts: Opts, key?: string) {
-    super(opts, {})
-
-    // If implicit map, key is already parsed
-    this.key = key
-  }
-
-  process(ctx: Context): Rule | U {
-    let opts = this.opts
-    ctx.ignore(opts.WSP)
-
-    // Implicit map so key already parsed
-    if (this.key) {
-      ctx.rs.push(this)
-      let key = this.key
-      delete this.key
-      return new ValueRule(opts, this.node, key, opts.OB)
-    }
-
-    let t: Token = ctx.next()
-    let k = t.pin
-
-    switch (k) {
-      case opts.TX:
-      case opts.NR:
-      case opts.ST:
-      case opts.VL:
-        let value = ctx.t0.val
-
-        ctx.match(opts.CL, opts.WSP)
-
-        ctx.rs.push(this)
-        return new ValueRule(opts, this.node, value, opts.OB)
-
-      case opts.CA:
-        return this
-
-      default:
-        let rule = ctx.rs.pop()
-
-        // Return self as value to parent rule
-        if (rule) {
-          rule.val = this.node
-        }
-        return rule
-    }
-  }
-
-  toString() {
-    return 'Pair: ' + desc(this.node)
-  }
-}
-
-
-class ListRule extends Rule {
-  firstpin: symbol | U
-
-  constructor(opts: Opts, firstval?: any, firstpin?: symbol) {
-    super(opts, U === firstval ? [] : [firstval])
-    this.firstpin = firstpin
-  }
-
-  process(ctx: Context): Rule | U {
-    let opts = this.opts
-
-    if (this.val) {
-      this.node.push(this.val)
-      this.val = U
-    }
-
-    let pk: symbol = this.firstpin || opts.UK
-    this.firstpin = U
-
-    while (true) {
-      ctx.ignore(opts.WSP)
-
-      let t: Token = ctx.next()
-      let k = t.pin
-
-      switch (k) {
-        case opts.TX:
-        case opts.NR:
-        case opts.ST:
-        case opts.VL:
-
-          // A sequence of literals with internal spaces is concatenated
-          let value = ctx.t0.val
-
-          this.node.push(value)
-          pk = k
-          break
-
-        case opts.CA:
-          // Insert null before comma if value missing.
-          // Trailing commas are ignored.
-          if (opts.CA === pk || 0 === this.node.length) {
-            this.node.push(null)
-          }
-          pk = k
-          break
-
-        case opts.OB:
-          ctx.rs.push(this)
-          pk = k
-          return new PairRule(opts,)
-
-        case opts.OS:
-          ctx.rs.push(this)
-          pk = k
-          return new ListRule(opts,)
-
-        case opts.CL:
-          // TODO: proper error msgs, incl row,col etc
-          throw new Error('key-value pair inside list')
-
-
-        default:
-          let rule = ctx.rs.pop()
-
-          // Return self as value to parent rule
-          if (rule) {
-            rule.val = this.node
-          }
-          return rule
-      }
-    }
-  }
-
-  toString() {
-    return 'Pair: ' + desc(this.node)
-  }
-}
-
-
-
-class ValueRule extends Rule {
-  parent: symbol
-
-  constructor(opts: Opts, node: any, key: string, parent: symbol) {
-    super(opts, node)
-    this.key = key
-    this.parent = parent
-  }
-
-  process(ctx: Context): Rule | U {
-    let opts = this.opts
-    ctx.ignore(opts.WSP)
-
-    // Child value has resolved
-    if (this.val) {
-      this.node[this.key] = this.val
-      this.val = U
-      return ctx.rs.pop()
-    }
-
-    let t: Token = ctx.next()
-    let k = t.pin
-
-    switch (k) {
-      case opts.OB:
-        ctx.rs.push(this)
-        return new PairRule(opts)
-
-      case opts.OS:
-        ctx.rs.push(this)
-        return new ListRule(opts)
-
-      // Implicit list
-      case opts.CA:
-        ctx.rs.push(this)
-        return new ListRule(opts, null, opts.CA)
-
-      // TODO: proper error messages
-      case opts.BD:
-        throw new Error(t.why)
-    }
-
-    let value = ctx.t0.val
-
-    // Is this an implicit map?
-    if (opts.CL === ctx.t1.pin) {
-      this.parent = opts.OB
-      ctx.next()
-
-      ctx.rs.push(this)
-      return new PairRule(opts, String(value))
-    }
-    // Is this an implicit list (at top level only)?
-    else if (opts.CA === ctx.t1.pin && opts.OB !== this.parent) {
-      this.parent = opts.OS
-      ctx.next()
-
-      ctx.rs.push(this)
-      return new ListRule(opts, value, opts.CA)
-    }
-    else {
-      this.node[this.key] = value
-      return ctx.rs.pop()
-    }
-  }
-
-  toString() {
-    return 'Value: ' + this.key + '=' + desc(this.val) + ' node=' + desc(this.node)
-  }
-
-}
-*/
 
 
 

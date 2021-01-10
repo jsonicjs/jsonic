@@ -68,7 +68,6 @@ declare class RuleSpec {
     rm: {
         [name: string]: RuleSpec;
     };
-    child: Rule;
     match: any;
     constructor(name: string, def: any, rm: {
         [name: string]: RuleSpec;
@@ -77,6 +76,18 @@ declare class RuleSpec {
     close(rule: Rule, ctx: Context): Rule;
     parse_alts(alts: any[], ctx: Context): any;
 }
+declare class Parser {
+    options: Opts;
+    rules: {
+        [name: string]: any;
+    };
+    rulespecs: {
+        [name: string]: RuleSpec;
+    };
+    constructor(options?: Opts);
+    rule(name: string, define: (rs: RuleSpec) => RuleSpec): void;
+    start(lexer: Lexer, src: string, parse_config?: any): any;
+}
 declare let util: {
     deep: (base?: any, over?: any) => any;
     s2cca: (s: string) => number[];
@@ -84,4 +95,4 @@ declare let util: {
     norm_options: (opts: Opts) => Opts;
 };
 declare let Jsonic: Jsonic;
-export { Jsonic, Plugin, Lexer, util };
+export { Jsonic, Plugin, Lexer, Parser, RuleSpec, Token, Context, util };
