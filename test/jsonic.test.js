@@ -895,25 +895,31 @@ describe('jsonic', function () {
 
 
   it('pv-comma', function(){
-    expect(j("a:1, b:2, ")).equal({"a":1,"b":2})
+    expect(j('a:1, b:2, ')).equal({a:1,b:2})
 
-    expect(j("a:1,")).equal({"a":1})
+    expect(j('a:1,')).equal({a:1})
 
-    // DIFF expect(j(",a:1")).equal({"a":1})
+    // TODO: decide how this should work, esp given a:1, -> {a:1}
+    // DIFF expect(j(',a:1')).equal({a:1})
 
-    // DIFF expect(j(",")).equal({})
+    // DIFF: was {}
+    expect(j(',')).equal([null])
 
-    // DIFF expect(j(",,")).equal({})
+    // DIFF: was {}
+    expect(j(',,')).equal([null,null])
 
-    expect(j("[a,]")).equal(["a"])
+    expect(j('[a,]')).equal(['a'])
 
-    expect(j("[a,1,]")).equal(["a",1])
+    expect(j('[a,1,]')).equal(['a',1])
 
-    // DIFF expect(j("[,a,1,]")).equal(["a",1])
+    // DIFF: was [a,1]
+    expect(j('[,a,1,]')).equal([null,'a',1])
 
-    // DIFF expect(j("[,]")).equal([])
+    // DIFF: was []
+    expect(j('[,]')).equal([null])
 
-    // DIFF expect(j("[,,]")).equal([])
+    // DIFF: was []
+    expect(j('[,,]')).equal([null,null])
   })
 
 

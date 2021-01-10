@@ -768,7 +768,7 @@ class RuleSpec {
       rule.node = out.node || rule.node
     }
 
-    let act = this.parse_alts(this.def.open, ctx)
+    let act = this.parse_alts(this.def.open, rule, ctx)
 
     if (act.e) {
       throw new Error('unexpected token: ' + JSON.stringify(act.e))
@@ -788,6 +788,13 @@ class RuleSpec {
       this.def.after_open.call(this, rule, next)
     }
 
+    ctx.log && ctx.log(
+      'node',
+      rule.name + '/' + rule.id,
+      RuleState[rule.state],
+      rule.node
+    )
+
     rule.state = RuleState.close
 
     return next
@@ -803,7 +810,7 @@ class RuleSpec {
     }
 
     let act =
-      0 < this.def.close.length ? this.parse_alts(this.def.close, ctx) : {}
+      0 < this.def.close.length ? this.parse_alts(this.def.close, rule, ctx) : {}
 
     if (act.e) {
       throw new Error('unexpected token: ' + act.e.pin[0] + ' ' + act.e.val)
@@ -817,7 +824,7 @@ class RuleSpec {
       ctx.rs.push(rule)
       next = rule.child = new Rule(this.rm[act.p], ctx, rule.opts, rule.node)
     }
-    if (act.r) {
+    else if (act.r) {
       next = new Rule(this.rm[act.r], ctx, rule.opts, rule.node)
       why = 'r'
     }
@@ -830,12 +837,19 @@ class RuleSpec {
       this.def.after_close.call(this, rule, next)
     }
 
+    ctx.log && ctx.log(
+      'node',
+      rule.name + '/' + rule.id,
+      RuleState[rule.state],
+      rule.node
+    )
+
     return next
   }
 
 
   // first match wins
-  parse_alts(alts: any[], ctx: Context): any {
+  parse_alts(alts: any[], rule: Rule, ctx: Context): any {
     let out = undefined
     let alt
 
@@ -881,11 +895,18 @@ class RuleSpec {
     }
 
     out = out || { m: [] }
-    ctx.log && ctx.log('parse', 'alts',
+    ctx.log && ctx.log(
+      'parse',
+      rule.name + '/' + rule.id,
+      RuleState[rule.state],
+      'alts',
 
       // TODO: indicate none found (don't just show last)
       alt && alt.s ? alt.s.join('') : '',
       ctx.tI,
+      'p=' + (out.p || ''),
+      'r=' + (out.r || ''),
+      'b=' + (out.b || ''),
       out.m.map((t: Token) => t.pin).join(' '),
       out.m.map((t: Token) => t.src).join(''),
       out)
@@ -916,7 +937,7 @@ class Parser {
     let top = (alt: any, ctx: Context) => 0 === ctx.rs.length
 
     this.rules = {
-      value: {
+      val: {
         open: [ // alternatives
           { s: [o.OB], p: 'map' },  // p:push onto rule stack
           { s: [o.OS], p: 'list' },
@@ -942,6 +963,8 @@ class Parser {
               rule.node = [rule.node]
             }
           },
+
+          // Non-empty close means we need a catch-all backtrack
           { s: [o.AA], b: 1 },
         ],
         before_close: (rule: Rule) => {
@@ -976,10 +999,11 @@ class Parser {
       // sets key:val on node
       pair: {
         open: [
-          { s: [o.ST, o.CL], p: 'value' },
-          { s: [o.TX, o.CL], p: 'value' },
-          { s: [o.NR, o.CL], p: 'value' },
-          { s: [o.VL, o.CL], p: 'value' },
+          { s: [o.ST, o.CL], p: 'val' },
+          { s: [o.TX, o.CL], p: 'val' },
+          { s: [o.NR, o.CL], p: 'val' },
+          { s: [o.VL, o.CL], p: 'val' },
+          { s: [o.CB], b: 1 }, // empty
         ],
         close: [
           { s: [o.CA], r: 'pair' }, // next rule (no stack push)
@@ -1028,15 +1052,15 @@ class Parser {
           { s: [o.CA], r: 'elem' },
 
           // Who needs commas anyway?
-          { s: [o.OB], p: 'map', b: 1 },
-          { s: [o.OS], p: 'list', b: 1 },
+          { s: [o.OB], p: 'map', xb: 1 },
+          { s: [o.OS], p: 'list', xb: 1 },
           { s: [o.TX], r: 'elem', b: 1 },
           { s: [o.NR], r: 'elem', b: 1 },
           { s: [o.ST], r: 'elem', b: 1 },
           { s: [o.VL], r: 'elem', b: 1 },
         ],
         after_open: (rule: Rule, next: Rule) => {
-          //console.log('after_open', rule === next, rule.open[0])
+          // console.log('after_open', rule === next, rule.open[0])
           if (rule === next && rule.open[0]) {
             let val = rule.open[0].val
             //console.log('VAL', val)
@@ -1092,9 +1116,19 @@ class Parser {
         exclude_objects = true
       }
       ctx.log = (...rest: any) => {
-        rest = exclude_objects ?
-          rest.filter((item: any) => 'object' != typeof (item)) : rest
-        opts.console.dir(rest, { depth: logdepth })
+        if (exclude_objects) {
+          let logstr = rest
+            .filter((item: any) => 'object' != typeof (item))
+            .join('\t')
+
+          if ('node' === rest[0]) {
+            logstr += '\t' + JSON.stringify(rest[3])
+          }
+          opts.console.log(logstr)
+        }
+        else {
+          opts.console.dir(rest, { depth: logdepth })
+        }
         return undefined
       }
     }
@@ -1102,7 +1136,7 @@ class Parser {
 
     let lex = lexer.start(src, ctx)
 
-    let rule = new Rule(this.rulespecs.value, ctx, opts)
+    let rule = new Rule(this.rulespecs.val, ctx, opts)
 
     let root = rule
 
@@ -1136,9 +1170,14 @@ class Parser {
 
     while (norule !== rule && rI < maxr) {
       ctx.log &&
-        ctx.log('rule', RuleState[rule.state], ctx.rs.length, rule.name + '/' + rule.id, ctx.tI, ctx.t0.pin + ' ' + ctx.t1.pin, rule, ctx)
+        ctx.log('rule', rule.name + '/' + rule.id, RuleState[rule.state],
+          ctx.rs.length, ctx.tI, ctx.t0.pin + ' ' + ctx.t1.pin, rule, ctx)
 
       rule = rule.process(ctx)
+
+      ctx.log &&
+        ctx.log('stack', ctx.rs.map((r: Rule) => r.name + '/' + r.id).join(';'),
+          rule, ctx)
       rI++
     }
 

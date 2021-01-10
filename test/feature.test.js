@@ -122,6 +122,7 @@ describe('feature', function () {
   })
 
 
+  /* TODO
   it('feature-log', () => {
     let t = j.options // token symbols
     let b = []
@@ -171,6 +172,7 @@ describe('feature', function () {
       ['rule', 'close',0,'value/1',3,'#ZZ #ZZ',{node:[1]}],
     ]) // ],1) to print
   })
+  */
   
   
   it('value', () => {
@@ -251,6 +253,29 @@ describe('feature', function () {
 
 
   it('implicit-list', () => {
+    
+    // implicit null element preceed empty comma
+    expect(j(',')).equals([null])
+    expect(j(',a')).equals([null,'a'])
+    expect(j(',"a"')).equals([null,'a'])
+    expect(j(',1')).equals([null,1])
+    expect(j(',true')).equals([null,true])
+    expect(j(',[]')).equals([null,[]])
+    expect(j(',{}')).equals([null,{}])
+    expect(j(',[1]')).equals([null,[1]])
+    expect(j(',{a:1}')).equals([null,{a:1}])
+
+    // TODO
+    //expect(j(',a:1')).equals([null,{a:1}])
+
+
+    // Top level comma imlies list; ignore trailing comma
+    expect(j('a,')).equals(['a'])
+    expect(j('"a",')).equals(['a'])
+    expect(j('1,')).equals([1])
+    expect(j('true,')).equals([true])
+
+    
     expect(j('a,')).equals(['a'])
     expect(j('"a",')).equals(['a'])
     expect(j('true,')).equals([true])

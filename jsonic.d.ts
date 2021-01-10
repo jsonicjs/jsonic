@@ -74,7 +74,7 @@ declare class RuleSpec {
     });
     open(rule: Rule, ctx: Context): Rule;
     close(rule: Rule, ctx: Context): Rule;
-    parse_alts(alts: any[], ctx: Context): any;
+    parse_alts(alts: any[], rule: Rule, ctx: Context): any;
 }
 declare class Parser {
     options: Opts;
