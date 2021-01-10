@@ -254,7 +254,7 @@ describe('feature', function () {
 
   it('implicit-list', () => {
     
-    // implicit null element preceed empty comma
+    // implicit null element preceeds empty comma
     expect(j(',')).equals([null])
     expect(j(',a')).equals([null,'a'])
     expect(j(',"a"')).equals([null,'a'])
@@ -264,16 +264,20 @@ describe('feature', function () {
     expect(j(',{}')).equals([null,{}])
     expect(j(',[1]')).equals([null,[1]])
     expect(j(',{a:1}')).equals([null,{a:1}])
-
-    // TODO
-    //expect(j(',a:1')).equals([null,{a:1}])
-
+    expect(j(',a:1')).equals([null,{a:1}])
 
     // Top level comma imlies list; ignore trailing comma
     expect(j('a,')).equals(['a'])
     expect(j('"a",')).equals(['a'])
     expect(j('1,')).equals([1])
     expect(j('true,')).equals([true])
+    expect(j('[],')).equals([[]])
+    expect(j('{},')).equals([{}])
+    expect(j('[1],')).equals([[1]])
+    expect(j('{a:1},')).equals([{a:1}])
+
+    // NOTE: special case, this is considered a map pair
+    expect(j('a:1,')).equals({a:1})
 
     
     expect(j('a,')).equals(['a'])

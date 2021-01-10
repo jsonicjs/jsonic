@@ -703,15 +703,19 @@ class Parser {
                     { s: [o.CA] },
                 ],
                 close: [
-                    { s: [o.CS] },
                     // Ignore trailing comma
                     { s: [o.CA, o.CS] },
-                    // Insert nulls for repeated commas
-                    //{ s: [o.CA, o.CA], b: 2, r: 'elem' },
+                    // Next element.
                     { s: [o.CA], r: 'elem' },
+                    // End list.
+                    { s: [o.CS] },
                     // Who needs commas anyway?
-                    { s: [o.OB], p: 'map', xb: 1 },
-                    { s: [o.OS], p: 'list', xb: 1 },
+                    { s: [o.OB], p: 'map', },
+                    { s: [o.OS], p: 'list', },
+                    { s: [o.TX, o.CL], p: 'map', b: 2 },
+                    { s: [o.NR, o.CL], p: 'map', b: 2 },
+                    { s: [o.ST, o.CL], p: 'map', b: 2 },
+                    { s: [o.VL, o.CL], p: 'map', b: 2 },
                     { s: [o.TX], r: 'elem', b: 1 },
                     { s: [o.NR], r: 'elem', b: 1 },
                     { s: [o.ST], r: 'elem', b: 1 },
