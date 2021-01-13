@@ -15,8 +15,7 @@ var { Jsonic, Lexer } = require('..')
 var pv_perf = require('./pv-perf')
 
 let j = Jsonic
-let lexer = j._lexer //new Lexer()
-//let prc = Jsonic.process
+let lexer = j.internal().lexer
 
 
 

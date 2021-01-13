@@ -92,6 +92,8 @@ let Dollar: Plugin = function dollar(jsonic: Jsonic) {
       }
       return bc(rule)
     }
+
+    return rs
   })
 }
 

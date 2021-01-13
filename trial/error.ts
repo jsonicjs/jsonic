@@ -1,5 +1,7 @@
 
 
+import { Json } from '../plugin/json'
+
 
 let e0 = new Error('e0')
 console.log(e0)
@@ -107,6 +109,15 @@ catch (e) {
 try {
   Jsonic('[\n  a,\n  b,\n  },\n  c,\n  d,\n  e]',
     { xlog: -1, fileName: '/fe/fi/fo/fum' })
+}
+catch (e) {
+  console.log(e)
+}
+
+
+try {
+  Jsonic.use(Json)('[\n  a,\n  b,\n  },\n  c,\n  d,\n  e]',
+    { mode: 'json', xlog: -1, fileName: '/fe/fi/fo/fum' })
 }
 catch (e) {
   console.log(e)

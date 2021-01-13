@@ -1,5 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
+const json_1 = require("../plugin/json");
 let e0 = new Error('e0');
 console.log(e0);
 console.log(JSON.stringify(e0));
@@ -81,6 +82,12 @@ catch (e) {
 }
 try {
     jsonic_1.Jsonic('[\n  a,\n  b,\n  },\n  c,\n  d,\n  e]', { xlog: -1, fileName: '/fe/fi/fo/fum' });
+}
+catch (e) {
+    console.log(e);
+}
+try {
+    jsonic_1.Jsonic.use(json_1.Json)('[\n  a,\n  b,\n  },\n  c,\n  d,\n  e]', { mode: 'json', xlog: -1, fileName: '/fe/fi/fo/fum' });
 }
 catch (e) {
     console.log(e);

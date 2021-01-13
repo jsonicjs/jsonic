@@ -49,16 +49,17 @@ const STANDARD_OPTIONS = {
         value: NONE,
         ignore: NONE,
     },
+    mode: {},
     bad_unicode_char: String.fromCharCode('0x0000'),
     // Default console for logging
     console,
     // Error messages.
-    errors: {
+    error: {
         unknown: 'unknown error: $code',
         unexpected: 'unexpected character `$src`'
     },
     // Error hints
-    hints: {
+    hint: {
         unknown: `Since the error is unknown, this is probably a bug inside jsonic itself.
 Please consider posting a github issue - thanks!
 `,
@@ -113,12 +114,14 @@ class JsonicError extends SyntaxError {
         token = { ...token };
         let opts = ctx.opts;
         let meta = ctx.meta;
-        let errtxt = util.errinject((opts.errors[code] || opts.errors.unknown), code, details, token, ctx);
+        let errtxt = util.errinject((opts.error[code] || opts.error.unknown), code, details, token, ctx);
         let message = [
-            '\x1b[31m[jsonic/' + code + ']:\x1b[0m ' + errtxt,
+            ('\x1b[31m[jsonic/' + code + ']:\x1b[0m ' +
+                ((meta && meta.mode) ? '\x1b[35m[mode:' + meta.mode + ']:\x1b[0m ' : '') +
+                errtxt),
             '  \x1b[34m-->\x1b[0m ' + (meta.fileName || '<no-file>') + ':' + token.row + ':' + token.col,
             util.extract(ctx.src(), errtxt, token),
-            util.errinject((opts.hints[code] || opts.hints.unknown).split('\n')
+            util.errinject((opts.hint[code] || opts.hint.unknown).split('\n')
                 .map((s) => '  ' + s).join('\n'), code, details, token, ctx)
         ].join('\n');
         let desc = {
@@ -611,7 +614,8 @@ class RuleSpec {
         if (this.def.after_close) {
             this.def.after_close.call(this, rule, next);
         }
-        ctx.log && ctx.log('node', rule.name + '/' + rule.id, RuleState[rule.state], rule.node);
+        next.why = why;
+        ctx.log && ctx.log('node', rule.name + '/' + rule.id, RuleState[rule.state], why, rule.node);
         return next;
     }
     // first match wins
@@ -933,26 +937,88 @@ let util = {
         });
     },
     extract: (src, errtxt, token) => {
-        let loc = token.loc;
+        let loc = 0 < token.loc ? token.loc : 0;
+        let row = 0 < token.row ? token.row : 0;
+        let col = 0 < token.col ? token.col : 0;
+        let tsrc = null == token.src ? '' : token.src;
         let behind = src.substring(Math.max(0, loc - 333), loc).split('\n');
         let ahead = src.substring(loc, loc + 333).split('\n');
-        let pad = 2 + ('' + (token.row + 2)).length;
-        let rI = token.row - 2;
+        let pad = 2 + ('' + (row + 2)).length;
+        let rI = row < 2 ? 0 : row - 2;
         let ln = (s) => '\x1b[34m' + ('' + (rI++)).padStart(pad, ' ') +
             ' | \x1b[0m' + (null == s ? '' : s);
+        let blen = behind.length;
         let lines = [
-            ln(behind[behind.length - 3]),
-            ln(behind[behind.length - 2]),
-            ln(behind[behind.length - 1] + ahead[0]),
+            2 < blen ? ln(behind[blen - 3]) : null,
+            1 < blen ? ln(behind[blen - 2]) : null,
+            ln(behind[blen - 1] + ahead[0]),
             (' '.repeat(pad)) + '   ' +
-                ' '.repeat(token.col) +
-                '\x1b[31m' + '^'.repeat(token.src.length) +
+                ' '.repeat(col) +
+                '\x1b[31m' + '^'.repeat(tsrc.length || 1) +
                 ' ' + errtxt + '\x1b[0m',
             ln(ahead[1]),
             ln(ahead[2]),
         ]
+            .filter((line) => null != line)
             .join('\n');
         return lines;
+    },
+    handle_meta_mode: (self, src, meta) => {
+        let opts = self.options;
+        if ('function' === typeof (opts.mode[meta.mode])) {
+            try {
+                return opts.mode[meta.mode].call(self, src, meta);
+            }
+            catch (ex) {
+                if ('SyntaxError' === ex.name) {
+                    let loc = 0;
+                    let row = 0;
+                    let col = 0;
+                    let tsrc = '';
+                    let errloc = ex.message.match(/^Unexpected token (.) .*position\s+(\d+)/i);
+                    if (errloc) {
+                        tsrc = errloc[1];
+                        loc = parseInt(errloc[2]);
+                        row = src.substring(0, loc).replace(/[^\n]/g, '').length;
+                        //row = row < 0 ? 0 : row
+                        let cI = loc - 1;
+                        while (-1 < cI && '\n' !== src.charAt(cI))
+                            cI--;
+                        col = cI < loc ? src.substring(cI, loc).length - 1 : 0;
+                    }
+                    //console.log('RC', row, col)
+                    let token = ex.token || {
+                        pin: opts.UK,
+                        loc: loc,
+                        len: tsrc.length,
+                        row: ex.lineNumber || row,
+                        col: ex.columnNumber || col,
+                        val: undefined,
+                        src: tsrc,
+                    };
+                    throw new JsonicError(ex.code || 'json', ex.details || {
+                        msg: ex.message
+                    }, token, ex.ctx || {
+                        rI: -1,
+                        opts,
+                        meta,
+                        src: () => src,
+                        node: undefined,
+                        t0: token,
+                        t1: token,
+                        tI: -1,
+                        rs: [],
+                        next: () => token,
+                        log: meta.log
+                    });
+                }
+                else
+                    throw ex;
+            }
+        }
+        else {
+            return [false];
+        }
     },
     // Idempotent normalization of options.
     norm_options: function (opts) {
@@ -1023,27 +1089,44 @@ let util = {
 };
 exports.util = util;
 function make(first, parent) {
+    // Handle polymorphic params.
     let param_opts = first;
     if ('function' === typeof (first)) {
         param_opts = {};
         parent = first;
     }
-    let opts = util.deep({}, parent ? parent.options : STANDARD_OPTIONS, param_opts);
-    opts = util.norm_options(opts);
+    // Merge options.
+    let opts = util.norm_options(util.deep({}, parent ? parent.options : STANDARD_OPTIONS, param_opts));
+    // Create primary parsing function
     let self = function Jsonic(src, meta) {
         if ('string' === typeof (src)) {
-            return self._parser.start(self._lexer, src, meta);
+            let internal = self.internal();
+            /*
+            if (null != meta && null != meta.mode &&
+              'function' === typeof (opts.mode[meta.mode])) {
+              [done, out] = opts.mode[meta.mode].call(self, src, meta)
+            }
+            */
+            let [done, out] = (null != meta && null != meta.mode) ? util.handle_meta_mode(self, src, meta) :
+                [false];
+            if (!done) {
+                out = internal.parser.start(internal.lexer, src, meta);
+            }
+            return out;
         }
         return src;
     };
+    // Transfer parent properties (preserves plugin decorations, etc).
     if (parent) {
         for (let k in parent) {
             self[k] = parent[k];
         }
         self.parent = parent;
     }
-    self._lexer = new Lexer(opts);
-    self._parser = new Parser(opts);
+    self.internal = () => ({
+        lexer: new Lexer(opts),
+        parser: new Parser(opts)
+    });
     self.options = util.deep((change_opts) => {
         if (null != change_opts && 'object' === typeof (change_opts)) {
             opts = util.norm_options(util.deep(opts, change_opts));
@@ -1051,13 +1134,16 @@ function make(first, parent) {
                 self.options[k] = opts[k];
             }
         }
+        return self;
     }, opts);
     self.parse = self;
     self.use = function use(plugin) {
         plugin(self);
+        return self;
     };
     self.rule = function (name, define) {
-        self._parser.rule(name, define);
+        self.internal().parser.rule(name, define);
+        return self;
     };
     self.make = function (opts) {
         return make(opts, self);

@@ -16,19 +16,22 @@ declare type Opts = {
     values: KV;
     digital: string;
     tokens: KV;
+    mode: KV;
     bad_unicode_char: string;
     console: any;
-    errors: {
+    error: {
         [code: string]: string;
     };
-    hints: {
+    hint: {
         [code: string]: string;
     };
 } & KV;
 declare type Jsonic = ((src: any, meta?: any) => any) & {
     parse: (src: any, meta?: any) => any;
+    options: Opts & ((change_opts?: KV) => Jsonic);
     make: (opts?: Opts) => Jsonic;
-    use: (plugin: Plugin) => void;
+    use: (plugin: Plugin) => Jsonic;
+    rule: (name: string, define: (rs: RuleSpec) => RuleSpec) => Jsonic;
 } & {
     [prop: string]: any;
 };
@@ -95,6 +98,7 @@ declare class Rule {
     child: Rule;
     open: Token[];
     close: Token[];
+    why?: string;
     val: any;
     key: any;
     constructor(spec: RuleSpec, ctx: Context, opts: Opts, node?: any);
@@ -134,6 +138,7 @@ declare let util: {
     make_log: (ctx: Context) => void;
     errinject: (s: string, code: string, details: KV, token: Token, ctx: Context) => string;
     extract: (src: string, errtxt: string, token: Token) => string;
+    handle_meta_mode: (self: Jsonic, src: string, meta: KV) => any[];
     norm_options: (opts: Opts) => Opts;
 };
 declare let Jsonic: Jsonic;

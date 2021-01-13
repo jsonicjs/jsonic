@@ -71,6 +71,7 @@ let Dollar = function dollar(jsonic) {
             }
             return bc(rule);
         };
+        return rs;
     });
 };
 let j4 = jsonic_1.Jsonic.make();
