@@ -8,7 +8,7 @@
     "strictNullChecks": true,
     "strictPropertyInitialization": true,
     "esModuleInterop": true,
-    "resolveJsonModule": true,
+    // "resolveJsonModule": true,
   },
   "exclude": [
     "dist",

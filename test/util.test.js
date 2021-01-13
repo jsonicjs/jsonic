@@ -83,6 +83,9 @@ describe('util', () => {
     expect(deep([[]],[{}])).equals([{}])
     expect(deep([{}],[[]])).equals([[]])
 
+    expect(deep({a:1},{b:2},{c:3})).equals({a:1,b:2,c:3})
+    expect(deep({a:1},{a:2,b:4},{c:3})).equals({a:2,b:4,c:3})
+    expect(deep({a:1},{a:2,b:4},{a:3,c:5})).equals({a:3,b:4,c:5})
   })
 
 

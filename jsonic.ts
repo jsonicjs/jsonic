@@ -6,23 +6,38 @@
    
 */
 
+
+// TODO: all errors as JsonicError
+
 // NEXT plugin: load file: { foo: @filepath }
 
-// NEXT: error messages
-
-// NEXT: Parser class
 
 
+type KV = { [k: string]: any }
 
-// Edge case notes (see unit tests):
-// LNnnn: Lex Note number
-// PNnnn: Parse Note number
+// TODO: complete
+type Opts = {
+  singles: string
+  escapes: { [denoting_char: string]: string }
+  comments: { [start_marker: string]: string | boolean }
+  balance: KV
+  number: KV
+  string: KV
+  text: KV
+  values: KV
+  digital: string
+  tokens: KV
+  bad_unicode_char: string
+  console: any
+  errors: { [code: string]: string }
+  hints: { [code: string]: string }
+} & KV
 
-//const I = require('util').inspect
+
 
 const NONE: any[] = []
 
-const STANDARD_OPTIONS = {
+const STANDARD_OPTIONS: Opts = {
 
   // Token start characters.
   // NOTE: All sc_* string properties generate SC_* char code arrays.
@@ -32,6 +47,7 @@ const STANDARD_OPTIONS = {
   sc_string: '"\'`',
   sc_none: '',
 
+  // Custom singles.
   singles: '',
 
   // String escape chars.
@@ -87,6 +103,29 @@ const STANDARD_OPTIONS = {
   console,
 
 
+  // Error messages.
+  errors: {
+    unknown: 'unknown error: $code',
+    unexpected: 'unexpected character `$src`'
+  },
+
+
+  // Error hints
+  hints: {
+    unknown:
+      `Since the error is unknown, this is probably a bug inside jsonic itself.
+Please consider posting a github issue - thanks!
+`,
+
+    unexpected: `The character \`$src\` should not occur at this point as it is not
+valid JSON syntax, even under the relaxed jsonic rules.  If it is not
+obviously wrong, the actual syntax error may be elsewhere. Try
+commenting out larger areas around this point until you get no errors,
+then remove the comments in small sections until you find the
+offending syntax.`
+  },
+
+
   // Arrays ([String]) are used for tokens to create unique internal
   // tokens protected from plugin tokens. Symbols are not used as they
   // create edge cases for string conversion.
@@ -126,12 +165,12 @@ const STANDARD_OPTIONS = {
 
 type Jsonic =
   // A function that parses.
-  ((src: any) => any)
+  ((src: any, meta?: any) => any)
   &
 
   // A utility with methods.
   {
-    parse: (src: any) => any,
+    parse: (src: any, meta?: any) => any,
     make: (opts?: Opts) => Jsonic,
     use: (plugin: Plugin) => void,
   }
@@ -143,7 +182,8 @@ type Jsonic =
 
 type Plugin = (jsonic: Jsonic) => void
 
-type Opts = { [k: string]: any }
+type Meta = { [k: string]: any }
+
 
 // Tokens from the lexer.
 type Token = {
@@ -164,6 +204,8 @@ type Token = {
 interface Context {
   rI: number
   opts: Opts
+  meta: Meta
+  src: () => string,
   node: any
   t0: Token
   t1: Token
@@ -178,11 +220,83 @@ interface Context {
 type Lex = (() => Token) & { src: string }
 
 
+class JsonicError extends SyntaxError {
+  constructor(
+    code: string,
+    details: KV,
+    token: Token,
+    ctx: Context,
+  ) {
+    details = util.deep({}, details)
+    ctx = util.deep({}, ctx)
+    let desc = JsonicError.make_desc(code, details, token, ctx)
+    super(desc.message)
+    Object.assign(this, desc)
+
+    if (this.stack) {
+      this.stack =
+        this.stack.split('\n').filter(s => !s.includes('jsonic/jsonic')).join('\n')
+    }
+  }
 
 
+  static make_desc(
+    code: string,
+    details: KV,
+    token: Token,
+    ctx: Context,
+  ) {
+    token = { ...token }
+    let opts = ctx.opts
+    let meta = ctx.meta
+    let errtxt = util.errinject(
+      (opts.errors[code] || opts.errors.unknown),
+      code, details, token, ctx
+    )
 
+    let message = [
+      '\x1b[31m[jsonic/' + code + ']:\x1b[0m ' + errtxt,
+      '  \x1b[34m-->\x1b[0m ' + (meta.fileName || '<no-file>') + ':' + token.row + ':' + token.col,
+      util.extract(ctx.src(), errtxt, token),
+      util.errinject(
+        (opts.hints[code] || opts.hints.unknown).split('\n')
+          .map((s: string) => '  ' + s).join('\n'),
+        code, details, token, ctx
+      )
+    ].join('\n')
 
+    let desc: any = {
+      internal: {
+        token,
+        ctx,
+      }
+    }
 
+    desc = {
+      ...Object.create(desc),
+      message,
+      code,
+      details,
+      meta,
+      fileName: meta.fileName,
+      lineNumber: token.row,
+      columnNumber: token.col,
+    }
+
+    return desc
+  }
+
+  toJSON() {
+    return {
+      ...this,
+      __error: true,
+      name: this.name,
+      message: this.message,
+      stack: this.stack,
+    }
+  }
+
+}
 
 
 class Lexer {
@@ -234,8 +348,7 @@ class Lexer {
 
   // Create the lexing function.
   start(
-    src: string,
-    ctx?: Context
+    ctx: Context
   ): Lex {
     const opts = this.options
 
@@ -255,6 +368,7 @@ class Lexer {
     let rI = 0 // Source row index.
     let cI = 0 // Source column index.
 
+    let src = ctx.src()
     let srclen = src.length
 
     // TS2722 impedes this definition unless Context is
@@ -771,7 +885,8 @@ class RuleSpec {
     let act = this.parse_alts(this.def.open, rule, ctx)
 
     if (act.e) {
-      throw new Error('unexpected token: ' + JSON.stringify(act.e))
+      //throw new Error('unexpected token: ' + JSON.stringify(act.e))
+      throw new JsonicError('unexpected', {}, act.e, ctx)
     }
 
     rule.open = act.m
@@ -918,6 +1033,12 @@ class RuleSpec {
         ctx.next()
       }
     }
+
+    /*
+    if (out.e) {
+      console.log(out.e)
+    }
+    */
 
     return out
   }
@@ -1095,51 +1216,26 @@ class Parser {
   }
 
 
-  start(lexer: Lexer, src: string, parse_config?: any): any {
+  start(lexer: Lexer, src: string, meta?: any): any {
     let opts = this.options
 
     let ctx: Context = {
       rI: 1,
       opts: opts,
+      meta: meta || {},
+      src: () => src, // Avoid printing src
       node: undefined,
       t0: opts.end,
       t1: opts.end,
       tI: -2,  // adjust count for token lookahead
       next,
       rs: [],
-      log: (parse_config && parse_config.log) || undefined
+      log: (meta && meta.log) || undefined
     }
 
-    // Special debug logging to console.
-    // log:N -> console.dir to depth N
-    // log:-1 -> console.dir to depth 1, omitting objects (good summary!)
-    if ('number' === typeof ctx.log) {
-      let exclude_objects = false
-      let logdepth = (ctx.log as number)
-      if (-1 === logdepth) {
-        logdepth = 1
-        exclude_objects = true
-      }
-      ctx.log = (...rest: any) => {
-        if (exclude_objects) {
-          let logstr = rest
-            .filter((item: any) => 'object' != typeof (item))
-            .join('\t')
+    util.make_log(ctx)
 
-          if ('node' === rest[0]) {
-            logstr += '\t' + JSON.stringify(rest[3])
-          }
-          opts.console.log(logstr)
-        }
-        else {
-          opts.console.dir(rest, { depth: logdepth })
-        }
-        return undefined
-      }
-    }
-
-
-    let lex = lexer.start(src, ctx)
+    let lex = lexer.start(ctx)
 
     let rule = new Rule(this.rulespecs.val, ctx, opts)
 
@@ -1156,6 +1252,8 @@ class Parser {
       let t1
       do {
         t1 = lex()
+        // console.log(t1)
+
         ctx.tI++
       } while (opts.tokens.ignore.includes(t1.pin))
 
@@ -1164,13 +1262,11 @@ class Parser {
       return ctx.t0
     }
 
-
-    // Prime two token lookahead
+    // Look two tokens ahead
     next()
     next()
 
-
-    // Process rules over tokens
+    // Process rules on tokens
     let rI = 0
 
     while (norule !== rule && rI < maxr) {
@@ -1198,21 +1294,25 @@ let util = {
   // Deep override for plain objects. Retains base object.
   // Array indexes are treated as properties.
   // Over wins non-matching types, except at top level.
-  deep: function(base?: any, over?: any): any {
-    if (null != base && null != over) {
-      for (let k in over) {
-        base[k] = (
-          'object' === typeof (base[k]) &&
-          'object' === typeof (over[k]) &&
-          (Array.isArray(base[k]) === Array.isArray(over[k]))
-        ) ? util.deep(base[k], over[k]) : over[k]
+  //deep: function(base?: any, over?: any): any {
+  deep: function(base?: any, ...rest: any): any {
+    for (let over of rest) {
+      if (null != base && null != over) {
+        for (let k in over) {
+          base[k] = (
+            'object' === typeof (base[k]) &&
+            'object' === typeof (over[k]) &&
+            (Array.isArray(base[k]) === Array.isArray(over[k]))
+          ) ? util.deep(base[k], over[k]) : over[k]
+        }
+        //return base
       }
-      return base
+      else {
+        base = null != over ? over : null != base ? base :
+          undefined != over ? over : base
+      }
     }
-    else {
-      return null != over ? over : null != base ? base :
-        undefined != over ? over : base
-    }
+    return base
   },
 
 
@@ -1225,6 +1325,80 @@ let util = {
 
   longest: (strs: string[]) =>
     strs.reduce((a, s) => a < s.length ? s.length : a, 0),
+
+
+  // Special debug logging to console (use Jsonic('...', {log:N})).
+  // log:N -> console.dir to depth N
+  // log:-1 -> console.dir to depth 1, omitting objects (good summary!)
+  make_log: (ctx: Context) => {
+    if ('number' === typeof ctx.log) {
+      let exclude_objects = false
+      let logdepth = (ctx.log as number)
+      if (-1 === logdepth) {
+        logdepth = 1
+        exclude_objects = true
+      }
+      ctx.log = (...rest: any) => {
+        if (exclude_objects) {
+          let logstr = rest
+            .filter((item: any) => 'object' != typeof (item))
+            .join('\t')
+
+          if ('node' === rest[0]) {
+            logstr += '\t' + JSON.stringify(rest[3])
+          }
+          ctx.opts.console.log(logstr)
+        }
+        else {
+          ctx.opts.console.dir(rest, { depth: logdepth })
+        }
+        return undefined
+      }
+    }
+  },
+
+
+  errinject: (s: string, code: string, details: KV, token: Token, ctx: Context) => {
+    return s.replace(/\$([\w_]+)/g, (m: any, name: string) => {
+      return (
+        'code' === name ? code : (
+          details[name] ||
+          ctx.meta[name] ||
+          (token as KV)[name] ||
+          (ctx as KV)[name] ||
+          ctx.opts[name] ||
+          '$' + name
+        )
+      )
+    })
+  },
+
+
+  extract: (src: string, errtxt: string, token: Token) => {
+    let loc = token.loc
+    let behind = src.substring(Math.max(0, loc - 333), loc).split('\n')
+    let ahead = src.substring(loc, loc + 333).split('\n')
+
+    let pad = 2 + ('' + (token.row + 2)).length
+    let rI = token.row - 2
+    let ln = (s: string) => '\x1b[34m' + ('' + (rI++)).padStart(pad, ' ') +
+      ' | \x1b[0m' + (null == s ? '' : s)
+
+    let lines = [
+      ln(behind[behind.length - 3]),
+      ln(behind[behind.length - 2]),
+      ln(behind[behind.length - 1] + ahead[0]),
+      (' '.repeat(pad)) + '   ' +
+      ' '.repeat(token.col) +
+      '\x1b[31m' + '^'.repeat(token.src.length) +
+      ' ' + errtxt + '\x1b[0m',
+      ln(ahead[1]),
+      ln(ahead[2]),
+    ]
+      .join('\n')
+
+    return lines
+  },
 
   // Idempotent normalization of options.
   norm_options: function(opts: Opts) {
@@ -1317,25 +1491,25 @@ let util = {
       [opts.SP, opts.LN, opts.CM]
 
     return opts
-  }
+  },
 }
+
 
 
 function make(first?: Opts | Jsonic, parent?: Jsonic): Jsonic {
 
   let param_opts = (first as Opts)
   if ('function' === typeof (first)) {
-    param_opts = {}
+    param_opts = ({} as Opts)
     parent = (first as Jsonic)
   }
 
-  let opts = util.deep(util.deep(
-    {}, parent ? parent.options : STANDARD_OPTIONS), param_opts)
+  let opts = util.deep({}, parent ? parent.options : STANDARD_OPTIONS, param_opts)
   opts = util.norm_options(opts)
 
-  let self: any = function Jsonic(src: any, parse_config?: any): any {
+  let self: any = function Jsonic(src: any, meta?: any): any {
     if ('string' === typeof (src)) {
-      return self._parser.start(self._lexer, src, parse_config)
+      return self._parser.start(self._lexer, src, meta)
     }
     return src
   }
@@ -1385,7 +1559,18 @@ function make(first?: Opts | Jsonic, parent?: Jsonic): Jsonic {
 
 let Jsonic: Jsonic = make()
 
-export { Jsonic, Plugin, Lexer, Parser, RuleSpec, Token, Context, util }
+export {
+  Jsonic,
+  Plugin,
+  JsonicError,
+  Lexer,
+  Parser,
+  RuleSpec,
+  Token,
+  Context,
+  Meta,
+  util
+}
 
 
 

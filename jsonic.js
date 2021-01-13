@@ -1,18 +1,7 @@
 "use strict";
 /* Copyright (c) 2013-2020 Richard Rodger, MIT License */
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.util = exports.RuleSpec = exports.Parser = exports.Lexer = exports.Jsonic = void 0;
-/* Specific Features
-   - comment TODO test
-   
-*/
-// NEXT plugin: load file: { foo: @filepath }
-// NEXT: error messages
-// NEXT: Parser class
-// Edge case notes (see unit tests):
-// LNnnn: Lex Note number
-// PNnnn: Parse Note number
-//const I = require('util').inspect
+exports.util = exports.RuleSpec = exports.Parser = exports.Lexer = exports.JsonicError = exports.Jsonic = void 0;
 const NONE = [];
 const STANDARD_OPTIONS = {
     // Token start characters.
@@ -22,6 +11,7 @@ const STANDARD_OPTIONS = {
     sc_number: '-0123456789',
     sc_string: '"\'`',
     sc_none: '',
+    // Custom singles.
     singles: '',
     // String escape chars.
     // Denoting char (follows escape char) => actual char.
@@ -62,6 +52,23 @@ const STANDARD_OPTIONS = {
     bad_unicode_char: String.fromCharCode('0x0000'),
     // Default console for logging
     console,
+    // Error messages.
+    errors: {
+        unknown: 'unknown error: $code',
+        unexpected: 'unexpected character `$src`'
+    },
+    // Error hints
+    hints: {
+        unknown: `Since the error is unknown, this is probably a bug inside jsonic itself.
+Please consider posting a github issue - thanks!
+`,
+        unexpected: `The character \`$src\` should not occur at this point as it is not
+valid JSON syntax, even under the relaxed jsonic rules.  If it is not
+obviously wrong, the actual syntax error may be elsewhere. Try
+commenting out larger areas around this point until you get no errors,
+then remove the comments in small sections until you find the
+offending syntax.`
+    },
     // Arrays ([String]) are used for tokens to create unique internal
     // tokens protected from plugin tokens. Symbols are not used as they
     // create edge cases for string conversion.
@@ -90,6 +97,59 @@ const STANDARD_OPTIONS = {
     LS_CONSUME: ['@CONSUME'],
     LS_MULTILINE: ['@MULTILINE'],
 };
+class JsonicError extends SyntaxError {
+    constructor(code, details, token, ctx) {
+        details = util.deep({}, details);
+        ctx = util.deep({}, ctx);
+        let desc = JsonicError.make_desc(code, details, token, ctx);
+        super(desc.message);
+        Object.assign(this, desc);
+        if (this.stack) {
+            this.stack =
+                this.stack.split('\n').filter(s => !s.includes('jsonic/jsonic')).join('\n');
+        }
+    }
+    static make_desc(code, details, token, ctx) {
+        token = { ...token };
+        let opts = ctx.opts;
+        let meta = ctx.meta;
+        let errtxt = util.errinject((opts.errors[code] || opts.errors.unknown), code, details, token, ctx);
+        let message = [
+            '\x1b[31m[jsonic/' + code + ']:\x1b[0m ' + errtxt,
+            '  \x1b[34m-->\x1b[0m ' + (meta.fileName || '<no-file>') + ':' + token.row + ':' + token.col,
+            util.extract(ctx.src(), errtxt, token),
+            util.errinject((opts.hints[code] || opts.hints.unknown).split('\n')
+                .map((s) => '  ' + s).join('\n'), code, details, token, ctx)
+        ].join('\n');
+        let desc = {
+            internal: {
+                token,
+                ctx,
+            }
+        };
+        desc = {
+            ...Object.create(desc),
+            message,
+            code,
+            details,
+            meta,
+            fileName: meta.fileName,
+            lineNumber: token.row,
+            columnNumber: token.col,
+        };
+        return desc;
+    }
+    toJSON() {
+        return {
+            ...this,
+            __error: true,
+            name: this.name,
+            message: this.message,
+            stack: this.stack,
+        };
+    }
+}
+exports.JsonicError = JsonicError;
 class Lexer {
     constructor(options) {
         let opts = this.options = options || util.deep({}, STANDARD_OPTIONS);
@@ -117,7 +177,7 @@ class Lexer {
         };
     }
     // Create the lexing function.
-    start(src, ctx) {
+    start(ctx) {
         const opts = this.options;
         // NOTE: always returns this object!
         let token = {
@@ -133,6 +193,7 @@ class Lexer {
         let sI = 0; // Source text index.
         let rI = 0; // Source row index.
         let cI = 0; // Source column index.
+        let src = ctx.src();
         let srclen = src.length;
         // TS2722 impedes this definition unless Context is
         // refined to (Context & { log: any })
@@ -504,7 +565,8 @@ class RuleSpec {
         }
         let act = this.parse_alts(this.def.open, rule, ctx);
         if (act.e) {
-            throw new Error('unexpected token: ' + JSON.stringify(act.e));
+            //throw new Error('unexpected token: ' + JSON.stringify(act.e))
+            throw new JsonicError('unexpected', {}, act.e, ctx);
         }
         rule.open = act.m;
         if (act.p) {
@@ -601,6 +663,11 @@ class RuleSpec {
                 ctx.next();
             }
         }
+        /*
+        if (out.e) {
+          console.log(out.e)
+        }
+        */
         return out;
     }
 }
@@ -747,46 +814,23 @@ class Parser {
     rule(name, define) {
         this.rulespecs[name] = define(this.rulespecs[name]) || this.rulespecs[name];
     }
-    start(lexer, src, parse_config) {
+    start(lexer, src, meta) {
         let opts = this.options;
         let ctx = {
             rI: 1,
             opts: opts,
+            meta: meta || {},
+            src: () => src,
             node: undefined,
             t0: opts.end,
             t1: opts.end,
             tI: -2,
             next,
             rs: [],
-            log: (parse_config && parse_config.log) || undefined
+            log: (meta && meta.log) || undefined
         };
-        // Special debug logging to console.
-        // log:N -> console.dir to depth N
-        // log:-1 -> console.dir to depth 1, omitting objects (good summary!)
-        if ('number' === typeof ctx.log) {
-            let exclude_objects = false;
-            let logdepth = ctx.log;
-            if (-1 === logdepth) {
-                logdepth = 1;
-                exclude_objects = true;
-            }
-            ctx.log = (...rest) => {
-                if (exclude_objects) {
-                    let logstr = rest
-                        .filter((item) => 'object' != typeof (item))
-                        .join('\t');
-                    if ('node' === rest[0]) {
-                        logstr += '\t' + JSON.stringify(rest[3]);
-                    }
-                    opts.console.log(logstr);
-                }
-                else {
-                    opts.console.dir(rest, { depth: logdepth });
-                }
-                return undefined;
-            };
-        }
-        let lex = lexer.start(src, ctx);
+        util.make_log(ctx);
+        let lex = lexer.start(ctx);
         let rule = new Rule(this.rulespecs.val, ctx, opts);
         let root = rule;
         // Maximum rule iterations. Allow for rule open and close,
@@ -798,15 +842,16 @@ class Parser {
             let t1;
             do {
                 t1 = lex();
+                // console.log(t1)
                 ctx.tI++;
             } while (opts.tokens.ignore.includes(t1.pin));
             ctx.t1 = { ...t1 };
             return ctx.t0;
         }
-        // Prime two token lookahead
+        // Look two tokens ahead
         next();
         next();
-        // Process rules over tokens
+        // Process rules on tokens
         let rI = 0;
         while (norule !== rule && rI < maxr) {
             ctx.log &&
@@ -825,19 +870,23 @@ let util = {
     // Deep override for plain objects. Retains base object.
     // Array indexes are treated as properties.
     // Over wins non-matching types, except at top level.
-    deep: function (base, over) {
-        if (null != base && null != over) {
-            for (let k in over) {
-                base[k] = ('object' === typeof (base[k]) &&
-                    'object' === typeof (over[k]) &&
-                    (Array.isArray(base[k]) === Array.isArray(over[k]))) ? util.deep(base[k], over[k]) : over[k];
+    //deep: function(base?: any, over?: any): any {
+    deep: function (base, ...rest) {
+        for (let over of rest) {
+            if (null != base && null != over) {
+                for (let k in over) {
+                    base[k] = ('object' === typeof (base[k]) &&
+                        'object' === typeof (over[k]) &&
+                        (Array.isArray(base[k]) === Array.isArray(over[k]))) ? util.deep(base[k], over[k]) : over[k];
+                }
+                //return base
             }
-            return base;
+            else {
+                base = null != over ? over : null != base ? base :
+                    undefined != over ? over : base;
+            }
         }
-        else {
-            return null != over ? over : null != base ? base :
-                undefined != over ? over : base;
-        }
+        return base;
     },
     // Convert string to character code array.
     // 'ab' -> [97,98]
@@ -845,6 +894,66 @@ let util = {
         return s.split('').map((c) => c.charCodeAt(0));
     },
     longest: (strs) => strs.reduce((a, s) => a < s.length ? s.length : a, 0),
+    // Special debug logging to console (use Jsonic('...', {log:N})).
+    // log:N -> console.dir to depth N
+    // log:-1 -> console.dir to depth 1, omitting objects (good summary!)
+    make_log: (ctx) => {
+        if ('number' === typeof ctx.log) {
+            let exclude_objects = false;
+            let logdepth = ctx.log;
+            if (-1 === logdepth) {
+                logdepth = 1;
+                exclude_objects = true;
+            }
+            ctx.log = (...rest) => {
+                if (exclude_objects) {
+                    let logstr = rest
+                        .filter((item) => 'object' != typeof (item))
+                        .join('\t');
+                    if ('node' === rest[0]) {
+                        logstr += '\t' + JSON.stringify(rest[3]);
+                    }
+                    ctx.opts.console.log(logstr);
+                }
+                else {
+                    ctx.opts.console.dir(rest, { depth: logdepth });
+                }
+                return undefined;
+            };
+        }
+    },
+    errinject: (s, code, details, token, ctx) => {
+        return s.replace(/\$([\w_]+)/g, (m, name) => {
+            return ('code' === name ? code : (details[name] ||
+                ctx.meta[name] ||
+                token[name] ||
+                ctx[name] ||
+                ctx.opts[name] ||
+                '$' + name));
+        });
+    },
+    extract: (src, errtxt, token) => {
+        let loc = token.loc;
+        let behind = src.substring(Math.max(0, loc - 333), loc).split('\n');
+        let ahead = src.substring(loc, loc + 333).split('\n');
+        let pad = 2 + ('' + (token.row + 2)).length;
+        let rI = token.row - 2;
+        let ln = (s) => '\x1b[34m' + ('' + (rI++)).padStart(pad, ' ') +
+            ' | \x1b[0m' + (null == s ? '' : s);
+        let lines = [
+            ln(behind[behind.length - 3]),
+            ln(behind[behind.length - 2]),
+            ln(behind[behind.length - 1] + ahead[0]),
+            (' '.repeat(pad)) + '   ' +
+                ' '.repeat(token.col) +
+                '\x1b[31m' + '^'.repeat(token.src.length) +
+                ' ' + errtxt + '\x1b[0m',
+            ln(ahead[1]),
+            ln(ahead[2]),
+        ]
+            .join('\n');
+        return lines;
+    },
     // Idempotent normalization of options.
     norm_options: function (opts) {
         let keys = Object.keys(opts);
@@ -910,7 +1019,7 @@ let util = {
         opts.tokens.ignore = NONE !== opts.tokens.ignore ? opts.tokens.ignore :
             [opts.SP, opts.LN, opts.CM];
         return opts;
-    }
+    },
 };
 exports.util = util;
 function make(first, parent) {
@@ -919,11 +1028,11 @@ function make(first, parent) {
         param_opts = {};
         parent = first;
     }
-    let opts = util.deep(util.deep({}, parent ? parent.options : STANDARD_OPTIONS), param_opts);
+    let opts = util.deep({}, parent ? parent.options : STANDARD_OPTIONS, param_opts);
     opts = util.norm_options(opts);
-    let self = function Jsonic(src, parse_config) {
+    let self = function Jsonic(src, meta) {
         if ('string' === typeof (src)) {
-            return self._parser.start(self._lexer, src, parse_config);
+            return self._parser.start(self._lexer, src, meta);
         }
         return src;
     };

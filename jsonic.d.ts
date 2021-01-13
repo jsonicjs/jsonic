@@ -1,12 +1,39 @@
-declare type Jsonic = ((src: any) => any) & {
-    parse: (src: any) => any;
+declare type KV = {
+    [k: string]: any;
+};
+declare type Opts = {
+    singles: string;
+    escapes: {
+        [denoting_char: string]: string;
+    };
+    comments: {
+        [start_marker: string]: string | boolean;
+    };
+    balance: KV;
+    number: KV;
+    string: KV;
+    text: KV;
+    values: KV;
+    digital: string;
+    tokens: KV;
+    bad_unicode_char: string;
+    console: any;
+    errors: {
+        [code: string]: string;
+    };
+    hints: {
+        [code: string]: string;
+    };
+} & KV;
+declare type Jsonic = ((src: any, meta?: any) => any) & {
+    parse: (src: any, meta?: any) => any;
     make: (opts?: Opts) => Jsonic;
     use: (plugin: Plugin) => void;
 } & {
     [prop: string]: any;
 };
 declare type Plugin = (jsonic: Jsonic) => void;
-declare type Opts = {
+declare type Meta = {
     [k: string]: any;
 };
 declare type Token = {
@@ -23,6 +50,8 @@ declare type Token = {
 interface Context {
     rI: number;
     opts: Opts;
+    meta: Meta;
+    src: () => string;
     node: any;
     t0: Token;
     t1: Token;
@@ -34,12 +63,22 @@ interface Context {
 declare type Lex = (() => Token) & {
     src: string;
 };
+declare class JsonicError extends SyntaxError {
+    constructor(code: string, details: KV, token: Token, ctx: Context);
+    static make_desc(code: string, details: KV, token: Token, ctx: Context): any;
+    toJSON(): this & {
+        __error: boolean;
+        name: string;
+        message: string;
+        stack: string | undefined;
+    };
+}
 declare class Lexer {
     options: Opts;
     end: Token;
     bad: any;
     constructor(options?: Opts);
-    start(src: string, ctx?: Context): Lex;
+    start(ctx: Context): Lex;
 }
 declare enum RuleState {
     open = 0,
@@ -86,13 +125,16 @@ declare class Parser {
     };
     constructor(options?: Opts);
     rule(name: string, define: (rs: RuleSpec) => RuleSpec): void;
-    start(lexer: Lexer, src: string, parse_config?: any): any;
+    start(lexer: Lexer, src: string, meta?: any): any;
 }
 declare let util: {
-    deep: (base?: any, over?: any) => any;
+    deep: (base?: any, ...rest: any) => any;
     s2cca: (s: string) => number[];
     longest: (strs: string[]) => number;
+    make_log: (ctx: Context) => void;
+    errinject: (s: string, code: string, details: KV, token: Token, ctx: Context) => string;
+    extract: (src: string, errtxt: string, token: Token) => string;
     norm_options: (opts: Opts) => Opts;
 };
 declare let Jsonic: Jsonic;
-export { Jsonic, Plugin, Lexer, Parser, RuleSpec, Token, Context, util };
+export { Jsonic, Plugin, JsonicError, Lexer, Parser, RuleSpec, Token, Context, Meta, util };
