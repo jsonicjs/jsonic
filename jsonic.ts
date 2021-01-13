@@ -178,7 +178,9 @@ type Jsonic =
     options: Opts & ((change_opts?: KV) => Jsonic)
     make: (opts?: Opts) => Jsonic
     use: (plugin: Plugin) => Jsonic
-    rule: (name: string, define: (rs: RuleSpec) => RuleSpec) => Jsonic
+    rule: (name: string, define:
+      (rs: RuleSpec, rsm: { [name: string]: RuleSpec }) => RuleSpec)
+      => Jsonic
   }
 
   // Extensible by plugin decoration. Example: `stringify`.
@@ -219,6 +221,7 @@ interface Context {
   rs: Rule[]
   next: () => Token
   log?: (...rest: any) => undefined
+  use: KV     // Custom meta data from plugins goes here.
 }
 
 
@@ -308,10 +311,10 @@ class JsonicError extends SyntaxError {
 
 
 class Lexer {
-
   options: Opts// = STANDARD_OPTIONS
   end: Token
   bad: any
+  match: { [state_name: string]: any } = {}
 
   constructor(options?: Opts) {
     let opts = this.options = options || util.deep({}, STANDARD_OPTIONS)
@@ -358,6 +361,7 @@ class Lexer {
   start(
     ctx: Context
   ): Lex {
+    // TODO: should be ctx.opts to ensure consistency
     const opts = this.options
 
     // NOTE: always returns this object!
@@ -386,6 +390,8 @@ class Lexer {
         ((...rest: any) => (ctx as (Context & { log: any })).log('lex', ...rest)) :
         undefined
 
+    let self = this
+
     // Lex next Token.
     let lex: Lex = (function lex(): Token {
       token.len = 0
@@ -409,6 +415,26 @@ class Lexer {
 
         if (opts.LS_TOP === state) {
           // TODO: implement custom lexing functions for state, lookup goes here
+
+          let matchers = self.match[opts.LS_TOP[0]]
+          if (null != matchers) {
+            token.loc = sI // TODO: move to top of while for all rules?
+
+            for (let matcher of matchers) {
+              console.log('matcher', matcher)
+
+              let match = matcher(sI, src, token, ctx)
+              console.log('match', match)
+              if (match) {
+                sI = match.sI
+                rI = match.rD ? rI + match.rD : rI
+                cI = match.cD ? cI + match.cD : cI
+                lexlog &&
+                  lexlog(token.pin[0], token.src, { ...token })
+                return token
+              }
+            }
+          }
 
           if (opts.SC_SPACE.includes(c0c)) {
 
@@ -805,6 +831,18 @@ class Lexer {
 
     return lex
   }
+
+
+  lex(state: string[], match: (
+    sI: number,
+    src: string,
+    token: Token,
+    ctx: Context
+  ) => any) {
+    let sn = state[0]
+    this.match[sn] = this.match[sn] || []
+    this.match[sn].push(match)
+  }
 }
 
 
@@ -872,22 +910,20 @@ class RuleSpec {
   name: string
   def: any
   rm: { [name: string]: RuleSpec }
-  //child: Rule
   match: any
 
   constructor(name: string, def: any, rm: { [name: string]: RuleSpec }) {
     this.name = name
     this.def = def
     this.rm = rm
-    //this.child = norule
   }
 
   open(rule: Rule, ctx: Context) {
     let next = rule
 
     if (this.def.before_open) {
-      let out = this.def.before_open.call(this, rule)
-      rule.node = out.node || rule.node
+      let out = this.def.before_open.call(this, rule, ctx)
+      rule.node = out && out.node || rule.node
     }
 
     let act = this.parse_alts(this.def.open, rule, ctx)
@@ -908,7 +944,7 @@ class RuleSpec {
     }
 
     if (this.def.after_open) {
-      this.def.after_open.call(this, rule, next)
+      this.def.after_open.call(this, rule, ctx, next)
     }
 
     ctx.log && ctx.log(
@@ -929,7 +965,7 @@ class RuleSpec {
     let why = 's'
 
     if (this.def.before_close) {
-      this.def.before_close.call(this, rule)
+      this.def.before_close.call(this, rule, ctx)
     }
 
     let act =
@@ -957,7 +993,7 @@ class RuleSpec {
     }
 
     if (this.def.after_close) {
-      this.def.after_close.call(this, rule, next)
+      this.def.after_close.call(this, rule, ctx, next)
     }
 
     next.why = why
@@ -1196,11 +1232,9 @@ class Parser {
           { s: [o.ST], r: 'elem', b: 1 },
           { s: [o.VL], r: 'elem', b: 1 },
         ],
-        after_open: (rule: Rule, next: Rule) => {
-          // console.log('after_open', rule === next, rule.open[0])
+        after_open: (rule: Rule, ctx: Context, next: Rule) => {
           if (rule === next && rule.open[0]) {
             let val = rule.open[0].val
-            //console.log('VAL', val)
             // Insert `null` if no value preceeded the comma (eg. [,1] -> [null, 1])
             rule.node.push(null != val ? val : null)
           }
@@ -1222,8 +1256,12 @@ class Parser {
   }
 
 
-  rule(name: string, define: (rs: RuleSpec) => RuleSpec) {
-    this.rulespecs[name] = define(this.rulespecs[name]) || this.rulespecs[name]
+  rule(
+    name: string,
+    define: (rs: RuleSpec, rsm: { [n: string]: RuleSpec }) => RuleSpec
+  ) {
+    this.rulespecs[name] = define(this.rulespecs[name], this.rulespecs) ||
+      this.rulespecs[name]
   }
 
 
@@ -1241,7 +1279,8 @@ class Parser {
       tI: -2,  // adjust count for token lookahead
       next,
       rs: [],
-      log: (meta && meta.log) || undefined
+      log: (meta && meta.log) || undefined,
+      use: {}
     }
 
     util.make_log(ctx)
@@ -1263,8 +1302,6 @@ class Parser {
       let t1
       do {
         t1 = lex()
-        // console.log(t1)
-
         ctx.tI++
       } while (opts.tokens.ignore.includes(t1.pin))
 
@@ -1441,8 +1478,6 @@ let util = {
             col = cI < loc ? src.substring(cI, loc).length - 1 : 0
           }
 
-          //console.log('RC', row, col)
-
           let token = ex.token || {
             pin: opts.UK,
             loc: loc,
@@ -1469,7 +1504,8 @@ let util = {
               tI: -1,
               rs: [],
               next: () => token, // TODO: should be end token
-              log: meta.log
+              log: meta.log,
+              use: {}
             } as Context,
           )
         }
@@ -1579,7 +1615,6 @@ let util = {
 
 
 function make(first?: Opts | Jsonic, parent?: Jsonic): Jsonic {
-
   // Handle polymorphic params.
   let param_opts = (first as Opts)
   if ('function' === typeof (first)) {
@@ -1598,14 +1633,6 @@ function make(first?: Opts | Jsonic, parent?: Jsonic): Jsonic {
   let self: any = function Jsonic(src: any, meta?: any): any {
     if ('string' === typeof (src)) {
       let internal = self.internal()
-
-      /*
-      if (null != meta && null != meta.mode &&
-        'function' === typeof (opts.mode[meta.mode])) {
-        [done, out] = opts.mode[meta.mode].call(self, src, meta)
-      }
-      */
-
 
       let [done, out] =
         (null != meta && null != meta.mode) ? util.handle_meta_mode(self, src, meta) :
@@ -1630,10 +1657,10 @@ function make(first?: Opts | Jsonic, parent?: Jsonic): Jsonic {
     self.parent = parent
   }
 
-  self.internal = () => ({
-    lexer: new Lexer(opts),
-    parser: new Parser(opts)
-  })
+  let lexer = new Lexer(opts)
+  let parser = new Parser(opts)
+
+  self.internal = () => ({ lexer, parser })
 
   self.options = util.deep((change_opts?: KV): Jsonic => {
     if (null != change_opts && 'object' === typeof (change_opts)) {
@@ -1658,6 +1685,18 @@ function make(first?: Opts | Jsonic, parent?: Jsonic): Jsonic {
     self.internal().parser.rule(name, define)
     return self
   }
+
+
+  self.lex = function(state: string[], match: (
+    sI: number,
+    src: string,
+    token: Token,
+    ctx: Context
+  ) => any) {
+    let lexer = this.internal().lexer
+    lexer.lex(state, match)
+  }
+
 
   self.make = function(opts?: Opts) {
     return make(opts, self)

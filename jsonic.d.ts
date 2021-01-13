@@ -31,7 +31,9 @@ declare type Jsonic = ((src: any, meta?: any) => any) & {
     options: Opts & ((change_opts?: KV) => Jsonic);
     make: (opts?: Opts) => Jsonic;
     use: (plugin: Plugin) => Jsonic;
-    rule: (name: string, define: (rs: RuleSpec) => RuleSpec) => Jsonic;
+    rule: (name: string, define: (rs: RuleSpec, rsm: {
+        [name: string]: RuleSpec;
+    }) => RuleSpec) => Jsonic;
 } & {
     [prop: string]: any;
 };
@@ -62,6 +64,7 @@ interface Context {
     rs: Rule[];
     next: () => Token;
     log?: (...rest: any) => undefined;
+    use: KV;
 }
 declare type Lex = (() => Token) & {
     src: string;
@@ -80,8 +83,12 @@ declare class Lexer {
     options: Opts;
     end: Token;
     bad: any;
+    match: {
+        [state_name: string]: any;
+    };
     constructor(options?: Opts);
     start(ctx: Context): Lex;
+    lex(state: string[], match: (sI: number, src: string, token: Token, ctx: Context) => any): void;
 }
 declare enum RuleState {
     open = 0,
@@ -128,7 +135,9 @@ declare class Parser {
         [name: string]: RuleSpec;
     };
     constructor(options?: Opts);
-    rule(name: string, define: (rs: RuleSpec) => RuleSpec): void;
+    rule(name: string, define: (rs: RuleSpec, rsm: {
+        [n: string]: RuleSpec;
+    }) => RuleSpec): void;
     start(lexer: Lexer, src: string, meta?: any): any;
 }
 declare let util: {

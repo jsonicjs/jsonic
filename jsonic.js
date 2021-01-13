@@ -155,6 +155,7 @@ class JsonicError extends SyntaxError {
 exports.JsonicError = JsonicError;
 class Lexer {
     constructor(options) {
+        this.match = {};
         let opts = this.options = options || util.deep({}, STANDARD_OPTIONS);
         this.end = {
             pin: opts.ZZ,
@@ -181,6 +182,7 @@ class Lexer {
     }
     // Create the lexing function.
     start(ctx) {
+        // TODO: should be ctx.opts to ensure consistency
         const opts = this.options;
         // NOTE: always returns this object!
         let token = {
@@ -203,6 +205,7 @@ class Lexer {
         let lexlog = (null != ctx && null != ctx.log) ?
             ((...rest) => ctx.log('lex', ...rest)) :
             undefined;
+        let self = this;
         // Lex next Token.
         let lex = function lex() {
             token.len = 0;
@@ -220,6 +223,23 @@ class Lexer {
                 let c0c = src.charCodeAt(sI);
                 if (opts.LS_TOP === state) {
                     // TODO: implement custom lexing functions for state, lookup goes here
+                    let matchers = self.match[opts.LS_TOP[0]];
+                    if (null != matchers) {
+                        token.loc = sI; // TODO: move to top of while for all rules?
+                        for (let matcher of matchers) {
+                            console.log('matcher', matcher);
+                            let match = matcher(sI, src, token, ctx);
+                            console.log('match', match);
+                            if (match) {
+                                sI = match.sI;
+                                rI = match.rD ? rI + match.rD : rI;
+                                cI = match.cD ? cI + match.cD : cI;
+                                lexlog &&
+                                    lexlog(token.pin[0], token.src, { ...token });
+                                return token;
+                            }
+                        }
+                    }
                     if (opts.SC_SPACE.includes(c0c)) {
                         token.pin = opts.SP;
                         token.loc = sI;
@@ -518,6 +538,11 @@ class Lexer {
         lex.src = src;
         return lex;
     }
+    lex(state, match) {
+        let sn = state[0];
+        this.match[sn] = this.match[sn] || [];
+        this.match[sn].push(match);
+    }
 }
 exports.Lexer = Lexer;
 var RuleState;
@@ -558,13 +583,12 @@ class RuleSpec {
         this.name = name;
         this.def = def;
         this.rm = rm;
-        //this.child = norule
     }
     open(rule, ctx) {
         let next = rule;
         if (this.def.before_open) {
-            let out = this.def.before_open.call(this, rule);
-            rule.node = out.node || rule.node;
+            let out = this.def.before_open.call(this, rule, ctx);
+            rule.node = out && out.node || rule.node;
         }
         let act = this.parse_alts(this.def.open, rule, ctx);
         if (act.e) {
@@ -580,7 +604,7 @@ class RuleSpec {
             next = new Rule(this.rm[act.r], ctx, rule.opts, rule.node);
         }
         if (this.def.after_open) {
-            this.def.after_open.call(this, rule, next);
+            this.def.after_open.call(this, rule, ctx, next);
         }
         ctx.log && ctx.log('node', rule.name + '/' + rule.id, RuleState[rule.state], rule.node);
         rule.state = RuleState.close;
@@ -590,7 +614,7 @@ class RuleSpec {
         let next = norule;
         let why = 's';
         if (this.def.before_close) {
-            this.def.before_close.call(this, rule);
+            this.def.before_close.call(this, rule, ctx);
         }
         let act = 0 < this.def.close.length ? this.parse_alts(this.def.close, rule, ctx) : {};
         if (act.e) {
@@ -612,7 +636,7 @@ class RuleSpec {
             why = 'p';
         }
         if (this.def.after_close) {
-            this.def.after_close.call(this, rule, next);
+            this.def.after_close.call(this, rule, ctx, next);
         }
         next.why = why;
         ctx.log && ctx.log('node', rule.name + '/' + rule.id, RuleState[rule.state], why, rule.node);
@@ -792,11 +816,9 @@ class Parser {
                     { s: [o.ST], r: 'elem', b: 1 },
                     { s: [o.VL], r: 'elem', b: 1 },
                 ],
-                after_open: (rule, next) => {
-                    // console.log('after_open', rule === next, rule.open[0])
+                after_open: (rule, ctx, next) => {
                     if (rule === next && rule.open[0]) {
                         let val = rule.open[0].val;
-                        //console.log('VAL', val)
                         // Insert `null` if no value preceeded the comma (eg. [,1] -> [null, 1])
                         rule.node.push(null != val ? val : null);
                     }
@@ -816,7 +838,8 @@ class Parser {
         }, {});
     }
     rule(name, define) {
-        this.rulespecs[name] = define(this.rulespecs[name]) || this.rulespecs[name];
+        this.rulespecs[name] = define(this.rulespecs[name], this.rulespecs) ||
+            this.rulespecs[name];
     }
     start(lexer, src, meta) {
         let opts = this.options;
@@ -831,7 +854,8 @@ class Parser {
             tI: -2,
             next,
             rs: [],
-            log: (meta && meta.log) || undefined
+            log: (meta && meta.log) || undefined,
+            use: {}
         };
         util.make_log(ctx);
         let lex = lexer.start(ctx);
@@ -846,7 +870,6 @@ class Parser {
             let t1;
             do {
                 t1 = lex();
-                // console.log(t1)
                 ctx.tI++;
             } while (opts.tokens.ignore.includes(t1.pin));
             ctx.t1 = { ...t1 };
@@ -986,7 +1009,6 @@ let util = {
                             cI--;
                         col = cI < loc ? src.substring(cI, loc).length - 1 : 0;
                     }
-                    //console.log('RC', row, col)
                     let token = ex.token || {
                         pin: opts.UK,
                         loc: loc,
@@ -1009,7 +1031,8 @@ let util = {
                         tI: -1,
                         rs: [],
                         next: () => token,
-                        log: meta.log
+                        log: meta.log,
+                        use: {}
                     });
                 }
                 else
@@ -1101,12 +1124,6 @@ function make(first, parent) {
     let self = function Jsonic(src, meta) {
         if ('string' === typeof (src)) {
             let internal = self.internal();
-            /*
-            if (null != meta && null != meta.mode &&
-              'function' === typeof (opts.mode[meta.mode])) {
-              [done, out] = opts.mode[meta.mode].call(self, src, meta)
-            }
-            */
             let [done, out] = (null != meta && null != meta.mode) ? util.handle_meta_mode(self, src, meta) :
                 [false];
             if (!done) {
@@ -1123,10 +1140,9 @@ function make(first, parent) {
         }
         self.parent = parent;
     }
-    self.internal = () => ({
-        lexer: new Lexer(opts),
-        parser: new Parser(opts)
-    });
+    let lexer = new Lexer(opts);
+    let parser = new Parser(opts);
+    self.internal = () => ({ lexer, parser });
     self.options = util.deep((change_opts) => {
         if (null != change_opts && 'object' === typeof (change_opts)) {
             opts = util.norm_options(util.deep(opts, change_opts));
@@ -1144,6 +1160,10 @@ function make(first, parent) {
     self.rule = function (name, define) {
         self.internal().parser.rule(name, define);
         return self;
+    };
+    self.lex = function (state, match) {
+        let lexer = this.internal().lexer;
+        lexer.lex(state, match);
     };
     self.make = function (opts) {
         return make(opts, self);
