@@ -215,6 +215,16 @@ describe('feature', function () {
   })
 
 
+  it('value-text', () => {
+    expect(j('a')).equals('a')
+    expect(j('a/b')).equals('a/b')
+    expect(j('a#b')).equals('a')
+    expect(j('a//b')).equals('a')
+    expect(j('a/*b*/')).equals('a')
+    
+  })
+
+  
   it('value-string', () => {
     expect(j('\'\'')).equals('')
     expect(j('""')).equals('')

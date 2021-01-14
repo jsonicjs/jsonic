@@ -402,7 +402,9 @@ class Lexer {
                         // Also check for comment markers as single comment char could be
                         // a comment marker prefix (eg. # and ###)
                         let marker = src.substring(sI, sI + opts.COMMENT_MARKER_MAXLEN);
+                        //console.log('CM marker', marker, opts.COMMENT_MARKER)
                         for (let cm of opts.COMMENT_MARKER) {
+                            //console.log('CM', cm, marker.startsWith(cm))
                             if (marker.startsWith(cm)) {
                                 // Multi-line comment
                                 if (true !== opts.comments[cm]) {
@@ -420,6 +422,7 @@ class Lexer {
                                 break;
                             }
                         }
+                        //console.log('CM', is_line_comment)
                         if (is_line_comment) {
                             token.pin = opts.CM;
                             token.loc = sI;
@@ -459,7 +462,12 @@ class Lexer {
                     }
                     // Only thing left is literal text
                     let text_enders = opts.text.hoover ? opts.HOOVER_ENDERS : opts.TEXT_ENDERS;
-                    while (null != src[pI] && !text_enders.includes(src[pI])) {
+                    // TODO: construct a RegExp to do this
+                    while (null != src[pI] &&
+                        (!text_enders.includes(src[pI]) ||
+                            //("/".includes(src[pI]) && !"*/".includes(src[pI + 1]))
+                            (opts.COMMENT_MARKER_FIRST.includes(src[pI]) &&
+                                !opts.COMMENT_MARKER_SECOND.includes(src[pI + 1])))) {
                         cI++;
                         pI++;
                     }
@@ -1089,6 +1097,8 @@ let util = {
         opts.SC_COMMENT = [];
         opts.COMMENT_SINGLE = '';
         opts.COMMENT_MARKER = [];
+        opts.COMMENT_MARKER_FIRST = '';
+        opts.COMMENT_MARKER_SECOND = '';
         if (opts.comments) {
             let comment_markers = Object.keys(opts.comments);
             comment_markers.forEach(k => {
@@ -1101,6 +1111,8 @@ let util = {
                 else {
                     opts.SC_COMMENT.push(k.charCodeAt(0));
                     opts.COMMENT_MARKER.push(k);
+                    opts.COMMENT_MARKER_FIRST += k[0];
+                    opts.COMMENT_MARKER_SECOND += k[1];
                 }
             });
             opts.COMMENT_MARKER_MAXLEN = util.longest(comment_markers);
