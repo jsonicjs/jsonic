@@ -1,7 +1,5 @@
 /* Copyright (c) 2013-2020 Richard Rodger, MIT License */
 
-// TOD: use prev code
-
 import { Jsonic, Plugin, JsonicError } from '../jsonic'
 
 let Json: Plugin = function stringify(jsonic: Jsonic) {

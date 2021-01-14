@@ -1,18 +1,8 @@
 /* Copyright (c) 2013-2020 Richard Rodger, MIT License */
 
 
-/* Specific Features
-   - comment TODO test
-   
-*/
-
-
-// TODO: csv plugin
-// TODO: all errors as JsonicError
 // TODO: remove plurals
-
-// NEXT plugin: load file: { foo: @filepath }
-
+// TODO: all errors as JsonicError
 
 
 type KV = { [k: string]: any }
@@ -30,6 +20,7 @@ type Opts = {
   digital: string
   tokens: KV
   mode: KV
+  plugin: KV
   bad_unicode_char: string
   console: any
   error: { [code: string]: string }
@@ -78,7 +69,8 @@ const STANDARD_OPTIONS: Opts = {
   },
 
   string: {
-    multiline: '`'
+    multiline: '`',
+    escapedouble: false,
   },
 
   text: {
@@ -94,12 +86,17 @@ const STANDARD_OPTIONS: Opts = {
 
   digital: '-1023456789._xeEaAbBcCdDfF+',
 
+  // Increments row (aka line) counter.
+  rowchar: '\n',
+
   tokens: {
     value: (NONE as any[]),
     ignore: (NONE as any[]),
   },
 
   mode: {},
+
+  plugin: {},
 
   bad_unicode_char: String.fromCharCode('0x0000' as any),
 
@@ -110,7 +107,7 @@ const STANDARD_OPTIONS: Opts = {
   // Error messages.
   error: {
     unknown: 'unknown error: $code',
-    unexpected: 'unexpected character `$src`'
+    unexpected: 'unexpected character(s): `$src`'
   },
 
 
@@ -121,7 +118,7 @@ const STANDARD_OPTIONS: Opts = {
 Please consider posting a github issue - thanks!
 `,
 
-    unexpected: `The character \`$src\` should not occur at this point as it is not
+    unexpected: `The character(s) \`$src\` should not occur at this point as it is not
 valid JSON syntax, even under the relaxed jsonic rules.  If it is not
 obviously wrong, the actual syntax error may be elsewhere. Try
 commenting out larger areas around this point until you get no errors,
@@ -176,8 +173,8 @@ type Jsonic =
   {
     parse: (src: any, meta?: any) => any
     options: Opts & ((change_opts?: KV) => Jsonic)
-    make: (opts?: Opts) => Jsonic
-    use: (plugin: Plugin) => Jsonic
+    make: (opts?: KV) => Jsonic
+    use: (plugin: Plugin, opts?: KV) => Jsonic
     rule: (name: string, define:
       (rs: RuleSpec, rsm: { [name: string]: RuleSpec }) => RuleSpec)
       => Jsonic
@@ -210,7 +207,7 @@ type Token = {
 
 
 interface Context {
-  rI: number
+  rI: number // TODO remove?
   opts: Opts
   meta: Meta
   src: () => string,
@@ -421,10 +418,10 @@ class Lexer {
             token.loc = sI // TODO: move to top of while for all rules?
 
             for (let matcher of matchers) {
-              console.log('matcher', matcher)
+              //console.log('matcher', matcher)
 
               let match = matcher(sI, src, token, ctx)
-              console.log('match', match)
+              //console.log('match', match)
               if (match) {
                 sI = match.sI
                 rI = match.rD ? rI + match.rD : rI
@@ -444,6 +441,7 @@ class Lexer {
 
             pI = sI + 1
             while (opts.sc_space.includes(src[pI])) cI++, pI++;
+            // TODO: count rows! for csv
 
             token.len = pI - sI
             token.val = src.substring(sI, pI)
@@ -466,7 +464,7 @@ class Lexer {
 
             while (opts.sc_line.includes(src[pI])) {
               // Only count \n as a row increment
-              rI += ('\n' === src[pI] ? 1 : 0)
+              rI += (opts.rowchar === src[pI] ? 1 : 0)
               pI++
             }
 
@@ -556,8 +554,14 @@ class Lexer {
               cc = src.charCodeAt(pI)
 
               if (qc === cc) {
-                pI++
-                break // String finished.
+                if (opts.string.escapedouble && qc === src.charCodeAt(pI + 1)) {
+                  s.push(src[pI])
+                  pI++
+                }
+                else {
+                  pI++
+                  break // String finished.
+                }
               }
               else if (92 === cc) {
                 let ec = src.charCodeAt(++pI)
@@ -801,6 +805,7 @@ class Lexer {
             }
             else {
               pI++
+              // TODO: count rows!
             }
           }
 
@@ -1024,7 +1029,7 @@ class RuleSpec {
       for (alt of alts) {
 
         // Optional custom condition
-        let cond = alt.c ? alt.c(alt, ctx) : true
+        let cond = alt.c ? alt.c(alt, rule, ctx) : true
         if (cond) {
 
           // No tokens to match.
@@ -1102,7 +1107,7 @@ class Parser {
     let o = this.options = options || util.deep({}, STANDARD_OPTIONS)
     //let o = this.options = util.deep(this.options, options)
 
-    let top = (alt: any, ctx: Context) => 0 === ctx.rs.length
+    let top = (alt: any, rule: Rule, ctx: Context) => 0 === ctx.rs.length
 
     this.rules = {
       val: {
@@ -1614,11 +1619,11 @@ let util = {
 
 
 
-function make(first?: Opts | Jsonic, parent?: Jsonic): Jsonic {
+function make(first?: KV | Jsonic, parent?: Jsonic): Jsonic {
   // Handle polymorphic params.
-  let param_opts = (first as Opts)
+  let param_opts = (first as KV)
   if ('function' === typeof (first)) {
-    param_opts = ({} as Opts)
+    param_opts = ({} as KV)
     parent = (first as Jsonic)
   }
 
@@ -1675,9 +1680,13 @@ function make(first?: Opts | Jsonic, parent?: Jsonic): Jsonic {
   self.parse = self
 
 
-  self.use = function use(plugin: Plugin): Jsonic {
-    plugin(self)
-    return self
+  self.use = function use(plugin: Plugin, opts?: KV): Jsonic {
+    let jsonic = self
+    if (opts) {
+      jsonic = self.make(opts)
+    }
+    plugin(jsonic)
+    return jsonic
   }
 
 
@@ -1715,6 +1724,7 @@ export {
   JsonicError,
   Lexer,
   Parser,
+  Rule,
   RuleSpec,
   Token,
   Context,

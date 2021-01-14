@@ -1,5 +1,7 @@
 "use strict";
+/* Copyright (c) 2013-2020 Richard Rodger, MIT License */
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.Csv = void 0;
 const jsonic_1 = require("../jsonic");
 let Csv = function csv(jsonic) {
     let DEFAULTS = {
@@ -87,22 +89,5 @@ let Csv = function csv(jsonic) {
         return rs;
     });
 };
-jsonic_1.Jsonic.use(Csv);
-console.log(jsonic_1.Jsonic(`Name,Color,Size
-foo,red,10
-bar,green,20
-zed,blue,30
-`));
-console.log('TABSEP');
-let jt0 = jsonic_1.Jsonic.use(Csv, { plugin: { csv: { fieldsepchar: '\t' } } });
-//console.log(jt.options)
-console.log(jt0(`Name\tColor\tSize
-foo\tred\t10
-bar\tgreen\t20
-zed\tblue\t30
-`));
-console.log('TABSEP RECSEP');
-let jt1 = jsonic_1.Jsonic.use(Csv, { plugin: { csv: { fieldsepchar: '\t', recordsepchar: ';' } } });
-//console.log(jt.options)
-console.log(jt1(`Name\tColor\tSize;foo\tred\t10;bar\tgreen\t20;zed\tblue\t30`));
+exports.Csv = Csv;
 //# sourceMappingURL=csv.js.map

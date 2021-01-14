@@ -1,3 +1,4 @@
+/* Copyright (c) 2013-2020 Richard Rodger, MIT License */
 
 import { Jsonic, Plugin, Token, Rule, RuleSpec, Context, util } from '../jsonic'
 
@@ -119,27 +120,5 @@ let Csv: Plugin = function csv(jsonic: Jsonic) {
   })
 }
 
-
-Jsonic.use(Csv)
-console.log(Jsonic(`Name,Color,Size
-foo,red,10
-bar,green,20
-zed,blue,30
-`))
-
-
-console.log('TABSEP')
-let jt0 = Jsonic.use(Csv, { plugin: { csv: { fieldsepchar: '\t' } } })
-//console.log(jt.options)
-console.log(jt0(`Name\tColor\tSize
-foo\tred\t10
-bar\tgreen\t20
-zed\tblue\t30
-`))
-
-
-console.log('TABSEP RECSEP')
-let jt1 = Jsonic.use(Csv, { plugin: { csv: { fieldsepchar: '\t', recordsepchar: ';' } } })
-//console.log(jt.options)
-console.log(jt1(`Name\tColor\tSize;foo\tred\t10;bar\tgreen\t20;zed\tblue\t30`))
+export { Csv }
 

@@ -17,6 +17,7 @@ declare type Opts = {
     digital: string;
     tokens: KV;
     mode: KV;
+    plugin: KV;
     bad_unicode_char: string;
     console: any;
     error: {
@@ -29,8 +30,8 @@ declare type Opts = {
 declare type Jsonic = ((src: any, meta?: any) => any) & {
     parse: (src: any, meta?: any) => any;
     options: Opts & ((change_opts?: KV) => Jsonic);
-    make: (opts?: Opts) => Jsonic;
-    use: (plugin: Plugin) => Jsonic;
+    make: (opts?: KV) => Jsonic;
+    use: (plugin: Plugin, opts?: KV) => Jsonic;
     rule: (name: string, define: (rs: RuleSpec, rsm: {
         [name: string]: RuleSpec;
     }) => RuleSpec) => Jsonic;
@@ -151,4 +152,4 @@ declare let util: {
     norm_options: (opts: Opts) => Opts;
 };
 declare let Jsonic: Jsonic;
-export { Jsonic, Plugin, JsonicError, Lexer, Parser, RuleSpec, Token, Context, Meta, util };
+export { Jsonic, Plugin, JsonicError, Lexer, Parser, Rule, RuleSpec, Token, Context, Meta, util };

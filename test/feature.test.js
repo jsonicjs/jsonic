@@ -215,6 +215,34 @@ describe('feature', function () {
   })
 
 
+  it('value-string', () => {
+    expect(j('\'\'')).equals('')
+    expect(j('""')).equals('')
+    expect(j('``')).equals('')
+
+    expect(j('\'a\'')).equals('a')
+    expect(j('"a"')).equals('a')
+    expect(j('`a`')).equals('a')
+
+    expect(j('\'a b\'')).equals('a b')
+    expect(j('"a b"')).equals('a b')
+    expect(j('`a b`')).equals('a b')
+
+    expect(j('\'a\\tb\'')).equals('a\tb')
+    expect(j('"a\\tb"')).equals('a\tb')
+    expect(j('`a\\tb`')).equals('a\tb')
+
+    expect(j('\'a\\\'b"`c\'')).equals('a\'b"`c')
+    expect(j('"a\\"b`\'c"')).equals('a"b`\'c')
+    expect(j('`a\\`b"\'c`')).equals('a`b"\'c')
+
+    let k = j.make({string:{escapedouble:true}})
+    expect(k('"a""b"')).equals('a"b')
+    expect(k('`a``b`')).equals('a`b')
+    expect(k('\'a\'\'b\'')).equals('a\'b')
+  })
+  
+
   it('multiline-string', () => {
     expect(j('`a`')).equals('a')
     expect(j('`a\n`')).equals('a\n')

@@ -1,0 +1,5 @@
+red:   {name:RED}
+green: @green01.json
+blue:  @blue01.js
+cyan:  @cyan.csv
+tree:  @"trunk/branch.jsonic"
