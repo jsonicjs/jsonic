@@ -1,0 +1,4 @@
+foo:$1+1
+//red: $.red.name
+//item: $.red
+item: {extra:3}

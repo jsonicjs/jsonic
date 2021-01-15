@@ -1,5 +1,8 @@
-red:   {name:RED}
-green: @green01.json
-blue:  @blue01.js
-cyan:  @cyan.csv
-tree:  @"trunk/branch.jsonic"
+dynamic: $1+1
+red:     {name:RED}
+redder:  { red: $.red }
+green:   @green01.json
+blue:    @blue01.js
+cyan:    @cyan.csv
+tree:    @"trunk/branch.jsonic"
+again:   @again.jsonic

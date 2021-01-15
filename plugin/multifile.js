@@ -18,19 +18,26 @@ let DEFAULTS = {
 let Multifile = function multifile(jsonic) {
     let popts = jsonic_1.util.deep({}, DEFAULTS, jsonic.options.plugin.multifile);
     let atchar = popts.char;
+    // console.log('MF popts', popts)
     jsonic.options({
         singles: jsonic.options.singles + atchar
     });
-    let json = jsonic_1.Jsonic.use(json_1.Json, jsonic.options.plugin.json || {});
-    let csv = jsonic_1.Jsonic.use(csv_1.Csv, jsonic.options.plugin.csv || {});
+    // TODO: lexer+parser constructors to handle parent arg
+    // These need to inherit previous plugins - they are not clean new instances
+    let json = jsonic.make().use(json_1.Json, jsonic.options.plugin.json || {});
+    let csv = jsonic.make().use(csv_1.Csv, jsonic.options.plugin.csv || {});
     let ST = jsonic.options.ST;
     let TX = jsonic.options.TX;
     let AT = jsonic.options.TOKENS[atchar];
+    AT.mark = Math.random();
+    //console.log('AT', AT)
     jsonic.rule('val', (rs) => {
+        //console.log('RSO', rs.def.open.mark)
         rs.def.open.push({ s: [AT, ST] }, { s: [AT, TX] });
         let bc = rs.def.before_close;
         rs.def.before_close = (rule, ctx) => {
             if (rule.open[0]) {
+                //console.log('MF bc AT', AT)
                 if (AT === rule.open[0].pin) {
                     // TODO: text TX=foo/bar as @"foo/bar" works but @foo/bar does not!
                     let filepath = rule.open[1].val;
@@ -53,6 +60,7 @@ let Multifile = function multifile(jsonic) {
                             val = json(content, { mode: 'json', fileName: fullpath });
                         }
                         else if ('.jsonic' === file_ext) {
+                            // TODO: need a way to init root node so refs work!
                             val = jsonic(content, { basepath: basepath, fileName: fullpath });
                             // TODO: test make preserves plugins
                             //.make({ plugin: { multifile: { basepath: basepath } } })

@@ -32,9 +32,10 @@ declare type Jsonic = ((src: any, meta?: any) => any) & {
     options: Opts & ((change_opts?: KV) => Jsonic);
     make: (opts?: KV) => Jsonic;
     use: (plugin: Plugin, opts?: KV) => Jsonic;
-    rule: (name: string, define: (rs: RuleSpec, rsm: {
+    rule: (name?: string, define?: (rs: RuleSpec, rsm: {
         [name: string]: RuleSpec;
     }) => RuleSpec) => Jsonic;
+    lex: (state: string[], match: any) => any;
 } & {
     [prop: string]: any;
 };
@@ -90,7 +91,7 @@ declare class Lexer {
     };
     constructor(options?: Opts);
     start(ctx: Context): Lex;
-    lex(state: string[], match: (sI: number, src: string, token: Token, ctx: Context) => any): void;
+    lex(state?: string[], match?: (sI: number, src: string, token: Token, ctx: Context) => KV): any;
 }
 declare enum RuleState {
     open = 0,
@@ -130,6 +131,7 @@ declare class RuleSpec {
     parse_alts(alts: any[], rule: Rule, ctx: Context): any;
 }
 declare class Parser {
+    mark: number;
     options: Opts;
     rules: {
         [name: string]: any;
@@ -138,9 +140,9 @@ declare class Parser {
         [name: string]: RuleSpec;
     };
     constructor(options?: Opts);
-    rule(name: string, define: (rs: RuleSpec, rsm: {
+    rule(name: string, define?: (rs: RuleSpec, rsm: {
         [n: string]: RuleSpec;
-    }) => RuleSpec): void;
+    }) => RuleSpec): RuleSpec;
     start(lexer: Lexer, src: string, meta?: any): any;
 }
 declare let util: {

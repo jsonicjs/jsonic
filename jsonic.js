@@ -562,9 +562,15 @@ class Lexer {
         return lex;
     }
     lex(state, match) {
+        if (null == state) {
+            return this.match;
+        }
         let sn = state[0];
         this.match[sn] = this.match[sn] || [];
-        this.match[sn].push(match);
+        if (null != match) {
+            this.match[sn].push(match);
+        }
+        return this.match[sn];
     }
 }
 exports.Lexer = Lexer;
@@ -607,6 +613,9 @@ class RuleSpec {
         this.name = name;
         this.def = def;
         this.rm = rm;
+        if (this.def.open) {
+            this.def.open.mark = this.def.open.mark || Math.random();
+        }
     }
     open(rule, ctx) {
         let next = rule;
@@ -614,6 +623,7 @@ class RuleSpec {
             let out = this.def.before_open.call(this, rule, ctx);
             rule.node = out && out.node || rule.node;
         }
+        //console.log('OPEN', this.name, rule.name, this.def.open.mark)
         let act = this.parse_alts(this.def.open, rule, ctx);
         if (act.e) {
             throw new JsonicError('unexpected', {}, act.e, ctx);
@@ -678,7 +688,10 @@ class RuleSpec {
             out = { m: [] };
         }
         else if (0 < alts.length) {
+            //console.log('ALTS')
+            //console.dir(alts, { depth: null })
             for (alt of alts) {
+                //console.log('ALT', alt)
                 // Optional custom condition
                 let cond = alt.c ? alt.c(alt, rule, ctx) : true;
                 if (cond) {
@@ -729,6 +742,7 @@ class RuleSpec {
 exports.RuleSpec = RuleSpec;
 class Parser {
     constructor(options) {
+        this.mark = Math.random();
         let o = this.options = options || util.deep({}, STANDARD_OPTIONS);
         let top = (alt, rule, ctx) => 0 === ctx.rs.length;
         this.rules = {
@@ -818,6 +832,8 @@ class Parser {
                 open: [
                     { s: [o.OB], p: 'map' },
                     { s: [o.OS], p: 'list' },
+                    // TODO: replace with { p: 'val'} as last entry
+                    // IMPORTANT! makes array values consistent with prop values
                     { s: [o.TX] },
                     { s: [o.NR] },
                     { s: [o.ST] },
@@ -867,8 +883,14 @@ class Parser {
         }, {});
     }
     rule(name, define) {
-        this.rulespecs[name] = define(this.rulespecs[name], this.rulespecs) ||
-            this.rulespecs[name];
+        this.rulespecs[name] = null == define ? this.rulespecs[name] : (define(this.rulespecs[name], this.rulespecs) || this.rulespecs[name]);
+        /*
+        if ('val' === name) {
+          console.log('PARSER rule', this.mark, name, this.rulespecs[name].def.open.mark)
+          console.dir(this.rulespecs[name].def.open, { depth: null })
+        }
+        */
+        return this.rulespecs[name];
     }
     start(lexer, src, meta) {
         let opts = this.options;
@@ -879,7 +901,7 @@ class Parser {
             meta: meta || {},
             src: () => src,
             root: () => {
-                console.log('CTX ROOT', root.name + '/' + root.id, root.node);
+                //console.log('CTX ROOT', root.name + '/' + root.id, root.node)
                 return root.node;
             },
             node: undefined,
@@ -1105,9 +1127,10 @@ let util = {
             .reduce((a, k) => (a[opts[k][0].charCodeAt(3)] = opts[k], a), []);
         // Custom singles.
         // TODO: prevent override of builtins
+        opts.TOKENS = opts.TOKENS || []; // preserve existing token refs
         opts.singles = null == opts.singles ? '' : opts.singles;
         opts.singles.split('').forEach((s, i) => {
-            opts.SINGLES[s.charCodeAt(0)] = ['#' + s + '#' + i];
+            opts.SINGLES[s.charCodeAt(0)] = opts.TOKENS[s] || ['#' + s + '#' + i];
         });
         opts.TOKENS = opts.SINGLES
             .map((t, i) => null == t ? null : i)
@@ -1189,8 +1212,19 @@ function make(first, parent) {
         }
         self.parent = parent;
     }
-    let lexer = new Lexer(opts);
-    let parser = new Parser(opts);
+    let lexer;
+    let parser;
+    // TODO: lexer+parser constructors should accept parents and duplicate their rules
+    /*
+    if (parent) {
+      lexer = new Lexer(opts, parent.internal().lexer)
+      parser = new Parser(opts, parent.internal().parser)
+    }
+    else {
+  */
+    lexer = new Lexer(opts);
+    parser = new Parser(opts);
+    //}
     self.internal = () => ({ lexer, parser });
     self.options = util.deep((change_opts) => {
         if (null != change_opts && 'object' === typeof (change_opts)) {
@@ -1205,18 +1239,20 @@ function make(first, parent) {
     self.use = function use(plugin, opts) {
         let jsonic = self;
         if (opts) {
-            jsonic = self.make(opts);
+            //jsonic = self.make(opts)
+            jsonic.options(opts);
         }
         plugin(jsonic);
         return jsonic;
     };
     self.rule = function (name, define) {
-        self.internal().parser.rule(name, define);
-        return self;
+        let rule = self.internal().parser.rule(name, define);
+        return null == define ? rule : self;
     };
     self.lex = function (state, match) {
-        let lexer = this.internal().lexer;
-        lexer.lex(state, match);
+        let lexer = self.internal().lexer;
+        let matching = lexer.lex(state, match);
+        return null == match ? matching : self;
     };
     self.make = function (opts) {
         return make(opts, self);
