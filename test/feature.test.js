@@ -344,7 +344,15 @@ describe('feature', function () {
     expect(j('a:{b:c:1}')).equals({a:{b:{c:1}}})
   })
 
+  
+  it('extension', () => {
+    expect(j('a:{b:1,c:2},a:{c:3,e:4}'))
+      .equals({ a: { b: 1, c: 3, e: 4 } })
 
+    let k = j.make({object:{extend:false}})
+    expect(k('a:{b:1,c:2},a:{c:3,e:4}'))
+      .equals({ a: { c: 3, e: 4 } })
+  })
 
   
   it('plugin-token', () => {

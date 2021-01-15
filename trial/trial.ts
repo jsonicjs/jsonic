@@ -75,7 +75,7 @@ let Dollar: Plugin = function dollar(jsonic: Jsonic) {
   let Tat = jsonic.options.TOKENS['@']
   let ST = jsonic.options.ST
 
-  jsonic.rule('value', (rs: any) => {
+  jsonic.rule('val', (rs: any) => {
     rs.def.open.push({ s: [T$, ST] }, { s: [Tat, ST] })
 
     let bc = rs.def.before_close

@@ -58,6 +58,7 @@ interface Context {
     opts: Opts;
     meta: Meta;
     src: () => string;
+    root: () => any;
     node: any;
     t0: Token;
     t1: Token;
@@ -104,6 +105,7 @@ declare class Rule {
     opts: Opts;
     state: RuleState;
     child: Rule;
+    parent?: Rule;
     open: Token[];
     close: Token[];
     why?: string;

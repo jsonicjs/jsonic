@@ -1,6 +1,7 @@
 /* Copyright (c) 2013-2020 Richard Rodger, MIT License */
 
 
+// TEST: ,}
 // TODO: remove plurals
 // TODO: all errors as JsonicError
 
@@ -83,6 +84,9 @@ const STANDARD_OPTIONS: Opts = {
     'false': false,
   },
 
+  object: {
+    extend: true,
+  },
 
   digital: '-1023456789._xeEaAbBcCdDfF+',
 
@@ -211,6 +215,7 @@ interface Context {
   opts: Opts
   meta: Meta
   src: () => string,
+  root: () => any,
   node: any
   t0: Token
   t1: Token
@@ -876,6 +881,7 @@ class Rule {
   opts: Opts
   state: RuleState
   child: Rule
+  parent?: Rule
   open: Token[]
   close: Token[]
   why?: string
@@ -944,7 +950,6 @@ class RuleSpec {
     let act = this.parse_alts(this.def.open, rule, ctx)
 
     if (act.e) {
-      //throw new Error('unexpected token: ' + JSON.stringify(act.e))
       throw new JsonicError('unexpected', {}, act.e, ctx)
     }
 
@@ -953,9 +958,11 @@ class RuleSpec {
     if (act.p) {
       ctx.rs.push(rule)
       next = rule.child = new Rule(this.rm[act.p], ctx, rule.opts, rule.node)
+      next.parent = rule
     }
     else if (act.r) {
       next = new Rule(this.rm[act.r], ctx, rule.opts, rule.node)
+      next.parent = rule.parent
     }
 
     if (this.def.after_open) {
@@ -997,9 +1004,11 @@ class RuleSpec {
     if (act.p) {
       ctx.rs.push(rule)
       next = rule.child = new Rule(this.rm[act.p], ctx, rule.opts, rule.node)
+      next.parent = rule
     }
     else if (act.r) {
       next = new Rule(this.rm[act.r], ctx, rule.opts, rule.node)
+      next.parent = rule.parent
       why = 'r'
     }
     else {
@@ -1115,8 +1124,6 @@ class Parser {
 
   constructor(options?: Opts) {
     let o = this.options = options || util.deep({}, STANDARD_OPTIONS)
-    //let o = this.options = util.deep(this.options, options)
-
     let top = (alt: any, rule: Rule, ctx: Context) => 0 === ctx.rs.length
 
     this.rules = {
@@ -1199,11 +1206,15 @@ class Parser {
           { s: [o.NR, o.CL], r: 'pair', b: 2 },
           { s: [o.VL, o.CL], r: 'pair', b: 2 },
         ],
-        before_close: (rule: Rule) => {
+        before_close: (rule: Rule, ctx: Context) => {
           let token = rule.open[0]
           if (token) {
             let key = o.ST === token.pin ? token.val : token.src
-            rule.node[key] = rule.child.node
+            let prev = rule.node[key]
+
+            rule.node[key] = null == prev ? rule.child.node :
+              (ctx.opts.object.extend ? util.deep(prev, rule.child.node) :
+                rule.child.node)
           }
         },
       },
@@ -1282,12 +1293,17 @@ class Parser {
 
   start(lexer: Lexer, src: string, meta?: any): any {
     let opts = this.options
+    let root: Rule
 
     let ctx: Context = {
       rI: 1,
       opts: opts,
       meta: meta || {},
       src: () => src, // Avoid printing src
+      root: () => {
+        console.log('CTX ROOT', root.name + '/' + root.id, root.node)
+        return root.node
+      },
       node: undefined,
       t0: opts.end,
       t1: opts.end,
@@ -1304,7 +1320,7 @@ class Parser {
 
     let rule = new Rule(this.rulespecs.val, ctx, opts)
 
-    let root = rule
+    root = rule
 
     // Maximum rule iterations. Allow for rule open and close,
     // and for each rule on each char to be virtual (like map, list)
@@ -1354,13 +1370,23 @@ class Parser {
 
 let util = {
 
-  // Deep override for plain objects. Retains base object.
-  // Array indexes are treated as properties.
-  // Over wins non-matching types, except at top level.
-  //deep: function(base?: any, over?: any): any {
+  // Deep override for plain data. Retains base object and array.
+  // Array merge by `over` index, `over` wins non-matching types, expect:
+  // `undefined` always loses, `over` plain objects inject into functions,
+  // and `over` functions always win.
   deep: function(base?: any, ...rest: any): any {
+    let base_is_function = 'function' === typeof (base)
+    let base_is_object = null != base &&
+      ('object' === typeof (base) || base_is_function)
     for (let over of rest) {
-      if (null != base && null != over) {
+      let over_is_function = 'function' === typeof (over)
+      let over_is_object = null != over &&
+        ('object' === typeof (over) || over_is_function)
+      if (base_is_object &&
+        over_is_object &&
+        !over_is_function &&
+        (Array.isArray(base) === Array.isArray(over))
+      ) {
         for (let k in over) {
           base[k] = (
             'object' === typeof (base[k]) &&
@@ -1368,11 +1394,12 @@ let util = {
             (Array.isArray(base[k]) === Array.isArray(over[k]))
           ) ? util.deep(base[k], over[k]) : over[k]
         }
-        //return base
       }
       else {
-        base = null != over ? over : null != base ? base :
-          undefined != over ? over : base
+        base = undefined === over ? base : over
+        base_is_function = 'function' === typeof (base)
+        base_is_object = null != base &&
+          ('object' === typeof (base) || base_is_function)
       }
     }
     return base
@@ -1513,6 +1540,7 @@ let util = {
               opts,
               meta,
               src: () => src,
+              root: () => undefined,
               node: undefined,
               t0: token,
               t1: token, // TODO: should be end token

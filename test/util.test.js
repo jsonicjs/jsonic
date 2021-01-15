@@ -1,6 +1,8 @@
 /* Copyright (c) 2013-2020 Richard Rodger and other contributors, MIT License */
 'use strict'
 
+const Util = require('util')
+
 let Lab = require('@hapi/lab')
 Lab = null != Lab.script ? Lab : require('hapi-lab-shim')
 
@@ -19,22 +21,57 @@ const norm_options = util.norm_options
 
 describe('util', () => {
   it('deep', () => {
+    let fa = function a(){}
+    let fb = function b(){}
 
+    expect(deep(fa)).equals(fa)
+    expect(deep(null,fa)).equals(fa)
+    expect(deep(fa,null)).equals(null)
+    expect(deep(undefined,fa)).equals(fa)
+    expect(deep(fa,undefined)).equals(fa)
+    expect(deep(fa,{})).equals(fa)
+    expect(deep({},fa)).equals(fa)
+    expect(deep(fa,[])).equals([])
+    expect(deep([],fa)).equals(fa)
+    expect(deep(fa,fb)).equals(fb)
+    
+    expect(Util.inspect(deep(fa,{x:1}))).equals('[Function: a] { x: 1 }')
+    
     expect(deep()).equals(undefined)
     expect(deep(undefined)).equals(undefined)
     expect(deep(undefined,undefined)).equals(undefined)
+    expect(deep(undefined,null)).equals(null)
+    expect(deep(null,undefined)).equals(null)
     expect(deep(null)).equals(null)
     expect(deep(null,null)).equals(null)
 
+    expect(deep(1,undefined)).equals(1)
+    expect(deep(1,null)).equals(null)
+    
+    expect(deep(1,2)).equals(2)
+    expect(deep(1,'a')).equals('a')
+    
     expect(deep({})).equals({})
     expect(deep(null,{})).equals({})
-    expect(deep({},null)).equals({})
+    expect(deep({},null)).equals(null)
     expect(deep(undefined,{})).equals({})
     expect(deep({},undefined)).equals({})
 
+    expect(deep([])).equals([])
+    expect(deep(null,[])).equals([])
+    expect(deep([],null)).equals(null)
+    expect(deep(undefined,[])).equals([])
+    expect(deep([],undefined)).equals([])
+
+    
+    expect(deep(1,{})).equals({})
+    expect(deep({},1)).equals(1)
+    expect(deep(1,[])).equals([])
+    expect(deep([],1)).equals(1)
+    
     expect(deep({a:1})).equals({a:1})
     expect(deep(null,{a:1})).equals({a:1})
-    expect(deep({a:1},null)).equals({a:1})
+    expect(deep({a:1},null)).equals(null)
     expect(deep(undefined,{a:1})).equals({a:1})
     expect(deep({a:1},undefined)).equals({a:1})
 
@@ -49,15 +86,10 @@ describe('util', () => {
     expect(deep({a:1,b:{c:2}},{a:3,b:{c:5}})).equals({a:3,b:{c:5}})
     expect(deep({a:1,b:{c:2}},{a:3,b:{c:5,e:6}})).equals({a:3,b:{c:5,e:6}})
 
-    expect(deep([])).equals([])
-    expect(deep(null,[])).equals([])
-    expect(deep([],null)).equals([])
-    expect(deep(undefined,[])).equals([])
-    expect(deep([],undefined)).equals([])
 
     expect(deep([1])).equals([1])
     expect(deep(null,[1])).equals([1])
-    expect(deep([1],null)).equals([1])
+    expect(deep([1],null)).equals(null)
     expect(deep(undefined,[1])).equals([1])
     expect(deep([1],undefined)).equals([1])
 
@@ -66,16 +98,14 @@ describe('util', () => {
     expect(deep([1],[2])).equals([2])
     expect(deep([1,3],[2])).equals([2,3])
 
-
     expect(deep({a:1,b:[]})).equals({a:1,b:[]})
     expect(deep({a:1,b:[2]})).equals({a:1,b:[2]})
     expect(deep({a:1,b:[2],c:[{d:3}]})).equals({a:1,b:[2],c:[{d:3}]})
     expect(deep({a:1,b:[2],c:[{d:3}]},{a:4,b:[5],c:[{d:6}]}))
       .equals({a:4,b:[5],c:[{d:6}]})
 
-    // NOTE: does not override top level
-    expect(deep([],{})).equals([])
-    expect(deep({},[])).equals({})
+    expect(deep([],{})).equals({})
+    expect(deep({},[])).equals([])
 
     expect(deep({a:[]},{a:{}})).equals({a:{}})
     expect(deep({a:{}},{a:[]})).equals({a:[]})
@@ -86,6 +116,10 @@ describe('util', () => {
     expect(deep({a:1},{b:2},{c:3})).equals({a:1,b:2,c:3})
     expect(deep({a:1},{a:2,b:4},{c:3})).equals({a:2,b:4,c:3})
     expect(deep({a:1},{a:2,b:4},{a:3,c:5})).equals({a:3,b:4,c:5})
+
+    expect(deep({a:1},{b:2},null)).equals(null)
+    expect(deep({a:1},null,{c:3})).equals({c:3})
+    expect(deep(null,{b:2},{c:3})).equals({b:2,c:3})
   })
 
 

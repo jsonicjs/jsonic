@@ -55,7 +55,7 @@ let Dollar = function dollar(jsonic) {
     let T$ = jsonic.options.TOKENS['$'];
     let Tat = jsonic.options.TOKENS['@'];
     let ST = jsonic.options.ST;
-    jsonic.rule('value', (rs) => {
+    jsonic.rule('val', (rs) => {
         rs.def.open.push({ s: [T$, ST] }, { s: [Tat, ST] });
         let bc = rs.def.before_close;
         rs.def.before_close = (rule) => {

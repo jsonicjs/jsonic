@@ -1,5 +1,8 @@
 /* Copyright (c) 2013-2020 Richard Rodger, MIT License */
 
+// TODO: review against: https://www.papaparse.com/
+
+
 import { Jsonic, Plugin, Token, Rule, RuleSpec, Context, util } from '../jsonic'
 
 

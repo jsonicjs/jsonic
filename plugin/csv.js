@@ -2,6 +2,7 @@
 /* Copyright (c) 2013-2020 Richard Rodger, MIT License */
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.Csv = void 0;
+// TODO: review against: https://www.papaparse.com/
 const jsonic_1 = require("../jsonic");
 let Csv = function csv(jsonic) {
     let DEFAULTS = {
