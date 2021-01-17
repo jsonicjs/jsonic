@@ -14,7 +14,7 @@ var expect = Code.expect
 var { Jsonic } = require('..')
 
 let j = Jsonic
-let lexer = Jsonic.lexer
+// let lexer = Jsonic.lexer
 
 function testlog(...rest) {
   console.log(rest.filter(x=>'object'!=typeof(x)))
@@ -83,15 +83,15 @@ describe('feature', function () {
     expect(j('/*/*/*a:1*/*/*/b:2')).equals({b:2})
 
     
-    let nobal = Jsonic.make({balance:{comments:false}})
-    expect(nobal.options.balance.comments).false()
+    let nobal = Jsonic.make({balance:{comment:false}})
+    expect(nobal.options.balance.comment).false()
 
     // NOTE: comment markers inside text are active!
     expect(nobal('/*/*/*a:1*/*/*/,b:2')).equal({ '*a': '1*', b: 2 })
 
 
     // Custom multiline comments
-    let coffee = Jsonic.make({comments:{'###':'###'}})
+    let coffee = Jsonic.make({comment:{'###':'###'}})
     expect(coffee('\n###a:1\nb:2\n###\nc:3')).equals({c:3})
 
     // NOTE: no balancing if open === close
@@ -274,7 +274,7 @@ describe('feature', function () {
   })
   
 
-  it('optional-comma-qqq', () => {
+  it('optional-comma', () => {
     expect(j('[1,]')).equals([1])
     expect(j('[,1]')).equals([null,1])
     expect(j('[1,,]')).equals([1,null])
@@ -287,6 +287,13 @@ describe('feature', function () {
     // NOTE: these are not implicit lists!
     expect(j('a:1,')).equals({a:1}) 
     expect(j('a:b:1,')).equals({a:{b:1}})
+
+
+    expect(j('{a:1\nb:2}')).equals({a:1,b:2})
+    expect(j('{,a:1}')).equals({a:1})
+    expect(j('{a:1,}')).equals({a:1})
+    expect(j('{,a:1,}')).equals({a:1})
+    expect(j('{a:1,b:2,}')).equals({a:1,b:2})
   })
 
 
@@ -354,6 +361,11 @@ describe('feature', function () {
       .equals({ a: { c: 3, e: 4 } })
   })
 
+
+  it('error', () => {
+    //expect(()=>j('{a:1{')).throws(JsonicError, /jsonic\/json/)
+  })
+  
   
   it('plugin-token', () => {
     Jsonic.use((jsonic)=>{

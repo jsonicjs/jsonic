@@ -12,52 +12,72 @@ const STANDARD_OPTIONS = {
     sc_string: '"\'`',
     sc_none: '',
     // Custom singles.
-    singles: '',
+    single: '',
     // String escape chars.
     // Denoting char (follows escape char) => actual char.
-    escapes: {
+    escape: {
         b: '\b',
         f: '\f',
         n: '\n',
         r: '\r',
         t: '\t',
     },
-    comments: {
+    // Special characters
+    char: {
+        // Increments row (aka line) counter.
+        row: '\n',
+        // Invalid code point.
+        bad_unicode: String.fromCharCode('0x0000'),
+    },
+    // Comment markers.
+    // <mark-char>: true -> single line comments
+    // <mark-start>: <mark-end> -> multiline comments
+    comment: {
         '#': true,
         '//': true,
         '/*': '*/'
     },
+    // Control balanced markers.
     balance: {
-        comments: true,
+        // Balance multiline comments.
+        comment: true,
     },
+    // Control number formats.
     number: {
+        // All possible number characters.
+        digital: '-1023456789._xeEaAbBcCdDfF+',
+        // Allow embedded underscore.
         underscore: true,
     },
+    // String formats.
     string: {
+        // Multiline quote characters.
         multiline: '`',
+        // CSV-style double quote escape.
         escapedouble: false,
     },
+    // Text formats.
     text: {
+        // Text includes internal whitespace.
         hoover: true,
     },
-    values: {
+    // TODO: rename to map for consistency
+    // Object formats.
+    object: {
+        // TODO: allow: true - allow duplicates, else error
+        // Later duplicates extend earlier ones, rather than replacing them.
+        extend: true,
+    },
+    // Keyword values.
+    value: {
         'null': null,
         'true': true,
         'false': false,
     },
-    object: {
-        extend: true,
-    },
-    digital: '-1023456789._xeEaAbBcCdDfF+',
-    // Increments row (aka line) counter.
-    rowchar: '\n',
-    tokens: {
-        value: NONE,
-        ignore: NONE,
-    },
+    // Parsing modes.
     mode: {},
+    // Plugin custom options, (namespace by plugin name).
     plugin: {},
-    bad_unicode_char: String.fromCharCode('0x0000'),
     // Default console for logging
     console,
     // Error messages.
@@ -76,6 +96,13 @@ obviously wrong, the actual syntax error may be elsewhere. Try
 commenting out larger areas around this point until you get no errors,
 then remove the comments in small sections until you find the
 offending syntax.`
+    },
+    // Token sets.
+    token: {
+        // Tokens for values (ST=string, NR=number, etc).
+        value: NONE,
+        // Tokens to ignore.
+        ignore: NONE,
     },
     // Arrays ([String]) are used for tokens to create unique internal
     // tokens protected from plugin tokens. Symbols are not used as they
@@ -105,6 +132,7 @@ offending syntax.`
     LS_CONSUME: ['@CONSUME'],
     LS_MULTILINE: ['@MULTILINE'],
 };
+// Jsonic errors with nice formatting.
 class JsonicError extends SyntaxError {
     constructor(code, details, token, ctx) {
         details = util.deep({}, details);
@@ -270,7 +298,7 @@ class Lexer {
                         cI = 0;
                         while (opts.sc_line.includes(src[pI])) {
                             // Only count \n as a row increment
-                            rI += (opts.rowchar === src[pI] ? 1 : 0);
+                            rI += (opts.char.row === src[pI] ? 1 : 0);
                             pI++;
                         }
                         token.len = pI - sI;
@@ -359,7 +387,7 @@ class Lexer {
                                 else if (117 === ec) {
                                     pI++;
                                     let us = String.fromCharCode(('0x' + src.substring(pI, pI + 4)));
-                                    if (opts.bad_unicode_char === us) {
+                                    if (opts.char.bad_unicode === us) {
                                         return opts.bad(lexlog, 'invalid-unicode', token, sI, pI, rI, cI, src.substring(pI - 2, pI + 4));
                                     }
                                     s.push(us);
@@ -410,13 +438,13 @@ class Lexer {
                             //console.log('CM', cm, marker.startsWith(cm))
                             if (marker.startsWith(cm)) {
                                 // Multi-line comment
-                                if (true !== opts.comments[cm]) {
+                                if (true !== opts.comment[cm]) {
                                     token.pin = opts.CM;
                                     token.loc = sI;
                                     token.col = cI;
                                     token.val = ''; // intialize for LS_CONSUME
                                     state = opts.LS_MULTILINE;
-                                    state_param = [cm, opts.comments[cm], 'comments'];
+                                    state_param = [cm, opts.comment[cm], 'comment'];
                                     continue next_char;
                                 }
                                 else {
@@ -626,7 +654,7 @@ class RuleSpec {
         //console.log('OPEN', this.name, rule.name, this.def.open.mark)
         let act = this.parse_alts(this.def.open, rule, ctx);
         if (act.e) {
-            throw new JsonicError('unexpected', {}, act.e, ctx);
+            throw new JsonicError('unexpected', { open: true }, act.e, ctx);
         }
         rule.open = act.m;
         if (act.p) {
@@ -653,7 +681,7 @@ class RuleSpec {
         }
         let act = 0 < this.def.close.length ? this.parse_alts(this.def.close, rule, ctx) : {};
         if (act.e) {
-            throw new Error('unexpected token: ' + act.e.pin[0] + ' ' + act.e.val);
+            throw new JsonicError('unexpected', { close: true }, act.e, ctx);
         }
         if (act.h) {
             next = act.h(this, rule, ctx) || next;
@@ -744,10 +772,12 @@ class Parser {
     constructor(options) {
         this.mark = Math.random();
         let o = this.options = options || util.deep({}, STANDARD_OPTIONS);
+        //let o = options || util.deep({}, STANDARD_OPTIONS)
         let top = (alt, rule, ctx) => 0 === ctx.rs.length;
         this.rules = {
             val: {
                 open: [
+                    { s: [o.OB, o.CA], p: 'map' },
                     { s: [o.OB], p: 'map' },
                     { s: [o.OS], p: 'list' },
                     { s: [o.CA], p: 'list', b: 1 },
@@ -807,9 +837,8 @@ class Parser {
                     { s: [o.CB], b: 1 },
                 ],
                 close: [
-                    { s: [o.CA], r: 'pair' },
                     { s: [o.CB] },
-                    // TODO: implicit close?
+                    { s: [o.CA], r: 'pair' },
                     // Who needs commas anyway?
                     { s: [o.ST, o.CL], r: 'pair', b: 2 },
                     { s: [o.TX, o.CL], r: 'pair', b: 2 },
@@ -817,9 +846,9 @@ class Parser {
                     { s: [o.VL, o.CL], r: 'pair', b: 2 },
                 ],
                 before_close: (rule, ctx) => {
-                    let token = rule.open[0];
-                    if (token) {
-                        let key = o.ST === token.pin ? token.val : token.src;
+                    let key_token = rule.open[0];
+                    if (key_token && o.CB !== key_token.pin) {
+                        let key = o.ST === key_token.pin ? key_token.val : key_token.src;
                         let prev = rule.node[key];
                         rule.node[key] = null == prev ? rule.child.node :
                             (ctx.opts.object.extend ? util.deep(prev, rule.child.node) :
@@ -927,7 +956,7 @@ class Parser {
             do {
                 t1 = lex();
                 ctx.tI++;
-            } while (opts.tokens.ignore.includes(t1.pin));
+            } while (opts.token.ignore.includes(t1.pin));
             ctx.t1 = { ...t1 };
             return ctx.t0;
         }
@@ -953,7 +982,7 @@ let util = {
     // Deep override for plain data. Retains base object and array.
     // Array merge by `over` index, `over` wins non-matching types, expect:
     // `undefined` always loses, `over` plain objects inject into functions,
-    // and `over` functions always win.
+    // and `over` functions always win. Over always copied.
     deep: function (base, ...rest) {
         let base_is_function = 'function' === typeof (base);
         let base_is_object = null != base &&
@@ -970,16 +999,89 @@ let util = {
                     base[k] = ('object' === typeof (base[k]) &&
                         'object' === typeof (over[k]) &&
                         (Array.isArray(base[k]) === Array.isArray(over[k]))) ? util.deep(base[k], over[k]) : over[k];
+                    //base[k] = util.deep(base[k], over[k])
                 }
             }
             else {
-                base = undefined === over ? base : over;
+                //base = undefined === over ? base : over
+                base = undefined === over ? base :
+                    over_is_function ? over :
+                        (over_is_object ?
+                            util.deep(Array.isArray(over) ? [] : {}, over) : over);
                 base_is_function = 'function' === typeof (base);
                 base_is_object = null != base &&
                     ('object' === typeof (base) || base_is_function);
             }
         }
         return base;
+    },
+    deepx: function (base, ...rest) {
+        let seen = [[], []];
+        let out = util.deeperx(seen, base, ...rest);
+        //console.dir(seen, { depth: null })
+        return out;
+    },
+    deeperx: function (seen, base, ...rest) {
+        let base_is_function = 'function' === typeof (base);
+        let base_is_object = null != base &&
+            ('object' === typeof (base) || base_is_function);
+        for (let over of rest) {
+            let over_is_function = 'function' === typeof (over);
+            let over_is_object = null != over &&
+                ('object' === typeof (over) || over_is_function);
+            if (base_is_object &&
+                over_is_object &&
+                !over_is_function &&
+                (Array.isArray(base) === Array.isArray(over))) {
+                /*
+                let sI = seen[0].indexOf(over)
+                if (-1 < sI) {
+                  base = seen[1][sI]
+                }
+                else {
+                  seen[0].push(over)
+                  sI = seen[0].length - 1
+                  seen[1][sI] = base
+                */
+                for (let k in over) {
+                    base[k] = util.deeperx(seen, base[k], over[k]);
+                }
+                //}
+            }
+            else {
+                /*
+                base = undefined === over ? base :
+                  over_is_function ? over :
+                    (over_is_object ?
+                      util.deeper(seen, Array.isArray(over) ? [] : {}, over) : over)
+                */
+                if (undefined !== over) {
+                    if (over_is_function || !over_is_object) {
+                        base = over;
+                    }
+                    else {
+                        let sI = seen[0].indexOf(over);
+                        if (-1 < sI) {
+                            base = seen[1][sI];
+                        }
+                        else {
+                            seen[0].push(over);
+                            sI = seen[0].length - 1;
+                            base = Array.isArray(over) ? [] : {};
+                            seen[1][sI] = base;
+                            base = util.deeperx(seen, base, over);
+                        }
+                    }
+                }
+                base_is_function = 'function' === typeof (base);
+                base_is_object = null != base &&
+                    ('object' === typeof (base) || base_is_function);
+            }
+        }
+        return base;
+    },
+    clone: function (class_instance) {
+        return util.deep(Object.create(Object.getPrototypeOf(class_instance)), class_instance);
     },
     // Convert string to character code array.
     // 'ab' -> [97,98]
@@ -1128,8 +1230,8 @@ let util = {
         // Custom singles.
         // TODO: prevent override of builtins
         opts.TOKENS = opts.TOKENS || []; // preserve existing token refs
-        opts.singles = null == opts.singles ? '' : opts.singles;
-        opts.singles.split('').forEach((s, i) => {
+        opts.single = null == opts.single ? '' : opts.single;
+        opts.single.split('').forEach((s, i) => {
             opts.SINGLES[s.charCodeAt(0)] = opts.TOKENS[s] || ['#' + s + '#' + i];
         });
         opts.TOKENS = opts.SINGLES
@@ -1137,17 +1239,18 @@ let util = {
             .filter((i) => null != +i)
             .reduce((a, i) => (a[String.fromCharCode(i)] = opts.SINGLES[i], a), {});
         // lookup table for escape chars, indexed by denotating char (e.g. n for \n).
-        opts.escapes = opts.escapes || {};
-        opts.ESCAPES = Object.keys(opts.escapes)
-            .reduce((a, ed) => (a[ed.charCodeAt(0)] = opts.escapes[ed], a), []);
-        opts.DIGITAL = opts.digital || '';
+        opts.escape = opts.escape || {};
+        opts.ESCAPES = Object.keys(opts.escape)
+            .reduce((a, ed) => (a[ed.charCodeAt(0)] = opts.escape[ed], a), []);
+        opts.number = opts.number || {};
+        opts.DIGITAL = opts.number.digital || '';
         opts.SC_COMMENT = [];
         opts.COMMENT_SINGLE = '';
         opts.COMMENT_MARKER = [];
         opts.COMMENT_MARKER_FIRST = '';
         opts.COMMENT_MARKER_SECOND = '';
-        if (opts.comments) {
-            let comment_markers = Object.keys(opts.comments);
+        if (opts.comment) {
+            let comment_markers = Object.keys(opts.comment);
             comment_markers.forEach(k => {
                 // Single character comment marker (eg. `#`)
                 if (1 === k.length) {
@@ -1172,12 +1275,12 @@ let util = {
             opts.sc_space + opts.sc_line + opts.SINGLE_CHARS + opts.SC_COMMENT_CHARS;
         opts.TEXT_ENDERS = opts.VALUE_ENDERS;
         opts.HOOVER_ENDERS = opts.sc_line + opts.SINGLE_CHARS + opts.SC_COMMENT_CHARS;
-        opts.VALUES = opts.values || {};
+        opts.VALUES = opts.value || {};
         // Token sets
-        opts.tokens = opts.tokens || {};
-        opts.tokens.value = NONE !== opts.tokens.value ? opts.tokens.value :
+        opts.token = opts.token || {};
+        opts.token.value = NONE !== opts.token.value ? opts.token.value :
             [opts.TX, opts.NR, opts.ST, opts.VL];
-        opts.tokens.ignore = NONE !== opts.tokens.ignore ? opts.tokens.ignore :
+        opts.token.ignore = NONE !== opts.token.ignore ? opts.token.ignore :
             [opts.SP, opts.LN, opts.CM];
         return opts;
     },
@@ -1191,11 +1294,12 @@ function make(first, parent) {
         parent = first;
     }
     // Merge options.
-    let opts = util.norm_options(util.deep({}, parent ? parent.options : STANDARD_OPTIONS, param_opts));
+    let opts = util.norm_options(util.deep({}, parent ? { ...parent.options } : STANDARD_OPTIONS, param_opts));
     // Create primary parsing function
     let self = function Jsonic(src, meta) {
         if ('string' === typeof (src)) {
             let internal = self.internal();
+            //console.log(internal.parser)
             let [done, out] = (null != meta && null != meta.mode) ? util.handle_meta_mode(self, src, meta) :
                 [false];
             if (!done) {
@@ -1214,19 +1318,20 @@ function make(first, parent) {
     }
     let lexer;
     let parser;
-    // TODO: lexer+parser constructors should accept parents and duplicate their rules
     /*
     if (parent) {
-      lexer = new Lexer(opts, parent.internal().lexer)
-      parser = new Parser(opts, parent.internal().parser)
+      lexer = util.clone(parent.internal().lexer)
+      parser = util.clone(parent.internal().parser)
+      parser.mark = Math.random()
     }
     else {
   */
     lexer = new Lexer(opts);
+    //parser = new Parser(opts)
     parser = new Parser(opts);
     //}
     self.internal = () => ({ lexer, parser });
-    self.options = util.deep((change_opts) => {
+    let optioner = (change_opts) => {
         if (null != change_opts && 'object' === typeof (change_opts)) {
             opts = util.norm_options(util.deep(opts, change_opts));
             for (let k in opts) {
@@ -1234,12 +1339,13 @@ function make(first, parent) {
             }
         }
         return self;
-    }, opts);
+    };
+    //self.options = opts
+    self.options = util.deep(optioner, opts);
     self.parse = self;
     self.use = function use(plugin, opts) {
         let jsonic = self;
         if (opts) {
-            //jsonic = self.make(opts)
             jsonic.options(opts);
         }
         plugin(jsonic);

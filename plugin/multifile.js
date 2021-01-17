@@ -20,7 +20,7 @@ let Multifile = function multifile(jsonic) {
     let atchar = popts.char;
     // console.log('MF popts', popts)
     jsonic.options({
-        singles: jsonic.options.singles + atchar
+        single: jsonic.options.single + atchar
     });
     // TODO: lexer+parser constructors to handle parent arg
     // These need to inherit previous plugins - they are not clean new instances

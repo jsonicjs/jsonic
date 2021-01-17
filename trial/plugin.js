@@ -3,7 +3,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const jsonic_1 = require("../jsonic");
 let Foo = function foo(jsonic) {
     jsonic.options({
-        singles: jsonic.options.singles + 'F'
+        single: jsonic.options.single + 'F'
     });
     let Tc = jsonic.options.TOKENS['F'];
     //let AA = jsonic.options.AA
@@ -25,7 +25,7 @@ console.log(f0('a:0,x:F,y:1', { xlog: -1 }));
 console.dir(f0.rule('val').def, { depth: null });
 let Bar = function bar(jsonic) {
     jsonic.options({
-        singles: jsonic.options.singles + 'B'
+        single: jsonic.options.single + 'B'
     });
     let Tc = jsonic.options.TOKENS['B'];
     jsonic.rule('val', (rs) => {

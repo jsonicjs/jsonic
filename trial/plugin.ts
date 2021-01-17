@@ -6,7 +6,7 @@ import { Jsonic, Plugin, Token, Rule, RuleSpec, Context, util } from '../jsonic'
 
 let Foo: Plugin = function foo(jsonic: Jsonic) {
   jsonic.options({
-    singles: jsonic.options.singles + 'F'
+    single: jsonic.options.single + 'F'
   })
 
   let Tc = jsonic.options.TOKENS['F']
@@ -36,7 +36,7 @@ console.dir(f0.rule('val').def, { depth: null })
 
 let Bar: Plugin = function bar(jsonic: Jsonic) {
   jsonic.options({
-    singles: jsonic.options.singles + 'B'
+    single: jsonic.options.single + 'B'
   })
 
   let Tc = jsonic.options.TOKENS['B']

@@ -2,23 +2,23 @@ declare type KV = {
     [k: string]: any;
 };
 declare type Opts = {
-    singles: string;
-    escapes: {
+    single: string;
+    escape: {
         [denoting_char: string]: string;
     };
-    comments: {
+    char: KV;
+    comment: {
         [start_marker: string]: string | boolean;
     };
     balance: KV;
     number: KV;
     string: KV;
     text: KV;
-    values: KV;
-    digital: string;
-    tokens: KV;
+    object: KV;
+    value: KV;
+    token: KV;
     mode: KV;
     plugin: KV;
-    bad_unicode_char: string;
     console: any;
     error: {
         [code: string]: string;
@@ -147,6 +147,9 @@ declare class Parser {
 }
 declare let util: {
     deep: (base?: any, ...rest: any) => any;
+    deepx: (base?: any, ...rest: any) => any;
+    deeperx: (seen: any, base?: any, ...rest: any) => any;
+    clone: (class_instance: any) => any;
     s2cca: (s: string) => number[];
     longest: (strs: string[]) => number;
     make_log: (ctx: Context) => void;

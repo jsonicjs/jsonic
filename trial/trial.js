@@ -33,7 +33,7 @@ console.log(j2('a:1Wb:2'));
 console.log('--- Single');
 let Single = function dollar(jsonic) {
     jsonic.options({
-        singles: jsonic.options.singles + 'Z'
+        single: jsonic.options.single + 'Z'
     });
 };
 let j3 = jsonic_1.Jsonic.make();
@@ -50,7 +50,7 @@ console.log('--- Dollar');
 const fs_1 = __importDefault(require("fs"));
 let Dollar = function dollar(jsonic) {
     jsonic.options({
-        singles: jsonic.options.singles + '$@'
+        single: jsonic.options.single + '$@'
     });
     let T$ = jsonic.options.TOKENS['$'];
     let Tat = jsonic.options.TOKENS['@'];

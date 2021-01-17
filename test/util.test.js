@@ -18,12 +18,14 @@ const deep = util.deep
 const s2cca = util.s2cca
 const norm_options = util.norm_options
 
+const I = Util.inspect
+
 
 describe('util', () => {
-  it('deep', () => {
+  it('deeper', () => {
     let fa = function a(){}
     let fb = function b(){}
-
+    
     expect(deep(fa)).equals(fa)
     expect(deep(null,fa)).equals(fa)
     expect(deep(fa,null)).equals(null)
@@ -34,8 +36,8 @@ describe('util', () => {
     expect(deep(fa,[])).equals([])
     expect(deep([],fa)).equals(fa)
     expect(deep(fa,fb)).equals(fb)
-    
-    expect(Util.inspect(deep(fa,{x:1}))).equals('[Function: a] { x: 1 }')
+
+    expect(I(deep(fa,{x:1}))).equals('[Function: a] { x: 1 }')
     
     expect(deep()).equals(undefined)
     expect(deep(undefined)).equals(undefined)
@@ -68,7 +70,7 @@ describe('util', () => {
     expect(deep({},1)).equals(1)
     expect(deep(1,[])).equals([])
     expect(deep([],1)).equals(1)
-    
+
     expect(deep({a:1})).equals({a:1})
     expect(deep(null,{a:1})).equals({a:1})
     expect(deep({a:1},null)).equals(null)
@@ -97,6 +99,7 @@ describe('util', () => {
     expect(deep([],[1])).equals([1])
     expect(deep([1],[2])).equals([2])
     expect(deep([1,3],[2])).equals([2,3])
+    // expect(deep([1,2,3],[undefined,4])).equals([1, 4, 3])
 
     expect(deep({a:1,b:[]})).equals({a:1,b:[]})
     expect(deep({a:1,b:[2]})).equals({a:1,b:[2]})
@@ -120,6 +123,117 @@ describe('util', () => {
     expect(deep({a:1},{b:2},null)).equals(null)
     expect(deep({a:1},null,{c:3})).equals({c:3})
     expect(deep(null,{b:2},{c:3})).equals({b:2,c:3})
+
+    let a = {a:1}
+    let b = {b:2}
+    let c = {c:3}
+    let x = util.deep({},a,b,c)
+    expect(x).equals({a:1,b:2,c:3})
+    expect(a).equals({a:1})
+    expect(b).equals({b:2})
+    expect(c).equals({c:3})
+
+
+    let ga = ()=>{}; ga.a=1
+    let gb = ()=>{}; gb.b=2
+    let gc = ()=>{}; gc.c=3
+    let gx = util.deep(()=>{},ga,gb,gc)
+    expect(I(gx)).equals('[Function: gc] { c: 3 }') // CORRECT!
+    expect(I(ga)).equals('[Function: ga] { a: 1 }')
+    expect(I(gb)).equals('[Function: gb] { b: 2 }')
+    expect(I(gc)).equals('[Function: gc] { c: 3 }')
+
+    let ha = ()=>{}; ha.a=1
+    let hx = util.deep({},ha)
+    //console.log(hx,ha)
+    expect(I(hx)).equals('[Function: ha] { a: 1 }') // CORRECT!
+    expect(I(ha)).equals('[Function: ha] { a: 1 }')
+
+
+    let ka = ()=>{}; ka.a=1
+    let kx = util.deep({},{...ka})
+    //console.log(kx,ka)
+    expect(I(ka)).equals('[Function: ka] { a: 1 }')
+    expect(I(kx)).equals('{ a: 1 }')
+
+
+    expect(I(util.deep({},{f:()=>{},a:1}))).equals('{ f: [Function: f], a: 1 }')
+
+    class C0 {
+      constructor(a) {
+        this.a = a
+      }
+      foo() {
+        return 'FOO'+this.a
+      }
+    }
+
+    let c0 = new C0(1)
+    expect(c0.foo()).equal('FOO1')
+    
+    let c00 = util.deep({},c0)
+    expect(c0.a).equal(c00.a)
+    expect(c00.foo).undefined()
+    
+    let c0p = util.deep(Object.create(Object.getPrototypeOf(c0)),c0)
+    expect(c0.a).equal(c0p.a)
+    expect(c0.foo()).equal('FOO1')
+    expect(c0p.foo()).equal('FOO1')
+    c0p.a=2
+    expect(c0.a).equal(1)
+    expect(c0p.a).equal(2)
+    expect(c0.foo()).equal('FOO1')
+    expect(c0p.foo()).equal('FOO2')
+
+    
+    let d0 = {a:1}
+    let d00 = deep(undefined,d0)
+    d0.b = 2
+    //console.log(d0,d00)
+    expect(d0).equal({a:1,b:2})
+    expect(d00).equal({a:1})
+    expect(d0===d00).false()
+
+    let d1 = [1]
+    let d11 = deep(undefined,d1)
+    d1[1] = 2
+    //console.log(d1,d11)
+    expect(d1).equal([1,2])
+    expect(d11).equal([1])
+    expect(d1===d11).false()
+
+/*
+    let d2 = {a:{b:[1]}}
+    let d22 = deep({},d2)
+    d2.c=2
+    d22.c=22
+    d2.a.c=2
+    d22.a.c=22
+    d2.a.b.push(2)
+    d22.a.b.push(22)
+    //console.log(d2,d22)
+    expect(d2).equal({ a: { b: [ 1, 2 ], c: 2 }, c: 2 } )
+    expect(d22).equal({ a: { b: [ 1, 22 ], c: 22 }, c: 22 })
+
+
+    /*
+    let d3 = {a:{b:{x:1}}}
+    d3.a.b.c=d3.a
+    let d33 = deep({},d3)
+    d3.a.y=1
+    d33.a.y=2
+    console.log(d3,d33)
+
+    let d4 = {a:{x:1}}
+    d4.a.b=d4
+    let d44 = deep({},d4)
+    d4.y=1
+    d44.y=2
+    console.log(d4,d44)
+
+    //console.log(d3.a.b,d33.a.b)
+    //console.log(d3.a.b.a.b.a.x,d33.a.b.a.b.a.x)
+    */
   })
 
 
@@ -134,35 +248,35 @@ describe('util', () => {
     expect(norm_options({
       sc_foo: ' \t',
       sc_bar: 'ab',
-      sc_escapes: '\r\n'
+      sc_zed: '\r\n'
     })).includes({
       SC_FOO: [32,9],
       SC_BAR: [97,98],
-      SC_ESCAPES: [13,10],
+      SC_ZED: [13,10],
     })
 
     
-    let singles = []
-    singles[97] = ['#AAa']
-    singles[98] = ['#BBb']
+    let single = []
+    single[97] = ['#AAa']
+    single[98] = ['#BBb']
     expect(norm_options({
-      AA: singles[97],
-      BB: singles[98],
+      AA: single[97],
+      BB: single[98],
     })).includes({
-      SINGLES: singles
+      SINGLES: single
     })
 
     
-    let escapes = []
-    escapes[110] = '\n'
-    escapes[116] = '\t'
+    let escape = []
+    escape[110] = '\n'
+    escape[116] = '\t'
     expect(norm_options({
-      escapes: {
+      escape: {
         n: '\n',
         t: '\t',
       },
     })).includes({
-      ESCAPES: escapes
+      ESCAPES: escape
     })
 
   })

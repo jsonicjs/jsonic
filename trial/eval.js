@@ -75,7 +75,7 @@ console.log('---')
 */
 let Eval = function evaller(jsonic) {
     jsonic.options({
-        singles: jsonic.options.singles + '$'
+        single: jsonic.options.single + '$'
     });
     let T$ = jsonic.options.TOKENS['$'];
     let ST = jsonic.options.ST;

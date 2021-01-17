@@ -698,7 +698,7 @@ describe('jsonic', function () {
   })
 
 
-  it('process-comments', () => {
+  it('process-comment', () => {
     expect(j('a:q\nb:w #X\nc:r \n\nd:t\n\n#')).equal({a:'q',b:'w',c:'r',d:'t'})
   })
   

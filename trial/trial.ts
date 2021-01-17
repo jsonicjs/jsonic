@@ -50,7 +50,7 @@ console.log('--- Single')
 
 let Single: Plugin = function dollar(jsonic: Jsonic) {
   jsonic.options({
-    singles: jsonic.options.singles + 'Z'
+    single: jsonic.options.single + 'Z'
   })
 }
 
@@ -68,7 +68,7 @@ import Fs from 'fs'
 
 let Dollar: Plugin = function dollar(jsonic: Jsonic) {
   jsonic.options({
-    singles: jsonic.options.singles + '$@'
+    single: jsonic.options.single + '$@'
   })
 
   let T$ = jsonic.options.TOKENS['$']

@@ -8,7 +8,7 @@ import { Jsonic, Plugin, Rule, RuleSpec, Context, util } from '../jsonic'
 
 let Dynamic: Plugin = function evaller(jsonic: Jsonic) {
   jsonic.options({
-    singles: jsonic.options.singles + '$'
+    single: jsonic.options.single + '$'
   })
 
   let T$ = jsonic.options.TOKENS['$']

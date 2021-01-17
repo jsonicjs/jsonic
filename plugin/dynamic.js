@@ -7,7 +7,7 @@ const jsonic_1 = require("../jsonic");
 // TODO: plain values: $1, $true, etc
 let Dynamic = function evaller(jsonic) {
     jsonic.options({
-        singles: jsonic.options.singles + '$'
+        single: jsonic.options.single + '$'
     });
     let T$ = jsonic.options.TOKENS['$'];
     let ST = jsonic.options.ST;
