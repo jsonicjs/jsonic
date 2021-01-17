@@ -98,7 +98,7 @@ type Lex = (() => Token) & { src: string }
 
 const NONE: any[] = []
 
-const STANDARD_OPTIONS: Opts = {
+let STANDARD_OPTIONS: Opts = {
 
   // Token start characters.
   // NOTE: All sc_* string properties generate SC_* char code arrays.
@@ -247,12 +247,19 @@ offending syntax.`
   },
 
 
+  // Lexer states
+  //LS_TOP: ['@TOP'], // TOP
+  //LS_CONSUME: ['@CONSUME'], // CONSUME
+  //LS_MULTILINE: ['@MULTILINE'], // MULTILINE
+
+
   // Arrays ([String]) are used for tokens to create unique internal
   // tokens protected from plugin tokens. Symbols are not used as they
   // create edge cases for string conversion.
 
   // Single character tokens.
   // NOTE: character is final char of Symbol name.
+  /*
   OB: ['#OB{'], // OPEN BRACE
   CB: ['#CB}'], // CLOSE BRACE
   OS: ['#OS['], // OPEN SQUARE
@@ -275,13 +282,55 @@ offending syntax.`
   TX: ['#TX'], // TEXT
 
   VL: ['#VL'], // VALUE
-
-
-  // Lexer states
-  LS_TOP: ['@TOP'], // TOP
-  LS_CONSUME: ['@CONSUME'], // CONSUME
-  LS_MULTILINE: ['@MULTILINE'], // MULTILINE
+  */
 }
+
+type pin = number
+
+let token_map: { [pin: string]: pin } = {}
+let tokI = 100
+token_map.LS_TOP = tokI++ // TOP
+token_map.LS_CONSUME = tokI++ // CONSUME
+token_map.LS_MULTILINE = tokI++ // MULTILINE
+
+
+tokI = 200
+token_map.OB = tokI++ // OPEN BRACE
+token_map.CB = tokI++ // CLOSE BRACE
+token_map.OS = tokI++ // OPEN SQUARE
+token_map.CS = tokI++ // CLOSE SQUARE
+token_map.CL = tokI++ // COLON
+token_map.CA = tokI++ // COMMA
+
+token_map.BD = tokI++ // BAD
+token_map.ZZ = tokI++ // END
+token_map.UK = tokI++ // UNKNOWN
+token_map.CM = tokI++ // COMMENT
+token_map.AA = tokI++ // ANY
+
+token_map.SP = tokI++ // SPACE
+token_map.LN = tokI++ // LINE
+
+token_map.NR = tokI++ // NUMBER
+token_map.ST = tokI++ // STRING
+token_map.TX = tokI++ // TEXT
+
+token_map.VL = tokI++ // VALUE
+
+STANDARD_OPTIONS = { ...STANDARD_OPTIONS, ...(token_map as any) }
+
+
+let valset_map = { STC: ({} as any) }
+valset_map.STC[token_map.OB] = '{'
+valset_map.STC[token_map.CB] = '}'
+valset_map.STC[token_map.OS] = '['
+valset_map.STC[token_map.CS] = ']'
+valset_map.STC[token_map.CL] = ':'
+valset_map.STC[token_map.CA] = ','
+
+
+STANDARD_OPTIONS = { ...STANDARD_OPTIONS, ...(valset_map as any) }
+
 
 
 // Jsonic errors with nice formatting.
@@ -407,7 +456,8 @@ class Lexer {
       token.src = src
       token.use = use
 
-      log && log(token.pin[0], token.src, { ...token })
+      //log && log(token.pin[0], token.src, { ...token })
+      log && log(token.pin, token.src, { ...token })
       return token
     }
   }
@@ -472,7 +522,8 @@ class Lexer {
         if (opts.LS_TOP === state) {
           // TODO: implement custom lexing functions for state, lookup goes here
 
-          let matchers = self.match[opts.LS_TOP[0]]
+          //let matchers = self.match[opts.LS_TOP[0]]
+          let matchers = self.match[opts.LS_TOP]
           if (null != matchers) {
             token.loc = sI // TODO: move to top of while for all rules?
 
@@ -485,8 +536,8 @@ class Lexer {
                 sI = match.sI
                 rI = match.rD ? rI + match.rD : rI
                 cI = match.cD ? cI + match.cD : cI
-                lexlog &&
-                  lexlog(token.pin[0], token.src, { ...token })
+                //lexlog && lexlog(token.pin[0], token.src, { ...token })
+                lexlog && lexlog(token.pin, token.src, { ...token })
                 return token
               }
             }
@@ -508,7 +559,8 @@ class Lexer {
 
             sI = pI
 
-            lexlog && lexlog(token.pin[0], token.src, { ...token })
+            //lexlog && lexlog(token.pin[0], token.src, { ...token })
+            lexlog && lexlog(token.pin, token.src, { ...token })
             return token
           }
 
@@ -533,7 +585,8 @@ class Lexer {
 
             sI = pI
 
-            lexlog && lexlog(token.pin[0], token.src, { ...token })
+            //lexlog && lexlog(token.pin[0], token.src, { ...token })
+            lexlog && lexlog(token.pin, token.src, { ...token })
             return token
           }
 
@@ -546,7 +599,8 @@ class Lexer {
             token.src = c0
             sI++
 
-            lexlog && lexlog(token.pin[0], token.src, { ...token })
+            //lexlog && lexlog(token.pin[0], token.src, { ...token })
+            lexlog && lexlog(token.pin, token.src, { ...token })
             return token
           }
 
@@ -588,7 +642,8 @@ class Lexer {
               cI += token.len
               sI = pI
 
-              lexlog && lexlog(token.pin[0], token.src, { ...token })
+              //lexlog && lexlog(token.pin[0], token.src, { ...token })
+              lexlog && lexlog(token.pin, token.src, { ...token })
               return token
             }
 
@@ -689,7 +744,8 @@ class Lexer {
             token.len = pI - sI
             sI = pI
 
-            lexlog && lexlog(token.pin[0], token.src, { ...token })
+            //lexlog && lexlog(token.pin[0], token.src, { ...token })
+            lexlog && lexlog(token.pin, token.src, { ...token })
             return token
           }
 
@@ -770,7 +826,8 @@ class Lexer {
             token.len = pI - sI
             sI = pI
 
-            lexlog && lexlog(token.pin[0], token.src, { ...token })
+            //lexlog && lexlog(token.pin[0], token.src, { ...token })
+            lexlog && lexlog(token.pin, token.src, { ...token })
             return token
           }
 
@@ -818,7 +875,8 @@ class Lexer {
             sI = pI
           }
 
-          lexlog && lexlog(token.pin[0], token.src, { ...token })
+          //lexlog && lexlog(token.pin[0], token.src, { ...token })
+          lexlog && lexlog(token.pin, token.src, { ...token })
           return token
         }
 
@@ -838,7 +896,8 @@ class Lexer {
 
           state = opts.LS_TOP
 
-          lexlog && lexlog(token.pin[0], token.src, { ...token })
+          //lexlog && lexlog(token.pin[0], token.src, { ...token })
+          lexlog && lexlog(token.pin, token.src, { ...token })
           return token
         }
 
@@ -886,7 +945,8 @@ class Lexer {
 
           state = opts.LS_TOP
 
-          lexlog && lexlog(token.pin[0], token.src, { ...token })
+          //lexlog && lexlog(token.pin[0], token.src, { ...token })
+          lexlog && lexlog(token.pin, token.src, { ...token })
           return token
         }
       }
@@ -897,7 +957,8 @@ class Lexer {
       token.loc = srclen
       token.col = cI
 
-      lexlog && lexlog(token.pin[0], token.src, { ...token })
+      //lexlog && lexlog(token.pin[0], token.src, { ...token })
+      lexlog && lexlog(token.pin, token.src, { ...token })
       return token
     } as Lex)
 
@@ -1751,21 +1812,39 @@ let util = {
       opts[k.toUpperCase()] = util.s2cca(opts[k])
     })
 
+    //console.log('SC', opts)
+
+
     // Lookup table for single character tokens, indexed by char code.
     opts.SINGLES = keys
       .filter(k => 2 === k.length &&
-        Array.isArray(opts[k]) &&
-        '#' === opts[k][0][0] &&
-        4 === opts[k][0].length)
+        /*
+            Array.isArray(opts[k]) &&
+            '#' === opts[k][0][0] &&
+            4 === opts[k][0].length)
+          .reduce((a: number[], k) =>
+            (a[opts[k][0].charCodeAt(3)] = opts[k], a), [])
+        */
+        'number' === typeof opts[k] &&
+        null != opts.STC[opts[k]]
+      )
       .reduce((a: number[], k) =>
-        (a[opts[k][0].charCodeAt(3)] = opts[k], a), [])
+        (
+          //console.log('K', k),
+          a[opts.STC[opts[k]].charCodeAt(0)] = opts[k],
+          a
+        ), [])
+
 
     // Custom singles.
     // TODO: prevent override of builtins
     opts.TOKENS = opts.TOKENS || [] // preserve existing token refs
+
+    tokI = 300
     opts.single = null == opts.single ? '' : opts.single
     opts.single.split('').forEach((s: string, i: number) => {
-      opts.SINGLES[s.charCodeAt(0)] = opts.TOKENS[s] || ['#' + s + '#' + i]
+      //opts.SINGLES[s.charCodeAt(0)] = opts.TOKENS[s] || ['#' + s + '#' + i]
+      opts.SINGLES[s.charCodeAt(0)] = opts.TOKENS[s] || tokI++
     })
 
     opts.TOKENS = opts.SINGLES

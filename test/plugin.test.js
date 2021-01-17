@@ -118,7 +118,7 @@ describe('plugin', function () {
 
   
   // TODO: Jsonic polluted! only passes if before dynamic
-  it('multifile-happy', () => {
+  it('multifile-basic', () => {
     let k = Jsonic.make().use(Multifile,{plugin:{multifile:{basepath:__dirname}}})
     //let k = Jsonic.use(Multifile)
     //console.dir(k.rule('val').def.open,{depth:null})
@@ -138,7 +138,7 @@ describe('plugin', function () {
 
 
   // FIX: infects top level Jsonic!!! make() broken for opts?
-  it('dynamic-happy', () => {
+  it('dynamic-basic', () => {
     let k = Jsonic.make().use(Dynamic)
     expect(k('a:1,b:$1+1')).equal({a:1,b:2})
   })
@@ -176,7 +176,7 @@ describe('plugin', function () {
   })
 */
 
-  it('json-happy', () => {
+  it('json-basic', () => {
     let k = Jsonic.make().use(Json)
     expect(k('a:1')).equal({a:1})
     expect(k('{"a":1}',{mode:'json'})).equal({a:1})
@@ -184,7 +184,7 @@ describe('plugin', function () {
   })
 
 
-  it('csv-happy', () => {
+  it('csv-basic', () => {
     let k = Jsonic.make().use(Csv)
     expect(k('a,b\n1,2\n11,22\n')).equal([{ a: 1, b: 2 }, { a: 11, b: 22 }])
   })

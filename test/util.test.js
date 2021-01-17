@@ -257,9 +257,10 @@ describe('util', () => {
 
     
     let single = []
-    single[97] = ['#AAa']
-    single[98] = ['#BBb']
+    single[97] = 10
+    single[98] = 11
     expect(norm_options({
+      STC: {10:'a',11:'b'},
       AA: single[97],
       BB: single[98],
     })).includes({

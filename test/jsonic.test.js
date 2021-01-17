@@ -1294,6 +1294,7 @@ describe('jsonic', function () {
 })
 
 
+/*
 function st(t) {
   let out = []
   let opts = lexer.options
@@ -1362,6 +1363,83 @@ function st(t) {
 
   case opts.ZZ:
     out = m(opts.ZZ[0],0,t)
+    break
+  }
+
+  return out.filter(x=>null!=x).join(';')
+}
+*/
+
+
+
+function st(t) {
+  let out = []
+  let opts = lexer.options
+  
+  function m(s,v,t) {
+    return [s.substring(0,3),t.loc,t.len,t.row+'x'+t.col,v?(''+t.val):null]
+  }
+
+  switch(t.pin) {
+  case opts.SP:
+    out = m('#SP',0,t)
+    break
+
+  case opts.LN:
+    out = m('#LN',0,t)
+    break
+
+  case opts.OB:
+    out = m('#OB{',0,t)
+    break
+
+  case opts.CB:
+    out = m('#CB}',0,t)
+    break
+
+  case opts.OS:
+    out = m('#OS[',0,t)
+    break
+
+  case opts.CS:
+    out = m('#CS]',0,t)
+    break
+
+  case opts.CL:
+    out = m('#CL:',0,t)
+    break
+
+  case opts.CA:
+    out = m('#CA,',0,t)
+    break
+
+  case opts.NR:
+    out = m('#NR',1,t)
+    break
+
+  case opts.ST:
+    out = m('#ST',1,t)
+    break
+
+  case opts.TX:
+    out = m('#TX',1,t)
+    break
+
+  case opts.VL:
+    out = m('#VL',1,t)
+    break
+
+  case opts.CM:
+    out = m('#CM',1,t)
+    break
+
+  case opts.BD:
+    t.val = t.val+'~'+t.why
+    out = m('#BD',1,t)
+    break
+
+  case opts.ZZ:
+    out = m('#ZZ',0,t)
     break
   }
 
