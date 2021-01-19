@@ -22,6 +22,37 @@ const I = Util.inspect
 
 
 describe('util', () => {
+
+  it('token-gen', () => {
+    let s = 0
+    let config = {
+      tokenI: 1,
+      token: {},
+    }
+    
+    let s1 = util.token('AA', config)
+    expect(s1).equals(s+1)
+    expect(config.token.AA).equals(s+1)
+    expect(config.token[s+1]).equals('AA')
+    expect(util.token('AA', config)).equals(s+1)
+    expect(util.token(s+1, config)).equals('AA')
+
+    let s1a = util.token('AA', config)
+    expect(s1a).equals(s+1)
+    expect(config.token.AA).equals(s+1)
+    expect(config.token[s+1]).equals('AA')
+    expect(util.token('AA', config)).equals(s+1)
+    expect(util.token(s+1, config)).equals('AA')
+
+    let s2 = util.token('BB', config)
+    expect(s2).equals(s+2)
+    expect(config.token.BB).equals(s+2)
+    expect(config.token[s+2]).equals('BB')
+    expect(util.token('BB', config)).equals(s+2)
+    expect(util.token(s+2, config)).equals('BB')
+  })
+
+  
   it('deeper', () => {
     let fa = function a(){}
     let fb = function b(){}
@@ -244,6 +275,7 @@ describe('util', () => {
   })
 
 
+  /*
   it('norm_options', () => {
     expect(norm_options({
       sc_foo: ' \t',
@@ -281,5 +313,5 @@ describe('util', () => {
     })
 
   })
-
+  */
 })

@@ -1,6 +1,7 @@
 declare type KV = {
     [k: string]: any;
 };
+declare type pin = number;
 declare type Opts = {
     single: string;
     escape: {
@@ -16,7 +17,6 @@ declare type Opts = {
     text: KV;
     object: KV;
     value: KV;
-    token: KV;
     mode: KV;
     plugin: KV;
     console: any;
@@ -26,7 +26,16 @@ declare type Opts = {
     hint: {
         [code: string]: string;
     };
-} & KV;
+    token: {
+        [name: string]: // Token name.
+        {
+            c: string;
+        } | // Single char token (eg. OB=`{`)
+        string | // Multi-char token (eg. SP=` \t`)
+        true | // Non-char token (eg. ZZ)
+        string[];
+    };
+};
 declare type Jsonic = ((src: any, meta?: any) => any) & {
     parse: (src: any, meta?: any) => any;
     options: Opts & ((change_opts?: KV) => Jsonic);
@@ -57,6 +66,7 @@ declare type Token = {
 interface Context {
     rI: number;
     opts: Opts;
+    config: Config;
     meta: Meta;
     src: () => string;
     root: () => any;
@@ -72,6 +82,32 @@ interface Context {
 declare type Lex = (() => Token) & {
     src: string;
 };
+declare type Config = {
+    tokenI: number;
+    token: any;
+    start: {
+        [name: string]: pin[];
+    };
+    multi: {
+        [name: string]: string;
+    };
+    single: pin[];
+    tokenset: {
+        [name: string]: pin[];
+    };
+    escape: string[];
+    start_comment: pin[];
+    comment_single: string;
+    comment_marker: string[];
+    comment_marker_first: string;
+    comment_marker_second: string;
+    comment_marker_maxlen: number;
+    start_comment_chars: string;
+    single_chars: string;
+    value_enders: string;
+    text_enders: string;
+    hoover_enders: string;
+};
 declare class JsonicError extends SyntaxError {
     constructor(code: string, details: KV, token: Token, ctx: Context);
     static make_desc(code: string, details: KV, token: Token, ctx: Context): any;
@@ -83,14 +119,15 @@ declare class JsonicError extends SyntaxError {
     };
 }
 declare class Lexer {
-    options: Opts;
+    opts: Opts;
+    config: Config;
     end: Token;
-    bad: any;
     match: {
         [state_name: string]: any;
     };
-    constructor(options?: Opts);
+    constructor(opts: Opts, config: Config);
     start(ctx: Context): Lex;
+    bad(log: ((...rest: any) => undefined) | undefined, why: string, token: Token, sI: number, pI: number, rI: number, cI: number, val?: any, src?: any, use?: any): Token;
     lex(state?: string[], match?: (sI: number, src: string, token: Token, ctx: Context) => KV): any;
 }
 declare enum RuleState {
@@ -132,20 +169,23 @@ declare class RuleSpec {
 }
 declare class Parser {
     mark: number;
-    options: Opts;
+    opts: Opts;
+    config: Config;
     rules: {
         [name: string]: any;
     };
     rulespecs: {
         [name: string]: RuleSpec;
     };
-    constructor(options?: Opts);
+    constructor(opts: Opts, config: Config);
+    init(): void;
     rule(name: string, define?: (rs: RuleSpec, rsm: {
         [n: string]: RuleSpec;
     }) => RuleSpec): RuleSpec;
     start(lexer: Lexer, src: string, meta?: any): any;
 }
 declare let util: {
+    token: <R extends string | number, T extends string | number>(ref: R, config: Config, jsonic?: Jsonic | undefined) => T;
     deep: (base?: any, ...rest: any) => any;
     deepx: (base?: any, ...rest: any) => any;
     deeperx: (seen: any, base?: any, ...rest: any) => any;
@@ -156,7 +196,7 @@ declare let util: {
     errinject: (s: string, code: string, details: KV, token: Token, ctx: Context) => string;
     extract: (src: string, errtxt: string, token: Token) => string;
     handle_meta_mode: (self: Jsonic, src: string, meta: KV) => any[];
-    norm_options: (opts: Opts) => Opts;
+    build_config_from_options: (config: Config, opts: Opts) => void;
 };
 declare let Jsonic: Jsonic;
 export { Jsonic, Plugin, JsonicError, Lexer, Parser, Rule, RuleSpec, Token, Context, Meta, util };

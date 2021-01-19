@@ -2,141 +2,139 @@
 /* Copyright (c) 2013-2020 Richard Rodger, MIT License */
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.util = exports.RuleSpec = exports.Rule = exports.Parser = exports.Lexer = exports.JsonicError = exports.Jsonic = void 0;
-const NONE = [];
-let STANDARD_OPTIONS = {
-    // Token start characters.
-    // NOTE: All sc_* string properties generate SC_* char code arrays.
-    sc_space: ' \t',
-    sc_line: '\n\r',
-    sc_number: '-0123456789',
-    sc_string: '"\'`',
-    sc_none: '',
-    // Custom singles.
-    single: '',
-    // String escape chars.
-    // Denoting char (follows escape char) => actual char.
-    escape: {
-        b: '\b',
-        f: '\f',
-        n: '\n',
-        r: '\r',
-        t: '\t',
-    },
-    // Special characters
-    char: {
-        // Increments row (aka line) counter.
-        row: '\n',
-        // Invalid code point.
-        bad_unicode: String.fromCharCode('0x0000'),
-    },
-    // Comment markers.
-    // <mark-char>: true -> single line comments
-    // <mark-start>: <mark-end> -> multiline comments
-    comment: {
-        '#': true,
-        '//': true,
-        '/*': '*/'
-    },
-    // Control balanced markers.
-    balance: {
-        // Balance multiline comments.
-        comment: true,
-    },
-    // Control number formats.
-    number: {
-        // All possible number characters.
-        digital: '-1023456789._xeEaAbBcCdDfF+',
-        // Allow embedded underscore.
-        underscore: true,
-    },
-    // String formats.
-    string: {
-        // Multiline quote characters.
-        multiline: '`',
-        // CSV-style double quote escape.
-        escapedouble: false,
-    },
-    // Text formats.
-    text: {
-        // Text includes internal whitespace.
-        hoover: true,
-    },
-    // TODO: rename to map for consistency
-    // Object formats.
-    object: {
-        // TODO: allow: true - allow duplicates, else error
-        // Later duplicates extend earlier ones, rather than replacing them.
-        extend: true,
-    },
-    // Keyword values.
-    value: {
-        'null': null,
-        'true': true,
-        'false': false,
-    },
-    // Parsing modes.
-    mode: {},
-    // Plugin custom options, (namespace by plugin name).
-    plugin: {},
-    // Default console for logging
-    console,
-    // Error messages.
-    error: {
-        unknown: 'unknown error: $code',
-        unexpected: 'unexpected character(s): `$src`'
-    },
-    // Error hints
-    hint: {
-        unknown: `Since the error is unknown, this is probably a bug inside jsonic itself.
+function make_standard_options() {
+    let opts = {
+        // Token start characters.
+        // NOTE: All sc_* string properties generate SC_* char code arrays.
+        /*
+        start: {
+          space: ' \t',
+          line: '\n\r',
+          number: '-0123456789',
+          string: '"\'`',
+          none: '',
+        },
+        */
+        // Custom singles.
+        single: '',
+        // String escape chars.
+        // Denoting char (follows escape char) => actual char.
+        escape: {
+            b: '\b',
+            f: '\f',
+            n: '\n',
+            r: '\r',
+            t: '\t',
+        },
+        // Special characters
+        char: {
+            // Increments row (aka line) counter.
+            row: '\n',
+            // Invalid code point.
+            bad_unicode: String.fromCharCode('0x0000'),
+        },
+        // Comment markers.
+        // <mark-char>: true -> single line comments
+        // <mark-start>: <mark-end> -> multiline comments
+        comment: {
+            '#': true,
+            '//': true,
+            '/*': '*/'
+        },
+        // Control balanced markers.
+        balance: {
+            // Balance multiline comments.
+            comment: true,
+        },
+        // Control number formats.
+        number: {
+            // All possible number characters.
+            digital: '-1023456789._xeEaAbBcCdDfF+',
+            // Allow embedded underscore.
+            underscore: true,
+        },
+        // String formats.
+        string: {
+            // Multiline quote characters.
+            multiline: '`',
+            // CSV-style double quote escape.
+            escapedouble: false,
+        },
+        // Text formats.
+        text: {
+            // Text includes internal whitespace.
+            hoover: true,
+        },
+        // TODO: rename to map for consistency
+        // Object formats.
+        object: {
+            // TODO: allow: true - allow duplicates, else error
+            // Later duplicates extend earlier ones, rather than replacing them.
+            extend: true,
+        },
+        // Keyword values.
+        value: {
+            'null': null,
+            'true': true,
+            'false': false,
+        },
+        // Parsing modes.
+        mode: {},
+        // Plugin custom options, (namespace by plugin name).
+        plugin: {},
+        // Default console for logging
+        console,
+        // Error messages.
+        error: {
+            unknown: 'unknown error: $code',
+            unexpected: 'unexpected character(s): `$src`'
+        },
+        // Error hints
+        hint: {
+            unknown: `Since the error is unknown, this is probably a bug inside jsonic itself.
 Please consider posting a github issue - thanks!
 `,
-        unexpected: `The character(s) \`$src\` should not occur at this point as it is not
+            unexpected: `The character(s) \`$src\` should not occur at this point as it is not
 valid JSON syntax, even under the relaxed jsonic rules.  If it is not
 obviously wrong, the actual syntax error may be elsewhere. Try
 commenting out larger areas around this point until you get no errors,
 then remove the comments in small sections until you find the
 offending syntax.`
-    },
-    // Token sets.
-    token: {
-        // Tokens for values (ST=string, NR=number, etc).
-        value: NONE,
-        // Tokens to ignore.
-        ignore: NONE,
-    },
-};
-let token_map = {};
-let tokI = 100;
-token_map.LS_TOP = tokI++; // TOP
-token_map.LS_CONSUME = tokI++; // CONSUME
-token_map.LS_MULTILINE = tokI++; // MULTILINE
-tokI = 200;
-token_map.OB = tokI++; // OPEN BRACE
-token_map.CB = tokI++; // CLOSE BRACE
-token_map.OS = tokI++; // OPEN SQUARE
-token_map.CS = tokI++; // CLOSE SQUARE
-token_map.CL = tokI++; // COLON
-token_map.CA = tokI++; // COMMA
-token_map.BD = tokI++; // BAD
-token_map.ZZ = tokI++; // END
-token_map.UK = tokI++; // UNKNOWN
-token_map.CM = tokI++; // COMMENT
-token_map.AA = tokI++; // ANY
-token_map.SP = tokI++; // SPACE
-token_map.LN = tokI++; // LINE
-token_map.NR = tokI++; // NUMBER
-token_map.ST = tokI++; // STRING
-token_map.TX = tokI++; // TEXT
-token_map.VL = tokI++; // VALUE
-STANDARD_OPTIONS = { ...STANDARD_OPTIONS, ...token_map };
-let valset_map = { STC: {} };
-valset_map.STC[token_map.OB] = '{';
-valset_map.STC[token_map.CB] = '}';
-valset_map.STC[token_map.OS] = '[';
-valset_map.STC[token_map.CS] = ']';
-valset_map.STC[token_map.CL] = ':';
-valset_map.STC[token_map.CA] = ',';
-STANDARD_OPTIONS = { ...STANDARD_OPTIONS, ...valset_map };
+        },
+        /*
+        lex: {
+          state: ['TOP', 'CONSUME', 'MULTILINE']
+        },
+        */
+        token: {
+            // Single char tokens.
+            '#OB': { c: '{' },
+            '#CB': { c: '}' },
+            '#OS': { c: '[' },
+            '#CS': { c: ']' },
+            '#CL': { c: ':' },
+            '#CA': { c: ',' },
+            // Multi-char tokens (start chars).
+            '#SP': ' \t',
+            '#LN': '\n\r',
+            '#CM': true,
+            '#NR': '-0123456789',
+            '#ST': '"\'`',
+            // General char tokens.
+            '#TX': true,
+            '#VL': true,
+            // Non-char tokens.
+            '#BD': true,
+            '#ZZ': true,
+            '#UK': true,
+            '#AA': true,
+            // Token sets
+            '#VALUE': ['#TX', '#NR', '#ST', '#VL'],
+            '#IGNORE': ['#SP', '#LN', '#CM'],
+        }
+    };
+    return opts;
+}
 // Jsonic errors with nice formatting.
 class JsonicError extends SyntaxError {
     constructor(code, details, token, ctx) {
@@ -194,11 +192,12 @@ class JsonicError extends SyntaxError {
 }
 exports.JsonicError = JsonicError;
 class Lexer {
-    constructor(options) {
+    constructor(opts, config) {
         this.match = {};
-        let opts = this.options = options || util.deep({}, STANDARD_OPTIONS);
+        this.opts = opts;
+        this.config = config;
         this.end = {
-            pin: opts.ZZ,
+            pin: util.token('#ZZ', config),
             loc: 0,
             len: 0,
             row: 0,
@@ -206,28 +205,28 @@ class Lexer {
             val: undefined,
             src: undefined,
         };
-        opts.bad = function (log, why, token, sI, pI, rI, cI, val, src, use) {
-            token.why = why;
-            token.pin = opts.BD;
-            token.loc = pI;
-            token.row = rI;
-            token.col = cI;
-            token.len = pI - sI + 1;
-            token.val = val;
-            token.src = src;
-            token.use = use;
-            //log && log(token.pin[0], token.src, { ...token })
-            log && log(token.pin, token.src, { ...token });
-            return token;
-        };
     }
     // Create the lexing function.
     start(ctx) {
         // TODO: should be ctx.opts to ensure consistency
-        const opts = this.options;
+        const opts = this.opts;
+        const config = this.config;
+        let tpin = (name) => util.token(name, this.config);
+        let tn = (pin) => util.token(pin, this.config);
+        let LS_TOP = tpin('@TOP');
+        let LS_CONSUME = tpin('@CONSUME');
+        let LS_MULTILINE = tpin('@MULTILINE');
+        let ZZ = tpin('#ZZ');
+        let SP = tpin('#SP');
+        let LN = tpin('#LN');
+        let CM = tpin('#CM');
+        let NR = tpin('#NR');
+        let ST = tpin('#ST');
+        let TX = tpin('#TX');
+        let VL = tpin('#VL');
         // NOTE: always returns this object!
         let token = {
-            pin: opts.ZZ,
+            pin: ZZ,
             loc: 0,
             row: 0,
             col: 0,
@@ -253,7 +252,7 @@ class Lexer {
             token.val = undefined;
             token.src = undefined;
             token.row = rI;
-            let state = opts.LS_TOP;
+            let state = LS_TOP;
             let state_param = null;
             let enders = '';
             let pI = 0; // Current lex position (only update sI at end of rule).
@@ -262,50 +261,48 @@ class Lexer {
             next_char: while (sI < srclen) {
                 let c0 = src[sI];
                 let c0c = src.charCodeAt(sI);
-                if (opts.LS_TOP === state) {
-                    // TODO: implement custom lexing functions for state, lookup goes here
-                    //let matchers = self.match[opts.LS_TOP[0]]
-                    let matchers = self.match[opts.LS_TOP];
+                if (LS_TOP === state) {
+                    // Custom top level matchers
+                    let matchers = self.match[LS_TOP];
                     if (null != matchers) {
                         token.loc = sI; // TODO: move to top of while for all rules?
                         for (let matcher of matchers) {
-                            //console.log('matcher', matcher)
                             let match = matcher(sI, src, token, ctx);
-                            //console.log('match', match)
                             if (match) {
                                 sI = match.sI;
                                 rI = match.rD ? rI + match.rD : rI;
                                 cI = match.cD ? cI + match.cD : cI;
                                 //lexlog && lexlog(token.pin[0], token.src, { ...token })
-                                lexlog && lexlog(token.pin, token.src, { ...token });
+                                lexlog && lexlog(tn(token.pin), token.src, { ...token });
                                 return token;
                             }
                         }
                     }
-                    if (opts.SC_SPACE.includes(c0c)) {
-                        token.pin = opts.SP;
+                    if (config.start.SP.includes(c0c)) {
+                        token.pin = SP;
                         token.loc = sI;
                         token.col = cI++;
                         pI = sI + 1;
-                        while (opts.sc_space.includes(src[pI]))
+                        //while ((opts.token.SP as string[]).includes(src[pI])) cI++, pI++;
+                        while (config.multi.SP.includes(src[pI]))
                             cI++, pI++;
-                        // TODO: count rows! for csv
                         token.len = pI - sI;
                         token.val = src.substring(sI, pI);
                         token.src = token.val;
                         sI = pI;
                         //lexlog && lexlog(token.pin[0], token.src, { ...token })
-                        lexlog && lexlog(token.pin, token.src, { ...token });
+                        lexlog && lexlog(tn(token.pin), token.src, { ...token });
                         return token;
                     }
-                    else if (opts.SC_LINE.includes(c0c)) {
-                        token.pin = opts.LN;
+                    else if (config.start.LN.includes(c0c)) {
+                        token.pin = LN;
                         token.loc = sI;
                         token.col = cI;
                         pI = sI;
                         cI = 0;
-                        while (opts.sc_line.includes(src[pI])) {
-                            // Only count \n as a row increment
+                        //while ((opts.token.LN as string[]).includes(src[pI])) {
+                        while (config.multi.LN.includes(src[pI])) {
+                            // Count rows
                             rI += (opts.char.row === src[pI] ? 1 : 0);
                             pI++;
                         }
@@ -313,29 +310,27 @@ class Lexer {
                         token.val = src.substring(sI, pI);
                         token.src = token.val;
                         sI = pI;
-                        //lexlog && lexlog(token.pin[0], token.src, { ...token })
-                        lexlog && lexlog(token.pin, token.src, { ...token });
+                        lexlog && lexlog(tn(token.pin), token.src, { ...token });
                         return token;
                     }
-                    else if (null != opts.SINGLES[c0c]) {
-                        token.pin = opts.SINGLES[c0c];
+                    else if (null != config.single[c0c]) {
+                        token.pin = config.single[c0c];
                         token.loc = sI;
                         token.col = cI++;
                         token.len = 1;
                         token.src = c0;
                         sI++;
-                        //lexlog && lexlog(token.pin[0], token.src, { ...token })
-                        lexlog && lexlog(token.pin, token.src, { ...token });
+                        lexlog && lexlog(tn(token.pin), token.src, { ...token });
                         return token;
                     }
-                    else if (opts.SC_NUMBER.includes(c0c)) {
-                        token.pin = opts.NR;
+                    else if (config.start.NR.includes(c0c)) {
+                        token.pin = NR;
                         token.loc = sI;
                         token.col = cI;
                         pI = sI;
-                        while (opts.DIGITAL.includes(src[++pI]))
+                        while (opts.number.digital.includes(src[++pI]))
                             ;
-                        if (null == src[pI] || opts.VALUE_ENDERS.includes(src[pI])) {
+                        if (null == src[pI] || config.value_enders.includes(src[pI])) {
                             token.len = pI - sI;
                             // Leading 0s are text unless hex val: if at least two
                             // digits and does not start with 0x, then text.
@@ -360,14 +355,14 @@ class Lexer {
                             cI += token.len;
                             sI = pI;
                             //lexlog && lexlog(token.pin[0], token.src, { ...token })
-                            lexlog && lexlog(token.pin, token.src, { ...token });
+                            lexlog && lexlog(tn(token.pin), token.src, { ...token });
                             return token;
                         }
                         // NOTE: else drop through to default, as this must be literal text
                         // prefixed with digits.
                     }
-                    else if (opts.SC_STRING.includes(c0c)) {
-                        token.pin = opts.ST;
+                    else if (config.start.ST.includes(c0c)) {
+                        token.pin = ST;
                         token.loc = sI;
                         token.col = cI++;
                         let qc = c0.charCodeAt(0);
@@ -390,7 +385,7 @@ class Lexer {
                             else if (92 === cc) {
                                 let ec = src.charCodeAt(++pI);
                                 cI++;
-                                let es = opts.ESCAPES[ec];
+                                let es = config.escape[ec];
                                 if (null != es) {
                                     s.push(es);
                                 }
@@ -399,7 +394,7 @@ class Lexer {
                                     pI++;
                                     let us = String.fromCharCode(('0x' + src.substring(pI, pI + 4)));
                                     if (opts.char.bad_unicode === us) {
-                                        return opts.bad(lexlog, 'invalid-unicode', token, sI, pI, rI, cI, src.substring(pI - 2, pI + 4));
+                                        return self.bad(lexlog, 'invalid-unicode', token, sI, pI, rI, cI, src.substring(pI - 2, pI + 4));
                                     }
                                     s.push(us);
                                     pI += 3; // loop increments pI
@@ -410,11 +405,11 @@ class Lexer {
                                 }
                             }
                             else if (cc < 32) {
-                                if (multiline && opts.SC_LINE.includes(cc)) {
+                                if (multiline && config.start.LN.includes(cc)) {
                                     s.push(src[pI]);
                                 }
                                 else {
-                                    return opts.bad(lexlog, 'unprintable', token, sI, pI, rI, cI, src.charAt(pI));
+                                    return self.bad(lexlog, 'unprintable', token, sI, pI, rI, cI, src.charAt(pI));
                                 }
                             }
                             else {
@@ -430,32 +425,30 @@ class Lexer {
                         }
                         if (qc !== cc) {
                             cI = sI;
-                            return opts.bad(lexlog, 'unterminated', token, sI, pI - 1, rI, cI, s.join(''));
+                            return self.bad(lexlog, 'unterminated', token, sI, pI - 1, rI, cI, s.join(''));
                         }
                         token.val = s.join('');
                         token.src = src.substring(sI, pI);
                         token.len = pI - sI;
                         sI = pI;
                         //lexlog && lexlog(token.pin[0], token.src, { ...token })
-                        lexlog && lexlog(token.pin, token.src, { ...token });
+                        lexlog && lexlog(tn(token.pin), token.src, { ...token });
                         return token;
                     }
-                    else if (opts.SC_COMMENT.includes(c0c)) {
-                        let is_line_comment = opts.COMMENT_SINGLE.includes(c0);
+                    else if (config.start_comment.includes(c0c)) {
+                        let is_line_comment = config.comment_single.includes(c0);
                         // Also check for comment markers as single comment char could be
                         // a comment marker prefix (eg. # and ###)
-                        let marker = src.substring(sI, sI + opts.COMMENT_MARKER_MAXLEN);
-                        //console.log('CM marker', marker, opts.COMMENT_MARKER)
-                        for (let cm of opts.COMMENT_MARKER) {
-                            //console.log('CM', cm, marker.startsWith(cm))
+                        let marker = src.substring(sI, sI + config.comment_marker_maxlen);
+                        for (let cm of config.comment_marker) {
                             if (marker.startsWith(cm)) {
                                 // Multi-line comment
                                 if (true !== opts.comment[cm]) {
-                                    token.pin = opts.CM;
+                                    token.pin = CM;
                                     token.loc = sI;
                                     token.col = cI;
                                     token.val = ''; // intialize for LS_CONSUME
-                                    state = opts.LS_MULTILINE;
+                                    state = LS_MULTILINE;
                                     state_param = [cm, opts.comment[cm], 'comment'];
                                     continue next_char;
                                 }
@@ -465,19 +458,19 @@ class Lexer {
                                 break;
                             }
                         }
-                        //console.log('CM', is_line_comment)
                         if (is_line_comment) {
-                            token.pin = opts.CM;
+                            token.pin = CM;
                             token.loc = sI;
                             token.col = cI;
                             token.val = ''; // intialize for LS_CONSUME
-                            state = opts.LS_CONSUME;
-                            enders = opts.sc_line;
+                            state = LS_CONSUME;
+                            //enders = (opts.token.LN as string)
+                            enders = config.multi.LN;
                             continue next_char;
                         }
                     }
                     // NOTE: default section. Cases above can bail to here if lookaheads
-                    // fail to match (eg. SC_NUMBER).
+                    // fail to match (eg. NR).
                     // No explicit token recognized. That leaves:
                     // - keyword literal values (from opts.values)
                     // - text values (everything up to an end char)
@@ -490,41 +483,41 @@ class Lexer {
                     do {
                         cI++;
                         pI++;
-                    } while (null != src[pI] && !opts.VALUE_ENDERS.includes(src[pI]));
+                    } while (null != src[pI] && !config.value_enders.includes(src[pI]));
                     let txt = src.substring(sI, pI);
                     // A keyword literal value? (eg. true, false, null)
-                    let val = opts.VALUES[txt];
+                    let val = opts.value[txt];
                     if (undefined !== val) {
-                        token.pin = opts.VL;
+                        token.pin = VL;
                         token.val = val;
                         token.src = txt;
                         token.len = pI - sI;
                         sI = pI;
                         //lexlog && lexlog(token.pin[0], token.src, { ...token })
-                        lexlog && lexlog(token.pin, token.src, { ...token });
+                        lexlog && lexlog(tn(token.pin), token.src, { ...token });
                         return token;
                     }
                     // Only thing left is literal text
-                    let text_enders = opts.text.hoover ? opts.HOOVER_ENDERS : opts.TEXT_ENDERS;
+                    let text_enders = opts.text.hoover ? config.hoover_enders : config.text_enders;
                     // TODO: construct a RegExp to do this
                     while (null != src[pI] &&
                         (!text_enders.includes(src[pI]) ||
-                            //("/".includes(src[pI]) && !"*/".includes(src[pI + 1]))
-                            (opts.COMMENT_MARKER_FIRST.includes(src[pI]) &&
-                                !opts.COMMENT_MARKER_SECOND.includes(src[pI + 1])))) {
+                            (config.comment_marker_first.includes(src[pI]) &&
+                                !config.comment_marker_second.includes(src[pI + 1])))) {
                         cI++;
                         pI++;
                     }
                     token.len = pI - sI;
-                    token.pin = opts.TX;
+                    token.pin = TX;
                     token.val = src.substring(sI, pI);
                     token.src = token.val;
                     // If hoovering, separate space at end from text
                     if (opts.text.hoover &&
-                        opts.sc_space.includes(token.val[token.val.length - 1])) {
+                        //(opts.token.SP as string).includes(token.val[token.val.length - 1])) {
+                        config.multi.SP.includes(token.val[token.val.length - 1])) {
                         // Find last non-space char
                         let tI = token.val.length - 2;
-                        while (0 < tI && opts.sc_space.includes(token.val[tI]))
+                        while (0 < tI && config.multi.SP.includes(token.val[tI]))
                             tI--;
                         token.val = token.val.substring(0, tI + 1);
                         token.src = token.val;
@@ -538,11 +531,11 @@ class Lexer {
                         sI = pI;
                     }
                     //lexlog && lexlog(token.pin[0], token.src, { ...token })
-                    lexlog && lexlog(token.pin, token.src, { ...token });
+                    lexlog && lexlog(tn(token.pin), token.src, { ...token });
                     return token;
                 }
                 // Lexer State: CONSUME => all chars up to first ender
-                else if (opts.LS_CONSUME === state) {
+                else if (LS_CONSUME === state) {
                     // TODO: implement custom lexing functions for state, lookup goes here
                     pI = sI;
                     while (pI < srclen && !enders.includes(src[pI]))
@@ -551,13 +544,13 @@ class Lexer {
                     token.src = token.val;
                     token.len = token.val.length;
                     sI = pI;
-                    state = opts.LS_TOP;
+                    state = LS_TOP;
                     //lexlog && lexlog(token.pin[0], token.src, { ...token })
-                    lexlog && lexlog(token.pin, token.src, { ...token });
+                    lexlog && lexlog(tn(token.pin), token.src, { ...token });
                     return token;
                 }
                 // Lexer State: MULTILINE => all chars up to last close marker, or end
-                else if (opts.LS_MULTILINE === state) {
+                else if (LS_MULTILINE === state) {
                     // TODO: implement custom lexing functions for state, lookup goes here
                     pI = sI;
                     let depth = 1;
@@ -589,22 +582,36 @@ class Lexer {
                     token.src = token.val;
                     token.len = token.val.length;
                     sI = pI;
-                    state = opts.LS_TOP;
+                    state = LS_TOP;
                     //lexlog && lexlog(token.pin[0], token.src, { ...token })
-                    lexlog && lexlog(token.pin, token.src, { ...token });
+                    lexlog && lexlog(tn(token.pin), token.src, { ...token });
                     return token;
                 }
             }
             // LN001: keeps returning ZZ past end of input
-            token.pin = opts.ZZ;
+            token.pin = ZZ;
             token.loc = srclen;
             token.col = cI;
             //lexlog && lexlog(token.pin[0], token.src, { ...token })
-            lexlog && lexlog(token.pin, token.src, { ...token });
+            lexlog && lexlog(tn(token.pin), token.src, { ...token });
             return token;
         };
         lex.src = src;
         return lex;
+    }
+    bad(log, why, token, sI, pI, rI, cI, val, src, use) {
+        token.why = why;
+        token.pin = util.token('#BD', this.config);
+        token.loc = pI;
+        token.row = rI;
+        token.col = cI;
+        token.len = pI - sI + 1;
+        token.val = val;
+        token.src = src;
+        token.use = use;
+        //log && log(token.pin[0], token.src, { ...token })
+        log && log(util.token(token.pin, this.config), token.src, { ...token });
+        return token;
     }
     lex(state, match) {
         if (null == state) {
@@ -668,7 +675,6 @@ class RuleSpec {
             let out = this.def.before_open.call(this, rule, ctx);
             rule.node = out && out.node || rule.node;
         }
-        //console.log('OPEN', this.name, rule.name, this.def.open.mark)
         let act = this.parse_alts(this.def.open, rule, ctx);
         if (act.e) {
             throw new JsonicError('unexpected', { open: true }, act.e, ctx);
@@ -728,15 +734,15 @@ class RuleSpec {
     parse_alts(alts, rule, ctx) {
         let out = undefined;
         let alt;
+        let altI = 0;
+        let t = ctx.config.token;
         // End token reached.
-        if (ctx.opts.ZZ === ctx.t0.pin) {
+        if (t.ZZ === ctx.t0.pin) {
             out = { m: [] };
         }
         else if (0 < alts.length) {
-            //console.log('ALTS')
-            //console.dir(alts, { depth: null })
-            for (alt of alts) {
-                //console.log('ALT', alt)
+            for (altI = 0; altI < alts.length; altI++) {
+                alt = alts[altI];
                 // Optional custom condition
                 let cond = alt.c ? alt.c(alt, rule, ctx) : true;
                 if (cond) {
@@ -757,7 +763,7 @@ class RuleSpec {
                         }
                     }
                     // Match any token.
-                    else if (ctx.opts.AA === alt.s[0]) {
+                    else if (t.AA === alt.s[0]) {
                         out = { ...alt, m: [ctx.t0] };
                         break;
                     }
@@ -766,7 +772,7 @@ class RuleSpec {
             out = out || { e: ctx.t0, m: [] };
         }
         out = out || { m: [] };
-        ctx.log && ctx.log('parse', rule.name + '/' + rule.id, RuleState[rule.state], 'alts', 
+        ctx.log && ctx.log('parse', rule.name + '/' + rule.id, RuleState[rule.state], altI < alts.length ? 'alt=' + altI : 'no-alt', 
         // TODO: indicate none found (don't just show last)
         alt && alt.s ? alt.s.join('') : '', ctx.tI, 'p=' + (out.p || ''), 'r=' + (out.r || ''), 'b=' + (out.b || ''), out.m.map((t) => t.pin).join(' '), out.m.map((t) => t.src).join(''), out);
         if (out.m) {
@@ -786,38 +792,54 @@ class RuleSpec {
 }
 exports.RuleSpec = RuleSpec;
 class Parser {
-    constructor(options) {
+    constructor(opts, config) {
         this.mark = Math.random();
-        let o = this.options = options || util.deep({}, STANDARD_OPTIONS);
-        //let o = options || util.deep({}, STANDARD_OPTIONS)
-        let top = (alt, rule, ctx) => 0 === ctx.rs.length;
+        this.rules = {};
+        this.rulespecs = {};
+        this.opts = opts;
+        this.config = config;
+    }
+    init() {
+        let t = this.config.token;
+        let top = (_alt, _rule, ctx) => 0 === ctx.rs.length;
+        let OB = t.OB;
+        let CB = t.CB;
+        let OS = t.OS;
+        let CS = t.CS;
+        let CL = t.CL;
+        let CA = t.CA;
+        let TX = t.TX;
+        let NR = t.NR;
+        let ST = t.ST;
+        let VL = t.VL;
+        let AA = t.AA;
         this.rules = {
             val: {
                 open: [
-                    { s: [o.OB, o.CA], p: 'map' },
-                    { s: [o.OB], p: 'map' },
-                    { s: [o.OS], p: 'list' },
-                    { s: [o.CA], p: 'list', b: 1 },
+                    { s: [OB, CA], p: 'map' },
+                    { s: [OB], p: 'map' },
+                    { s: [OS], p: 'list' },
+                    { s: [CA], p: 'list', b: 1 },
                     // Implicit map - operates at any depth
-                    { s: [o.TX, o.CL], p: 'map', b: 2 },
-                    { s: [o.ST, o.CL], p: 'map', b: 2 },
-                    { s: [o.NR, o.CL], p: 'map', b: 2 },
-                    { s: [o.VL, o.CL], p: 'map', b: 2 },
-                    { s: [o.TX] },
-                    { s: [o.NR] },
-                    { s: [o.ST] },
-                    { s: [o.VL] },
+                    { s: [TX, CL], p: 'map', b: 2 },
+                    { s: [ST, CL], p: 'map', b: 2 },
+                    { s: [NR, CL], p: 'map', b: 2 },
+                    { s: [VL, CL], p: 'map', b: 2 },
+                    { s: [TX] },
+                    { s: [NR] },
+                    { s: [ST] },
+                    { s: [VL] },
                 ],
                 close: [
                     // Implicit list works only at top level
                     {
-                        s: [o.CA], c: top, r: 'elem',
-                        h: (spec, rule, ctx) => {
+                        s: [CA], c: top, r: 'elem',
+                        h: (_spec, rule, _ctx) => {
                             rule.node = [rule.node];
                         }
                     },
                     // Non-empty close means we need a catch-all backtrack
-                    { s: [o.AA], b: 1 },
+                    { s: [AA], b: 1 },
                 ],
                 before_close: (rule) => {
                     var _a, _b;
@@ -829,7 +851,7 @@ class Parser {
                     return { node: {} };
                 },
                 open: [
-                    { s: [o.CB] },
+                    { s: [CB] },
                     { p: 'pair' } // no tokens, pass node
                 ],
                 close: []
@@ -839,7 +861,7 @@ class Parser {
                     return { node: [] };
                 },
                 open: [
-                    { s: [o.CS] },
+                    { s: [CS] },
                     { p: 'elem' } // no tokens, pass node
                 ],
                 close: []
@@ -847,25 +869,25 @@ class Parser {
             // sets key:val on node
             pair: {
                 open: [
-                    { s: [o.ST, o.CL], p: 'val' },
-                    { s: [o.TX, o.CL], p: 'val' },
-                    { s: [o.NR, o.CL], p: 'val' },
-                    { s: [o.VL, o.CL], p: 'val' },
-                    { s: [o.CB], b: 1 },
+                    { s: [ST, CL], p: 'val' },
+                    { s: [TX, CL], p: 'val' },
+                    { s: [NR, CL], p: 'val' },
+                    { s: [VL, CL], p: 'val' },
+                    { s: [CB], b: 1 },
                 ],
                 close: [
-                    { s: [o.CB] },
-                    { s: [o.CA], r: 'pair' },
+                    { s: [CB] },
+                    { s: [CA], r: 'pair' },
                     // Who needs commas anyway?
-                    { s: [o.ST, o.CL], r: 'pair', b: 2 },
-                    { s: [o.TX, o.CL], r: 'pair', b: 2 },
-                    { s: [o.NR, o.CL], r: 'pair', b: 2 },
-                    { s: [o.VL, o.CL], r: 'pair', b: 2 },
+                    { s: [ST, CL], r: 'pair', b: 2 },
+                    { s: [TX, CL], r: 'pair', b: 2 },
+                    { s: [NR, CL], r: 'pair', b: 2 },
+                    { s: [VL, CL], r: 'pair', b: 2 },
                 ],
                 before_close: (rule, ctx) => {
                     let key_token = rule.open[0];
-                    if (key_token && o.CB !== key_token.pin) {
-                        let key = o.ST === key_token.pin ? key_token.val : key_token.src;
+                    if (key_token && CB !== key_token.pin) {
+                        let key = ST === key_token.pin ? key_token.val : key_token.src;
                         let prev = rule.node[key];
                         rule.node[key] = null == prev ? rule.child.node :
                             (ctx.opts.object.extend ? util.deep(prev, rule.child.node) :
@@ -876,38 +898,38 @@ class Parser {
             // push onto node
             elem: {
                 open: [
-                    { s: [o.OB], p: 'map' },
-                    { s: [o.OS], p: 'list' },
+                    { s: [OB], p: 'map' },
+                    { s: [OS], p: 'list' },
                     // TODO: replace with { p: 'val'} as last entry
                     // IMPORTANT! makes array values consistent with prop values
-                    { s: [o.TX] },
-                    { s: [o.NR] },
-                    { s: [o.ST] },
-                    { s: [o.VL] },
+                    { s: [TX] },
+                    { s: [NR] },
+                    { s: [ST] },
+                    { s: [VL] },
                     // Insert null for initial comma
-                    { s: [o.CA, o.CA], b: 2 },
-                    { s: [o.CA] },
+                    { s: [CA, CA], b: 2 },
+                    { s: [CA] },
                 ],
                 close: [
                     // Ignore trailing comma
-                    { s: [o.CA, o.CS] },
-                    // Next element.
-                    { s: [o.CA], r: 'elem' },
-                    // End list.
-                    { s: [o.CS] },
+                    { s: [CA, CS] },
+                    // Next elemen
+                    { s: [CA], r: 'elem' },
+                    // End lis
+                    { s: [CS] },
                     // Who needs commas anyway?
-                    { s: [o.OB], p: 'map', },
-                    { s: [o.OS], p: 'list', },
-                    { s: [o.TX, o.CL], p: 'map', b: 2 },
-                    { s: [o.NR, o.CL], p: 'map', b: 2 },
-                    { s: [o.ST, o.CL], p: 'map', b: 2 },
-                    { s: [o.VL, o.CL], p: 'map', b: 2 },
-                    { s: [o.TX], r: 'elem', b: 1 },
-                    { s: [o.NR], r: 'elem', b: 1 },
-                    { s: [o.ST], r: 'elem', b: 1 },
-                    { s: [o.VL], r: 'elem', b: 1 },
+                    { s: [OB], p: 'map', },
+                    { s: [OS], p: 'list', },
+                    { s: [TX, CL], p: 'map', b: 2 },
+                    { s: [NR, CL], p: 'map', b: 2 },
+                    { s: [ST, CL], p: 'map', b: 2 },
+                    { s: [VL, CL], p: 'map', b: 2 },
+                    { s: [TX], r: 'elem', b: 1 },
+                    { s: [NR], r: 'elem', b: 1 },
+                    { s: [ST], r: 'elem', b: 1 },
+                    { s: [VL], r: 'elem', b: 1 },
                 ],
-                after_open: (rule, ctx, next) => {
+                after_open: (rule, _ctx, next) => {
                     if (rule === next && rule.open[0]) {
                         let val = rule.open[0].val;
                         // Insert `null` if no value preceeded the comma (eg. [,1] -> [null, 1])
@@ -922,7 +944,7 @@ class Parser {
             }
         };
         // TODO: rulespec should normalize
-        // eg. t:o.QQ => s:[o.QQ]
+        // eg. t:t.QQ => s:[t.QQ]
         this.rulespecs = Object.keys(this.rules).reduce((rs, rn) => {
             rs[rn] = new RuleSpec(rn, this.rules[rn], rs);
             return rs;
@@ -930,29 +952,24 @@ class Parser {
     }
     rule(name, define) {
         this.rulespecs[name] = null == define ? this.rulespecs[name] : (define(this.rulespecs[name], this.rulespecs) || this.rulespecs[name]);
-        /*
-        if ('val' === name) {
-          console.log('PARSER rule', this.mark, name, this.rulespecs[name].def.open.mark)
-          console.dir(this.rulespecs[name].def.open, { depth: null })
-        }
-        */
         return this.rulespecs[name];
     }
     start(lexer, src, meta) {
-        let opts = this.options;
+        let opts = this.opts;
+        let config = this.config;
         let root;
         let ctx = {
             rI: 1,
-            opts: opts,
+            opts,
+            config,
             meta: meta || {},
             src: () => src,
             root: () => {
-                //console.log('CTX ROOT', root.name + '/' + root.id, root.node)
                 return root.node;
             },
             node: undefined,
-            t0: opts.end,
-            t1: opts.end,
+            t0: lexer.end,
+            t1: lexer.end,
             tI: -2,
             next,
             rs: [],
@@ -960,6 +977,7 @@ class Parser {
             use: {}
         };
         util.make_log(ctx);
+        let tn = (pin) => util.token(pin, this.config);
         let lex = lexer.start(ctx);
         let rule = new Rule(this.rulespecs.val, ctx, opts);
         root = rule;
@@ -973,7 +991,8 @@ class Parser {
             do {
                 t1 = lex();
                 ctx.tI++;
-            } while (opts.token.ignore.includes(t1.pin));
+                //} while ((opts.token.IGNORE as string).includes(t1.pin))
+            } while (config.tokenset.IGNORE.includes(t1.pin));
             ctx.t1 = { ...t1 };
             return ctx.t0;
         }
@@ -984,18 +1003,33 @@ class Parser {
         let rI = 0;
         while (norule !== rule && rI < maxr) {
             ctx.log &&
-                ctx.log('rule', rule.name + '/' + rule.id, RuleState[rule.state], ctx.rs.length, ctx.tI, ctx.t0.pin + ' ' + ctx.t1.pin, rule, ctx);
+                ctx.log('rule', rule.name + '/' + rule.id, RuleState[rule.state], ctx.rs.length, ctx.tI, '[' + tn(ctx.t0.pin) + ' ' + tn(ctx.t1.pin) + ']', '<< ' + ctx.t0.src + ctx.t1.src + ' >>', rule, ctx);
             rule = rule.process(ctx);
             ctx.log &&
                 ctx.log('stack', ctx.rs.map((r) => r.name + '/' + r.id).join(';'), rule, ctx);
             rI++;
         }
-        // TODO: must end with o.ZZ token else error
+        // TODO: must end with t.ZZ token else error
         return root.node;
     }
 }
 exports.Parser = Parser;
 let util = {
+    // Uniquely resolve or assign token pin number
+    token: function token(ref, config, jsonic) {
+        let tokenmap = config.token;
+        let token = tokenmap[ref];
+        if (null == token && 'string' === typeof (ref)) {
+            token = config.tokenI++;
+            tokenmap[token] = ref;
+            tokenmap[ref] = token;
+            tokenmap[ref.substring(1)] = token;
+            if (null != jsonic) {
+                Object.assign(jsonic.token, config.token);
+            }
+        }
+        return token;
+    },
     // Deep override for plain data. Retains base object and array.
     // Array merge by `over` index, `over` wins non-matching types, expect:
     // `undefined` always loses, `over` plain objects inject into functions,
@@ -1020,7 +1054,6 @@ let util = {
                 }
             }
             else {
-                //base = undefined === over ? base : over
                 base = undefined === over ? base :
                     over_is_function ? over :
                         (over_is_object ?
@@ -1035,7 +1068,6 @@ let util = {
     deepx: function (base, ...rest) {
         let seen = [[], []];
         let out = util.deeperx(seen, base, ...rest);
-        //console.dir(seen, { depth: null })
         return out;
     },
     deeperx: function (seen, base, ...rest) {
@@ -1135,7 +1167,7 @@ let util = {
         }
     },
     errinject: (s, code, details, token, ctx) => {
-        return s.replace(/\$([\w_]+)/g, (m, name) => {
+        return s.replace(/\$([\w_]+)/g, (_m, name) => {
             return ('code' === name ? code : (details[name] ||
                 ctx.meta[name] ||
                 token[name] ||
@@ -1195,7 +1227,7 @@ let util = {
                         col = cI < loc ? src.substring(cI, loc).length - 1 : 0;
                     }
                     let token = ex.token || {
-                        pin: opts.UK,
+                        pin: self.token.UK,
                         loc: loc,
                         len: tsrc.length,
                         row: ex.lineNumber || row,
@@ -1208,6 +1240,8 @@ let util = {
                     }, token, ex.ctx || {
                         rI: -1,
                         opts,
+                        config: {},
+                        token: {},
                         meta,
                         src: () => src,
                         root: () => undefined,
@@ -1230,88 +1264,73 @@ let util = {
         }
     },
     // Idempotent normalization of options.
-    norm_options: function (opts) {
-        let keys = Object.keys(opts);
-        // Convert character list strings to code arrays.
-        // sc_foo:'ab' -> SC_FOO:[97,98]
-        keys.filter(k => k.startsWith('sc_')).forEach(k => {
-            opts[k.toUpperCase()] = util.s2cca(opts[k]);
-        });
-        //console.log('SC', opts)
-        // Lookup table for single character tokens, indexed by char code.
-        opts.SINGLES = keys
-            .filter(k => 2 === k.length &&
-            /*
-                Array.isArray(opts[k]) &&
-                '#' === opts[k][0][0] &&
-                4 === opts[k][0].length)
-              .reduce((a: number[], k) =>
-                (a[opts[k][0].charCodeAt(3)] = opts[k], a), [])
-            */
-            'number' === typeof opts[k] &&
-            null != opts.STC[opts[k]])
-            .reduce((a, k) => (
-        //console.log('K', k),
-        a[opts.STC[opts[k]].charCodeAt(0)] = opts[k],
-            a), []);
-        // Custom singles.
-        // TODO: prevent override of builtins
-        opts.TOKENS = opts.TOKENS || []; // preserve existing token refs
-        tokI = 300;
-        opts.single = null == opts.single ? '' : opts.single;
-        opts.single.split('').forEach((s, i) => {
-            //opts.SINGLES[s.charCodeAt(0)] = opts.TOKENS[s] || ['#' + s + '#' + i]
-            opts.SINGLES[s.charCodeAt(0)] = opts.TOKENS[s] || tokI++;
-        });
-        opts.TOKENS = opts.SINGLES
-            .map((t, i) => null == t ? null : i)
-            .filter((i) => null != +i)
-            .reduce((a, i) => (a[String.fromCharCode(i)] = opts.SINGLES[i], a), {});
-        // lookup table for escape chars, indexed by denotating char (e.g. n for \n).
+    build_config_from_options: function (config, opts) {
+        let cc = (s) => s.charCodeAt(0);
+        let token_names = Object.keys(opts.token);
+        // Index of tokens by name.
+        token_names.forEach(tn => util.token(tn, config));
+        let single_char_token_names = token_names
+            .filter(tn => null != opts.token[tn].c);
+        // Sparse index array of single char codes
+        config.single = single_char_token_names
+            .reduce((a, tn) => (a[cc(opts.token[tn].c)] =
+            config.token[tn], a), []);
+        let multi_char_token_names = token_names
+            .filter(tn => 'string' === typeof opts.token[tn]);
+        // Char code arrays for lookup by char code.
+        config.start = multi_char_token_names
+            .reduce((a, tn) => (a[tn.substring(1)] = util.s2cca(opts.token[tn]), a), {});
+        config.multi = multi_char_token_names
+            .reduce((a, tn) => (a[tn.substring(1)] = opts.token[tn], a), {});
+        let tokenset_names = token_names
+            .filter(tn => Array.isArray(opts.token[tn]));
+        // Char code arrays for lookup by char code.
+        config.tokenset = tokenset_names
+            .reduce((a, tsn) => (a[tsn.substring(1)] = opts.token[tsn]
+            .map(tn => config.token[tn]), a), {});
+        // Lookup table for escape chars, indexed by denotating char (e.g. n for \n).
         opts.escape = opts.escape || {};
-        opts.ESCAPES = Object.keys(opts.escape)
+        config.escape = Object.keys(opts.escape)
             .reduce((a, ed) => (a[ed.charCodeAt(0)] = opts.escape[ed], a), []);
-        opts.number = opts.number || {};
-        opts.DIGITAL = opts.number.digital || '';
-        opts.SC_COMMENT = [];
-        opts.COMMENT_SINGLE = '';
-        opts.COMMENT_MARKER = [];
-        opts.COMMENT_MARKER_FIRST = '';
-        opts.COMMENT_MARKER_SECOND = '';
+        config.start_comment = [];
+        config.comment_single = '';
+        config.comment_marker = [];
+        config.comment_marker_first = '';
+        config.comment_marker_second = '';
         if (opts.comment) {
             let comment_markers = Object.keys(opts.comment);
             comment_markers.forEach(k => {
                 // Single character comment marker (eg. `#`)
                 if (1 === k.length) {
-                    opts.SC_COMMENT.push(k.charCodeAt(0));
-                    opts.COMMENT_SINGLE += k;
+                    config.start_comment.push(k.charCodeAt(0));
+                    config.comment_single += k;
                 }
                 // String comment marker (eg. `//`)
                 else {
-                    opts.SC_COMMENT.push(k.charCodeAt(0));
-                    opts.COMMENT_MARKER.push(k);
-                    opts.COMMENT_MARKER_FIRST += k[0];
-                    opts.COMMENT_MARKER_SECOND += k[1];
+                    config.start_comment.push(k.charCodeAt(0));
+                    config.comment_marker.push(k);
+                    config.comment_marker_first += k[0];
+                    config.comment_marker_second += k[1];
                 }
             });
-            opts.COMMENT_MARKER_MAXLEN = util.longest(comment_markers);
+            config.comment_marker_maxlen = util.longest(comment_markers);
         }
-        opts.SC_COMMENT_CHARS =
-            opts.SC_COMMENT.map((cc) => String.fromCharCode(cc)).join('');
-        opts.SINGLE_CHARS =
-            opts.SINGLES.map((s, cc) => String.fromCharCode(cc)).join('');
-        opts.VALUE_ENDERS =
-            opts.sc_space + opts.sc_line + opts.SINGLE_CHARS + opts.SC_COMMENT_CHARS;
-        opts.TEXT_ENDERS = opts.VALUE_ENDERS;
-        opts.HOOVER_ENDERS = opts.sc_line + opts.SINGLE_CHARS + opts.SC_COMMENT_CHARS;
-        opts.VALUES = opts.value || {};
-        // Token sets
-        opts.token = opts.token || {};
-        opts.token.value = NONE !== opts.token.value ? opts.token.value :
-            [opts.TX, opts.NR, opts.ST, opts.VL];
-        opts.token.ignore = NONE !== opts.token.ignore ? opts.token.ignore :
-            [opts.SP, opts.LN, opts.CM];
-        return opts;
+        config.start_comment_chars =
+            config.start_comment.map((cc) => String.fromCharCode(cc)).join('');
+        config.single_chars =
+            config.single.map((_s, cc) => String.fromCharCode(cc)).join('');
+        // Enders are char sets that end lexing for a given token
+        config.value_enders =
+            config.multi.SP +
+                config.multi.LN +
+                config.single_chars +
+                config.start_comment_chars;
+        config.text_enders = config.value_enders;
+        config.hoover_enders =
+            config.multi.LN +
+                config.single_chars +
+                config.start_comment_chars;
+        //console.log(config)
     },
 };
 exports.util = util;
@@ -1322,13 +1341,13 @@ function make(first, parent) {
         param_opts = {};
         parent = first;
     }
+    let config;
     // Merge options.
-    let opts = util.norm_options(util.deep({}, parent ? { ...parent.options } : STANDARD_OPTIONS, param_opts));
+    let opts = util.deep({}, parent ? { ...parent.options } : make_standard_options(), param_opts);
     // Create primary parsing function
     let self = function Jsonic(src, meta) {
         if ('string' === typeof (src)) {
             let internal = self.internal();
-            //console.log(internal.parser)
             let [done, out] = (null != meta && null != meta.mode) ? util.handle_meta_mode(self, src, meta) :
                 [false];
             if (!done) {
@@ -1338,38 +1357,59 @@ function make(first, parent) {
         }
         return src;
     };
-    // Transfer parent properties (preserves plugin decorations, etc).
-    if (parent) {
-        for (let k in parent) {
-            self[k] = parent[k];
-        }
-        self.parent = parent;
-    }
+    self.token = function token(ref) {
+        return util.token(ref, config, self);
+    };
     let lexer;
     let parser;
+    // Transfer parent properties (preserves plugin decorations, etc).
     /*
     if (parent) {
-      lexer = util.clone(parent.internal().lexer)
-      parser = util.clone(parent.internal().parser)
-      parser.mark = Math.random()
+      for (let k in parent) {
+        self[k] = parent[k]
+      }
+  
+      self.parent = parent
+  
+      let internal = parent.internal()
+      config = util.deep({}, internal.config)
+  
+      util.build_config_from_options(config, opts)
+      Object.assign(self.token, config.token)
+  
+      // TODO: inherit parent
+      lexer = new Lexer(opts, config)
+  
+      parser = new Parser(opts, config)
+      parser.rules = util.deep(parser.rules)
+      parser.rulespecs = util.deep(parser.rulespecs)
     }
     else {
   */
-    lexer = new Lexer(opts);
-    //parser = new Parser(opts)
-    parser = new Parser(opts);
+    config = {
+        tokenI: 1,
+        token: {}
+    };
+    util.build_config_from_options(config, opts);
+    lexer = new Lexer(opts, config);
+    parser = new Parser(opts, config);
+    parser.init();
     //}
-    self.internal = () => ({ lexer, parser });
+    Object.assign(self.token, config.token);
+    self.internal = () => ({
+        lexer,
+        parser,
+        config
+    });
     let optioner = (change_opts) => {
         if (null != change_opts && 'object' === typeof (change_opts)) {
-            opts = util.norm_options(util.deep(opts, change_opts));
+            util.build_config_from_options(config, util.deep(opts, change_opts));
             for (let k in opts) {
                 self.options[k] = opts[k];
             }
         }
         return self;
     };
-    //self.options = opts
     self.options = util.deep(optioner, opts);
     self.parse = self;
     self.use = function use(plugin, opts) {
@@ -1380,11 +1420,11 @@ function make(first, parent) {
         plugin(jsonic);
         return jsonic;
     };
-    self.rule = function (name, define) {
+    self.rule = function rule(name, define) {
         let rule = self.internal().parser.rule(name, define);
         return null == define ? rule : self;
     };
-    self.lex = function (state, match) {
+    self.lex = function lex(state, match) {
         let lexer = self.internal().lexer;
         let matching = lexer.lex(state, match);
         return null == match ? matching : self;
@@ -1392,6 +1432,7 @@ function make(first, parent) {
     self.make = function (opts) {
         return make(opts, self);
     };
+    Object.defineProperty(self.make, 'name', { value: 'make' });
     return self;
 }
 let Jsonic = make();
