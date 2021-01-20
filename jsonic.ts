@@ -102,6 +102,7 @@ interface Context {
   t1: Token
   tI: number
   rs: Rule[]
+  rsm: { [name: string]: RuleSpec }
   next: () => Token
   log?: (...rest: any) => undefined
   use: KV     // Custom meta data from plugins goes here.
@@ -1025,8 +1026,6 @@ class Rule {
   id: number
   name: string
   spec: RuleSpec
-  //ctx: Context
-  //opts: Opts
   node: any
   state: RuleState
   child: Rule
@@ -1042,8 +1041,6 @@ class Rule {
     this.name = spec.name
     this.spec = spec
     this.node = node
-    //this.ctx = ctx
-    //this.opts = opts
     this.state = RuleState.open
     this.child = norule
     this.open = []
@@ -1075,18 +1072,10 @@ let norule = ({ id: 0, spec: { name: 'norule' } } as Rule)
 class RuleSpec {
   name: string
   def: any
-  //rm: { [name: string]: RuleSpec }
-  rm: (rulename: string) => RuleSpec
-  match: any
 
-  constructor(name: string, def: any, rm: (rulename: string) => RuleSpec) {//rm: { [name: string]: RuleSpec }) {
+  constructor(name: string, def: any) {
     this.name = name
     this.def = def
-    this.rm = rm
-
-    if (this.def.open) {
-      this.def.open.mark = this.def.open.mark || Math.random()
-    }
   }
 
   open(rule: Rule, ctx: Context) {
@@ -1107,11 +1096,11 @@ class RuleSpec {
 
     if (act.p) {
       ctx.rs.push(rule)
-      next = rule.child = new Rule(this.rm(act.p), ctx, rule.node)
+      next = rule.child = new Rule(ctx.rsm[act.p], ctx, rule.node)
       next.parent = rule
     }
     else if (act.r) {
-      next = new Rule(this.rm(act.r), ctx, rule.node)
+      next = new Rule(ctx.rsm[act.r], ctx, rule.node)
       next.parent = rule.parent
     }
 
@@ -1153,11 +1142,11 @@ class RuleSpec {
 
     if (act.p) {
       ctx.rs.push(rule)
-      next = rule.child = new Rule(this.rm(act.p), ctx, rule.node)
+      next = rule.child = new Rule(ctx.rsm[act.p], ctx, rule.node)
       next.parent = rule
     }
     else if (act.r) {
-      next = new Rule(this.rm(act.r), ctx, rule.node)
+      next = new Rule(ctx.rsm[act.r], ctx, rule.node)
       next.parent = rule.parent
       why = 'r'
     }
@@ -1184,7 +1173,7 @@ class RuleSpec {
   }
 
 
-  // first match wins
+  // First match wins.
   parse_alts(alts: any[], rule: Rule, ctx: Context): any {
     let out = undefined
     let alt
@@ -1271,12 +1260,9 @@ class RuleSpec {
 
 class Parser {
 
-  mark = Math.random()
   opts: Opts
   config: Config
-
-  rules: { [name: string]: any } = {}
-  rulespecs: { [name: string]: RuleSpec } = {}
+  rsm: { [name: string]: RuleSpec } = {}
 
   constructor(opts: Opts, config: Config) {
     this.opts = opts
@@ -1301,7 +1287,7 @@ class Parser {
 
     let AA = t.AA
 
-    this.rules = {
+    let rules: any = {
       val: {
         open: [ // alternatives
           { s: [OB, CA], p: 'map' },
@@ -1321,7 +1307,7 @@ class Parser {
           { s: [ST] },
           { s: [VL] },
 
-          // TODO: allow concatentation 
+          // TODO: concatentation? 
         ],
         close: [
           // Implicit list works only at top level
@@ -1455,10 +1441,8 @@ class Parser {
       }
     }
 
-    // TODO: rulespec should normalize
-    // eg. t:t.QQ => s:[t.QQ]
-    this.rulespecs = Object.keys(this.rules).reduce((rs: any, rn: string) => {
-      rs[rn] = new RuleSpec(rn, this.rules[rn], (name: string) => this.rulespecs[name])
+    this.rsm = Object.keys(rules).reduce((rs: any, rn: string) => {
+      rs[rn] = new RuleSpec(rn, rules[rn])
       return rs
     }, {})
   }
@@ -1468,11 +1452,11 @@ class Parser {
     name: string,
     define?: (rs: RuleSpec, rsm: { [n: string]: RuleSpec }) => RuleSpec
   ) {
-    this.rulespecs[name] = null == define ? this.rulespecs[name] : (
-      define(this.rulespecs[name], this.rulespecs) || this.rulespecs[name]
+    this.rsm[name] = null == define ? this.rsm[name] : (
+      define(this.rsm[name], this.rsm) || this.rsm[name]
     )
 
-    return this.rulespecs[name]
+    return this.rsm[name]
   }
 
 
@@ -1497,6 +1481,7 @@ class Parser {
       tI: -2,  // adjust count for token lookahead
       next,
       rs: [],
+      rsm: this.rsm,
       log: (meta && meta.log) || undefined,
       use: {}
     }
@@ -1507,13 +1492,13 @@ class Parser {
 
     let lex = lexer.start(ctx)
 
-    let rule = new Rule(this.rulespecs.val, ctx, opts)
+    let rule = new Rule(this.rsm.val, ctx)
 
     root = rule
 
     // Maximum rule iterations. Allow for rule open and close,
     // and for each rule on each char to be virtual (like map, list)
-    let maxr = 2 * Object.keys(this.rulespecs).length * lex.src.length
+    let maxr = 2 * Object.keys(this.rsm).length * lex.src.length
 
     // Lex next token.
     function next() {
@@ -1554,6 +1539,17 @@ class Parser {
 
     return root.node
   }
+
+
+  clone(opts: Opts, config: Config) {
+    let parser = new Parser(opts, config)
+
+    parser.rsm = Object
+      .keys(this.rsm)
+      .reduce((a, rn) => (a[rn] = util.clone(this.rsm[rn]), a), ({} as any))
+
+    return parser
+  }
 }
 
 
@@ -1564,7 +1560,7 @@ let util = {
     config: Config,
     jsonic?: Jsonic):
     T {
-    let tokenmap: any = (config as any).token
+    let tokenmap: any = config.token
     let token: string | pin = tokenmap[ref]
 
     if (null == token && 'string' === typeof (ref)) {
@@ -1768,6 +1764,7 @@ let util = {
               tI: -1,
               rs: [],
               next: () => token, // TODO: should be end token
+              rsm: {},
               log: meta.log,
               use: {}
             } as Context,
@@ -1909,6 +1906,7 @@ function make(first?: KV | Jsonic, parent?: Jsonic): Jsonic {
 
   // Create primary parsing function
   let self: any = function Jsonic(src: any, meta?: any): any {
+    debugger
     if ('string' === typeof (src)) {
       let internal = self.internal()
 
@@ -1952,11 +1950,11 @@ function make(first?: KV | Jsonic, parent?: Jsonic): Jsonic {
     Object.assign(self.token, config.token)
 
     lexer = parent_internal.lexer.clone(config)
+    parser = parent_internal.parser.clone(opts, config)
 
-    // TODO: inherit parent
-    parser = new Parser(opts, config)
-    parser.rules = util.deep(parser.rules)
-    parser.rulespecs = util.deep(parser.rulespecs)
+    //console.log('CLONE PARSER')
+    //console.dir(parent_internal.parser)
+    //console.dir(parser)
   }
   else {
     config = ({
@@ -2052,7 +2050,8 @@ export {
   Token,
   Context,
   Meta,
-  util
+  util,
+  make,
 }
 
 

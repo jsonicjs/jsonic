@@ -14,7 +14,7 @@ const describe = lab.describe
 const it = lab.it
 const expect = Code.expect
 
-const { Jsonic, Lexer, JsonicError } = require('..')
+const { Jsonic, Lexer, Parser, JsonicError, make } = require('..')
 const { Json } = require('../plugin/json')
 const { Csv } = require('../plugin/csv')
 const { Dynamic } = require('../plugin/dynamic')
@@ -37,11 +37,11 @@ describe('plugin', function () {
     let match1 = function(){}
     lex1.lex('match1', match1)
 
-    //console.log('lex0')
-    //console.dir(lex0)
+    // console.log('lex0')
+    // console.dir(lex0)
 
-    //console.log('lex1')
-    //console.dir(lex1)
+    // console.log('lex1')
+    // console.dir(lex1)
 
     expect(lex0 === lex1).false()
     expect(lex0.end === lex1.end).false()
@@ -52,90 +52,92 @@ describe('plugin', function () {
       .equal('{ m: [ [Function: match0], [Function: match1] ] }')    
   })
 
+
+  it('clone-parser', () => {
+    let config0 = {config:true,mark:0,tokenI:1,token:{}}
+    let opts0 = {opts:true,mark:0}
+    let p0 = new Parser(opts0,config0)
+
+    let config1 = {config:true,mark:1,tokenI:1,token:{}}
+    let opts1 = {opts:true,mark:1}
+    let p1 = p0.clone(opts1,config1)
+
+    // console.log('p0')
+    // console.dir(p0)
+
+    // console.log('p1')
+    // console.dir(p1)
+
+    expect(p0 === p1).false()
+    expect(p0.rsm === p1.rsm).false()
+  })
+
+
   
   it('make', () => {
-    const j = Jsonic
+    // use make to avoid polluting Jsonic
+    const j = make()
     j.use(make_token_plugin('A','aaa'))
-    expect(j('x:A')).equals({x:'aaa'})
+    expect(j('x:A,y:B,z:C')).equals({x:'aaa',y:'B',z:'C'})
 
     
-    const a1 = Jsonic.make({a:1})
+    const a1 = j.make({a:1})
     expect(a1.options.a).equal(1)
     expect(j.options.a).undefined()
     expect(j.internal().lexer === a1.internal().lexer).false()
+    expect(j.internal().parser === a1.internal().parser).false()
     expect(j.token.OB === a1.token.OB).true()
+    expect(a1('x:A,y:B,z:C')).equals({x:'aaa',y:'B',z:'C'})
+    expect(j('x:A,y:B,z:C')).equals({x:'aaa',y:'B',z:'C'})
     
-    const a2 = Jsonic.make({a:2})
+    const a2 = j.make({a:2})
     expect(a2.options.a).equal(2)
     expect(a1.options.a).equal(1)
     expect(j.options.a).undefined()
     expect(j.internal().lexer === a2.internal().lexer).false()
     expect(a2.internal().lexer === a1.internal().lexer).false()
+    expect(j.internal().parser === a2.internal().parser).false()
+    expect(a2.internal().parser === a1.internal().parser).false()
     expect(j.token.OB === a2.token.OB).true()
     expect(a2.token.OB === a1.token.OB).true()
+    expect(a2('x:A,y:B,z:C')).equals({x:'aaa',y:'B',z:'C'})
+    expect(a1('x:A,y:B,z:C')).equals({x:'aaa',y:'B',z:'C'})
+    expect(j('x:A,y:B,z:C')).equals({x:'aaa',y:'B',z:'C'})
     
+    a2.use(make_token_plugin('B','bbb'))
+    expect(a2('x:A,y:B,z:C')).equals({x:'aaa',y:'bbb',z:'C'})
+    expect(a1('x:A,y:B,z:C')).equals({x:'aaa',y:'B',z:'C'})
+    expect(j('x:A,y:B,z:C')).equals({x:'aaa',y:'B',z:'C'})
 
-    return;
-    
-    a1.use((jsonic)=>{
-      jsonic.options({aa:1})
-      jsonic.internal().lexer.aa=1
-      jsonic.internal().parser.aa=1
-    })
+
+    const a22 = a2.make({a:22})
+    expect(a22.options.a).equal(22)
     expect(a2.options.a).equal(2)
     expect(a1.options.a).equal(1)
     expect(j.options.a).undefined()
-    expect(a2.options.aa).undefined()
-    expect(a1.options.aa).equal(1)
-    expect(j.options.aa).undefined()
-    expect(j.internal().lexer.aa).undefined()
-    expect(a2.internal().lexer.aa).undefined()
-    expect(a1.internal().lexer.aa).equal(1)
-    expect(j.internal().parser.aa).undefined()
-    expect(a2.internal().parser.aa).undefined()
-    expect(a1.internal().parser.aa).equal(1)
-
-    a1.use(make_token_plugin('A','aaa'))
-    expect(j('{x:A,y:B,z:C}')).equals({x:'A',y:'B',z:'C'})
-    expect(a1('{x:A,y:B,z:C}',{log:-1})).equals({x:'aaa',y:'B',z:'C'})
-    expect(a2('{x:A,y:B,z:C}')).equals({x:'A',y:'B',z:'C'})
+    expect(j.internal().lexer === a22.internal().lexer).false()
+    expect(j.internal().lexer === a2.internal().lexer).false()
+    expect(a22.internal().lexer === a1.internal().lexer).false()
+    expect(a2.internal().lexer === a1.internal().lexer).false()
+    expect(j.internal().parser === a22.internal().parser).false()
+    expect(j.internal().parser === a2.internal().parser).false()
+    expect(a22.internal().parser === a1.internal().parser).false()
+    expect(a2.internal().parser === a1.internal().parser).false()
+    expect(a22.internal().parser === a2.internal().parser).false()
+    expect(a22.internal().lexer === a2.internal().lexer).false()
+    expect(j.token.OB === a22.token.OB).true()
+    expect(a22.token.OB === a1.token.OB).true()
+    expect(a2.token.OB === a1.token.OB).true()
+    expect(a22('x:A,y:B,z:C')).equals({x:'aaa',y:'bbb',z:'C'})
+    expect(a2('x:A,y:B,z:C')).equals({x:'aaa',y:'bbb',z:'C'})
+    expect(a1('x:A,y:B,z:C')).equals({x:'aaa',y:'B',z:'C'})
+    expect(j('x:A,y:B,z:C')).equals({x:'aaa',y:'B',z:'C'})
     
-    
-    a2.use((jsonic)=>{
-      jsonic.options({aa:2})
-      jsonic.internal().lexer.aa=2
-      jsonic.internal().parser.aa=2
-    })
-    expect(a2.options.a).equal(2)
-    expect(a1.options.a).equal(1)
-    expect(j.options.a).undefined()
-    expect(a2.options.aa).equal(2)
-    expect(a1.options.aa).equal(1)
-    expect(j.options.aa).undefined()
-    expect(j.internal().lexer.aa).undefined()
-    expect(a2.internal().lexer.aa).equal(2)
-    expect(a1.internal().lexer.aa).equal(1)
-    expect(j.internal().parser.aa).undefined()
-    expect(a2.internal().parser.aa).equal(2)
-    expect(a1.internal().parser.aa).equal(1)
-
-    
-    let a11 = a1.make({a:11})
-    expect(a11.options.a).equal(11)
-    expect(a2.options.a).equal(2)
-    expect(a1.options.a).equal(1)
-    expect(j.options.a).undefined()
-    expect(j.internal().lexer.aa).undefined()
-    expect(a2.internal().lexer.aa).equal(2)
-    expect(a1.internal().lexer.aa).equal(1)
-    expect(a11.internal().lexer.aa).equal(1)
-    expect(j('x:1')).equals({x:1})
-    expect(a1('x:1')).equals({x:1})
-    expect(a2('x:1')).equals({x:1})
-    expect(a11('x:1')).equals({x:1})
-
-    
-
+    a22.use(make_token_plugin('C','ccc'))
+    expect(a22('x:A,y:B,z:C')).equals({x:'aaa',y:'bbb',z:'ccc'})
+    expect(a2('x:A,y:B,z:C')).equals({x:'aaa',y:'bbb',z:'C'})
+    expect(a1('x:A,y:B,z:C')).equals({x:'aaa',y:'B',z:'C'})
+    expect(j('x:A,y:B,z:C')).equals({x:'aaa',y:'B',z:'C'})
   })
 
   

@@ -262,6 +262,23 @@ describe('util', () => {
     d44.y=2
     console.log(d4,d44)
     */
+
+
+    class A {
+      constructor(x) {
+        this.x = x
+      }
+      foo() {
+        return this.x
+      }
+    }
+
+    let a0 = new A(1)
+    expect(a0.foo()).equal(1)
+
+    let a00 = util.deep(a0)
+    a00.x = 2
+    expect(a00.foo()).equal(2)
   })
 
 

@@ -185,6 +185,8 @@ describe('feature', function () {
   
   
   it('value', () => {
+    expect(j('')).equal(undefined)
+
     expect(j('true')).equals(true)
     expect(j('false')).equals(false)
     expect(j('null')).equals(null)

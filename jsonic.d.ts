@@ -74,6 +74,9 @@ interface Context {
     t1: Token;
     tI: number;
     rs: Rule[];
+    rsm: {
+        [name: string]: RuleSpec;
+    };
     next: () => Token;
     log?: (...rest: any) => undefined;
     use: KV;
@@ -151,21 +154,15 @@ declare class Rule {
 declare class RuleSpec {
     name: string;
     def: any;
-    rm: (rulename: string) => RuleSpec;
-    match: any;
-    constructor(name: string, def: any, rm: (rulename: string) => RuleSpec);
+    constructor(name: string, def: any);
     open(rule: Rule, ctx: Context): Rule;
     close(rule: Rule, ctx: Context): Rule;
     parse_alts(alts: any[], rule: Rule, ctx: Context): any;
 }
 declare class Parser {
-    mark: number;
     opts: Opts;
     config: Config;
-    rules: {
-        [name: string]: any;
-    };
-    rulespecs: {
+    rsm: {
         [name: string]: RuleSpec;
     };
     constructor(opts: Opts, config: Config);
@@ -174,6 +171,7 @@ declare class Parser {
         [n: string]: RuleSpec;
     }) => RuleSpec): RuleSpec;
     start(lexer: Lexer, src: string, meta?: any): any;
+    clone(opts: Opts, config: Config): Parser;
 }
 declare let util: {
     token: <R extends string | number, T extends string | number>(ref: R, config: Config, jsonic?: Jsonic | undefined) => T;
@@ -187,5 +185,6 @@ declare let util: {
     handle_meta_mode: (self: Jsonic, src: string, meta: KV) => any[];
     build_config_from_options: (config: Config, opts: Opts) => void;
 };
+declare function make(first?: KV | Jsonic, parent?: Jsonic): Jsonic;
 declare let Jsonic: Jsonic;
-export { Jsonic, Plugin, JsonicError, Lexer, Parser, Rule, RuleSpec, Token, Context, Meta, util };
+export { Jsonic, Plugin, JsonicError, Lexer, Parser, Rule, RuleSpec, Token, Context, Meta, util, make, };

@@ -1,7 +1,7 @@
 "use strict";
 /* Copyright (c) 2013-2020 Richard Rodger, MIT License */
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.util = exports.RuleSpec = exports.Rule = exports.Parser = exports.Lexer = exports.JsonicError = exports.Jsonic = void 0;
+exports.make = exports.util = exports.RuleSpec = exports.Rule = exports.Parser = exports.Lexer = exports.JsonicError = exports.Jsonic = void 0;
 function make_standard_options() {
     let opts = {
         // String escape chars.
@@ -654,8 +654,6 @@ class Rule {
         this.name = spec.name;
         this.spec = spec;
         this.node = node;
-        //this.ctx = ctx
-        //this.opts = opts
         this.state = RuleState.open;
         this.child = norule;
         this.open = [];
@@ -675,13 +673,9 @@ class Rule {
 exports.Rule = Rule;
 let norule = { id: 0, spec: { name: 'norule' } };
 class RuleSpec {
-    constructor(name, def, rm) {
+    constructor(name, def) {
         this.name = name;
         this.def = def;
-        this.rm = rm;
-        if (this.def.open) {
-            this.def.open.mark = this.def.open.mark || Math.random();
-        }
     }
     open(rule, ctx) {
         let next = rule;
@@ -696,11 +690,11 @@ class RuleSpec {
         rule.open = act.m;
         if (act.p) {
             ctx.rs.push(rule);
-            next = rule.child = new Rule(this.rm(act.p), ctx, rule.node);
+            next = rule.child = new Rule(ctx.rsm[act.p], ctx, rule.node);
             next.parent = rule;
         }
         else if (act.r) {
-            next = new Rule(this.rm(act.r), ctx, rule.node);
+            next = new Rule(ctx.rsm[act.r], ctx, rule.node);
             next.parent = rule.parent;
         }
         if (this.def.after_open) {
@@ -725,11 +719,11 @@ class RuleSpec {
         }
         if (act.p) {
             ctx.rs.push(rule);
-            next = rule.child = new Rule(this.rm(act.p), ctx, rule.node);
+            next = rule.child = new Rule(ctx.rsm[act.p], ctx, rule.node);
             next.parent = rule;
         }
         else if (act.r) {
-            next = new Rule(this.rm(act.r), ctx, rule.node);
+            next = new Rule(ctx.rsm[act.r], ctx, rule.node);
             next.parent = rule.parent;
             why = 'r';
         }
@@ -744,7 +738,7 @@ class RuleSpec {
         ctx.log && ctx.log('node', rule.name + '/' + rule.id, RuleState[rule.state], why, rule.node);
         return next;
     }
-    // first match wins
+    // First match wins.
     parse_alts(alts, rule, ctx) {
         let out = undefined;
         let alt;
@@ -807,9 +801,7 @@ class RuleSpec {
 exports.RuleSpec = RuleSpec;
 class Parser {
     constructor(opts, config) {
-        this.mark = Math.random();
-        this.rules = {};
-        this.rulespecs = {};
+        this.rsm = {};
         this.opts = opts;
         this.config = config;
     }
@@ -827,7 +819,7 @@ class Parser {
         let ST = t.ST;
         let VL = t.VL;
         let AA = t.AA;
-        this.rules = {
+        let rules = {
             val: {
                 open: [
                     { s: [OB, CA], p: 'map' },
@@ -957,16 +949,14 @@ class Parser {
                 },
             }
         };
-        // TODO: rulespec should normalize
-        // eg. t:t.QQ => s:[t.QQ]
-        this.rulespecs = Object.keys(this.rules).reduce((rs, rn) => {
-            rs[rn] = new RuleSpec(rn, this.rules[rn], (name) => this.rulespecs[name]);
+        this.rsm = Object.keys(rules).reduce((rs, rn) => {
+            rs[rn] = new RuleSpec(rn, rules[rn]);
             return rs;
         }, {});
     }
     rule(name, define) {
-        this.rulespecs[name] = null == define ? this.rulespecs[name] : (define(this.rulespecs[name], this.rulespecs) || this.rulespecs[name]);
-        return this.rulespecs[name];
+        this.rsm[name] = null == define ? this.rsm[name] : (define(this.rsm[name], this.rsm) || this.rsm[name]);
+        return this.rsm[name];
     }
     start(lexer, src, meta) {
         let opts = this.opts;
@@ -987,17 +977,18 @@ class Parser {
             tI: -2,
             next,
             rs: [],
+            rsm: this.rsm,
             log: (meta && meta.log) || undefined,
             use: {}
         };
         util.make_log(ctx);
         let tn = (pin) => util.token(pin, this.config);
         let lex = lexer.start(ctx);
-        let rule = new Rule(this.rulespecs.val, ctx, opts);
+        let rule = new Rule(this.rsm.val, ctx);
         root = rule;
         // Maximum rule iterations. Allow for rule open and close,
         // and for each rule on each char to be virtual (like map, list)
-        let maxr = 2 * Object.keys(this.rulespecs).length * lex.src.length;
+        let maxr = 2 * Object.keys(this.rsm).length * lex.src.length;
         // Lex next token.
         function next() {
             ctx.t0 = ctx.t1;
@@ -1024,6 +1015,13 @@ class Parser {
         }
         // TODO: must end with t.ZZ token else error
         return root.node;
+    }
+    clone(opts, config) {
+        let parser = new Parser(opts, config);
+        parser.rsm = Object
+            .keys(this.rsm)
+            .reduce((a, rn) => (a[rn] = util.clone(this.rsm[rn]), a), {});
+        return parser;
     }
 }
 exports.Parser = Parser;
@@ -1197,6 +1195,7 @@ let util = {
                         tI: -1,
                         rs: [],
                         next: () => token,
+                        rsm: {},
                         log: meta.log,
                         use: {}
                     });
@@ -1292,6 +1291,7 @@ function make(first, parent) {
     let opts = util.deep({}, parent ? { ...parent.options } : make_standard_options(), param_opts);
     // Create primary parsing function
     let self = function Jsonic(src, meta) {
+        debugger;
         if ('string' === typeof (src)) {
             let internal = self.internal();
             let [done, out] = (null != meta && null != meta.mode) ? util.handle_meta_mode(self, src, meta) :
@@ -1319,10 +1319,10 @@ function make(first, parent) {
         util.build_config_from_options(config, opts);
         Object.assign(self.token, config.token);
         lexer = parent_internal.lexer.clone(config);
-        // TODO: inherit parent
-        parser = new Parser(opts, config);
-        parser.rules = util.deep(parser.rules);
-        parser.rulespecs = util.deep(parser.rulespecs);
+        parser = parent_internal.parser.clone(opts, config);
+        //console.log('CLONE PARSER')
+        //console.dir(parent_internal.parser)
+        //console.dir(parser)
     }
     else {
         config = {
@@ -1374,6 +1374,7 @@ function make(first, parent) {
     Object.defineProperty(self.make, 'name', { value: 'make' });
     return self;
 }
+exports.make = make;
 let Jsonic = make();
 exports.Jsonic = Jsonic;
 //# sourceMappingURL=jsonic.js.map
