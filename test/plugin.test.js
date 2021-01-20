@@ -18,6 +18,7 @@ const { Jsonic, Lexer, Parser, JsonicError, make } = require('..')
 const { Json } = require('../plugin/json')
 const { Csv } = require('../plugin/csv')
 const { Dynamic } = require('../plugin/dynamic')
+const { Native } = require('../plugin/native')
 const { Multifile } = require('../plugin/multifile')
 
 const I = Util.inspect
@@ -47,9 +48,9 @@ describe('plugin', function () {
     expect(lex0.end === lex1.end).false()
     expect(lex0.match === lex1.match).false()
     expect(I(lex0.match))
-      .equal('{ m: [ [Function: match0] ] }')
+      .equal('{ match0: [ [Function: match0] ] }')
     expect(I(lex1.match))
-      .equal('{ m: [ [Function: match0], [Function: match1] ] }')    
+      .equal('{ match0: [ [Function: match0] ], match1: [ [Function: match1] ] }')    
   })
 
 
@@ -152,7 +153,13 @@ describe('plugin', function () {
     expect(x).equal(1)
   })
   
-  
+
+  it('dynamic-basic', () => {
+    let k = Jsonic.make().use(Dynamic)
+    expect(k('a:1,b:$1+1',{xlog:-1})).equal({a:1,b:2})
+  })
+
+/*  
   // TODO: Jsonic polluted! only passes if before dynamic
   it('multifile-basic', () => {
     let k = Jsonic.make().use(Multifile,{plugin:{multifile:{basepath:__dirname}}})
@@ -173,10 +180,6 @@ describe('plugin', function () {
   })
 
 
-  it('dynamic-basic', () => {
-    let k = Jsonic.make().use(Dynamic)
-    expect(k('a:1,b:$1+1',{xlog:-1})).equal({a:1,b:2})
-  })
 
 
   
@@ -220,12 +223,80 @@ describe('plugin', function () {
 
 
   it('csv-basic', () => {
-    let k = Jsonic.make().use(Csv)
-    expect(k('a,b\n1,2\n11,22\n')).equal([{ a: 1, b: 2 }, { a: 11, b: 22 }])
+    let rec0 = [
+      { a: 1, b: 2 },
+      { a: 11, b: 22 },
+      { a: 'a x', b: 'b\tx' },
+      { a: 'A,A', b: 'B"B' },
+    ]
+
+    let k0 = Jsonic.make().use(Csv)
+
+    expect(k0(`a,b
+1,2
+11,22
+a x,b\tx
+"A,A","B""B"
+`,{xlog: -1}))
+      .equal(rec0)
+
+    // tab separated
+    let k1 = k0.make({
+      token: {
+        '#CA': {c:'\t'},
+        '#SP': ' ',
+      }
+    })
+    
+    expect(k1(`a\tb
+1\t2
+11\t22
+a x\t"b\\tx"
+"A,A"\t"B""B"
+`,{xlog:-1}))
+      .equal(rec0)
+    
+    // custom record sep
+    let k2 = k1.make({
+      token: {
+        '#LN': ';'
+      }
+    })
+    
+    expect(k2(`a\tb;1\t2;11\t22;a x\t"b\\tx";"A,A"\t"B""B";`,{xlog:-1}))
+      .equal(rec0)
+
+    
+    let k3 = Jsonic.make().use(Csv).make({
+      token: {
+        '#CA': {c:'\t'},
+        '#SP': ' ',
+        '#LN': ';'
+      }
+    })
+
+    expect(k3(`a\tb;1\t2;11\t22;a x\t"b\\tx";"A,A"\t"B""B";`,{xlog:-1}))
+      .equal(rec0)
   })
 
+  it('native-basic', () => {
+    let k0 = Jsonic.make().use(Native)
 
-
+    expect(k0(`{
+      a: NaN,
+      b: /x/,
+      c: 2021-01-20T19:24:26.650Z,
+      d: undefined,
+      e: Infinity
+    }`)).equal({
+      a: NaN,
+      b: /x/,
+      c: new Date('2021-01-20T19:24:26.650Z'),
+      d: undefined,
+      e: Infinity
+    })
+  })
+  
 })
 
 

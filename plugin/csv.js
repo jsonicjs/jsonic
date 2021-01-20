@@ -1,79 +1,46 @@
 "use strict";
-/* Copyright (c) 2013-2020 Richard Rodger, MIT License */
+/* Copyright (c) 2013-2021 Richard Rodger, MIT License */
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.Csv = void 0;
 // TODO: review against: https://www.papaparse.com/
 const jsonic_1 = require("../jsonic");
 let Csv = function csv(jsonic) {
-    let DEFAULTS = {
-        fieldsepchar: null,
-        recordsepchar: null,
-    };
-    let popts = jsonic_1.util.deep({}, DEFAULTS, jsonic.options.plugin.csv);
-    let o = jsonic.options;
-    if (null != popts.fieldsepchar) {
-        jsonic.options({
-            sc_space: o.sc_space.replace(popts.fieldsepchar, ''),
-            CA: ['#CA' + popts.fieldsepchar],
-        });
-    }
-    if (null != popts.recordsepchar) {
-        jsonic.options({
-            sc_space: o.sc_space + o.sc_line,
-            sc_line: popts.recordsepchar,
-        });
-    }
-    let SC_LINE = jsonic.options.SC_LINE;
-    let ER = ['#ER']; // record token
-    jsonic.lex(jsonic.options.LS_TOP, function csv(sI, src, token, ctx) {
-        let out;
-        let opts = ctx.opts;
-        let c0c = src.charCodeAt(sI);
-        if (SC_LINE.includes(c0c)) {
-            out = {
-                sI: 0,
-                rD: 0,
-                cD: 0,
-            };
-            token.pin = ER;
-            let pI = sI;
-            let rD = 0; // Used as a delta.
-            while (opts.sc_line.includes(src[pI])) {
-                // Only count \n as a row increment
-                rD += (opts.rowchar === src[pI] ? 1 : 0);
-                pI++;
-            }
-            token.len = pI - sI;
-            token.val = src.substring(sI, pI);
-            token.src = token.val;
-            sI = pI;
-            out.sI = sI;
-            out.rD = rD;
-        }
-        return out;
+    jsonic.options({
+        string: {
+            escapedouble: true,
+        },
+        token: {
+            '#IGNORE': { s: '#SP,#CM' },
+        },
     });
-    // Track first occurrence of rule 
-    let frm = { val: true, list: true, record: true };
-    let first = (alt, rule, ctx) => (frm[rule.name] && (frm[rule.name] = false, true));
-    jsonic.rule('val', (rs, rsm) => {
+    let LN = jsonic.token.LN;
+    // Match alt only if first occurrence of rule 
+    let first = (_alt, rule, ctx) => {
+        let use = ctx.use.csv = (ctx.use.csv || {});
+        let frm = use.frm = (use.frm || { val: true, list: true, record: true });
+        let res = (frm[rule.name] && (frm[rule.name] = false, true)); // locking latch
+        //console.log('F', res, rule.name)
+        return res;
+    };
+    jsonic.rule('val', (rs) => {
         rs.def.open.unshift({ c: first, p: 'list' });
         return rs;
     });
-    jsonic.rule('list', (rs, rsm) => {
+    jsonic.rule('list', (rs) => {
         rs.def.open.unshift({ c: first, p: 'record' });
         return rs;
     });
-    jsonic.rule('elem', (rs, rsm) => {
-        rs.def.close.push({ s: [ER], b: 1 }); // End list
+    jsonic.rule('elem', (rs) => {
+        rs.def.close.unshift({ s: [LN], b: 1 }); // End list
         return rs;
     });
-    jsonic.rule('record', (ignore, rsm) => {
+    jsonic.rule('record', (_ignore) => {
         let rs = new jsonic_1.RuleSpec('record', {
             open: [
                 { p: 'list' },
             ],
             close: [
-                { s: [ER], r: 'record' }
+                { s: [LN], r: 'record' }
             ],
             before_close: (rule, ctx) => {
                 let fields = ctx.use.fields;
@@ -86,7 +53,7 @@ let Csv = function csv(jsonic) {
                     rule.node.push(record);
                 }
             }
-        }, rsm);
+        });
         return rs;
     });
 };

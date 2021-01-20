@@ -69,8 +69,12 @@ function make_standard_options() {
         mode: {},
         // Plugin custom options, (namespace by plugin name).
         plugin: {},
-        // Default console for logging
-        console,
+        debug: {
+            // Default console for logging
+            get_console: () => console,
+            // Max length of parse value to print
+            maxlen: 33,
+        },
         // Error messages.
         error: {
             unknown: 'unknown error: $code',
@@ -88,11 +92,6 @@ commenting out larger areas around this point until you get no errors,
 then remove the comments in small sections until you find the
 offending syntax.`
         },
-        /*
-        lex: {
-          state: ['TOP', 'CONSUME', 'MULTILINE']
-        },
-        */
         token: {
             // Single char tokens.
             '#OB': { c: '{' },
@@ -116,9 +115,14 @@ offending syntax.`
             '#UK': true,
             '#AA': true,
             // Token sets
-            '#VALUE': ['#TX', '#NR', '#ST', '#VL'],
-            '#IGNORE': ['#SP', '#LN', '#CM'],
-        }
+            // NOTE: comma-sep strings to avoid util.deep array override logic
+            '#IGNORE': { s: '#SP,#LN,#CM' },
+        },
+        lex: {
+            core: {
+                LN: '#LN'
+            }
+        },
     };
     return opts;
 }
@@ -197,6 +201,9 @@ exports.JsonicError = JsonicError;
 class Lexer {
     constructor(config) {
         this.match = {};
+        util.token('@LS_TOP', config);
+        util.token('@LS_CONSUME', config);
+        util.token('@LS_MULTILINE', config);
         this.end = {
             pin: util.token('#ZZ', config),
             loc: 0,
@@ -213,17 +220,18 @@ class Lexer {
         const config = ctx.config;
         let tpin = (name) => util.token(name, config);
         let tn = (pin) => util.token(pin, config);
-        let LS_TOP = tpin('@TOP');
-        let LS_CONSUME = tpin('@CONSUME');
-        let LS_MULTILINE = tpin('@MULTILINE');
+        let F = ctx.F;
+        let LS_TOP = tpin('@LS_TOP');
+        let LS_CONSUME = tpin('@LS_CONSUME');
+        let LS_MULTILINE = tpin('@LS_MULTILINE');
         let ZZ = tpin('#ZZ');
         let SP = tpin('#SP');
-        let LN = tpin('#LN');
         let CM = tpin('#CM');
         let NR = tpin('#NR');
         let ST = tpin('#ST');
         let TX = tpin('#TX');
         let VL = tpin('#VL');
+        tpin('#LN');
         // NOTE: always returns this object!
         let token = {
             pin: ZZ,
@@ -273,7 +281,7 @@ class Lexer {
                                 sI = match.sI;
                                 rI = match.rD ? rI + match.rD : rI;
                                 cI = match.cD ? cI + match.cD : cI;
-                                lexlog && lexlog(tn(token.pin), token.src, { ...token });
+                                lexlog && lexlog(tn(token.pin), F(token.src), { ...token });
                                 return token;
                             }
                         }
@@ -290,12 +298,13 @@ class Lexer {
                         token.val = src.substring(sI, pI);
                         token.src = token.val;
                         sI = pI;
-                        lexlog && lexlog(tn(token.pin), token.src, { ...token });
+                        lexlog && lexlog(tn(token.pin), F(token.src), { ...token });
                         return token;
                     }
                     // Newline chars.
                     else if (config.start.LN.includes(c0c)) {
-                        token.pin = LN;
+                        //token.pin = LN
+                        token.pin = config.lex.core.LN;
                         token.loc = sI;
                         token.col = cI;
                         pI = sI;
@@ -309,7 +318,7 @@ class Lexer {
                         token.val = src.substring(sI, pI);
                         token.src = token.val;
                         sI = pI;
-                        lexlog && lexlog(tn(token.pin), token.src, { ...token });
+                        lexlog && lexlog(tn(token.pin), F(token.src), { ...token });
                         return token;
                     }
                     // Single char tokens.
@@ -320,7 +329,7 @@ class Lexer {
                         token.len = 1;
                         token.src = c0;
                         sI++;
-                        lexlog && lexlog(tn(token.pin), token.src, { ...token });
+                        lexlog && lexlog(tn(token.pin), F(token.src), { ...token });
                         return token;
                     }
                     // Number chars.
@@ -356,7 +365,7 @@ class Lexer {
                             token.src = src.substring(sI, pI);
                             cI += token.len;
                             sI = pI;
-                            lexlog && lexlog(tn(token.pin), token.src, { ...token });
+                            lexlog && lexlog(tn(token.pin), F(token.src), { ...token });
                             return token;
                         }
                         // NOTE: else drop through to default, as this must be literal text
@@ -399,7 +408,7 @@ class Lexer {
                                     pI++;
                                     let us = String.fromCharCode(('0x' + src.substring(pI, pI + 4)));
                                     if (opts.char.bad_unicode === us) {
-                                        return self.bad(config, lexlog, 'invalid-unicode', token, sI, pI, rI, cI, src.substring(pI - 2, pI + 4));
+                                        return self.bad(ctx, lexlog, 'invalid-unicode', token, sI, pI, rI, cI, src.substring(pI - 2, pI + 4));
                                     }
                                     s.push(us);
                                     pI += 3; // Loop increments pI.
@@ -415,7 +424,7 @@ class Lexer {
                                     s.push(src[pI]);
                                 }
                                 else {
-                                    return self.bad(config, lexlog, 'unprintable', token, sI, pI, rI, cI, src.charAt(pI));
+                                    return self.bad(ctx, lexlog, 'unprintable', token, sI, pI, rI, cI, src.charAt(pI));
                                 }
                             }
                             // Main body of string.
@@ -432,13 +441,13 @@ class Lexer {
                         }
                         if (qc !== cc) {
                             cI = sI;
-                            return self.bad(config, lexlog, 'unterminated', token, sI, pI - 1, rI, cI, s.join(''));
+                            return self.bad(ctx, lexlog, 'unterminated', token, sI, pI - 1, rI, cI, s.join(''));
                         }
                         token.val = s.join('');
                         token.src = src.substring(sI, pI);
                         token.len = pI - sI;
                         sI = pI;
-                        lexlog && lexlog(tn(token.pin), token.src, { ...token });
+                        lexlog && lexlog(tn(token.pin), F(token.src), { ...token });
                         return token;
                     }
                     // Comment chars.
@@ -499,7 +508,7 @@ class Lexer {
                         token.src = txt;
                         token.len = pI - sI;
                         sI = pI;
-                        lexlog && lexlog(tn(token.pin), token.src, { ...token });
+                        lexlog && lexlog(tn(token.pin), F(token.src), { ...token });
                         return token;
                     }
                     // Only thing left is literal text
@@ -535,7 +544,7 @@ class Lexer {
                     else {
                         sI = pI;
                     }
-                    lexlog && lexlog(tn(token.pin), token.src, { ...token });
+                    lexlog && lexlog(tn(token.pin), F(token.src), { ...token });
                     return token;
                 }
                 // Lexer State: CONSUME => all chars up to first ender
@@ -549,7 +558,7 @@ class Lexer {
                     token.len = token.val.length;
                     sI = pI;
                     state = LS_TOP;
-                    lexlog && lexlog(tn(token.pin), token.src, { ...token });
+                    lexlog && lexlog(tn(token.pin), F(token.src), { ...token });
                     return token;
                 }
                 // Lexer State: MULTILINE => all chars up to last close marker, or end
@@ -596,8 +605,7 @@ class Lexer {
                     token.len = token.val.length;
                     sI = pI;
                     state = LS_TOP;
-                    //lexlog && lexlog(token.pin[0], token.src, { ...token })
-                    lexlog && lexlog(tn(token.pin), token.src, { ...token });
+                    lexlog && lexlog(tn(token.pin), F(token.src), { ...token });
                     return token;
                 }
             }
@@ -605,16 +613,15 @@ class Lexer {
             token.pin = ZZ;
             token.loc = srclen;
             token.col = cI;
-            //lexlog && lexlog(token.pin[0], token.src, { ...token })
-            lexlog && lexlog(tn(token.pin), token.src, { ...token });
+            lexlog && lexlog(tn(token.pin), F(token.src), { ...token });
             return token;
         };
         lex.src = src;
         return lex;
     }
-    bad(config, log, why, token, sI, pI, rI, cI, val, src, use) {
+    bad(ctx, log, why, token, sI, pI, rI, cI, val, src, use) {
         token.why = why;
-        token.pin = util.token('#BD', config);
+        token.pin = util.token('#BD', ctx.config);
         token.loc = pI;
         token.row = rI;
         token.col = cI;
@@ -622,19 +629,18 @@ class Lexer {
         token.val = val;
         token.src = src;
         token.use = use;
-        log && log(util.token(token.pin, config), token.src, why, { ...token });
+        log && log(util.token(token.pin, ctx.config), ctx.F(token.src), why, { ...token });
         return token;
     }
     lex(state, match) {
         if (null == state) {
             return this.match;
         }
-        let sn = state[0];
-        this.match[sn] = this.match[sn] || [];
+        this.match[state] = this.match[state] || [];
         if (null != match) {
-            this.match[sn].push(match);
+            this.match[state].push(match);
         }
-        return this.match[sn];
+        return this.match[state];
     }
     clone(config) {
         let lexer = new Lexer(config);
@@ -679,6 +685,8 @@ class RuleSpec {
     }
     open(rule, ctx) {
         let next = rule;
+        let why = '';
+        let F = ctx.F;
         if (this.def.before_open) {
             let out = this.def.before_open.call(this, rule, ctx);
             rule.node = out && out.node || rule.node;
@@ -692,21 +700,26 @@ class RuleSpec {
             ctx.rs.push(rule);
             next = rule.child = new Rule(ctx.rsm[act.p], ctx, rule.node);
             next.parent = rule;
+            why += 'U';
         }
         else if (act.r) {
             next = new Rule(ctx.rsm[act.r], ctx, rule.node);
             next.parent = rule.parent;
+            why += 'R';
+        }
+        else {
+            why += 'Z';
         }
         if (this.def.after_open) {
             this.def.after_open.call(this, rule, ctx, next);
         }
-        ctx.log && ctx.log('node', rule.name + '/' + rule.id, RuleState[rule.state], rule.node);
+        ctx.log && ctx.log('node', rule.name + '/' + rule.id, RuleState[rule.state], why, F(rule.node));
         rule.state = RuleState.close;
         return next;
     }
     close(rule, ctx) {
         let next = norule;
-        let why = 's';
+        let why = '';
         if (this.def.before_close) {
             this.def.before_close.call(this, rule, ctx);
         }
@@ -716,26 +729,28 @@ class RuleSpec {
         }
         if (act.h) {
             next = act.h(this, rule, ctx) || next;
+            why += 'H';
         }
         if (act.p) {
             ctx.rs.push(rule);
             next = rule.child = new Rule(ctx.rsm[act.p], ctx, rule.node);
             next.parent = rule;
+            why += 'U';
         }
         else if (act.r) {
             next = new Rule(ctx.rsm[act.r], ctx, rule.node);
             next.parent = rule.parent;
-            why = 'r';
+            why += 'R';
         }
         else {
             next = ctx.rs.pop() || norule;
-            why = 'p';
+            why += 'O';
         }
         if (this.def.after_close) {
             this.def.after_close.call(this, rule, ctx, next);
         }
         next.why = why;
-        ctx.log && ctx.log('node', rule.name + '/' + rule.id, RuleState[rule.state], why, rule.node);
+        ctx.log && ctx.log('node', rule.name + '/' + rule.id, RuleState[rule.state], why, ctx.F(rule.node));
         return next;
     }
     // First match wins.
@@ -782,7 +797,7 @@ class RuleSpec {
         }
         out = out || { m: [] };
         ctx.log && ctx.log('parse', rule.name + '/' + rule.id, RuleState[rule.state], altI < alts.length ? 'alt=' + altI : 'no-alt', altI < alts.length && alt && alt.s ?
-            '[' + alt.s.map((pin) => t[pin]).join(' ') + ']' : '[]', ctx.tI, 'p=' + (out.p || ''), 'r=' + (out.r || ''), 'b=' + (out.b || ''), out.m.map((t) => t.pin).join(' '), out.m.map((t) => t.src).join(''), out);
+            '[' + alt.s.map((pin) => t[pin]).join(' ') + ']' : '[]', ctx.tI, 'p=' + (out.p || ''), 'r=' + (out.r || ''), 'b=' + (out.b || ''), out.m.map((tkn) => t[tkn.pin]).join(' '), ctx.F(out.m.map((tkn) => tkn.src)), out);
         if (out.m) {
             let mI = 0;
             let rewind = out.m.length - (out.b || 0);
@@ -979,6 +994,10 @@ class Parser {
             rs: [],
             rsm: this.rsm,
             log: (meta && meta.log) || undefined,
+            // Format src strings (eg. for logging).
+            //F: (s: any) =>
+            //  null == s ? '' : JSON.stringify(s).substring(0, config.debug.maxlen),
+            F: util.make_src_format(config),
             use: {}
         };
         util.make_log(ctx);
@@ -1007,10 +1026,10 @@ class Parser {
         let rI = 0;
         while (norule !== rule && rI < maxr) {
             ctx.log &&
-                ctx.log('rule', rule.name + '/' + rule.id, RuleState[rule.state], ctx.rs.length, ctx.tI, '[' + tn(ctx.t0.pin) + ' ' + tn(ctx.t1.pin) + ']', '<< ' + ctx.t0.src + ctx.t1.src + ' >>', rule, ctx);
+                ctx.log('rule', rule.name + '/' + rule.id, RuleState[rule.state], ctx.rs.length, ctx.tI, '[' + tn(ctx.t0.pin) + ' ' + tn(ctx.t1.pin) + ']', '[' + ctx.F(ctx.t0.src) + ' ' + ctx.F(ctx.t1.src) + ']', rule, ctx);
             rule = rule.process(ctx);
             ctx.log &&
-                ctx.log('stack', ctx.rs.map((r) => r.name + '/' + r.id).join(';'), rule, ctx);
+                ctx.log('stack', ctx.rs.length, ctx.rs.map((r) => r.name + '/' + r.id).join(';'), rule, ctx);
             rI++;
         }
         // TODO: must end with t.ZZ token else error
@@ -1082,6 +1101,9 @@ let util = {
         return s.split('').map((c) => c.charCodeAt(0));
     },
     longest: (strs) => strs.reduce((a, s) => a < s.length ? s.length : a, 0),
+    make_src_format: (config) => (s, j) => null == s ? '' : (j = JSON.stringify(s),
+        j.substring(0, config.debug.maxlen) +
+            (config.debug.maxlen < j.length ? '...' : '')),
     // Special debug logging to console (use Jsonic('...', {log:N})).
     // log:N -> console.dir to depth N
     // log:-1 -> console.dir to depth 1, omitting objects (good summary!)
@@ -1098,13 +1120,15 @@ let util = {
                     let logstr = rest
                         .filter((item) => 'object' != typeof (item))
                         .join('\t');
+                    /*
                     if ('node' === rest[0]) {
-                        logstr += '\t' + JSON.stringify(rest[3]);
+                      logstr += '\t' + JSON.stringify(rest[3])
                     }
-                    ctx.opts.console.log(logstr);
+                    */
+                    ctx.opts.debug.get_console().log(logstr);
                 }
                 else {
-                    ctx.opts.console.dir(rest, { depth: logdepth });
+                    ctx.opts.debug.get_console().dir(rest, { depth: logdepth });
                 }
                 return undefined;
             };
@@ -1197,7 +1221,10 @@ let util = {
                         next: () => token,
                         rsm: {},
                         log: meta.log,
-                        use: {}
+                        //F: (s: any) => null == s ? '' : JSON.stringify(s)
+                        //  .substring(0, self.internal().config.debug.maxlen),
+                        F: util.make_src_format(self.internal().config),
+                        use: {},
                     });
                 }
                 else
@@ -1228,11 +1255,15 @@ let util = {
         config.multi = multi_char_token_names
             .reduce((a, tn) => (a[tn.substring(1)] = opts.token[tn], a), {});
         let tokenset_names = token_names
-            .filter(tn => Array.isArray(opts.token[tn]));
+            .filter(tn => null != opts.token[tn].s);
         // Char code arrays for lookup by char code.
         config.tokenset = tokenset_names
-            .reduce((a, tsn) => (a[tsn.substring(1)] = opts.token[tsn]
-            .map(tn => config.token[tn]), a), {});
+            .reduce((a, tsn) => (a[tsn.substring(1)] = (opts.token[tsn].s.split(',')
+            .map((tn) => config.token[tn])),
+            //console.log(tsn.substring(1), (opts.token[tsn] as any).s.split(','), ((opts.token[tsn] as any).s.split(',')
+            //   .map((tn: string) => config.token[tn])), a),
+            a), {});
+        //console.log('TSN', tokenset_names, config.tokenset)
         // Lookup table for escape chars, indexed by denotating char (e.g. n for \n).
         opts.escape = opts.escape || {};
         config.escape = Object.keys(opts.escape)
@@ -1275,6 +1306,12 @@ let util = {
             config.multi.LN +
                 config.single_chars +
                 config.start_comment_chars;
+        config.lex = {
+            core: {
+                LN: util.token(opts.lex.core.LN, config)
+            }
+        };
+        config.debug = opts.debug;
         //console.log(config)
     },
 };

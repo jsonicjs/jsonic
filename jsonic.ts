@@ -29,16 +29,18 @@ type Opts = {
   value: KV
   mode: KV
   plugin: KV
-  console: any
+  debug: KV
   error: { [code: string]: string }
   hint: { [code: string]: string }
   token: {
     [name: string]:  // Token name.
     { c: string } |  // Single char token (eg. OB=`{`)
+    { s: string } |  // Token set, comma-sep string (eg. '#SP,#LN')
     string |         // Multi-char token (eg. SP=` \t`)
-    true |           // Non-char token (eg. ZZ)
-    string[]         // Token set
-
+    true           // Non-char token (eg. ZZ)
+  }
+  lex: {
+    core: { [name: string]: string }
   }
 }
 
@@ -100,6 +102,7 @@ interface Context {
   rsm: { [name: string]: RuleSpec }
   next: () => Token
   log?: (...rest: any) => undefined
+  F: (s: string) => string
   use: KV     // Custom meta data from plugins goes here.
 }
 
@@ -128,6 +131,10 @@ type Config = {
   value_enders: string
   text_enders: string
   hoover_enders: string
+  lex: {
+    core: { [name: string]: pin }
+  },
+  debug: KV
 }
 
 
@@ -232,8 +239,13 @@ function make_standard_options(): Opts {
     plugin: {},
 
 
-    // Default console for logging
-    console,
+    debug: {
+      // Default console for logging
+      get_console: () => console,
+
+      // Max length of parse value to print
+      maxlen: 33,
+    },
 
 
     // Error messages.
@@ -258,12 +270,6 @@ then remove the comments in small sections until you find the
 offending syntax.`
     },
 
-
-    /*
-    lex: {
-      state: ['TOP', 'CONSUME', 'MULTILINE']
-    },
-    */
 
     token: {
       // Single char tokens.
@@ -292,13 +298,22 @@ offending syntax.`
       '#AA': true, // ANY
 
       // Token sets
-      '#VALUE': ['#TX', '#NR', '#ST', '#VL'],
-      '#IGNORE': ['#SP', '#LN', '#CM'],
-    }
+      // NOTE: comma-sep strings to avoid util.deep array override logic
+      '#IGNORE': { s: '#SP,#LN,#CM' },
+    },
+
+    lex: {
+      core: {
+        LN: '#LN'
+      }
+    },
   }
 
   return opts
 }
+
+
+
 
 
 // Jsonic errors with nice formatting.
@@ -408,6 +423,10 @@ class Lexer {
   match: { [state_name: string]: any } = {}
 
   constructor(config: Config) {
+    util.token('@LS_TOP', config)
+    util.token('@LS_CONSUME', config)
+    util.token('@LS_MULTILINE', config)
+
     this.end = {
       pin: util.token('#ZZ', config),
       loc: 0,
@@ -430,20 +449,21 @@ class Lexer {
 
     let tpin = (name: string): pin => util.token(name, config)
     let tn = (pin: pin): string => util.token(pin, config)
+    let F = ctx.F
 
-    let LS_TOP = tpin('@TOP')
-    let LS_CONSUME = tpin('@CONSUME')
-    let LS_MULTILINE = tpin('@MULTILINE')
+    let LS_TOP = tpin('@LS_TOP')
+    let LS_CONSUME = tpin('@LS_CONSUME')
+    let LS_MULTILINE = tpin('@LS_MULTILINE')
 
     let ZZ = tpin('#ZZ')
     let SP = tpin('#SP')
-    let LN = tpin('#LN')
     let CM = tpin('#CM')
     let NR = tpin('#NR')
     let ST = tpin('#ST')
     let TX = tpin('#TX')
     let VL = tpin('#VL')
 
+    tpin('#LN')
 
     // NOTE: always returns this object!
     let token: Token = {
@@ -510,7 +530,7 @@ class Lexer {
                 rI = match.rD ? rI + match.rD : rI
                 cI = match.cD ? cI + match.cD : cI
 
-                lexlog && lexlog(tn(token.pin), token.src, { ...token })
+                lexlog && lexlog(tn(token.pin), F(token.src), { ...token })
                 return token
               }
             }
@@ -533,7 +553,7 @@ class Lexer {
 
             sI = pI
 
-            lexlog && lexlog(tn(token.pin), token.src, { ...token })
+            lexlog && lexlog(tn(token.pin), F(token.src), { ...token })
             return token
           }
 
@@ -541,7 +561,8 @@ class Lexer {
           // Newline chars.
           else if (config.start.LN.includes(c0c)) {
 
-            token.pin = LN
+            //token.pin = LN
+            token.pin = config.lex.core.LN
             token.loc = sI
             token.col = cI
 
@@ -560,7 +581,7 @@ class Lexer {
 
             sI = pI
 
-            lexlog && lexlog(tn(token.pin), token.src, { ...token })
+            lexlog && lexlog(tn(token.pin), F(token.src), { ...token })
             return token
           }
 
@@ -574,7 +595,7 @@ class Lexer {
             token.src = c0
             sI++
 
-            lexlog && lexlog(tn(token.pin), token.src, { ...token })
+            lexlog && lexlog(tn(token.pin), F(token.src), { ...token })
             return token
           }
 
@@ -618,7 +639,7 @@ class Lexer {
               cI += token.len
               sI = pI
 
-              lexlog && lexlog(tn(token.pin), token.src, { ...token })
+              lexlog && lexlog(tn(token.pin), F(token.src), { ...token })
               return token
             }
 
@@ -674,7 +695,7 @@ class Lexer {
                     String.fromCharCode(('0x' + src.substring(pI, pI + 4)) as any)
 
                   if (opts.char.bad_unicode === us) {
-                    return self.bad(config, lexlog, 'invalid-unicode',
+                    return self.bad(ctx, lexlog, 'invalid-unicode',
                       token, sI, pI, rI, cI, src.substring(pI - 2, pI + 4))
                   }
 
@@ -694,7 +715,7 @@ class Lexer {
                 }
                 else {
                   return self.bad(
-                    config, lexlog, 'unprintable',
+                    ctx, lexlog, 'unprintable',
                     token, sI, pI, rI, cI, src.charAt(pI))
                 }
               }
@@ -718,7 +739,7 @@ class Lexer {
 
             if (qc !== cc) {
               cI = sI
-              return self.bad(config, lexlog, 'unterminated',
+              return self.bad(ctx, lexlog, 'unterminated',
                 token, sI, pI - 1, rI, cI, s.join(''))
             }
 
@@ -728,7 +749,7 @@ class Lexer {
             token.len = pI - sI
             sI = pI
 
-            lexlog && lexlog(tn(token.pin), token.src, { ...token })
+            lexlog && lexlog(tn(token.pin), F(token.src), { ...token })
             return token
           }
 
@@ -806,7 +827,7 @@ class Lexer {
             token.len = pI - sI
             sI = pI
 
-            lexlog && lexlog(tn(token.pin), token.src, { ...token })
+            lexlog && lexlog(tn(token.pin), F(token.src), { ...token })
             return token
           }
 
@@ -853,7 +874,7 @@ class Lexer {
             sI = pI
           }
 
-          lexlog && lexlog(tn(token.pin), token.src, { ...token })
+          lexlog && lexlog(tn(token.pin), F(token.src), { ...token })
           return token
         }
 
@@ -873,7 +894,7 @@ class Lexer {
 
           state = LS_TOP
 
-          lexlog && lexlog(tn(token.pin), token.src, { ...token })
+          lexlog && lexlog(tn(token.pin), F(token.src), { ...token })
           return token
         }
 
@@ -931,8 +952,7 @@ class Lexer {
 
           state = LS_TOP
 
-          //lexlog && lexlog(token.pin[0], token.src, { ...token })
-          lexlog && lexlog(tn(token.pin), token.src, { ...token })
+          lexlog && lexlog(tn(token.pin), F(token.src), { ...token })
           return token
         }
       }
@@ -943,8 +963,7 @@ class Lexer {
       token.loc = srclen
       token.col = cI
 
-      //lexlog && lexlog(token.pin[0], token.src, { ...token })
-      lexlog && lexlog(tn(token.pin), token.src, { ...token })
+      lexlog && lexlog(tn(token.pin), F(token.src), { ...token })
       return token
     } as Lex)
 
@@ -955,7 +974,7 @@ class Lexer {
 
 
   bad(
-    config: Config,
+    ctx: Context,
     log: ((...rest: any) => undefined) | undefined,
     why: string,
     token: Token,
@@ -968,7 +987,7 @@ class Lexer {
     use?: any
   ): Token {
     token.why = why
-    token.pin = util.token('#BD', config)
+    token.pin = util.token('#BD', ctx.config)
     token.loc = pI
     token.row = rI
     token.col = cI
@@ -977,12 +996,12 @@ class Lexer {
     token.src = src
     token.use = use
 
-    log && log(util.token(token.pin, config), token.src, why, { ...token })
+    log && log(util.token(token.pin, ctx.config), ctx.F(token.src), why, { ...token })
     return token
   }
 
 
-  lex(state?: string[], match?: (
+  lex(state?: pin, match?: (
     sI: number,
     src: string,
     token: Token,
@@ -992,14 +1011,13 @@ class Lexer {
       return this.match
     }
 
-    let sn = state[0]
-    this.match[sn] = this.match[sn] || []
+    this.match[state] = this.match[state] || []
 
     if (null != match) {
-      this.match[sn].push(match)
+      this.match[state].push(match)
     }
 
-    return this.match[sn]
+    return this.match[state]
   }
 
 
@@ -1075,6 +1093,8 @@ class RuleSpec {
 
   open(rule: Rule, ctx: Context) {
     let next = rule
+    let why = ''
+    let F = ctx.F
 
     if (this.def.before_open) {
       let out = this.def.before_open.call(this, rule, ctx)
@@ -1093,10 +1113,15 @@ class RuleSpec {
       ctx.rs.push(rule)
       next = rule.child = new Rule(ctx.rsm[act.p], ctx, rule.node)
       next.parent = rule
+      why += 'U'
     }
     else if (act.r) {
       next = new Rule(ctx.rsm[act.r], ctx, rule.node)
       next.parent = rule.parent
+      why += 'R'
+    }
+    else {
+      why += 'Z'
     }
 
     if (this.def.after_open) {
@@ -1107,7 +1132,8 @@ class RuleSpec {
       'node',
       rule.name + '/' + rule.id,
       RuleState[rule.state],
-      rule.node
+      why,
+      F(rule.node)
     )
 
     rule.state = RuleState.close
@@ -1118,7 +1144,7 @@ class RuleSpec {
 
   close(rule: Rule, ctx: Context) {
     let next: Rule = norule
-    let why = 's'
+    let why = ''
 
     if (this.def.before_close) {
       this.def.before_close.call(this, rule, ctx)
@@ -1133,21 +1159,23 @@ class RuleSpec {
 
     if (act.h) {
       next = act.h(this, rule, ctx) || next
+      why += 'H'
     }
 
     if (act.p) {
       ctx.rs.push(rule)
       next = rule.child = new Rule(ctx.rsm[act.p], ctx, rule.node)
       next.parent = rule
+      why += 'U'
     }
     else if (act.r) {
       next = new Rule(ctx.rsm[act.r], ctx, rule.node)
       next.parent = rule.parent
-      why = 'r'
+      why += 'R'
     }
     else {
       next = ctx.rs.pop() || norule
-      why = 'p'
+      why += 'O'
     }
 
     if (this.def.after_close) {
@@ -1161,7 +1189,7 @@ class RuleSpec {
       rule.name + '/' + rule.id,
       RuleState[rule.state],
       why,
-      rule.node
+      ctx.F(rule.node)
     )
 
     return next
@@ -1231,8 +1259,8 @@ class RuleSpec {
       'p=' + (out.p || ''),
       'r=' + (out.r || ''),
       'b=' + (out.b || ''),
-      out.m.map((t: Token) => t.pin).join(' '),
-      out.m.map((t: Token) => t.src).join(''),
+      out.m.map((tkn: Token) => t[tkn.pin]).join(' '),
+      ctx.F(out.m.map((tkn: Token) => tkn.src)),
       out)
 
     if (out.m) {
@@ -1479,6 +1507,12 @@ class Parser {
       rs: [],
       rsm: this.rsm,
       log: (meta && meta.log) || undefined,
+
+      // Format src strings (eg. for logging).
+      //F: (s: any) =>
+      //  null == s ? '' : JSON.stringify(s).substring(0, config.debug.maxlen),
+      F: util.make_src_format(config),
+
       use: {}
     }
 
@@ -1521,12 +1555,14 @@ class Parser {
     while (norule !== rule && rI < maxr) {
       ctx.log &&
         ctx.log('rule', rule.name + '/' + rule.id, RuleState[rule.state],
-          ctx.rs.length, ctx.tI, '[' + tn(ctx.t0.pin) + ' ' + tn(ctx.t1.pin) + ']', '<< ' + ctx.t0.src + ctx.t1.src + ' >>', rule, ctx)
+          ctx.rs.length, ctx.tI, '[' + tn(ctx.t0.pin) + ' ' + tn(ctx.t1.pin) + ']',
+          '[' + ctx.F(ctx.t0.src) + ' ' + ctx.F(ctx.t1.src) + ']', rule, ctx)
 
       rule = rule.process(ctx)
 
       ctx.log &&
-        ctx.log('stack', ctx.rs.map((r: Rule) => r.name + '/' + r.id).join(';'),
+        ctx.log('stack', ctx.rs.length,
+          ctx.rs.map((r: Rule) => r.name + '/' + r.id).join(';'),
           rule, ctx)
       rI++
     }
@@ -1623,10 +1659,13 @@ let util = {
     return s.split('').map((c: string) => c.charCodeAt(0))
   },
 
-
   longest: (strs: string[]) =>
     strs.reduce((a, s) => a < s.length ? s.length : a, 0),
 
+  make_src_format: (config: Config) =>
+    (s: any, j?: any) => null == s ? '' : (j = JSON.stringify(s),
+      j.substring(0, config.debug.maxlen) +
+      (config.debug.maxlen < j.length ? '...' : '')),
 
   // Special debug logging to console (use Jsonic('...', {log:N})).
   // log:N -> console.dir to depth N
@@ -1645,13 +1684,16 @@ let util = {
             .filter((item: any) => 'object' != typeof (item))
             .join('\t')
 
+          /*
           if ('node' === rest[0]) {
             logstr += '\t' + JSON.stringify(rest[3])
           }
-          ctx.opts.console.log(logstr)
+          */
+
+          ctx.opts.debug.get_console().log(logstr)
         }
         else {
-          ctx.opts.console.dir(rest, { depth: logdepth })
+          ctx.opts.debug.get_console().dir(rest, { depth: logdepth })
         }
         return undefined
       }
@@ -1740,6 +1782,7 @@ let util = {
             val: undefined,
             src: tsrc,
           } as Token
+
           throw new JsonicError(
             ex.code || 'json',
             ex.details || {
@@ -1762,7 +1805,10 @@ let util = {
               next: () => token, // TODO: should be end token
               rsm: {},
               log: meta.log,
-              use: {}
+              //F: (s: any) => null == s ? '' : JSON.stringify(s)
+              //  .substring(0, self.internal().config.debug.maxlen),
+              F: util.make_src_format(self.internal().config),
+              use: {},
             } as Context,
           )
         }
@@ -1806,13 +1852,19 @@ let util = {
 
 
     let tokenset_names = token_names
-      .filter(tn => Array.isArray(opts.token[tn]))
+      .filter(tn => null != (opts.token[tn] as any).s)
 
     // Char code arrays for lookup by char code.
     config.tokenset = tokenset_names
       .reduce((a: any, tsn) =>
-        (a[tsn.substring(1)] = (opts.token[tsn] as string[])
-          .map(tn => config.token[tn]), a), {})
+        (a[tsn.substring(1)] = ((opts.token[tsn] as any).s.split(',')
+          .map((tn: string) => config.token[tn])),
+          //console.log(tsn.substring(1), (opts.token[tsn] as any).s.split(','), ((opts.token[tsn] as any).s.split(',')
+          //   .map((tn: string) => config.token[tn])), a),
+          a), {})
+
+    //console.log('TSN', tokenset_names, config.tokenset)
+
 
 
     // Lookup table for escape chars, indexed by denotating char (e.g. n for \n).
@@ -1871,6 +1923,14 @@ let util = {
       config.multi.LN +
       config.single_chars +
       config.start_comment_chars
+
+    config.lex = {
+      core: {
+        LN: util.token(opts.lex.core.LN, config)
+      }
+    }
+
+    config.debug = opts.debug
 
     //console.log(config)
   },

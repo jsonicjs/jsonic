@@ -18,7 +18,7 @@ declare type Opts = {
     value: KV;
     mode: KV;
     plugin: KV;
-    console: any;
+    debug: KV;
     error: {
         [code: string]: string;
     };
@@ -30,9 +30,16 @@ declare type Opts = {
         {
             c: string;
         } | // Single char token (eg. OB=`{`)
+        {
+            s: string;
+        } | // Token set, comma-sep string (eg. '#SP,#LN')
         string | // Multi-char token (eg. SP=` \t`)
-        true | // Non-char token (eg. ZZ)
-        string[];
+        true;
+    };
+    lex: {
+        core: {
+            [name: string]: string;
+        };
     };
 };
 declare type Jsonic = ((src: any, meta?: any) => any) & {
@@ -79,6 +86,7 @@ interface Context {
     };
     next: () => Token;
     log?: (...rest: any) => undefined;
+    F: (s: string) => string;
     use: KV;
 }
 declare type Lex = (() => Token) & {
@@ -109,6 +117,12 @@ declare type Config = {
     value_enders: string;
     text_enders: string;
     hoover_enders: string;
+    lex: {
+        core: {
+            [name: string]: pin;
+        };
+    };
+    debug: KV;
 };
 declare class JsonicError extends SyntaxError {
     constructor(code: string, details: KV, token: Token, ctx: Context);
@@ -127,8 +141,8 @@ declare class Lexer {
     };
     constructor(config: Config);
     start(ctx: Context): Lex;
-    bad(config: Config, log: ((...rest: any) => undefined) | undefined, why: string, token: Token, sI: number, pI: number, rI: number, cI: number, val?: any, src?: any, use?: any): Token;
-    lex(state?: string[], match?: (sI: number, src: string, token: Token, ctx: Context) => KV): any;
+    bad(ctx: Context, log: ((...rest: any) => undefined) | undefined, why: string, token: Token, sI: number, pI: number, rI: number, cI: number, val?: any, src?: any, use?: any): Token;
+    lex(state?: pin, match?: (sI: number, src: string, token: Token, ctx: Context) => KV): any;
     clone(config: Config): Lexer;
 }
 declare enum RuleState {
@@ -179,6 +193,7 @@ declare let util: {
     clone: (class_instance: any) => any;
     s2cca: (s: string) => number[];
     longest: (strs: string[]) => number;
+    make_src_format: (config: Config) => (s: any, j?: any) => string;
     make_log: (ctx: Context) => void;
     errinject: (s: string, code: string, details: KV, token: Token, ctx: Context) => string;
     extract: (src: string, errtxt: string, token: Token) => string;
