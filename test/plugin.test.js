@@ -140,6 +140,18 @@ describe('plugin', function () {
     expect(j('x:A,y:B,z:C')).equals({x:'aaa',y:'B',z:'C'})
   })
 
+
+
+  it('plugin-opts', () => {
+    // use make to avoid polluting Jsonic
+    let x = null
+    const j = make()
+    j.use(function foo(jsonic) {
+      x = jsonic.options.plugin.foo.x
+    }, {x:1})
+    expect(x).equal(1)
+  })
+  
   
   // TODO: Jsonic polluted! only passes if before dynamic
   it('multifile-basic', () => {
@@ -161,10 +173,9 @@ describe('plugin', function () {
   })
 
 
-  // FIX: infects top level Jsonic!!! make() broken for opts?
   it('dynamic-basic', () => {
     let k = Jsonic.make().use(Dynamic)
-    expect(k('a:1,b:$1+1')).equal({a:1,b:2})
+    expect(k('a:1,b:$1+1',{xlog:-1})).equal({a:1,b:2})
   })
 
 

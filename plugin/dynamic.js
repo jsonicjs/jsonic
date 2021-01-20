@@ -5,16 +5,19 @@ exports.Dynamic = void 0;
 const jsonic_1 = require("../jsonic");
 // TODO: array elements
 // TODO: plain values: $1, $true, etc
-let Dynamic = function evaller(jsonic) {
+let Dynamic = function dynamic(jsonic) {
+    let markchar = jsonic.options.plugin.dynamic.markchar || '$';
+    let tn = '#T<' + markchar + '>';
     jsonic.options({
-        single: jsonic.options.single + '$'
+        token: {
+            [tn]: { c: markchar }
+        }
     });
-    let T$ = jsonic.options.TOKENS['$'];
-    let ST = jsonic.options.ST;
-    let TX = jsonic.options.TX;
+    let T$ = jsonic.token(tn);
+    let ST = jsonic.token.ST;
+    let TX = jsonic.token.TX;
     jsonic.rule('val', (rs) => {
-        //console.log('dynamic RSO', rs.def.open.mark = Math.random())
-        // TOOD: also values so that `$1`===1 will work
+        // TODO: also values so that `$1`===1 will work
         rs.def.open.push({ s: [T$, ST] }, { s: [T$, TX] }, { s: [T$, T$], b: 2 });
         rs.def.close.unshift({ s: [T$], r: 'val' });
         // Special case: `$$`
@@ -27,7 +30,7 @@ let Dynamic = function evaller(jsonic) {
             }
         };
         let bc = rs.def.before_close;
-        rs.def.before_close = (rule, ctx) => {
+        rs.def.before_close = (rule, _ctx) => {
             if (rule.open[0] && rule.open[1]) {
                 if (T$ === rule.open[0].pin && T$ !== rule.open[1].pin) {
                     // console.log('CHECK', rule.name + '/' + rule.id, rule.open)
@@ -38,7 +41,7 @@ let Dynamic = function evaller(jsonic) {
                     }
                     expr = 'null,' + expr;
                     //console.log('EXPR', expr)
-                    let func = function ($, _, __, meta) {
+                    let func = function ($, _, __, _meta) {
                         return eval(expr);
                     };
                     func.__eval$$ = true;

@@ -37,7 +37,7 @@ declare type Opts = {
 };
 declare type Jsonic = ((src: any, meta?: any) => any) & {
     parse: (src: any, meta?: any) => any;
-    options: Opts & ((change_opts?: KV) => Jsonic);
+    options: Opts & KV & ((change_opts?: KV) => Jsonic);
     make: (opts?: KV) => Jsonic;
     use: (plugin: Plugin, opts?: KV) => Jsonic;
     rule: (name?: string, define?: (rs: RuleSpec, rsm: {
@@ -47,7 +47,7 @@ declare type Jsonic = ((src: any, meta?: any) => any) & {
 } & {
     [prop: string]: any;
 };
-declare type Plugin = (jsonic: Jsonic) => void;
+declare type Plugin = (jsonic: Jsonic) => any;
 declare type Meta = {
     [k: string]: any;
 };

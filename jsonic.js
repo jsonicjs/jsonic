@@ -744,6 +744,7 @@ class RuleSpec {
         let alt;
         let altI = 0;
         let t = ctx.config.token;
+        // console.log('PA', alts)
         // End token reached.
         if (t.ZZ === ctx.t0.pin) {
             out = { m: [] };
@@ -780,9 +781,8 @@ class RuleSpec {
             out = out || { e: ctx.t0, m: [] };
         }
         out = out || { m: [] };
-        ctx.log && ctx.log('parse', rule.name + '/' + rule.id, RuleState[rule.state], altI < alts.length ? 'alt=' + altI : 'no-alt', 
-        // TODO: indicate none found (don't just show last)
-        alt && alt.s ? alt.s.join('') : '', ctx.tI, 'p=' + (out.p || ''), 'r=' + (out.r || ''), 'b=' + (out.b || ''), out.m.map((t) => t.pin).join(' '), out.m.map((t) => t.src).join(''), out);
+        ctx.log && ctx.log('parse', rule.name + '/' + rule.id, RuleState[rule.state], altI < alts.length ? 'alt=' + altI : 'no-alt', altI < alts.length && alt && alt.s ?
+            '[' + alt.s.map((pin) => t[pin]).join(' ') + ']' : '[]', ctx.tI, 'p=' + (out.p || ''), 'r=' + (out.r || ''), 'b=' + (out.b || ''), out.m.map((t) => t.pin).join(' '), out.m.map((t) => t.src).join(''), out);
         if (out.m) {
             let mI = 0;
             let rewind = out.m.length - (out.b || 0);
@@ -1351,13 +1351,9 @@ function make(first, parent) {
     };
     self.options = util.deep(optioner, opts);
     self.parse = self;
-    self.use = function use(plugin, opts) {
-        let jsonic = self;
-        if (opts) {
-            jsonic.options(opts);
-        }
-        plugin(jsonic);
-        return jsonic;
+    self.use = function use(plugin, plugin_opts) {
+        self.options({ plugin: { [plugin.name]: plugin_opts || {} } });
+        return plugin(self) || self;
     };
     self.rule = function rule(name, define) {
         let rule = self.internal().parser.rule(name, define);

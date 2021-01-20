@@ -32,11 +32,6 @@ type Opts = {
   console: any
   error: { [code: string]: string }
   hint: { [code: string]: string }
-  /*
-  lex: {
-    state: string[]
-  }
-  */
   token: {
     [name: string]:  // Token name.
     { c: string } |  // Single char token (eg. OB=`{`)
@@ -56,7 +51,7 @@ type Jsonic =
   // A utility with methods.
   {
     parse: (src: any, meta?: any) => any
-    options: Opts & ((change_opts?: KV) => Jsonic)
+    options: Opts & KV & ((change_opts?: KV) => Jsonic)
     make: (opts?: KV) => Jsonic
     use: (plugin: Plugin, opts?: KV) => Jsonic
     rule: (name?: string, define?:
@@ -70,7 +65,7 @@ type Jsonic =
   { [prop: string]: any }
 
 
-type Plugin = (jsonic: Jsonic) => void
+type Plugin = (jsonic: Jsonic) => any
 
 type Meta = { [k: string]: any }
 
@@ -1180,6 +1175,8 @@ class RuleSpec {
     let altI = 0
     let t = ctx.config.token
 
+    // console.log('PA', alts)
+
     // End token reached.
     if (t.ZZ === ctx.t0.pin) {
       out = { m: [] }
@@ -1228,9 +1225,8 @@ class RuleSpec {
       rule.name + '/' + rule.id,
       RuleState[rule.state],
       altI < alts.length ? 'alt=' + altI : 'no-alt',
-
-      // TODO: indicate none found (don't just show last)
-      alt && alt.s ? alt.s.join('') : '',
+      altI < alts.length && alt && alt.s ?
+        '[' + alt.s.map((pin: pin) => t[pin]).join(' ') + ']' : '[]',
       ctx.tI,
       'p=' + (out.p || ''),
       'r=' + (out.r || ''),
@@ -1996,13 +1992,9 @@ function make(first?: KV | Jsonic, parent?: Jsonic): Jsonic {
   self.parse = self
 
 
-  self.use = function use(plugin: Plugin, opts?: KV): Jsonic {
-    let jsonic = self
-    if (opts) {
-      jsonic.options(opts)
-    }
-    plugin(jsonic)
-    return jsonic
+  self.use = function use(plugin: Plugin, plugin_opts?: KV): Jsonic {
+    self.options({ plugin: { [plugin.name]: plugin_opts || {} } })
+    return plugin(self) || self
   }
 
 
