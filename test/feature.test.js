@@ -75,6 +75,15 @@ describe('feature', function () {
     // Implicit close
     expect(j('b:2\n/*a:1')).equals({b:2})
     expect(j('b:2\n/*/*/*a:1')).equals({b:2})
+
+    // Correct row and column count
+    try {
+      j('a:1/*\n\n*/{')
+    }
+    catch(e) {
+      expect(e.lineNumber).equal(2)
+      expect(e.columnNumber).equal(2)
+    }
   })
 
 

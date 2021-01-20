@@ -17,7 +17,7 @@ type pin = number
 // TODO: complete
 type Opts = {
   // start: { [name: string]: string }
-  single: string
+  //single: string
   escape: { [denoting_char: string]: string }
   char: KV
   comment: { [start_marker: string]: string | boolean }
@@ -139,21 +139,6 @@ type Config = {
 function make_standard_options(): Opts {
 
   let opts: Opts = {
-    // Token start characters.
-    // NOTE: All sc_* string properties generate SC_* char code arrays.
-    /*
-    start: {
-      space: ' \t',
-      line: '\n\r',
-      number: '-0123456789',
-      string: '"\'`',
-      none: '',
-    },
-    */
-
-    // Custom singles.
-    single: '',
-
 
     // String escape chars.
     // Denoting char (follows escape char) => actual char.
@@ -166,7 +151,7 @@ function make_standard_options(): Opts {
     },
 
 
-    // Special characters
+    // Special chars
     char: {
 
       // Increments row (aka line) counter.
@@ -198,7 +183,7 @@ function make_standard_options(): Opts {
     // Control number formats.
     number: {
 
-      // All possible number characters.
+      // All possible number chars.
       digital: '-1023456789._xeEaAbBcCdDfF+',
 
       // Allow embedded underscore.
@@ -209,7 +194,7 @@ function make_standard_options(): Opts {
     // String formats.
     string: {
 
-      // Multiline quote characters.
+      // Multiline quote chars.
       multiline: '`',
 
       // CSV-style double quote escape.
@@ -329,8 +314,26 @@ class JsonicError extends SyntaxError {
     ctx: Context,
   ) {
     details = util.deep({}, details)
-    ctx = util.deep({}, ctx)
-    let desc = JsonicError.make_desc(code, details, token, ctx)
+    let errctx: any = util.deep({}, {
+      rI: ctx.rI,
+      opts: ctx.opts,
+      config: ctx.config,
+      meta: ctx.meta,
+      src: () => ctx.src(),
+      root: () => ctx.root(),
+      node: ctx.node,
+      t0: ctx.t0,
+      t1: ctx.t1,
+      tI: ctx.tI,
+
+      // TODO: fix cycle
+      // rs: ctx.rs,
+
+      next: () => ctx.next(),
+      log: ctx.log,
+      use: ctx.use
+    })
+    let desc = JsonicError.make_desc(code, details, token, errctx)
     super(desc.message)
     Object.assign(this, desc)
 
@@ -405,15 +408,10 @@ class JsonicError extends SyntaxError {
 
 
 class Lexer {
-  opts: Opts
-  config: Config
   end: Token
   match: { [state_name: string]: any } = {}
 
-  constructor(opts: Opts, config: Config) {
-    this.opts = opts
-    this.config = config
-
+  constructor(config: Config) {
     this.end = {
       pin: util.token('#ZZ', config),
       loc: 0,
@@ -426,15 +424,16 @@ class Lexer {
   }
 
 
+
   // Create the lexing function.
   start(
     ctx: Context
   ): Lex {
-    // TODO: should be ctx.opts to ensure consistency
-    const opts = this.opts
-    const config = this.config
-    let tpin = (name: string): pin => util.token(name, this.config)
-    let tn = (pin: pin): string => util.token(pin, this.config)
+    const opts = ctx.opts
+    const config = ctx.config
+
+    let tpin = (name: string): pin => util.token(name, config)
+    let tn = (pin: pin): string => util.token(pin, config)
 
     let LS_TOP = tpin('@TOP')
     let LS_CONSUME = tpin('@CONSUME')
@@ -490,8 +489,8 @@ class Lexer {
       let enders = ''
 
       let pI = 0 // Current lex position (only update sI at end of rule).
-      let s: string[] = [] // Parsed string characters and substrings.
-      let cc = -1 // Character code.
+      let s: string[] = [] // Parsed string chars and substrings.
+      let cc = -1 // Char code.
 
       next_char:
       while (sI < srclen) {
@@ -508,17 +507,21 @@ class Lexer {
 
             for (let matcher of matchers) {
               let match = matcher(sI, src, token, ctx)
+
+              // Adjust lex location if there was a match.
               if (match) {
                 sI = match.sI
                 rI = match.rD ? rI + match.rD : rI
                 cI = match.cD ? cI + match.cD : cI
-                //lexlog && lexlog(token.pin[0], token.src, { ...token })
+
                 lexlog && lexlog(tn(token.pin), token.src, { ...token })
                 return token
               }
             }
           }
 
+
+          // Space chars.
           if (config.start.SP.includes(c0c)) {
 
             token.pin = SP
@@ -526,7 +529,6 @@ class Lexer {
             token.col = cI++
 
             pI = sI + 1
-            //while ((opts.token.SP as string[]).includes(src[pI])) cI++, pI++;
             while (config.multi.SP.includes(src[pI])) cI++, pI++;
 
             token.len = pI - sI
@@ -535,11 +537,12 @@ class Lexer {
 
             sI = pI
 
-            //lexlog && lexlog(token.pin[0], token.src, { ...token })
             lexlog && lexlog(tn(token.pin), token.src, { ...token })
             return token
           }
 
+
+          // Newline chars.
           else if (config.start.LN.includes(c0c)) {
 
             token.pin = LN
@@ -549,9 +552,8 @@ class Lexer {
             pI = sI
             cI = 0
 
-            //while ((opts.token.LN as string[]).includes(src[pI])) {
             while (config.multi.LN.includes(src[pI])) {
-              // Count rows
+              // Count rows.
               rI += (opts.char.row === src[pI] ? 1 : 0)
               pI++
             }
@@ -567,6 +569,7 @@ class Lexer {
           }
 
 
+          // Single char tokens.
           else if (null != config.single[c0c]) {
             token.pin = config.single[c0c]
             token.loc = sI
@@ -580,6 +583,7 @@ class Lexer {
           }
 
 
+          // Number chars.
           else if (config.start.NR.includes(c0c)) {
             token.pin = NR
             token.loc = sI
@@ -613,11 +617,11 @@ class Lexer {
             }
 
             if (null != token.val) {
-              token.src = src.substring(sI, pI) // src="1e6" -> val=1000000
+              // Ensure verbatim src (eg. src="1e6" -> val=1000000).
+              token.src = src.substring(sI, pI)
               cI += token.len
               sI = pI
 
-              //lexlog && lexlog(token.pin[0], token.src, { ...token })
               lexlog && lexlog(tn(token.pin), token.src, { ...token })
               return token
             }
@@ -626,6 +630,8 @@ class Lexer {
             // prefixed with digits.
           }
 
+
+          // String chars.
           else if (config.start.ST.includes(c0c)) {
             token.pin = ST
             token.loc = sI
@@ -642,6 +648,7 @@ class Lexer {
 
               cc = src.charCodeAt(pI)
 
+              // Quote char.
               if (qc === cc) {
                 if (opts.string.escapedouble && qc === src.charCodeAt(pI + 1)) {
                   s.push(src[pI])
@@ -652,6 +659,9 @@ class Lexer {
                   break // String finished.
                 }
               }
+
+              // TODO: use opt.char.escape (string) -> config.char.escape (code)
+              // Escape char. 
               else if (92 === cc) {
                 let ec = src.charCodeAt(++pI)
                 cI++
@@ -661,36 +671,39 @@ class Lexer {
                   s.push(es)
                 }
 
-                // Unicode escape \u****
+                // Unicode escape \u****.
                 else if (117 === ec) {
                   pI++
                   let us =
                     String.fromCharCode(('0x' + src.substring(pI, pI + 4)) as any)
 
                   if (opts.char.bad_unicode === us) {
-                    return self.bad(
-                      lexlog,
-                      'invalid-unicode',
+                    return self.bad(config, lexlog, 'invalid-unicode',
                       token, sI, pI, rI, cI, src.substring(pI - 2, pI + 4))
                   }
 
                   s.push(us)
-                  pI += 3 // loop increments pI
+                  pI += 3 // Loop increments pI.
                   cI += 4
                 }
                 else {
                   s.push(src[pI])
                 }
               }
+
+              // Unprintable chars.
               else if (cc < 32) {
                 if (multiline && config.start.LN.includes(cc)) {
                   s.push(src[pI])
                 }
                 else {
                   return self.bad(
-                    lexlog, 'unprintable', token, sI, pI, rI, cI, src.charAt(pI))
+                    config, lexlog, 'unprintable',
+                    token, sI, pI, rI, cI, src.charAt(pI))
                 }
               }
+
+              // Main body of string.
               else {
                 let bI = pI
 
@@ -709,8 +722,8 @@ class Lexer {
 
             if (qc !== cc) {
               cI = sI
-              return self.bad(
-                lexlog, 'unterminated', token, sI, pI - 1, rI, cI, s.join(''))
+              return self.bad(config, lexlog, 'unterminated',
+                token, sI, pI - 1, rI, cI, s.join(''))
             }
 
             token.val = s.join('')
@@ -719,28 +732,28 @@ class Lexer {
             token.len = pI - sI
             sI = pI
 
-            //lexlog && lexlog(token.pin[0], token.src, { ...token })
             lexlog && lexlog(tn(token.pin), token.src, { ...token })
             return token
           }
 
 
+          // Comment chars.
           else if (config.start_comment.includes(c0c)) {
             let is_line_comment = config.comment_single.includes(c0)
 
             // Also check for comment markers as single comment char could be
-            // a comment marker prefix (eg. # and ###)
+            // a comment marker prefix (eg. # and ###, / and //, /*).
             let marker = src.substring(sI, sI + config.comment_marker_maxlen)
 
             for (let cm of config.comment_marker) {
               if (marker.startsWith(cm)) {
 
-                // Multi-line comment
+                // Multi-line comment.
                 if (true !== opts.comment[cm]) {
                   token.pin = CM
                   token.loc = sI
                   token.col = cI
-                  token.val = '' // intialize for LS_CONSUME
+                  token.val = '' // intialize for LS_CONSUME.
 
                   state = LS_MULTILINE
                   state_param = [cm, opts.comment[cm], 'comment']
@@ -757,10 +770,9 @@ class Lexer {
               token.pin = CM
               token.loc = sI
               token.col = cI
-              token.val = '' // intialize for LS_CONSUME
+              token.val = '' // intialize for LS_CONSUME.
 
               state = LS_CONSUME
-              //enders = (opts.token.LN as string)
               enders = config.multi.LN
               continue next_char
             }
@@ -770,8 +782,8 @@ class Lexer {
           // fail to match (eg. NR).
 
           // No explicit token recognized. That leaves:
-          // - keyword literal values (from opts.values)
-          // - text values (everything up to an end char)
+          // - keyword literal values (from opts.value)
+          // - text values (everything up to a text_ender char (eg. newline))
 
           token.loc = sI
           token.col = cI
@@ -798,14 +810,13 @@ class Lexer {
             token.len = pI - sI
             sI = pI
 
-            //lexlog && lexlog(token.pin[0], token.src, { ...token })
             lexlog && lexlog(tn(token.pin), token.src, { ...token })
             return token
           }
 
-
           // Only thing left is literal text
-          let text_enders = opts.text.hoover ? config.hoover_enders : config.text_enders
+          let text_enders =
+            opts.text.hoover ? config.hoover_enders : config.text_enders
 
           // TODO: construct a RegExp to do this
           while (null != src[pI] &&
@@ -823,9 +834,9 @@ class Lexer {
           token.val = src.substring(sI, pI)
           token.src = token.val
 
+          // Hoovering (ie. greedily consume non-token chars including internal space)
           // If hoovering, separate space at end from text
           if (opts.text.hoover &&
-            //(opts.token.SP as string).includes(token.val[token.val.length - 1])) {
             config.multi.SP.includes(token.val[token.val.length - 1])) {
 
             // Find last non-space char
@@ -846,7 +857,6 @@ class Lexer {
             sI = pI
           }
 
-          //lexlog && lexlog(token.pin[0], token.src, { ...token })
           lexlog && lexlog(tn(token.pin), token.src, { ...token })
           return token
         }
@@ -854,7 +864,7 @@ class Lexer {
 
         // Lexer State: CONSUME => all chars up to first ender
         else if (LS_CONSUME === state) {
-          // TODO: implement custom lexing functions for state, lookup goes here
+          // TODO: provide matcher hook
 
           pI = sI
           while (pI < srclen && !enders.includes(src[pI])) pI++, cI++;
@@ -867,7 +877,6 @@ class Lexer {
 
           state = LS_TOP
 
-          //lexlog && lexlog(token.pin[0], token.src, { ...token })
           lexlog && lexlog(tn(token.pin), token.src, { ...token })
           return token
         }
@@ -875,10 +884,11 @@ class Lexer {
 
         // Lexer State: MULTILINE => all chars up to last close marker, or end
         else if (LS_MULTILINE === state) {
-          // TODO: implement custom lexing functions for state, lookup goes here
+          // TODO: provide matcher hook
 
           pI = sI
 
+          // Balance open and close markers (eg. if opts.balance.comment=true).
           let depth = 1
           let open = state_param[0]
           let close = state_param[1]
@@ -895,16 +905,25 @@ class Lexer {
             if (close[0] === src[pI] &&
               close === src.substring(pI, pI + closelen)) {
               pI += closelen
+              cI += closelen
               depth--
             }
             else if (balance && open[0] === src[pI] &&
               open === src.substring(pI, pI + openlen)) {
               pI += openlen
+              cI += closelen
               depth++
             }
             else {
+              // Count rows.
+              if (opts.char.row === src[pI]) {
+                rI++
+                cI = 0
+              }
+              else {
+                cI++
+              }
               pI++
-              // TODO: count rows!
             }
           }
 
@@ -940,6 +959,7 @@ class Lexer {
 
 
   bad(
+    config: Config,
     log: ((...rest: any) => undefined) | undefined,
     why: string,
     token: Token,
@@ -952,7 +972,7 @@ class Lexer {
     use?: any
   ): Token {
     token.why = why
-    token.pin = util.token('#BD', this.config)
+    token.pin = util.token('#BD', config)
     token.loc = pI
     token.row = rI
     token.col = cI
@@ -961,8 +981,7 @@ class Lexer {
     token.src = src
     token.use = use
 
-    //log && log(token.pin[0], token.src, { ...token })
-    log && log(util.token(token.pin, this.config), token.src, { ...token })
+    log && log(util.token(token.pin, config), token.src, why, { ...token })
     return token
   }
 
@@ -986,6 +1005,13 @@ class Lexer {
 
     return this.match[sn]
   }
+
+
+  clone(config: Config) {
+    let lexer = new Lexer(config)
+    util.deep(lexer.match, this.match)
+    return lexer
+  }
 }
 
 
@@ -999,9 +1025,9 @@ class Rule {
   id: number
   name: string
   spec: RuleSpec
-  ctx: Context
+  //ctx: Context
+  //opts: Opts
   node: any
-  opts: Opts
   state: RuleState
   child: Rule
   parent?: Rule
@@ -1011,13 +1037,13 @@ class Rule {
   val: any
   key: any
 
-  constructor(spec: RuleSpec, ctx: Context, opts: Opts, node?: any) {
+  constructor(spec: RuleSpec, ctx: Context, node?: any) {
     this.id = ctx.rI++
     this.name = spec.name
     this.spec = spec
     this.node = node
-    this.ctx = ctx
-    this.opts = opts
+    //this.ctx = ctx
+    //this.opts = opts
     this.state = RuleState.open
     this.child = norule
     this.open = []
@@ -1037,10 +1063,6 @@ class Rule {
 
     return rule
   }
-
-  toString() {
-    return JSON.stringify(this.spec)
-  }
 }
 
 
@@ -1053,10 +1075,11 @@ let norule = ({ id: 0, spec: { name: 'norule' } } as Rule)
 class RuleSpec {
   name: string
   def: any
-  rm: { [name: string]: RuleSpec }
+  //rm: { [name: string]: RuleSpec }
+  rm: (rulename: string) => RuleSpec
   match: any
 
-  constructor(name: string, def: any, rm: { [name: string]: RuleSpec }) {
+  constructor(name: string, def: any, rm: (rulename: string) => RuleSpec) {//rm: { [name: string]: RuleSpec }) {
     this.name = name
     this.def = def
     this.rm = rm
@@ -1084,11 +1107,11 @@ class RuleSpec {
 
     if (act.p) {
       ctx.rs.push(rule)
-      next = rule.child = new Rule(this.rm[act.p], ctx, rule.opts, rule.node)
+      next = rule.child = new Rule(this.rm(act.p), ctx, rule.node)
       next.parent = rule
     }
     else if (act.r) {
-      next = new Rule(this.rm[act.r], ctx, rule.opts, rule.node)
+      next = new Rule(this.rm(act.r), ctx, rule.node)
       next.parent = rule.parent
     }
 
@@ -1130,11 +1153,11 @@ class RuleSpec {
 
     if (act.p) {
       ctx.rs.push(rule)
-      next = rule.child = new Rule(this.rm[act.p], ctx, rule.opts, rule.node)
+      next = rule.child = new Rule(this.rm(act.p), ctx, rule.node)
       next.parent = rule
     }
     else if (act.r) {
-      next = new Rule(this.rm[act.r], ctx, rule.opts, rule.node)
+      next = new Rule(this.rm(act.r), ctx, rule.node)
       next.parent = rule.parent
       why = 'r'
     }
@@ -1435,7 +1458,7 @@ class Parser {
     // TODO: rulespec should normalize
     // eg. t:t.QQ => s:[t.QQ]
     this.rulespecs = Object.keys(this.rules).reduce((rs: any, rn: string) => {
-      rs[rn] = new RuleSpec(rn, this.rules[rn], rs)
+      rs[rn] = new RuleSpec(rn, this.rules[rn], (name: string) => this.rulespecs[name])
       return rs
     }, {})
   }
@@ -1500,7 +1523,6 @@ class Parser {
       do {
         t1 = lex()
         ctx.tI++
-        //} while ((opts.token.IGNORE as string).includes(t1.pin))
       } while (config.tokenset.IGNORE.includes(t1.pin))
 
       ctx.t1 = { ...t1 }
@@ -1577,12 +1599,7 @@ let util = {
         (Array.isArray(base) === Array.isArray(over))
       ) {
         for (let k in over) {
-          base[k] = (
-            'object' === typeof (base[k]) &&
-            'object' === typeof (over[k]) &&
-            (Array.isArray(base[k]) === Array.isArray(over[k]))
-          ) ? util.deep(base[k], over[k]) : over[k]
-          //base[k] = util.deep(base[k], over[k])
+          base[k] = util.deep(base[k], over[k])
         }
       }
       else {
@@ -1600,79 +1617,6 @@ let util = {
   },
 
 
-  deepx: function(base?: any, ...rest: any): any {
-    let seen = [[], []]
-    let out = util.deeperx(seen, base, ...rest)
-    return out
-  },
-
-  deeperx: function(seen: any, base?: any, ...rest: any): any {
-    let base_is_function = 'function' === typeof (base)
-    let base_is_object = null != base &&
-      ('object' === typeof (base) || base_is_function)
-    for (let over of rest) {
-      let over_is_function = 'function' === typeof (over)
-      let over_is_object = null != over &&
-        ('object' === typeof (over) || over_is_function)
-      if (base_is_object &&
-        over_is_object &&
-        !over_is_function &&
-        (Array.isArray(base) === Array.isArray(over))
-      ) {
-
-        /*
-        let sI = seen[0].indexOf(over)
-        if (-1 < sI) {
-          base = seen[1][sI]
-        }
-        else {
-          seen[0].push(over)
-          sI = seen[0].length - 1
-          seen[1][sI] = base
-        */
-
-        for (let k in over) {
-          base[k] = util.deeperx(seen, base[k], over[k])
-        }
-        //}
-      }
-      else {
-        /*
-        base = undefined === over ? base :
-          over_is_function ? over :
-            (over_is_object ?
-              util.deeper(seen, Array.isArray(over) ? [] : {}, over) : over)
-        */
-
-
-
-        if (undefined !== over) {
-          if (over_is_function || !over_is_object) {
-            base = over
-          }
-          else {
-            let sI = seen[0].indexOf(over)
-            if (-1 < sI) {
-              base = seen[1][sI]
-            }
-            else {
-              seen[0].push(over)
-              sI = seen[0].length - 1
-              base = Array.isArray(over) ? [] : {}
-              seen[1][sI] = base
-              base = util.deeperx(seen, base, over)
-            }
-          }
-        }
-
-
-        base_is_function = 'function' === typeof (base)
-        base_is_object = null != base &&
-          ('object' === typeof (base) || base_is_function)
-      }
-    }
-    return base
-  },
 
 
   clone: function(class_instance: any) {
@@ -1681,7 +1625,7 @@ let util = {
   },
 
 
-  // Convert string to character code array.
+  // Convert string to char code array.
   // 'ab' -> [97,98]
   s2cca: function(s: string): number[] {
     return s.split('').map((c: string) => c.charCodeAt(0))
@@ -1896,7 +1840,7 @@ let util = {
 
       comment_markers.forEach(k => {
 
-        // Single character comment marker (eg. `#`)
+        // Single char comment marker (eg. `#`)
         if (1 === k.length) {
           config.start_comment.push(k.charCodeAt(0))
           config.comment_single += k
@@ -1994,7 +1938,6 @@ function make(first?: KV | Jsonic, parent?: Jsonic): Jsonic {
 
 
   // Transfer parent properties (preserves plugin decorations, etc).
-  /*
   if (parent) {
     for (let k in parent) {
       self[k] = parent[k]
@@ -2002,32 +1945,31 @@ function make(first?: KV | Jsonic, parent?: Jsonic): Jsonic {
 
     self.parent = parent
 
-    let internal = parent.internal()
-    config = util.deep({}, internal.config)
+    let parent_internal = parent.internal()
+    config = util.deep({}, parent_internal.config)
 
     util.build_config_from_options(config, opts)
     Object.assign(self.token, config.token)
 
-    // TODO: inherit parent
-    lexer = new Lexer(opts, config)
+    lexer = parent_internal.lexer.clone(config)
 
+    // TODO: inherit parent
     parser = new Parser(opts, config)
     parser.rules = util.deep(parser.rules)
     parser.rulespecs = util.deep(parser.rulespecs)
   }
   else {
-*/
-  config = ({
-    tokenI: 1,
-    token: {}
-  } as Config)
+    config = ({
+      tokenI: 1,
+      token: {}
+    } as Config)
 
-  util.build_config_from_options(config, opts)
+    util.build_config_from_options(config, opts)
 
-  lexer = new Lexer(opts, config)
-  parser = new Parser(opts, config)
-  parser.init()
-  //}
+    lexer = new Lexer(config)
+    parser = new Parser(opts, config)
+    parser.init()
+  }
 
 
   Object.assign(self.token, config.token)

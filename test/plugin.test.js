@@ -1,5 +1,8 @@
-/* Copyright (c) 2013-2020 Richard Rodger and other contributors, MIT License */
+/* Copyright (c) 2013-2021 Richard Rodger and other contributors, MIT License */
 'use strict'
+
+
+const Util = require('util')
 
 let Lab = require('@hapi/lab')
 Lab = null != Lab.script ? Lab : require('hapi-lab-shim')
@@ -11,50 +14,69 @@ const describe = lab.describe
 const it = lab.it
 const expect = Code.expect
 
-const { Jsonic, JsonicError } = require('..')
+const { Jsonic, Lexer, JsonicError } = require('..')
 const { Json } = require('../plugin/json')
 const { Csv } = require('../plugin/csv')
 const { Dynamic } = require('../plugin/dynamic')
 const { Multifile } = require('../plugin/multifile')
 
-//const j = Jsonic
+const I = Util.inspect
 
 
 describe('plugin', function () {
 
+
+  it('clone-lexer', () => {
+    let config0 = {config:true,mark:0,tokenI:1,token:{}}
+    let lex0 = new Lexer(config0)
+    let match0 = function(){}
+    lex0.lex('match0', match0)
+
+    let config1 = {config:true,mark:1,tokenI:1,token:{}}
+    let lex1 = lex0.clone(config1)
+    let match1 = function(){}
+    lex1.lex('match1', match1)
+
+    //console.log('lex0')
+    //console.dir(lex0)
+
+    //console.log('lex1')
+    //console.dir(lex1)
+
+    expect(lex0 === lex1).false()
+    expect(lex0.end === lex1.end).false()
+    expect(lex0.match === lex1.match).false()
+    expect(I(lex0.match))
+      .equal('{ m: [ [Function: match0] ] }')
+    expect(I(lex1.match))
+      .equal('{ m: [ [Function: match0], [Function: match1] ] }')    
+  })
+
+  
   it('make', () => {
     const j = Jsonic
-    //j.use(make_token_plugin('A','aaa'))
-    //expect(j('x:A')).equals({x:'A'})
-    console.log('j',j('x:A'),j.options.single,j.internal().parser.mark)
-    console.dir(j.internal().parser.rulespecs.val.def.open,{depth:null})
+    j.use(make_token_plugin('A','aaa'))
+    expect(j('x:A')).equals({x:'aaa'})
 
-    //expect(j.options.a).undefined()
-
+    
     const a1 = Jsonic.make({a:1})
-    //expect(a1.options.a).equal(1)
-    //expect(j.options.a).undefined()
-
-    console.log('+++')
-    a1.use(make_token_plugin('A','aaa'))
-    //expect(j('x:A')).equals({x:'A'})
-
-    console.log('j',j('x:A'),j.options.single,j.internal().parser.mark)
-    console.dir(j.internal().parser.rulespecs.val.def.open,{depth:null})
+    expect(a1.options.a).equal(1)
+    expect(j.options.a).undefined()
+    expect(j.internal().lexer === a1.internal().lexer).false()
+    expect(j.token.OB === a1.token.OB).true()
     
-    console.log('a1',a1('x:A'),a1.options.single,a1.internal().parser.mark)
-    console.dir(a1.internal().parser.rulespecs.val.def.open,{depth:null})
-    
-    //expect(a1('x:A')).equals({x:'aaa'})
-    return
-    
-    // Options have diverged
     const a2 = Jsonic.make({a:2})
     expect(a2.options.a).equal(2)
     expect(a1.options.a).equal(1)
     expect(j.options.a).undefined()
+    expect(j.internal().lexer === a2.internal().lexer).false()
+    expect(a2.internal().lexer === a1.internal().lexer).false()
+    expect(j.token.OB === a2.token.OB).true()
+    expect(a2.token.OB === a1.token.OB).true()
+    
 
-
+    return;
+    
     a1.use((jsonic)=>{
       jsonic.options({aa:1})
       jsonic.internal().lexer.aa=1
@@ -196,12 +218,15 @@ describe('plugin', function () {
 
 
 function make_token_plugin(char, val) {
+  let tn = '#T<'+char+'>'
   let plugin = function (jsonic) {
     jsonic.options({
-      single: jsonic.options.single + char
+      token: {
+        [tn]: {c:char}
+      }
     })
 
-    let TT = jsonic.options.TOKENS[char]
+    let TT = jsonic.token(tn)
 
     jsonic.rule('val', (rs) => {
       rs.def.open.push({ s: [TT] })

@@ -21,11 +21,12 @@ const pv_perf = require('./pv-perf')
 
 let j = Jsonic
 let lexer = j.internal().lexer
+let config = j.internal().config
 let t = Jsonic.token
 
 
 function lexall(src) {
-  let lex = lexer.start({src: ()=>src})
+  let lex = lexstart(src)
   let out = []
   do {
     // console.log(out[out.length-1])
@@ -43,6 +44,10 @@ function alleq(ta) {
 }
 
 
+function lexstart(src) {
+  return lexer.start({src:()=>src, config, opts:j.options})
+}
+
 describe('lex', function () {
 
   it('jsonic-token', () => {
@@ -52,8 +57,10 @@ describe('lex', function () {
 
   
   it('specials', () => {
-
-    let lex0 = lexer.start({src:()=>' {123 '})
+    //console.log(config)
+    
+    //let lex0 = lexer.start({src:()=>' {123 ', config, opts:j.options})
+    let lex0 = lexstart(' {123 ')
     expect(lex0()).equals(
       { pin: t.SP, loc: 0, len: 1, row: 0, col: 0, val: ' ', src: ' ' })
     expect(lex0()).equals(
@@ -74,7 +81,8 @@ describe('lex', function () {
       { pin: t.ZZ, loc: 6, len: 0, row: 0, col: 6,
         val: undefined, src: undefined })
 
-    let lex1 = lexer.start({src:()=>'"\\u0040"'})
+    let lex1 = lexstart('"\\u0040"')
+    //let lex1 = lexer.start({src:()=>'"\\u0040"'})
     expect(lex1()).equals(
       { pin: t.ST, loc: 0, len: 8, row: 0, col: 0, val: '@', src:'"\\u0040"' })
 
@@ -93,7 +101,8 @@ describe('lex', function () {
       '0', ['#NR;0;1;0x0;0','#ZZ;1;0;0x1'],
     ])
 
-    let lex2 = lexer.start({src:()=>' m n '})
+    //let lex2 = lexer.start({src:()=>' m n '})
+    let lex2 = lexstart(' m n ')
     expect(lex2()).equals(
       { pin: t.SP, loc: 0, len: 1, row: 0, col: 0, val: ' ', src: ' ' })
     expect(lex2()).equals(
@@ -103,7 +112,7 @@ describe('lex', function () {
     expect(lex2()).equals(
       { pin: t.ZZ, loc: 5, len: 0, row: 0, col: 5, val: undefined, src: undefined })
 
-    let lex3 = lexer.start({src:()=>' b a '})
+    let lex3 = lexstart(' b a ')
     expect(lex3()).equals(
       { pin: t.SP, loc: 0, len: 1, row: 0, col: 0, val: ' ', src: ' ' })
     expect(lex3()).equals(
@@ -117,7 +126,7 @@ describe('lex', function () {
 
   
   it('space', () => {
-    let lex0 = lexer.start({src:()=>' \t'})
+    let lex0 = lexstart(' \t')
     expect(lex0()).equals(
       { pin: t.SP,
         loc: 0, len: 2, row: 0, col: 0, val: ' \t', src: ' \t' })
@@ -213,7 +222,7 @@ describe('lex', function () {
 
 
   it('number', () => {
-    let lex0 = lexer.start({src:()=>'123'})
+    let lex0 = lexstart('123')
     expect(lex0())
       .equal({
         pin: t.NR, loc: 0, len: 3, row: 0, col: 0, val: 123, src: '123'

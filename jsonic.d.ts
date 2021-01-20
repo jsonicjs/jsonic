@@ -3,7 +3,6 @@ declare type KV = {
 };
 declare type pin = number;
 declare type Opts = {
-    single: string;
     escape: {
         [denoting_char: string]: string;
     };
@@ -119,16 +118,15 @@ declare class JsonicError extends SyntaxError {
     };
 }
 declare class Lexer {
-    opts: Opts;
-    config: Config;
     end: Token;
     match: {
         [state_name: string]: any;
     };
-    constructor(opts: Opts, config: Config);
+    constructor(config: Config);
     start(ctx: Context): Lex;
-    bad(log: ((...rest: any) => undefined) | undefined, why: string, token: Token, sI: number, pI: number, rI: number, cI: number, val?: any, src?: any, use?: any): Token;
+    bad(config: Config, log: ((...rest: any) => undefined) | undefined, why: string, token: Token, sI: number, pI: number, rI: number, cI: number, val?: any, src?: any, use?: any): Token;
     lex(state?: string[], match?: (sI: number, src: string, token: Token, ctx: Context) => KV): any;
+    clone(config: Config): Lexer;
 }
 declare enum RuleState {
     open = 0,
@@ -138,9 +136,7 @@ declare class Rule {
     id: number;
     name: string;
     spec: RuleSpec;
-    ctx: Context;
     node: any;
-    opts: Opts;
     state: RuleState;
     child: Rule;
     parent?: Rule;
@@ -149,20 +145,15 @@ declare class Rule {
     why?: string;
     val: any;
     key: any;
-    constructor(spec: RuleSpec, ctx: Context, opts: Opts, node?: any);
+    constructor(spec: RuleSpec, ctx: Context, node?: any);
     process(ctx: Context): Rule;
-    toString(): string;
 }
 declare class RuleSpec {
     name: string;
     def: any;
-    rm: {
-        [name: string]: RuleSpec;
-    };
+    rm: (rulename: string) => RuleSpec;
     match: any;
-    constructor(name: string, def: any, rm: {
-        [name: string]: RuleSpec;
-    });
+    constructor(name: string, def: any, rm: (rulename: string) => RuleSpec);
     open(rule: Rule, ctx: Context): Rule;
     close(rule: Rule, ctx: Context): Rule;
     parse_alts(alts: any[], rule: Rule, ctx: Context): any;
@@ -187,8 +178,6 @@ declare class Parser {
 declare let util: {
     token: <R extends string | number, T extends string | number>(ref: R, config: Config, jsonic?: Jsonic | undefined) => T;
     deep: (base?: any, ...rest: any) => any;
-    deepx: (base?: any, ...rest: any) => any;
-    deeperx: (seen: any, base?: any, ...rest: any) => any;
     clone: (class_instance: any) => any;
     s2cca: (s: string) => number[];
     longest: (strs: string[]) => number;

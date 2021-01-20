@@ -53,7 +53,7 @@ describe('util', () => {
   })
 
   
-  it('deeper', () => {
+  it('deep', () => {
     let fa = function a(){}
     let fb = function b(){}
     
@@ -130,7 +130,7 @@ describe('util', () => {
     expect(deep([],[1])).equals([1])
     expect(deep([1],[2])).equals([2])
     expect(deep([1,3],[2])).equals([2,3])
-    // expect(deep([1,2,3],[undefined,4])).equals([1, 4, 3])
+    expect(deep([1,2,3],[undefined,4])).equals([1, 4, 3])
 
     expect(deep({a:1,b:[]})).equals({a:1,b:[]})
     expect(deep({a:1,b:[2]})).equals({a:1,b:[2]})
@@ -233,7 +233,7 @@ describe('util', () => {
     expect(d11).equal([1])
     expect(d1===d11).false()
 
-/*
+
     let d2 = {a:{b:[1]}}
     let d22 = deep({},d2)
     d2.c=2
@@ -247,7 +247,7 @@ describe('util', () => {
     expect(d22).equal({ a: { b: [ 1, 22 ], c: 22 }, c: 22 })
 
 
-    /*
+    /* TODO: handle cycles
     let d3 = {a:{b:{x:1}}}
     d3.a.b.c=d3.a
     let d33 = deep({},d3)
@@ -261,9 +261,6 @@ describe('util', () => {
     d4.y=1
     d44.y=2
     console.log(d4,d44)
-
-    //console.log(d3.a.b,d33.a.b)
-    //console.log(d3.a.b.a.b.a.x,d33.a.b.a.b.a.x)
     */
   })
 

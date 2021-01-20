@@ -4,19 +4,6 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.util = exports.RuleSpec = exports.Rule = exports.Parser = exports.Lexer = exports.JsonicError = exports.Jsonic = void 0;
 function make_standard_options() {
     let opts = {
-        // Token start characters.
-        // NOTE: All sc_* string properties generate SC_* char code arrays.
-        /*
-        start: {
-          space: ' \t',
-          line: '\n\r',
-          number: '-0123456789',
-          string: '"\'`',
-          none: '',
-        },
-        */
-        // Custom singles.
-        single: '',
         // String escape chars.
         // Denoting char (follows escape char) => actual char.
         escape: {
@@ -26,7 +13,7 @@ function make_standard_options() {
             r: '\r',
             t: '\t',
         },
-        // Special characters
+        // Special chars
         char: {
             // Increments row (aka line) counter.
             row: '\n',
@@ -48,14 +35,14 @@ function make_standard_options() {
         },
         // Control number formats.
         number: {
-            // All possible number characters.
+            // All possible number chars.
             digital: '-1023456789._xeEaAbBcCdDfF+',
             // Allow embedded underscore.
             underscore: true,
         },
         // String formats.
         string: {
-            // Multiline quote characters.
+            // Multiline quote chars.
             multiline: '`',
             // CSV-style double quote escape.
             escapedouble: false,
@@ -139,8 +126,24 @@ offending syntax.`
 class JsonicError extends SyntaxError {
     constructor(code, details, token, ctx) {
         details = util.deep({}, details);
-        ctx = util.deep({}, ctx);
-        let desc = JsonicError.make_desc(code, details, token, ctx);
+        let errctx = util.deep({}, {
+            rI: ctx.rI,
+            opts: ctx.opts,
+            config: ctx.config,
+            meta: ctx.meta,
+            src: () => ctx.src(),
+            root: () => ctx.root(),
+            node: ctx.node,
+            t0: ctx.t0,
+            t1: ctx.t1,
+            tI: ctx.tI,
+            // TODO: fix cycle
+            // rs: ctx.rs,
+            next: () => ctx.next(),
+            log: ctx.log,
+            use: ctx.use
+        });
+        let desc = JsonicError.make_desc(code, details, token, errctx);
         super(desc.message);
         Object.assign(this, desc);
         if (this.stack) {
@@ -192,10 +195,8 @@ class JsonicError extends SyntaxError {
 }
 exports.JsonicError = JsonicError;
 class Lexer {
-    constructor(opts, config) {
+    constructor(config) {
         this.match = {};
-        this.opts = opts;
-        this.config = config;
         this.end = {
             pin: util.token('#ZZ', config),
             loc: 0,
@@ -208,11 +209,10 @@ class Lexer {
     }
     // Create the lexing function.
     start(ctx) {
-        // TODO: should be ctx.opts to ensure consistency
-        const opts = this.opts;
-        const config = this.config;
-        let tpin = (name) => util.token(name, this.config);
-        let tn = (pin) => util.token(pin, this.config);
+        const opts = ctx.opts;
+        const config = ctx.config;
+        let tpin = (name) => util.token(name, config);
+        let tn = (pin) => util.token(pin, config);
         let LS_TOP = tpin('@TOP');
         let LS_CONSUME = tpin('@CONSUME');
         let LS_MULTILINE = tpin('@MULTILINE');
@@ -256,8 +256,8 @@ class Lexer {
             let state_param = null;
             let enders = '';
             let pI = 0; // Current lex position (only update sI at end of rule).
-            let s = []; // Parsed string characters and substrings.
-            let cc = -1; // Character code.
+            let s = []; // Parsed string chars and substrings.
+            let cc = -1; // Char code.
             next_char: while (sI < srclen) {
                 let c0 = src[sI];
                 let c0c = src.charCodeAt(sI);
@@ -268,41 +268,40 @@ class Lexer {
                         token.loc = sI; // TODO: move to top of while for all rules?
                         for (let matcher of matchers) {
                             let match = matcher(sI, src, token, ctx);
+                            // Adjust lex location if there was a match.
                             if (match) {
                                 sI = match.sI;
                                 rI = match.rD ? rI + match.rD : rI;
                                 cI = match.cD ? cI + match.cD : cI;
-                                //lexlog && lexlog(token.pin[0], token.src, { ...token })
                                 lexlog && lexlog(tn(token.pin), token.src, { ...token });
                                 return token;
                             }
                         }
                     }
+                    // Space chars.
                     if (config.start.SP.includes(c0c)) {
                         token.pin = SP;
                         token.loc = sI;
                         token.col = cI++;
                         pI = sI + 1;
-                        //while ((opts.token.SP as string[]).includes(src[pI])) cI++, pI++;
                         while (config.multi.SP.includes(src[pI]))
                             cI++, pI++;
                         token.len = pI - sI;
                         token.val = src.substring(sI, pI);
                         token.src = token.val;
                         sI = pI;
-                        //lexlog && lexlog(token.pin[0], token.src, { ...token })
                         lexlog && lexlog(tn(token.pin), token.src, { ...token });
                         return token;
                     }
+                    // Newline chars.
                     else if (config.start.LN.includes(c0c)) {
                         token.pin = LN;
                         token.loc = sI;
                         token.col = cI;
                         pI = sI;
                         cI = 0;
-                        //while ((opts.token.LN as string[]).includes(src[pI])) {
                         while (config.multi.LN.includes(src[pI])) {
-                            // Count rows
+                            // Count rows.
                             rI += (opts.char.row === src[pI] ? 1 : 0);
                             pI++;
                         }
@@ -313,6 +312,7 @@ class Lexer {
                         lexlog && lexlog(tn(token.pin), token.src, { ...token });
                         return token;
                     }
+                    // Single char tokens.
                     else if (null != config.single[c0c]) {
                         token.pin = config.single[c0c];
                         token.loc = sI;
@@ -323,6 +323,7 @@ class Lexer {
                         lexlog && lexlog(tn(token.pin), token.src, { ...token });
                         return token;
                     }
+                    // Number chars.
                     else if (config.start.NR.includes(c0c)) {
                         token.pin = NR;
                         token.loc = sI;
@@ -351,16 +352,17 @@ class Lexer {
                             }
                         }
                         if (null != token.val) {
-                            token.src = src.substring(sI, pI); // src="1e6" -> val=1000000
+                            // Ensure verbatim src (eg. src="1e6" -> val=1000000).
+                            token.src = src.substring(sI, pI);
                             cI += token.len;
                             sI = pI;
-                            //lexlog && lexlog(token.pin[0], token.src, { ...token })
                             lexlog && lexlog(tn(token.pin), token.src, { ...token });
                             return token;
                         }
                         // NOTE: else drop through to default, as this must be literal text
                         // prefixed with digits.
                     }
+                    // String chars.
                     else if (config.start.ST.includes(c0c)) {
                         token.pin = ST;
                         token.loc = sI;
@@ -372,6 +374,7 @@ class Lexer {
                         for (pI = sI + 1; pI < srclen; pI++) {
                             cI++;
                             cc = src.charCodeAt(pI);
+                            // Quote char.
                             if (qc === cc) {
                                 if (opts.string.escapedouble && qc === src.charCodeAt(pI + 1)) {
                                     s.push(src[pI]);
@@ -382,6 +385,8 @@ class Lexer {
                                     break; // String finished.
                                 }
                             }
+                            // TODO: use opt.char.escape (string) -> config.char.escape (code)
+                            // Escape char. 
                             else if (92 === cc) {
                                 let ec = src.charCodeAt(++pI);
                                 cI++;
@@ -389,29 +394,31 @@ class Lexer {
                                 if (null != es) {
                                     s.push(es);
                                 }
-                                // Unicode escape \u****
+                                // Unicode escape \u****.
                                 else if (117 === ec) {
                                     pI++;
                                     let us = String.fromCharCode(('0x' + src.substring(pI, pI + 4)));
                                     if (opts.char.bad_unicode === us) {
-                                        return self.bad(lexlog, 'invalid-unicode', token, sI, pI, rI, cI, src.substring(pI - 2, pI + 4));
+                                        return self.bad(config, lexlog, 'invalid-unicode', token, sI, pI, rI, cI, src.substring(pI - 2, pI + 4));
                                     }
                                     s.push(us);
-                                    pI += 3; // loop increments pI
+                                    pI += 3; // Loop increments pI.
                                     cI += 4;
                                 }
                                 else {
                                     s.push(src[pI]);
                                 }
                             }
+                            // Unprintable chars.
                             else if (cc < 32) {
                                 if (multiline && config.start.LN.includes(cc)) {
                                     s.push(src[pI]);
                                 }
                                 else {
-                                    return self.bad(lexlog, 'unprintable', token, sI, pI, rI, cI, src.charAt(pI));
+                                    return self.bad(config, lexlog, 'unprintable', token, sI, pI, rI, cI, src.charAt(pI));
                                 }
                             }
+                            // Main body of string.
                             else {
                                 let bI = pI;
                                 do {
@@ -425,29 +432,29 @@ class Lexer {
                         }
                         if (qc !== cc) {
                             cI = sI;
-                            return self.bad(lexlog, 'unterminated', token, sI, pI - 1, rI, cI, s.join(''));
+                            return self.bad(config, lexlog, 'unterminated', token, sI, pI - 1, rI, cI, s.join(''));
                         }
                         token.val = s.join('');
                         token.src = src.substring(sI, pI);
                         token.len = pI - sI;
                         sI = pI;
-                        //lexlog && lexlog(token.pin[0], token.src, { ...token })
                         lexlog && lexlog(tn(token.pin), token.src, { ...token });
                         return token;
                     }
+                    // Comment chars.
                     else if (config.start_comment.includes(c0c)) {
                         let is_line_comment = config.comment_single.includes(c0);
                         // Also check for comment markers as single comment char could be
-                        // a comment marker prefix (eg. # and ###)
+                        // a comment marker prefix (eg. # and ###, / and //, /*).
                         let marker = src.substring(sI, sI + config.comment_marker_maxlen);
                         for (let cm of config.comment_marker) {
                             if (marker.startsWith(cm)) {
-                                // Multi-line comment
+                                // Multi-line comment.
                                 if (true !== opts.comment[cm]) {
                                     token.pin = CM;
                                     token.loc = sI;
                                     token.col = cI;
-                                    token.val = ''; // intialize for LS_CONSUME
+                                    token.val = ''; // intialize for LS_CONSUME.
                                     state = LS_MULTILINE;
                                     state_param = [cm, opts.comment[cm], 'comment'];
                                     continue next_char;
@@ -462,9 +469,8 @@ class Lexer {
                             token.pin = CM;
                             token.loc = sI;
                             token.col = cI;
-                            token.val = ''; // intialize for LS_CONSUME
+                            token.val = ''; // intialize for LS_CONSUME.
                             state = LS_CONSUME;
-                            //enders = (opts.token.LN as string)
                             enders = config.multi.LN;
                             continue next_char;
                         }
@@ -472,8 +478,8 @@ class Lexer {
                     // NOTE: default section. Cases above can bail to here if lookaheads
                     // fail to match (eg. NR).
                     // No explicit token recognized. That leaves:
-                    // - keyword literal values (from opts.values)
-                    // - text values (everything up to an end char)
+                    // - keyword literal values (from opts.value)
+                    // - text values (everything up to a text_ender char (eg. newline))
                     token.loc = sI;
                     token.col = cI;
                     pI = sI;
@@ -493,7 +499,6 @@ class Lexer {
                         token.src = txt;
                         token.len = pI - sI;
                         sI = pI;
-                        //lexlog && lexlog(token.pin[0], token.src, { ...token })
                         lexlog && lexlog(tn(token.pin), token.src, { ...token });
                         return token;
                     }
@@ -511,9 +516,9 @@ class Lexer {
                     token.pin = TX;
                     token.val = src.substring(sI, pI);
                     token.src = token.val;
+                    // Hoovering (ie. greedily consume non-token chars including internal space)
                     // If hoovering, separate space at end from text
                     if (opts.text.hoover &&
-                        //(opts.token.SP as string).includes(token.val[token.val.length - 1])) {
                         config.multi.SP.includes(token.val[token.val.length - 1])) {
                         // Find last non-space char
                         let tI = token.val.length - 2;
@@ -530,13 +535,12 @@ class Lexer {
                     else {
                         sI = pI;
                     }
-                    //lexlog && lexlog(token.pin[0], token.src, { ...token })
                     lexlog && lexlog(tn(token.pin), token.src, { ...token });
                     return token;
                 }
                 // Lexer State: CONSUME => all chars up to first ender
                 else if (LS_CONSUME === state) {
-                    // TODO: implement custom lexing functions for state, lookup goes here
+                    // TODO: provide matcher hook
                     pI = sI;
                     while (pI < srclen && !enders.includes(src[pI]))
                         pI++, cI++;
@@ -545,14 +549,14 @@ class Lexer {
                     token.len = token.val.length;
                     sI = pI;
                     state = LS_TOP;
-                    //lexlog && lexlog(token.pin[0], token.src, { ...token })
                     lexlog && lexlog(tn(token.pin), token.src, { ...token });
                     return token;
                 }
                 // Lexer State: MULTILINE => all chars up to last close marker, or end
                 else if (LS_MULTILINE === state) {
-                    // TODO: implement custom lexing functions for state, lookup goes here
+                    // TODO: provide matcher hook
                     pI = sI;
+                    // Balance open and close markers (eg. if opts.balance.comment=true).
                     let depth = 1;
                     let open = state_param[0];
                     let close = state_param[1];
@@ -566,16 +570,25 @@ class Lexer {
                         if (close[0] === src[pI] &&
                             close === src.substring(pI, pI + closelen)) {
                             pI += closelen;
+                            cI += closelen;
                             depth--;
                         }
                         else if (balance && open[0] === src[pI] &&
                             open === src.substring(pI, pI + openlen)) {
                             pI += openlen;
+                            cI += closelen;
                             depth++;
                         }
                         else {
+                            // Count rows.
+                            if (opts.char.row === src[pI]) {
+                                rI++;
+                                cI = 0;
+                            }
+                            else {
+                                cI++;
+                            }
                             pI++;
-                            // TODO: count rows!
                         }
                     }
                     token.val = src.substring(sI, pI);
@@ -599,9 +612,9 @@ class Lexer {
         lex.src = src;
         return lex;
     }
-    bad(log, why, token, sI, pI, rI, cI, val, src, use) {
+    bad(config, log, why, token, sI, pI, rI, cI, val, src, use) {
         token.why = why;
-        token.pin = util.token('#BD', this.config);
+        token.pin = util.token('#BD', config);
         token.loc = pI;
         token.row = rI;
         token.col = cI;
@@ -609,8 +622,7 @@ class Lexer {
         token.val = val;
         token.src = src;
         token.use = use;
-        //log && log(token.pin[0], token.src, { ...token })
-        log && log(util.token(token.pin, this.config), token.src, { ...token });
+        log && log(util.token(token.pin, config), token.src, why, { ...token });
         return token;
     }
     lex(state, match) {
@@ -624,6 +636,11 @@ class Lexer {
         }
         return this.match[sn];
     }
+    clone(config) {
+        let lexer = new Lexer(config);
+        util.deep(lexer.match, this.match);
+        return lexer;
+    }
 }
 exports.Lexer = Lexer;
 var RuleState;
@@ -632,13 +649,13 @@ var RuleState;
     RuleState[RuleState["close"] = 1] = "close";
 })(RuleState || (RuleState = {}));
 class Rule {
-    constructor(spec, ctx, opts, node) {
+    constructor(spec, ctx, node) {
         this.id = ctx.rI++;
         this.name = spec.name;
         this.spec = spec;
         this.node = node;
-        this.ctx = ctx;
-        this.opts = opts;
+        //this.ctx = ctx
+        //this.opts = opts
         this.state = RuleState.open;
         this.child = norule;
         this.open = [];
@@ -653,9 +670,6 @@ class Rule {
             rule = this.spec.close(this, ctx);
         }
         return rule;
-    }
-    toString() {
-        return JSON.stringify(this.spec);
     }
 }
 exports.Rule = Rule;
@@ -682,11 +696,11 @@ class RuleSpec {
         rule.open = act.m;
         if (act.p) {
             ctx.rs.push(rule);
-            next = rule.child = new Rule(this.rm[act.p], ctx, rule.opts, rule.node);
+            next = rule.child = new Rule(this.rm(act.p), ctx, rule.node);
             next.parent = rule;
         }
         else if (act.r) {
-            next = new Rule(this.rm[act.r], ctx, rule.opts, rule.node);
+            next = new Rule(this.rm(act.r), ctx, rule.node);
             next.parent = rule.parent;
         }
         if (this.def.after_open) {
@@ -711,11 +725,11 @@ class RuleSpec {
         }
         if (act.p) {
             ctx.rs.push(rule);
-            next = rule.child = new Rule(this.rm[act.p], ctx, rule.opts, rule.node);
+            next = rule.child = new Rule(this.rm(act.p), ctx, rule.node);
             next.parent = rule;
         }
         else if (act.r) {
-            next = new Rule(this.rm[act.r], ctx, rule.opts, rule.node);
+            next = new Rule(this.rm(act.r), ctx, rule.node);
             next.parent = rule.parent;
             why = 'r';
         }
@@ -946,7 +960,7 @@ class Parser {
         // TODO: rulespec should normalize
         // eg. t:t.QQ => s:[t.QQ]
         this.rulespecs = Object.keys(this.rules).reduce((rs, rn) => {
-            rs[rn] = new RuleSpec(rn, this.rules[rn], rs);
+            rs[rn] = new RuleSpec(rn, this.rules[rn], (name) => this.rulespecs[name]);
             return rs;
         }, {});
     }
@@ -991,7 +1005,6 @@ class Parser {
             do {
                 t1 = lex();
                 ctx.tI++;
-                //} while ((opts.token.IGNORE as string).includes(t1.pin))
             } while (config.tokenset.IGNORE.includes(t1.pin));
             ctx.t1 = { ...t1 };
             return ctx.t0;
@@ -1047,10 +1060,7 @@ let util = {
                 !over_is_function &&
                 (Array.isArray(base) === Array.isArray(over))) {
                 for (let k in over) {
-                    base[k] = ('object' === typeof (base[k]) &&
-                        'object' === typeof (over[k]) &&
-                        (Array.isArray(base[k]) === Array.isArray(over[k]))) ? util.deep(base[k], over[k]) : over[k];
-                    //base[k] = util.deep(base[k], over[k])
+                    base[k] = util.deep(base[k], over[k]);
                 }
             }
             else {
@@ -1065,74 +1075,10 @@ let util = {
         }
         return base;
     },
-    deepx: function (base, ...rest) {
-        let seen = [[], []];
-        let out = util.deeperx(seen, base, ...rest);
-        return out;
-    },
-    deeperx: function (seen, base, ...rest) {
-        let base_is_function = 'function' === typeof (base);
-        let base_is_object = null != base &&
-            ('object' === typeof (base) || base_is_function);
-        for (let over of rest) {
-            let over_is_function = 'function' === typeof (over);
-            let over_is_object = null != over &&
-                ('object' === typeof (over) || over_is_function);
-            if (base_is_object &&
-                over_is_object &&
-                !over_is_function &&
-                (Array.isArray(base) === Array.isArray(over))) {
-                /*
-                let sI = seen[0].indexOf(over)
-                if (-1 < sI) {
-                  base = seen[1][sI]
-                }
-                else {
-                  seen[0].push(over)
-                  sI = seen[0].length - 1
-                  seen[1][sI] = base
-                */
-                for (let k in over) {
-                    base[k] = util.deeperx(seen, base[k], over[k]);
-                }
-                //}
-            }
-            else {
-                /*
-                base = undefined === over ? base :
-                  over_is_function ? over :
-                    (over_is_object ?
-                      util.deeper(seen, Array.isArray(over) ? [] : {}, over) : over)
-                */
-                if (undefined !== over) {
-                    if (over_is_function || !over_is_object) {
-                        base = over;
-                    }
-                    else {
-                        let sI = seen[0].indexOf(over);
-                        if (-1 < sI) {
-                            base = seen[1][sI];
-                        }
-                        else {
-                            seen[0].push(over);
-                            sI = seen[0].length - 1;
-                            base = Array.isArray(over) ? [] : {};
-                            seen[1][sI] = base;
-                            base = util.deeperx(seen, base, over);
-                        }
-                    }
-                }
-                base_is_function = 'function' === typeof (base);
-                base_is_object = null != base &&
-                    ('object' === typeof (base) || base_is_function);
-            }
-        }
-        return base;
-    },
     clone: function (class_instance) {
         return util.deep(Object.create(Object.getPrototypeOf(class_instance)), class_instance);
     },
-    // Convert string to character code array.
+    // Convert string to char code array.
     // 'ab' -> [97,98]
     s2cca: function (s) {
         return s.split('').map((c) => c.charCodeAt(0));
@@ -1300,7 +1246,7 @@ let util = {
         if (opts.comment) {
             let comment_markers = Object.keys(opts.comment);
             comment_markers.forEach(k => {
-                // Single character comment marker (eg. `#`)
+                // Single char comment marker (eg. `#`)
                 if (1 === k.length) {
                     config.start_comment.push(k.charCodeAt(0));
                     config.comment_single += k;
@@ -1363,38 +1309,31 @@ function make(first, parent) {
     let lexer;
     let parser;
     // Transfer parent properties (preserves plugin decorations, etc).
-    /*
     if (parent) {
-      for (let k in parent) {
-        self[k] = parent[k]
-      }
-  
-      self.parent = parent
-  
-      let internal = parent.internal()
-      config = util.deep({}, internal.config)
-  
-      util.build_config_from_options(config, opts)
-      Object.assign(self.token, config.token)
-  
-      // TODO: inherit parent
-      lexer = new Lexer(opts, config)
-  
-      parser = new Parser(opts, config)
-      parser.rules = util.deep(parser.rules)
-      parser.rulespecs = util.deep(parser.rulespecs)
+        for (let k in parent) {
+            self[k] = parent[k];
+        }
+        self.parent = parent;
+        let parent_internal = parent.internal();
+        config = util.deep({}, parent_internal.config);
+        util.build_config_from_options(config, opts);
+        Object.assign(self.token, config.token);
+        lexer = parent_internal.lexer.clone(config);
+        // TODO: inherit parent
+        parser = new Parser(opts, config);
+        parser.rules = util.deep(parser.rules);
+        parser.rulespecs = util.deep(parser.rulespecs);
     }
     else {
-  */
-    config = {
-        tokenI: 1,
-        token: {}
-    };
-    util.build_config_from_options(config, opts);
-    lexer = new Lexer(opts, config);
-    parser = new Parser(opts, config);
-    parser.init();
-    //}
+        config = {
+            tokenI: 1,
+            token: {}
+        };
+        util.build_config_from_options(config, opts);
+        lexer = new Lexer(config);
+        parser = new Parser(opts, config);
+        parser.init();
+    }
     Object.assign(self.token, config.token);
     self.internal = () => ({
         lexer,
