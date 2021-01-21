@@ -1,11 +1,10 @@
-/* Copyright (c) 2013-2020 Richard Rodger, MIT License */
+/* Copyright (c) 2013-2021 Richard Rodger, MIT License */
 
 
-// TODO: duplicate Lexer,Parser by hand
+
 // TODO: proper JsonicError lexer errors - test!
-// TODO: separate deep vs clone - deep should preserve refs!!! by design
-
-// TODO: node = {d=data,p=parent-node} NEXT!!!!
+// TODO: stringify
+// TODO: node = {d=data,p=parent-node}  - maybe?
 // TODO: test/fix .rule, .lex signatures, return values
 
 
@@ -211,6 +210,9 @@ function make_standard_options(): Opts {
 
       // Text includes internal whitespace.
       hoover: true,
+
+      // Consume to end of line.
+      endofline: false,
     },
 
 
@@ -848,6 +850,20 @@ class Lexer {
           }
 
           // Only thing left is literal text
+
+          // is TX everything to end of line?
+          if (opts.text.endofline) {
+            token.pin = TX
+            token.loc = sI
+            token.col = cI
+            token.val = '' // intialize for LS_CONSUME.
+
+            state = LS_CONSUME
+            enders = config.multi.LN
+            continue next_char
+          }
+
+
           let text_enders =
             opts.text.hoover ? config.hoover_ender : config.text_ender
 

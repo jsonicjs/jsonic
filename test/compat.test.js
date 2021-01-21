@@ -24,7 +24,12 @@ describe('compat', function () {
 
   // https://hjson.github.io/
   it('hjson-readme', () => {
-
+    j = Jsonic.make({
+      text: {
+        endofline: true
+      }
+    })
+    
     expect(j(`{
   first: 1
   second: 2
@@ -85,15 +90,18 @@ describe('compat', function () {
       This line is indented by two spaces.
     '''
 }
+    */
+    
 
-
-{
+   expect(j(`{
   "key name": "{ sample }"
   "{}": " spaces at the start/end "
   this: is OK though: {}[],:
-}
-
-*/
+}`)).equals({
+  "key name": "{ sample }",
+  "{}": " spaces at the start/end ",
+  "this": "is OK though: {}[],:",
+})
 
     
   })

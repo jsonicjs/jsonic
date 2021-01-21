@@ -1,5 +1,5 @@
 "use strict";
-/* Copyright (c) 2013-2020 Richard Rodger, MIT License */
+/* Copyright (c) 2013-2021 Richard Rodger, MIT License */
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.make = exports.util = exports.RuleSpec = exports.Rule = exports.Parser = exports.Lexer = exports.JsonicError = exports.Jsonic = void 0;
 function make_standard_options() {
@@ -51,6 +51,8 @@ function make_standard_options() {
         text: {
             // Text includes internal whitespace.
             hoover: true,
+            // Consume to end of line.
+            endofline: false,
         },
         // TODO: rename to map for consistency
         // Object formats.
@@ -519,6 +521,16 @@ class Lexer {
                         return token;
                     }
                     // Only thing left is literal text
+                    // is TX everything to end of line?
+                    if (opts.text.endofline) {
+                        token.pin = TX;
+                        token.loc = sI;
+                        token.col = cI;
+                        token.val = ''; // intialize for LS_CONSUME.
+                        state = LS_CONSUME;
+                        enders = config.multi.LN;
+                        continue next_char;
+                    }
                     let text_enders = opts.text.hoover ? config.hoover_ender : config.text_ender;
                     // TODO: construct a RegExp to do this
                     while (null != src[pI] &&
