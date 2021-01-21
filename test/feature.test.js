@@ -232,7 +232,24 @@ describe('feature', function () {
     expect(j('a#b')).equals('a')
     expect(j('a//b')).equals('a')
     expect(j('a/*b*/')).equals('a')
-    
+    expect(j('a\\n')).equals('a\\n')
+    expect(j('\\s+')).equals('\\s+')
+
+    expect(j('x:a')).equals({x:'a'})
+    expect(j('x:a/b')).equals({x:'a/b'})
+    expect(j('x:a#b')).equals({x:'a'})
+    expect(j('x:a//b')).equals({x:'a'})
+    expect(j('x:a/*b*/')).equals({x:'a'})
+    expect(j('x:a\\n')).equals({x:'a\\n'})
+    expect(j('x:\\s+')).equals({x:'\\s+'})
+
+    expect(j('[a]')).equals(['a'])
+    expect(j('[a/b]')).equals(['a/b'])
+    expect(j('[a#b]')).equals(['a'])
+    expect(j('[a//b]')).equals(['a'])
+    expect(j('[a/*b*/]')).equals(['a'])
+    expect(j('[a\\n]')).equals(['a\\n'])
+    expect(j('[\\s+]')).equals(['\\s+'])
   })
 
   
@@ -252,6 +269,9 @@ describe('feature', function () {
     expect(j('\'a\\tb\'')).equals('a\tb')
     expect(j('"a\\tb"')).equals('a\tb')
     expect(j('`a\\tb`')).equals('a\tb')
+
+    // NOTE: backslash inside string is always removed
+    expect(j('`a\\qb`')).equals('aqb')
 
     expect(j('\'a\\\'b"`c\'')).equals('a\'b"`c')
     expect(j('"a\\"b`\'c"')).equals('a"b`\'c')
