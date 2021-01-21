@@ -64,7 +64,7 @@ let Native: Plugin = function native(jsonic: Jsonic) {
 
       while (pI < srclen &&
         !('/' === src[pI] && '\\' === src[pI - 1]) &&
-        !config.value_enders.includes(src[pI])) {
+        !config.value_ender.includes(src[pI])) {
         pI++
         cD++
       }

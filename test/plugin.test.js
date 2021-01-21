@@ -157,62 +157,16 @@ describe('plugin', function () {
   it('dynamic-basic', () => {
     let k = Jsonic.make().use(Dynamic)
     expect(k('a:1,b:$1+1',{xlog:-1})).equal({a:1,b:2})
+
+    let d0 = k('a:{x:1},b:$.a,b:{y:2},c:$.a,c:{y:3}',{xlog:-1})
+    // NOTE: multiple calls verify dynamic getters are stable
+    expect(d0).equal({a:{x:1},b:{x:1,y:2},c:{x:1,y:3}})
+    expect(d0).equal({a:{x:1},b:{x:1,y:2},c:{x:1,y:3}})
+    expect(d0).equal({a:{x:1},b:{x:1,y:2},c:{x:1,y:3}})
+    //console.log(JSON.stringify(d0))
+    //console.log(JSON.stringify(d0))
+    //console.log(JSON.stringify(d0))
   })
-
-/*  
-  // TODO: Jsonic polluted! only passes if before dynamic
-  it('multifile-basic', () => {
-    let k = Jsonic.make().use(Multifile,{plugin:{multifile:{basepath:__dirname}}})
-    //let k = Jsonic.use(Multifile)
-    //console.dir(k.rule('val').def.open,{depth:null})
-
-    let d = k('@"multifile/main01.jsonic"',{xlog:-1})
-    expect(d).equal({
-      dynamic: '$1+1',
-      red: { name: 'RED' },
-      redder: { red: '$.red' },
-      green: { name: 'GREEN' },
-      blue: { color: 'BLUE' },
-      cyan: [ { name: 'CYAN' } ],
-      tree: { stem0: 'leaf0', stem1: { caterpillar: { tummy: 'yummy!' } } },
-      again: { foo: '$1+1', item: { extra: 3 } }
-    })
-  })
-
-
-
-
-  
-/* TODO: needs Context transfer to Jsonic instance
-  it('multifile-dynamic', () => {
-    let k = Jsonic.make().use(Dynamic)
-    //console.dir(k.rule('val').def,{depth:null})
-    //console.log('Pa', k.internal().parser.mark)
-    
-    k = k.use(Multifile,{plugin:{multifile:{basepath:__dirname}}})
-    //console.dir(k.rule('val').def,{depth:null})
-    //console.log('Pb', k.internal().parser.mark)
-    
-    let d = k('@"multifile/main01.jsonic"')
-    
-    // NOTE: use JSON.parse(JSON.stringify(d)) to see literals
-
-    // FIX: need to passs root node into sub files so Dynamic still works
-    // or set on getter?
-    // or pass in initial context?
-    console.dir(JSON.parse(JSON.stringify(d)),{depth:null})
-    expect(d).equal({
-      dynamic: 2,
-      red: { name: 'RED' },
-      redder: { red: { name: 'RED' } },
-      green: { name: 'GREEN' },
-      blue: { color: 'BLUE' },
-      cyan: [ { name: 'CYAN' } ],
-      tree: { stem0: 'leaf0', stem1: { caterpillar: { tummy: 'yummy!' } } },
-      again: { foo: 2, item: { extra: 3 } },
-    })
-  })
-*/
 
   it('json-basic', () => {
     let k = Jsonic.make().use(Json)
@@ -279,24 +233,86 @@ a x\t"b\\tx"
       .equal(rec0)
   })
 
+
+  // TODO: test // cases fully
   it('native-basic', () => {
     let k0 = Jsonic.make().use(Native)
 
     expect(k0(`{
       a: NaN,
-      b: /x/,
+      b: /x/g,
       c: 2021-01-20T19:24:26.650Z,
       d: undefined,
       e: Infinity
     }`)).equal({
       a: NaN,
-      b: /x/,
+      b: /x/g,
       c: new Date('2021-01-20T19:24:26.650Z'),
       d: undefined,
       e: Infinity
     })
   })
+
+
+  it('multifile-basic', () => {
+    let k = Jsonic.make().use(Multifile,{basepath:__dirname})
+
+    let d = k('@"multifile/main01.jsonic"',{xlog:-1})
+    expect(d).equal({
+      dynamic: '$1+1',
+      red: { name: 'RED' },
+      redder: { red: '$.red' },
+      green: { name: 'GREEN' },
+      blue: { color: 'BLUE' },
+      cyan: [ { name: 'CYAN' } ],
+      tree: { stem0: 'leaf0', stem1: { caterpillar: { tummy: 'yummy!' } } },
+      again: { foo: '$1+1',
+               red_name: '$.red.name',
+               item0: { extra: 0 },
+               item1: { extra: 1 } }
+    })
+  })
+
+
+
+
   
+// TODO: needs Context transfer to Jsonic instance
+  it('multifile-dynamic', () => {
+    let k = Jsonic.make()
+        .use(Dynamic)
+        .use(Multifile,{basepath:__dirname})
+    
+    let d = k('@"multifile/main01.jsonic"')
+    
+    // NOTE: use JSON.parse(JSON.stringify(d)) to see literals
+
+    //console.log('+++')
+    //console.dir(JSON.parse(JSON.stringify(d)),{depth:null})
+    //console.dir(JSON.parse(JSON.stringify(d)),{depth:null})
+
+    let dx = {
+      dynamic: 2,
+      red: { name: 'RED' },
+      redder: { red: { name: 'RED' } },
+      green: { name: 'GREEN' },
+      blue: { color: 'BLUE' },
+      cyan: [ { name: 'CYAN' } ],
+      tree: { stem0: 'leaf0', stem1: { caterpillar: { tummy: 'yummy!' } } },
+      again: { foo: 2, red_name: 'RED',
+               item0: { name: 'RED', extra: 0 },
+               item1: { name: 'RED', extra: 1 } }
+    }
+
+    // NOTE: verifying getters are stable
+    expect(d).equal(dx)
+    expect(d).equal(dx)
+    expect(d).equal(dx)
+    
+  })
+
+
+
 })
 
 

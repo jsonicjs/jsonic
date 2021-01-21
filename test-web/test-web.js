@@ -1,6 +1,6 @@
 (function(f){if(typeof exports==="object"&&typeof module!=="undefined"){module.exports=f()}else if(typeof define==="function"&&define.amd){define([],f)}else{var g;if(typeof window!=="undefined"){g=window}else if(typeof global!=="undefined"){g=global}else if(typeof self!=="undefined"){g=self}else{g=this}g.All = f()}})(function(){var define,module,exports;return (function(){function r(e,n,t){function o(i,f){if(!n[i]){if(!e[i]){var c="function"==typeof require&&require;if(!f&&c)return c(i,!0);if(u)return u(i,!0);var a=new Error("Cannot find module '"+i+"'");throw a.code="MODULE_NOT_FOUND",a}var p=n[i]={exports:{}};e[i][0].call(p.exports,function(r){var n=e[i][1][r];return o(n||r)},p,p.exports,r,e,n,t)}return n[i].exports}for(var u="function"==typeof require&&require,i=0;i<t.length;i++)o(t[i]);return o}return r})()({1:[function(require,module,exports){
 (function (global){(function (){
-!function(e){if("object"==typeof exports&&"undefined"!=typeof module)module.exports=e();else if("function"==typeof define&&define.amd)define([],e);else{("undefined"!=typeof window?window:"undefined"!=typeof global?global:"undefined"!=typeof self?self:this).Jsonic=e()}}((function(){var e,t,r,n=(e=function(e,t){(function(e){(function(){var r=Object.getOwnPropertyDescriptors||function(e){for(var t=Object.keys(e),r={},n=0;n<t.length;n++)r[t[n]]=Object.getOwnPropertyDescriptor(e,t[n]);return r};if(e.env.NODE_DEBUG){var n=e.env.NODE_DEBUG;n=n.replace(/[|\\{}()[\]^$+?.]/g,"\\$&").replace(/\*/g,".*").replace(/,/g,"$|^").toUpperCase(),new RegExp("^"+n+"$","i")}function o(e,r){var n={seen:[],stylize:a};return arguments.length>=3&&(n.depth=arguments[2]),arguments.length>=4&&(n.colors=arguments[3]),l(r)?n.showHidden=r:r&&t._extend(n,r),b(n.showHidden)&&(n.showHidden=!1),b(n.depth)&&(n.depth=2),b(n.colors)&&(n.colors=!1),b(n.customInspect)&&(n.customInspect=!0),n.colors&&(n.stylize=i),u(n,e,n.depth)}function i(e,t){var r=o.styles[t];return r?"\x1b["+o.colors[r][0]+"m"+e+"\x1b["+o.colors[r][1]+"m":e}function a(e,t){return e}function u(e,r,n){if(e.customInspect&&r&&S(r.inspect)&&r.inspect!==t.inspect&&(!r.constructor||r.constructor.prototype!==r)){var o=r.inspect(n,e);return d(o)||(o=u(e,o,n)),o}var i=function(e,t){if(b(t))return e.stylize("undefined","undefined");if(d(t)){var r="'"+JSON.stringify(t).replace(/^"|"$/g,"").replace(/'/g,"\\'").replace(/\\"/g,'"')+"'";return e.stylize(r,"string")}return s(t)?e.stylize(""+t,"number"):l(t)?e.stylize(""+t,"boolean"):y(t)?e.stylize("null","null"):void 0}(e,r);if(i)return i;var a=Object.keys(r),h=function(e){var t={};return e.forEach((function(e,r){t[e]=!0})),t}(a);if(e.showHidden&&(a=Object.getOwnPropertyNames(r)),m(r)&&(a.indexOf("message")>=0||a.indexOf("description")>=0))return c(r);if(0===a.length){if(S(r)){var A=r.name?": "+r.name:"";return e.stylize("[Function"+A+"]","special")}if(g(r))return e.stylize(RegExp.prototype.toString.call(r),"regexp");if(v(r))return e.stylize(Date.prototype.toString.call(r),"date");if(m(r))return c(r)}var O,P="",j=!1,E=["{","}"];return p(r)&&(j=!0,E=["[","]"]),S(r)&&(P=" [Function"+(r.name?": "+r.name:"")+"]"),g(r)&&(P=" "+RegExp.prototype.toString.call(r)),v(r)&&(P=" "+Date.prototype.toUTCString.call(r)),m(r)&&(P=" "+c(r)),0!==a.length||j&&0!=r.length?n<0?g(r)?e.stylize(RegExp.prototype.toString.call(r),"regexp"):e.stylize("[Object]","special"):(e.seen.push(r),O=j?function(e,t,r,n,o){for(var i=[],a=0,u=t.length;a<u;++a)w(t,String(a))?i.push(f(e,t,r,n,String(a),!0)):i.push("");return o.forEach((function(o){o.match(/^\d+$/)||i.push(f(e,t,r,n,o,!0))})),i}(e,r,n,h,a):a.map((function(t){return f(e,r,n,h,t,j)})),e.seen.pop(),function(e,t,r){return e.reduce((function(e,t){return t.indexOf("\n"),e+t.replace(/\u001b\[\d\d?m/g,"").length+1}),0)>60?r[0]+(""===t?"":t+"\n ")+" "+e.join(",\n  ")+" "+r[1]:r[0]+t+" "+e.join(", ")+" "+r[1]}(O,P,E)):E[0]+P+E[1]}function c(e){return"["+Error.prototype.toString.call(e)+"]"}function f(e,t,r,n,o,i){var a,c,f;if((f=Object.getOwnPropertyDescriptor(t,o)||{value:t[o]}).get?c=f.set?e.stylize("[Getter/Setter]","special"):e.stylize("[Getter]","special"):f.set&&(c=e.stylize("[Setter]","special")),w(n,o)||(a="["+o+"]"),c||(e.seen.indexOf(f.value)<0?(c=y(r)?u(e,f.value,null):u(e,f.value,r-1)).indexOf("\n")>-1&&(c=i?c.split("\n").map((function(e){return"  "+e})).join("\n").substr(2):"\n"+c.split("\n").map((function(e){return"   "+e})).join("\n")):c=e.stylize("[Circular]","special")),b(a)){if(i&&o.match(/^\d+$/))return c;(a=JSON.stringify(""+o)).match(/^"([a-zA-Z_][a-zA-Z_0-9]*)"$/)?(a=a.substr(1,a.length-2),a=e.stylize(a,"name")):(a=a.replace(/'/g,"\\'").replace(/\\"/g,'"').replace(/(^"|"$)/g,"'"),a=e.stylize(a,"string"))}return a+": "+c}function p(e){return Array.isArray(e)}function l(e){return"boolean"==typeof e}function y(e){return null===e}function s(e){return"number"==typeof e}function d(e){return"string"==typeof e}function b(e){return void 0===e}function g(e){return h(e)&&"[object RegExp]"===A(e)}function h(e){return"object"==typeof e&&null!==e}function v(e){return h(e)&&"[object Date]"===A(e)}function m(e){return h(e)&&("[object Error]"===A(e)||e instanceof Error)}function S(e){return"function"==typeof e}function A(e){return Object.prototype.toString.call(e)}function w(e,t){return Object.prototype.hasOwnProperty.call(e,t)}t.inspect=o,o.colors={bold:[1,22],italic:[3,23],underline:[4,24],inverse:[7,27],white:[37,39],grey:[90,39],black:[30,39],blue:[34,39],cyan:[36,39],green:[32,39],magenta:[35,39],red:[31,39],yellow:[33,39]},o.styles={special:"cyan",number:"yellow",boolean:"yellow",undefined:"grey",null:"bold",string:"green",date:"magenta",regexp:"red"},t.types=H,t.types.isRegExp=g,t.types.isDate=v,t.types.isNativeError=m,t._extend=function(e,t){if(!t||!h(t))return e;for(var r=Object.keys(t),n=r.length;n--;)e[r[n]]=t[r[n]];return e};var O="undefined"!=typeof Symbol?Symbol("util.promisify.custom"):void 0;t.promisify=function(e){if("function"!=typeof e)throw new TypeError('The "original" argument must be of type Function');if(O&&e[O]){var t;if("function"!=typeof(t=e[O]))throw new TypeError('The "util.promisify.custom" argument must be of type Function');return Object.defineProperty(t,O,{value:t,enumerable:!1,writable:!1,configurable:!0}),t}function t(){for(var t,r,n=new Promise((function(e,n){t=e,r=n})),o=[],i=0;i<arguments.length;i++)o.push(arguments[i]);o.push((function(e,n){e?r(e):t(n)}));try{e.apply(this,o)}catch(a){r(a)}return n}return Object.setPrototypeOf(t,Object.getPrototypeOf(e)),O&&Object.defineProperty(t,O,{value:t,enumerable:!1,writable:!1,configurable:!0}),Object.defineProperties(t,r(e))},t.promisify.custom=O}).call(this)}).call(this,Oe)},function(r){return t||e(t={exports:{},parent:r},t.exports),t.exports}),o="function"==typeof Symbol&&"symbol"==typeof Symbol.toStringTag,i=Object.prototype.toString,a=function(e){return!(o&&e&&"object"==typeof e&&Symbol.toStringTag in e)&&"[object Arguments]"===i.call(e)},u=function(e){return!!a(e)||null!==e&&"object"==typeof e&&"number"==typeof e.length&&e.length>=0&&"[object Array]"!==i.call(e)&&"[object Function]"===i.call(e.callee)},c=function(){return a(arguments)}();a.isLegacyArguments=u,r=c?a:u;var f=Object.prototype.toString,p=Function.prototype.toString,l=/^\s*(?:function)?\*/,y="function"==typeof Symbol&&"symbol"==typeof Symbol.toStringTag,s=Object.getPrototypeOf,d=function(){if(!y)return!1;try{return Function("return function*() {}")()}catch(t){}}(),b=d?s(d):{},g=Object.prototype.hasOwnProperty,h=Object.prototype.toString,v=function(e,t,r){if("[object Function]"!==h.call(t))throw new TypeError("iterator must be a function");var n=e.length;if(n===+n)for(var o=0;o<n;o++)t.call(r,e[o],o,e);else for(var i in e)g.call(e,i)&&t.call(r,e[i],i,e)},m=Object.prototype.hasOwnProperty,S={};(function(e){(function(){"use strict";S=function(){return function(e,t,r){if(e.filter)return e.filter(t,r);if(null==e)throw new TypeError;if("function"!=typeof t)throw new TypeError;for(var n=[],o=0;o<e.length;o++)if(m.call(e,o)){var i=e[o];t.call(r,i,o,e)&&n.push(i)}return n}(["BigInt64Array","BigUint64Array","Float32Array","Float64Array","Int16Array","Int32Array","Int8Array","Uint16Array","Uint32Array","Uint8Array","Uint8ClampedArray"],(function(t){return"function"==typeof e[t]}))}}).call(this)}).call(this,"undefined"!=typeof global?global:"undefined"!=typeof self?self:"undefined"!=typeof window?window:{});var A={};(function(e){(function(){"use strict";var t=e.Symbol;A=function(){return"function"==typeof t&&"function"==typeof Symbol&&"symbol"==typeof t("foo")&&"symbol"==typeof Symbol("bar")&&function(){if("function"!=typeof Symbol||"function"!=typeof Object.getOwnPropertySymbols)return!1;if("symbol"==typeof Symbol.iterator)return!0;var e={},t=Symbol("test"),r=Object(t);if("string"==typeof t)return!1;if("[object Symbol]"!==Object.prototype.toString.call(t))return!1;if("[object Symbol]"!==Object.prototype.toString.call(r))return!1;for(t in e[t]=42,e)return!1;if("function"==typeof Object.keys&&0!==Object.keys(e).length)return!1;if("function"==typeof Object.getOwnPropertyNames&&0!==Object.getOwnPropertyNames(e).length)return!1;var n=Object.getOwnPropertySymbols(e);if(1!==n.length||n[0]!==t)return!1;if(!Object.prototype.propertyIsEnumerable.call(e,t))return!1;if("function"==typeof Object.getOwnPropertyDescriptor){var o=Object.getOwnPropertyDescriptor(e,t);if(42!==o.value||!0!==o.enumerable)return!1}return!0}()}}).call(this)}).call(this,"undefined"!=typeof global?global:"undefined"!=typeof self?self:"undefined"!=typeof window?window:{});var w=Array.prototype.slice,O=Object.prototype.toString,P=Function.prototype.bind||function(e){var t=this;if("function"!=typeof t||"[object Function]"!==O.call(t))throw new TypeError("Function.prototype.bind called on incompatible "+t);for(var r,n=w.call(arguments,1),o=Math.max(0,t.length-n.length),i=[],a=0;a<o;a++)i.push("$"+a);if(r=Function("binder","return function ("+i.join(",")+"){ return binder.apply(this,arguments); }")((function(){if(this instanceof r){var o=t.apply(this,n.concat(w.call(arguments)));return Object(o)===o?o:this}return t.apply(e,n.concat(w.call(arguments)))})),t.prototype){var u=function(){};u.prototype=t.prototype,r.prototype=new u,u.prototype=null}return r},j=TypeError,E=Object.getOwnPropertyDescriptor;if(E)try{E({},"")}catch(t){E=null}var I,B=function(){throw new j},x=E?function(){try{return B}catch(e){try{return E(arguments,"callee").get}catch(t){return B}}}():B,U=A(),k=Object.getPrototypeOf||function(e){return e.__proto__},T="undefined"==typeof Uint8Array?void 0:k(Uint8Array),F={"%Array%":Array,"%ArrayBuffer%":"undefined"==typeof ArrayBuffer?void 0:ArrayBuffer,"%ArrayBufferPrototype%":"undefined"==typeof ArrayBuffer?void 0:ArrayBuffer.prototype,"%ArrayIteratorPrototype%":U?k([][Symbol.iterator]()):void 0,"%ArrayPrototype%":Array.prototype,"%ArrayProto_entries%":Array.prototype.entries,"%ArrayProto_forEach%":Array.prototype.forEach,"%ArrayProto_keys%":Array.prototype.keys,"%ArrayProto_values%":Array.prototype.values,"%AsyncFromSyncIteratorPrototype%":void 0,"%AsyncFunction%":void 0,"%AsyncFunctionPrototype%":void 0,"%AsyncGenerator%":void 0,"%AsyncGeneratorFunction%":void 0,"%AsyncGeneratorPrototype%":void 0,"%AsyncIteratorPrototype%":void 0,"%Atomics%":"undefined"==typeof Atomics?void 0:Atomics,"%Boolean%":Boolean,"%BooleanPrototype%":Boolean.prototype,"%DataView%":"undefined"==typeof DataView?void 0:DataView,"%DataViewPrototype%":"undefined"==typeof DataView?void 0:DataView.prototype,"%Date%":Date,"%DatePrototype%":Date.prototype,"%decodeURI%":decodeURI,"%decodeURIComponent%":decodeURIComponent,"%encodeURI%":encodeURI,"%encodeURIComponent%":encodeURIComponent,"%Error%":Error,"%ErrorPrototype%":Error.prototype,"%eval%":eval,"%EvalError%":EvalError,"%EvalErrorPrototype%":EvalError.prototype,"%Float32Array%":"undefined"==typeof Float32Array?void 0:Float32Array,"%Float32ArrayPrototype%":"undefined"==typeof Float32Array?void 0:Float32Array.prototype,"%Float64Array%":"undefined"==typeof Float64Array?void 0:Float64Array,"%Float64ArrayPrototype%":"undefined"==typeof Float64Array?void 0:Float64Array.prototype,"%Function%":Function,"%FunctionPrototype%":Function.prototype,"%Generator%":void 0,"%GeneratorFunction%":void 0,"%GeneratorPrototype%":void 0,"%Int8Array%":"undefined"==typeof Int8Array?void 0:Int8Array,"%Int8ArrayPrototype%":"undefined"==typeof Int8Array?void 0:Int8Array.prototype,"%Int16Array%":"undefined"==typeof Int16Array?void 0:Int16Array,"%Int16ArrayPrototype%":"undefined"==typeof Int16Array?void 0:Int8Array.prototype,"%Int32Array%":"undefined"==typeof Int32Array?void 0:Int32Array,"%Int32ArrayPrototype%":"undefined"==typeof Int32Array?void 0:Int32Array.prototype,"%isFinite%":isFinite,"%isNaN%":isNaN,"%IteratorPrototype%":U?k(k([][Symbol.iterator]())):void 0,"%JSON%":"object"==typeof JSON?JSON:void 0,"%JSONParse%":"object"==typeof JSON?JSON.parse:void 0,"%Map%":"undefined"==typeof Map?void 0:Map,"%MapIteratorPrototype%":"undefined"!=typeof Map&&U?k((new Map)[Symbol.iterator]()):void 0,"%MapPrototype%":"undefined"==typeof Map?void 0:Map.prototype,"%Math%":Math,"%Number%":Number,"%NumberPrototype%":Number.prototype,"%Object%":Object,"%ObjectPrototype%":Object.prototype,"%ObjProto_toString%":Object.prototype.toString,"%ObjProto_valueOf%":Object.prototype.valueOf,"%parseFloat%":parseFloat,"%parseInt%":parseInt,"%Promise%":"undefined"==typeof Promise?void 0:Promise,"%PromisePrototype%":"undefined"==typeof Promise?void 0:Promise.prototype,"%PromiseProto_then%":"undefined"==typeof Promise?void 0:Promise.prototype.then,"%Promise_all%":"undefined"==typeof Promise?void 0:Promise.all,"%Promise_reject%":"undefined"==typeof Promise?void 0:Promise.reject,"%Promise_resolve%":"undefined"==typeof Promise?void 0:Promise.resolve,"%Proxy%":"undefined"==typeof Proxy?void 0:Proxy,"%RangeError%":RangeError,"%RangeErrorPrototype%":RangeError.prototype,"%ReferenceError%":ReferenceError,"%ReferenceErrorPrototype%":ReferenceError.prototype,"%Reflect%":"undefined"==typeof Reflect?void 0:Reflect,"%RegExp%":RegExp,"%RegExpPrototype%":RegExp.prototype,"%Set%":"undefined"==typeof Set?void 0:Set,"%SetIteratorPrototype%":"undefined"!=typeof Set&&U?k((new Set)[Symbol.iterator]()):void 0,"%SetPrototype%":"undefined"==typeof Set?void 0:Set.prototype,"%SharedArrayBuffer%":"undefined"==typeof SharedArrayBuffer?void 0:SharedArrayBuffer,"%SharedArrayBufferPrototype%":"undefined"==typeof SharedArrayBuffer?void 0:SharedArrayBuffer.prototype,"%String%":String,"%StringIteratorPrototype%":U?k(""[Symbol.iterator]()):void 0,"%StringPrototype%":String.prototype,"%Symbol%":U?Symbol:void 0,"%SymbolPrototype%":U?Symbol.prototype:void 0,"%SyntaxError%":SyntaxError,"%SyntaxErrorPrototype%":SyntaxError.prototype,"%ThrowTypeError%":x,"%TypedArray%":T,"%TypedArrayPrototype%":T?T.prototype:void 0,"%TypeError%":j,"%TypeErrorPrototype%":j.prototype,"%Uint8Array%":"undefined"==typeof Uint8Array?void 0:Uint8Array,"%Uint8ArrayPrototype%":"undefined"==typeof Uint8Array?void 0:Uint8Array.prototype,"%Uint8ClampedArray%":"undefined"==typeof Uint8ClampedArray?void 0:Uint8ClampedArray,"%Uint8ClampedArrayPrototype%":"undefined"==typeof Uint8ClampedArray?void 0:Uint8ClampedArray.prototype,"%Uint16Array%":"undefined"==typeof Uint16Array?void 0:Uint16Array,"%Uint16ArrayPrototype%":"undefined"==typeof Uint16Array?void 0:Uint16Array.prototype,"%Uint32Array%":"undefined"==typeof Uint32Array?void 0:Uint32Array,"%Uint32ArrayPrototype%":"undefined"==typeof Uint32Array?void 0:Uint32Array.prototype,"%URIError%":URIError,"%URIErrorPrototype%":URIError.prototype,"%WeakMap%":"undefined"==typeof WeakMap?void 0:WeakMap,"%WeakMapPrototype%":"undefined"==typeof WeakMap?void 0:WeakMap.prototype,"%WeakSet%":"undefined"==typeof WeakSet?void 0:WeakSet,"%WeakSetPrototype%":"undefined"==typeof WeakSet?void 0:WeakSet.prototype},M=P.call(Function.call,String.prototype.replace),C=/[^%.[\]]+|\[(?:(-?\d+(?:\.\d+)?)|(["'])((?:(?!\2)[^\\]|\\.)*?)\2)\]|(?=(?:\.|\[\])(?:\.|\[\]|%$))/g,N=/\\(\\)?/g,R=function(e,t){if("string"!=typeof e||0===e.length)throw new TypeError("intrinsic name must be a non-empty string");if(arguments.length>1&&"boolean"!=typeof t)throw new TypeError('"allowMissing" argument must be a boolean');for(var r,n=(r=[],M(e,C,(function(e,t,n,o){r[r.length]=n?M(o,N,"$1"):t||e})),r),o=function(e,t){if(!(e in F))throw new SyntaxError("intrinsic "+e+" does not exist!");if(void 0===F[e]&&!t)throw new j("intrinsic "+e+" exists, but is not available. Please file an issue!");return F[e]}("%"+(n.length>0?n[0]:"")+"%",t),i=1;i<n.length;i+=1)if(null!=o)if(E&&i+1>=n.length){var a=E(o,n[i]);if(!t&&!(n[i]in o))throw new j("base intrinsic for "+e+" exists, but the property is not available.");o=a&&"get"in a&&!("originalValue"in a.get)?a.get:o[n[i]]}else o=o[n[i]];return o},D=R("%Function.prototype.apply%"),W=R("%Function.prototype.call%"),_=R("%Reflect.apply%",!0)||P.call(W,D),z=R("%Object.defineProperty%",!0);if(z)try{z({},"a",{value:1})}catch(t){z=null}I=function(){return _(P,W,arguments)};var L=function(){return _(P,D,arguments)};z?z(I,"apply",{value:L}):I.apply=L;var V=I(R("String.prototype.indexOf")),G=function(e,t){var r=R(e,!!t);return"function"==typeof r&&V(e,".prototype.")?I(r):r},$=R("%Object.getOwnPropertyDescriptor%");if($)try{$([],"length")}catch(t){$=null}var J=$,X={};(function(e){(function(){"use strict";var r=G("Object.prototype.toString"),n=A()&&"symbol"==typeof Symbol.toStringTag,o=S(),i=G("Array.prototype.indexOf",!0)||function(e,t){for(var r=0;r<e.length;r+=1)if(e[r]===t)return r;return-1},a=G("String.prototype.slice"),u={},c=Object.getPrototypeOf;n&&J&&c&&v(o,(function(t){var r=new e[t];if(!(Symbol.toStringTag in r))throw new EvalError("this engine has support for Symbol.toStringTag, but "+t+" does not have the property! Please report this.");var n=c(r),o=J(n,Symbol.toStringTag);if(!o){var i=c(n);o=J(i,Symbol.toStringTag)}u[t]=o.get})),X=function(e){if(!e||"object"!=typeof e)return!1;if(!n){var c=a(r(e),8,-1);return i(o,c)>-1}return!!J&&function(e){var r=!1;return v(u,(function(n,o){if(!r)try{r=n.call(e)===o}catch(t){}})),r}(e)}}).call(this)}).call(this,"undefined"!=typeof global?global:"undefined"!=typeof self?self:"undefined"!=typeof window?window:{});var Z={};(function(e){(function(){"use strict";var r=G("Object.prototype.toString"),n=A()&&"symbol"==typeof Symbol.toStringTag,o=S(),i=G("String.prototype.slice"),a={},u=Object.getPrototypeOf;n&&J&&u&&v(o,(function(t){if("function"==typeof e[t]){var r=new e[t];if(!(Symbol.toStringTag in r))throw new EvalError("this engine has support for Symbol.toStringTag, but "+t+" does not have the property! Please report this.");var n=u(r),o=J(n,Symbol.toStringTag);if(!o){var i=u(n);o=J(i,Symbol.toStringTag)}a[t]=o.get}})),Z=function(e){return!!X(e)&&(n?function(e){var r=!1;return v(a,(function(n,o){if(!r)try{var i=n.call(e);i===o&&(r=i)}catch(t){}})),r}(e):i(r(e),8,-1))}}).call(this)}).call(this,"undefined"!=typeof global?global:"undefined"!=typeof self?self:"undefined"!=typeof window?window:{});var H={};function K(e){return e.call.bind(e)}var q="undefined"!=typeof BigInt,Q="undefined"!=typeof Symbol,Y=K(Object.prototype.toString),ee=K(Number.prototype.valueOf),te=K(String.prototype.valueOf),re=K(Boolean.prototype.valueOf);if(q)var ne=K(BigInt.prototype.valueOf);if(Q)var oe=K(Symbol.prototype.valueOf);function ie(e,r){if("object"!=typeof e)return!1;try{return r(e),!0}catch(t){return!1}}function ae(e){return"[object Map]"===Y(e)}function ue(e){return"[object Set]"===Y(e)}function ce(e){return"[object WeakMap]"===Y(e)}function fe(e){return"[object WeakSet]"===Y(e)}function pe(e){return"[object ArrayBuffer]"===Y(e)}function le(e){return"undefined"!=typeof ArrayBuffer&&(pe.working?pe(e):e instanceof ArrayBuffer)}function ye(e){return"[object DataView]"===Y(e)}function se(e){return"undefined"!=typeof DataView&&(ye.working?ye(e):e instanceof DataView)}function de(e){return"[object SharedArrayBuffer]"===Y(e)}function be(e){return"undefined"!=typeof SharedArrayBuffer&&(de.working?de(e):e instanceof SharedArrayBuffer)}function ge(e){return ie(e,ee)}function he(e){return ie(e,te)}function ve(e){return ie(e,re)}function me(e){return q&&ie(e,ne)}function Se(e){return Q&&ie(e,oe)}H.isArgumentsObject=r,H.isGeneratorFunction=function(e){return"function"==typeof e&&(!!l.test(p.call(e))||(y?s(e)===b:"[object GeneratorFunction]"===f.call(e)))},H.isTypedArray=X,H.isPromise=function(e){return"undefined"!=typeof Promise&&e instanceof Promise||null!==e&&"object"==typeof e&&"function"==typeof e.then&&"function"==typeof e.catch},H.isArrayBufferView=function(e){return"undefined"!=typeof ArrayBuffer&&ArrayBuffer.isView?ArrayBuffer.isView(e):X(e)||se(e)},H.isUint8Array=function(e){return"Uint8Array"===Z(e)},H.isUint8ClampedArray=function(e){return"Uint8ClampedArray"===Z(e)},H.isUint16Array=function(e){return"Uint16Array"===Z(e)},H.isUint32Array=function(e){return"Uint32Array"===Z(e)},H.isInt8Array=function(e){return"Int8Array"===Z(e)},H.isInt16Array=function(e){return"Int16Array"===Z(e)},H.isInt32Array=function(e){return"Int32Array"===Z(e)},H.isFloat32Array=function(e){return"Float32Array"===Z(e)},H.isFloat64Array=function(e){return"Float64Array"===Z(e)},H.isBigInt64Array=function(e){return"BigInt64Array"===Z(e)},H.isBigUint64Array=function(e){return"BigUint64Array"===Z(e)},ae.working="undefined"!=typeof Map&&ae(new Map),H.isMap=function(e){return"undefined"!=typeof Map&&(ae.working?ae(e):e instanceof Map)},ue.working="undefined"!=typeof Set&&ue(new Set),H.isSet=function(e){return"undefined"!=typeof Set&&(ue.working?ue(e):e instanceof Set)},ce.working="undefined"!=typeof WeakMap&&ce(new WeakMap),H.isWeakMap=function(e){return"undefined"!=typeof WeakMap&&(ce.working?ce(e):e instanceof WeakMap)},fe.working="undefined"!=typeof WeakSet&&fe(new WeakSet),H.isWeakSet=function(e){return fe(e)},pe.working="undefined"!=typeof ArrayBuffer&&pe(new ArrayBuffer),H.isArrayBuffer=le,ye.working="undefined"!=typeof ArrayBuffer&&"undefined"!=typeof DataView&&ye(new DataView(new ArrayBuffer(1),0,1)),H.isDataView=se,de.working="undefined"!=typeof SharedArrayBuffer&&de(new SharedArrayBuffer),H.isSharedArrayBuffer=be,H.isAsyncFunction=function(e){return"[object AsyncFunction]"===Y(e)},H.isMapIterator=function(e){return"[object Map Iterator]"===Y(e)},H.isSetIterator=function(e){return"[object Set Iterator]"===Y(e)},H.isGeneratorObject=function(e){return"[object Generator]"===Y(e)},H.isWebAssemblyCompiledModule=function(e){return"[object WebAssembly.Module]"===Y(e)},H.isNumberObject=ge,H.isStringObject=he,H.isBooleanObject=ve,H.isBigIntObject=me,H.isSymbolObject=Se,H.isBoxedPrimitive=function(e){return ge(e)||he(e)||ve(e)||me(e)||Se(e)},H.isAnyArrayBuffer=function(e){return"undefined"!=typeof Uint8Array&&(le(e)||be(e))},["isProxy","isExternal","isModuleNamespaceObject"].forEach((function(e){Object.defineProperty(H,e,{enumerable:!1,value:function(){throw new Error(e+" is not supported in userland")}})}));Object.create;var Ae,we,Oe={},Pe=Oe={};function je(){throw new Error("setTimeout has not been defined")}function Ee(){throw new Error("clearTimeout has not been defined")}function Ie(e){if(Ae===setTimeout)return setTimeout(e,0);if((Ae===je||!Ae)&&setTimeout)return Ae=setTimeout,setTimeout(e,0);try{return Ae(e,0)}catch(t){try{return Ae.call(null,e,0)}catch(t){return Ae.call(this,e,0)}}}!function(){try{Ae="function"==typeof setTimeout?setTimeout:je}catch(t){Ae=je}try{we="function"==typeof clearTimeout?clearTimeout:Ee}catch(t){we=Ee}}();var Be,xe=[],Ue=!1,ke=-1;function Te(){Ue&&Be&&(Ue=!1,Be.length?xe=Be.concat(xe):ke=-1,xe.length&&Fe())}function Fe(){if(!Ue){var e=Ie(Te);Ue=!0;for(var r=xe.length;r;){for(Be=xe,xe=[];++ke<r;)Be&&Be[ke].run();ke=-1,r=xe.length}Be=null,Ue=!1,function(e){if(we===clearTimeout)return clearTimeout(e);if((we===Ee||!we)&&clearTimeout)return we=clearTimeout,clearTimeout(e);try{we(e)}catch(t){try{return we.call(null,e)}catch(t){return we.call(this,e)}}}(e)}}function Me(e,t){this.fun=e,this.array=t}function Ce(){}Pe.nextTick=function(e){var t=new Array(arguments.length-1);if(arguments.length>1)for(var r=1;r<arguments.length;r++)t[r-1]=arguments[r];xe.push(new Me(e,t)),1!==xe.length||Ue||Ie(Fe)},Me.prototype.run=function(){this.fun.apply(null,this.array)},Pe.title="browser",Pe.browser=!0,Pe.env={},Pe.argv=[],Pe.version="",Pe.versions={},Pe.on=Ce,Pe.addListener=Ce,Pe.once=Ce,Pe.off=Ce,Pe.removeListener=Ce,Pe.removeAllListeners=Ce,Pe.emit=Ce,Pe.prependListener=Ce,Pe.prependOnceListener=Ce,Pe.listeners=function(e){return[]},Pe.binding=function(e){throw new Error("process.binding is not supported")},Pe.cwd=function(){return"/"},Pe.chdir=function(e){throw new Error("process.chdir is not supported")},Pe.umask=function(){return 0};var Ne={};return function(e){(function(){"use strict";function e(e){return"string"==typeof e?I(r(e)):e}Object.defineProperty(Ne,"__esModule",{value:!0}),Ne.Jsonic=void 0;const t=String.fromCharCode("0x0000");function r(e){let n={pin:a,loc:0,row:0,col:0,len:0,val:void 0},i=0,u=0,p=0,y=e.length;return function(){n.len=0,n.val=void 0,n.row=u;let h,v=0,S=[],A=-1,w=-1,O=-1;for(;i<y;){let a=e[i];switch(a){case" ":case"\t":for(n.pin=f,n.loc=i,n.col=p++,v=i+1;r.spaces[e[v]];)p++,v++;return n.len=v-i,n.val=e.substring(i,v),i=v,n;case"\n":case"\r":for(n.pin=r.LN,n.loc=i,n.col=p,v=i+1,p=0,u++;r.lines[e[v]];)u++,v++;return n.len=v-i,n.val=e.substring(i,v),i=v,n;case"{":return n.pin=l,n.loc=i,n.col=p++,n.len=1,i++,n;case"}":return n.pin=r.CB,n.loc=i,n.col=p++,n.len=1,i++,n;case"[":return n.pin=r.OS,n.loc=i,n.col=p++,n.len=1,i++,n;case"]":return n.pin=r.CS,n.loc=i,n.col=p++,n.len=1,i++,n;case":":return n.pin=s,n.loc=i,n.col=p++,n.len=1,i++,n;case",":return n.pin=d,n.loc=i,n.col=p++,n.len=1,i++,n;case"t":if(n.pin=r.BL,n.loc=i,n.col=p,v=i,"rue"===e.substring(v+1,v+4)&&r.ender[e[v+4]])n.val=!0,n.len=4,v+=4;else{for(;!r.ender[e[++v]];);n.pin=r.TX,n.len=v-i,n.val=e.substring(i,v)}return i=p=v,n;case"f":if(n.pin=r.BL,n.loc=i,n.col=p,v=i,"alse"===e.substring(v+1,v+5)&&r.ender[e[v+5]])n.val=!1,n.len=5,v+=5;else{for(;!r.ender[e[++v]];);n.pin=r.TX,n.len=v-i,n.val=e.substring(i,v)}return i=p=v,n;case"n":if(n.pin=m,n.loc=i,n.col=p,v=i,"ull"===e.substring(v+1,v+4)&&r.ender[e[v+4]])n.val=null,n.len=4,v+=4;else{for(;!r.ender[e[++v]];);n.pin=r.TX,n.len=v-i,n.val=e.substring(i,v)}return i=p=v,n;case"-":case"0":case"1":case"2":case"3":case"4":case"5":case"6":case"7":case"8":case"9":for(n.pin=b,n.loc=i,n.col=p++,v=i;r.digital[e[++v]];);if(r.ender[e[v]]&&(n.len=v-i,1<n.len&&"0"===e[i]&&"x"!=e[i+1]?(n.val=void 0,v--):(n.val=+e.substring(i,v),isNaN(n.val)&&(n.val=+e.substring(i,v).replace(/_/g,"")),isNaN(n.val)&&(n.val=void 0,v--))),null==n.val){for(;!r.ender[e[++v]];);n.pin=r.TX,n.len=v-i,n.val=e.substring(i,v)}return i=p=v,n;case'"':case"'":for(n.pin=g,n.loc=i,n.col=p++,w=a.charCodeAt(0),S=[],A=-1,v=i+1;v<y;v++){if(p++,(A=e.charCodeAt(v))<32)return r.bad("unprintable",n,i,v,u,p,e.charAt(v));if(w===A){v++;break}if(92===A)switch(O=e.charCodeAt(++v),p++,O){case 110:case 116:case 114:case 98:case 102:S.push(o[O]);break;case 117:if(v++,h=String.fromCharCode("0x"+e.substring(v,v+4)),t===h)return r.bad("invalid-unicode",n,i,v,u,p,e.substring(v-2,v+4));S.push(h),v+=3,p+=4;break;default:S.push(e[v])}else{let t=v;do{A=e.charCodeAt(++v),p++}while(32<=A&&w!==A);p--,S.push(e.substring(t,v)),v--}}return w!==A?(p=i,r.bad("unterminated",n,i,v-1,u,p,S.join(""))):(n.val=S.join(""),n.len=v-i,i=v,n);case"#":for(n.pin=c,n.loc=i,n.col=p++,v=i;++v<y&&"\n"!=e[v]&&"\r"!=e[v];);return n.len=v-i,n.val=e.substring(i,v),i=p=v,n;default:for(n.loc=i,n.col=p,v=i;!r.ender[e[++v]]&&"#"!==e[v];);return n.pin=r.TX,n.len=v-i,n.val=e.substring(i,v),i=p=v,n}}return n.pin=a,n.loc=y,n.col=p,n}}let o=new Array(116);o[98]="\b",o[102]="\f",o[110]="\n",o[114]="\r",o[116]="\t",r.bad=function(e,t,r,n,o,a,u,c){return t.pin=i,t.loc=n,t.row=o,t.col=a,t.len=n-r+1,t.val=u,t.why=e,t.use=c,t},r.ender={":":!0,",":!0,"]":!0,"}":!0," ":!0,"\t":!0,"\n":!0,"\r":!0,undefined:!0},r.digital={0:!0,1:!0,2:!0,3:!0,4:!0,5:!0,6:!0,7:!0,8:!0,9:!0,".":!0,_:!0,x:!0,e:!0,E:!0,a:!0,A:!0,b:!0,B:!0,c:!0,C:!0,d:!0,D:!0,f:!0,F:!0,"+":!0,"-":!0},r.spaces={" ":!0,"\t":!0},r.lines={"\n":!0,"\r":!0},r.escapes=o;const i=r.BD=Symbol("#BD"),a=r.ZZ=Symbol("#ZZ"),u=r.UK=Symbol("#UK"),c=r.CM=Symbol("#CM"),f=r.SP=Symbol("#SP"),p=r.LN=Symbol("#LN"),l=r.OB=Symbol("#OB"),y=(r.CB=Symbol("#CB"),r.OS=Symbol("#OS")),s=(r.CS=Symbol("#CS"),r.CL=Symbol("#CL")),d=r.CA=Symbol("#CA"),b=r.NR=Symbol("#NR"),g=r.ST=Symbol("#ST"),h=r.TX=Symbol("#TX"),v=r.BL=Symbol("#BL"),m=r.NL=Symbol("#NL"),S=[h,b,g,v,m],A=[f,p,c];r.end={pin:a,loc:0,len:0,row:0,col:0,val:void 0};class w{constructor(e){this.node=e}}class O extends w{constructor(e){super({}),this.key=e}process(e){if(e.ignore(A),this.key){e.rs.push(this);let t=this.key;return delete this.key,new j(this.node,t,l)}switch(e.next().pin){case h:case b:case g:case v:case m:let t=E(e,S,[f]);return e.match(s,A),e.rs.push(this),new j(this.node,t,l);case d:return this;default:let r=e.rs.pop();return r&&(r.val=this.node),r}}toString(){return"Pair: "+B(this.node)}}class P extends w{constructor(e,t){super(void 0===e?[]:[e]),this.firstpin=t}process(e){this.val&&(this.node.push(this.val),this.val=void 0);let t=this.firstpin||u;for(this.firstpin=void 0;;){e.ignore(A);let r=e.next().pin;switch(r){case h:case b:case g:case v:case m:let n=E(e,S,[f]);this.node.push(n),t=r;break;case d:d!==t&&0!==this.node.length||this.node.push(null),t=r;break;case l:return e.rs.push(this),t=r,new O;case y:return e.rs.push(this),t=r,new P;case s:throw new Error("key-value pair inside list");default:let o=e.rs.pop();return o&&(o.val=this.node),o}}}toString(){return"Pair: "+B(this.node)}}class j extends w{constructor(e,t,r){super(e),this.key=t,this.parent=r}process(e){if(e.ignore(A),this.val)return this.node[this.key]=this.val,this.val=void 0,e.rs.pop();switch(e.next().pin){case l:return e.rs.push(this),new O;case y:return e.rs.push(this),new P;case d:return e.rs.push(this),new P(null,d)}let t=E(e,S,[f]);return s===e.t1.pin?(this.parent=l,e.next(),e.rs.push(this),new O(String(t))):d===e.t1.pin&&l!==this.parent?(this.parent=y,e.next(),e.rs.push(this),new P(t,d)):(this.node[this.key]=t,e.rs.pop())}toString(){return"Value: "+this.key+"="+B(this.val)+" node="+B(this.node)}}function E(e,t,r){let n=0;if(r.includes(e.t1.pin)&&++n||t.includes(e.t1.pin)){let o=[e.t0,e.t1];for(e.next();r.includes(e.t1.pin)&&++n||t.includes(e.t1.pin)&&(n=0,1);)o.push(e.t1),e.next();return 1===(o=o.splice(0,o.length-n)).length?o[0].val:o.map(e=>String(e.val)).join("")}return e.t0.val}function I(e){let t=new j({},"$",u),n=t,o={node:void 0,t0:r.end,t1:r.end,next:i,match:function(e,t){if(t)for(;t.includes(o.t1.pin);)i();if(e===o.t1.pin){let e=i();if(t)for(;t.includes(o.t1.pin);)i();return e}throw new Error("expected: "+String(e)+" saw:"+String(o.t1.pin)+"="+o.t1.val)},ignore:function(e){for(;e.includes(o.t1.pin);)i()},rs:[]};function i(){return o.t0=o.t1,o.t1={...e()},o.t0}for(i();t;)t=t.process(o);return n.node.$}function B(e){return n({}).inspect(e,{depth:null})}let x=Object.assign(e,{use:function(t){t(e)},parse:t=>e(t),lexer:r,process:I});Ne.Jsonic=x}).call(this)}.call(this,Oe),Ne}));
+!function(e){if("object"==typeof exports&&"undefined"!=typeof module)module.exports=e();else if("function"==typeof define&&define.amd)define([],e);else{("undefined"!=typeof window?window:"undefined"!=typeof global?global:"undefined"!=typeof self?self:this).Jsonic=e()}}((function(){var e,t={};Object.defineProperty(t,"__esModule",{value:!0}),t.make=t.util=t.RuleSpec=t.Rule=t.Parser=t.Lexer=t.JsonicError=t.Jsonic=void 0;class n extends SyntaxError{constructor(e,t,s,r){t=c.deep({},t);let l=c.deep({},{rI:r.rI,opts:r.opts,config:r.config,meta:r.meta,src:()=>r.src(),root:()=>r.root(),node:r.node,t0:r.t0,t1:r.t1,tI:r.tI,next:()=>r.next(),log:r.log,use:r.use}),o=n.make_desc(e,t,s,l);super(o.message),Object.assign(this,o),this.stack&&(this.stack=this.stack.split("\n").filter(e=>!e.includes("jsonic/jsonic")).join("\n"))}static make_desc(e,t,n,s){n={...n};let r=s.opts,l=s.meta,o=c.errinject(r.error[e]||r.error.unknown,e,t,n,s),i=["\x1b[31m[jsonic/"+e+"]:\x1b[0m "+(l&&l.mode?"\x1b[35m[mode:"+l.mode+"]:\x1b[0m ":"")+o,"  \x1b[34m--\x3e\x1b[0m "+(l.fileName||"<no-file>")+":"+n.row+":"+n.col,c.extract(s.src(),o,n),c.errinject((r.hint[e]||r.hint.unknown).split("\n").map(e=>"  "+e).join("\n"),e,t,n,s)].join("\n"),a={internal:{token:n,ctx:s}};return{...Object.create(a),message:i,code:e,details:t,meta:l,fileName:l.fileName,lineNumber:n.row,columnNumber:n.col}}toJSON(){return{...this,__error:!0,name:this.name,message:this.message,stack:this.stack}}}t.JsonicError=n;class s{constructor(e){this.match={},c.token("@LS_TOP",e),c.token("@LS_CONSUME",e),c.token("@LS_MULTILINE",e),this.end={pin:c.token("#ZZ",e),loc:0,len:0,row:0,col:0,val:void 0,src:void 0}}start(e){const t=e.opts,n=e.config;let s=e=>c.token(e,n),r=e=>c.token(e,n),l=e.F,o=s("@LS_TOP"),i=s("@LS_CONSUME"),a=s("@LS_MULTILINE"),u=s("#ZZ"),p=s("#SP"),d=s("#CM"),m=s("#NR"),h=s("#ST"),f=s("#TX"),g=s("#VL");s("#LN");let b={pin:u,loc:0,row:0,col:0,len:0,val:void 0,src:void 0},k=0,_=0,v=0,x=e.src(),y=x.length,w=null!=e&&null!=e.log?(...t)=>e.log("lex",...t):void 0,j=this,N=function(){b.len=0,b.val=void 0,b.src=void 0,b.row=_;let s=o,c=null,N="",S=0,C=[],L=-1;e:for(;k<y;){let u=x[k],O=x.charCodeAt(k);if(o===s){let A=j.match[o];if(null!=A){b.loc=k;for(let t of A){let n=t(k,x,b,e);if(n)return k=n.sI,_=n.rD?_+n.rD:_,v=n.cD?v+n.cD:v,w&&w(r(b.pin),l(b.src),{...b}),b}}if(n.start.SP.includes(O)){for(b.pin=p,b.loc=k,b.col=v++,S=k+1;n.multi.SP.includes(x[S]);)v++,S++;return b.len=S-k,b.val=x.substring(k,S),b.src=b.val,k=S,w&&w(r(b.pin),l(b.src),{...b}),b}if(n.start.LN.includes(O)){for(b.pin=n.lex.core.LN,b.loc=k,b.col=v,S=k,v=0;n.multi.LN.includes(x[S]);)_+=t.char.row===x[S]?1:0,S++;return b.len=S-k,b.val=x.substring(k,S),b.src=b.val,k=S,w&&w(r(b.pin),l(b.src),{...b}),b}if(null!=n.single[O])return b.pin=n.single[O],b.loc=k,b.col=v++,b.len=1,b.src=u,k++,w&&w(r(b.pin),l(b.src),{...b}),b;if(n.start.NR.includes(O)){for(b.pin=m,b.loc=k,b.col=v,S=k;t.number.digital.includes(x[++S]););if((null==x[S]||n.value_ender.includes(x[S]))&&(b.len=S-k,1<b.len&&"0"===x[k]&&"x"!=x[k+1]?(b.val=void 0,S--):(b.val=+x.substring(k,S),t.number.underscore&&isNaN(b.val)&&(b.val=+x.substring(k,S).replace(/_/g,"")),isNaN(b.val)&&(b.val=void 0,S--))),null!=b.val)return b.src=x.substring(k,S),v+=b.len,k=S,w&&w(r(b.pin),l(b.src),{...b}),b}else{if(n.start.ST.includes(O)){b.pin=h,b.loc=k,b.col=v++;let s=u.charCodeAt(0),o=t.string.multiline.includes(u);for(C=[],L=-1,S=k+1;S<y;S++)if(v++,s===(L=x.charCodeAt(S))){if(!t.string.escapedouble||s!==x.charCodeAt(S+1)){S++;break}C.push(x[S]),S++}else if(92===L){let s=x.charCodeAt(++S);v++;let r=n.escape[s];if(null!=r)C.push(r);else if(117===s){S++;let n=String.fromCharCode("0x"+x.substring(S,S+4));if(t.char.bad_unicode===n)return j.bad(e,w,"invalid-unicode",b,k,S,_,v,x.substring(S-2,S+4));C.push(n),S+=3,v+=4}else C.push(x[S])}else if(L<32){if(!o||!n.start.LN.includes(L))return j.bad(e,w,"unprintable",b,k,S,_,v,x.charAt(S));C.push(x[S])}else{let e=S;do{L=x.charCodeAt(++S),v++}while(32<=L&&s!==L&&92!==L);v--,C.push(x.substring(e,S)),S--}return s!==L?(v=k,j.bad(e,w,"unterminated",b,k,S-1,_,v,C.join(""))):(b.val=C.join(""),b.src=x.substring(k,S),b.len=S-k,k=S,w&&w(r(b.pin),l(b.src),{...b}),b)}if(n.start_cm.includes(O)){let e=n.cm_single.includes(u),r=x.substring(k,k+n.cmk_maxlen);for(let l of n.cmk)if(r.startsWith(l)){if(!0!==t.comment[l]){b.pin=d,b.loc=k,b.col=v,b.val="",s=a,c=[l,t.comment[l],"comment"];continue e}e=!0;break}if(e){b.pin=d,b.loc=k,b.col=v,b.val="",s=i,N=n.multi.LN;continue e}}}b.loc=k,b.col=v,S=k;do{v++,S++}while(null!=x[S]&&!n.value_ender.includes(x[S]));let I=x.substring(k,S),P=t.value[I];if(void 0!==P)return b.pin=g,b.val=P,b.src=I,b.len=S-k,k=S,w&&w(r(b.pin),l(b.src),{...b}),b;let E=t.text.hoover?n.hoover_ender:n.text_ender;for(;null!=x[S]&&(!E.includes(x[S])||n.cmk0.includes(x[S])&&!n.cmk1.includes(x[S+1]));)v++,S++;if(b.len=S-k,b.pin=f,b.val=x.substring(k,S),b.src=b.val,t.text.hoover&&n.multi.SP.includes(b.val[b.val.length-1])){let e=b.val.length-2;for(;0<e&&n.multi.SP.includes(b.val[e]);)e--;b.val=b.val.substring(0,e+1),b.src=b.val,v-=b.len-e-1,b.len=b.val.length,k+=b.len}else k=S;return w&&w(r(b.pin),l(b.src),{...b}),b}if(i===s){for(S=k;S<y&&!N.includes(x[S]);)S++,v++;return b.val+=x.substring(k,S),b.src=b.val,b.len=b.val.length,k=S,s=o,w&&w(r(b.pin),l(b.src),{...b}),b}if(a===s){S=k;let e=1,n=c[0],i=c[1],a=t.balance[c[2]],u=n.length,p=i.length;for(S+=n.length;S<y&&0<e;)i[0]===x[S]&&i===x.substring(S,S+p)?(S+=p,v+=p,e--):a&&n[0]===x[S]&&n===x.substring(S,S+u)?(S+=u,v+=p,e++):(t.char.row===x[S]?(_++,v=0):v++,S++);return b.val=x.substring(k,S),b.src=b.val,b.len=b.val.length,k=S,s=o,w&&w(r(b.pin),l(b.src),{...b}),b}}return b.pin=u,b.loc=y,b.col=v,w&&w(r(b.pin),l(b.src),{...b}),b};return N.src=x,N}bad(e,t,n,s,r,l,o,i,a,u,p){return s.why=n,s.pin=c.token("#BD",e.config),s.loc=l,s.row=o,s.col=i,s.len=l-r+1,s.val=a,s.src=u,s.use=p,t&&t(c.token(s.pin,e.config),e.F(s.src),n,{...s}),s}lex(e,t){return null==e?this.match:(this.match[e]=this.match[e]||[],null!=t&&this.match[e].push(t),this.match[e])}clone(e){let t=new s(e);return c.deep(t.match,this.match),t}}t.Lexer=s,function(e){e[e.open=0]="open",e[e.close=1]="close"}(e||(e={}));class r{constructor(t,n,s){this.id=n.rI++,this.name=t.name,this.spec=t,this.node=s,this.state=e.open,this.child=l,this.open=[],this.close=[]}process(t){let n=l;return e.open===this.state?n=this.spec.open(this,t):e.close===this.state&&(n=this.spec.close(this,t)),n}}t.Rule=r;let l={id:0,spec:{name:"norule"}};class o{constructor(e,t){this.name=e,this.def=t}open(t,s){let l=t,o="",i=s.F;if(this.def.before_open){let e=this.def.before_open.call(this,t,s);t.node=e&&e.node||t.node}let c=this.parse_alts(this.def.open,t,s);if(c.e)throw new n("unexpected",{open:!0},c.e,s);return t.open=c.m,c.p?(s.rs.push(t),(l=t.child=new r(s.rsm[c.p],s,t.node)).parent=t,o+="U"):c.r?((l=new r(s.rsm[c.r],s,t.node)).parent=t.parent,o+="R"):o+="Z",this.def.after_open&&this.def.after_open.call(this,t,s,l),s.log&&s.log("node",t.name+"/"+t.id,e[t.state],o,i(t.node)),t.state=e.close,l}close(t,s){let o=l,i="";this.def.before_close&&this.def.before_close.call(this,t,s);let c=0<this.def.close.length?this.parse_alts(this.def.close,t,s):{};if(c.e)throw new n("unexpected",{close:!0},c.e,s);return c.h&&(o=c.h(this,t,s)||o,i+="H"),c.p?(s.rs.push(t),(o=t.child=new r(s.rsm[c.p],s,t.node)).parent=t,i+="U"):c.r?((o=new r(s.rsm[c.r],s,t.node)).parent=t.parent,i+="R"):(o=s.rs.pop()||l,i+="O"),this.def.after_close&&this.def.after_close.call(this,t,s,o),o.why=i,s.log&&s.log("node",t.name+"/"+t.id,e[t.state],i,s.F(t.node)),o}parse_alts(t,n,s){let r,l=void 0,o=0,i=s.config.token;if(i.ZZ===s.t0.pin)l={m:[]};else if(0<t.length){for(o=0;o<t.length;o++)if(!(r=t[o]).c||r.c(r,n,s)){if(null==r.s||0===r.s.length){l={...r,m:[]};break}if(r.s[0]===s.t0.pin){if(1===r.s.length){l={...r,m:[s.t0]};break}if(r.s[1]===s.t1.pin){l={...r,m:[s.t0,s.t1]};break}}else if(i.AA===r.s[0]){l={...r,m:[s.t0]};break}}l=l||{e:s.t0,m:[]}}if(l=l||{m:[]},s.log&&s.log("parse",n.name+"/"+n.id,e[n.state],o<t.length?"alt="+o:"no-alt",o<t.length&&r&&r.s?"["+r.s.map(e=>i[e]).join(" ")+"]":"[]",s.tI,"p="+(l.p||""),"r="+(l.r||""),"b="+(l.b||""),l.m.map(e=>i[e.pin]).join(" "),s.F(l.m.map(e=>e.src)),l),l.m){let e=0,t=l.m.length-(l.b||0);for(;e++<t;)s.next()}return l}}t.RuleSpec=o;class i{constructor(e,t){this.rsm={},this.opts=e,this.config=t}init(){let e=this.config.token,t=e.OB,n=e.CB,s=e.OS,r=e.CS,l=e.CL,i=e.CA,a=e.TX,u=e.NR,p=e.ST,d=e.VL,m=e.AA,h={val:{open:[{s:[t,i],p:"map"},{s:[t],p:"map"},{s:[s],p:"list"},{s:[i],p:"list",b:1},{s:[a,l],p:"map",b:2},{s:[p,l],p:"map",b:2},{s:[u,l],p:"map",b:2},{s:[d,l],p:"map",b:2},{s:[a]},{s:[u]},{s:[p]},{s:[d]}],close:[{s:[i],c:(e,t,n)=>0===n.rs.length,r:"elem",h:(e,t,n)=>{t.node=[t.node]}},{s:[m],b:1}],before_close:e=>{var t,n;e.node=null!==(t=e.child.node)&&void 0!==t?t:null===(n=e.open[0])||void 0===n?void 0:n.val}},map:{before_open:()=>({node:{}}),open:[{s:[n]},{p:"pair"}],close:[]},list:{before_open:()=>({node:[]}),open:[{s:[r]},{p:"elem"}],close:[]},pair:{open:[{s:[p,l],p:"val"},{s:[a,l],p:"val"},{s:[u,l],p:"val"},{s:[d,l],p:"val"},{s:[n],b:1}],close:[{s:[n]},{s:[i],r:"pair"},{s:[p,l],r:"pair",b:2},{s:[a,l],r:"pair",b:2},{s:[u,l],r:"pair",b:2},{s:[d,l],r:"pair",b:2}],before_close:(e,t)=>{let s=e.open[0];if(s&&n!==s.pin){let n=p===s.pin?s.val:s.src,r=e.node[n];e.node[n]=null==r?e.child.node:t.opts.object.extend?c.deep(r,e.child.node):e.child.node}}},elem:{open:[{s:[t],p:"map"},{s:[s],p:"list"},{s:[a]},{s:[u]},{s:[p]},{s:[d]},{s:[i,i],b:2},{s:[i]}],close:[{s:[i,r]},{s:[i],r:"elem"},{s:[r]},{s:[t],p:"map"},{s:[s],p:"list"},{s:[a,l],p:"map",b:2},{s:[u,l],p:"map",b:2},{s:[p,l],p:"map",b:2},{s:[d,l],p:"map",b:2},{s:[a],r:"elem",b:1},{s:[u],r:"elem",b:1},{s:[p],r:"elem",b:1},{s:[d],r:"elem",b:1}],after_open:(e,t,n)=>{if(e===n&&e.open[0]){let t=e.open[0].val;e.node.push(null!=t?t:null)}},before_close:e=>{e.child.node&&e.node.push(e.child.node)}}};this.rsm=Object.keys(h).reduce((e,t)=>(e[t]=new o(t,h[t]),e),{})}rule(e,t){return this.rsm[e]=null==t?this.rsm[e]:t(this.rsm[e],this.rsm)||this.rsm[e],this.rsm[e]}start(t,n,s,o){let i,a=this.opts,u=this.config,p={rI:1,opts:a,config:u,meta:s||{},src:()=>n,root:()=>i.node,node:void 0,t0:t.end,t1:t.end,tI:-2,next:g,rs:[],rsm:this.rsm,log:s&&s.log||void 0,F:c.make_src_format(u),use:{}};null!=o&&(p=c.deep(p,o)),c.make_log(p);let d=e=>c.token(e,this.config),m=t.start(p),h=new r(this.rsm.val,p);i=h;let f=2*Object.keys(this.rsm).length*m.src.length*2*a.rule.maxmul;function g(){let e;p.t0=p.t1;do{e=m(),p.tI++}while(u.tokenset.IGNORE.includes(e.pin));return p.t1={...e},p.t0}g(),g();let b=0;for(;l!==h&&b<f;)p.log&&p.log("rule",h.name+"/"+h.id,e[h.state],p.rs.length,p.tI,"["+d(p.t0.pin)+" "+d(p.t1.pin)+"]","["+p.F(p.t0.src)+" "+p.F(p.t1.src)+"]",h,p),h=h.process(p),p.log&&p.log("stack",p.rs.length,p.rs.map(e=>e.name+"/"+e.id).join(";"),h,p),b++;return i.node}clone(e,t){let n=new i(e,t);return n.rsm=Object.keys(this.rsm).reduce((e,t)=>(e[t]=c.clone(this.rsm[t]),e),{}),n}}t.Parser=i;let c={token:function(e,t,n){let s=t.token,r=s[e];return null==r&&"string"==typeof e&&(r=t.tokenI++,s[r]=e,s[e]=r,s[e.substring(1)]=r,null!=n&&Object.assign(n.token,t.token)),r},deep:function(e,...t){let n="function"==typeof e,s=null!=e&&("object"==typeof e||n);for(let r of t){let t="function"==typeof r,l=null!=r&&("object"==typeof r||t);if(s&&l&&!t&&Array.isArray(e)===Array.isArray(r))for(let n in r)e[n]=c.deep(e[n],r[n]);else n="function"==typeof(e=void 0===r?e:t?r:l?c.deep(Array.isArray(r)?[]:{},r):r),s=null!=e&&("object"==typeof e||n)}return e},clone:function(e){return c.deep(Object.create(Object.getPrototypeOf(e)),e)},s2cca:function(e){return e.split("").map(e=>e.charCodeAt(0))},longest:e=>e.reduce((e,t)=>e<t.length?t.length:e,0),make_src_format:e=>(t,n)=>null==t?"":(n=JSON.stringify(t)).substring(0,e.debug.maxlen)+(e.debug.maxlen<n.length?"...":""),make_log:e=>{if("number"==typeof e.log){let t=!1,n=e.log;-1===n&&(n=1,t=!0),e.log=(...s)=>{if(t){let t=s.filter(e=>"object"!=typeof e).join("\t");e.opts.debug.get_console().log(t)}else e.opts.debug.get_console().dir(s,{depth:n})}}},errinject:(e,t,n,s,r)=>e.replace(/\$([\w_]+)/g,(e,l)=>"code"===l?t:n[l]||r.meta[l]||s[l]||r[l]||r.opts[l]||"$"+l),extract:(e,t,n)=>{let s=0<n.loc?n.loc:0,r=0<n.row?n.row:0,l=0<n.col?n.col:0,o=null==n.src?"":n.src,i=e.substring(Math.max(0,s-333),s).split("\n"),c=e.substring(s,s+333).split("\n"),a=2+(""+(r+2)).length,u=r<2?0:r-2,p=e=>"\x1b[34m"+(""+u++).padStart(a," ")+" | \x1b[0m"+(null==e?"":e),d=i.length;return[2<d?p(i[d-3]):null,1<d?p(i[d-2]):null,p(i[d-1]+c[0])," ".repeat(a)+"   "+" ".repeat(l)+"\x1b[31m"+"^".repeat(o.length||1)+" "+t+"\x1b[0m",p(c[1]),p(c[2])].filter(e=>null!=e).join("\n")},handle_meta_mode:(e,t,s)=>{let r=e.options;if("function"!=typeof r.mode[s.mode])return[!1];try{return r.mode[s.mode].call(e,t,s)}catch(l){if("SyntaxError"===l.name){let o=0,i=0,a=0,u="",p=l.message.match(/^Unexpected token (.) .*position\s+(\d+)/i);if(p){u=p[1],o=parseInt(p[2]),i=t.substring(0,o).replace(/[^\n]/g,"").length;let e=o-1;for(;-1<e&&"\n"!==t.charAt(e);)e--;a=e<o?t.substring(e,o).length-1:0}let d=l.token||{pin:e.token.UK,loc:o,len:u.length,row:l.lineNumber||i,col:l.columnNumber||a,val:void 0,src:u};throw new n(l.code||"json",l.details||{msg:l.message},d,l.ctx||{rI:-1,opts:r,config:{},token:{},meta:s,src:()=>t,root:()=>{},node:void 0,t0:d,t1:d,tI:-1,rs:[],next:()=>d,rsm:{},log:s.log,F:c.make_src_format(e.internal().config),use:{}})}throw l}},build_config_from_options:function(e,t){let n=Object.keys(t.token);n.forEach(t=>c.token(t,e));let s=n.filter(e=>null!=t.token[e].c);e.single=s.reduce((n,s)=>{return n[(r=t.token[s].c,r.charCodeAt(0))]=e.token[s],n;var r},[]);let r=n.filter(e=>"string"==typeof t.token[e]);e.start=r.reduce((e,n)=>(e[n.substring(1)]=c.s2cca(t.token[n]),e),{}),e.multi=r.reduce((e,n)=>(e[n.substring(1)]=t.token[n],e),{});let l=n.filter(e=>null!=t.token[e].s);if(e.tokenset=l.reduce((n,s)=>(n[s.substring(1)]=t.token[s].s.split(",").map(t=>e.token[t]),n),{}),t.escape=t.escape||{},e.escape=Object.keys(t.escape).reduce((e,n)=>(e[n.charCodeAt(0)]=t.escape[n],e),[]),e.start_cm=[],e.cm_single="",e.cmk=[],e.cmk0="",e.cmk1="",t.comment){let n=Object.keys(t.comment);n.forEach(t=>{1===t.length?(e.start_cm.push(t.charCodeAt(0)),e.cm_single+=t):(e.start_cm.push(t.charCodeAt(0)),e.cmk.push(t),e.cmk0+=t[0],e.cmk1+=t[1])}),e.cmk_maxlen=c.longest(n)}e.start_cm_char=e.start_cm.map(e=>String.fromCharCode(e)).join(""),e.single_char=e.single.map((e,t)=>String.fromCharCode(t)).join(""),e.value_ender=e.multi.SP+e.multi.LN+e.single_char+e.start_cm_char,e.text_ender=e.value_ender,e.hoover_ender=e.multi.LN+e.single_char+e.start_cm_char,e.lex={core:{LN:c.token(t.lex.core.LN,e)}},e.debug=t.debug}};function a(e,t){let n,r=e;"function"==typeof e&&(r={},t=e);let l,o,u=c.deep({},t?{...t.options}:{escape:{b:"\b",f:"\f",n:"\n",r:"\r",t:"\t"},char:{row:"\n",bad_unicode:String.fromCharCode("0x0000")},comment:{"#":!0,"//":!0,"/*":"*/"},balance:{comment:!0},number:{digital:"-1023456789._xeEaAbBcCdDfF+",underscore:!0},string:{multiline:"`",escapedouble:!1},text:{hoover:!0},object:{extend:!0},value:{null:null,true:!0,false:!1},mode:{},plugin:{},debug:{get_console:()=>console,maxlen:33},error:{unknown:"unknown error: $code",unexpected:"unexpected character(s): `$src`"},hint:{unknown:"Since the error is unknown, this is probably a bug inside jsonic itself.\nPlease consider posting a github issue - thanks!\n",unexpected:"The character(s) `$src` should not occur at this point as it is not\nvalid JSON syntax, even under the relaxed jsonic rules.  If it is not\nobviously wrong, the actual syntax error may be elsewhere. Try\ncommenting out larger areas around this point until you get no errors,\nthen remove the comments in small sections until you find the\noffending syntax."},token:{"#OB":{c:"{"},"#CB":{c:"}"},"#OS":{c:"["},"#CS":{c:"]"},"#CL":{c:":"},"#CA":{c:","},"#SP":" \t","#LN":"\n\r","#CM":!0,"#NR":"-0123456789","#ST":"\"'`","#TX":!0,"#VL":!0,"#BD":!0,"#ZZ":!0,"#UK":!0,"#AA":!0,"#IGNORE":{s:"#SP,#LN,#CM"}},lex:{core:{LN:"#LN"}},rule:{maxmul:3}},r),p=function(e,t,n){if("string"==typeof e){let s=p.internal(),[r,l]=null!=t&&null!=t.mode?c.handle_meta_mode(p,e,t):[!1];return r||(l=s.parser.start(s.lexer,e,t,n)),l}return e};if(p.token=function(e){return c.token(e,n,p)},t){for(let n in t)p[n]=t[n];p.parent=t;let e=t.internal();n=c.deep({},e.config),c.build_config_from_options(n,u),Object.assign(p.token,n.token),l=e.lexer.clone(n),o=e.parser.clone(u,n)}else n={tokenI:1,token:{}},c.build_config_from_options(n,u),l=new s(n),(o=new i(u,n)).init();return Object.assign(p.token,n.token),p.internal=()=>({lexer:l,parser:o,config:n}),p.options=c.deep(e=>{if(null!=e&&"object"==typeof e){c.build_config_from_options(n,c.deep(u,e));for(let e in u)p.options[e]=u[e]}return p},u),p.parse=p,p.use=function(e,t){return p.options({plugin:{[e.name]:t||{}}}),e(p)||p},p.rule=function(e,t){let n=p.internal().parser.rule(e,t);return null==t?n:p},p.lex=function(e,t){let n=p.internal().lexer.lex(e,t);return null==t?n:p},p.make=function(e){return a(e,p)},Object.defineProperty(p.make,"name",{value:"make"}),p}t.util=c,t.make=a;let u=a();return t.Jsonic=u,t}));
 }).call(this)}).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
 },{}],2:[function(require,module,exports){
 (function (Buffer,__dirname){(function (){
@@ -6222,10 +6222,6 @@ module.exports = function whichTypedArray(value) {
 
 }).call(this)}).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
 },{"available-typed-arrays":29,"es-abstract/helpers/callBound":35,"es-abstract/helpers/getOwnPropertyDescriptor":36,"foreach":37,"has-symbols":41,"is-typed-array":48}],54:[function(require,module,exports){
-require('./jsonic.test.js')
-require('./feature.test.js')
-
-},{"./feature.test.js":55,"./jsonic.test.js":56}],55:[function(require,module,exports){
 /* Copyright (c) 2013-2020 Richard Rodger and other contributors, MIT License */
 'use strict'
 
@@ -6242,67 +6238,522 @@ var expect = Code.expect
 var { Jsonic } = require('..')
 
 let j = Jsonic
-let lexer = Jsonic.lexer
-let prc = Jsonic.process
+// let lexer = Jsonic.lexer
+
+function testlog(...rest) {
+  console.log(rest.filter(x=>'object'!=typeof(x)))
+}
 
 describe('feature', function () {
-  it('comment', () => {
-
-    expect(Jsonic('#a:1')).equals(undefined)
-    expect(Jsonic('#a:1\nb:2')).equals({b:2})
-    expect(Jsonic('b:2\n#a:1')).equals({b:2})
-    expect(Jsonic('b:2\n#a:1\nc:3')).equals({b:2,c:3})
-
+  it('test-util-match', () => {
+    expect(match(1,1)).undefined()
+    expect(match([],[1])).equal('$[0]/val:undefined!=1')
+    expect(match([],[])).undefined()
+    expect(match([1],[1])).undefined()
+    expect(match([[]],[[]])).undefined()
+    expect(match([1],[2])).equal('$[0]/val:1!=2')
+    expect(match([[1]],[[2]])).equal('$[0][0]/val:1!=2')
+    expect(match({},{})).undefined()
+    expect(match({a:1},{a:1})).undefined()
+    expect(match({a:1},{a:2})).equal('$.a/val:1!=2')
+    expect(match({a:{b:1}},{a:{b:1}})).undefined()
+    expect(match({a:1},{a:1,b:2})).equal('$.b/val:undefined!=2')
+    expect(match({a:1},{b:1})).equal('$.b/val:undefined!=1')
+    expect(match({a:{b:1}},{a:{b:2}})).equal('$.a.b/val:1!=2')    
+    expect(match({a:1,b:2},{a:1})).undefined()
+    expect(match({a:1,b:2},{a:1},{miss:false})).equal('$/key:{a,b}!={a}')
+    expect(match([1],[])).undefined()
+    expect(match([],[1])).equals('$[0]/val:undefined!=1')
+    expect(match([2,1],[undefined,1],{miss:false})).equal('$[0]/val:2!=undefined')
+    expect(match([2,1],[undefined,1])).undefined()
   })
+
+  it('single-comment-line', () => {
+    expect(j('#a:1')).equals(undefined)
+    expect(j('#a:1\nb:2')).equals({b:2})
+    expect(j('b:2\n#a:1')).equals({b:2})
+    expect(j('b:2,\n#a:1\nc:3')).equals({b:2,c:3})
+  })
+
+
+  it('string-comment-line', () => {
+    expect(j('//a:1')).equals(undefined)
+    expect(j('//a:1\nb:2')).equals({b:2})
+    expect(j('b:2\n//a:1')).equals({b:2})
+    expect(j('b:2,\n//a:1\nc:3')).equals({b:2,c:3})
+  })
+
+
+  it('multi-comment', () => {
+    expect(j('/*a:1*/')).equals(undefined)
+    expect(j('/*a:1*/\nb:2')).equals({b:2})
+    expect(j('/*a:1\n*/b:2')).equals({b:2})
+    expect(j('b:2\n/*a:1*/')).equals({b:2})
+    expect(j('b:2,\n/*\na:1,\n*/\nc:3')).equals({b:2,c:3})
+
+    // Balanced multiline comments!
+    expect(j('/*/*/*a:1*/*/*/b:2')).equals({b:2})
+    expect(j('b:2,/*a:1,/*c:3,*/*/d:4')).equals({b:2,d:4})
+    expect(j('\nb:2\n/*\na:1\n/*\nc:3\n*/\n*/\n,d:4')).equals({b:2,d:4})
+
+    // Implicit close
+    expect(j('b:2\n/*a:1')).equals({b:2})
+    expect(j('b:2\n/*/*/*a:1')).equals({b:2})
+
+    // Correct row and column count
+    try {
+      j('a:1/*\n\n*/{')
+    }
+    catch(e) {
+      expect(e.lineNumber).equal(2)
+      expect(e.columnNumber).equal(2)
+    }
+  })
+
+
+  it('balanced-multi-comment', () => {
+    // Active by default
+    expect(j('/*/*/*a:1*/*/*/b:2')).equals({b:2})
+
+    
+    let nobal = Jsonic.make({balance:{comment:false}})
+    expect(nobal.options.balance.comment).false()
+
+    // NOTE: comment markers inside text are active!
+    expect(nobal('/*/*/*a:1*/*/*/,b:2')).equal({ '*a': '1*', b: 2 })
+
+
+    // Custom multiline comments
+    let coffee = Jsonic.make({comment:{'###':'###'}})
+    expect(coffee('\n###a:1\nb:2\n###\nc:3')).equals({c:3})
+
+    // NOTE: no balancing if open === close
+    expect(coffee('\n###a:1\n###b:2\n###\nc:3\n###\nd:4')).equals({b:2,d:4})
+  })
+
+
+  it('feature-number', () => {
+    expect(j('1')).equals(1)
+    expect(j('[1]')).equals([1])
+    expect(j('a:1')).equals({a:1})
+    expect(j('1:a')).equals({'1':'a'})
+    expect(j('{a:1}')).equals({a:1})
+    expect(j('{1:a}')).equals({'1':'a'})
+    expect(j('+1')).equals('+1') // NOTE: not considered a number!
+    expect(j('-1')).equals(-1)
+    expect(j('1.2')).equals(1.2)
+    expect(j('1e2')).equals(100)
+    expect(j('10_0')).equals(100)
+    expect(j('-1.2')).equals(-1.2)
+    expect(j('-1e2')).equals(-100)
+    expect(j('-10_0')).equals(-100)
+    expect(j('1e+2')).equals(100)
+    expect(j('1e-2')).equals(0.01)
+    expect(j('0xA')).equals(10)
+    expect(j('0xa')).equals(10)
+    expect(j('1e6:a')).equals({'1e6':'a'}) // NOTE: "1e6" not "1000000"
+  })
+
+
+  /* TODO
+  it('feature-log', () => {
+    let t = j.options // token symbols
+    let b = []
+    let log = (...rest) => b.push(rest)
+    let tlog = (s,v,p,d)=>{
+      b = []
+      expect(j(s,{log}),s).equals(v)
+      if(d) {
+        console.dir(b.map(e=>e.filter(x=>'object'!=typeof x)),{depth:d})
+      }
+      expect(match(b,p),s).undefined()
+    }
+
+    tlog('1',1,[
+      ['lex','#NR', '1', {pin:t.NR,val:1}],
+      ['lex','#ZZ', undefined, {pin:t.ZZ}],
+      ['rule','open',0,'value/1',0,'#NR #ZZ',{node:undefined}],
+      ['parse','alts','#NR', 0, '#NR', '1', {s:[t.NR],m:[{pin:t.NR}]}],
+      ['lex','#ZZ', undefined,{pin:t.ZZ}],
+      ['rule','close',0,'value/1',1,'#ZZ #ZZ',{node:1}],
+    ]) // ],1) to print
+
+    tlog('a','a',[
+      ['lex','#TX', 'a', {pin:t.TX,val:'a'}],
+      ['lex','#ZZ', undefined,{pin:t.ZZ}],
+      ['rule','open',0,'value/1',0,'#TX #ZZ',{node:'a'}],
+      ['parse','alts','#TX', 0, '#TX', 'a' , {s:[t.TX],m:[{pin:t.TX}]}],
+      ['lex','#ZZ', undefined,{pin:t.ZZ}],
+      ['rule','close',0,'value/1',1,'#ZZ #ZZ',{node:'a'}],
+    ]) // ],1) to print
+
+    tlog('[1]',[1],[
+      ['lex', '#OS[', '[', {pin:t.OS} ],
+      ['lex', '#NR', '1', {pin:t.NR,val:1} ],
+      ['rule', 'open',0,'value/1',0,'#OS[ #NR',{node:undefined}],
+      ['parse','alts','#OS[', 0, '#OS[', '[', {p:'list',s:[t.OS],m:[{pin:t.OS}]}],
+      ['lex', '#CS]', ']', {pin:t.CS} ],
+      ['rule', 'open',1,'list/2',1,'#NR #CS]',{node:[]}],
+      ['parse','alts', '', 1, '', '', {p:'elem'}],
+      ['rule', 'open',2,'elem/3',1,'#NR #CS]',{node:[1]}],
+      ['parse','alts','#NR', 1, '#NR', '1',{s:[t.NR],m:[{pin:t.NR}]}],
+      ['lex','#ZZ', undefined,{pin:t.ZZ}],
+      ['rule', 'close',2,'elem/3',2,'#CS] #ZZ',{node:[1]}],
+      ['parse','alts','#CS]', 2, '#CS]', ']', {s:[t.CS],m:[{pin:t.CS}]}],
+      ['lex','#ZZ', undefined,{pin:t.ZZ}],
+      ['rule', 'close',1,'list/2',3,'#ZZ #ZZ',{node:[1]}],
+      ['rule', 'close',0,'value/1',3,'#ZZ #ZZ',{node:[1]}],
+    ]) // ],1) to print
+  })
+  */
+  
+  
+  it('value', () => {
+    expect(j('')).equal(undefined)
+
+    expect(j('true')).equals(true)
+    expect(j('false')).equals(false)
+    expect(j('null')).equals(null)
+
+    expect(j('true\n')).equals(true)
+    expect(j('false\n')).equals(false)
+    expect(j('null\n')).equals(null)
+    
+    expect(j('true#')).equals(true)
+    expect(j('false#')).equals(false)
+    expect(j('null#')).equals(null)
+
+    expect(j('true//')).equals(true)
+    expect(j('false//')).equals(false)
+    expect(j('null//')).equals(null)
+
+    expect(j('{a:true}')).equals({a:true})
+    expect(j('{a:false}')).equals({a:false})
+    expect(j('{a:null}')).equals({a:null})
+
+    expect(j('{true:1}')).equals({'true':1})
+    expect(j('{false:1}')).equals({'false':1})
+    expect(j('{null:1}')).equals({'null':1})
+
+    
+    expect(j('a:true')).equals({a:true})
+    expect(j('a:false')).equals({a:false})
+    expect(j('a:null')).equals({a:null})
+
+    expect(j('true,')).equals([true])
+    expect(j('false,')).equals([false])
+    expect(j('null,')).equals([null])
+
+    expect(j(
+      'a:true,b:false,c:null,d:{e:true,f:false,g:null},h:[true,false,null]'))
+      .equals({a:true,b:false,c:null,d:{e:true,f:false,g:null},h:[true,false,null]})
+  })
+
+
+  it('value-text', () => {
+    expect(j('a')).equals('a')
+    expect(j('a/b')).equals('a/b')
+    expect(j('a#b')).equals('a')
+    expect(j('a//b')).equals('a')
+    expect(j('a/*b*/')).equals('a')
+    
+  })
+
+  
+  it('value-string', () => {
+    expect(j('\'\'')).equals('')
+    expect(j('""')).equals('')
+    expect(j('``')).equals('')
+
+    expect(j('\'a\'')).equals('a')
+    expect(j('"a"')).equals('a')
+    expect(j('`a`')).equals('a')
+
+    expect(j('\'a b\'')).equals('a b')
+    expect(j('"a b"')).equals('a b')
+    expect(j('`a b`')).equals('a b')
+
+    expect(j('\'a\\tb\'')).equals('a\tb')
+    expect(j('"a\\tb"')).equals('a\tb')
+    expect(j('`a\\tb`')).equals('a\tb')
+
+    expect(j('\'a\\\'b"`c\'')).equals('a\'b"`c')
+    expect(j('"a\\"b`\'c"')).equals('a"b`\'c')
+    expect(j('`a\\`b"\'c`')).equals('a`b"\'c')
+
+    let k = j.make({string:{escapedouble:true}})
+    expect(k('"a""b"')).equals('a"b')
+    expect(k('`a``b`')).equals('a`b')
+    expect(k('\'a\'\'b\'')).equals('a\'b')
+  })
+  
+
+  it('multiline-string', () => {
+    expect(j('`a`')).equals('a')
+    expect(j('`a\n`')).equals('a\n')
+    expect(j('`\na`')).equals('\na')
+    expect(j('`\na\n`')).equals('\na\n')
+    expect(j('`a\nb`')).equals('a\nb')
+    expect(j('`a\n\nb`')).equals('a\n\nb')
+    expect(j('`a\nc\nb`')).equals('a\nc\nb')
+    expect(j('`a\r\n\r\nb`')).equals('a\r\n\r\nb')
+  })
+
+
+  it('hoover-text', () => {
+    expect(j('a b')).equals('a b')
+    expect(j('a: b c')).equals({a:'b c'})
+    expect(j('{a: {b: c d}}')).equals({a:{b:'c d'}})
+    expect(j(' x , y z ')).equal(['x', 'y z'])
+    expect(j('a: x , b: y z ')).equal({a:'x', b:'y z'})
+  })
+  
+
+  it('optional-comma', () => {
+    expect(j('[1,]')).equals([1])
+    expect(j('[,1]')).equals([null,1])
+    expect(j('[1,,]')).equals([1,null])
+    expect(j('[1,,,]')).equals([1,null,null])
+    expect(j('[1,,,,]')).equals([1,null,null,null])
+    expect(j('[1,,,,,]')).equals([1,null,null,null,null])
+    expect(j('[1\n2]')).equals([1,2])
+    expect(j('{a:1},')).equals([{a:1}])
+
+    // NOTE: these are not implicit lists!
+    expect(j('a:1,')).equals({a:1}) 
+    expect(j('a:b:1,')).equals({a:{b:1}})
+
+
+    expect(j('{a:1\nb:2}')).equals({a:1,b:2})
+    expect(j('{,a:1}')).equals({a:1})
+    expect(j('{a:1,}')).equals({a:1})
+    expect(j('{,a:1,}')).equals({a:1})
+    expect(j('{a:1,b:2,}')).equals({a:1,b:2})
+  })
+
+
+  it('implicit-list', () => {
+    
+    // implicit null element preceeds empty comma
+    expect(j(',')).equals([null])
+    expect(j(',a')).equals([null,'a'])
+    expect(j(',"a"')).equals([null,'a'])
+    expect(j(',1')).equals([null,1])
+    expect(j(',true')).equals([null,true])
+    expect(j(',[]')).equals([null,[]])
+    expect(j(',{}')).equals([null,{}])
+    expect(j(',[1]')).equals([null,[1]])
+    expect(j(',{a:1}')).equals([null,{a:1}])
+    expect(j(',a:1')).equals([null,{a:1}])
+
+    // Top level comma imlies list; ignore trailing comma
+    expect(j('a,')).equals(['a'])
+    expect(j('"a",')).equals(['a'])
+    expect(j('1,')).equals([1])
+    expect(j('true,')).equals([true])
+    expect(j('[],')).equals([[]])
+    expect(j('{},')).equals([{}])
+    expect(j('[1],')).equals([[1]])
+    expect(j('{a:1},')).equals([{a:1}])
+
+    // NOTE: special case, this is considered a map pair
+    expect(j('a:1,')).equals({a:1})
+
+    
+    expect(j('a,')).equals(['a'])
+    expect(j('"a",')).equals(['a'])
+    expect(j('true,')).equals([true])
+    expect(j('1,')).equals([1])
+    expect(j('a,1')).equals(['a',1])
+    expect(j('"a",1')).equals(['a',1])
+    expect(j('true,1')).equals([true,1])
+    expect(j('1,1')).equals([1,1])
+
+    expect(j('a,b')).equals(['a','b'])
+    expect(j('{a:1},')).equals([{a:1}])
+    expect(j('[1],')).equals([[1]])
+  })
+
+
+  it('implicit-map', () => {
+    expect(j('a:1')).equals({a:1})
+    expect(j('a:1,b:2')).equals({a:1,b:2})
+    expect(j('a:b:1')).equals({a:{b:1}})
+    expect(j('a:b:c:1')).equals({a:{b:{c:1}}})
+    expect(j('a:b:1,d:2')).equals({a:{b:1,d:2}})
+    expect(j('a:b:c:1,d:2')).equals({a:{b:{c:1,d:2}}})
+    expect(j('{a:b:1}')).equals({a:{b:1}})
+    expect(j('a:{b:c:1}')).equals({a:{b:{c:1}}})
+  })
+
+  
+  it('extension', () => {
+    expect(j('a:{b:1,c:2},a:{c:3,e:4}'))
+      .equals({ a: { b: 1, c: 3, e: 4 } })
+
+    expect(j('a:{b:1,x:1},a:{b:2,y:2},a:{b:3,z:3}'))
+      .equals({ a: { b: 3, x: 1, y: 2, z: 3} })
+
+    
+    let k = j.make({object:{extend:false}})
+    expect(k('a:{b:1,c:2},a:{c:3,e:4}'))
+      .equals({ a: { c: 3, e: 4 } })
+  })
+
+
+  it('error', () => {
+    //expect(()=>j('{a:1{')).throws(JsonicError, /jsonic\/json/)
+  })
+  
+  
+  it('plugin-token', () => {
+    Jsonic.use((jsonic)=>{
+      
+    })
+  })
+
 })
 
-},{"..":1,"@hapi/code":2,"@hapi/lab":31,"hapi-lab-shim":40}],56:[function(require,module,exports){
-/* Copyright (c) 2013-2020 Richard Rodger and other contributors, MIT License */
+
+
+function match(src,pat,ctx) {
+  ctx = ctx || {}
+  ctx.loc = ctx.loc || '$'
+
+  if(src===pat) return
+  if(false !== ctx.miss && undefined === pat) return
+
+  if(Array.isArray(src) && Array.isArray(pat)) {
+    if(false === ctx.miss && src.length !== pat.length) {
+      return ctx.loc+'/len:'+src.length+'!='+pat.length
+    }
+
+    let m = undefined
+    for(let i = 0; i < pat.length; i++) {
+      m = match(src[i],pat[i],{...ctx,loc:ctx.loc+'['+i+']'})
+      if(m) {
+        return m
+      }
+    }
+
+    return
+  }
+  else if('object' === typeof(src) && 'object' === typeof(pat) ) {
+    let ksrc = Object.keys(src).sort()
+    let kpat = Object.keys(pat).sort()
+
+    if(false === ctx.miss && ksrc.length !== kpat.length) {
+      return ctx.loc+'/key:{'+ksrc+'}!={'+kpat+'}'
+    }
+    
+    for(let i = 0; i < kpat.length; i++) {
+      if(false === ctx.miss && ksrc[i] !== kpat[i]) return ctx.loc+'/key:'+kpat[i]
+
+      let m = match(src[kpat[i]],pat[kpat[i]],{...ctx,loc:ctx.loc+'.'+kpat[i]})
+      if(m) {
+        return m
+      }
+    }
+    
+    return
+  }
+
+  return ctx.loc+'/val:'+src+'!='+pat
+}
+
+},{"..":1,"@hapi/code":2,"@hapi/lab":31,"hapi-lab-shim":40}],55:[function(require,module,exports){
+/* Copyright (c) 2013-2021 Richard Rodger and other contributors, MIT License */
 'use strict'
 
-var Lab = require('@hapi/lab')
+
+const Util = require('util')
+
+let Lab = require('@hapi/lab')
 Lab = null != Lab.script ? Lab : require('hapi-lab-shim')
 
-var Code = require('@hapi/code')
+const Code = require('@hapi/code')
 
-var lab = (exports.lab = Lab.script())
-var describe = lab.describe
-var it = lab.it
-var expect = Code.expect
+const lab = (exports.lab = Lab.script())
+const describe = lab.describe
+const it = lab.it
+const expect = Code.expect
 
-var { Jsonic } = require('..')
+const I = Util.inspect
+
+const { Jsonic, Lexer } = require('..')
+const pv_perf = require('./pv-perf')
 
 let j = Jsonic
-let lexer = Jsonic.lexer
-let prc = Jsonic.process
 
-function lexall(src) {
-  let lex = lexer(src)
-  let out = []
-  do {
-    // console.log(out[out.length-1])
-    out.push({...lex()})
-  }
-  while( lexer.ZZ != out[out.length-1].pin &&
-         lexer.BD != out[out.length-1].pin )
-  return out.map(t=>st(t))
-}
-
-function alleq(ta) {
-  for(let i = 0; i < ta.length; i+=2) {
-    expect(lexall(ta[i]),'case:'+(i/2)).equal(ta[i+1])
-  }
-}
 
 
 describe('jsonic', function () {
   it('happy', () => {
-    expect(Jsonic('a:1')).equals({a: 1})
     expect(Jsonic('{a:1}')).equals({a: 1})
+    expect(Jsonic('{a:1,b:2}')).equals({a: 1, b: 2})
+    expect(Jsonic('a:1')).equals({a: 1})
+    expect(Jsonic('a:1,b:2')).equals({a: 1, b: 2})
     expect(Jsonic('{a:q}')).equals({a: 'q'})
     expect(Jsonic('{"a":1}')).equals({a: 1})
+    expect(Jsonic('a,')).equals(['a'])
+    expect(Jsonic('a,1')).equals(['a',1])
+    expect(Jsonic('[a]')).equals(['a'])
+    expect(Jsonic('[a,1]')).equals(['a',1])
+    expect(Jsonic('["a",1]')).equals(['a',1])
   })
 
+  
+  it('token-gen', () => {
+    let suffix = Math.random()
+    let s = Jsonic.token('__'+suffix)
+    
+    let s1 = Jsonic.token('AA'+suffix)
+    expect(s1).equals(s+1)
+    expect(Jsonic.token['AA'+suffix]).equals(s+1)
+    expect(Jsonic.token[s+1]).equals('AA'+suffix)
+    expect(Jsonic.token('AA'+suffix)).equals(s+1)
+    expect(Jsonic.token(s+1)).equals('AA'+suffix)
+
+    let s1a = Jsonic.token('AA'+suffix)
+    expect(s1a).equals(s+1)
+    expect(Jsonic.token['AA'+suffix]).equals(s+1)
+    expect(Jsonic.token[s+1]).equals('AA'+suffix)
+    expect(Jsonic.token('AA'+suffix)).equals(s+1)
+    expect(Jsonic.token(s+1)).equals('AA'+suffix)
+
+    let s2 = Jsonic.token('BB'+suffix)
+    expect(s2).equals(s+2)
+    expect(Jsonic.token['BB'+suffix]).equals(s+2)
+    expect(Jsonic.token[s+2]).equals('BB'+suffix)
+    expect(Jsonic.token('BB'+suffix)).equals(s+2)
+    expect(Jsonic.token(s+2)).equals('BB'+suffix)
+  })
+
+  
+  it('basic-json', () => {
+    expect(Jsonic('"a"')).equals('a')
+    expect(Jsonic('{"a":1}')).equals({a: 1})
+    expect(Jsonic('{"a":"1"}')).equals({a: '1'})
+    expect(Jsonic('{"a":1,"b":"2"}')).equals({a: 1, b:'2'})
+    expect(Jsonic('{"a":{"b":1}}')).equals({a: {b: 1}})
+
+    expect(Jsonic('[1]')).equals([1])
+    expect(Jsonic('[1,"2"]')).equals([1,'2'])
+    expect(Jsonic('[1,[2]]')).equals([1,[2]])
+
+    expect(Jsonic('{"a":[1]}')).equals({a: [1]})
+    expect(Jsonic('{"a":[1,{"b":2}]}')).equals({a: [1, {b: 2}]})
+
+    expect(Jsonic(' { "a" : 1 } ')).equals({a: 1})
+    expect(Jsonic(' [ 1 , "2" ] ')).equals([1,'2'])
+    expect(Jsonic(' { "a" : [ 1 ] }')).equals({a: [1]})
+    expect(Jsonic(' { "a" : [ 1 , { "b" : 2 } ] } ')).equals({a: [1, {b: 2}]})
+
+    expect(Jsonic('{"a":true,"b":false,"c":null}')).equals({a:true,b:false,c:null})
+    expect(Jsonic('[true,false,null]')).equals([true,false,null])
+  })
+
+  
   it('basic-object-tree', () => {
     expect(Jsonic('{}')).equals({})
     expect(Jsonic('{a:{}}')).equals({a: {}})
@@ -6402,299 +6853,6 @@ describe('jsonic', function () {
   })
   
   
-  it('lex-specials', () => {
-
-    let lex0 = lexer(' {123 ')
-    expect(lex0()).equals(
-      { pin: lexer.SP, loc: 0, len: 1, row: 0, col: 0, val: ' ' })
-    expect(lex0()).equals(
-      { pin: lexer.OB, loc: 1, len: 1, row: 0, col: 1, val: undefined })
-    expect(lex0()).equals(
-      { pin: lexer.NR, loc: 2, len: 3, row: 0, col: 2, val: 123 })
-    expect(lex0()).equals(
-      { pin: lexer.SP, loc: 5, len: 1, row: 0, col: 5, val: ' ' })
-    expect(lex0()).equals(
-      { pin: lexer.ZZ, loc: 6, len: 0, row: 0, col: 6, val: undefined })
-
-    // LN001
-    expect(lex0()).equals(
-      { pin: lexer.ZZ, loc: 6, len: 0, row: 0, col: 6, val: undefined })
-    expect(lex0()).equals(
-      { pin: lexer.ZZ, loc: 6, len: 0, row: 0, col: 6, val: undefined })
-
-    let lex1 = lexer('"\\u0040"')
-    expect(lex1()).equals(
-      { pin: lexer.ST, loc: 0, len: 8, row: 0, col: 0, val: '@' })
-
-    
-    expect(lexall(' {123')).equals([
-      '#SP;0;1;0x0', '#OB;1;1;0x1', '#NR;2;3;0x2;123', '#ZZ;5;0;0x5'
-    ])
-
-    expect(lexall(' {123%')).equals([
-      '#SP;0;1;0x0', '#OB;1;1;0x1', '#TX;2;4;0x2;123%', '#ZZ;6;0;0x6'
-    ])
-
-    alleq([
-      '', ['#ZZ;0;0;0x0'],
-      
-      '0', ['#NR;0;1;0x0;0','#ZZ;1;0;0x1'],
-    ])
-
-    let lex2 = lexer(' m n ')
-    expect(lex2()).equals(
-      { pin: lexer.SP, loc: 0, len: 1, row: 0, col: 0, val: ' ' })
-    expect(lex2()).equals(
-      { pin: lexer.TX, loc: 1, len: 1, row: 0, col: 1, val: 'm' })
-    expect(lex2()).equals(
-      { pin: lexer.SP, loc: 2, len: 1, row: 0, col: 2, val: ' ' })
-    expect(lex2()).equals(
-      { pin: lexer.TX, loc: 3, len: 1, row: 0, col: 3, val: 'n' })
-    expect(lex2()).equals(
-      { pin: lexer.SP, loc: 4, len: 1, row: 0, col: 4, val: ' ' })
-    expect(lex2()).equals(
-      { pin: lexer.ZZ, loc: 5, len: 0, row: 0, col: 5, val: undefined })
-
-    let lex3 = lexer(' b a ')
-    expect(lex3()).equals(
-      { pin: lexer.SP, loc: 0, len: 1, row: 0, col: 0, val: ' ' })
-    expect(lex3()).equals(
-      { pin: lexer.TX, loc: 1, len: 1, row: 0, col: 1, val: 'b' })
-    expect(lex3()).equals(
-      { pin: lexer.SP, loc: 2, len: 1, row: 0, col: 2, val: ' ' })
-    expect(lex3()).equals(
-      { pin: lexer.TX, loc: 3, len: 1, row: 0, col: 3, val: 'a' })
-    expect(lex3()).equals(
-      { pin: lexer.SP, loc: 4, len: 1, row: 0, col: 4, val: ' ' })
-    expect(lex3()).equals(
-      { pin: lexer.ZZ, loc: 5, len: 0, row: 0, col: 5, val: undefined })
-
-  })
-
-  
-  it('lex-space', () => {
-    let lex0 = lexer(' \t')
-    expect(lex0()).equals(
-      { pin: lexer.SP, loc: 0, len: 2, row: 0, col: 0, val: ' \t' })
-
-    alleq([
-      ' ', ['#SP;0;1;0x0','#ZZ;1;0;0x1'],
-      '  ', ['#SP;0;2;0x0','#ZZ;2;0;0x2'],
-      ' \t', ['#SP;0;2;0x0','#ZZ;2;0;0x2'],
-      ' \t ', ['#SP;0;3;0x0','#ZZ;3;0;0x3'],
-      '\t \t', ['#SP;0;3;0x0','#ZZ;3;0;0x3'],
-      '\t ', ['#SP;0;2;0x0','#ZZ;2;0;0x2'],
-      '\t\t', ['#SP;0;2;0x0','#ZZ;2;0;0x2'],
-      '\t', ['#SP;0;1;0x0','#ZZ;1;0;0x1'],
-
-    ])
-  })
-
-  
-  it('lex-brace', () => {
-    alleq([
-      '{', ['#OB;0;1;0x0','#ZZ;1;0;0x1'],
-      '{{', ['#OB;0;1;0x0','#OB;1;1;0x1','#ZZ;2;0;0x2'],
-      '}', ['#CB;0;1;0x0','#ZZ;1;0;0x1'],
-      '}}', ['#CB;0;1;0x0','#CB;1;1;0x1','#ZZ;2;0;0x2'],
-    ])
-  })
-
-
-  it('lex-square', () => {
-    alleq([
-      '[', ['#OS;0;1;0x0','#ZZ;1;0;0x1'],
-      '[[', ['#OS;0;1;0x0','#OS;1;1;0x1','#ZZ;2;0;0x2'],
-      ']', ['#CS;0;1;0x0','#ZZ;1;0;0x1'],
-      ']]', ['#CS;0;1;0x0','#CS;1;1;0x1','#ZZ;2;0;0x2'],
-    ])
-  })
-
-
-  it('lex-colon', () => {
-    alleq([
-      ':', ['#CL;0;1;0x0','#ZZ;1;0;0x1'],
-      '::', ['#CL;0;1;0x0','#CL;1;1;0x1','#ZZ;2;0;0x2'],
-    ])
-  })
-
-
-  it('lex-comma', () => {
-    alleq([
-      ',', ['#CA;0;1;0x0','#ZZ;1;0;0x1'],
-      ',,', ['#CA;0;1;0x0','#CA;1;1;0x1','#ZZ;2;0;0x2'],
-    ])
-  })
-
-  it('lex-comment', () => {
-    alleq([
-      'a#b', ['#TX;0;1;0x0;a','#CM;1;2;0x1;#b','#ZZ;3;0;0x3'],
-    ])
-  })
-
-
-  it('lex-boolean', () => {
-    alleq([
-      'true', ['#BL;0;4;0x0;true','#ZZ;4;0;0x4'],
-      'true ', ['#BL;0;4;0x0;true','#SP;4;1;0x4','#ZZ;5;0;0x5'],
-      ' true', ['#SP;0;1;0x0','#BL;1;4;0x1;true','#ZZ;5;0;0x5'],
-      'truex', ['#TX;0;5;0x0;truex','#ZZ;5;0;0x5'],
-      'truex ', ['#TX;0;5;0x0;truex','#SP;5;1;0x5','#ZZ;6;0;0x6'],
-      'false', ['#BL;0;5;0x0;false','#ZZ;5;0;0x5'],
-      'false ', ['#BL;0;5;0x0;false','#SP;5;1;0x5','#ZZ;6;0;0x6'],
-      ' false', ['#SP;0;1;0x0','#BL;1;5;0x1;false','#ZZ;6;0;0x6'],
-      'falsex', ['#TX;0;6;0x0;falsex','#ZZ;6;0;0x6'],
-      'falsex ', ['#TX;0;6;0x0;falsex','#SP;6;1;0x6','#ZZ;7;0;0x7'],
-    ])
-  })
-
-  
-  it('lex-null', () => {
-    alleq([
-      'null', ['#NL;0;4;0x0;null','#ZZ;4;0;0x4'],
-      'null ', ['#NL;0;4;0x0;null','#SP;4;1;0x4','#ZZ;5;0;0x5'],
-      ' null', ['#SP;0;1;0x0','#NL;1;4;0x1;null','#ZZ;5;0;0x5'],
-      'nullx', ['#TX;0;5;0x0;nullx','#ZZ;5;0;0x5'],
-      'nullx ', ['#TX;0;5;0x0;nullx','#SP;5;1;0x5','#ZZ;6;0;0x6'],
-      'nulx ', ['#TX;0;4;0x0;nulx','#SP;4;1;0x4','#ZZ;5;0;0x5'],
-      'nulx', ['#TX;0;4;0x0;nulx','#ZZ;4;0;0x4'],
-    ])
-  })
-
-
-
-  it('lex-number', () => {
-    let lex0 = lexer('123')
-    expect(lex0())
-      .equal({ pin: lexer.NR, loc: 0, len: 3, row: 0, col: 0, val: 123 })
-    
-    alleq([
-      '0', ['#NR;0;1;0x0;0','#ZZ;1;0;0x1'],
-      '-0', ['#NR;0;2;0x0;0','#ZZ;2;0;0x2'],
-      '1.2', ['#NR;0;3;0x0;1.2','#ZZ;3;0;0x3'],
-      '-1.2', ['#NR;0;4;0x0;-1.2','#ZZ;4;0;0x4'],
-      '0xA', ['#NR;0;3;0x0;10','#ZZ;3;0;0x3'],
-      '1e2', ['#NR;0;3;0x0;100','#ZZ;3;0;0x3'],
-      '-1.5E2', ['#NR;0;6;0x0;-150','#ZZ;6;0;0x6'],
-      '0x', ['#TX;0;2;0x0;0x','#ZZ;2;0;0x2'],
-      '-0xA', ['#TX;0;4;0x0;-0xA','#ZZ;4;0;0x4'],
-
-      // leading 0s (but not 0x) considered text - could be an indentifier
-      '01', ['#TX;0;2;0x0;01','#ZZ;2;0;0x2'],
-
-      '1x', ['#TX;0;2;0x0;1x','#ZZ;2;0;0x2'],
-      '12x', ['#TX;0;3;0x0;12x','#ZZ;3;0;0x3'],
-      '1%', ['#TX;0;2;0x0;1%','#ZZ;2;0;0x2'],
-      '12%', ['#TX;0;3;0x0;12%','#ZZ;3;0;0x3'],
-      '123%', ['#TX;0;4;0x0;123%','#ZZ;4;0;0x4'],
-      '1_0_0', ['#NR;0;5;0x0;100','#ZZ;5;0;0x5'],
-
-    ])
-  })
-
-
-  it('lex-double-quote', () => {
-    alleq([
-      '""', ['#ST;0;2;0x0;','#ZZ;2;0;0x2'],
-      '"a"', ['#ST;0;3;0x0;a','#ZZ;3;0;0x3'],
-      '"ab"', ['#ST;0;4;0x0;ab','#ZZ;4;0;0x4'],
-      '"abc"', ['#ST;0;5;0x0;abc','#ZZ;5;0;0x5'],
-      '"a b"', ['#ST;0;5;0x0;a b','#ZZ;5;0;0x5'],
-      ' "a"', ['#SP;0;1;0x0','#ST;1;3;0x1;a','#ZZ;4;0;0x4'],
-      '"a" ', ['#ST;0;3;0x0;a','#SP;3;1;0x3','#ZZ;4;0;0x4'],
-      ' "a" ', ['#SP;0;1;0x0','#ST;1;3;0x1;a','#SP;4;1;0x4','#ZZ;5;0;0x5'],
-      '"', ['#BD;0;1;0x0;~unterminated'],
-      '"a', ['#BD;1;2;0x0;a~unterminated'],
-      '"ab', ['#BD;2;3;0x0;ab~unterminated'],
-      ' "', ['#SP;0;1;0x0','#BD;1;1;0x1;~unterminated'],
-      ' "a', ['#SP;0;1;0x0','#BD;2;2;0x1;a~unterminated'],
-      ' "ab', ['#SP;0;1;0x0','#BD;3;3;0x1;ab~unterminated'],
-      '"a\'b"', ['#ST;0;5;0x0;a\'b','#ZZ;5;0;0x5'],
-      '"\'a\'b"', ['#ST;0;6;0x0;\'a\'b','#ZZ;6;0;0x6'],
-      '"\'a\'b\'"', ['#ST;0;7;0x0;\'a\'b\'','#ZZ;7;0;0x7'],
-      '"\\t"', ['#ST;0;4;0x0;\t','#ZZ;4;0;0x4'],
-      '"\\r"', ['#ST;0;4;0x0;\r','#ZZ;4;0;0x4'],
-      '"\\n"', ['#ST;0;4;0x0;\n','#ZZ;4;0;0x4'],
-      '"\\\""', ['#ST;0;4;0x0;"','#ZZ;4;0;0x4'],
-      '"\\q"', ['#ST;0;4;0x0;q','#ZZ;4;0;0x4'],
-      '"\\\'"', ['#ST;0;4;0x0;\'','#ZZ;4;0;0x4'],
-      '"\\\\"', ['#ST;0;4;0x0;\\','#ZZ;4;0;0x4'],
-      '"\\u0040"', ['#ST;0;8;0x0;@','#ZZ;8;0;0x8'],
-      '"\\uQQQQ"', ['#BD;3;4;0x3;\\uQQQQ~invalid-unicode'],
-      '"[{}]:,"', ['#ST;0;8;0x0;[{}]:,', '#ZZ;8;0;0x8'],
-    ])
-  })
-
-
-  it('lex-single-quote', () => {
-    alleq([
-      '\'\'', ['#ST;0;2;0x0;','#ZZ;2;0;0x2'],
-      '\'a\'', ['#ST;0;3;0x0;a','#ZZ;3;0;0x3'],
-      '\'ab\'', ['#ST;0;4;0x0;ab','#ZZ;4;0;0x4'],
-      '\'abc\'', ['#ST;0;5;0x0;abc','#ZZ;5;0;0x5'],
-      '\'a b\'', ['#ST;0;5;0x0;a b','#ZZ;5;0;0x5'],
-      ' \'a\'', ['#SP;0;1;0x0','#ST;1;3;0x1;a','#ZZ;4;0;0x4'],
-      '\'a\' ', ['#ST;0;3;0x0;a','#SP;3;1;0x3','#ZZ;4;0;0x4'],
-      ' \'a\' ', ['#SP;0;1;0x0','#ST;1;3;0x1;a','#SP;4;1;0x4','#ZZ;5;0;0x5'],
-      '\'', ['#BD;0;1;0x0;~unterminated'],
-      '\'a', ['#BD;1;2;0x0;a~unterminated'],
-      '\'ab', ['#BD;2;3;0x0;ab~unterminated'],
-      ' \'', ['#SP;0;1;0x0','#BD;1;1;0x1;~unterminated'],
-      ' \'a', ['#SP;0;1;0x0','#BD;2;2;0x1;a~unterminated'],
-      ' \'ab', ['#SP;0;1;0x0','#BD;3;3;0x1;ab~unterminated'],
-      '\'a"b\'', ['#ST;0;5;0x0;a"b','#ZZ;5;0;0x5'],
-      '\'"a"b\'', ['#ST;0;6;0x0;"a"b','#ZZ;6;0;0x6'],
-      '\'"a"b"\'', ['#ST;0;7;0x0;"a"b"','#ZZ;7;0;0x7'],
-      '\'\\t\'', ['#ST;0;4;0x0;\t','#ZZ;4;0;0x4'],
-      '\'\\r\'', ['#ST;0;4;0x0;\r','#ZZ;4;0;0x4'],
-      '\'\\n\'', ['#ST;0;4;0x0;\n','#ZZ;4;0;0x4'],
-      '\'\\\'\'', ['#ST;0;4;0x0;\'','#ZZ;4;0;0x4'],
-      '\'\\q\'', ['#ST;0;4;0x0;q','#ZZ;4;0;0x4'],
-      '\'\\"\'', ['#ST;0;4;0x0;"','#ZZ;4;0;0x4'],
-      '\'\\\\\'', ['#ST;0;4;0x0;\\','#ZZ;4;0;0x4'],
-      '\'\\u0040\'', ['#ST;0;8;0x0;@','#ZZ;8;0;0x8'],
-      '\'\\uQQQQ\'', ['#BD;3;4;0x3;\\uQQQQ~invalid-unicode'],
-      '\'[{}]:,\'', ['#ST;0;8;0x0;[{}]:,', '#ZZ;8;0;0x8'],
-    ])
-  })
-
-
-  it('lex-text', () => {
-    alleq([
-      'a-b', ['#TX;0;3;0x0;a-b','#ZZ;3;0;0x3'],
-      '$a_', ['#TX;0;3;0x0;$a_','#ZZ;3;0;0x3'],
-      '!%~', ['#TX;0;3;0x0;!%~','#ZZ;3;0;0x3'],
-      'a"b', ['#TX;0;3;0x0;a"b','#ZZ;3;0;0x3'],
-      'a\'b', ['#TX;0;3;0x0;a\'b','#ZZ;3;0;0x3'],
-      ' a b ', ['#SP;0;1;0x0','#TX;1;1;0x1;a',
-                '#SP;2;1;0x2','#TX;3;1;0x3;b',
-                '#SP;4;1;0x4','#ZZ;5;0;0x5'],
-      'a:', ['#TX;0;1;0x0;a','#CL;1;1;0x1','#ZZ;2;0;0x2'],
-    ])
-  })
-
-
-  it('lex-line', () => {
-    alleq([
-      '{a:1,\nb:2}', [
-        '#OB;0;1;0x0',
-
-        '#TX;1;1;0x1;a',
-        '#CL;2;1;0x2',
-        '#NR;3;1;0x3;1',
-
-        '#CA;4;1;0x4',
-        '#LN;5;1;0x5',
-
-        '#TX;6;1;1x0;b',
-        '#CL;7;1;1x7',
-        '#NR;8;1;1x8;2',
-
-        '#CB;9;1;1x9',
-        '#ZZ;10;0;1x10'
-      ],
-    ])
-  })
 
 
   it('syntax-errors', () => {
@@ -6716,274 +6874,277 @@ describe('jsonic', function () {
   
 
   it('process-scalars', () => {
-    expect(prc(lexer(''))).equal(undefined)
-    expect(prc(lexer('null'))).equal(null)
-    expect(prc(lexer('true'))).equal(true)
-    expect(prc(lexer('false'))).equal(false)
-    expect(prc(lexer('123'))).equal(123)
-    expect(prc(lexer('"a"'))).equal('a')
-    expect(prc(lexer('\'b\''))).equal('b')
-    expect(prc(lexer('q'))).equal('q')
-    expect(prc(lexer('x'))).equal('x')
+    expect(j('')).equal(undefined)
+    expect(j('null')).equal(null)
+    expect(j('true')).equal(true)
+    expect(j('false')).equal(false)
+    expect(j('123')).equal(123)
+    expect(j('"a"')).equal('a')
+    expect(j('\'b\'')).equal('b')
+    expect(j('q')).equal('q')
+    expect(j('x')).equal('x')
   })
 
 
   it('process-text', () => {
-    expect(prc(lexer('{x y:1}'))).equal({'x y':1})
-    expect(prc(lexer('x y:1'))).equal({'x y':1})
-    expect(prc(lexer('[{x y:1}]'))).equal([{'x y':1}])
+    expect(j('{x y:1}')).equal({'x y':1})
+    expect(j('x y:1')).equal({'x y':1})
+    expect(j('[{x y:1}]')).equal([{'x y':1}])
     
-    expect(prc(lexer('q'))).equal('q')
-    expect(prc(lexer('q w'))).equal('q w')
-    expect(prc(lexer('a:q w'))).equal({a:'q w'})
-    expect(prc(lexer('a:q w, b:1'))).equal({a:'q w', b:1})
-    expect(prc(lexer('a: q w , b:1'))).equal({a:'q w', b:1})
-    expect(prc(lexer('[q w]'))).equal(['q w'])
-    expect(prc(lexer('[ q w ]'))).equal(['q w'])
-    expect(prc(lexer('[ q w, 1 ]'))).equal(['q w', 1])
-    expect(prc(lexer('[ q w , 1 ]'))).equal(['q w', 1])
-    expect(prc(lexer('p:[q w]}'))).equal({p:['q w']})
-    expect(prc(lexer('p:[ q w ]'))).equal({p:['q w']})
-    expect(prc(lexer('p:[ q w, 1 ]'))).equal({p:['q w', 1]})
-    expect(prc(lexer('p:[ q w , 1 ]'))).equal({p:['q w', 1]})
-    expect(prc(lexer('p:[ q w , 1 ]'))).equal({p:['q w', 1]})
-    expect(prc(lexer('[ qq ]'))).equal(['qq'])
-    expect(prc(lexer('[ q ]'))).equal(['q'])
-    expect(prc(lexer('[ c ]'))).equal(['c'])
-    expect(prc(lexer('c:[ c ]'))).equal({c:['c']})
-    expect(prc(lexer('c:[ c , cc ]'))).equal({c:['c', 'cc']})
+    expect(j('q')).equal('q')
+    expect(j('q w')).equal('q w')
+    expect(j('a:q w')).equal({a:'q w'})
+    expect(j('a:q w, b:1')).equal({a:'q w', b:1})
+    expect(j('a: q w , b:1')).equal({a:'q w', b:1})
+    expect(j('[q w]')).equal(['q w'])
+    expect(j('[ q w ]')).equal(['q w'])
+    expect(j('[ q w, 1 ]')).equal(['q w', 1])
+    expect(j('[ q w , 1 ]')).equal(['q w', 1])
+    expect(j('p:[q w]}')).equal({p:['q w']})
+    expect(j('p:[ q w ]')).equal({p:['q w']})
+    expect(j('p:[ q w, 1 ]')).equal({p:['q w', 1]})
+    expect(j('p:[ q w , 1 ]')).equal({p:['q w', 1]})
+    expect(j('p:[ q w , 1 ]')).equal({p:['q w', 1]})
+    expect(j('[ qq ]')).equal(['qq'])
+    expect(j('[ q ]')).equal(['q'])
+    expect(j('[ c ]')).equal(['c'])
+    expect(j('c:[ c ]')).equal({c:['c']})
+    expect(j('c:[ c , cc ]')).equal({c:['c', 'cc']})
   })
 
   
   it('process-implicit-object', () => {
-    expect(prc(lexer('a:1'))).equal({a:1})
-    expect(prc(lexer('a:1,b:2'))).equal({a:1, b:2})
+    expect(j('a:1')).equal({a:1})
+    expect(j('a:1,b:2')).equal({a:1, b:2})
   })
 
 
   it('process-object-tree', () => {
-    expect(prc(lexer('{}'))).equal({})
-    expect(prc(lexer('{a:1}'))).equal({a:1})
-    expect(prc(lexer('{a:1,b:q}'))).equal({a:1,b:'q'})
-    expect(prc(lexer('{a:1,b:q,c:"w"}'))).equal({a:1,b:'q',c:'w'})
+    expect(j('{}')).equal({})
+    expect(j('{a:1}')).equal({a:1})
+    expect(j('{a:1,b:q}')).equal({a:1,b:'q'})
+    expect(j('{a:1,b:q,c:"w"}')).equal({a:1,b:'q',c:'w'})
     
-    expect(prc(lexer('a:1,b:{c:2}'))).equal({a:1, b:{c:2}})
-    expect(prc(lexer('a:1,d:3,b:{c:2}'))).equal({a:1, d:3, b:{c:2}})
-    expect(prc(lexer('a:1,b:{c:2},d:3'))).equal({a:1, d:3, b:{c:2}})
-    expect(prc(lexer('a:1,b:{c:2},e:{f:4}'))).equal({a:1, b:{c:2}, e:{f:4}})
-    expect(prc(lexer('a:1,b:{c:2},d:3,e:{f:4}'))).equal({a:1, d:3, b:{c:2}, e:{f:4}})
-    expect(prc(lexer('a:1,b:{c:2},d:3,e:{f:4},g:5')))
+    expect(j('a:1,b:{c:2}')).equal({a:1, b:{c:2}})
+    expect(j('a:1,d:3,b:{c:2}')).equal({a:1, d:3, b:{c:2}})
+    expect(j('a:1,b:{c:2},d:3')).equal({a:1, d:3, b:{c:2}})
+    expect(j('a:1,b:{c:2},e:{f:4}')).equal({a:1, b:{c:2}, e:{f:4}})
+    expect(j('a:1,b:{c:2},d:3,e:{f:4}')).equal({a:1, d:3, b:{c:2}, e:{f:4}})
+    expect(j('a:1,b:{c:2},d:3,e:{f:4},g:5'))
       .equal({a:1, d:3, b:{c:2}, e:{f:4}, g:5})
 
-    expect(prc(lexer('a:{b:1}'))).equal({a:{b:1}})
+    expect(j('a:{b:1}')).equal({a:{b:1}})
 
 
-    expect(prc(lexer('{a:{b:1}}'))).equal({a:{b:1}})
-    expect(prc(lexer('a:{b:1}'))).equal({a:{b:1}})
+    expect(j('{a:{b:1}}')).equal({a:{b:1}})
+    expect(j('a:{b:1}')).equal({a:{b:1}})
 
-    expect(prc(lexer('{a:{b:{c:1}}}'))).equal({a:{b:{c:1}}})
-    expect(prc(lexer('a:{b:{c:1}}'))).equal({a:{b:{c:1}}})
+    expect(j('{a:{b:{c:1}}}')).equal({a:{b:{c:1}}})
+    expect(j('a:{b:{c:1}}')).equal({a:{b:{c:1}}})
 
-    expect(prc(lexer('a:1,b:{c:2},d:{e:{f:3}}')))
+    expect(j('a:1,b:{c:2},d:{e:{f:3}}'))
       .equal({a:1, b:{c:2}, d:{e:{f:3}}})
-    expect(prc(lexer('a:1,b:{c:2},d:{e:{f:3}},g:4')))
+    expect(j('a:1,b:{c:2},d:{e:{f:3}},g:4'))
       .equal({a:1, b:{c:2}, d:{e:{f:3}}, g:4})
-    expect(prc(lexer('a:1,b:{c:2},d:{e:{f:3}},h:{i:5},g:4')))
+    expect(j('a:1,b:{c:2},d:{e:{f:3}},h:{i:5},g:4'))
       .equal({a:1, b:{c:2}, d:{e:{f:3}}, g:4, h:{i:5}})
 
     // PN002
-    expect(prc(lexer('a:1,b:{c:2}d:3'))).equal({ a: 1, b: { c: 2 }, d: 3 })
+    expect(j('a:1,b:{c:2}d:3')).equal({ a: 1, b: { c: 2 }, d: 3 })
   })
 
   
-  it('process-array', () => {
-    expect(prc(lexer('[a]'))).equal(['a'])
-    expect(prc(lexer('[a,]'))).equal(['a'])
-    expect(prc(lexer('[a,,]'))).equal(['a',null])
-    expect(prc(lexer('[,a]'))).equal([null,'a'])
-    expect(prc(lexer('[,a,]'))).equal([null,'a'])
-    expect(prc(lexer('[,,a]'))).equal([null,null,'a'])
-    expect(prc(lexer('[,,a,]'))).equal([null,null,'a'])
-    expect(prc(lexer('[,,a,,]'))).equal([null,null,'a',null])
-
-    expect(prc(lexer(' [ a ] '))).equal( ['a'])
-    expect(prc(lexer(' [ a , ] '))).equal(['a'])
-    expect(prc(lexer(' [ a , , ] '))).equal(['a',null])
-    expect(prc(lexer(' [ , a ] '))).equal([null,'a'])
-    expect(prc(lexer(' [ , a , ] '))).equal([null,'a'])
-    expect(prc(lexer(' [ , , a ] '))).equal([null,null,'a'])
-    expect(prc(lexer(' [ , , a , ] '))).equal([null,null,'a'])
-    expect(prc(lexer(' [ , , a , , ] '))).equal([null,null,'a',null])
-
-    expect(prc(lexer(','))).equal([null])
-    expect(prc(lexer(',,'))).equal([null, null])
-    expect(prc(lexer('1,'))).equal([1])
-    expect(prc(lexer('0,'))).equal([0])
-    expect(prc(lexer(',1'))).equal([null,1])
-    expect(prc(lexer(',0'))).equal([null,0])
-    expect(prc(lexer(',1,'))).equal([null,1])
-    expect(prc(lexer(',0,'))).equal([null,0])
-    expect(prc(lexer(',1,,'))).equal([null,1,null])
-    expect(prc(lexer(',0,,'))).equal([null,0,null])
-
-    expect(prc(lexer('[]'))).equal([])
-    expect(prc(lexer('[,]'))).equal([null])
-    expect(prc(lexer('[,,]'))).equal([null,null])
+  it('process-array-qqq', () => {
+    //expect(j('[,,a]',{log:-1})).equal([null,null,'a'])
+    //expect(j(',',{log:-1})).equal([null])
     
-    expect(prc(lexer('[0]'))).equal([0])
-    expect(prc(lexer('[0,1]'))).equal([0,1])
-    expect(prc(lexer('[0,1,2]'))).equal([0,1,2])
-    expect(prc(lexer('[0,]'))).equal([0])
-    expect(prc(lexer('[0,1,]'))).equal([0,1])
-    expect(prc(lexer('[0,1,2,]'))).equal([0,1,2])
+    expect(j('[a]')).equal(['a'])
+    expect(j('[a,]')).equal(['a'])
+    expect(j('[a,,]')).equal(['a',null])
+    expect(j('[,a]')).equal([null,'a'])
+    expect(j('[,a,]')).equal([null,'a'])
+    expect(j('[,,a]')).equal([null,null,'a'])
+    expect(j('[,,a,]')).equal([null,null,'a'])
+    expect(j('[,,a,,]')).equal([null,null,'a',null])
 
-    expect(prc(lexer('[q]'))).equal(['q'])
-    expect(prc(lexer('[q,"w"]'))).equal(['q',"w"])
-    expect(prc(lexer('[q,"w",false]'))).equal(['q',"w",false])
-    expect(prc(lexer('[q,"w",false,0x,0x1]'))).equal(['q',"w",false,'0x',1])
-    expect(prc(lexer('[q,"w",false,0x,0x1,$]'))).equal(['q',"w",false,'0x',1,'$'])
-    expect(prc(lexer('[q,]'))).equal(['q'])
-    expect(prc(lexer('[q,"w",]'))).equal(['q',"w"])
-    expect(prc(lexer('[q,"w",false,]'))).equal(['q',"w",false])
-    expect(prc(lexer('[q,"w",false,0x,0x1,$,]'))).equal(['q',"w",false,'0x',1,'$'])
+    expect(j(' [ a ] ')).equal( ['a'])
+    expect(j(' [ a , ] ')).equal(['a'])
+    expect(j(' [ a , , ] ')).equal(['a',null])
+    expect(j(' [ , a ] ')).equal([null,'a'])
+    expect(j(' [ , a , ] ')).equal([null,'a'])
+    expect(j(' [ , , a ] ')).equal([null,null,'a'])
+    expect(j(' [ , , a , ] ')).equal([null,null,'a'])
+    expect(j(' [ , , a , , ] ')).equal([null,null,'a',null])
 
-    expect(prc(lexer('0,1'))).equal([0,1])
+    expect(j(',')).equal([null])
+    expect(j(',,')).equal([null, null])
+    expect(j('1,')).equal([1])
+    expect(j('0,')).equal([0])
+    expect(j(',1')).equal([null,1])
+    expect(j(',0')).equal([null,0])
+    expect(j(',1,')).equal([null,1])
+    expect(j(',0,')).equal([null,0])
+    expect(j(',1,,')).equal([null,1,null])
+    expect(j(',0,,')).equal([null,0,null])
+
+    expect(j('[]')).equal([])
+    expect(j('[,]')).equal([null])
+    expect(j('[,,]')).equal([null,null])
+    
+    expect(j('[0]')).equal([0])
+    expect(j('[0,1]')).equal([0,1])
+    expect(j('[0,1,2]')).equal([0,1,2])
+    expect(j('[0,]')).equal([0])
+    expect(j('[0,1,]')).equal([0,1])
+    expect(j('[0,1,2,]')).equal([0,1,2])
+
+    expect(j('[q]')).equal(['q'])
+    expect(j('[q,"w"]')).equal(['q',"w"])
+    expect(j('[q,"w",false]')).equal(['q',"w",false])
+    expect(j('[q,"w",false,0x,0x1]')).equal(['q',"w",false,'0x',1])
+    expect(j('[q,"w",false,0x,0x1,$]')).equal(['q',"w",false,'0x',1,'$'])
+    expect(j('[q,]')).equal(['q'])
+    expect(j('[q,"w",]')).equal(['q',"w"])
+    expect(j('[q,"w",false,]')).equal(['q',"w",false])
+    expect(j('[q,"w",false,0x,0x1,$,]')).equal(['q',"w",false,'0x',1,'$'])
+
+    expect(j('0,1')).equal([0,1])
 
     // PN006
-    expect(prc(lexer('0,1,'))).equal([0,1])
+    expect(j('0,1,')).equal([0,1])
     
-    expect(prc(lexer('a:{b:1}'))).equal({a:{b:1}})
-    expect(prc(lexer('a:[1]'))).equal({a:[1]})
-    expect(prc(lexer('a:[0,1]'))).equal({a:[0,1]})
-    expect(prc(lexer('a:[0,1,2]'))).equal({a:[0,1,2]})
-    expect(prc(lexer('{a:[0,1,2]}'))).equal({a:[0,1,2]})
+    expect(j('a:{b:1}')).equal({a:{b:1}})
+    expect(j('a:[1]')).equal({a:[1]})
+    expect(j('a:[0,1]')).equal({a:[0,1]})
+    expect(j('a:[0,1,2]')).equal({a:[0,1,2]})
+    expect(j('{a:[0,1,2]}')).equal({a:[0,1,2]})
 
-    expect(prc(lexer('a:[1],b:[2,3]'))).equal({a:[1],b:[2,3]})
+    expect(j('a:[1],b:[2,3]')).equal({a:[1],b:[2,3]})
 
-    expect(prc(lexer('[[]]'))).equal([[]])
-    expect(prc(lexer('[[],]'))).equal([[]])
-    expect(prc(lexer('[[],[]]'))).equal([[],[]])
-    expect(prc(lexer('[[[]],[]]'))).equal([[[]],[]])
-    expect(prc(lexer('[[[],[]],[]]'))).equal([[[],[]],[]])
-    expect(prc(lexer('[[[],[[]]],[]]'))).equal([[[],[[]]],[]])
-    expect(prc(lexer('[[[],[[],[]]],[]]'))).equal([[[],[[],[]]],[]])
+    expect(j('[[]]')).equal([[]])
+    expect(j('[[],]')).equal([[]])
+    expect(j('[[],[]]')).equal([[],[]])
+    expect(j('[[[]],[]]')).equal([[[]],[]])
+    expect(j('[[[],[]],[]]')).equal([[[],[]],[]])
+    expect(j('[[[],[[]]],[]]')).equal([[[],[[]]],[]])
+    expect(j('[[[],[[],[]]],[]]')).equal([[[],[[],[]]],[]])
   })
 
   
   it('process-mixed-nodes', () => {
-    expect(prc(lexer('a:[{b:1}]'))).equal({a:[{b:1}]})
-    expect(prc(lexer('{a:[{b:1}]}'))).equal({a:[{b:1}]})
+    expect(j('a:[{b:1}]')).equal({a:[{b:1}]})
+    expect(j('{a:[{b:1}]}')).equal({a:[{b:1}]})
 
-    expect(prc(lexer('[{a:1}]'))).equal([{a:1}])
-    expect(prc(lexer('[{a:1},{b:2}]'))).equal([{a:1},{b:2}])
+    expect(j('[{a:1}]')).equal([{a:1}])
+    expect(j('[{a:1},{b:2}]')).equal([{a:1},{b:2}])
 
-    expect(prc(lexer('[[{a:1}]]'))).equal([[{a:1}]])
-    expect(prc(lexer('[[{a:1},{b:2}]]'))).equal([[{a:1},{b:2}]])
+    expect(j('[[{a:1}]]')).equal([[{a:1}]])
+    expect(j('[[{a:1},{b:2}]]')).equal([[{a:1},{b:2}]])
 
-    expect(prc(lexer('[[[{a:1}]]]'))).equal([[[{a:1}]]])
-    expect(prc(lexer('[[[{a:1},{b:2}]]]'))).equal([[[{a:1},{b:2}]]])
+    expect(j('[[[{a:1}]]]')).equal([[[{a:1}]]])
+    expect(j('[[[{a:1},{b:2}]]]')).equal([[[{a:1},{b:2}]]])
 
-    expect(prc(lexer('[{a:[1]}]'))).equal([{a:[1]}])
-    expect(prc(lexer('[{a:[{b:1}]}]'))).equal([{a:[{b:1}]}])
-    expect(prc(lexer('[{a:{b:[1]}}]'))).equal([{a:{b:[1]}}])
-    expect(prc(lexer('[{a:{b:[{c:1}]}}]'))).equal([{a:{b:[{c:1}]}}])
-    expect(prc(lexer('[{a:{b:{c:[1]}}}]'))).equal([{a:{b:{c:[1]}}}])
+    expect(j('[{a:[1]}]')).equal([{a:[1]}])
+    expect(j('[{a:[{b:1}]}]')).equal([{a:[{b:1}]}])
+    expect(j('[{a:{b:[1]}}]')).equal([{a:{b:[1]}}])
+    expect(j('[{a:{b:[{c:1}]}}]')).equal([{a:{b:[{c:1}]}}])
+    expect(j('[{a:{b:{c:[1]}}}]')).equal([{a:{b:{c:[1]}}}])
 
-    expect(prc(lexer('[{},{a:[1]}]'))).equal([{},{a:[1]}])
-    expect(prc(lexer('[{},{a:[{b:1}]}]'))).equal([{},{a:[{b:1}]}])
-    expect(prc(lexer('[{},{a:{b:[1]}}]'))).equal([{},{a:{b:[1]}}])
-    expect(prc(lexer('[{},{a:{b:[{c:1}]}}]'))).equal([{},{a:{b:[{c:1}]}}])
-    expect(prc(lexer('[{},{a:{b:{c:[1]}}}]'))).equal([{},{a:{b:{c:[1]}}}])
+    expect(j('[{},{a:[1]}]')).equal([{},{a:[1]}])
+    expect(j('[{},{a:[{b:1}]}]')).equal([{},{a:[{b:1}]}])
+    expect(j('[{},{a:{b:[1]}}]')).equal([{},{a:{b:[1]}}])
+    expect(j('[{},{a:{b:[{c:1}]}}]')).equal([{},{a:{b:[{c:1}]}}])
+    expect(j('[{},{a:{b:{c:[1]}}}]')).equal([{},{a:{b:{c:[1]}}}])
 
-    expect(prc(lexer('[[],{a:[1]}]'))).equal([[],{a:[1]}])
-    expect(prc(lexer('[[],{a:[{b:1}]}]'))).equal([[],{a:[{b:1}]}])
-    expect(prc(lexer('[[],{a:{b:[1]}}]'))).equal([[],{a:{b:[1]}}])
-    expect(prc(lexer('[[],{a:{b:[{c:1}]}}]'))).equal([[],{a:{b:[{c:1}]}}])
-    expect(prc(lexer('[[],{a:{b:{c:[1]}}}]'))).equal([[],{a:{b:{c:[1]}}}])
+    expect(j('[[],{a:[1]}]')).equal([[],{a:[1]}])
+    expect(j('[[],{a:[{b:1}]}]')).equal([[],{a:[{b:1}]}])
+    expect(j('[[],{a:{b:[1]}}]')).equal([[],{a:{b:[1]}}])
+    expect(j('[[],{a:{b:[{c:1}]}}]')).equal([[],{a:{b:[{c:1}]}}])
+    expect(j('[[],{a:{b:{c:[1]}}}]')).equal([[],{a:{b:{c:[1]}}}])
 
-    expect(prc(lexer('[{a:[1]},{a:[1]}]'))).equal([{a:[1]},{a:[1]}])
-    expect(prc(lexer('[{a:[{b:1}]},{a:[{b:1}]}]'))).equal([{a:[{b:1}]},{a:[{b:1}]}])
-    expect(prc(lexer('[{a:{b:[1]}},{a:{b:[1]}}]'))).equal([{a:{b:[1]}},{a:{b:[1]}}])
-    expect(prc(lexer('[{a:{b:[{c:1}]}},{a:{b:[{c:1}]}}]')))
+    expect(j('[{a:[1]},{a:[1]}]')).equal([{a:[1]},{a:[1]}])
+    expect(j('[{a:[{b:1}]},{a:[{b:1}]}]')).equal([{a:[{b:1}]},{a:[{b:1}]}])
+    expect(j('[{a:{b:[1]}},{a:{b:[1]}}]')).equal([{a:{b:[1]}},{a:{b:[1]}}])
+    expect(j('[{a:{b:[{c:1}]}},{a:{b:[{c:1}]}}]'))
       .equal([{a:{b:[{c:1}]}},{a:{b:[{c:1}]}}])
-    expect(prc(lexer('[{a:{b:{c:[1]}}},{a:{b:{c:[1]}}}]')))
+    expect(j('[{a:{b:{c:[1]}}},{a:{b:{c:[1]}}}]'))
       .equal([{a:{b:{c:[1]}}},{a:{b:{c:[1]}}}])
   })
 
 
-  it('process-comments', () => {
+  it('process-comment', () => {
     expect(j('a:q\nb:w #X\nc:r \n\nd:t\n\n#')).equal({a:'q',b:'w',c:'r',d:'t'})
   })
   
   
   it('process-whitespace', () => {
-    expect(prc(lexer('[0,1]'))).equal([0,1])
-    expect(prc(lexer('[0, 1]'))).equal([0,1])
-    expect(prc(lexer('[0 ,1]'))).equal([0,1])
-    expect(prc(lexer('[0 ,1 ]'))).equal([0,1])
-    expect(prc(lexer('[0,1 ]'))).equal([0,1])
-    expect(prc(lexer('[ 0,1]'))).equal([0,1])
-    expect(prc(lexer('[ 0,1 ]'))).equal([0,1])
+    expect(j('[0,1]')).equal([0,1])
+    expect(j('[0, 1]')).equal([0,1])
+    expect(j('[0 ,1]')).equal([0,1])
+    expect(j('[0 ,1 ]')).equal([0,1])
+    expect(j('[0,1 ]')).equal([0,1])
+    expect(j('[ 0,1]')).equal([0,1])
+    expect(j('[ 0,1 ]')).equal([0,1])
     return 
     
-    expect(prc(lexer('{a: 1}'))).equal({a:1})
-    expect(prc(lexer('{a : 1}'))).equal({a:1})
-    expect(prc(lexer('{a: 1,b: 2}'))).equal({a:1,b:2})
-    expect(prc(lexer('{a : 1,b : 2}'))).equal({a:1,b:2})
+    expect(j('{a: 1}')).equal({a:1})
+    expect(j('{a : 1}')).equal({a:1})
+    expect(j('{a: 1,b: 2}')).equal({a:1,b:2})
+    expect(j('{a : 1,b : 2}')).equal({a:1,b:2})
 
-    expect(prc(lexer('{a:\n1}'))).equal({a:1})
-    expect(prc(lexer('{a\n:\n1}'))).equal({a:1})
-    expect(prc(lexer('{a:\n1,b:\n2}'))).equal({a:1,b:2})
-    expect(prc(lexer('{a\n:\n1,b\n:\n2}'))).equal({a:1,b:2})
+    expect(j('{a:\n1}')).equal({a:1})
+    expect(j('{a\n:\n1}')).equal({a:1})
+    expect(j('{a:\n1,b:\n2}')).equal({a:1,b:2})
+    expect(j('{a\n:\n1,b\n:\n2}')).equal({a:1,b:2})
 
-    expect(prc(lexer('{a:\r\n1}'))).equal({a:1})
-    expect(prc(lexer('{a\r\n:\r\n1}'))).equal({a:1})
-    expect(prc(lexer('{a:\r\n1,b:\r\n2}'))).equal({a:1,b:2})
-    expect(prc(lexer('{a\r\n:\r\n1,b\r\n:\r\n2}'))).equal({a:1,b:2})
+    expect(j('{a:\r\n1}')).equal({a:1})
+    expect(j('{a\r\n:\r\n1}')).equal({a:1})
+    expect(j('{a:\r\n1,b:\r\n2}')).equal({a:1,b:2})
+    expect(j('{a\r\n:\r\n1,b\r\n:\r\n2}')).equal({a:1,b:2})
 
     
-    expect(prc(lexer(' { a: 1 } '))).equal({a:1})
-    expect(prc(lexer(' { a : 1 } '))).equal({a:1})
-    expect(prc(lexer(' { a: 1 , b: 2 } '))).equal({a:1,b:2})
-    expect(prc(lexer(' { a : 1 , b : 2 } '))).equal({a:1,b:2})
+    expect(j(' { a: 1 } ')).equal({a:1})
+    expect(j(' { a : 1 } ')).equal({a:1})
+    expect(j(' { a: 1 , b: 2 } ')).equal({a:1,b:2})
+    expect(j(' { a : 1 , b : 2 } ')).equal({a:1,b:2})
 
-    expect(prc(lexer('  {  a:  1  }  '))).equal({a:1})
-    expect(prc(lexer('  {  a  :  1  }  '))).equal({a:1})
-    expect(prc(lexer('  {  a:  1  ,  b:  2  }  '))).equal({a:1,b:2})
-    expect(prc(lexer('  {  a  :  1  ,  b  :  2  }  '))).equal({a:1,b:2})
+    expect(j('  {  a:  1  }  ')).equal({a:1})
+    expect(j('  {  a  :  1  }  ')).equal({a:1})
+    expect(j('  {  a:  1  ,  b:  2  }  ')).equal({a:1,b:2})
+    expect(j('  {  a  :  1  ,  b  :  2  }  ')).equal({a:1,b:2})
 
-    expect(prc(lexer('\n  {\n  a:\n  1\n  }\n  '))).equal({a:1})
-    expect(prc(lexer('\n  {\n  a\n  :\n  1\n  }\n  '))).equal({a:1})
-    expect(prc(lexer('\n  {\n  a:\n  1\n  ,\n  b:\n  2\n  }\n  '))).equal({a:1,b:2})
-    expect(prc(lexer('\n  {\n  a\n  :\n  1\n  ,\n  b\n  :\n  2\n  }\n  ')))
+    expect(j('\n  {\n  a:\n  1\n  }\n  ')).equal({a:1})
+    expect(j('\n  {\n  a\n  :\n  1\n  }\n  ')).equal({a:1})
+    expect(j('\n  {\n  a:\n  1\n  ,\n  b:\n  2\n  }\n  ')).equal({a:1,b:2})
+    expect(j('\n  {\n  a\n  :\n  1\n  ,\n  b\n  :\n  2\n  }\n  '))
       .equal({a:1,b:2})
 
-    expect(prc(lexer('\n  \n{\n  \na:\n  \n1\n  \n}\n  \n'))).equal({a:1})
-    expect(prc(lexer('\n  \n{\n  \na\n  \n:\n  \n1\n  \n}\n  \n'))).equal({a:1})
-    expect(prc(lexer('\n  \n{\n  \na:\n  \n1\n  \n,\n  \nb:\n  \n2\n  \n}\n  \n'))).equal({a:1,b:2})
-    expect(prc(lexer('\n  \n{\n  \na\n  \n:\n  \n1\n  \n,\n  \nb\n  \n:\n  \n2\n  \n}\n  \n')))
+    expect(j('\n  \n{\n  \na:\n  \n1\n  \n}\n  \n')).equal({a:1})
+    expect(j('\n  \n{\n  \na\n  \n:\n  \n1\n  \n}\n  \n')).equal({a:1})
+    expect(j('\n  \n{\n  \na:\n  \n1\n  \n,\n  \nb:\n  \n2\n  \n}\n  \n')).equal({a:1,b:2})
+    expect(j('\n  \n{\n  \na\n  \n:\n  \n1\n  \n,\n  \nb\n  \n:\n  \n2\n  \n}\n  \n'))
       .equal({a:1,b:2})
 
-    expect(prc(lexer('\n\n{\n\na:\n\n1\n\n}\n\n'))).equal({a:1})
-    expect(prc(lexer('\n\n{\n\na\n\n:\n\n1\n\n}\n\n'))).equal({a:1})
-    expect(prc(lexer('\n\n{\n\na:\n\n1\n\n,\n\nb:\n\n2\n\n}\n\n'))).equal({a:1,b:2})
-    expect(prc(lexer('\n\n{\n\na\n\n:\n\n1\n\n,\n\nb\n\n:\n\n2\n\n}\n\n')))
+    expect(j('\n\n{\n\na:\n\n1\n\n}\n\n')).equal({a:1})
+    expect(j('\n\n{\n\na\n\n:\n\n1\n\n}\n\n')).equal({a:1})
+    expect(j('\n\n{\n\na:\n\n1\n\n,\n\nb:\n\n2\n\n}\n\n')).equal({a:1,b:2})
+    expect(j('\n\n{\n\na\n\n:\n\n1\n\n,\n\nb\n\n:\n\n2\n\n}\n\n'))
       .equal({a:1,b:2})
 
-    expect(prc(lexer('\r\n{\r\na:\r\n1\r\n}\r\n'))).equal({a:1})
-    expect(prc(lexer('\r\n{\r\na\r\n:\r\n1\r\n}\r\n'))).equal({a:1})
-    expect(prc(lexer('\r\n{\r\na:\r\n1\r\n,\r\nb:\r\n2\r\n}\r\n'))).equal({a:1,b:2})
-    expect(prc(lexer('\r\n{\r\na\r\n:\r\n1\r\n,\r\nb\r\n:\r\n2\r\n}\r\n')))
+    expect(j('\r\n{\r\na:\r\n1\r\n}\r\n')).equal({a:1})
+    expect(j('\r\n{\r\na\r\n:\r\n1\r\n}\r\n')).equal({a:1})
+    expect(j('\r\n{\r\na:\r\n1\r\n,\r\nb:\r\n2\r\n}\r\n')).equal({a:1,b:2})
+    expect(j('\r\n{\r\na\r\n:\r\n1\r\n,\r\nb\r\n:\r\n2\r\n}\r\n'))
       .equal({a:1,b:2})
 
 
-    expect(prc(lexer('a: 1'))).equal({a:1})
-    expect(prc(lexer(' a: 1'))).equal({a:1})
-    expect(prc(lexer(' a: 1 '))).equal({a:1})
-    expect(prc(lexer(' a : 1 '))).equal({a:1})
+    expect(j('a: 1')).equal({a:1})
+    expect(j(' a: 1')).equal({a:1})
+    expect(j(' a: 1 ')).equal({a:1})
+    expect(j(' a : 1 ')).equal({a:1})
     
-    expect(prc(lexer(' a: [ { b: 1 } ] '))).equal({a:[{b:1}]})
-    expect(prc(lexer('\na: [\n  {\n     b: 1\n  }\n]\n'))).equal({a:[{b:1}]})
+    expect(j(' a: [ { b: 1 } ] ')).equal({a:[{b:1}]})
+    expect(j('\na: [\n  {\n     b: 1\n  }\n]\n')).equal({a:[{b:1}]})
   })
 
   
@@ -7079,8 +7240,8 @@ describe('jsonic', function () {
         dec: 9.9,
         t: true,
         f: false,
-        qs: `a\\a'a"`,
-        as: `a"a\\a'`
+        qs: `a"a'a`,
+        as: `a"a'a`
       }
     })
     
@@ -7091,8 +7252,8 @@ describe('jsonic', function () {
       dec: 9.9,
       t: true,
       f: false,
-      qs: `a\\a'a"`,
-      as: `a"a\\a'`
+      qs: `a"a'a`,
+      as: `a"a'a`
     })
   })
 
@@ -7107,25 +7268,31 @@ describe('jsonic', function () {
 
 
   it('pv-comma', function(){
-    expect(j("a:1, b:2, ")).equal({"a":1,"b":2})
+    expect(j('a:1, b:2, ')).equal({a:1,b:2})
 
-    expect(j("a:1,")).equal({"a":1})
+    expect(j('a:1,')).equal({a:1})
 
-    // DIFF expect(j(",a:1")).equal({"a":1})
+    // TODO: decide how this should work, esp given a:1, -> {a:1}
+    // DIFF expect(j(',a:1')).equal({a:1})
 
-    // DIFF expect(j(",")).equal({})
+    // DIFF: was {}
+    expect(j(',')).equal([null])
 
-    // DIFF expect(j(",,")).equal({})
+    // DIFF: was {}
+    expect(j(',,')).equal([null,null])
 
-    expect(j("[a,]")).equal(["a"])
+    expect(j('[a,]')).equal(['a'])
 
-    expect(j("[a,1,]")).equal(["a",1])
+    expect(j('[a,1,]')).equal(['a',1])
 
-    // DIFF expect(j("[,a,1,]")).equal(["a",1])
+    // DIFF: was [a,1]
+    expect(j('[,a,1,]')).equal([null,'a',1])
 
-    // DIFF expect(j("[,]")).equal([])
+    // DIFF: was []
+    expect(j('[,]')).equal([null])
 
-    // DIFF expect(j("[,,]")).equal([])
+    // DIFF: was []
+    expect(j('[,,]')).equal([null,null])
   })
 
 
@@ -7495,97 +7662,45 @@ describe('jsonic', function () {
 */
   
 
-  it('pv-performance', function(){
-    var start = Date.now(), count = 0
-    var input =
-          "int:100,dec:9.9,t:true,f:false,qs:"+
-          "\"a\\\"a'a\",as:'a\"a\\'a',a:{b:{c:1}}"
-
-    while( Date.now()-start < 1000 ) {
-      j(input)
-      count++
-    }
-
-    console.log( 'parse/sec: '+count )
+  it('pv-performance', {timeout:3333}, function(){
+    pv_perf(200)
   })
 })
 
+},{"..":1,"./pv-perf":56,"@hapi/code":2,"@hapi/lab":31,"hapi-lab-shim":40,"util":52}],56:[function(require,module,exports){
+var j = require('..').Jsonic
 
-function st(t) {
-  let out = []
+function pv_perf(dur) {
+  var input =
+      "int:100,dec:9.9,t:true,f:false,qs:"+
+      "\"a\\\"a'a\",as:'a\"a\\'a',a:{b:{c:1}}"
 
-  function m(s,v,t) {
-    return [s,t.loc,t.len,t.row+'x'+t.col,v?t.val:null]
+  // warm up
+  var start = Date.now(), count = 0
+  while( Date.now()-start < dur ) {
+    j(input)
   }
 
-  switch(t.pin) {
-  case lexer.SP:
-    out = m(lexer.SP.description,0,t)
-    break
-
-  case lexer.LN:
-    out = m(lexer.LN.description,0,t)
-    break
-
-  case lexer.OB:
-    out = m(lexer.OB.description,0,t)
-    break
-
-  case lexer.CB:
-    out = m(lexer.CB.description,0,t)
-    break
-
-  case lexer.OS:
-    out = m(lexer.OS.description,0,t)
-    break
-
-  case lexer.CS:
-    out = m(lexer.CS.description,0,t)
-    break
-
-  case lexer.CL:
-    out = m(lexer.CL.description,0,t)
-    break
-
-  case lexer.CA:
-    out = m(lexer.CA.description,0,t)
-    break
-
-  case lexer.NR:
-    out = m(lexer.NR.description,1,t)
-    break
-
-  case lexer.ST:
-    out = m(lexer.ST.description,1,t)
-    break
-
-  case lexer.TX:
-    out = m(lexer.TX.description,1,t)
-    break
-
-  case lexer.BL:
-    out = m(lexer.BL.description,1,t)
-    break
-
-  case lexer.CM:
-    out = m(lexer.CM.description,1,t)
-    break
-
-  case lexer.NL:
-    return lexer.NL.description+';'+t.loc+';'+t.len+';'+t.row+'x'+t.col+';'+t.val
-
-  case lexer.BD:
-    t.val = t.val+'~'+t.why
-    out = m(lexer.BD.description,1,t)
-    break
-
-  case lexer.ZZ:
-    out = m(lexer.ZZ.description,0,t)
-    break
+  start = Date.now(), count = 0
+  while( Date.now()-start < dur ) {
+    j(input)
+    count++
   }
 
-  return out.filter(x=>null!=x).join(';')
+  console.log( 'parse/sec: '+(count*(1000/dur)) )
+
 }
 
-},{"..":1,"@hapi/code":2,"@hapi/lab":31,"hapi-lab-shim":40}]},{},[54])(54)
+if(require.main === module) {
+  pv_perf(1000)
+}
+
+module.exports = pv_perf
+
+},{"..":1}],57:[function(require,module,exports){
+// TODO: check missing
+require('./jsonic.test.js')
+require('./feature.test.js')
+
+},{"./feature.test.js":54,"./jsonic.test.js":55}]},{},[57])(57)
 });

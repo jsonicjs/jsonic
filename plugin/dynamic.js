@@ -3,6 +3,7 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.Dynamic = void 0;
 const jsonic_1 = require("../jsonic");
+// TODO: markchar actually works - test!
 // TODO: array elements
 // TODO: plain values: $1, $true, etc
 let Dynamic = function dynamic(jsonic) {
@@ -63,6 +64,7 @@ let Dynamic = function dynamic(jsonic) {
                 let okey = ST === token.pin ? token.val : token.src;
                 let prev = orule.node[okey];
                 let val = orule.child.node;
+                // TODO: this needs a good refactor
                 if ('function' === typeof (val) && val.__eval$$) {
                     Object.defineProperty(val, 'name', { value: okey });
                     (function () {
@@ -76,6 +78,7 @@ let Dynamic = function dynamic(jsonic) {
                         // TODO: remove closure refs to avoid bad memleak
                         Object.defineProperty(rule.node, key, {
                             enumerable: true,
+                            // TODO: proper JsonicError when this fails
                             get() {
                                 let $ = ctx.root();
                                 //console.log('DYN GET', key, $, rule.name + '/' + rule.id, ctx.rI)
@@ -96,18 +99,18 @@ let Dynamic = function dynamic(jsonic) {
                                 //console.log('TREE')
                                 //console.dir(__)
                                 let out = null == $ ? null : val($, rule.node, __, ctx.meta);
-                                //console.log('OUT', key, out, prev, over)
                                 out = null == prev ? out :
-                                    (ctx.opts.object.extend ? jsonic_1.util.deep(prev, out) : out);
+                                    (ctx.opts.object.extend ? jsonic_1.util.deep({}, prev, out) : out);
+                                //console.log('OUT', key, out, prev, over)
                                 if (null != over) {
-                                    out = jsonic_1.util.deep(out, over);
+                                    out = jsonic_1.util.deep({}, out, over);
                                     //console.log('OVER', out, over)
                                 }
                                 return out;
                             },
                             set(val) {
                                 over = val;
-                                //console.log('SET', over, !!ctx.root())
+                                //console.log('SET', key, over)
                             }
                         });
                     })();

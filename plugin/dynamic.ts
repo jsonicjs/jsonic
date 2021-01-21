@@ -3,6 +3,7 @@
 
 import { Jsonic, Plugin, Rule, RuleSpec, Context, util } from '../jsonic'
 
+// TODO: markchar actually works - test!
 // TODO: array elements
 // TODO: plain values: $1, $true, etc
 
@@ -79,6 +80,7 @@ let Dynamic: Plugin = function dynamic(jsonic: Jsonic) {
         let prev = orule.node[okey]
         let val = orule.child.node
 
+        // TODO: this needs a good refactor
         if ('function' === typeof (val) && val.__eval$$) {
           Object.defineProperty(val, 'name', { value: okey })
 
@@ -97,6 +99,8 @@ let Dynamic: Plugin = function dynamic(jsonic: Jsonic) {
               // TODO: remove closure refs to avoid bad memleak
               Object.defineProperty(rule.node, key, {
                 enumerable: true,
+
+                // TODO: proper JsonicError when this fails
                 get() {
                   let $ = ctx.root()
                   //console.log('DYN GET', key, $, rule.name + '/' + rule.id, ctx.rI)
@@ -124,13 +128,13 @@ let Dynamic: Plugin = function dynamic(jsonic: Jsonic) {
 
                   let out = null == $ ? null : val($, rule.node, __, ctx.meta)
 
+                  out = null == prev ? out :
+                    (ctx.opts.object.extend ? util.deep({}, prev, out) : out)
+
                   //console.log('OUT', key, out, prev, over)
 
-                  out = null == prev ? out :
-                    (ctx.opts.object.extend ? util.deep(prev, out) : out)
-
                   if (null != over) {
-                    out = util.deep(out, over)
+                    out = util.deep({}, out, over)
                     //console.log('OVER', out, over)
                   }
 
@@ -138,7 +142,7 @@ let Dynamic: Plugin = function dynamic(jsonic: Jsonic) {
                 },
                 set(val: any) {
                   over = val
-                  //console.log('SET', over, !!ctx.root())
+                  //console.log('SET', key, over)
                 }
               })
             })();

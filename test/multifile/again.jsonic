@@ -1,4 +1,6 @@
 foo:$1+1
-//red: $.red.name
-//item: $.red
-item: {extra:3}
+red_name: $.red.name
+item0: $.red
+item0: {extra:0}
+item1: $.red
+item1: {extra:1}

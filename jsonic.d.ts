@@ -41,9 +41,12 @@ declare type Opts = {
             [name: string]: string;
         };
     };
+    rule: {
+        maxmul: number;
+    };
 };
-declare type Jsonic = ((src: any, meta?: any) => any) & {
-    parse: (src: any, meta?: any) => any;
+declare type Jsonic = ((src: any, meta?: any, partial_ctx?: any) => any) & {
+    parse: (src: any, meta?: any, partial_ctx?: any) => any;
     options: Opts & KV & ((change_opts?: KV) => Jsonic);
     make: (opts?: KV) => Jsonic;
     use: (plugin: Plugin, opts?: KV) => Jsonic;
@@ -54,7 +57,7 @@ declare type Jsonic = ((src: any, meta?: any) => any) & {
 } & {
     [prop: string]: any;
 };
-declare type Plugin = (jsonic: Jsonic) => any;
+declare type Plugin = (jsonic: Jsonic) => void | Jsonic;
 declare type Meta = {
     [k: string]: any;
 };
@@ -106,17 +109,17 @@ declare type Config = {
         [name: string]: pin[];
     };
     escape: string[];
-    start_comment: pin[];
-    comment_single: string;
-    comment_marker: string[];
-    comment_marker_first: string;
-    comment_marker_second: string;
-    comment_marker_maxlen: number;
-    start_comment_chars: string;
-    single_chars: string;
-    value_enders: string;
-    text_enders: string;
-    hoover_enders: string;
+    start_cm: pin[];
+    cm_single: string;
+    cmk: string[];
+    cmk0: string;
+    cmk1: string;
+    cmk_maxlen: number;
+    start_cm_char: string;
+    single_char: string;
+    value_ender: string;
+    text_ender: string;
+    hoover_ender: string;
     lex: {
         core: {
             [name: string]: pin;
@@ -184,7 +187,7 @@ declare class Parser {
     rule(name: string, define?: (rs: RuleSpec, rsm: {
         [n: string]: RuleSpec;
     }) => RuleSpec): RuleSpec;
-    start(lexer: Lexer, src: string, meta?: any): any;
+    start(lexer: Lexer, src: string, meta?: any, partial_ctx?: any): any;
     clone(opts: Opts, config: Config): Parser;
 }
 declare let util: {

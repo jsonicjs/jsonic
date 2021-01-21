@@ -16,8 +16,6 @@ type pin = number
 
 // TODO: complete
 type Opts = {
-  // start: { [name: string]: string }
-  //single: string
   escape: { [denoting_char: string]: string }
   char: KV
   comment: { [start_marker: string]: string | boolean }
@@ -37,22 +35,25 @@ type Opts = {
     { c: string } |  // Single char token (eg. OB=`{`)
     { s: string } |  // Token set, comma-sep string (eg. '#SP,#LN')
     string |         // Multi-char token (eg. SP=` \t`)
-    true           // Non-char token (eg. ZZ)
+    true             // Non-char token (eg. ZZ)
   }
   lex: {
     core: { [name: string]: string }
-  }
+  },
+  rule: {
+    maxmul: number,
+  },
 }
 
 
 type Jsonic =
   // A function that parses.
-  ((src: any, meta?: any) => any)
+  ((src: any, meta?: any, partial_ctx?: any) => any)
   &
 
   // A utility with methods.
   {
-    parse: (src: any, meta?: any) => any
+    parse: (src: any, meta?: any, partial_ctx?: any) => any
     options: Opts & KV & ((change_opts?: KV) => Jsonic)
     make: (opts?: KV) => Jsonic
     use: (plugin: Plugin, opts?: KV) => Jsonic
@@ -61,13 +62,13 @@ type Jsonic =
       => Jsonic
     lex: (state: string[], match: any) => any
   }
+  &
 
   // Extensible by plugin decoration. Example: `stringify`.
-  &
   { [prop: string]: any }
 
 
-type Plugin = (jsonic: Jsonic) => any
+type Plugin = (jsonic: Jsonic) => void | Jsonic
 
 type Meta = { [k: string]: any }
 
@@ -120,17 +121,17 @@ type Config = {
   single: pin[]
   tokenset: { [name: string]: pin[] }
   escape: string[]
-  start_comment: pin[]
-  comment_single: string
-  comment_marker: string[]
-  comment_marker_first: string
-  comment_marker_second: string
-  comment_marker_maxlen: number
-  start_comment_chars: string
-  single_chars: string
-  value_enders: string
-  text_enders: string
-  hoover_enders: string
+  start_cm: pin[]       // Comment start char codes.
+  cm_single: string     // Single line comment start marker chars.
+  cmk: string[]         // Comment start markers.
+  cmk0: string          // Comment start markers first chars.
+  cmk1: string          // Comment start markers second chars.
+  cmk_maxlen: number    // Comment start markers max len.
+  start_cm_char: string // Comment start chars.
+  single_char: string
+  value_ender: string
+  text_ender: string
+  hoover_ender: string
   lex: {
     core: { [name: string]: pin }
   },
@@ -302,11 +303,26 @@ offending syntax.`
       '#IGNORE': { s: '#SP,#LN,#CM' },
     },
 
+
+    // Lexing options.
     lex: {
       core: {
-        LN: '#LN'
+
+        // The token for line endings.
+        LN: '#LN',
+
+        // TODO: the other builtin tokens
       }
     },
+
+
+    // Parser rule options.
+    rule: {
+
+      // Multiplier to increase the maximum number of rule occurences.
+      maxmul: 3,
+    },
+
   }
 
   return opts
@@ -609,7 +625,7 @@ class Lexer {
             pI = sI
             while (opts.number.digital.includes(src[++pI]));
 
-            if (null == src[pI] || config.value_enders.includes(src[pI])) {
+            if (null == src[pI] || config.value_ender.includes(src[pI])) {
               token.len = pI - sI
 
               // Leading 0s are text unless hex val: if at least two
@@ -755,14 +771,14 @@ class Lexer {
 
 
           // Comment chars.
-          else if (config.start_comment.includes(c0c)) {
-            let is_line_comment = config.comment_single.includes(c0)
+          else if (config.start_cm.includes(c0c)) {
+            let is_line_comment = config.cm_single.includes(c0)
 
             // Also check for comment markers as single comment char could be
             // a comment marker prefix (eg. # and ###, / and //, /*).
-            let marker = src.substring(sI, sI + config.comment_marker_maxlen)
+            let marker = src.substring(sI, sI + config.cmk_maxlen)
 
-            for (let cm of config.comment_marker) {
+            for (let cm of config.cmk) {
               if (marker.startsWith(cm)) {
 
                 // Multi-line comment.
@@ -813,7 +829,7 @@ class Lexer {
           do {
             cI++
             pI++
-          } while (null != src[pI] && !config.value_enders.includes(src[pI]))
+          } while (null != src[pI] && !config.value_ender.includes(src[pI]))
 
           let txt = src.substring(sI, pI)
 
@@ -833,13 +849,13 @@ class Lexer {
 
           // Only thing left is literal text
           let text_enders =
-            opts.text.hoover ? config.hoover_enders : config.text_enders
+            opts.text.hoover ? config.hoover_ender : config.text_ender
 
           // TODO: construct a RegExp to do this
           while (null != src[pI] &&
             (!text_enders.includes(src[pI]) ||
-              (config.comment_marker_first.includes(src[pI]) &&
-                !config.comment_marker_second.includes(src[pI + 1]))
+              (config.cmk0.includes(src[pI]) &&
+                !config.cmk1.includes(src[pI + 1]))
             )) {
             cI++
             pI++
@@ -1484,7 +1500,7 @@ class Parser {
   }
 
 
-  start(lexer: Lexer, src: string, meta?: any): any {
+  start(lexer: Lexer, src: string, meta?: any, partial_ctx?: any): any {
     let opts = this.opts
     let config = this.config
 
@@ -1496,39 +1512,37 @@ class Parser {
       config,
       meta: meta || {},
       src: () => src, // Avoid printing src
-      root: () => {
-        return root.node
-      },
+      root: () => root.node,
       node: undefined,
       t0: lexer.end,
       t1: lexer.end,
-      tI: -2,  // adjust count for token lookahead
+      tI: -2,  // prepare count for 2-token lookahead
       next,
       rs: [],
       rsm: this.rsm,
       log: (meta && meta.log) || undefined,
-
-      // Format src strings (eg. for logging).
-      //F: (s: any) =>
-      //  null == s ? '' : JSON.stringify(s).substring(0, config.debug.maxlen),
       F: util.make_src_format(config),
-
       use: {}
+    }
+
+    if (null != partial_ctx) {
+      ctx = util.deep(ctx, partial_ctx)
     }
 
     util.make_log(ctx)
 
     let tn = (pin: pin): string => util.token(pin, this.config)
-
     let lex = lexer.start(ctx)
-
     let rule = new Rule(this.rsm.val, ctx)
 
     root = rule
 
-    // Maximum rule iterations. Allow for rule open and close,
-    // and for each rule on each char to be virtual (like map, list)
-    let maxr = 2 * Object.keys(this.rsm).length * lex.src.length
+    // Maximum rule iterations (prevents infinite loops). Allow for
+    // rule open and close, and for each rule on each char to be
+    // virtual (like map, list), and double for safety margin (allows
+    // lots of backtracking), and apply a multipler.
+    let maxr = 2 * Object.keys(this.rsm).length * lex.src.length *
+      2 * opts.rule.maxmul
 
     // Lex next token.
     function next() {
@@ -1552,6 +1566,8 @@ class Parser {
     // Process rules on tokens
     let rI = 0
 
+    // This loop is the heart of the engine. Keep processing rule
+    // occurrences until there's none left.
     while (norule !== rule && rI < maxr) {
       ctx.log &&
         ctx.log('rule', rule.name + '/' + rule.id, RuleState[rule.state],
@@ -1569,6 +1585,7 @@ class Parser {
 
     // TODO: must end with t.ZZ token else error
 
+    // NOTE: by returning root, we get implicit closing of maps and lists.
     return root.node
   }
 
@@ -1859,12 +1876,7 @@ let util = {
       .reduce((a: any, tsn) =>
         (a[tsn.substring(1)] = ((opts.token[tsn] as any).s.split(',')
           .map((tn: string) => config.token[tn])),
-          //console.log(tsn.substring(1), (opts.token[tsn] as any).s.split(','), ((opts.token[tsn] as any).s.split(',')
-          //   .map((tn: string) => config.token[tn])), a),
           a), {})
-
-    //console.log('TSN', tokenset_names, config.tokenset)
-
 
 
     // Lookup table for escape chars, indexed by denotating char (e.g. n for \n).
@@ -1874,11 +1886,11 @@ let util = {
         (a[ed.charCodeAt(0)] = opts.escape[ed], a), [])
 
 
-    config.start_comment = []
-    config.comment_single = ''
-    config.comment_marker = []
-    config.comment_marker_first = ''
-    config.comment_marker_second = ''
+    config.start_cm = []
+    config.cm_single = ''
+    config.cmk = []
+    config.cmk0 = ''
+    config.cmk1 = ''
 
     if (opts.comment) {
       let comment_markers = Object.keys(opts.comment)
@@ -1887,42 +1899,42 @@ let util = {
 
         // Single char comment marker (eg. `#`)
         if (1 === k.length) {
-          config.start_comment.push(k.charCodeAt(0))
-          config.comment_single += k
+          config.start_cm.push(k.charCodeAt(0))
+          config.cm_single += k
         }
 
         // String comment marker (eg. `//`)
         else {
-          config.start_comment.push(k.charCodeAt(0))
-          config.comment_marker.push(k)
-          config.comment_marker_first += k[0]
-          config.comment_marker_second += k[1]
+          config.start_cm.push(k.charCodeAt(0))
+          config.cmk.push(k)
+          config.cmk0 += k[0]
+          config.cmk1 += k[1]
         }
       })
 
-      config.comment_marker_maxlen = util.longest(comment_markers)
+      config.cmk_maxlen = util.longest(comment_markers)
     }
 
-    config.start_comment_chars =
-      config.start_comment.map((cc: number) => String.fromCharCode(cc)).join('')
+    config.start_cm_char =
+      config.start_cm.map((cc: number) => String.fromCharCode(cc)).join('')
 
-    config.single_chars =
+    config.single_char =
       config.single.map((_s: any, cc: number) => String.fromCharCode(cc)).join('')
 
 
     // Enders are char sets that end lexing for a given token
-    config.value_enders =
+    config.value_ender =
       config.multi.SP +
       config.multi.LN +
-      config.single_chars +
-      config.start_comment_chars
+      config.single_char +
+      config.start_cm_char
 
-    config.text_enders = config.value_enders
+    config.text_ender = config.value_ender
 
-    config.hoover_enders =
+    config.hoover_ender =
       config.multi.LN +
-      config.single_chars +
-      config.start_comment_chars
+      config.single_char +
+      config.start_cm_char
 
     config.lex = {
       core: {
@@ -1932,6 +1944,7 @@ let util = {
 
     config.debug = opts.debug
 
+    // TOOD: maybe make this a debug option?
     //console.log(config)
   },
 }
@@ -1961,7 +1974,7 @@ function make(first?: KV | Jsonic, parent?: Jsonic): Jsonic {
 
 
   // Create primary parsing function
-  let self: any = function Jsonic(src: any, meta?: any): any {
+  let self: any = function Jsonic(src: any, meta?: any, partial_ctx?: any): any {
     debugger
     if ('string' === typeof (src)) {
       let internal = self.internal()
@@ -1971,7 +1984,7 @@ function make(first?: KV | Jsonic, parent?: Jsonic): Jsonic {
           [false]
 
       if (!done) {
-        out = internal.parser.start(internal.lexer, src, meta)
+        out = internal.parser.start(internal.lexer, src, meta, partial_ctx)
       }
 
       return out
