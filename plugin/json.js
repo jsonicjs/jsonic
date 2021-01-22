@@ -10,10 +10,10 @@ let Json = function stringify(jsonic) {
             }
         },
         error: {
-            json: 'unexpected character `$src`'
+            json: 'unexpected character $src'
         },
         hint: {
-            json: `In \`json\` mode, the character \`$src\` should not occur at this
+            json: `In \`json\` mode, the character $src should not occur at this
 point as it is not valid JSON syntax, which much be strictly
 correct. If it is not obviously wrong, the actual syntax error may be
 elsewhere. Try commenting out larger areas around this point until you

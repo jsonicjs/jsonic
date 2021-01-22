@@ -95,6 +95,8 @@ interface Context {
   src: () => string,
   root: () => any,
   node: any
+  u2: Token
+  u1: Token
   t0: Token
   t1: Token
   tI: number
@@ -127,6 +129,9 @@ type Config = {
   cmk1: string          // Comment start markers second chars.
   cmk_maxlen: number    // Comment start markers max len.
   start_cm_char: string // Comment start chars.
+  start_bm: pin[]
+  bmk: string[]
+  bmk_maxlen: number
   single_char: string
   value_ender: string
   text_ender: string
@@ -200,6 +205,10 @@ function make_standard_options(): Opts {
       // Multiline quote chars.
       multiline: '`',
 
+      block: {
+        '\'\'\'': '\'\'\''
+      },
+
       // CSV-style double quote escape.
       escapedouble: false,
     },
@@ -254,7 +263,7 @@ function make_standard_options(): Opts {
     // Error messages.
     error: {
       unknown: 'unknown error: $code',
-      unexpected: 'unexpected character(s): `$src`'
+      unexpected: 'unexpected character(s): $src'
     },
 
 
@@ -265,9 +274,10 @@ function make_standard_options(): Opts {
 Please consider posting a github issue - thanks!
 `,
 
-      unexpected: `The character(s) \`$src\` should not occur at this point as it is not
-valid JSON syntax, even under the relaxed jsonic rules.  If it is not
-obviously wrong, the actual syntax error may be elsewhere. Try
+      unexpected:
+        `The character(s) $src should not occur at this point as it is not
+valid JSON syntax, even under the relaxed jsonic rules.If it is not
+obviously wrong, the actual syntax error may be elsewhere.Try
 commenting out larger areas around this point until you get no errors,
 then remove the comments in small sections until you find the
 offending syntax.`
@@ -284,7 +294,7 @@ offending syntax.`
       '#CA': { c: ',' }, // COMMA
 
       // Multi-char tokens (start chars).
-      '#SP': ' \t',         // SPACE
+      '#SP': ' \t',         // SPACE - NOTE: first char is used for indents
       '#LN': '\n\r',        // LINE
       '#CM': true,          // COMMENT
       '#NR': '-0123456789', // NUMBER
@@ -340,6 +350,7 @@ class JsonicError extends SyntaxError {
     code: string,
     details: KV,
     token: Token,
+    rule: Rule,
     ctx: Context,
   ) {
     details = util.deep({}, details)
@@ -362,7 +373,7 @@ class JsonicError extends SyntaxError {
       log: ctx.log,
       use: ctx.use
     })
-    let desc = JsonicError.make_desc(code, details, token, errctx)
+    let desc = JsonicError.make_desc(code, details, token, rule, errctx)
     super(desc.message)
     Object.assign(this, desc)
 
@@ -377,6 +388,7 @@ class JsonicError extends SyntaxError {
     code: string,
     details: KV,
     token: Token,
+    rule: Rule,
     ctx: Context,
   ) {
     token = { ...token }
@@ -384,7 +396,7 @@ class JsonicError extends SyntaxError {
     let meta = ctx.meta
     let errtxt = util.errinject(
       (opts.error[code] || opts.error.unknown),
-      code, details, token, ctx
+      code, details, token, rule, ctx
     )
 
     let message = [
@@ -396,8 +408,10 @@ class JsonicError extends SyntaxError {
       util.errinject(
         (opts.hint[code] || opts.hint.unknown).split('\n')
           .map((s: string) => '  ' + s).join('\n'),
-        code, details, token, ctx
-      )
+        code, details, token, rule, ctx
+      ),
+      '  \x1b[2m--internal: rule=' + rule.name + '~' + RuleState[rule.state] + ', ' +
+      'token=' + ctx.config.token[token.pin] + '--\x1b[0m'
     ].join('\n')
 
     let desc: any = {
@@ -442,6 +456,7 @@ class Lexer {
 
   constructor(config: Config) {
     util.token('@LS_TOP', config)
+    util.token('@LS_TEXT', config)
     util.token('@LS_CONSUME', config)
     util.token('@LS_MULTILINE', config)
 
@@ -470,6 +485,7 @@ class Lexer {
     let F = ctx.F
 
     let LS_TOP = tpin('@LS_TOP')
+    let LS_TEXT = tpin('@LS_TEXT')
     let LS_CONSUME = tpin('@LS_CONSUME')
     let LS_MULTILINE = tpin('@LS_MULTILINE')
 
@@ -511,6 +527,31 @@ class Lexer {
 
     let self = this
 
+
+    // Check for custom matchers.
+    // NOTE: deliberately grabs local state (token,sI,rI,cI,...)
+    function matchers(state: pin) {
+      let matchers = self.match[state]
+      if (null != matchers) {
+        token.loc = sI // TODO: move to top of while for all rules?
+
+        for (let matcher of matchers) {
+          let match = matcher(sI, src, token, ctx)
+
+          // Adjust lex location if there was a match.
+          if (match) {
+            sI = match.sI
+            rI = match.rD ? rI + match.rD : rI
+            cI = match.cD ? cI + match.cD : cI
+
+            lexlog && lexlog(tn(token.pin), F(token.src), { ...token })
+            return token
+          }
+        }
+      }
+    }
+
+
     // Lex next Token.
     let lex: Lex = (function lex(): Token {
       token.len = 0
@@ -534,26 +575,9 @@ class Lexer {
 
         if (LS_TOP === state) {
 
-          // Custom top level matchers
-          let matchers = self.match[LS_TOP]
-          if (null != matchers) {
-            token.loc = sI // TODO: move to top of while for all rules?
-
-            for (let matcher of matchers) {
-              let match = matcher(sI, src, token, ctx)
-
-              // Adjust lex location if there was a match.
-              if (match) {
-                sI = match.sI
-                rI = match.rD ? rI + match.rD : rI
-                cI = match.cD ? cI + match.cD : cI
-
-                lexlog && lexlog(tn(token.pin), F(token.src), { ...token })
-                return token
-              }
-            }
+          if (matchers(LS_TOP)) {
+            return token
           }
-
 
           // Space chars.
           if (config.start.SP.includes(c0c)) {
@@ -577,9 +601,7 @@ class Lexer {
 
 
           // Newline chars.
-          else if (config.start.LN.includes(c0c)) {
-
-            //token.pin = LN
+          if (config.start.LN.includes(c0c)) {
             token.pin = config.lex.core.LN
             token.loc = sI
             token.col = cI
@@ -605,7 +627,7 @@ class Lexer {
 
 
           // Single char tokens.
-          else if (null != config.single[c0c]) {
+          if (null != config.single[c0c]) {
             token.pin = config.single[c0c]
             token.loc = sI
             token.col = cI++
@@ -619,7 +641,7 @@ class Lexer {
 
 
           // Number chars.
-          else if (config.start.NR.includes(c0c)) {
+          if (config.start.NR.includes(c0c)) {
             token.pin = NR
             token.loc = sI
             token.col = cI
@@ -666,8 +688,27 @@ class Lexer {
           }
 
 
+          // Block chars.
+          if (config.start_bm.includes(c0c)) {
+            let marker = src.substring(sI, sI + config.bmk_maxlen)
+
+            for (let bm of config.bmk) {
+              if (marker.startsWith(bm)) {
+
+                token.pin = ST
+                token.loc = sI
+                token.col = cI
+
+                state = LS_MULTILINE
+                state_param = [bm, opts.string.block[bm], null, true]
+                continue next_char
+              }
+            }
+          }
+
+
           // String chars.
-          else if (config.start.ST.includes(c0c)) {
+          if (config.start.ST.includes(c0c)) {
             token.pin = ST
             token.loc = sI
             token.col = cI++
@@ -773,7 +814,7 @@ class Lexer {
 
 
           // Comment chars.
-          else if (config.start_cm.includes(c0c)) {
+          if (config.start_cm.includes(c0c)) {
             let is_line_comment = config.cm_single.includes(c0)
 
             // Also check for comment markers as single comment char could be
@@ -813,6 +854,7 @@ class Lexer {
             }
           }
 
+
           // NOTE: default section. Cases above can bail to here if lookaheads
           // fail to match (eg. NR).
 
@@ -849,20 +891,14 @@ class Lexer {
             return token
           }
 
-          // Only thing left is literal text
 
-          // is TX everything to end of line?
-          if (opts.text.endofline) {
-            token.pin = TX
-            token.loc = sI
-            token.col = cI
-            token.val = '' // intialize for LS_CONSUME.
-
-            state = LS_CONSUME
-            enders = config.multi.LN
-            continue next_char
+          state = LS_TEXT
+          continue next_char
+        }
+        else if (LS_TEXT === state) {
+          if (matchers(LS_TEXT)) {
+            return token
           }
-
 
           let text_enders =
             opts.text.hoover ? config.hoover_ender : config.text_ender
@@ -913,7 +949,9 @@ class Lexer {
 
         // Lexer State: CONSUME => all chars up to first ender
         else if (LS_CONSUME === state) {
-          // TODO: provide matcher hook
+          if (matchers(LS_CONSUME)) {
+            return token
+          }
 
           pI = sI
           while (pI < srclen && !enders.includes(src[pI])) pI++, cI++;
@@ -933,7 +971,9 @@ class Lexer {
 
         // Lexer State: MULTILINE => all chars up to last close marker, or end
         else if (LS_MULTILINE === state) {
-          // TODO: provide matcher hook
+          if (matchers(LS_MULTILINE)) {
+            return token
+          }
 
           pI = sI
 
@@ -942,8 +982,16 @@ class Lexer {
           let open = state_param[0]
           let close = state_param[1]
           let balance = opts.balance[state_param[2]]
+          let has_indent = !!state_param[3]
+          let indent_str = ''
           let openlen = open.length
           let closelen = close.length
+
+          if (has_indent) {
+            let uI = sI - 1
+            while (-1 < uI && config.multi.SP.includes(src[uI--]));
+            indent_str = config.multi.SP[0].repeat(sI - uI - 2)
+          }
 
           // Assume starts with open string
           pI += open.length
@@ -979,6 +1027,15 @@ class Lexer {
           token.val = src.substring(sI, pI)
           token.src = token.val
           token.len = token.val.length
+
+          // Assume indent means block
+          if (has_indent) {
+            token.val =
+              token.val.substring(openlen, token.val.length - closelen)
+            token.val =
+              token.val.replace(new RegExp(opts.char.row + indent_str, 'g'), '\n')
+            token.val = token.val.substring(1, token.val.length - 1)
+          }
 
           sI = pI
 
@@ -1128,15 +1185,17 @@ class RuleSpec {
     let why = ''
     let F = ctx.F
 
+    let out
     if (this.def.before_open) {
-      let out = this.def.before_open.call(this, rule, ctx)
+      out = this.def.before_open.call(this, rule, ctx)
       rule.node = out && out.node || rule.node
     }
 
-    let act = this.parse_alts(this.def.open, rule, ctx)
+    let act = (null == out || !out.done) ?
+      this.parse_alts(this.def.open, rule, ctx) : { m: [] }
 
     if (act.e) {
-      throw new JsonicError('unexpected', { open: true }, act.e, ctx)
+      throw new JsonicError('unexpected', { open: true }, act.e, rule, ctx)
     }
 
     rule.open = act.m
@@ -1186,7 +1245,7 @@ class RuleSpec {
       0 < this.def.close.length ? this.parse_alts(this.def.close, rule, ctx) : {}
 
     if (act.e) {
-      throw new JsonicError('unexpected', { close: true }, act.e, ctx)
+      throw new JsonicError('unexpected', { close: true }, act.e, rule, ctx)
     }
 
     if (act.h) {
@@ -1234,8 +1293,6 @@ class RuleSpec {
     let alt
     let altI = 0
     let t = ctx.config.token
-
-    // console.log('PA', alts)
 
     // End token reached.
     if (t.ZZ === ctx.t0.pin) {
@@ -1530,6 +1587,8 @@ class Parser {
       src: () => src, // Avoid printing src
       root: () => root.node,
       node: undefined,
+      u2: lexer.end,
+      u1: lexer.end,
       t0: lexer.end,
       t1: lexer.end,
       tI: -2,  // prepare count for 2-token lookahead
@@ -1561,14 +1620,16 @@ class Parser {
       2 * opts.rule.maxmul
 
     // Lex next token.
-    function next() {
+    function next(ignore = true) {
+      ctx.u2 = ctx.u1
+      ctx.u1 = ctx.t0
       ctx.t0 = ctx.t1
 
       let t1
       do {
         t1 = lex()
         ctx.tI++
-      } while (config.tokenset.IGNORE.includes(t1.pin))
+      } while (ignore && config.tokenset.IGNORE.includes(t1.pin))
 
       ctx.t1 = { ...t1 }
 
@@ -1734,15 +1795,24 @@ let util = {
   },
 
 
-  errinject: (s: string, code: string, details: KV, token: Token, ctx: Context) => {
+  errinject: (
+    s: string,
+    code: string,
+    details: KV,
+    token: Token,
+    rule: Rule,
+    ctx: Context
+  ) => {
     return s.replace(/\$([\w_]+)/g, (_m: any, name: string) => {
-      return (
+      return JSON.stringify(
         'code' === name ? code : (
           details[name] ||
           ctx.meta[name] ||
           (token as KV)[name] ||
+          (rule as KV)[name] ||
           (ctx as KV)[name] ||
           (ctx.opts as any)[name] ||
+          (ctx.config as any)[name] ||
           '$' + name
         )
       )
@@ -1822,15 +1892,18 @@ let util = {
               msg: ex.message
             },
             token,
+            ({} as Rule),
             ex.ctx || {
               rI: -1,
               opts,
-              config: ({} as Config),
+              config: ({ token: {} } as Config),
               token: {},
               meta,
               src: () => src,
               root: () => undefined,
               node: undefined,
+              u2: token,
+              u1: token,
               t0: token,
               t1: token, // TODO: should be end token
               tI: -1,
@@ -1934,6 +2007,19 @@ let util = {
     config.start_cm_char =
       config.start_cm.map((cc: number) => String.fromCharCode(cc)).join('')
 
+
+    config.start_bm = []
+    config.bmk = []
+    let block_markers = Object.keys(opts.string.block)
+
+    block_markers.forEach(k => {
+      config.start_bm.push(k.charCodeAt(0))
+      config.bmk.push(k)
+    })
+
+    config.bmk_maxlen = util.longest(block_markers)
+
+
     config.single_char =
       config.single.map((_s: any, cc: number) => String.fromCharCode(cc)).join('')
 
@@ -1961,7 +2047,7 @@ let util = {
     config.debug = opts.debug
 
     // TOOD: maybe make this a debug option?
-    //console.log(config)
+    // console.log(config)
   },
 }
 
@@ -2036,10 +2122,6 @@ function make(first?: KV | Jsonic, parent?: Jsonic): Jsonic {
 
     lexer = parent_internal.lexer.clone(config)
     parser = parent_internal.parser.clone(opts, config)
-
-    //console.log('CLONE PARSER')
-    //console.dir(parent_internal.parser)
-    //console.dir(parser)
   }
   else {
     config = ({

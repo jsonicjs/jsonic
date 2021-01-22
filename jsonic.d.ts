@@ -80,6 +80,8 @@ interface Context {
     src: () => string;
     root: () => any;
     node: any;
+    u2: Token;
+    u1: Token;
     t0: Token;
     t1: Token;
     tI: number;
@@ -116,6 +118,9 @@ declare type Config = {
     cmk1: string;
     cmk_maxlen: number;
     start_cm_char: string;
+    start_bm: pin[];
+    bmk: string[];
+    bmk_maxlen: number;
     single_char: string;
     value_ender: string;
     text_ender: string;
@@ -128,8 +133,8 @@ declare type Config = {
     debug: KV;
 };
 declare class JsonicError extends SyntaxError {
-    constructor(code: string, details: KV, token: Token, ctx: Context);
-    static make_desc(code: string, details: KV, token: Token, ctx: Context): any;
+    constructor(code: string, details: KV, token: Token, rule: Rule, ctx: Context);
+    static make_desc(code: string, details: KV, token: Token, rule: Rule, ctx: Context): any;
     toJSON(): this & {
         __error: boolean;
         name: string;
@@ -198,7 +203,7 @@ declare let util: {
     longest: (strs: string[]) => number;
     make_src_format: (config: Config) => (s: any, j?: any) => string;
     make_log: (ctx: Context) => void;
-    errinject: (s: string, code: string, details: KV, token: Token, ctx: Context) => string;
+    errinject: (s: string, code: string, details: KV, token: Token, rule: Rule, ctx: Context) => string;
     extract: (src: string, errtxt: string, token: Token) => string;
     handle_meta_mode: (self: Jsonic, src: string, meta: KV) => any[];
     build_config_from_options: (config: Config, opts: Opts) => void;

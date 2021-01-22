@@ -21,7 +21,7 @@ let Native: Plugin = function native(jsonic: Jsonic) {
     sI: number,
     src: string,
     token: Token,
-    ctx: Context
+    ctx: Context,
   ): any {
     let out: any
     let config = ctx.config
