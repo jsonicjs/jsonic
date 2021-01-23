@@ -132,7 +132,6 @@ function make_standard_options() {
     };
     return opts;
 }
-console.log(make_standard_options());
 // Jsonic errors with nice formatting.
 class JsonicError extends SyntaxError {
     constructor(code, details, token, rule, ctx) {

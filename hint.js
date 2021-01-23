@@ -1,3 +1,14 @@
+/* Copyright (c) 2021 Richard Rodger and other contributors, MIT License */
+'use strict'
+
+// Generates the contents of the `hint` option.
+//
+// Since these are verbose error hint texts, they are mildly compressed
+// using camelification (eg. The cat sat on the mat -> ~theCatSatOnTheMat).
+// A gnarly IIFE is used to build a normal map of {code:hint} at run time.
+//
+// NOTE: To get capitals, use `%` as an escape (eg %j%s%o%n -> JSON)
+
 
 const Fs = require('fs')
 
@@ -36,9 +47,11 @@ let hint_short = hint_names.map(name=>encode(hint[name]))
     .replace(/\n/g,'\\n')
 
 
+// The gnarly IIFE
 let decode = `((d = (t: any, r = 'replace') => t[r](/[A-Z]/g, (m: any) => ' ' + m.toLowerCase())[r](/[~%][a-z]/g, (m: any) => ('~'==m[0]?' ':'') + m[1].toUpperCase()), s = '${hint_short}'.split('|')) => '${hint_names.join('|')}'.split('|').reduce((a: any, n, i) => (a[n] = d(s[i]), a), {}))(),`
 
 
+// Inject as part of build step (see package.json).
 let src = Fs.readFileSync('./jsonic.ts').toString()
 src = src.replace(/    hint:.*/, '    hint: '+decode)
 Fs.writeFileSync('./jsonic.ts', src)
