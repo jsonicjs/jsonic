@@ -1,24 +1,20 @@
 /* Copyright (c) 2013-2020 Richard Rodger and other contributors, MIT License */
 'use strict'
 
-var Lab = require('@hapi/lab')
+let Lab = require('@hapi/lab')
 Lab = null != Lab.script ? Lab : require('hapi-lab-shim')
 
-var Code = require('@hapi/code')
+const Code = require('@hapi/code')
 
-var lab = (exports.lab = Lab.script())
-var describe = lab.describe
-var it = lab.it
-var expect = Code.expect
+const lab = (exports.lab = Lab.script())
+const describe = lab.describe
+const it = lab.it
+const expect = Code.expect
 
-var { Jsonic } = require('..')
+const { Jsonic } = require('..')
 
-let j = Jsonic
-// let lexer = Jsonic.lexer
+const j = Jsonic
 
-function testlog(...rest) {
-  console.log(rest.filter(x=>'object'!=typeof(x)))
-}
 
 describe('feature', function () {
   it('test-util-match', () => {

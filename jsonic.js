@@ -2,6 +2,10 @@
 /* Copyright (c) 2013-2021 Richard Rodger, MIT License */
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.make = exports.util = exports.RuleSpec = exports.Rule = exports.Parser = exports.Lexer = exports.JsonicError = exports.Jsonic = void 0;
+const S = {
+    object: 'object',
+    unexpected: 'unexpected',
+};
 function make_standard_options() {
     let opts = {
         // String escape chars.
@@ -85,18 +89,8 @@ function make_standard_options() {
             unknown: 'unknown error: $code',
             unexpected: 'unexpected character(s): $src'
         },
-        // Error hints
-        hint: {
-            unknown: `Since the error is unknown, this is probably a bug inside jsonic itself.
-Please consider posting a github issue - thanks!
-`,
-            unexpected: `The character(s) $src should not occur at this point as it is not
-valid JSON syntax, even under the relaxed jsonic rules.If it is not
-obviously wrong, the actual syntax error may be elsewhere.Try
-commenting out larger areas around this point until you get no errors,
-then remove the comments in small sections until you find the
-offending syntax.`
-        },
+        // Error hints - NOTE: generated and inserted by hint.js
+        hint: ((d = (t, r = 'replace') => t[r](/[A-Z]/g, (m) => ' ' + m.toLowerCase())[r](/[~%][a-z]/g, (m) => ('~' == m[0] ? ' ' : '') + m[1].toUpperCase()), s = '~sinceTheErrorIsUnknown,ThisIsProbablyABugInsideJsonicItself.\nPleaseConsiderPostingAGithubIssue -Thanks!|~theCharacter(s) $srcShouldNotOccurAtThisPointAsItIsNot\nvalid %j%s%o%nSyntax,EvenUnderTheRelaxedJsonicRules.~ifItIsNot\nobviouslyWrong,TheActualSyntaxErrorMayBeElsewhere.~try\ncommentingOutLargerAreasAroundThisPointUntilYouGetNoErrors,\nthenRemoveTheCommentsInSmallSectionsUntilYouFindThe\noffendingSyntax.|~but~i %j%s%o%nMustExplainToYouHowAllThisMistakenIdeaOf\nreprobatingPleasureAndExtollingPainArose.~toDoSo,~iWillGive\nyouACompleteAccountOfTheSystem,AndExpoundTheActual\nteachingsOfTheGreatExplorerOfTheTruth,TheMaster-builderOf\nhumanHappiness.'.split('|')) => 'unknown|unexpected|invalid_unicode'.split('|').reduce((a, n, i) => (a[n] = d(s[i]), a), {}))(),
         token: {
             // Single char tokens.
             '#OB': { c: '{' },
@@ -138,6 +132,7 @@ offending syntax.`
     };
     return opts;
 }
+console.log(make_standard_options());
 // Jsonic errors with nice formatting.
 class JsonicError extends SyntaxError {
     constructor(code, details, token, rule, ctx) {
@@ -164,7 +159,10 @@ class JsonicError extends SyntaxError {
         Object.assign(this, desc);
         if (this.stack) {
             this.stack =
-                this.stack.split('\n').filter(s => !s.includes('jsonic/jsonic')).join('\n');
+                this.stack.split('\n')
+                    .filter(s => !s.includes('jsonic/jsonic'))
+                    .map(s => s.replace(/    at /, 'at '))
+                    .join('\n');
         }
     }
     static make_desc(code, details, token, rule, ctx) {
@@ -179,9 +177,10 @@ class JsonicError extends SyntaxError {
             '  \x1b[34m-->\x1b[0m ' + (meta.fileName || '<no-file>') + ':' + token.row + ':' + token.col,
             util.extract(ctx.src(), errtxt, token),
             util.errinject((opts.hint[code] || opts.hint.unknown).split('\n')
-                .map((s) => '  ' + s).join('\n'), code, details, token, rule, ctx),
-            '  \x1b[2m--internal: rule=' + rule.name + '~' + RuleState[rule.state] + ', ' +
-                'token=' + ctx.config.token[token.pin] + '--\x1b[0m'
+                .map((s, i) => (0 === i ? ' ' : '  ') + s).join('\n'), code, details, token, rule, ctx),
+            '  \x1b[2mhttps://jsonic.richardrodger.com\x1b[0m',
+            '\n  \x1b[2m--internal: rule=' + rule.name + '~' + RuleState[rule.state] +
+                ', token=' + ctx.config.token[token.pin] + '--\x1b[0m'
         ].join('\n');
         let desc = {
             internal: {
@@ -272,12 +271,12 @@ class Lexer {
         let self = this;
         // Check for custom matchers.
         // NOTE: deliberately grabs local state (token,sI,rI,cI,...)
-        function matchers(state) {
+        function matchers(state, rule) {
             let matchers = self.match[state];
             if (null != matchers) {
                 token.loc = sI; // TODO: move to top of while for all rules?
                 for (let matcher of matchers) {
-                    let match = matcher(sI, src, token, ctx);
+                    let match = matcher(sI, src, token, ctx, rule, self.bad);
                     // Adjust lex location if there was a match.
                     if (match) {
                         sI = match.sI;
@@ -290,7 +289,7 @@ class Lexer {
             }
         }
         // Lex next Token.
-        let lex = function lex() {
+        let lex = function lex(rule) {
             token.len = 0;
             token.val = undefined;
             token.src = undefined;
@@ -305,7 +304,7 @@ class Lexer {
                 let c0 = src[sI];
                 let c0c = src.charCodeAt(sI);
                 if (LS_TOP === state) {
-                    if (matchers(LS_TOP)) {
+                    if (matchers(LS_TOP, rule)) {
                         return token;
                     }
                     // Space chars.
@@ -443,7 +442,7 @@ class Lexer {
                                     pI++;
                                     let us = String.fromCharCode(('0x' + src.substring(pI, pI + 4)));
                                     if (opts.char.bad_unicode === us) {
-                                        return self.bad(ctx, lexlog, 'invalid-unicode', token, sI, pI, rI, cI, src.substring(pI - 2, pI + 4));
+                                        return self.bad(ctx, lexlog, 'invalid_unicode', token, sI, pI, rI, cI, src.substring(pI - 2, pI + 4));
                                     }
                                     s.push(us);
                                     pI += 3; // Loop increments pI.
@@ -550,7 +549,7 @@ class Lexer {
                     continue next_char;
                 }
                 else if (LS_TEXT === state) {
-                    if (matchers(LS_TEXT)) {
+                    if (matchers(LS_TEXT, rule)) {
                         return token;
                     }
                     let text_enders = opts.text.hoover ? config.hoover_ender : config.text_ender;
@@ -590,7 +589,7 @@ class Lexer {
                 }
                 // Lexer State: CONSUME => all chars up to first ender
                 else if (LS_CONSUME === state) {
-                    if (matchers(LS_CONSUME)) {
+                    if (matchers(LS_CONSUME, rule)) {
                         return token;
                     }
                     pI = sI;
@@ -606,7 +605,7 @@ class Lexer {
                 }
                 // Lexer State: MULTILINE => all chars up to last close marker, or end
                 else if (LS_MULTILINE === state) {
-                    if (matchers(LS_MULTILINE)) {
+                    if (matchers(LS_MULTILINE, rule)) {
                         return token;
                     }
                     pI = sI;
@@ -680,6 +679,7 @@ class Lexer {
         lex.src = src;
         return lex;
     }
+    // Describe state when lexing goes wrong using the signal token "#BD" (bad token!).
     bad(ctx, log, why, token, sI, pI, rI, cI, val, src, use) {
         token.why = why;
         token.pin = util.token('#BD', ctx.config);
@@ -690,19 +690,22 @@ class Lexer {
         token.val = val;
         token.src = src;
         token.use = use;
-        log && log(util.token(token.pin, ctx.config), ctx.F(token.src), why, { ...token });
+        log && log(util.token(token.pin, ctx.config), ctx.F(token.src), { ...token }, 'error', why);
         return token;
     }
-    lex(state, match) {
+    // Register a custom lexing matcher to be attempted first for given lex state.
+    // See _plugin_ folder for examples.
+    lex(state, matcher) {
         if (null == state) {
             return this.match;
         }
         this.match[state] = this.match[state] || [];
-        if (null != match) {
-            this.match[state].push(match);
+        if (null != matcher) {
+            this.match[state].push(matcher);
         }
         return this.match[state];
     }
+    // Clone the Lexer, and in particular the registered matchers.
     clone(config) {
         let lexer = new Lexer(config);
         util.deep(lexer.match, this.match);
@@ -756,7 +759,7 @@ class RuleSpec {
         let act = (null == out || !out.done) ?
             this.parse_alts(this.def.open, rule, ctx) : { m: [] };
         if (act.e) {
-            throw new JsonicError('unexpected', { open: true }, act.e, rule, ctx);
+            throw new JsonicError(S.unexpected, { open: true }, act.e, rule, ctx);
         }
         rule.open = act.m;
         if (act.p) {
@@ -788,7 +791,7 @@ class RuleSpec {
         }
         let act = 0 < this.def.close.length ? this.parse_alts(this.def.close, rule, ctx) : {};
         if (act.e) {
-            throw new JsonicError('unexpected', { close: true }, act.e, rule, ctx);
+            throw new JsonicError(S.unexpected, { close: true }, act.e, rule, ctx);
         }
         if (act.h) {
             next = act.h(this, rule, ctx) || next;
@@ -1064,7 +1067,7 @@ class Parser {
         }
         util.make_log(ctx);
         let tn = (pin) => util.token(pin, this.config);
-        let lex = lexer.start(ctx);
+        let lex = util.wrap_bad_lex(lexer.start(ctx), util.token('#BD', this.config), ctx);
         let rule = new Rule(this.rsm.val, ctx);
         root = rule;
         // Maximum rule iterations (prevents infinite loops). Allow for
@@ -1080,7 +1083,7 @@ class Parser {
             ctx.t0 = ctx.t1;
             let t1;
             do {
-                t1 = lex();
+                t1 = lex(rule);
                 ctx.tI++;
             } while (ignore && config.tokenset.IGNORE.includes(t1.pin));
             ctx.t1 = { ...t1 };
@@ -1137,11 +1140,11 @@ let util = {
     deep: function (base, ...rest) {
         let base_is_function = 'function' === typeof (base);
         let base_is_object = null != base &&
-            ('object' === typeof (base) || base_is_function);
+            (S.object === typeof (base) || base_is_function);
         for (let over of rest) {
             let over_is_function = 'function' === typeof (over);
             let over_is_object = null != over &&
-                ('object' === typeof (over) || over_is_function);
+                (S.object === typeof (over) || over_is_function);
             if (base_is_object &&
                 over_is_object &&
                 !over_is_function &&
@@ -1157,7 +1160,7 @@ let util = {
                             util.deep(Array.isArray(over) ? [] : {}, over) : over);
                 base_is_function = 'function' === typeof (base);
                 base_is_object = null != base &&
-                    ('object' === typeof (base) || base_is_function);
+                    (S.object === typeof (base) || base_is_function);
             }
         }
         return base;
@@ -1188,7 +1191,7 @@ let util = {
             ctx.log = (...rest) => {
                 if (exclude_objects) {
                     let logstr = rest
-                        .filter((item) => 'object' != typeof (item))
+                        .filter((item) => S.object != typeof (item))
                         .join('\t');
                     /*
                     if ('node' === rest[0]) {
@@ -1203,6 +1206,21 @@ let util = {
                 return undefined;
             };
         }
+    },
+    wrap_bad_lex: (lex, BD, ctx) => {
+        let wrap = (rule) => {
+            let token = lex(rule);
+            if (BD === token.pin) {
+                let details = {};
+                if (null != token.use) {
+                    details.use = token.use;
+                }
+                throw new JsonicError(token.why || S.unexpected, details, token, rule, ctx);
+            }
+            return token;
+        };
+        wrap.src = lex.src;
+        return wrap;
     },
     errinject: (s, code, details, token, rule, ctx) => {
         return s.replace(/\$([\w_]+)/g, (_m, name) => {
@@ -1455,7 +1473,7 @@ function make(first, parent) {
         config
     });
     let optioner = (change_opts) => {
-        if (null != change_opts && 'object' === typeof (change_opts)) {
+        if (null != change_opts && S.object === typeof (change_opts)) {
             util.build_config_from_options(config, util.deep(opts, change_opts));
             for (let k in opts) {
                 self.options[k] = opts[k];

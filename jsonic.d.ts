@@ -94,7 +94,7 @@ interface Context {
     F: (s: string) => string;
     use: KV;
 }
-declare type Lex = (() => Token) & {
+declare type Lex = ((rule: Rule) => Token) & {
     src: string;
 };
 declare type Config = {
@@ -142,15 +142,23 @@ declare class JsonicError extends SyntaxError {
         stack: string | undefined;
     };
 }
+declare type LexMatcher = (sI: number, src: string, token: Token, ctx: Context, rule: Rule, bad: any) => LexMatcherResult;
+declare type LexMatcherResult = {
+    sI: number;
+    cD: number;
+    rD: number;
+};
 declare class Lexer {
     end: Token;
     match: {
-        [state_name: string]: any;
+        [state: number]: LexMatcher[];
     };
     constructor(config: Config);
     start(ctx: Context): Lex;
     bad(ctx: Context, log: ((...rest: any) => undefined) | undefined, why: string, token: Token, sI: number, pI: number, rI: number, cI: number, val?: any, src?: any, use?: any): Token;
-    lex(state?: pin, match?: (sI: number, src: string, token: Token, ctx: Context) => KV): any;
+    lex(state?: pin, matcher?: LexMatcher): {
+        [state: number]: LexMatcher[];
+    } | LexMatcher[];
     clone(config: Config): Lexer;
 }
 declare enum RuleState {
@@ -203,6 +211,7 @@ declare let util: {
     longest: (strs: string[]) => number;
     make_src_format: (config: Config) => (s: any, j?: any) => string;
     make_log: (ctx: Context) => void;
+    wrap_bad_lex: (lex: Lex, BD: pin, ctx: Context) => any;
     errinject: (s: string, code: string, details: KV, token: Token, rule: Rule, ctx: Context) => string;
     extract: (src: string, errtxt: string, token: Token) => string;
     handle_meta_mode: (self: Jsonic, src: string, meta: KV) => any[];
@@ -210,4 +219,4 @@ declare let util: {
 };
 declare function make(first?: KV | Jsonic, parent?: Jsonic): Jsonic;
 declare let Jsonic: Jsonic;
-export { Jsonic, Plugin, JsonicError, Lexer, Parser, Rule, RuleSpec, Token, Context, Meta, util, make, };
+export { Jsonic, Plugin, JsonicError, Lexer, Parser, Rule, RuleSpec, Token, Context, Meta, LexMatcher, LexMatcherResult, util, make, };
