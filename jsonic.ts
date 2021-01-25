@@ -2,8 +2,9 @@
 
 
 
-// TODO: proper JsonicError lexer errors - test!
 // TODO: stringify
+// TODO: use char maps
+// TODO: deeper tests
 // TODO: node = {d=data,p=parent-node}  - maybe?
 // TODO: test/fix .rule, .lex signatures, return values
 // TODO: types used properly in plugins, eg. LexMatcher
@@ -29,7 +30,7 @@ type Opts = {
   plugin: KV
   debug: KV
   error: { [code: string]: string }
-  hint: { [code: string]: string }
+  hint: any
   token: {
     [name: string]:  // Token name.
     { c: string } |  // Single char token (eg. OB=`{`)
@@ -95,6 +96,7 @@ interface Context {
   meta: Meta
   src: () => string,
   root: () => any,
+  plugins: () => Plugin[],
   node: any
   u2: Token
   u1: Token
@@ -146,7 +148,15 @@ type Config = {
 
 const S = {
   object: 'object',
+  string: 'string',
+  function: 'function',
   unexpected: 'unexpected',
+  map: 'map',
+  list: 'list',
+  elem: 'elem',
+  pair: 'pair',
+  val: 'val',
+  node: 'node',
 }
 
 
@@ -269,12 +279,16 @@ function make_standard_options(): Opts {
     // Error messages.
     error: {
       unknown: 'unknown error: $code',
-      unexpected: 'unexpected character(s): $src'
+      unexpected: 'unexpected character(s): $src',
+      invalid_unicode: 'invalid unicode escape: $src',
+      invalid_ascii: 'invalid ascii escape: $src',
+      unprintable: 'unprintable character: $src',
+      unterminated: 'unterminated string: $src'
     },
 
 
-    // Error hints - NOTE: generated and inserted by hint.js
-    hint: ((d = (t: any, r = 'replace') => t[r](/[A-Z]/g, (m: any) => ' ' + m.toLowerCase())[r](/[~%][a-z]/g, (m: any) => ('~'==m[0]?' ':'') + m[1].toUpperCase()), s = '~sinceTheErrorIsUnknown,ThisIsProbablyABugInsideJsonicItself.\nPleaseConsiderPostingAGithubIssue -Thanks!|~theCharacter(s) $srcShouldNotOccurAtThisPointAsItIsNot\nvalid %j%s%o%nSyntax,EvenUnderTheRelaxedJsonicRules.~ifItIsNot\nobviouslyWrong,TheActualSyntaxErrorMayBeElsewhere.~try\ncommentingOutLargerAreasAroundThisPointUntilYouGetNoErrors,\nthenRemoveTheCommentsInSmallSectionsUntilYouFindThe\noffendingSyntax.|~but~i %j%s%o%nMustExplainToYouHowAllThisMistakenIdeaOf\nreprobatingPleasureAndExtollingPainArose.~toDoSo,~iWillGive\nyouACompleteAccountOfTheSystem,AndExpoundTheActual\nteachingsOfTheGreatExplorerOfTheTruth,TheMaster-builderOf\nhumanHappiness.'.split('|')) => 'unknown|unexpected|invalid_unicode'.split('|').reduce((a: any, n, i) => (a[n] = d(s[i]), a), {}))(),
+    // Error hints: {error-code: hint-text}. 
+    hint: make_hint,
 
 
     token: {
@@ -351,6 +365,7 @@ class JsonicError extends SyntaxError {
       meta: ctx.meta,
       src: () => ctx.src(),
       root: () => ctx.root(),
+      plugins: () => ctx.plugins(),
       node: ctx.node,
       t0: ctx.t0,
       t1: ctx.t1,
@@ -393,6 +408,11 @@ class JsonicError extends SyntaxError {
       code, details, token, rule, ctx
     )
 
+    if (S.function === typeof (opts.hint)) {
+      // Only expand the hints on demand. Allow for plugin-defined hints.
+      opts.hint = { ...opts.hint(), ...opts.hint }
+    }
+
     let message = [
       ('\x1b[31m[jsonic/' + code + ']:\x1b[0m ' +
         ((meta && meta.mode) ? '\x1b[35m[mode:' + meta.mode + ']:\x1b[0m ' : '') +
@@ -405,8 +425,9 @@ class JsonicError extends SyntaxError {
         code, details, token, rule, ctx
       ),
       '  \x1b[2mhttps://jsonic.richardrodger.com\x1b[0m',
-      '\n  \x1b[2m--internal: rule=' + rule.name + '~' + RuleState[rule.state] +
-      ', token=' + ctx.config.token[token.pin] + '--\x1b[0m'
+      '  \x1b[2m--internal: rule=' + rule.name + '~' + RuleState[rule.state] +
+      '; token=' + ctx.config.token[token.pin] +
+      '; plugins=' + ctx.plugins().map((p: any) => p.name).join(',') + '--\x1b[0m\n'
     ].join('\n')
 
     let desc: any = {
@@ -467,10 +488,10 @@ class Lexer {
   match: { [state: number]: LexMatcher[] } = {}
 
   constructor(config: Config) {
-    util.token('@LS_TOP', config)
-    util.token('@LS_TEXT', config)
-    util.token('@LS_CONSUME', config)
-    util.token('@LS_MULTILINE', config)
+    this.match[(util.token('@LTP', config) as pin)] = [] // TOP
+    this.match[(util.token('@LTX', config) as pin)] = [] // TEXT
+    this.match[(util.token('@LCS', config) as pin)] = [] // CONSUME
+    this.match[(util.token('@LML', config) as pin)] = [] // MULTILINE
 
     this.end = {
       pin: util.token('#ZZ', config),
@@ -496,10 +517,10 @@ class Lexer {
     let tn = (pin: pin): string => util.token(pin, config)
     let F = ctx.F
 
-    let LS_TOP = tpin('@LS_TOP')
-    let LS_TEXT = tpin('@LS_TEXT')
-    let LS_CONSUME = tpin('@LS_CONSUME')
-    let LS_MULTILINE = tpin('@LS_MULTILINE')
+    let LTP = tpin('@LTP')
+    let LTX = tpin('@LTX')
+    let LCS = tpin('@LCS')
+    let LML = tpin('@LML')
 
     let ZZ = tpin('#ZZ')
     let SP = tpin('#SP')
@@ -540,6 +561,10 @@ class Lexer {
     let self = this
 
 
+    function bad(code: string, pI: number, badsrc: string, use?: any) {
+      return self.bad(ctx, lexlog, code, token, sI, pI, rI, cI, badsrc, badsrc, use)
+    }
+
     // Check for custom matchers.
     // NOTE: deliberately grabs local state (token,sI,rI,cI,...)
     function matchers(state: pin, rule: Rule) {
@@ -548,7 +573,7 @@ class Lexer {
         token.loc = sI // TODO: move to top of while for all rules?
 
         for (let matcher of matchers) {
-          let match = matcher(sI, src, token, ctx, rule, self.bad)
+          let match = matcher(sI, src, token, ctx, rule, bad)
 
           // Adjust lex location if there was a match.
           if (match) {
@@ -571,7 +596,7 @@ class Lexer {
       token.src = undefined
       token.row = rI
 
-      let state = LS_TOP
+      let state = LTP
       let state_param: any = null
       let enders = ''
 
@@ -585,9 +610,9 @@ class Lexer {
         let c0c = src.charCodeAt(sI)
 
 
-        if (LS_TOP === state) {
+        if (LTP === state) {
 
-          if (matchers(LS_TOP, rule)) {
+          if (matchers(LTP, rule)) {
             return token
           }
 
@@ -711,7 +736,7 @@ class Lexer {
                 token.loc = sI
                 token.col = cI
 
-                state = LS_MULTILINE
+                state = LML
                 state_param = [bm, opts.string.block[bm], null, true]
                 continue next_char
               }
@@ -731,6 +756,7 @@ class Lexer {
             s = []
             cc = -1
 
+            // TODO: \xNN \u{...}
             for (pI = sI + 1; pI < srclen; pI++) {
               cI++
 
@@ -759,15 +785,30 @@ class Lexer {
                   s.push(es)
                 }
 
+                // ASCII escape \x**
+                else if (120 === ec) {
+                  pI++
+                  let us =
+                    String.fromCharCode(('0x' + src.substring(pI, pI + 2)) as any)
+
+                  if (opts.char.bad_unicode === us) {
+                    return bad('invalid_ascii', pI, src.substring(pI - 2, pI + 2))
+                  }
+
+                  s.push(us)
+                  pI += 1 // Loop increments pI.
+                  cI += 2
+                }
+
                 // Unicode escape \u****.
+                // TODO: support \u{*****}
                 else if (117 === ec) {
                   pI++
                   let us =
                     String.fromCharCode(('0x' + src.substring(pI, pI + 4)) as any)
 
                   if (opts.char.bad_unicode === us) {
-                    return self.bad(ctx, lexlog, 'invalid_unicode',
-                      token, sI, pI, rI, cI, src.substring(pI - 2, pI + 4))
+                    return bad('invalid_unicode', pI, src.substring(pI - 2, pI + 4))
                   }
 
                   s.push(us)
@@ -785,9 +826,7 @@ class Lexer {
                   s.push(src[pI])
                 }
                 else {
-                  return self.bad(
-                    ctx, lexlog, 'unprintable',
-                    token, sI, pI, rI, cI, src.charAt(pI))
+                  return bad('unprintable', pI, 'char-code=' + src[pI].charCodeAt(0))
                 }
               }
 
@@ -810,8 +849,7 @@ class Lexer {
 
             if (qc !== cc) {
               cI = sI
-              return self.bad(ctx, lexlog, 'unterminated',
-                token, sI, pI - 1, rI, cI, s.join(''))
+              return bad('unterminated', pI - 1, s.join(''))
             }
 
             token.val = s.join('')
@@ -841,9 +879,9 @@ class Lexer {
                   token.pin = CM
                   token.loc = sI
                   token.col = cI
-                  token.val = '' // intialize for LS_CONSUME.
+                  token.val = '' // intialize for LCS.
 
-                  state = LS_MULTILINE
+                  state = LML
                   state_param = [cm, opts.comment[cm], 'comment']
                   continue next_char
                 }
@@ -858,9 +896,9 @@ class Lexer {
               token.pin = CM
               token.loc = sI
               token.col = cI
-              token.val = '' // intialize for LS_CONSUME.
+              token.val = '' // intialize for LCS.
 
-              state = LS_CONSUME
+              state = LCS
               enders = config.multi.LN
               continue next_char
             }
@@ -904,11 +942,11 @@ class Lexer {
           }
 
 
-          state = LS_TEXT
+          state = LTX
           continue next_char
         }
-        else if (LS_TEXT === state) {
-          if (matchers(LS_TEXT, rule)) {
+        else if (LTX === state) {
+          if (matchers(LTX, rule)) {
             return token
           }
 
@@ -960,8 +998,8 @@ class Lexer {
 
 
         // Lexer State: CONSUME => all chars up to first ender
-        else if (LS_CONSUME === state) {
-          if (matchers(LS_CONSUME, rule)) {
+        else if (LCS === state) {
+          if (matchers(LCS, rule)) {
             return token
           }
 
@@ -974,7 +1012,7 @@ class Lexer {
 
           sI = pI
 
-          state = LS_TOP
+          state = LTP
 
           lexlog && lexlog(tn(token.pin), F(token.src), { ...token })
           return token
@@ -982,8 +1020,8 @@ class Lexer {
 
 
         // Lexer State: MULTILINE => all chars up to last close marker, or end
-        else if (LS_MULTILINE === state) {
-          if (matchers(LS_MULTILINE, rule)) {
+        else if (LML === state) {
+          if (matchers(LML, rule)) {
             return token
           }
 
@@ -1051,7 +1089,7 @@ class Lexer {
 
           sI = pI
 
-          state = LS_TOP
+          state = LTP
 
           lexlog && lexlog(tn(token.pin), F(token.src), { ...token })
           return token
@@ -1107,17 +1145,18 @@ class Lexer {
   // Register a custom lexing matcher to be attempted first for given lex state.
   // See _plugin_ folder for examples.
   lex(state?: pin, matcher?: LexMatcher) {
-    if (null == state) {
+    if (null == state && null == matcher) {
       return this.match
     }
-
-    this.match[state] = this.match[state] || []
-
-    if (null != matcher) {
-      this.match[state].push(matcher)
+    else if (null == this.match[(state as any)]) {
+      throw new Error('jsonic: unknown lex state:' + state)
     }
 
-    return this.match[state]
+    if (null != matcher) {
+      this.match[(state as any)].push(matcher)
+    }
+
+    return this.match[(state as any)]
   }
 
 
@@ -1232,7 +1271,7 @@ class RuleSpec {
     }
 
     ctx.log && ctx.log(
-      'node',
+      S.node,
       rule.name + '/' + rule.id,
       RuleState[rule.state],
       why,
@@ -1288,7 +1327,7 @@ class RuleSpec {
     next.why = why
 
     ctx.log && ctx.log(
-      'node',
+      S.node,
       rule.name + '/' + rule.id,
       RuleState[rule.state],
       why,
@@ -1415,17 +1454,17 @@ class Parser {
     let rules: any = {
       val: {
         open: [ // alternatives
-          { s: [OB, CA], p: 'map' },
-          { s: [OB], p: 'map' },
+          { s: [OB, CA], p: S.map },
+          { s: [OB], p: S.map },
 
-          { s: [OS], p: 'list' },
-          { s: [CA], p: 'list', b: 1 },
+          { s: [OS], p: S.list },
+          { s: [CA], p: S.list, b: 1 },
 
           // Implicit map - operates at any depth
-          { s: [TX, CL], p: 'map', b: 2 },
-          { s: [ST, CL], p: 'map', b: 2 },
-          { s: [NR, CL], p: 'map', b: 2 },
-          { s: [VL, CL], p: 'map', b: 2 },
+          { s: [TX, CL], p: S.map, b: 2 },
+          { s: [ST, CL], p: S.map, b: 2 },
+          { s: [NR, CL], p: S.map, b: 2 },
+          { s: [VL, CL], p: S.map, b: 2 },
 
           { s: [TX] },
           { s: [NR] },
@@ -1437,7 +1476,7 @@ class Parser {
         close: [
           // Implicit list works only at top level
           {
-            s: [CA], c: top, r: 'elem',
+            s: [CA], c: top, r: S.elem,
             h: (_spec: RuleSpec, rule: Rule, _ctx: Context) => {
               rule.node = [rule.node]
             }
@@ -1458,7 +1497,7 @@ class Parser {
         },
         open: [
           { s: [CB] }, // empty
-          { p: 'pair' } // no tokens, pass node
+          { p: S.pair } // no tokens, pass node
         ],
         close: []
       },
@@ -1469,7 +1508,7 @@ class Parser {
         },
         open: [
           { s: [CS] }, // empty
-          { p: 'elem' } // no tokens, pass node
+          { p: S.elem } // no tokens, pass node
         ],
         close: []
       },
@@ -1478,22 +1517,22 @@ class Parser {
       // sets key:val on node
       pair: {
         open: [
-          { s: [ST, CL], p: 'val' },
-          { s: [TX, CL], p: 'val' },
-          { s: [NR, CL], p: 'val' },
-          { s: [VL, CL], p: 'val' },
+          { s: [ST, CL], p: S.val },
+          { s: [TX, CL], p: S.val },
+          { s: [NR, CL], p: S.val },
+          { s: [VL, CL], p: S.val },
           { s: [CB], b: 1 }, // empty
         ],
         close: [
           { s: [CB] },
 
-          { s: [CA], r: 'pair' }, // next rule (no stack push)
+          { s: [CA], r: S.pair }, // next rule (no stack push)
 
           // Who needs commas anyway?
-          { s: [ST, CL], r: 'pair', b: 2 },
-          { s: [TX, CL], r: 'pair', b: 2 },
-          { s: [NR, CL], r: 'pair', b: 2 },
-          { s: [VL, CL], r: 'pair', b: 2 },
+          { s: [ST, CL], r: S.pair, b: 2 },
+          { s: [TX, CL], r: S.pair, b: 2 },
+          { s: [NR, CL], r: S.pair, b: 2 },
+          { s: [VL, CL], r: S.pair, b: 2 },
         ],
         before_close: (rule: Rule, ctx: Context) => {
           let key_token = rule.open[0]
@@ -1512,10 +1551,10 @@ class Parser {
       // push onto node
       elem: {
         open: [
-          { s: [OB], p: 'map' },
-          { s: [OS], p: 'list' },
+          { s: [OB], p: S.map },
+          { s: [OS], p: S.list },
 
-          // TODO: replace with { p: 'val'} as last entry
+          // TODO: replace with { p: S.val} as last entry
           // IMPORTANT! makes array values consistent with prop values
           { s: [TX] },
           { s: [NR] },
@@ -1532,24 +1571,24 @@ class Parser {
           { s: [CA, CS] },
 
           // Next elemen
-          { s: [CA], r: 'elem' },
+          { s: [CA], r: S.elem },
 
           // End lis
           { s: [CS] },
 
           // Who needs commas anyway?
-          { s: [OB], p: 'map', },
-          { s: [OS], p: 'list', },
+          { s: [OB], p: S.map, },
+          { s: [OS], p: S.list, },
 
-          { s: [TX, CL], p: 'map', b: 2 },
-          { s: [NR, CL], p: 'map', b: 2 },
-          { s: [ST, CL], p: 'map', b: 2 },
-          { s: [VL, CL], p: 'map', b: 2 },
+          { s: [TX, CL], p: S.map, b: 2 },
+          { s: [NR, CL], p: S.map, b: 2 },
+          { s: [ST, CL], p: S.map, b: 2 },
+          { s: [VL, CL], p: S.map, b: 2 },
 
-          { s: [TX], r: 'elem', b: 1 },
-          { s: [NR], r: 'elem', b: 1 },
-          { s: [ST], r: 'elem', b: 1 },
-          { s: [VL], r: 'elem', b: 1 },
+          { s: [TX], r: S.elem, b: 1 },
+          { s: [NR], r: S.elem, b: 1 },
+          { s: [ST], r: S.elem, b: 1 },
+          { s: [VL], r: S.elem, b: 1 },
         ],
         after_open: (rule: Rule, _ctx: Context, next: Rule) => {
           if (rule === next && rule.open[0]) {
@@ -1585,7 +1624,13 @@ class Parser {
   }
 
 
-  start(lexer: Lexer, src: string, meta?: any, partial_ctx?: any): any {
+  start(
+    lexer: Lexer,
+    src: string,
+    jsonic: Jsonic,
+    meta?: any,
+    partial_ctx?: any
+  ): any {
     let opts = this.opts
     let config = this.config
 
@@ -1598,6 +1643,7 @@ class Parser {
       meta: meta || {},
       src: () => src, // Avoid printing src
       root: () => root.node,
+      plugins: () => jsonic.internal().plugins,
       node: undefined,
       u2: lexer.end,
       u1: lexer.end,
@@ -1702,11 +1748,11 @@ let util = {
     let tokenmap: any = config.token
     let token: string | pin = tokenmap[ref]
 
-    if (null == token && 'string' === typeof (ref)) {
+    if (null == token && S.string === typeof (ref)) {
       token = config.tokenI++
       tokenmap[token] = ref
       tokenmap[ref] = token
-      tokenmap[ref.substring(1)] = token
+      tokenmap[(ref as string).substring(1)] = token
 
       if (null != jsonic) {
         Object.assign(jsonic.token, config.token)
@@ -1721,11 +1767,11 @@ let util = {
   // `undefined` always loses, `over` plain objects inject into functions,
   // and `over` functions always win. Over always copied.
   deep: function(base?: any, ...rest: any): any {
-    let base_is_function = 'function' === typeof (base)
+    let base_is_function = S.function === typeof (base)
     let base_is_object = null != base &&
       (S.object === typeof (base) || base_is_function)
     for (let over of rest) {
-      let over_is_function = 'function' === typeof (over)
+      let over_is_function = S.function === typeof (over)
       let over_is_object = null != over &&
         (S.object === typeof (over) || over_is_function)
       if (base_is_object &&
@@ -1743,7 +1789,7 @@ let util = {
             (over_is_object ?
               util.deep(Array.isArray(over) ? [] : {}, over) : over)
 
-        base_is_function = 'function' === typeof (base)
+        base_is_function = S.function === typeof (base)
         base_is_object = null != base &&
           (S.object === typeof (base) || base_is_function)
       }
@@ -1790,13 +1836,6 @@ let util = {
           let logstr = rest
             .filter((item: any) => S.object != typeof (item))
             .join('\t')
-
-          /*
-          if ('node' === rest[0]) {
-            logstr += '\t' + JSON.stringify(rest[3])
-          }
-          */
-
           ctx.opts.debug.get_console().log(logstr)
         }
         else {
@@ -1893,7 +1932,7 @@ let util = {
 
   handle_meta_mode: (self: Jsonic, src: string, meta: KV): any[] => {
     let opts = self.options
-    if ('function' === typeof (opts.mode[meta.mode])) {
+    if (S.function === typeof (opts.mode[meta.mode])) {
       try {
         return opts.mode[meta.mode].call(self, src, meta)
       }
@@ -1939,6 +1978,7 @@ let util = {
               meta,
               src: () => src,
               root: () => undefined,
+              plugins: () => [],
               node: undefined,
               u2: token,
               u1: token,
@@ -1984,7 +2024,7 @@ let util = {
 
 
     let multi_char_token_names = token_names
-      .filter(tn => 'string' === typeof opts.token[tn])
+      .filter(tn => S.string === typeof opts.token[tn])
 
     // Char code arrays for lookup by char code.
     config.start = multi_char_token_names
@@ -2096,13 +2136,15 @@ function make(first?: KV | Jsonic, parent?: Jsonic): Jsonic {
 
   // Handle polymorphic params.
   let param_opts = (first as KV)
-  if ('function' === typeof (first)) {
+  if (S.function === typeof (first)) {
     param_opts = ({} as KV)
     parent = (first as Jsonic)
   }
 
+  let lexer: Lexer
+  let parser: Parser
   let config: Config
-
+  let plugins: Plugin[]
 
 
   // Merge options.
@@ -2115,8 +2157,7 @@ function make(first?: KV | Jsonic, parent?: Jsonic): Jsonic {
 
   // Create primary parsing function
   let self: any = function Jsonic(src: any, meta?: any, partial_ctx?: any): any {
-    debugger
-    if ('string' === typeof (src)) {
+    if (S.string === typeof (src)) {
       let internal = self.internal()
 
       let [done, out] =
@@ -2124,7 +2165,7 @@ function make(first?: KV | Jsonic, parent?: Jsonic): Jsonic {
           [false]
 
       if (!done) {
-        out = internal.parser.start(internal.lexer, src, meta, partial_ctx)
+        out = internal.parser.start(internal.lexer, src, self, meta, partial_ctx)
       }
 
       return out
@@ -2140,8 +2181,6 @@ function make(first?: KV | Jsonic, parent?: Jsonic): Jsonic {
     return util.token(ref, config, self)
   }
 
-  let lexer: Lexer
-  let parser: Parser
 
 
   // Transfer parent properties (preserves plugin decorations, etc).
@@ -2158,6 +2197,8 @@ function make(first?: KV | Jsonic, parent?: Jsonic): Jsonic {
     util.build_config_from_options(config, opts)
     Object.assign(self.token, config.token)
 
+    plugins = [...parent_internal.plugins]
+
     lexer = parent_internal.lexer.clone(config)
     parser = parent_internal.parser.clone(opts, config)
   }
@@ -2168,6 +2209,8 @@ function make(first?: KV | Jsonic, parent?: Jsonic): Jsonic {
     } as Config)
 
     util.build_config_from_options(config, opts)
+
+    plugins = []
 
     lexer = new Lexer(config)
     parser = new Parser(opts, config)
@@ -2181,7 +2224,8 @@ function make(first?: KV | Jsonic, parent?: Jsonic): Jsonic {
   self.internal = () => ({
     lexer,
     parser,
-    config
+    config,
+    plugins,
   })
 
 
@@ -2203,6 +2247,7 @@ function make(first?: KV | Jsonic, parent?: Jsonic): Jsonic {
 
   self.use = function use(plugin: Plugin, plugin_opts?: KV): Jsonic {
     self.options({ plugin: { [plugin.name]: plugin_opts || {} } })
+    self.internal().plugins.push(plugin)
     return plugin(self) || self
   }
 
@@ -2235,6 +2280,11 @@ function make(first?: KV | Jsonic, parent?: Jsonic): Jsonic {
 
   return (self as Jsonic)
 }
+
+
+// Generate hint text lookup.
+// NOTE: generated and inserted by hint.js
+function make_hint(d = (t: any, r = 'replace') => t[r](/[A-Z]/g, (m: any) => ' ' + m.toLowerCase())[r](/[~%][a-z]/g, (m: any) => ('~' == m[0] ? ' ' : '') + m[1].toUpperCase()), s = '~sinceTheErrorIsUnknown,ThisIsProbablyABugInsideJsonic\nitself.~pleaseConsiderPostingAGithubIssue -Thanks!|~theCharacter(s) $srcShouldNotOccurAtThisPointAsItIsNot\nvalid %j%s%o%nSyntax,EvenUnderTheRelaxedJsonicRules.~ifItIs\nnotObviouslyWrong,TheActualSyntaxErrorMayBeElsewhere.~try\ncommentingOutLargerAreasAroundThisPointUntilYouGetNoErrors,\nthenRemoveTheCommentsInSmallSectionsUntilYouFindThe\noffendingSyntax.~n%o%t%e:~alsoCheckIfAnyPluginsOrModesYouAre\nusingExpectDifferentSyntaxInThisCase.|~theEscapeSequence $srcDoesNotEncodeAValidUnicodeCodePoint\nnumber.~youMayNeedToValidateYourStringDataManuallyUsingTest\ncodeToSeeHow~javaScriptWillInterpretIt.~alsoConsiderThatYour\ndataMayHaveBecomeCorrupted,OrTheEscapeSequenceHasNotBeen\ngeneratedCorrectly.|~theEscapeSequence $srcDoesNotEncodeAValid~a%s%c%i%iCharacter.~you\nmayNeedToValidateYourStringDataManuallyUsingTestCodeToSee\nhow~javaScriptWillInterpretIt.~alsoConsiderThatYourDataMay\nhaveBecomeCorrupted,OrTheEscapeSequenceHasNotBeenGenerated\ncorrectly.|~stringValuesCannotContainUnprintableCharacters (characterCodes\nbelow 32).~theCharacter $srcIsUnprintable.~youMayNeedToRemove\ntheseCharactersFromYourSourceData.~alsoCheckThatItHasNot\nbecomeCorrupted.|~stringValuesCannotBeMissingTheirFinalQuoteCharacter,Which\nshouldMatchTheirInitialQuoteCharacter.'.split('|')): any { return 'unknown|unexpected|invalid_unicode|invalid_ascii|unprintable|unterminated'.split('|').reduce((a: any, n, i) => (a[n] = d(s[i]), a), {}) }
 
 
 

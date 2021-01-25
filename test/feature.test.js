@@ -273,6 +273,10 @@ describe('feature', function () {
     expect(j('"a\\"b`\'c"')).equals('a"b`\'c')
     expect(j('`a\\`b"\'c`')).equals('a`b"\'c')
 
+    expect(j('"\\u0061"')).equals('a')
+    expect(j('"\\x61"')).equals('a')
+    expect(j('"\\x!!"')).equals('a')
+    
     let k = j.make({string:{escapedouble:true}})
     expect(k('"a""b"')).equals('a"b')
     expect(k('`a``b`')).equals('a`b')

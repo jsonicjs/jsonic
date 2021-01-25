@@ -10,7 +10,7 @@ let Native = function native(jsonic) {
         }
     });
     let VL = jsonic.token.VL;
-    jsonic.lex(jsonic.token.LS_TOP, function native(sI, src, token, ctx) {
+    jsonic.lex(jsonic.token.LTP, function native(sI, src, token, ctx) {
         let out;
         let config = ctx.config;
         let c0c = src.charCodeAt(sI);

@@ -7,7 +7,7 @@ let HJson = function hjson(jsonic) {
     let TX = jsonic.token.TX;
     // Slurp to end of line.
     // NOTE: HJson thus does not support a:foo,b:bar -> {a:'foo',b:'bar'}
-    jsonic.lex(jsonic.token.LS_TEXT, function tx_eol(sI, src, token, ctx) {
+    jsonic.lex(jsonic.token.LTX, function tx_eol(sI, src, token, ctx) {
         let pI = sI;
         let srclen = src.length;
         if (ctx.t0.pin === CL) {

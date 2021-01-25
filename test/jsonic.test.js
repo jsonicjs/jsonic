@@ -290,10 +290,7 @@ describe('jsonic', function () {
   })
 
   
-  it('process-array-qqq', () => {
-    //expect(j('[,,a]',{log:-1})).equal([null,null,'a'])
-    //expect(j(',',{log:-1})).equal([null])
-    
+  it('process-array', () => {
     expect(j('[a]')).equal(['a'])
     expect(j('[a,]')).equal(['a'])
     expect(j('[a,,]')).equal(['a',null])

@@ -12,7 +12,7 @@ let HJson: Plugin = function hjson(jsonic: Jsonic) {
 
   // Slurp to end of line.
   // NOTE: HJson thus does not support a:foo,b:bar -> {a:'foo',b:'bar'}
-  jsonic.lex(jsonic.token.LS_TEXT, function tx_eol(
+  jsonic.lex(jsonic.token.LTX, function tx_eol(
     sI: number,
     src: string,
     token: Token,

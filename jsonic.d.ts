@@ -22,9 +22,7 @@ declare type Opts = {
     error: {
         [code: string]: string;
     };
-    hint: {
-        [code: string]: string;
-    };
+    hint: any;
     token: {
         [name: string]: // Token name.
         {
@@ -79,6 +77,7 @@ interface Context {
     meta: Meta;
     src: () => string;
     root: () => any;
+    plugins: () => Plugin[];
     node: any;
     u2: Token;
     u1: Token;
@@ -200,7 +199,7 @@ declare class Parser {
     rule(name: string, define?: (rs: RuleSpec, rsm: {
         [n: string]: RuleSpec;
     }) => RuleSpec): RuleSpec;
-    start(lexer: Lexer, src: string, meta?: any, partial_ctx?: any): any;
+    start(lexer: Lexer, src: string, jsonic: Jsonic, meta?: any, partial_ctx?: any): any;
     clone(opts: Opts, config: Config): Parser;
 }
 declare let util: {

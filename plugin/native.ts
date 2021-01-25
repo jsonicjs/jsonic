@@ -17,7 +17,7 @@ let Native: Plugin = function native(jsonic: Jsonic) {
 
   let VL = jsonic.token.VL
 
-  jsonic.lex(jsonic.token.LS_TOP, function native(
+  jsonic.lex(jsonic.token.LTP, function native(
     sI: number,
     src: string,
     token: Token,

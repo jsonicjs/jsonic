@@ -31,12 +31,12 @@ describe('plugin', function () {
     let config0 = {config:true,mark:0,tokenI:1,token:{}}
     let lex0 = new Lexer(config0)
     let match0 = function(){}
-    lex0.lex('match0', match0)
+    lex0.lex(config0.token['@LCS'], match0)
 
     let config1 = {config:true,mark:1,tokenI:1,token:{}}
     let lex1 = lex0.clone(config1)
     let match1 = function(){}
-    lex1.lex('match1', match1)
+    lex1.lex(config0.token['@LML'], match1)
 
     // console.log('lex0')
     // console.dir(lex0)
@@ -48,9 +48,9 @@ describe('plugin', function () {
     expect(lex0.end === lex1.end).false()
     expect(lex0.match === lex1.match).false()
     expect(I(lex0.match))
-      .equal('{ match0: [ [Function: match0] ] }')
+      .equal("{ '1': [], '2': [], '3': [ [Function: match0] ], '4': [] }")
     expect(I(lex1.match))
-      .equal('{ match0: [ [Function: match0] ], match1: [ [Function: match1] ] }')    
+      .equal("{\n  '1': [],\n  '2': [],\n  '3': [ [Function: match0] ],\n  '4': [ [Function: match1] ]\n}")    
   })
 
 

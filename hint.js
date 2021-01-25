@@ -14,23 +14,41 @@ const Fs = require('fs')
 
 let hint = {
   unknown:
-  ` Since the error is unknown, this is probably a bug inside jsonic itself.
-Please consider posting a github issue - thanks!`,
+  ` Since the error is unknown, this is probably a bug inside jsonic
+itself. Please consider posting a github issue - thanks!`,
 
   unexpected:
   ` The character(s) $src should not occur at this point as it is not
-valid %j%s%o%n syntax, even under the relaxed jsonic rules. If it is not
-obviously wrong, the actual syntax error may be elsewhere. Try
+valid %j%s%o%n syntax, even under the relaxed jsonic rules. If it is
+not obviously wrong, the actual syntax error may be elsewhere. Try
 commenting out larger areas around this point until you get no errors,
 then remove the comments in small sections until you find the
-offending syntax.`,
+offending syntax. N%o%t%e: Also check if any plugins or modes you are
+using expect different syntax in this case.`,
 
   invalid_unicode:
-  ` But I %j%s%o%n must explain to you how all this mistaken idea of
-reprobating pleasure and extolling pain arose. To do so, I will give
-you a complete account of the system, and expound the actual
-teachings of the great explorer of the truth, the master-builder of
-human happiness.`,
+  ` The escape sequence $src does not encode a valid unicode code point
+number. You may need to validate your string data manually using test
+code to see how JavaScript will interpret it. Also consider that your
+data may have become corrupted, or the escape sequence has not been
+generated correctly.`,
+
+  invalid_ascii:
+  ` The escape sequence $src does not encode a valid A%s%c%i%i character. You
+may need to validate your string data manually using test code to see
+how JavaScript will interpret it. Also consider that your data may
+have become corrupted, or the escape sequence has not been generated
+correctly.`,
+
+  unprintable:
+  ` String values cannot contain unprintable characters (character codes
+below 32). The character $src is unprintable. You may need to remove
+these characters from your source data. Also check that it has not
+become corrupted.`,
+
+  unterminated:
+  ` String values cannot be missing their final quote character, which
+should match their initial quote character.`
 }
 
 
@@ -48,10 +66,11 @@ let hint_short = hint_names.map(name=>encode(hint[name]))
 
 
 // The gnarly IIFE
-let decode = `((d = (t: any, r = 'replace') => t[r](/[A-Z]/g, (m: any) => ' ' + m.toLowerCase())[r](/[~%][a-z]/g, (m: any) => ('~'==m[0]?' ':'') + m[1].toUpperCase()), s = '${hint_short}'.split('|')) => '${hint_names.join('|')}'.split('|').reduce((a: any, n, i) => (a[n] = d(s[i]), a), {}))(),`
-
+//let decode = `((d = (t: any, r = 'replace') => t[r](/[A-Z]/g, (m: any) => ' ' + m.toLowerCase())[r](/[~%][a-z]/g, (m: any) => ('~' == m[0] ? ' ' : '') + m[1].toUpperCase()), s = '${hint_short}'.split('|')) => '${hint_names.join('|')}'.split('|').reduce((a: any, n, i) => (a[n] = d(s[i]), a), {}))(),`
+let decode = `(d = (t: any, r = 'replace') => t[r](/[A-Z]/g, (m: any) => ' ' + m.toLowerCase())[r](/[~%][a-z]/g, (m: any) => ('~' == m[0] ? ' ' : '') + m[1].toUpperCase()), s = '${hint_short}'.split('|')): any { return '${hint_names.join('|')}'.split('|').reduce((a: any, n, i) => (a[n] = d(s[i]), a), {}) }`
 
 // Inject as part of build step (see package.json).
 let src = Fs.readFileSync('./jsonic.ts').toString()
-src = src.replace(/    hint:.*/, '    hint: '+decode)
+//src = src.replace(/    hint:.*/, '    hint: '+decode)
+src = src.replace(/function make_hint.*/, 'function make_hint'+decode)
 Fs.writeFileSync('./jsonic.ts', src)
