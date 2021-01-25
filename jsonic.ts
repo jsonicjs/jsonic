@@ -2,6 +2,8 @@
 
 
 
+// TODO: FIX: multi-descent is only valid for one value:
+//         a:b:1,c:2 -> a:{b:1},c:2, NOT a:{b:1,c:2}
 // TODO: stringify
 // TODO: use char maps
 // TODO: deeper tests
@@ -1482,8 +1484,14 @@ class Parser {
             }
           },
 
-          // Non-empty close means we need a catch-all backtrack
-          { s: [AA], b: 1 },
+          // Close value, and map or list, but perhaps there are more elem?
+          { s: [CA], b: 1 },
+          { s: [CB], b: 1 },
+          { s: [CS], b: 1 },
+          { s: [TX], b: 1 },
+          { s: [NR], b: 1 },
+          { s: [ST], b: 1 },
+          { s: [VL], b: 1 },
         ],
         before_close: (rule: Rule) => {
           rule.node = rule.child.node ?? rule.open[0]?.val

@@ -102,6 +102,13 @@ describe('error', function () {
   })
 
 
+  it('lex-ascii', () => {
+    let src0 = '\n\n\n\n\n\n\n\n\n\n   "\\x!!"'
+    expect(j(src0))
+      .throws(JsonicError, /invalid_ascii/)
+  })
+
+
   it('lex-unprintable', () => {
     let src0 = '"\x00"'
     expect(j(src0))
@@ -141,4 +148,11 @@ describe('error', function () {
     } 
     */
   })
+
+
+
+  it('bad-syntax', () => {
+    expect(j('{a:b:}')).throws(JsonicError, /unexpected/)
+  })
+
 })

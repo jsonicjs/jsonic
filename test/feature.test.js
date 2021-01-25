@@ -275,7 +275,6 @@ describe('feature', function () {
 
     expect(j('"\\u0061"')).equals('a')
     expect(j('"\\x61"')).equals('a')
-    expect(j('"\\x!!"')).equals('a')
     
     let k = j.make({string:{escapedouble:true}})
     expect(k('"a""b"')).equals('a"b')
@@ -397,9 +396,11 @@ describe('feature', function () {
   })
 
 
-  it('error', () => {
-    //expect(()=>j('{a:1{')).throws(JsonicError, /jsonic\/json/)
+  it('property-dive', () => {
+    expect(j('a:b:c')).equals({a:{b:'c'}})
+    expect(j('a:b:c,d:e',{log:-1})).equals({a:{b:'c'},d:'e'})
   })
+
   
   
   it('plugin-token', () => {

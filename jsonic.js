@@ -959,8 +959,14 @@ class Parser {
                             rule.node = [rule.node];
                         }
                     },
-                    // Non-empty close means we need a catch-all backtrack
-                    { s: [AA], b: 1 },
+                    // Close value, and map or list, but perhaps there are more elem?
+                    { s: [CA], b: 1 },
+                    { s: [CB], b: 1 },
+                    { s: [CS], b: 1 },
+                    { s: [TX], b: 1 },
+                    { s: [NR], b: 1 },
+                    { s: [ST], b: 1 },
+                    { s: [VL], b: 1 },
                 ],
                 before_close: (rule) => {
                     var _a, _b;
