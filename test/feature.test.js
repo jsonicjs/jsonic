@@ -375,8 +375,8 @@ describe('feature', function () {
     expect(j('a:1,b:2')).equals({a:1,b:2})
     expect(j('a:b:1')).equals({a:{b:1}})
     expect(j('a:b:c:1')).equals({a:{b:{c:1}}})
-    expect(j('a:b:1,d:2')).equals({a:{b:1,d:2}})
-    expect(j('a:b:c:1,d:2')).equals({a:{b:{c:1,d:2}}})
+    expect(j('a:b:1,d:2')).equals({a:{b:1},d:2})
+    expect(j('a:b:c:1,d:2')).equals({a:{b:{c:1}},d:2})
     expect(j('{a:b:1}')).equals({a:{b:1}})
     expect(j('a:{b:c:1}')).equals({a:{b:{c:1}}})
   })
@@ -389,7 +389,12 @@ describe('feature', function () {
     expect(j('a:{b:1,x:1},a:{b:2,y:2},a:{b:3,z:3}'))
       .equals({ a: { b: 3, x: 1, y: 2, z: 3} })
 
-    
+    expect(j('a:[{b:1,x:1}],a:[{b:2,y:2}],a:[{b:3,z:3}]'))
+      .equals({ a: [{ b: 3, x: 1, y: 2, z: 3}] })
+
+    expect(j('a:[{b:1},{x:1}],a:[{b:2},{y:2}],a:[{b:3},{z:3}]'))
+      .equals({ a: [{ b: 3}, {x: 1, y: 2, z: 3}] })
+
     let k = j.make({object:{extend:false}})
     expect(k('a:{b:1,c:2},a:{c:3,e:4}'))
       .equals({ a: { c: 3, e: 4 } })
@@ -397,8 +402,21 @@ describe('feature', function () {
 
 
   it('property-dive', () => {
-    expect(j('a:b:c')).equals({a:{b:'c'}})
-    expect(j('a:b:c,d:e',{log:-1})).equals({a:{b:'c'},d:'e'})
+    expect(j('{a:1,b:2}',{xlog:-1})).equals({a:1,b:2})
+    expect(j('{a:1,b:{c:2}}',{xlog:-1})).equals({a:1,b:{c:2}})
+    expect(j('{a:1,b:{c:2},d:3}',{xlog:-1})).equals({a:1,b:{c:2},d:3})
+    expect(j('{b:{c:2,e:4},d:3}',{xlog:-1})).equals({b:{c:2,e:4},d:3})
+    
+    expect(j('{a:{b:{c:1,d:2},e:3},f:4}',{xlog:-1})).equals({a:{b:{c:1,d:2},e:3},f:4})
+    expect(j('a:b:c',{xlog:-1})).equals({a:{b:'c'}})
+
+    expect(j('a:b:c,d:e',{xlog:-1})).equals({a:{b:'c'},d:'e'})
+    expect(j('a:b:c:1,d:e',{xlog:-1})).equals({a:{b:{c:1}},d:'e'})
+    expect(j('a:b:c:f:{g:1},d:e',{xlog:-1})).equals({a:{b:{c:{f:{g:1}}}},d:'e'})
+    expect(j('c:f:{g:1,h:2},d:e',{xlog:-1})).equals({c:{f:{g:1,h:2}},d:'e'})
+    expect(j('c:f:[{g:1,h:2}],d:e',{xlog:-1})).equals({c:{f:[{g:1,h:2}]},d:'e'})
+
+    expect(j('a:b:c:1\nd:e',{xlog:-1})).equals({a:{b:{c:1}},d:'e'})
   })
 
   

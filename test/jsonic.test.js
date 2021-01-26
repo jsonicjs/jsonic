@@ -131,7 +131,7 @@ describe('jsonic', function () {
     // NOTE: important feature!!!
     expect(Jsonic('a:b:1')).equals({ a: { b: 1 } })
     expect(Jsonic('a:b:c:1')).equals({ a: { b: {c: 1} } })
-    expect(Jsonic('a:b:1,c:2')).equals({ a: { b: 1, c: 2} })
+    expect(Jsonic('a:b:1,c:2')).equals({ a: { b: 1 }, c: 2 })
 
   })
 

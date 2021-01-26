@@ -174,9 +174,8 @@ declare class Rule {
     parent?: Rule;
     open: Token[];
     close: Token[];
+    n: KV;
     why?: string;
-    val: any;
-    key: any;
     constructor(spec: RuleSpec, ctx: Context, node?: any);
     process(ctx: Context): Rule;
 }

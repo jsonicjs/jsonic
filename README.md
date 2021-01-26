@@ -76,7 +76,7 @@ All of the examples below parse even more beautifully to
 ```
 cat: { hat: true }
 cat: { fish: null }
-cat: who: ['sally', 'me']}//FIX
+cat: who: ['sally', 'me']
   
 # Who needs quotes anyway?
 holds up: [

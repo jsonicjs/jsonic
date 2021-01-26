@@ -754,6 +754,8 @@ var RuleState;
     RuleState[RuleState["close"] = 1] = "close";
 })(RuleState || (RuleState = {}));
 class Rule {
+    //val: any
+    //key: any
     constructor(spec, ctx, node) {
         this.id = ctx.rI++;
         this.name = spec.name;
@@ -763,6 +765,7 @@ class Rule {
         this.child = norule;
         this.open = [];
         this.close = [];
+        this.n = {};
     }
     process(ctx) {
         let rule = norule;
@@ -781,6 +784,33 @@ class RuleSpec {
     constructor(name, def) {
         this.name = name;
         this.def = def;
+        function norm_cond(cond) {
+            if ('object' === typeof (cond)) {
+                if (cond.n) {
+                    //console.log('RSC', name, cond.n)
+                    return (_alt, rule, _ctx) => {
+                        let pass = true;
+                        for (let cn in cond.n) {
+                            //pass = pass && (null == ctx.n[cn] || (ctx.n[cn] <= cond.n[cn]))
+                            pass = pass && (null == rule.n[cn] || (rule.n[cn] <= cond.n[cn]));
+                            //console.log('PASS', pass, cn)
+                        }
+                        return pass;
+                    };
+                }
+            }
+            return cond;
+        }
+        for (let alt of this.def.open) {
+            if (null != alt.c) {
+                alt.c = norm_cond(alt.c);
+            }
+        }
+        for (let alt of this.def.close) {
+            if (null != alt.c) {
+                alt.c = norm_cond(alt.c);
+            }
+        }
     }
     open(rule, ctx) {
         let next = rule;
@@ -797,15 +827,28 @@ class RuleSpec {
             throw new JsonicError(S.unexpected, { open: true }, act.e, rule, ctx);
         }
         rule.open = act.m;
+        if (act.n) {
+            // TODO: auto delete counters if not specified?
+            for (let cn in act.n) {
+                //ctx.n[cn] = (null == ctx.n[cn] ? 0 : ctx.n[cn]) + act.n[cn]
+                //ctx.n[cn] = 0 < ctx.n[cn] ? ctx.n[cn] : 0
+                //rule.n[cn] = (null == rule.n[cn] ? 0 : rule.n[cn]) + act.n[cn]
+                rule.n[cn] = 0 === act.n[cn] ? 0 : (null == rule.n[cn] ? 0 : rule.n[cn]) + act.n[cn];
+                rule.n[cn] = 0 < rule.n[cn] ? rule.n[cn] : 0;
+            }
+            //console.log('OPEN', act.n, rule.n)
+        }
         if (act.p) {
             ctx.rs.push(rule);
             next = rule.child = new Rule(ctx.rsm[act.p], ctx, rule.node);
             next.parent = rule;
+            next.n = { ...rule.n };
             why += 'U';
         }
         else if (act.r) {
             next = new Rule(ctx.rsm[act.r], ctx, rule.node);
             next.parent = rule.parent;
+            next.n = { ...rule.n };
             why += 'R';
         }
         else {
@@ -828,6 +871,15 @@ class RuleSpec {
         if (act.e) {
             throw new JsonicError(S.unexpected, { close: true }, act.e, rule, ctx);
         }
+        if (act.n) {
+            for (let cn in act.n) {
+                //ctx.n[cn] = (null == ctx.n[cn] ? 0 : ctx.n[cn]) + act.n[cn]
+                //ctx.n[cn] = 0 < ctx.n[cn] ? ctx.n[cn] : 0
+                rule.n[cn] = 0 === act.n[cn] ? 0 : (null == rule.n[cn] ? 0 : rule.n[cn]) + act.n[cn];
+                rule.n[cn] = 0 < rule.n[cn] ? rule.n[cn] : 0;
+            }
+            //console.log('CLOSE', act.n, rule.n)
+        }
         if (act.h) {
             next = act.h(this, rule, ctx) || next;
             why += 'H';
@@ -836,11 +888,13 @@ class RuleSpec {
             ctx.rs.push(rule);
             next = rule.child = new Rule(ctx.rsm[act.p], ctx, rule.node);
             next.parent = rule;
+            next.n = { ...rule.n };
             why += 'U';
         }
         else if (act.r) {
             next = new Rule(ctx.rsm[act.r], ctx, rule.node);
             next.parent = rule.parent;
+            next.n = { ...rule.n };
             why += 'R';
         }
         else {
@@ -864,40 +918,53 @@ class RuleSpec {
         if (t.ZZ === ctx.t0.pin) {
             out = { m: [] };
         }
-        else if (0 < alts.length) {
-            for (altI = 0; altI < alts.length; altI++) {
-                alt = alts[altI];
-                // Optional custom condition
-                let cond = alt.c ? alt.c(alt, rule, ctx) : true;
-                if (cond) {
-                    // No tokens to match.
-                    if (null == alt.s || 0 === alt.s.length) {
-                        out = { ...alt, m: [] };
-                        break;
-                    }
-                    // Match 1 or 2 tokens in sequence.
-                    else if (alt.s[0] === ctx.t0.pin) {
-                        if (1 === alt.s.length) {
+        else {
+            if (0 < alts.length) {
+                for (altI = 0; altI < alts.length; altI++) {
+                    alt = alts[altI];
+                    // Optional custom condition
+                    let cond = alt.c ? alt.c(alt, rule, ctx) : true;
+                    if (cond) {
+                        // No tokens to match.
+                        if (null == alt.s || 0 === alt.s.length) {
+                            out = { ...alt, m: [] };
+                            break;
+                        }
+                        // Match 1 or 2 tokens in sequence.
+                        else if (alt.s[0] === ctx.t0.pin) {
+                            if (1 === alt.s.length) {
+                                out = { ...alt, m: [ctx.t0] };
+                                break;
+                            }
+                            else if (alt.s[1] === ctx.t1.pin) {
+                                out = { ...alt, m: [ctx.t0, ctx.t1] };
+                                break;
+                            }
+                        }
+                        // Match any token.
+                        else if (t.AA === alt.s[0]) {
                             out = { ...alt, m: [ctx.t0] };
                             break;
                         }
-                        else if (alt.s[1] === ctx.t1.pin) {
-                            out = { ...alt, m: [ctx.t0, ctx.t1] };
-                            break;
-                        }
                     }
-                    // Match any token.
-                    else if (t.AA === alt.s[0]) {
-                        out = { ...alt, m: [ctx.t0] };
-                        break;
+                    /*
+                    else if (t.ZZ === ctx.t0.pin) {
+                      out = { ...alt, m: [] }
+                      break
                     }
+                    */
                 }
+                out = out || { e: ctx.t0, m: [] };
             }
-            out = out || { e: ctx.t0, m: [] };
+            //else if (t.ZZ === ctx.t0.pin) {
+            //  out = { m: [] }
+            //}
         }
         out = out || { m: [] };
         ctx.log && ctx.log('parse', rule.name + '/' + rule.id, RuleState[rule.state], altI < alts.length ? 'alt=' + altI : 'no-alt', altI < alts.length && alt && alt.s ?
-            '[' + alt.s.map((pin) => t[pin]).join(' ') + ']' : '[]', ctx.tI, 'p=' + (out.p || ''), 'r=' + (out.r || ''), 'b=' + (out.b || ''), out.m.map((tkn) => t[tkn.pin]).join(' '), ctx.F(out.m.map((tkn) => tkn.src)), out);
+            '[' + alt.s.map((pin) => t[pin]).join(' ') + ']' : '[]', ctx.tI, 'p=' + (out.p || ''), 'r=' + (out.r || ''), 'b=' + (out.b || ''), out.m.map((tkn) => t[tkn.pin]).join(' '), ctx.F(out.m.map((tkn) => tkn.src)), 
+        //'n:' + Object.entries(ctx.n).join(';'),
+        'n:' + Object.entries(rule.n).join(';'), out);
         if (out.m) {
             let mI = 0;
             let rewind = out.m.length - (out.b || 0);
@@ -937,15 +1004,17 @@ class Parser {
         let rules = {
             val: {
                 open: [
-                    { s: [OB, CA], p: S.map },
-                    { s: [OB], p: S.map },
+                    // TODO: n - auto delete unmentioned counters
+                    { s: [OB, CA], p: S.map, n: { im: 0 } },
+                    { s: [OB], p: S.map, n: { im: 0 } },
                     { s: [OS], p: S.list },
                     { s: [CA], p: S.list, b: 1 },
                     // Implicit map - operates at any depth
-                    { s: [TX, CL], p: S.map, b: 2 },
-                    { s: [ST, CL], p: S.map, b: 2 },
-                    { s: [NR, CL], p: S.map, b: 2 },
-                    { s: [VL, CL], p: S.map, b: 2 },
+                    // NOTE: `n.im` counts depth of implicit maps 
+                    { s: [TX, CL], p: S.map, b: 2, n: { im: 1 } },
+                    { s: [ST, CL], p: S.map, b: 2, n: { im: 1 } },
+                    { s: [NR, CL], p: S.map, b: 2, n: { im: 1 } },
+                    { s: [VL, CL], p: S.map, b: 2, n: { im: 1 } },
                     { s: [TX] },
                     { s: [NR] },
                     { s: [ST] },
@@ -960,13 +1029,7 @@ class Parser {
                         }
                     },
                     // Close value, and map or list, but perhaps there are more elem?
-                    { s: [CA], b: 1 },
-                    { s: [CB], b: 1 },
-                    { s: [CS], b: 1 },
-                    { s: [TX], b: 1 },
-                    { s: [NR], b: 1 },
-                    { s: [ST], b: 1 },
-                    { s: [VL], b: 1 },
+                    { s: [AA], b: 1 },
                 ],
                 before_close: (rule) => {
                     var _a, _b;
@@ -1004,12 +1067,20 @@ class Parser {
                 ],
                 close: [
                     { s: [CB] },
-                    { s: [CA], r: S.pair },
+                    // NOTE: only proceed to second pair if implict depth <=1
+                    // Otherwise walk back up the implicit maps. This prevents
+                    // greedy capture of following pairs. See feature:property-dive test.
+                    { s: [CA], c: { n: { im: 1 } }, r: S.pair },
+                    { s: [CA], n: { im: -1 }, b: 1 },
                     // Who needs commas anyway?
-                    { s: [ST, CL], r: S.pair, b: 2 },
-                    { s: [TX, CL], r: S.pair, b: 2 },
-                    { s: [NR, CL], r: S.pair, b: 2 },
-                    { s: [VL, CL], r: S.pair, b: 2 },
+                    { s: [ST, CL], c: { n: { im: 1 } }, r: S.pair, b: 2 },
+                    { s: [TX, CL], c: { n: { im: 1 } }, r: S.pair, b: 2 },
+                    { s: [NR, CL], c: { n: { im: 1 } }, r: S.pair, b: 2 },
+                    { s: [VL, CL], c: { n: { im: 1 } }, r: S.pair, b: 2 },
+                    { s: [ST, CL], n: { im: -1 }, b: 2 },
+                    { s: [TX, CL], n: { im: -1 }, b: 2 },
+                    { s: [NR, CL], n: { im: -1 }, b: 2 },
+                    { s: [VL, CL], n: { im: -1 }, b: 2 },
                 ],
                 before_close: (rule, ctx) => {
                     let key_token = rule.open[0];
@@ -1025,7 +1096,7 @@ class Parser {
             // push onto node
             elem: {
                 open: [
-                    { s: [OB], p: S.map },
+                    { s: [OB], p: S.map, n: { im: 0 } },
                     { s: [OS], p: S.list },
                     // TODO: replace with { p: S.val} as last entry
                     // IMPORTANT! makes array values consistent with prop values
@@ -1045,12 +1116,12 @@ class Parser {
                     // End lis
                     { s: [CS] },
                     // Who needs commas anyway?
-                    { s: [OB], p: S.map, },
+                    { s: [OB], p: S.map, n: { im: 0 } },
                     { s: [OS], p: S.list, },
-                    { s: [TX, CL], p: S.map, b: 2 },
-                    { s: [NR, CL], p: S.map, b: 2 },
-                    { s: [ST, CL], p: S.map, b: 2 },
-                    { s: [VL, CL], p: S.map, b: 2 },
+                    { s: [TX, CL], p: S.map, n: { im: 0 }, b: 2 },
+                    { s: [NR, CL], p: S.map, n: { im: 0 }, b: 2 },
+                    { s: [ST, CL], p: S.map, n: { im: 0 }, b: 2 },
+                    { s: [VL, CL], p: S.map, n: { im: 0 }, b: 2 },
                     { s: [TX], r: S.elem, b: 1 },
                     { s: [NR], r: S.elem, b: 1 },
                     { s: [ST], r: S.elem, b: 1 },
@@ -1100,6 +1171,7 @@ class Parser {
             next,
             rs: [],
             rsm: this.rsm,
+            //n: {},
             log: (meta && meta.log) || undefined,
             F: util.make_src_format(config),
             use: {}
@@ -1350,9 +1422,8 @@ let util = {
                         rs: [],
                         next: () => token,
                         rsm: {},
+                        n: {},
                         log: meta.log,
-                        //F: (s: any) => null == s ? '' : JSON.stringify(s)
-                        //  .substring(0, self.internal().config.debug.maxlen),
                         F: util.make_src_format(self.internal().config),
                         use: {},
                     });
