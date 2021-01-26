@@ -123,7 +123,45 @@ describe('feature', function () {
     expect(j('1e-2')).equals(0.01)
     expect(j('0xA')).equals(10)
     expect(j('0xa')).equals(10)
+    expect(j('0o12')).equals(10)
+    expect(j('0b1010')).equals(10)
+    expect(j('0x_A')).equals(10)
+    expect(j('0x_a')).equals(10)
+    expect(j('0o_12')).equals(10)
+    expect(j('0b_1010')).equals(10)
     expect(j('1e6:a')).equals({'1e6':'a'}) // NOTE: "1e6" not "1000000"
+
+    expect(j('a:1')).equals({a:1})
+    expect(j('a:[1]')).equals({a:[1]})
+    expect(j('a:a:1')).equals({a:{a:1}})
+    expect(j('a:1:a')).equals({a:{'1':'a'}})
+    expect(j('a:{a:1}')).equals({a:{a:1}})
+    expect(j('a:{1:a}')).equals({a:{'1':'a'}})
+    expect(j('a:+1')).equals({a:'+1'}) // NOTE: not considered a number!
+    expect(j('a:-1')).equals({a:-1})
+    expect(j('a:1.2')).equals({a:1.2})
+    expect(j('a:1e2')).equals({a:100})
+    expect(j('a:10_0')).equals({a:100})
+    expect(j('a:-1.2')).equals({a:-1.2})
+    expect(j('a:-1e2')).equals({a:-100})
+    expect(j('a:-10_0')).equals({a:-100})
+    expect(j('a:1e+2')).equals({a:100})
+    expect(j('a:1e-2')).equals({a:0.01})
+    expect(j('a:0xA')).equals({a:10})
+    expect(j('a:0xa')).equals({a:10})
+    expect(j('a:0o12')).equals({a:10})
+    expect(j('a:0b1010')).equals({a:10})
+    expect(j('a:0x_A')).equals({a:10})
+    expect(j('a:0x_a')).equals({a:10})
+    expect(j('a:0o_12')).equals({a:10})
+    expect(j('a:0b_1010')).equals({a:10})
+    expect(j('a:1e6:a')).equals({a:{'1e6':'a'}}) // NOTE: "1e6" not "1000000"
+
+    let jn = j.make({ number: { lex: false } })
+    expect(jn('1')).equals('1') // Now it's a string.
+    expect(j('1')).equals(1)
+    expect(jn('a:1')).equals({a:'1'})
+    expect(j('a:1')).equals({a:1})
   })
 
 

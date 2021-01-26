@@ -2,6 +2,7 @@
   "name": "jsonic",
   "version": "2.0.0",
   "main": "jsonic.js",
+  "type": "commonjs",
   "browser": "jsonic.min.js",
   "types": "jsonic.d.ts",
   "description": "A fast pattern matcher on JavaScript object properties.",
@@ -20,7 +21,7 @@
   },
   "scripts": {
     "watch": "tsc -w -d",
-    "build": "node hint.js && tsc -d && cp jsonic.js jsonic.min.js && browserify -o jsonic.min.js -e jsonic.js -s Jsonic -im -i assert -p tinyify",
+    "build": "node hint.js && tsc -d && node mfix.js && cp jsonic.js jsonic.min.js && browserify -o jsonic.min.js -e jsonic.js -s Jsonic -im -i assert -p tinyify",
     "test": "lab -v -P test -t 90 --sourcemaps --transform node_modules/lab-transform-typescript -r console -o stdout -r html -o test/coverage.html",
     "test-some": "lab -v -P test --sourcemaps --transform node_modules/lab-transform-typescript -g",
     "test-web": "npm run build && browserify -o test-web/test-web.js -e test/web-all.js -s All -im -i assert -i @hapi/lab && open test-web/index.html",
@@ -37,21 +38,15 @@
     "*.ts",
     "*.js",
     "*.map",
+    "plugin",
     "LICENSE"
   ],
-  "dependencies": {
-    "gex": "^3.0.1"
-  },
   "devDependencies": {
     "@hapi/code": "^8.0.2",
     "@hapi/lab": "^24.1.0",
-    "benchmark": "^2.1.4",
-    "coveralls": "^3.1.0",
     "hapi-lab-shim": "0.0.2",
-    "jsonic": "^1.0.1",
     "lab-transform-typescript": "^3.0.1",
     "prettier": "^2.1.2",
-    "serve": "^11.3.2",
     "browserify": "^17.0.0",
     "tinyify": "^3.0.0",
     "typescript": "^4.0.5"

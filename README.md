@@ -1,6 +1,9 @@
 # jsonic
 
-*A JSON parser for Node.js that isn't strict. Also, it's very __very__ extensible.* 
+*A JSON parser for JavaScript that isn't strict. 
+Also, it's very __very__ extensible.* 
+
+`a:1,foo:bar` &rarr; `{"a": 1, "foo": "bar"}`
 
 [Site](https://jsonic.com/) |
 [Docs](https://jsonic.com/docs) |
@@ -15,10 +18,41 @@
 [![npm version](https://badge.fury.io/js/jsonic.svg)](https://badge.fury.io/js/jsonic)
 [![dependencies Status](https://status.david-dm.org/gh/rjrodger/jsonic.svg)](https://david-dm.org/rjrodger/jsonic)
 
+# Quick start
 
-# What jsonic can do
+Install:
 
-All of the examples below parse beautifully to `{ "a": 1, "b": "B" }`.
+```
+> npm install jsonic
+```
+
+Node.js:
+```
+const Jsonic = require('jsonic')
+console.log(Jsonic('a:b'))  // prints {a:'b'}
+```
+
+TypeScript:
+```
+import { Jsonic } from 'jsonic'
+console.log(Jsonic('a:b'))  // prints {a:'b'}
+```
+
+Browser:
+```
+<script src="jsonic.min.js"></script>
+<script>
+console.log(Jsonic('a:b'))  // prints {a:'b'}
+</script>
+```
+
+(Although in the real world you'll probably be packaging _jsonic_ as a dependency with _webpack_ or similar.)
+
+
+
+# What can jsonic do?
+
+All of the examples below parse beautifully to `{"a": 1, "b": "B"}`.
 
 
 *short and sweet*
@@ -50,10 +84,41 @@ b:B
 { "a": 100e-2, '\u0062':`\x42`, }
 ```
 
+The syntax of _jsonic_ is just easy-going JSON:
+* simple no-quotes-needed property names: `{a:1}` &rarr; `{"a": 1}`
+* implicit top level (optional): `a:1,b:2` &rarr; `{"a": 1, "b": 2}`, `a,b` &rarr; `["a", "b"]`
+* graceful trailing commas: `a:1,b:2,` &rarr; `{"a": 1, "b": 2}`, `a,b,` &rarr; `["a", "b"]`
+* all the number formats: `1e1 === 0xa === 0o12 === 0b1010`
+
 
 But that is not all! Oh, no. That is not all...
 
-All of the examples below parse even more beautifully to 
+This:
+
+
+```
+# Merge, baby, merge!
+cat: { hat: true }
+cat: { fish: null }
+cat: who: ['sally', 'me']
+  
+# Who needs quotes anyway?
+holds up: [
+  cup and a cake,
+
+  `TWO books!
+   the fish!`,
+
+  '''
+  ship!
+  dish!
+  ball!
+  '''
+  ]
+}
+```
+
+parses into this:
 
 ```
 {
@@ -71,31 +136,30 @@ All of the examples below parse even more beautifully to
 }
 ```
 
-*many objects, many lines*
-
+Meaning you also get:
+* quotes can be single or double ': `'a',"b"` &rarr; `['a', 'b']`
+* quotes are optional, even with spaces: `{a: cup cake }` &rarr; `{"a": "cup cake"}`
+* object merging: `a:{b:1},a:{c:2}` &rarr; `{"a": {"b": 1, "c": 2}}`
+* object construction: `a:b:1,a:c:2` &rarr; `{"a": {"b": 1, "c": 2}}`
+* multi-line strings: 
 ```
-cat: { hat: true }
-cat: { fish: null }
-cat: who: ['sally', 'me']
-  
-# Who needs quotes anyway?
-holds up: [
-  cup and a cake,
-
-  \`TWO books!
-   the fish!\`,
-
-  '''
-  ship!
-  dish!
-  ball!
-  '''
-  ]
-}
+`a
+b` 
+``` 
+&rarr; `"a\nb"`
+* indent-adjusted strings: 
 ```
+  '''
+  a
+  b
+  '''
+``` 
+&rarr; `"a\nb"`
 
 
-
+And we haven't even begun to talk about all the fun stuff you can do
+with options and plugins, including support for multiple files, Hjson,
+CSV (or TSV), and dynamic content.
 
 
 <details open="open">

@@ -129,6 +129,9 @@ declare type Config = {
             [name: string]: pin;
         };
     };
+    number: {
+        sep_re: RegExp | null;
+    };
     debug: KV;
 };
 declare class JsonicError extends SyntaxError {
@@ -218,3 +221,4 @@ declare let util: {
 declare function make(first?: KV | Jsonic, parent?: Jsonic): Jsonic;
 declare let Jsonic: Jsonic;
 export { Jsonic, Plugin, JsonicError, Lexer, Parser, Rule, RuleSpec, Token, Context, Meta, LexMatcher, LexMatcherResult, util, make, };
+export default Jsonic;

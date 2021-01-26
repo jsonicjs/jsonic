@@ -47,10 +47,18 @@ function make_standard_options() {
         },
         // Control number formats.
         number: {
-            // All possible number chars.
-            digital: '-1023456789._xeEaAbBcCdDfF+',
-            // Allow embedded underscore.
-            underscore: true,
+            // Recognize numbers in the Lexer.
+            lex: true,
+            // Recognize hex numbers (eg. 10 === 0x0a).
+            hex: true,
+            // Recognize octal numbers (eg. 10 === 0o12).
+            oct: true,
+            // Recognize ninary numbers (eg. 10 === 0b1010).
+            bin: true,
+            // All possible number chars. |+-|0|xob|0-9a-fA-F|.e|+-|0-9a-fA-F|
+            digital: '-1023456789._xoeEaAbBcCdDfF+',
+            // Allow embedded separator. `null` to disable.
+            sep: '_',
         },
         // String formats.
         string: {
@@ -373,36 +381,46 @@ class Lexer {
                         return token;
                     }
                     // Number chars.
-                    if (config.start.NR.includes(c0c)) {
+                    if (config.start.NR.includes(c0c) && opts.number.lex) {
                         token.pin = NR;
                         token.loc = sI;
                         token.col = cI;
                         pI = sI;
                         while (opts.number.digital.includes(src[++pI]))
                             ;
+                        let numstr = src.substring(sI, pI);
                         if (null == src[pI] || config.value_ender.includes(src[pI])) {
                             token.len = pI - sI;
-                            // Leading 0s are text unless hex val: if at least two
-                            // digits and does not start with 0x, then text.
-                            if (1 < token.len && '0' === src[sI] && 'x' != src[sI + 1]) {
-                                token.val = undefined; // unset if not a hex value
+                            let base_char = src[sI + 1];
+                            // Leading 0s are text unless hex|oct|bin val: if at least two
+                            // digits and does not start with 0x|o|b, then text.
+                            if (1 < token.len && '0' === src[sI] && // Maybe a 0x|o|b number?
+                                opts.number.hex && 'x' !== base_char && // But...
+                                opts.number.oct && 'o' !== base_char && //  it is...
+                                opts.number.bin && 'b' !== base_char && //    not.
+                                true) {
+                                // Not a number.
+                                token.val = undefined;
                                 pI--;
                             }
+                            // Attempt to parse natively as a number, using +(string).
                             else {
-                                token.val = +(src.substring(sI, pI));
-                                // Allow number format 1000_000_000 === 1e9
-                                if (opts.number.underscore && isNaN(token.val)) {
-                                    token.val = +(src.substring(sI, pI).replace(/_/g, ''));
+                                token.val = +numstr;
+                                // Allow number format 1000_000_000 === 1e9.
+                                if (null != config.number.sep_re && isNaN(token.val)) {
+                                    token.val = +(numstr.replace(config.number.sep_re, ''));
                                 }
+                                // Not a number, just a random collection of digital chars.
                                 if (isNaN(token.val)) {
                                     token.val = undefined;
                                     pI--;
                                 }
                             }
                         }
+                        // It was a number
                         if (null != token.val) {
                             // Ensure verbatim src (eg. src="1e6" -> val=1000000).
-                            token.src = src.substring(sI, pI);
+                            token.src = numstr;
                             cI += token.len;
                             sI = pI;
                             lexlog && lexlog(tn(token.pin), F(token.src), { ...token });
@@ -1517,6 +1535,9 @@ let util = {
                 LN: util.token(opts.lex.core.LN, config)
             }
         };
+        config.number = {
+            sep_re: null != opts.number.sep ? new RegExp(opts.number.sep, 'g') : null
+        };
         config.debug = opts.debug;
         // TOOD: maybe make this a debug option?
         // console.log(config)
@@ -1621,4 +1642,14 @@ exports.make = make;
 function make_hint(d = (t, r = 'replace') => t[r](/[A-Z]/g, (m) => ' ' + m.toLowerCase())[r](/[~%][a-z]/g, (m) => ('~' == m[0] ? ' ' : '') + m[1].toUpperCase()), s = '~sinceTheErrorIsUnknown,ThisIsProbablyABugInsideJsonic\nitself.~pleaseConsiderPostingAGithubIssue -Thanks!|~theCharacter(s) $srcShouldNotOccurAtThisPointAsItIsNot\nvalid %j%s%o%nSyntax,EvenUnderTheRelaxedJsonicRules.~ifItIs\nnotObviouslyWrong,TheActualSyntaxErrorMayBeElsewhere.~try\ncommentingOutLargerAreasAroundThisPointUntilYouGetNoErrors,\nthenRemoveTheCommentsInSmallSectionsUntilYouFindThe\noffendingSyntax.~n%o%t%e:~alsoCheckIfAnyPluginsOrModesYouAre\nusingExpectDifferentSyntaxInThisCase.|~theEscapeSequence $srcDoesNotEncodeAValidUnicodeCodePoint\nnumber.~youMayNeedToValidateYourStringDataManuallyUsingTest\ncodeToSeeHow~javaScriptWillInterpretIt.~alsoConsiderThatYour\ndataMayHaveBecomeCorrupted,OrTheEscapeSequenceHasNotBeen\ngeneratedCorrectly.|~theEscapeSequence $srcDoesNotEncodeAValid~a%s%c%i%iCharacter.~you\nmayNeedToValidateYourStringDataManuallyUsingTestCodeToSee\nhow~javaScriptWillInterpretIt.~alsoConsiderThatYourDataMay\nhaveBecomeCorrupted,OrTheEscapeSequenceHasNotBeenGenerated\ncorrectly.|~stringValuesCannotContainUnprintableCharacters (characterCodes\nbelow 32).~theCharacter $srcIsUnprintable.~youMayNeedToRemove\ntheseCharactersFromYourSourceData.~alsoCheckThatItHasNot\nbecomeCorrupted.|~stringValuesCannotBeMissingTheirFinalQuoteCharacter,Which\nshouldMatchTheirInitialQuoteCharacter.'.split('|')) { return 'unknown|unexpected|invalid_unicode|invalid_ascii|unprintable|unterminated'.split('|').reduce((a, n, i) => (a[n] = d(s[i]), a), {}); }
 let Jsonic = make();
 exports.Jsonic = Jsonic;
+Jsonic.Jsonic = Jsonic;
+Jsonic.JsonicError = JsonicError;
+Jsonic.Lexer = Lexer;
+Jsonic.Parser = Parser;
+Jsonic.Rule = Rule;
+Jsonic.RuleSpec = RuleSpec;
+Jsonic.util = util;
+Jsonic.make = make;
+exports.default = Jsonic;
+;('undefined' != typeof(module) && (module.exports = exports.Jsonic));
 //# sourceMappingURL=jsonic.js.map
