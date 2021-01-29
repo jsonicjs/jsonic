@@ -785,8 +785,6 @@ var RuleState;
     RuleState[RuleState["close"] = 1] = "close";
 })(RuleState || (RuleState = {}));
 class Rule {
-    //val: any
-    //key: any
     constructor(spec, ctx, node) {
         this.id = ctx.rI++;
         this.name = spec.name;
@@ -811,6 +809,18 @@ class Rule {
 }
 exports.Rule = Rule;
 let norule = { id: 0, spec: { name: 'norule' } };
+class RuleAct {
+    constructor() {
+        this.m = [];
+        this.p = '';
+        this.r = '';
+        this.b = 0;
+        this.n = null;
+        this.h = null;
+    }
+}
+const ruleact = new RuleAct();
+const empty_ruleact = new RuleAct();
 class RuleSpec {
     constructor(name, def) {
         this.name = name;
@@ -818,13 +828,10 @@ class RuleSpec {
         function norm_cond(cond) {
             if ('object' === typeof (cond)) {
                 if (cond.n) {
-                    //console.log('RSC', name, cond.n)
                     return (_alt, rule, _ctx) => {
                         let pass = true;
                         for (let cn in cond.n) {
-                            //pass = pass && (null == ctx.n[cn] || (ctx.n[cn] <= cond.n[cn]))
                             pass = pass && (null == rule.n[cn] || (rule.n[cn] <= cond.n[cn]));
-                            //console.log('PASS', pass, cn)
                         }
                         return pass;
                     };
@@ -853,7 +860,9 @@ class RuleSpec {
             rule.node = out && out.node || rule.node;
         }
         let act = (null == out || !out.done) ?
-            this.parse_alts(this.def.open, rule, ctx) : { m: [] };
+            this.parse_alts(this.def.open, rule, ctx) : empty_ruleact;
+        //{ m: [] }
+        //new RuleAct()
         if (act.e) {
             throw new JsonicError(S.unexpected, { open: true }, act.e, rule, ctx);
         }
@@ -895,7 +904,8 @@ class RuleSpec {
         if (this.def.before_close) {
             this.def.before_close.call(this, rule, ctx);
         }
-        let act = 0 < this.def.close.length ? this.parse_alts(this.def.close, rule, ctx) : {};
+        let act = 0 < this.def.close.length ? this.parse_alts(this.def.close, rule, ctx) : empty_ruleact;
+        //new RuleAct()
         if (act.e) {
             throw new JsonicError(S.unexpected, { close: true }, act.e, rule, ctx);
         }
@@ -936,17 +946,21 @@ class RuleSpec {
     }
     // First match wins.
     parse_alts(alts, rule, ctx) {
-        let out = undefined;
+        let out = ruleact;
+        out.m = [];
+        out.b = 0;
+        out.p = '';
+        out.r = '';
+        out.n = undefined;
+        out.h = undefined;
         let alt;
         let altI = 0;
         let t = ctx.config.token;
         let cond;
-        // End token reached.
-        if (t.ZZ === ctx.t0.pin) {
-            out = { m: [] };
-        }
-        else {
+        // End token not yet reached...
+        if (t.ZZ !== ctx.t0.pin) {
             if (0 < alts.length) {
+                out.e = ctx.t0;
                 for (altI = 0; altI < alts.length; altI++) {
                     alt = alts[altI];
                     // Optional custom condition
@@ -954,31 +968,39 @@ class RuleSpec {
                     if (cond) {
                         // No tokens to match.
                         if (null == alt.s || 0 === alt.s.length) {
-                            out = { ...alt, m: [] };
+                            out.e = undefined;
                             break;
                         }
                         // Match 1 or 2 tokens in sequence.
                         else if (alt.s[0] === ctx.t0.pin) {
                             if (1 === alt.s.length) {
-                                out = { ...alt, m: [ctx.t0] };
+                                out.m = [ctx.t0];
+                                out.e = undefined;
                                 break;
                             }
                             else if (alt.s[1] === ctx.t1.pin) {
-                                out = { ...alt, m: [ctx.t0, ctx.t1] };
+                                out.m = [ctx.t0, ctx.t1];
+                                out.e = undefined;
                                 break;
                             }
                         }
                         // Match any token.
                         else if (t.AA === alt.s[0]) {
-                            out = { ...alt, m: [ctx.t0] };
+                            out.m = [ctx.t0];
+                            out.e = undefined;
                             break;
                         }
                     }
                 }
-                out = out || { e: ctx.t0, m: [] };
+                if (null != alt) {
+                    out.b = alt.b ? alt.b : out.b;
+                    out.p = alt.p ? alt.p : out.p;
+                    out.r = alt.r ? alt.r : out.r;
+                    out.n = alt.n ? alt.n : out.n;
+                    out.h = alt.h ? alt.h : out.h;
+                }
             }
         }
-        out = out || { m: [] };
         ctx.log && ctx.log('parse', rule.name + '/' + rule.id, RuleState[rule.state], altI < alts.length ? 'alt=' + altI : 'no-alt', altI < alts.length && alt && alt.s ?
             '[' + alt.s.map((pin) => t[pin]).join(' ') + ']' : '[]', ctx.tI, 'p=' + (out.p || ''), 'r=' + (out.r || ''), 'b=' + (out.b || ''), out.m.map((tkn) => t[tkn.pin]).join(' '), ctx.F(out.m.map((tkn) => tkn.src)), 'c:' + ((alt && alt.c) ? cond : ''), 'n:' + Object.entries(rule.n).join(';'), out);
         // Lex forward
@@ -989,11 +1011,6 @@ class RuleSpec {
                 ctx.next();
             }
         }
-        /*
-        if (out.e) {
-          console.log(out.e)
-        }
-        */
         return out;
     }
 }

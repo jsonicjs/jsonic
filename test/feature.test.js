@@ -42,6 +42,8 @@ describe('feature', function () {
 
   
   it('feature-implicit-comma', () => {
+    // expect(j('[1\n2]',{log:-1})).equals([1,2])
+
     expect(j('[0,1]')).equals([0,1])
     expect(j('[0,null]')).equals([0,null])
     expect(j('{a:0,b:null}')).equals({a:0,b:null})

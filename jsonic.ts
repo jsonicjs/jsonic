@@ -113,7 +113,7 @@ interface Context {
   rsm: { [name: string]: RuleSpec }
   next: () => Token
   log?: (...rest: any) => undefined
-  F: (s: string) => string
+  F: (s: any) => string
   use: KV     // Custom meta data from plugins goes here.
 }
 
@@ -1238,8 +1238,6 @@ class Rule {
   close: Token[]
   n: KV
   why?: string
-  //val: any
-  //key: any
 
   constructor(spec: RuleSpec, ctx: Context, node?: any) {
     this.id = ctx.rI++
@@ -1273,6 +1271,18 @@ let norule = ({ id: 0, spec: { name: 'norule' } } as Rule)
 
 
 
+class RuleAct {
+  m: Token[] = []
+  p: string = ''
+  r: string = ''
+  b: number = 0
+  n?: any = null
+  h?: any = null
+  e?: Token
+}
+
+const ruleact = new RuleAct()
+const empty_ruleact = new RuleAct()
 
 
 class RuleSpec {
@@ -1286,13 +1296,10 @@ class RuleSpec {
     function norm_cond(cond: any) {
       if ('object' === typeof (cond)) {
         if (cond.n) {
-          //console.log('RSC', name, cond.n)
           return (_alt: KV, rule: Rule, _ctx: Context) => {
             let pass = true
             for (let cn in cond.n) {
-              //pass = pass && (null == ctx.n[cn] || (ctx.n[cn] <= cond.n[cn]))
               pass = pass && (null == rule.n[cn] || (rule.n[cn] <= cond.n[cn]))
-              //console.log('PASS', pass, cn)
             }
             return pass
           }
@@ -1325,8 +1332,10 @@ class RuleSpec {
       rule.node = out && out.node || rule.node
     }
 
-    let act = (null == out || !out.done) ?
-      this.parse_alts(this.def.open, rule, ctx) : { m: [] }
+    let act: RuleAct = (null == out || !out.done) ?
+      this.parse_alts(this.def.open, rule, ctx) : empty_ruleact
+    //{ m: [] }
+    //new RuleAct()
 
     if (act.e) {
       throw new JsonicError(S.unexpected, { open: true }, act.e, rule, ctx)
@@ -1386,8 +1395,9 @@ class RuleSpec {
       this.def.before_close.call(this, rule, ctx)
     }
 
-    let act =
-      0 < this.def.close.length ? this.parse_alts(this.def.close, rule, ctx) : {}
+    let act: RuleAct =
+      0 < this.def.close.length ? this.parse_alts(this.def.close, rule, ctx) : empty_ruleact
+    //new RuleAct()
 
     if (act.e) {
       throw new JsonicError(S.unexpected, { close: true }, act.e, rule, ctx)
@@ -1443,19 +1453,26 @@ class RuleSpec {
 
 
   // First match wins.
-  parse_alts(alts: any[], rule: Rule, ctx: Context): any {
-    let out = undefined
+  parse_alts(alts: any[], rule: Rule, ctx: Context): RuleAct {
+    let out = ruleact
+    out.m = []
+    out.b = 0
+    out.p = ''
+    out.r = ''
+    out.n = undefined
+    out.h = undefined
+
     let alt
     let altI = 0
     let t = ctx.config.token
     let cond
 
-    // End token reached.
-    if (t.ZZ === ctx.t0.pin) {
-      out = { m: [] }
-    }
-    else {
+    // End token not yet reached...
+    if (t.ZZ !== ctx.t0.pin) {
+
       if (0 < alts.length) {
+        out.e = ctx.t0
+
         for (altI = 0; altI < alts.length; altI++) {
           alt = alts[altI]
 
@@ -1465,35 +1482,43 @@ class RuleSpec {
 
             // No tokens to match.
             if (null == alt.s || 0 === alt.s.length) {
-              out = { ...alt, m: [] }
+              out.e = undefined
               break
             }
 
             // Match 1 or 2 tokens in sequence.
             else if (alt.s[0] === ctx.t0.pin) {
               if (1 === alt.s.length) {
-                out = { ...alt, m: [ctx.t0] }
+                out.m = [ctx.t0]
+                out.e = undefined
                 break
               }
               else if (alt.s[1] === ctx.t1.pin) {
-                out = { ...alt, m: [ctx.t0, ctx.t1] }
+                out.m = [ctx.t0, ctx.t1]
+                out.e = undefined
                 break
               }
             }
 
             // Match any token.
             else if (t.AA === alt.s[0]) {
-              out = { ...alt, m: [ctx.t0] }
+              out.m = [ctx.t0]
+              out.e = undefined
               break
             }
           }
         }
 
-        out = out || { e: ctx.t0, m: [] }
+        if (null != alt) {
+          out.b = alt.b ? alt.b : out.b
+          out.p = alt.p ? alt.p : out.p
+          out.r = alt.r ? alt.r : out.r
+          out.n = alt.n ? alt.n : out.n
+          out.h = alt.h ? alt.h : out.h
+        }
       }
     }
 
-    out = out || { m: [] }
     ctx.log && ctx.log(
       'parse',
       rule.name + '/' + rule.id,
@@ -1519,12 +1544,6 @@ class RuleSpec {
         ctx.next()
       }
     }
-
-    /*
-    if (out.e) {
-      console.log(out.e)
-    }
-    */
 
     return out
   }
