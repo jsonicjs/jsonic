@@ -96,16 +96,18 @@ interface Context {
 declare type Lex = ((rule: Rule) => Token) & {
     src: string;
 };
+declare type PinMap = {
+    [char: string]: pin;
+};
 declare type Config = {
     tokenI: number;
     token: any;
     start: {
-        [name: string]: pin[];
+        [name: string]: PinMap;
     };
     multi: {
-        [name: string]: string;
+        [name: string]: PinMap;
     };
-    single: pin[];
     singlemap: {
         [char: string]: pin;
     };

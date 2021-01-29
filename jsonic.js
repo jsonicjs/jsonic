@@ -324,7 +324,7 @@ class Lexer {
             token.row = rI;
             let state = LTP;
             let state_param = null;
-            let enders = '';
+            let enders = {};
             let pI = 0; // Current lex position (only update sI at end of rule).
             let s = []; // Parsed string chars and substrings.
             let cc = -1; // Char code.
@@ -336,12 +336,14 @@ class Lexer {
                         return token;
                     }
                     // Space chars.
-                    if (config.start.SP.includes(c0c)) {
+                    //if (config.start.SP.includes(c0c)) {
+                    if (config.start.SP[c0]) {
                         token.pin = SP;
                         token.loc = sI;
                         token.col = cI++;
                         pI = sI + 1;
-                        while (config.multi.SP.includes(src[pI]))
+                        //while (config.multi.SP.includes(src[pI])) cI++, pI++;
+                        while (config.multi.SP[src[pI]])
                             cI++, pI++;
                         token.len = pI - sI;
                         token.val = src.substring(sI, pI);
@@ -351,13 +353,15 @@ class Lexer {
                         return token;
                     }
                     // Newline chars.
-                    if (config.start.LN.includes(c0c)) {
+                    //if (config.start.LN.includes(c0c)) {
+                    if (config.start.LN[c0]) {
                         token.pin = config.lex.core.LN;
                         token.loc = sI;
                         token.col = cI;
                         pI = sI;
                         cI = 0;
-                        while (config.multi.LN.includes(src[pI])) {
+                        //while (config.multi.LN.includes(src[pI])) {
+                        while (config.multi.LN[src[pI]]) {
                             // Count rows.
                             rI += (opts.char.row === src[pI] ? 1 : 0);
                             pI++;
@@ -370,8 +374,6 @@ class Lexer {
                         return token;
                     }
                     // Single char tokens.
-                    //if (null != config.single[c0c]) {
-                    //  token.pin = config.single[c0c]
                     if (null != config.singlemap[c0]) {
                         token.pin = config.singlemap[c0];
                         token.loc = sI;
@@ -383,7 +385,8 @@ class Lexer {
                         return token;
                     }
                     // Number chars.
-                    if (config.start.NR.includes(c0c) && opts.number.lex) {
+                    //if (config.start.NR.includes(c0c) && opts.number.lex) {
+                    if (config.start.NR[c0] && opts.number.lex) {
                         token.pin = NR;
                         token.loc = sI;
                         token.col = cI;
@@ -446,7 +449,8 @@ class Lexer {
                         }
                     }
                     // String chars.
-                    if (config.start.ST.includes(c0c)) {
+                    //if (config.start.ST.includes(c0c)) {
+                    if (config.start.ST[c0]) {
                         token.pin = ST;
                         token.loc = sI;
                         token.col = cI++;
@@ -457,6 +461,7 @@ class Lexer {
                         // TODO: \xNN \u{...}
                         for (pI = sI + 1; pI < srclen; pI++) {
                             cI++;
+                            let cs = src[pI];
                             cc = src.charCodeAt(pI);
                             // Quote char.
                             if (qc === cc) {
@@ -507,7 +512,8 @@ class Lexer {
                             }
                             // Unprintable chars.
                             else if (cc < 32) {
-                                if (multiline && config.start.LN.includes(cc)) {
+                                //if (multiline && config.start.LN.includes(cc)) {
+                                if (multiline && config.start.LN[cs]) {
                                     s.push(src[pI]);
                                 }
                                 else {
@@ -621,10 +627,12 @@ class Lexer {
                     // Hoovering (ie. greedily consume non-token chars including internal space)
                     // If hoovering, separate space at end from text
                     if (opts.text.hoover &&
-                        config.multi.SP.includes(token.val[token.val.length - 1])) {
+                        //config.multi.SP.includes(token.val[token.val.length - 1])) {
+                        config.multi.SP[token.val[token.val.length - 1]]) {
                         // Find last non-space char
                         let tI = token.val.length - 2;
-                        while (0 < tI && config.multi.SP.includes(token.val[tI]))
+                        //while (0 < tI && config.multi.SP.includes(token.val[tI])) tI--;
+                        while (0 < tI && config.multi.SP[token.val[tI]])
                             tI--;
                         token.val = token.val.substring(0, tI + 1);
                         token.src = token.val;
@@ -646,7 +654,8 @@ class Lexer {
                         return token;
                     }
                     pI = sI;
-                    while (pI < srclen && !enders.includes(src[pI]))
+                    //while (pI < srclen && !enders.includes(src[pI])) pI++, cI++;
+                    while (pI < srclen && !enders[src[pI]])
                         pI++, cI++;
                     token.val += src.substring(sI, pI);
                     token.src = token.val;
@@ -673,9 +682,11 @@ class Lexer {
                     let closelen = close.length;
                     if (has_indent) {
                         let uI = sI - 1;
-                        while (-1 < uI && config.multi.SP.includes(src[uI--]))
+                        //while (-1 < uI && config.multi.SP.includes(src[uI--]));
+                        while (-1 < uI && config.multi.SP[src[uI--]])
                             ;
-                        indent_str = config.multi.SP[0].repeat(sI - uI - 2);
+                        //indent_str = config.multi.SP[0].repeat(sI - uI - 2)
+                        indent_str = Object.keys(config.multi.SP)[0].repeat(sI - uI - 2);
                     }
                     // Assume starts with open string
                     pI += open.length;
@@ -1464,28 +1475,35 @@ let util = {
     },
     // Idempotent normalization of options.
     build_config_from_options: function (config, opts) {
-        let cc = (s) => s.charCodeAt(0);
         let token_names = Object.keys(opts.token);
         // Index of tokens by name.
         token_names.forEach(tn => util.token(tn, config));
         let single_char_token_names = token_names
             .filter(tn => null != opts.token[tn].c);
-        // Sparse index array of single char codes
-        config.single = single_char_token_names
-            .reduce((a, tn) => (a[cc(opts.token[tn].c)] =
-            config.token[tn], a), []);
         config.singlemap = single_char_token_names
             .reduce((a, tn) => (a[opts.token[tn].c] =
             config.token[tn], a), {});
-        //console.log(config.single)
-        //console.log(config.singlemap)
         let multi_char_token_names = token_names
             .filter(tn => S.string === typeof opts.token[tn]);
         // Char code arrays for lookup by char code.
         config.start = multi_char_token_names
-            .reduce((a, tn) => (a[tn.substring(1)] = util.s2cca(opts.token[tn]), a), {});
+            .reduce((a, tn) => 
+        //(a[tn.substring(1)] = util.s2cca(opts.token[tn] as string), a), {})
+        (a[tn.substring(1)] =
+            opts.token[tn]
+                .split('')
+                .reduce((pm, c) => (pm[c] = config.token[tn], pm), {}),
+            a), {});
+        //console.log(config.start)
         config.multi = multi_char_token_names
-            .reduce((a, tn) => (a[tn.substring(1)] = opts.token[tn], a), {});
+            .reduce((a, tn) => 
+        //(a[tn.substring(1)] = opts.token[tn], a), {})
+        (a[tn.substring(1)] =
+            opts.token[tn]
+                .split('')
+                .reduce((pm, c) => (pm[c] = config.token[tn], pm), {}),
+            a), {});
+        //console.log(config.multi)
         let tokenset_names = token_names
             .filter(tn => null != opts.token[tn].s);
         // Char code arrays for lookup by char code.
@@ -1530,17 +1548,19 @@ let util = {
             config.bmk.push(k);
         });
         config.bmk_maxlen = util.longest(block_markers);
-        config.single_char =
-            config.single.map((_s, cc) => String.fromCharCode(cc)).join('');
+        config.single_char = Object.keys(config.singlemap).join('');
         // Enders are char sets that end lexing for a given token
         config.value_ender =
-            config.multi.SP +
-                config.multi.LN +
+            //config.multi.SP +
+            Object.keys(config.multi.SP).join('') +
+                //config.multi.LN +
+                Object.keys(config.multi.LN).join('') +
                 config.single_char +
                 config.start_cm_char;
         config.text_ender = config.value_ender;
         config.hoover_ender =
-            config.multi.LN +
+            //config.multi.LN +
+            Object.keys(config.multi.LN).join('') +
                 config.single_char +
                 config.start_cm_char;
         config.lex = {
