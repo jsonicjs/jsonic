@@ -1,13 +1,20 @@
-"use strict";
 /* Copyright (c) 2013-2020 Richard Rodger, MIT License */
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.Stringify = void 0;
-let Stringify = function stringify(jsonic) {
-    jsonic.stringify = function (obj) {
-        return JSON.stringify(obj);
-    };
-};
-exports.Stringify = Stringify;
+
+// TODO: use prev code
+
+import { Jsonic, Plugin } from '../jsonic'
+
+let Stringify: Plugin = function stringify(jsonic: Jsonic) {
+  jsonic.stringify = function(obj: any) {
+    return JSON.stringify(obj)
+  }
+}
+
+export { Stringify }
+
+
+
+
 /*
 
 
@@ -73,7 +80,7 @@ exports.Stringify = Stringify;
     else {
       var valstr = val.toString();
 
-      if( ~" \"'\r\n\t,}]".indexOf(valstr[0]) ||
+      if( ~" \"'\r\n\t,}]".indexOf(valstr[0]) || 
           !~valstr.match(/,}]/) ||
           ~" \r\n\t".indexOf(valstr[valstr.length-1]))
       {
@@ -112,5 +119,4 @@ exports.Stringify = Stringify;
     }
   }
 
-*/ 
-//# sourceMappingURL=stringify.js.map
+*/

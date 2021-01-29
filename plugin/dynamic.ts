@@ -55,7 +55,7 @@ let Dynamic: Plugin = function dynamic(jsonic: Jsonic) {
 
           //console.log('EXPR', expr)
 
-          let func: any = function($: any, _: any, __: any, _meta: any) {
+          let func: any = function($: any, _: any, meta: any) {
             return eval(expr)
           }
           func.__eval$$ = true
@@ -71,97 +71,106 @@ let Dynamic: Plugin = function dynamic(jsonic: Jsonic) {
     return rs
   })
 
+
   jsonic.rule('pair', (rs: RuleSpec): RuleSpec => {
     let ST = jsonic.options.ST
-    rs.def.before_close = (orule: Rule, octx: Context) => {
-      let token = orule.open[0]
+
+    let orig_before_close = rs.def.before_close
+    rs.def.before_close = (rule: Rule, ctx: Context) => {
+      let token = rule.open[0]
       if (token) {
-        let okey = ST === token.pin ? token.val : token.src
-        let prev = orule.node[okey]
-        let val = orule.child.node
+        let key = ST === token.pin ? token.val : token.src
+        let val = rule.child.node
 
-        // TODO: this needs a good refactor
         if ('function' === typeof (val) && val.__eval$$) {
-          Object.defineProperty(val, 'name', { value: okey })
+          Object.defineProperty(val, 'name', { value: key })
 
-            //console.log('DYN VAL', okey, val, prev, octx.root(), orule.name + '/' + orule.id, octx.rI)
-
-            ; (function() {
-              let key = okey
-              let rule = orule
-              let ctx = octx
-              let prev = rule.node[key]
-              let val = rule.child.node
-              let over: any
-
-              //console.log('DEF', ctx.root(), rule.name + '/' + rule.id, ctx.rI)
-
-              // TODO: remove closure refs to avoid bad memleak
-              Object.defineProperty(rule.node, key, {
-                enumerable: true,
-
-                // TODO: proper JsonicError when this fails
-                get() {
-                  let $ = ctx.root()
-                  //console.log('DYN GET', key, $, rule.name + '/' + rule.id, ctx.rI)
-
-                  let cr: any = rule
-                  let last = cr.node
-
-                  let __ = {}
-                  let pref: any = __
-                  while (cr = cr.parent) {
-                    //console.log('CR', cr.name, cr.node, cr.parent && cr.parent.name)
-                    if (last != cr.node) {
-                      pref._ = {}
-                      pref.$ = cr.node
-                      //console.log('PREF', cr.name, cr.node)
-                      pref = pref._
-                      last = cr.node
-                    }
-                  }
-
-                  //console.log('TREE')
-                  //console.dir(__)
-
-
-
-                  let out = null == $ ? null : val($, rule.node, __, ctx.meta)
-
-                  out = null == prev ? out :
-                    (ctx.opts.object.extend ? util.deep({}, prev, out) : out)
-
-                  //console.log('OUT', key, out, prev, over)
-
-                  if (null != over) {
-                    out = util.deep({}, out, over)
-                    //console.log('OVER', out, over)
-                  }
-
-                  return out
-                },
-                set(val: any) {
-                  over = val
-                  //console.log('SET', key, over)
-                }
-              })
-            })();
-
-          //console.log('DYN NODE OBJ', orule.node,)
-          //console.log('DYN NODE JSON', JSON.stringify(orule.node))
+          defineProperty(
+            rule.node,
+            key,
+            val,
+            ctx.root,
+            ctx.meta,
+            ctx.opts.object.extend,
+          )
         }
+
         else {
-          //console.log('PLAIN VAL', okey, val, prev, octx.root(), orule.name + '/' + orule.id, octx.rI)
-
-          orule.node[okey] = null == prev ? val :
-            (octx.opts.object.extend ? util.deep(prev, val) : val)
-
-          //console.log('PLAIN NODE', orule.node)
+          return orig_before_close(rule, ctx)
         }
       }
     }
     return rs
   })
+
+
+  jsonic.rule('elem', (rs: RuleSpec): RuleSpec => {
+
+    let orig_before_close = rs.def.before_close
+    rs.def.before_close = (rule: Rule, ctx: Context) => {
+      let val = rule.child.node
+
+      if ('function' === typeof (val) && val.__eval$$) {
+        Object.defineProperty(val, 'name', { value: 'i' + rule.node.length })
+
+        defineProperty(
+          rule.node,
+          rule.node.length,
+          val,
+          ctx.root,
+          ctx.meta,
+          ctx.opts.object.extend,
+        )
+      }
+
+      else {
+        return orig_before_close(rule, ctx)
+      }
+    }
+    return rs
+  })
+
+}
+
+
+function defineProperty(
+  node: any,
+  key: string,
+  valfn: any,
+  root: any,
+  meta: any,
+  extend: boolean,
+) {
+  let over: any
+  let prev = node[key]
+
+  //console.log('defP', node, key, valfn, root(), meta, prev)
+
+  Object.defineProperty(node, key, {
+    enumerable: true,
+
+    // TODO: proper JsonicError when this fails
+    get() {
+      //console.log('defP-get', node, key, valfn, root(), meta, prev)
+
+      let $ = root()
+
+      let out = null == $ ? null : valfn($, node, meta)
+
+      out = null == prev ? out :
+        (extend ? util.deep({}, prev, out) : out)
+
+      if (null != over) {
+        out = util.deep({}, out, over)
+      }
+
+      return out
+    },
+    set(val: any) {
+      over = val
+    }
+  })
+
 }
 
 

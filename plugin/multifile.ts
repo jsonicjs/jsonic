@@ -81,7 +81,7 @@ let Multifile: Plugin = function multifile(jsonic: Jsonic) {
 
         rule.open[0].val = val
       }
-      return bc(rule)
+      return bc(rule, ctx)
     }
 
     return rs

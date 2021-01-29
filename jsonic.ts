@@ -1322,13 +1322,10 @@ class RuleSpec {
     if (act.n) {
       // TODO: auto delete counters if not specified?
       for (let cn in act.n) {
-        //ctx.n[cn] = (null == ctx.n[cn] ? 0 : ctx.n[cn]) + act.n[cn]
-        //ctx.n[cn] = 0 < ctx.n[cn] ? ctx.n[cn] : 0
-        //rule.n[cn] = (null == rule.n[cn] ? 0 : rule.n[cn]) + act.n[cn]
-        rule.n[cn] = 0 === act.n[cn] ? 0 : (null == rule.n[cn] ? 0 : rule.n[cn]) + act.n[cn]
+        rule.n[cn] =
+          0 === act.n[cn] ? 0 : (null == rule.n[cn] ? 0 : rule.n[cn]) + act.n[cn]
         rule.n[cn] = 0 < rule.n[cn] ? rule.n[cn] : 0
       }
-      //console.log('OPEN', act.n, rule.n)
     }
 
     if (act.p) {
@@ -1383,12 +1380,10 @@ class RuleSpec {
 
     if (act.n) {
       for (let cn in act.n) {
-        //ctx.n[cn] = (null == ctx.n[cn] ? 0 : ctx.n[cn]) + act.n[cn]
-        //ctx.n[cn] = 0 < ctx.n[cn] ? ctx.n[cn] : 0
-        rule.n[cn] = 0 === act.n[cn] ? 0 : (null == rule.n[cn] ? 0 : rule.n[cn]) + act.n[cn]
+        rule.n[cn] =
+          0 === act.n[cn] ? 0 : (null == rule.n[cn] ? 0 : rule.n[cn]) + act.n[cn]
         rule.n[cn] = 0 < rule.n[cn] ? rule.n[cn] : 0
       }
-      //console.log('CLOSE', act.n, rule.n)
     }
 
     if (act.h) {
@@ -1438,6 +1433,7 @@ class RuleSpec {
     let alt
     let altI = 0
     let t = ctx.config.token
+    let cond
 
     // End token reached.
     if (t.ZZ === ctx.t0.pin) {
@@ -1449,7 +1445,7 @@ class RuleSpec {
           alt = alts[altI]
 
           // Optional custom condition
-          let cond = alt.c ? alt.c(alt, rule, ctx) : true
+          cond = alt.c ? alt.c(alt, rule, ctx) : true
           if (cond) {
 
             // No tokens to match.
@@ -1476,20 +1472,10 @@ class RuleSpec {
               break
             }
           }
-
-          /*
-          else if (t.ZZ === ctx.t0.pin) {
-            out = { ...alt, m: [] }
-            break
-          }
-          */
         }
 
         out = out || { e: ctx.t0, m: [] }
       }
-      //else if (t.ZZ === ctx.t0.pin) {
-      //  out = { m: [] }
-      //}
     }
 
     out = out || { m: [] }
@@ -1506,10 +1492,11 @@ class RuleSpec {
       'b=' + (out.b || ''),
       out.m.map((tkn: Token) => t[tkn.pin]).join(' '),
       ctx.F(out.m.map((tkn: Token) => tkn.src)),
-      //'n:' + Object.entries(ctx.n).join(';'),
+      'c:' + ((alt && alt.c) ? cond : ''),
       'n:' + Object.entries(rule.n).join(';'),
       out)
 
+    // Lex forward
     if (out.m) {
       let mI = 0
       let rewind = out.m.length - (out.b || 0)
@@ -1584,12 +1571,30 @@ class Parser {
         ],
         close: [
           // Implicit list works only at top level
+
           {
             s: [CA], c: top, r: S.elem,
             h: (_spec: RuleSpec, rule: Rule, _ctx: Context) => {
               rule.node = [rule.node]
             }
           },
+
+          // TODO: merge with above - cond outputs `out` for match
+          // and thus can specificy m to move lex forward
+          {
+            c: (_alt: any, _rule: Rule, ctx: Context) => {
+              return (TX === ctx.t0.pin ||
+                NR === ctx.t0.pin ||
+                ST === ctx.t0.pin ||
+                VL === ctx.t0.pin
+              ) && 0 === ctx.rs.length
+            },
+            r: S.elem,
+            h: (_spec: RuleSpec, rule: Rule, _ctx: Context) => {
+              rule.node = [rule.node]
+            }
+          },
+
 
           // Close value, and map or list, but perhaps there are more elem?
           { s: [AA], b: 1 },
@@ -1658,11 +1663,15 @@ class Parser {
           let key_token = rule.open[0]
           if (key_token && CB !== key_token.pin) {
             let key = ST === key_token.pin ? key_token.val : key_token.src
+            let val = rule.child.node
             let prev = rule.node[key]
 
-            rule.node[key] = null == prev ? rule.child.node :
-              (ctx.opts.object.extend ? util.deep(prev, rule.child.node) :
-                rule.child.node)
+            //rule.node[key] = null == prev ? rule.child.node :
+            //  (ctx.opts.object.extend ? util.deep(prev, rule.child.node) :
+            //    rule.child.node)
+
+            rule.node[key] = null == prev ? val :
+              (ctx.opts.object.extend ? util.deep(prev, val) : val)
           }
         },
       },
@@ -1676,15 +1685,18 @@ class Parser {
 
           // TODO: replace with { p: S.val} as last entry
           // IMPORTANT! makes array values consistent with prop values
+          /*
           { s: [TX] },
           { s: [NR] },
           { s: [ST] },
           { s: [VL] },
-
+          */
 
           // Insert null for initial comma
           { s: [CA, CA], b: 2 },
           { s: [CA] },
+
+          { p: S.val },
         ],
         close: [
           // Ignore trailing comma
@@ -1718,7 +1730,7 @@ class Parser {
           }
         },
         before_close: (rule: Rule) => {
-          if (rule.child.node) {
+          if (undefined !== rule.child.node) {
             rule.node.push(rule.child.node)
           }
         },
@@ -2413,6 +2425,11 @@ function make_hint(d = (t: any, r = 'replace') => t[r](/[A-Z]/g, (m: any) => ' '
 
 
 let Jsonic: Jsonic = make()
+Jsonic.use = () => {
+  throw new Error(
+    'Jsonic.use cannot be called directly. Instead write: `Jsonic.make().use(...)`.')
+}
+
 
 Jsonic.Jsonic = Jsonic
 Jsonic.JsonicError = JsonicError

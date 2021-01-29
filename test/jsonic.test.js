@@ -418,7 +418,6 @@ describe('jsonic', function () {
     expect(j('[0,1 ]')).equal([0,1])
     expect(j('[ 0,1]')).equal([0,1])
     expect(j('[ 0,1 ]')).equal([0,1])
-    return 
     
     expect(j('{a: 1}')).equal({a:1})
     expect(j('{a : 1}')).equal({a:1})

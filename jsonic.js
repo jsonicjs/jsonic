@@ -848,13 +848,10 @@ class RuleSpec {
         if (act.n) {
             // TODO: auto delete counters if not specified?
             for (let cn in act.n) {
-                //ctx.n[cn] = (null == ctx.n[cn] ? 0 : ctx.n[cn]) + act.n[cn]
-                //ctx.n[cn] = 0 < ctx.n[cn] ? ctx.n[cn] : 0
-                //rule.n[cn] = (null == rule.n[cn] ? 0 : rule.n[cn]) + act.n[cn]
-                rule.n[cn] = 0 === act.n[cn] ? 0 : (null == rule.n[cn] ? 0 : rule.n[cn]) + act.n[cn];
+                rule.n[cn] =
+                    0 === act.n[cn] ? 0 : (null == rule.n[cn] ? 0 : rule.n[cn]) + act.n[cn];
                 rule.n[cn] = 0 < rule.n[cn] ? rule.n[cn] : 0;
             }
-            //console.log('OPEN', act.n, rule.n)
         }
         if (act.p) {
             ctx.rs.push(rule);
@@ -891,12 +888,10 @@ class RuleSpec {
         }
         if (act.n) {
             for (let cn in act.n) {
-                //ctx.n[cn] = (null == ctx.n[cn] ? 0 : ctx.n[cn]) + act.n[cn]
-                //ctx.n[cn] = 0 < ctx.n[cn] ? ctx.n[cn] : 0
-                rule.n[cn] = 0 === act.n[cn] ? 0 : (null == rule.n[cn] ? 0 : rule.n[cn]) + act.n[cn];
+                rule.n[cn] =
+                    0 === act.n[cn] ? 0 : (null == rule.n[cn] ? 0 : rule.n[cn]) + act.n[cn];
                 rule.n[cn] = 0 < rule.n[cn] ? rule.n[cn] : 0;
             }
-            //console.log('CLOSE', act.n, rule.n)
         }
         if (act.h) {
             next = act.h(this, rule, ctx) || next;
@@ -932,6 +927,7 @@ class RuleSpec {
         let alt;
         let altI = 0;
         let t = ctx.config.token;
+        let cond;
         // End token reached.
         if (t.ZZ === ctx.t0.pin) {
             out = { m: [] };
@@ -941,7 +937,7 @@ class RuleSpec {
                 for (altI = 0; altI < alts.length; altI++) {
                     alt = alts[altI];
                     // Optional custom condition
-                    let cond = alt.c ? alt.c(alt, rule, ctx) : true;
+                    cond = alt.c ? alt.c(alt, rule, ctx) : true;
                     if (cond) {
                         // No tokens to match.
                         if (null == alt.s || 0 === alt.s.length) {
@@ -965,24 +961,14 @@ class RuleSpec {
                             break;
                         }
                     }
-                    /*
-                    else if (t.ZZ === ctx.t0.pin) {
-                      out = { ...alt, m: [] }
-                      break
-                    }
-                    */
                 }
                 out = out || { e: ctx.t0, m: [] };
             }
-            //else if (t.ZZ === ctx.t0.pin) {
-            //  out = { m: [] }
-            //}
         }
         out = out || { m: [] };
         ctx.log && ctx.log('parse', rule.name + '/' + rule.id, RuleState[rule.state], altI < alts.length ? 'alt=' + altI : 'no-alt', altI < alts.length && alt && alt.s ?
-            '[' + alt.s.map((pin) => t[pin]).join(' ') + ']' : '[]', ctx.tI, 'p=' + (out.p || ''), 'r=' + (out.r || ''), 'b=' + (out.b || ''), out.m.map((tkn) => t[tkn.pin]).join(' '), ctx.F(out.m.map((tkn) => tkn.src)), 
-        //'n:' + Object.entries(ctx.n).join(';'),
-        'n:' + Object.entries(rule.n).join(';'), out);
+            '[' + alt.s.map((pin) => t[pin]).join(' ') + ']' : '[]', ctx.tI, 'p=' + (out.p || ''), 'r=' + (out.r || ''), 'b=' + (out.b || ''), out.m.map((tkn) => t[tkn.pin]).join(' '), ctx.F(out.m.map((tkn) => tkn.src)), 'c:' + ((alt && alt.c) ? cond : ''), 'n:' + Object.entries(rule.n).join(';'), out);
+        // Lex forward
         if (out.m) {
             let mI = 0;
             let rewind = out.m.length - (out.b || 0);
@@ -1046,6 +1032,20 @@ class Parser {
                             rule.node = [rule.node];
                         }
                     },
+                    // TODO: merge with above - cond outputs `out` for match
+                    // and thus can specificy m to move lex forward
+                    {
+                        c: (_alt, _rule, ctx) => {
+                            return (TX === ctx.t0.pin ||
+                                NR === ctx.t0.pin ||
+                                ST === ctx.t0.pin ||
+                                VL === ctx.t0.pin) && 0 === ctx.rs.length;
+                        },
+                        r: S.elem,
+                        h: (_spec, rule, _ctx) => {
+                            rule.node = [rule.node];
+                        }
+                    },
                     // Close value, and map or list, but perhaps there are more elem?
                     { s: [AA], b: 1 },
                 ],
@@ -1104,10 +1104,13 @@ class Parser {
                     let key_token = rule.open[0];
                     if (key_token && CB !== key_token.pin) {
                         let key = ST === key_token.pin ? key_token.val : key_token.src;
+                        let val = rule.child.node;
                         let prev = rule.node[key];
-                        rule.node[key] = null == prev ? rule.child.node :
-                            (ctx.opts.object.extend ? util.deep(prev, rule.child.node) :
-                                rule.child.node);
+                        //rule.node[key] = null == prev ? rule.child.node :
+                        //  (ctx.opts.object.extend ? util.deep(prev, rule.child.node) :
+                        //    rule.child.node)
+                        rule.node[key] = null == prev ? val :
+                            (ctx.opts.object.extend ? util.deep(prev, val) : val);
                     }
                 },
             },
@@ -1118,13 +1121,16 @@ class Parser {
                     { s: [OS], p: S.list },
                     // TODO: replace with { p: S.val} as last entry
                     // IMPORTANT! makes array values consistent with prop values
+                    /*
                     { s: [TX] },
                     { s: [NR] },
                     { s: [ST] },
                     { s: [VL] },
+                    */
                     // Insert null for initial comma
                     { s: [CA, CA], b: 2 },
                     { s: [CA] },
+                    { p: S.val },
                 ],
                 close: [
                     // Ignore trailing comma
@@ -1153,7 +1159,7 @@ class Parser {
                     }
                 },
                 before_close: (rule) => {
-                    if (rule.child.node) {
+                    if (undefined !== rule.child.node) {
                         rule.node.push(rule.child.node);
                     }
                 },
@@ -1642,6 +1648,9 @@ exports.make = make;
 function make_hint(d = (t, r = 'replace') => t[r](/[A-Z]/g, (m) => ' ' + m.toLowerCase())[r](/[~%][a-z]/g, (m) => ('~' == m[0] ? ' ' : '') + m[1].toUpperCase()), s = '~sinceTheErrorIsUnknown,ThisIsProbablyABugInsideJsonic\nitself.~pleaseConsiderPostingAGithubIssue -Thanks!|~theCharacter(s) $srcShouldNotOccurAtThisPointAsItIsNot\nvalid %j%s%o%nSyntax,EvenUnderTheRelaxedJsonicRules.~ifItIs\nnotObviouslyWrong,TheActualSyntaxErrorMayBeElsewhere.~try\ncommentingOutLargerAreasAroundThisPointUntilYouGetNoErrors,\nthenRemoveTheCommentsInSmallSectionsUntilYouFindThe\noffendingSyntax.~n%o%t%e:~alsoCheckIfAnyPluginsOrModesYouAre\nusingExpectDifferentSyntaxInThisCase.|~theEscapeSequence $srcDoesNotEncodeAValidUnicodeCodePoint\nnumber.~youMayNeedToValidateYourStringDataManuallyUsingTest\ncodeToSeeHow~javaScriptWillInterpretIt.~alsoConsiderThatYour\ndataMayHaveBecomeCorrupted,OrTheEscapeSequenceHasNotBeen\ngeneratedCorrectly.|~theEscapeSequence $srcDoesNotEncodeAValid~a%s%c%i%iCharacter.~you\nmayNeedToValidateYourStringDataManuallyUsingTestCodeToSee\nhow~javaScriptWillInterpretIt.~alsoConsiderThatYourDataMay\nhaveBecomeCorrupted,OrTheEscapeSequenceHasNotBeenGenerated\ncorrectly.|~stringValuesCannotContainUnprintableCharacters (characterCodes\nbelow 32).~theCharacter $srcIsUnprintable.~youMayNeedToRemove\ntheseCharactersFromYourSourceData.~alsoCheckThatItHasNot\nbecomeCorrupted.|~stringValuesCannotBeMissingTheirFinalQuoteCharacter,Which\nshouldMatchTheirInitialQuoteCharacter.'.split('|')) { return 'unknown|unexpected|invalid_unicode|invalid_ascii|unprintable|unterminated'.split('|').reduce((a, n, i) => (a[n] = d(s[i]), a), {}); }
 let Jsonic = make();
 exports.Jsonic = Jsonic;
+Jsonic.use = () => {
+    throw new Error('Jsonic.use cannot be called directly. Instead write: `Jsonic.make().use(...)`.');
+};
 Jsonic.Jsonic = Jsonic;
 Jsonic.JsonicError = JsonicError;
 Jsonic.Lexer = Lexer;
@@ -1651,5 +1660,5 @@ Jsonic.RuleSpec = RuleSpec;
 Jsonic.util = util;
 Jsonic.make = make;
 exports.default = Jsonic;
-;('undefined' != typeof(module) && (module.exports = exports.Jsonic));
+//-NODE-MODULE-FIX;('undefined' != typeof(module) && (module.exports = exports.Jsonic));
 //# sourceMappingURL=jsonic.js.map

@@ -40,6 +40,31 @@ describe('feature', function () {
     expect(match([2,1],[undefined,1])).undefined()
   })
 
+  
+  it('feature-implicit-comma', () => {
+    expect(j('[0,1]')).equals([0,1])
+    expect(j('[0,null]')).equals([0,null])
+    expect(j('{a:0,b:null}')).equals({a:0,b:null})
+    expect(j('{a:1,b:2}')).equals({a:1,b:2})
+    expect(j('[1,2]')).equals([1,2])
+    expect(j('{a:1,\nb:2}')).equals({a:1,b:2})
+    expect(j('[1,\n2]')).equals([1,2])
+    expect(j('a:1,b:2')).equals({a:1,b:2})
+    expect(j('1,2',{xlog:-1})).equals([1,2])
+    expect(j('1,2,3',{xlog:-1})).equals([1,2,3])
+    expect(j('a:1,\nb:2')).equals({a:1,b:2})
+    expect(j('1,\n2')).equals([1,2])
+    expect(j('{a:1\nb:2}')).equals({a:1,b:2})
+    expect(j('[1\n2]')).equals([1,2])
+    expect(j('a:1\nb:2')).equals({a:1,b:2})
+    expect(j('1\n2',{xlog:-1})).equals([1,2])
+    expect(j('a\nb',{xlog:-1})).equals(['a','b'])
+    expect(j('1\n2\n3',{xlog:-1})).equals([1,2,3])
+    expect(j('a\nb\nc',{xlog:-1})).equals(['a','b','c'])
+  })
+
+
+  
   it('single-comment-line', () => {
     expect(j('#a:1')).equals(undefined)
     expect(j('#a:1\nb:2')).equals({b:2})
@@ -455,14 +480,6 @@ describe('feature', function () {
     expect(j('c:f:[{g:1,h:2}],d:e',{xlog:-1})).equals({c:{f:[{g:1,h:2}]},d:'e'})
 
     expect(j('a:b:c:1\nd:e',{xlog:-1})).equals({a:{b:{c:1}},d:'e'})
-  })
-
-  
-  
-  it('plugin-token', () => {
-    Jsonic.use((jsonic)=>{
-      
-    })
   })
 
 })

@@ -76,6 +76,8 @@ describe('plugin', function () {
 
   
   it('make', () => {
+    expect(()=>Jsonic.use(make_token_plugin('A','aaa'))).throws()
+
     // use make to avoid polluting Jsonic
     const j = make()
     j.use(make_token_plugin('A','aaa'))
@@ -155,18 +157,70 @@ describe('plugin', function () {
   
 
   it('dynamic-basic', () => {
+    let d = (x)=>JSON.parse(JSON.stringify(x))
     let k = Jsonic.make().use(Dynamic)
-    expect(k('a:1,b:$1+1',{xlog:-1})).equal({a:1,b:2})
+    expect(d(k('a:1,b:$1+1',{xlog:-1}))).equal({a:1,b:2})
+    expect(k('a:1,b:$"{c:2}"',{xlog:-1})).equal({a:1,b:{c:2}})
+    expect(k('a:1,b:$"meta.f(2)"',{f:(x)=>({c:x})})).equal({a:1,b:{c:2}})
+
 
     let d0 = k('a:{x:1},b:$.a,b:{y:2},c:$.a,c:{y:3}',{xlog:-1})
     // NOTE: multiple calls verify dynamic getters are stable
     expect(d0).equal({a:{x:1},b:{x:1,y:2},c:{x:1,y:3}})
     expect(d0).equal({a:{x:1},b:{x:1,y:2},c:{x:1,y:3}})
     expect(d0).equal({a:{x:1},b:{x:1,y:2},c:{x:1,y:3}})
-    //console.log(JSON.stringify(d0))
-    //console.log(JSON.stringify(d0))
-    //console.log(JSON.stringify(d0))
+
+    
+    let d1 = k(`
+a:{x:1,y:2}
+b: {
+  c: $.a
+  c: {x:3,m:5}
+  d: $.a
+  d: {y:4,n:6}
+}
+`,{xlog:-1})
+    //console.dir(d(d1),{depth:null})
+    expect(d1).equal({a:{x:1,y:2},b:{c:{x:3,y:2,m:5},d:{x:1,y:4,n:6}}})
+    expect(d1).equal({a:{x:1,y:2},b:{c:{x:3,y:2,m:5},d:{x:1,y:4,n:6}}})
+    expect(d1).equal({a:{x:1,y:2},b:{c:{x:3,y:2,m:5},d:{x:1,y:4,n:6}}})
+
+
+    let d2 = k(`
+b: {
+  c: $.a
+  c: {x:3,m:5}
+  d: $.a
+  d: {y:4,n:6}
+}
+a:{x:1,y:2}
+`,{xlog:-1})
+    //console.dir(d(d2),{depth:null})
+    expect(d2).equal({a:{x:1,y:2},b:{c:{x:3,y:2,m:5},d:{x:1,y:4,n:6}}})
+    expect(d2).equal({a:{x:1,y:2},b:{c:{x:3,y:2,m:5},d:{x:1,y:4,n:6}}})
+    expect(d2).equal({a:{x:1,y:2},b:{c:{x:3,y:2,m:5},d:{x:1,y:4,n:6}}})
+
+
+    let d3 = k(`
+b: {
+  c: {x:3,m:5}
+  c: $.a
+  d: {y:4,n:6}
+  d: $.a
+}
+a:{x:1,y:2}
+`,{xlog:-1})
+    //console.dir(d(d3),{depth:null})
+    expect(d3).equal({b:{c:{x:1,m:5,y:2},d:{y:2,n:6,x:1}},a:{x:1,y:2}})
+    expect(d3).equal({b:{c:{x:1,m:5,y:2},d:{y:2,n:6,x:1}},a:{x:1,y:2}})
+    expect(d3).equal({b:{c:{x:1,m:5,y:2},d:{y:2,n:6,x:1}},a:{x:1,y:2}})
+    
+
+
+    expect(k('a,$1+1',{xlog:-1})).equal(['a',2])
+
   })
+         
 
   it('json-basic', () => {
     let k = Jsonic.make().use(Json)
