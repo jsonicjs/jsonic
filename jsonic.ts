@@ -128,7 +128,8 @@ type Config = {
   token: any
   start: { [name: string]: pin[] }
   multi: { [name: string]: string }
-  single: pin[]
+  single: pin[],
+  singlemap: { [char: string]: pin }
   tokenset: { [name: string]: pin[] }
   escape: string[]
   start_cm: pin[]       // Comment start char codes.
@@ -685,8 +686,10 @@ class Lexer {
 
 
           // Single char tokens.
-          if (null != config.single[c0c]) {
-            token.pin = config.single[c0c]
+          //if (null != config.single[c0c]) {
+          //  token.pin = config.single[c0c]
+          if (null != config.singlemap[c0]) {
+            token.pin = config.singlemap[c0]
             token.loc = sI
             token.col = cI++
             token.len = 1
@@ -2153,6 +2156,13 @@ let util = {
     config.single = single_char_token_names
       .reduce((a, tn) => (a[cc((opts.token[tn] as any).c)] =
         (config.token as any)[tn], a), ([] as pin[]))
+
+    config.singlemap = single_char_token_names
+      .reduce((a, tn) => (a[(opts.token[tn] as any).c] =
+        (config.token as any)[tn], a), ({} as any))
+
+    //console.log(config.single)
+    //console.log(config.singlemap)
 
 
     let multi_char_token_names = token_names

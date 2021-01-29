@@ -370,8 +370,10 @@ class Lexer {
                         return token;
                     }
                     // Single char tokens.
-                    if (null != config.single[c0c]) {
-                        token.pin = config.single[c0c];
+                    //if (null != config.single[c0c]) {
+                    //  token.pin = config.single[c0c]
+                    if (null != config.singlemap[c0]) {
+                        token.pin = config.singlemap[c0];
                         token.loc = sI;
                         token.col = cI++;
                         token.len = 1;
@@ -1472,6 +1474,11 @@ let util = {
         config.single = single_char_token_names
             .reduce((a, tn) => (a[cc(opts.token[tn].c)] =
             config.token[tn], a), []);
+        config.singlemap = single_char_token_names
+            .reduce((a, tn) => (a[opts.token[tn].c] =
+            config.token[tn], a), {});
+        //console.log(config.single)
+        //console.log(config.singlemap)
         let multi_char_token_names = token_names
             .filter(tn => S.string === typeof opts.token[tn]);
         // Char code arrays for lookup by char code.

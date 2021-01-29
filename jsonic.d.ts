@@ -106,6 +106,9 @@ declare type Config = {
         [name: string]: string;
     };
     single: pin[];
+    singlemap: {
+        [char: string]: pin;
+    };
     tokenset: {
         [name: string]: pin[];
     };
