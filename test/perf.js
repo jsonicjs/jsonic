@@ -7,7 +7,6 @@ const opts = Jsonic.options
 
 const ZZ = Jsonic.token.ZZ
 
-
 let inputs = [
   {
     src: `qs:"a\\"a'a",as:'a"a\\'a',hs: a \tb `,
@@ -84,7 +83,7 @@ function count_lex(input) {
 
   
   // warm up
-  while( Date.now()-start < 1000 ) {
+  while( Date.now()-start < 2000 ) {
     lex = lexer.start({src,config,opts})
     while( ZZ !== lex().pin );
   }
@@ -107,7 +106,7 @@ function count_parse(input) {
   let json = JSON.stringify(Jsonic(input))
   
   // warm up
-  while( Date.now()-start < 1000 ) {
+  while( Date.now()-start < 2000 ) {
     Jsonic(input)
     JSON.parse(json)
   }
