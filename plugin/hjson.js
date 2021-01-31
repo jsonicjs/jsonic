@@ -11,7 +11,8 @@ let HJson = function hjson(jsonic) {
         let pI = sI;
         let srclen = src.length;
         if (ctx.t0.pin === CL) {
-            while (pI < srclen && !ctx.config.multi.LN.includes(src[pI])) {
+            //while (pI < srclen && !ctx.config.multi.LN.includes(src[pI])) {
+            while (pI < srclen && !ctx.config.multi.LN[src[pI]]) {
                 pI++;
             }
             token.len = pI - sI;

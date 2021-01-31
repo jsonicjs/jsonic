@@ -90,22 +90,27 @@ interface Context {
     };
     next: () => Token;
     log?: (...rest: any) => undefined;
-    F: (s: string) => string;
+    F: (s: any) => string;
     use: KV;
 }
 declare type Lex = ((rule: Rule) => Token) & {
     src: string;
 };
+declare type PinMap = {
+    [char: string]: pin;
+};
 declare type Config = {
     tokenI: number;
     token: any;
     start: {
-        [name: string]: pin[];
+        [name: string]: PinMap;
     };
     multi: {
-        [name: string]: string;
+        [name: string]: PinMap;
     };
-    single: pin[];
+    singlemap: {
+        [char: string]: pin;
+    };
     tokenset: {
         [name: string]: pin[];
     };
@@ -182,13 +187,22 @@ declare class Rule {
     constructor(spec: RuleSpec, ctx: Context, node?: any);
     process(ctx: Context): Rule;
 }
+declare class RuleAct {
+    m: Token[];
+    p: string;
+    r: string;
+    b: number;
+    n?: any;
+    h?: any;
+    e?: Token;
+}
 declare class RuleSpec {
     name: string;
     def: any;
     constructor(name: string, def: any);
     open(rule: Rule, ctx: Context): Rule;
     close(rule: Rule, ctx: Context): Rule;
-    parse_alts(alts: any[], rule: Rule, ctx: Context): any;
+    parse_alts(alts: any[], rule: Rule, ctx: Context): RuleAct;
 }
 declare class Parser {
     opts: Opts;

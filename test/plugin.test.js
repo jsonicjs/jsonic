@@ -20,6 +20,7 @@ const { Csv } = require('../plugin/csv')
 const { Dynamic } = require('../plugin/dynamic')
 const { Native } = require('../plugin/native')
 const { Multifile } = require('../plugin/multifile')
+const { LegacyStringify } = require('../plugin/legacy-stringify')
 
 const I = Util.inspect
 
@@ -366,6 +367,167 @@ a x\t"b\\tx"
   })
 
 
+  it('legacy-stringify-basic', () => {
+    let k = Jsonic.make().use(LegacyStringify)
+    expect(k.stringify({a:1})).equal('{a:1}')
+
+    expect( k.stringify(null) ).equal('null')
+    expect( k.stringify(void 0) ).equal('null')
+    expect( k.stringify(NaN) ).equal('null')
+    expect( k.stringify(0) ).equal('0')
+    expect( k.stringify(1.1) ).equal('1.1')
+    expect( k.stringify(1e-2) ).equal('0.01')
+    expect( k.stringify(true) ).equal('true')
+    expect( k.stringify(false) ).equal('false')
+    expect( k.stringify('') ).equal('')
+    expect( k.stringify('a') ).equal('a')
+    expect( k.stringify("a") ).equal('a')
+    expect( k.stringify("a a") ).equal('a a')
+    expect( k.stringify(" a") ).equal("' a'")
+    expect( k.stringify("a ") ).equal("'a '")
+    expect( k.stringify(" a ") ).equal("' a '")
+    expect( k.stringify("'a") ).equal("'\\'a'")
+    expect( k.stringify("a'a") ).equal("a'a")
+    expect( k.stringify("\"a") ).equal("'\"a'")
+    expect( k.stringify("a\"a") ).equal("a\"a")
+    expect( k.stringify( function f(){ return 'f' }) ).equal('')
+
+
+    var s,d
+
+    s='[]';d=[]
+    expect( k.stringify(d) ).equal(s)
+    expect( k(s) ).equal(d)
+
+    s='[1]';d=[1]
+    expect( k.stringify(d) ).equal(s)
+    expect( k(s) ).equal(d)
+
+    s='[1,2]';d=[1,2]
+    expect( k.stringify(d) ).equal(s)
+    expect( k(s) ).equal(d)
+
+    s='[a,2]';d=['a',2]
+    expect( k.stringify(d) ).equal(s)
+    expect( k(s) ).equal(d)
+
+    s="[' a',2]";d=[' a',2]
+    expect( k.stringify(d) ).equal(s)
+    expect( k(s) ).equal(d)
+
+    s="[a\'a,2]";d=["a'a",2]
+    expect( k.stringify(d) ).equal(s)
+    expect( k(s) ).equal(d)
+
+    // default max depth is 3
+    s='[1,[2,[3,[]]]]';d=[1,[2,[3,[4,[]]]]]
+    expect( k.stringify(d) ).equal(s)
+
+    s='[1,[2,[3,[4,[]]]]]';d=[1,[2,[3,[4,[]]]]]
+    expect( k(s) ).equal(d)
+
+
+    s='{}';d={}
+    expect( k.stringify(d) ).equal(s)
+    expect( k(s) ).equal(d)
+
+    s='{a:1}';d={a:1}
+    expect( k.stringify(d) ).equal(s)
+    expect( k(s) ).equal(d)
+
+    s='{a:a}';d={a:'a'}
+    expect( k.stringify(d) ).equal(s)
+    expect( k(s) ).equal(d)
+
+    s='{a:A,b:B}';d={a:'A',b:'B'}
+    expect( k.stringify(d) ).equal(s)
+    expect( k(s) ).equal(d)
+
+    // default max depth is 3
+    s='{a:{b:{c:{}}}}';d={a:{b:{c:{d:1}}}}
+    expect( k.stringify(d) ).equal(s)
+
+    s='{a:{b:{c:{d:1}}}}';d={a:{b:{c:{d:1}}}}
+    expect( k(s) ).equal(d)
+
+    // custom depth
+    s='{a:{b:{}}}';d={a:{b:{c:{d:1}}}}
+    expect( k.stringify(d,{depth:2}) ).equal(s)
+
+    // omits
+    expect( k.stringify({a:1,b:2},{omit:[]}) ).equal('{a:1,b:2}')
+    expect( k.stringify({a:1,b:2},{omit:['c']}) ).equal('{a:1,b:2}')
+    expect( k.stringify({a:1,b:2},{omit:['a']}) ).equal('{b:2}')
+    expect( k.stringify({a:1,b:2},{omit:['a','b']}) ).equal('{}')
+
+    // omits at all depths!
+    expect( k.stringify({b:{a:1,c:2}},{omit:['a']}) ).equal('{b:{c:2}}')
+
+    // excludes if contains
+    expect( k.stringify({a$:1,b:2}) ).equal('{b:2}')
+    expect( k.stringify({a$:1,bx:2,cx:3},{exclude:['b']}) ).equal('{a$:1,cx:3}')
+
+
+    // custom
+    var o1 = {a:1,toString:function(){return '<A>'}}
+    expect( k.stringify(o1) ).equal('{a:1}')
+    expect( k.stringify(o1,{custom:true}) ).equal('<A>')
+    var o1_1 = {a:1,inspect:function(){return '<A>'}}
+    expect( k.stringify(o1_1) ).equal('{a:1}')
+    expect( k.stringify(o1_1,{custom:true}) ).equal('<A>')
+
+
+    // maxitems
+    var o2 = [1,2,3,4,5,6,7,8,9,10,11,12]
+    expect( k.stringify(o2) ).equal('[1,2,3,4,5,6,7,8,9,10,11]')
+    expect( k.stringify(o2,{maxitems:12}) ).equal('[1,2,3,4,5,6,7,8,9,10,11,12]')
+    expect( k.stringify(o2,{maxitems:13}) ).equal('[1,2,3,4,5,6,7,8,9,10,11,12]')
+
+    var o3 = {a:1,b:2,c:3,d:4,e:5,f:6,g:7,h:8,i:9,j:10,k:11,l:12}
+    expect( k.stringify(o3) ).equal(
+      '{a:1,b:2,c:3,d:4,e:5,f:6,g:7,h:8,i:9,j:10,k:11}')
+    expect( k.stringify(o3,{maxitems:12}) ).equal(
+      '{a:1,b:2,c:3,d:4,e:5,f:6,g:7,h:8,i:9,j:10,k:11,l:12}')
+    expect( k.stringify(o3,{maxitems:12}) ).equal(
+      '{a:1,b:2,c:3,d:4,e:5,f:6,g:7,h:8,i:9,j:10,k:11,l:12}')
+
+
+    // showfunc - needs custom=true as well
+    var o4 = {a:1,b:function b() {}}
+    expect( k.stringify(o4) ).equal('{a:1}')
+    expect( k.stringify(o4,{showfunc:true}) )
+      .equal('{a:1,b:function b() {}}')
+
+
+    // exception
+
+    var o5 = {toString:function(){ throw Error('foo') }}
+    expect( k.stringify(o5,{custom:true}) )
+      .equal( "ERROR: jsonic.stringify: Error: foo input was: {}" )
+
+
+    // maxchars
+    expect( k.stringify([1,2,3],{maxchars:4}) ).equal('[1,2')
+
+    // maxitems
+    expect( k.stringify([1,2,3],{maxitems:2}) ).equal('[1,2]')
+    expect( k.stringify({a:1,b:2,c:3},{maxitems:2}) ).equal('{a:1,b:2}')
+
+
+    // wierd keys
+    expect( k.stringify({"_":0,"$":1,":":2,"":3,"\'":4,"\"":5,"\n":6}) )
+      .equal( '{_:0,":":2,"":3,"\'":4,"\\"":5,"\\n":6}' )
+
+    // abbrevs
+    expect( k.stringify({a:1,b:2},{o:['a']}) ).equal('{b:2}')
+    expect( k.stringify({a$:1,b:2,c:3},{x:['b']}) ).equal('{a$:1,c:3}')
+    s='{a:{b:{}}}';d={a:{b:{c:{d:1}}}}
+    expect( k.stringify(d,{d:2}) ).equal(s)
+    expect( k.stringify(o1,{c:true}) ).equal('<A>')
+    expect( k.stringify([1,2,3],{mc:4}) ).equal('[1,2')
+    expect( k.stringify([1,2,3],{mi:2}) ).equal('[1,2]')
+
+  })
 
 })
 
