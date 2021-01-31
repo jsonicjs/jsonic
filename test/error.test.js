@@ -152,7 +152,48 @@ describe('error', function () {
 
 
   it('bad-syntax', () => {
+    // TODO: unexpected end of src needs own case, otherwise incorrect explanation
+    // expect(j('{a')).throws(JsonicError, /incomplete/)
+
+    // TODO: should all be null
+    //expect(Jsonic('a:')).equals({a:undefined})
+    //expect(Jsonic('{a:')).equals({a:undefined})
+    //expect(Jsonic('{a:,b:')).equals({a:undefined,b:undefined})
+    //expect(Jsonic('a:,b:')).equals({a:undefined,b:undefined})
+
+    // Invalid pair.
+    expect(j('{]')).throws(JsonicError, /unexpected/)
+    expect(j('[}')).throws(JsonicError, /unexpected/)
+    expect(j(':')).throws(JsonicError, /unexpected/)
+    expect(j(':a')).throws(JsonicError, /unexpected/)
+    expect(j(' : ')).throws(JsonicError, /unexpected/)
+    expect(j('{,]')).throws(JsonicError, /unexpected/)
+    expect(j('[,}')).throws(JsonicError, /unexpected/)
+    expect(j(',:')).throws(JsonicError, /unexpected/)
+    expect(j(',:a')).throws(JsonicError, /unexpected/)
+    expect(j('[:')).throws(JsonicError, /unexpected/)
+    expect(j('[:a')).throws(JsonicError, /unexpected/)
+
+    
+    // Unexpected close
+    expect(j(']')).throws(JsonicError, /unexpected/)
+    expect(j('}')).throws(JsonicError, /unexpected/)
+    expect(j(' ]')).throws(JsonicError, /unexpected/)
+    expect(j(' }')).throws(JsonicError, /unexpected/)
+    expect(j(',}')).throws(JsonicError, /unexpected/)
+    //expect(j('a]')).throws(JsonicError, /unexpected/)
+    //expect(j('a}')).throws(JsonicError, /unexpected/)
+    expect(j('{a]')).throws(JsonicError, /unexpected/)
+    expect(j('[a}')).throws(JsonicError, /unexpected/)
+    expect(j('{a}')).throws(JsonicError, /unexpected/)
+
+    
     expect(j('{a:b:}')).throws(JsonicError, /unexpected/)
+
+
+    // These are actually OK
+    expect(Jsonic(',]')).equals([null])
+
   })
 
 })

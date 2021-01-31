@@ -953,6 +953,8 @@ class RuleSpec {
         out.r = '';
         out.n = undefined;
         out.h = undefined;
+        out.e = undefined;
+        //let out = new RuleAct()
         let alt;
         let altI = 0;
         let t = ctx.config.token;

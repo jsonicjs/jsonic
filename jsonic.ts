@@ -2,8 +2,12 @@
 
 
 
-// TODO: number formats 0b 0o, also opt to turn off
-// TODO: stringify
+// TODO: error for unexpected end of src - different from unexpected char
+// TODO: optional strictness, eg. a: -> a:null allowed?
+// TODO: fix a:,b: -> a:null,b:null  - prefer null to undefined
+// TODO: should fail: a], a}
+// TODO: remove all String.includes( calls
+// TODO: stringify - provide as legacy
 // TODO: plugin for path expr: a.b:1 -> {a:{b:1}}
 // TODO: use char maps
 // TODO: deeper tests
@@ -1461,6 +1465,9 @@ class RuleSpec {
     out.r = ''
     out.n = undefined
     out.h = undefined
+    out.e = undefined
+
+    //let out = new RuleAct()
 
     let alt
     let altI = 0

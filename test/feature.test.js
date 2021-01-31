@@ -11,7 +11,7 @@ const describe = lab.describe
 const it = lab.it
 const expect = Code.expect
 
-const { Jsonic } = require('..')
+const { Jsonic, JsonicError } = require('..')
 
 const j = Jsonic
 
@@ -65,6 +65,32 @@ describe('feature', function () {
     expect(j('a\nb\nc',{xlog:-1})).equals(['a','b','c'])
   })
 
+
+  it('feature-single-char', () => {
+    expect(j()).equals(undefined)
+    expect(j('')).equals(undefined)
+    expect(j('À')).equals('À') // #192 verbatim text
+    expect(j(' ')).equals(' ') // #160 non-breaking space, verbatim text
+    expect(j('{')).equals({}) // auto-close
+    expect(j('a')).equals('a')  // verbatim text
+    expect(j('[')).equals([]) // auto-close
+    expect(j(',')).equals([null]) // implict list, prefixing-comma means null element
+    expect(j('#')).equals(undefined) // comment
+    expect(j(' ')).equals(undefined) // ignored space
+    expect(j('\u0010')).equals('\x10') // verbatim text
+    expect(j('\b')).equals('\b') // verbatim
+    expect(j('\t')).equals(undefined) // ignored space
+    expect(j('\n')).equals(undefined) // ignored newline
+    expect(j('\f')).equals('\f') // verbatim
+    expect(j('\r')).equals(undefined) // ignored newline
+
+    expect(()=>j('"')).throws(JsonicError,/unterminated/)
+    expect(()=>j('\'')).throws(JsonicError,/unterminated/)
+    expect(()=>j(':')).throws(JsonicError,/unexpected/)
+    expect(()=>j(']')).throws(JsonicError,/unexpected/)
+    expect(()=>j('`')).throws(JsonicError,/unterminated/)
+    expect(()=>j('}')).throws(JsonicError,/unexpected/)
+  })
 
   
   it('single-comment-line', () => {
@@ -444,6 +470,10 @@ describe('feature', function () {
     expect(j('a:b:c:1,d:2')).equals({a:{b:{c:1}},d:2})
     expect(j('{a:b:1}')).equals({a:{b:1}})
     expect(j('a:{b:c:1}')).equals({a:{b:{c:1}}})
+
+    // TODO: fix!
+    //expect(Jsonic('{a:,b:')).equals({a:undefined,b:undefined})
+    //expect(Jsonic('a:,b:')).equals({a:undefined,b:undefined})
   })
 
   
