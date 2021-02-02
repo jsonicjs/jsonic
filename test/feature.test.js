@@ -215,6 +215,16 @@ describe('feature', function () {
     expect(j('1')).equals(1)
     expect(jn('a:1')).equals({a:'1'})
     expect(j('a:1')).equals({a:1})
+    
+    let jh = j.make({ number: { hex: false } })
+    expect(jh('1')).equals(1)
+    expect(jh('0x10')).equals('0x10')
+    expect(jh('0o20')).equals(16)
+    expect(jh('0b10000')).equals(16)
+    expect(j('1')).equals(1)
+    expect(j('0x10')).equals(16)
+    expect(j('0o20')).equals(16)
+    expect(j('0b10000')).equals(16)
   })
 
 
@@ -408,7 +418,8 @@ describe('feature', function () {
     // NOTE: these are not implicit lists!
     expect(j('a:1,')).equals({a:1}) 
     expect(j('a:b:1,')).equals({a:{b:1}})
-
+    expect(j('a:1 b:2')).equals({a:1,b:2})
+    expect(j('a:b:1 a:c:2')).equals({a:{b:1,c:2}}) 
 
     expect(j('{a:1\nb:2}')).equals({a:1,b:2})
     expect(j('{,a:1}')).equals({a:1})

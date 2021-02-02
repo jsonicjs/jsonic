@@ -6,14 +6,13 @@
 // TODO: optional strictness, eg. a: -> a:null allowed?
 // TODO: fix a:,b: -> a:null,b:null  - prefer null to undefined
 // TODO: should fail: a], a}
-// TODO: remove all String.includes( calls
-// TODO: stringify - provide as legacy
-// TODO: plugin for path expr: a.b:1 -> {a:{b:1}}
-// TODO: use char maps
+// TODOL plugin TODOs
+// TODO: remove all String.includes( calls - use char maps
 // TODO: deeper tests
-// TODO: node = {d=data,p=parent-node}  - maybe?
 // TODO: test/fix .rule, .lex signatures, return values
 // TODO: types used properly in plugins, eg. LexMatcher
+
+// TODO: post release: plugin for path expr: a.b:1 -> {a:{b:1}}
 
 
 // General Key-Value map.
@@ -729,9 +728,9 @@ class Lexer {
               // digits and does not start with 0x|o|b, then text.
               if (
                 1 < token.len && '0' === src[sI] &&     // Maybe a 0x|o|b number?
-                opts.number.hex && 'x' !== base_char && // But...
-                opts.number.oct && 'o' !== base_char && //  it is...
-                opts.number.bin && 'b' !== base_char && //    not.
+                (!opts.number.hex || 'x' !== base_char) && // But...
+                (!opts.number.oct || 'o' !== base_char) && //  it is...
+                (!opts.number.bin || 'b' !== base_char) && //    not.
                 true
               ) {
                 // Not a number.

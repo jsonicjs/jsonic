@@ -220,6 +220,12 @@ a:{x:1,y:2}
 
     expect(k('a,$1+1',{xlog:-1})).equal(['a',2])
 
+    let ka = Jsonic.make().use(Dynamic, {markchar:'%'})
+    expect(d(ka('a:1,b:%1+1'))).equal({a:1,b:2})    
+
+    let kb = Jsonic.make({plugin:{dynamic:{markchar:'%'}}}).use(Dynamic)
+    expect(d(kb('a:1,b:%1+1'))).equal({a:1,b:2})    
+
   })
          
 

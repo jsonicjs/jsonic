@@ -41,6 +41,9 @@
     "plugin",
     "LICENSE"
   ],
+  "bin": {
+    "jsonic": "bin/jsonic"
+  },
   "devDependencies": {
     "@hapi/code": "^8.0.2",
     "@hapi/lab": "^24.1.0",
