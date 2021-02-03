@@ -49,6 +49,9 @@ type Opts = {
   rule: {
     maxmul: number,
   },
+  config: {
+    modify: { [plugin_name: string]: (config: Config, opts: Opts) => void }
+  }
 }
 
 
@@ -366,6 +369,10 @@ function make_standard_options(): Opts {
       maxmul: 3,
     },
 
+
+    config: {
+      modify: {}
+    }
   }
 
   return opts
@@ -642,7 +649,6 @@ class Lexer {
 
             let numstr = src.substring(sI, pI)
 
-            //if (null == src[pI] || config.value_ender.includes(src[pI])) {
             if (null == src[pI] || config.charset.value_ender[src[pI]]) {
               token.len = pI - sI
 
@@ -793,7 +799,6 @@ class Lexer {
 
               // Unprintable chars.
               else if (cc < 32) {
-                //if (multiline && config.start.LN.includes(cc)) {
                 if (multiline && config.start.LN[cs]) {
                   s.push(src[pI])
                 }
@@ -2335,13 +2340,16 @@ let util = {
 
     config.debug = opts.debug
 
+    // Apply any config modifiers (probably from plugins).
+    Object.keys(opts.config.modify)
+      .forEach((plugin_name: string) =>
+        opts.config.modify[plugin_name](config, opts))
+
     if (opts.debug.print_config) {
       console.log(config)
     }
   },
 }
-
-
 
 
 function make(first?: KV | Jsonic, parent?: Jsonic): Jsonic {

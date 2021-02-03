@@ -155,6 +155,23 @@ describe('plugin', function () {
     }, {x:1})
     expect(x).equal(1)
   })
+
+
+  it('config-modifiers', () => {
+    const j = make()
+    j.use(function foo(jsonic) {
+      jsonic.options({
+        config: {
+          modify: {
+            foo: (config)=>config.charset.text_ender.X='X'.charCodeAt(0)
+          }
+        }
+      })
+    })
+    //console.log(j.internal().config)
+    expect(j.internal().config.charset.text_ender.X).equal('X'.charCodeAt(0))
+  })
+
   
 
   it('dynamic-basic', () => {

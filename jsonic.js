@@ -151,6 +151,9 @@ function make_standard_options() {
             // Multiplier to increase the maximum number of rule occurences.
             maxmul: 3,
         },
+        config: {
+            modify: {}
+        }
     };
     return opts;
 }
@@ -342,7 +345,6 @@ class Lexer {
                         while (config.charset.digital[src[++pI]])
                             ;
                         let numstr = src.substring(sI, pI);
-                        //if (null == src[pI] || config.value_ender.includes(src[pI])) {
                         if (null == src[pI] || config.charset.value_ender[src[pI]]) {
                             token.len = pI - sI;
                             let base_char = src[sI + 1];
@@ -460,7 +462,6 @@ class Lexer {
                             }
                             // Unprintable chars.
                             else if (cc < 32) {
-                                //if (multiline && config.start.LN.includes(cc)) {
                                 if (multiline && config.start.LN[cs]) {
                                     s.push(src[pI]);
                                 }
@@ -1606,6 +1607,9 @@ let util = {
             sep_re: null != opts.number.sep ? new RegExp(opts.number.sep, 'g') : null
         };
         config.debug = opts.debug;
+        // Apply any config modifiers (probably from plugins).
+        Object.keys(opts.config.modify)
+            .forEach((plugin_name) => opts.config.modify[plugin_name](config, opts));
         if (opts.debug.print_config) {
             console.log(config);
         }

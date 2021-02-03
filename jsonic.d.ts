@@ -42,6 +42,11 @@ declare type Opts = {
     rule: {
         maxmul: number;
     };
+    config: {
+        modify: {
+            [plugin_name: string]: (config: Config, opts: Opts) => void;
+        };
+    };
 };
 declare type Jsonic = ((src: any, meta?: any, partial_ctx?: any) => any) & {
     parse: (src: any, meta?: any, partial_ctx?: any) => any;
