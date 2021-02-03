@@ -227,59 +227,6 @@ describe('feature', function () {
     expect(j('0b10000')).equals(16)
   })
 
-
-  /* TODO
-  it('feature-log', () => {
-    let t = j.options // token symbols
-    let b = []
-    let log = (...rest) => b.push(rest)
-    let tlog = (s,v,p,d)=>{
-      b = []
-      expect(j(s,{log}),s).equals(v)
-      if(d) {
-        console.dir(b.map(e=>e.filter(x=>'object'!=typeof x)),{depth:d})
-      }
-      expect(match(b,p),s).undefined()
-    }
-
-    tlog('1',1,[
-      ['lex','#NR', '1', {pin:t.NR,val:1}],
-      ['lex','#ZZ', undefined, {pin:t.ZZ}],
-      ['rule','open',0,'value/1',0,'#NR #ZZ',{node:undefined}],
-      ['parse','alts','#NR', 0, '#NR', '1', {s:[t.NR],m:[{pin:t.NR}]}],
-      ['lex','#ZZ', undefined,{pin:t.ZZ}],
-      ['rule','close',0,'value/1',1,'#ZZ #ZZ',{node:1}],
-    ]) // ],1) to print
-
-    tlog('a','a',[
-      ['lex','#TX', 'a', {pin:t.TX,val:'a'}],
-      ['lex','#ZZ', undefined,{pin:t.ZZ}],
-      ['rule','open',0,'value/1',0,'#TX #ZZ',{node:'a'}],
-      ['parse','alts','#TX', 0, '#TX', 'a' , {s:[t.TX],m:[{pin:t.TX}]}],
-      ['lex','#ZZ', undefined,{pin:t.ZZ}],
-      ['rule','close',0,'value/1',1,'#ZZ #ZZ',{node:'a'}],
-    ]) // ],1) to print
-
-    tlog('[1]',[1],[
-      ['lex', '#OS[', '[', {pin:t.OS} ],
-      ['lex', '#NR', '1', {pin:t.NR,val:1} ],
-      ['rule', 'open',0,'value/1',0,'#OS[ #NR',{node:undefined}],
-      ['parse','alts','#OS[', 0, '#OS[', '[', {p:'list',s:[t.OS],m:[{pin:t.OS}]}],
-      ['lex', '#CS]', ']', {pin:t.CS} ],
-      ['rule', 'open',1,'list/2',1,'#NR #CS]',{node:[]}],
-      ['parse','alts', '', 1, '', '', {p:'elem'}],
-      ['rule', 'open',2,'elem/3',1,'#NR #CS]',{node:[1]}],
-      ['parse','alts','#NR', 1, '#NR', '1',{s:[t.NR],m:[{pin:t.NR}]}],
-      ['lex','#ZZ', undefined,{pin:t.ZZ}],
-      ['rule', 'close',2,'elem/3',2,'#CS] #ZZ',{node:[1]}],
-      ['parse','alts','#CS]', 2, '#CS]', ']', {s:[t.CS],m:[{pin:t.CS}]}],
-      ['lex','#ZZ', undefined,{pin:t.ZZ}],
-      ['rule', 'close',1,'list/2',3,'#ZZ #ZZ',{node:[1]}],
-      ['rule', 'close',0,'value/1',3,'#ZZ #ZZ',{node:[1]}],
-    ]) // ],1) to print
-  })
-  */
-  
   
   it('value', () => {
     expect(j('')).equal(undefined)
@@ -405,6 +352,13 @@ describe('feature', function () {
 
     expect(j('"\\u0061"')).equals('a')
     expect(j('"\\x61"')).equals('a')
+
+    expect(j('`\n`')).equals('\n')
+    expect(()=>j('"\n"')).throws(JsonicError,/unprintable/)
+
+    expect(()=>j('`\x1a`')).throws(JsonicError,/unprintable/)
+    expect(()=>j('"\x1a"')).throws(JsonicError,/unprintable/)
+
     
     let k = j.make({string:{escapedouble:true}})
     expect(k('"a""b"')).equals('a"b')
@@ -415,7 +369,6 @@ describe('feature', function () {
 
   it('multiline-string', () => {
     expect(j('`a`')).equals('a')
-    expect(j('`a\n`')).equals('a\n')
     expect(j('`\na`')).equals('\na')
     expect(j('`\na\n`')).equals('\na\n')
     expect(j('`a\nb`')).equals('a\nb')
@@ -439,6 +392,15 @@ describe('feature', function () {
 
     // NOTE: block marker is expected to be on own line
     expect(j("'''a\nb'''")).equals('\n')
+
+    try {
+      j('[`a\n`,`b')
+      Code.fail()
+    }
+    catch(e) {
+      expect(e.lineNumber).equal(1)
+      expect(e.columnNumber).equal(4)
+    }
   })
 
 

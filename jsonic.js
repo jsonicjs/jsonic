@@ -250,8 +250,8 @@ class Lexer {
                 .log('lex', tn(token.pin), F(token.src), sI, rI + ':' + cI, { ...token }, ...rest)) :
             undefined;
         let self = this;
-        function bad(code, pI, badsrc, use) {
-            return self.bad(ctx, lexlog, code, token, sI, pI, rI, cI, badsrc, badsrc, use);
+        function bad(code, cpI, badsrc, use) {
+            return self.bad(ctx, lexlog, code, token, sI, cpI, rI, cI, badsrc, badsrc, use);
         }
         // Check for custom matchers.
         // NOTE: deliberately grabs local state (token,sI,rI,cI,...)
@@ -283,7 +283,7 @@ class Lexer {
             let enders = {};
             let pI = 0; // Current lex position (only update sI at end of rule).
             let s = []; // Parsed string chars and substrings.
-            let cc = -1; // Char code.
+            //let cc = -1 // Char code.
             next_char: while (sI < srclen) {
                 let c0 = src[sI];
                 //let c0c = src.charCodeAt(sI)
@@ -404,18 +404,17 @@ class Lexer {
                         token.pin = ST;
                         token.loc = sI;
                         token.col = cI++;
-                        let qc = c0.charCodeAt(0);
+                        //let qc = c0.charCodeAt(0)
                         let multiline = config.charset.multiline[c0];
                         s = [];
-                        cc = -1;
+                        let cs = '';
                         // TODO: \u{...}
                         for (pI = sI + 1; pI < srclen; pI++) {
                             cI++;
-                            let cs = src[pI];
-                            cc = src.charCodeAt(pI);
+                            cs = src[pI];
                             // Quote char.
-                            if (qc === cc) {
-                                if (opts.string.escapedouble && qc === src.charCodeAt(pI + 1)) {
+                            if (c0 === cs) {
+                                if (opts.string.escapedouble && c0 === src[pI + 1]) {
                                     s.push(src[pI]);
                                     pI++;
                                 }
@@ -426,8 +425,8 @@ class Lexer {
                             }
                             // TODO: use opt.char.escape (string) -> config.char.escape (code)
                             // Escape char. 
-                            else if (92 === cc) {
-                                //let ec = src.charCodeAt(++pI)
+                            //else if (92 === cc) {
+                            else if ('\\' === cs) {
                                 pI++;
                                 cI++;
                                 //let es = config.escape[ec]
@@ -436,12 +435,12 @@ class Lexer {
                                     s.push(es);
                                 }
                                 // ASCII escape \x**
-                                //else if (120 === ec) {
                                 else if ('x' === src[pI]) {
                                     pI++;
                                     let us = String.fromCharCode(('0x' + src.substring(pI, pI + 2)));
                                     if (opts.char.bad_unicode === us) {
-                                        return bad('invalid_ascii', pI, src.substring(pI - 2, pI + 2));
+                                        sI = pI - 2;
+                                        return bad('invalid_ascii', pI + 2, src.substring(pI - 2, pI + 2));
                                     }
                                     s.push(us);
                                     pI += 1; // Loop increments pI.
@@ -449,12 +448,12 @@ class Lexer {
                                 }
                                 // Unicode escape \u****.
                                 // TODO: support \u{*****}
-                                //else if (117 === ec) {
                                 else if ('u' === src[pI]) {
                                     pI++;
                                     let us = String.fromCharCode(('0x' + src.substring(pI, pI + 4)));
                                     if (opts.char.bad_unicode === us) {
-                                        return bad('invalid_unicode', pI, src.substring(pI - 2, pI + 4));
+                                        sI = pI - 2;
+                                        return bad('invalid_unicode', pI + 5, src.substring(pI - 2, pI + 4));
                                     }
                                     s.push(us);
                                     pI += 3; // Loop increments pI.
@@ -464,30 +463,53 @@ class Lexer {
                                     s.push(src[pI]);
                                 }
                             }
+                            /*
                             // Unprintable chars.
-                            else if (cc < 32) {
-                                if (multiline && config.start.LN[cs]) {
-                                    s.push(src[pI]);
-                                }
-                                else {
-                                    return bad('unprintable', pI, 'char-code=' + src[pI].charCodeAt(0));
-                                }
+                            //else if (cc < 32) {
+                            else if (cs.charCodeAt(0) < 32) {
+                              if (multiline && config.start.LN[cs]) {
+                                s.push(src[pI])
+                              }
+                              else {
+                                return bad('unprintable', pI, 'char-code=' + src[pI].charCodeAt(0))
+                              }
                             }
-                            // Main body of string.
+                            */
+                            // Body part of string.
                             else {
                                 let bI = pI;
-                                do {
+                                let qc = c0.charCodeAt(0);
+                                let esc = '\\'.charCodeAt(0);
+                                let cc = src.charCodeAt(pI);
+                                while (pI < srclen && 32 <= cc && qc !== cc && esc !== cc) {
                                     cc = src.charCodeAt(++pI);
                                     cI++;
-                                } while (32 <= cc && qc !== cc && 92 !== cc);
+                                }
                                 cI--;
-                                s.push(src.substring(bI, pI));
-                                pI--;
+                                cs = src[pI];
+                                if (cc < 32) {
+                                    if (multiline && config.start.LN[cs]) {
+                                        if (cs === opts.char.row) {
+                                            rI++;
+                                            cI = 0;
+                                        }
+                                        s.push(src.substring(bI, pI + 1));
+                                        //s.push(src[pI])
+                                    }
+                                    else {
+                                        return bad('unprintable', pI, 'char-code=' + src[pI].charCodeAt(0));
+                                    }
+                                }
+                                else {
+                                    s.push(src.substring(bI, pI));
+                                    if (esc === cc || qc === cc || isNaN(cc)) {
+                                        pI--;
+                                    }
+                                }
                             }
                         }
-                        if (qc !== cc) {
-                            cI = sI;
-                            return bad('unterminated', pI - 1, s.join(''));
+                        if (c0 !== cs) {
+                            return bad('unterminated', pI, s.join(''));
                         }
                         token.val = s.join('');
                         token.src = src.substring(sI, pI);
@@ -698,10 +720,12 @@ class Lexer {
     bad(ctx, log, why, token, sI, pI, rI, cI, val, src, use) {
         token.why = why;
         token.pin = util.token('#BD', ctx.config);
-        token.loc = pI;
+        //token.loc = pI
+        token.loc = sI;
         token.row = rI;
         token.col = cI;
-        token.len = pI - sI + 1;
+        //token.len = pI - sI + 1
+        token.len = pI - sI;
         token.val = val;
         token.src = src;
         token.use = use;

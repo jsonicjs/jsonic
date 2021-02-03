@@ -39,7 +39,7 @@ function lexall(src) {
 
 function alleq(ta) {
   for(let i = 0; i < ta.length; i+=2) {
-    expect(lexall(ta[i]),'case:'+(i/2)).equal(ta[i+1])
+    expect(lexall(ta[i]),'case:'+(i/2)+' ['+ta[i]+']').equal(ta[i+1])
   }
 }
 
@@ -254,6 +254,8 @@ describe('lex', function () {
 
 
   it('double-quote', () => {
+    
+    // NOTE: col for unterminated is final col
     alleq([
       '""', ['#ST;0;2;0x0;','#ZZ;2;0;0x2'],
       '"a"', ['#ST;0;3;0x0;a','#ZZ;3;0;0x3'],
@@ -263,12 +265,12 @@ describe('lex', function () {
       ' "a"', ['#SP;0;1;0x0','#ST;1;3;0x1;a','#ZZ;4;0;0x4'],
       '"a" ', ['#ST;0;3;0x0;a','#SP;3;1;0x3','#ZZ;4;0;0x4'],
       ' "a" ', ['#SP;0;1;0x0','#ST;1;3;0x1;a','#SP;4;1;0x4','#ZZ;5;0;0x5'],
-      '"', ['#BD;0;1;0x0;~unterminated'],
-      '"a', ['#BD;1;2;0x0;a~unterminated'],
-      '"ab', ['#BD;2;3;0x0;ab~unterminated'],
-      ' "', ['#SP;0;1;0x0','#BD;1;1;0x1;~unterminated'],
-      ' "a', ['#SP;0;1;0x0','#BD;2;2;0x1;a~unterminated'],
-      ' "ab', ['#SP;0;1;0x0','#BD;3;3;0x1;ab~unterminated'],
+      '"', ['#BD;0;1;0x1;~unterminated'],
+      '"a', ['#BD;0;2;0x2;a~unterminated'],
+      '"ab', ['#BD;0;3;0x3;ab~unterminated'],
+      ' "', ['#SP;0;1;0x0','#BD;1;1;0x2;~unterminated'],
+      ' "a', ['#SP;0;1;0x0','#BD;1;2;0x3;a~unterminated'],
+      ' "ab', ['#SP;0;1;0x0','#BD;1;3;0x4;ab~unterminated'],
       '"a\'b"', ['#ST;0;5;0x0;a\'b','#ZZ;5;0;0x5'],
       '"\'a\'b"', ['#ST;0;6;0x0;\'a\'b','#ZZ;6;0;0x6'],
       '"\'a\'b\'"', ['#ST;0;7;0x0;\'a\'b\'','#ZZ;7;0;0x7'],
@@ -281,7 +283,8 @@ describe('lex', function () {
       '"\\\'"', ['#ST;0;4;0x0;\'','#ZZ;4;0;0x4'],
       '"\\\\"', ['#ST;0;4;0x0;\\','#ZZ;4;0;0x4'],
       '"\\u0040"', ['#ST;0;8;0x0;@','#ZZ;8;0;0x8'],
-      '"\\uQQQQ"', ['#BD;3;4;0x3;\\uQQQQ~invalid_unicode'],
+      '"\\uQQQQ"', ['#BD;1;7;0x3;\\uQQQQ~invalid_unicode'],
+      '"\\xQQ"', ['#BD;1;4;0x3;\\xQQ~invalid_ascii'],
       '"[{}]:,"', ['#ST;0;8;0x0;[{}]:,', '#ZZ;8;0;0x8'],
       '"a\\""', ['#ST;0;5;0x0;a"','#ZZ;5;0;0x5'],
       '"a\\"a"', ['#ST;0;6;0x0;a"a','#ZZ;6;0;0x6'],
@@ -300,12 +303,12 @@ describe('lex', function () {
       ' \'a\'', ['#SP;0;1;0x0','#ST;1;3;0x1;a','#ZZ;4;0;0x4'],
       '\'a\' ', ['#ST;0;3;0x0;a','#SP;3;1;0x3','#ZZ;4;0;0x4'],
       ' \'a\' ', ['#SP;0;1;0x0','#ST;1;3;0x1;a','#SP;4;1;0x4','#ZZ;5;0;0x5'],
-      '\'', ['#BD;0;1;0x0;~unterminated'],
-      '\'a', ['#BD;1;2;0x0;a~unterminated'],
-      '\'ab', ['#BD;2;3;0x0;ab~unterminated'],
-      ' \'', ['#SP;0;1;0x0','#BD;1;1;0x1;~unterminated'],
-      ' \'a', ['#SP;0;1;0x0','#BD;2;2;0x1;a~unterminated'],
-      ' \'ab', ['#SP;0;1;0x0','#BD;3;3;0x1;ab~unterminated'],
+      '\'', ['#BD;0;1;0x1;~unterminated'],
+      '\'a', ['#BD;0;2;0x2;a~unterminated'],
+      '\'ab', ['#BD;0;3;0x3;ab~unterminated'],
+      ' \'', ['#SP;0;1;0x0','#BD;1;1;0x2;~unterminated'],
+      ' \'a', ['#SP;0;1;0x0','#BD;1;2;0x3;a~unterminated'],
+      ' \'ab', ['#SP;0;1;0x0','#BD;1;3;0x4;ab~unterminated'],
       '\'a"b\'', ['#ST;0;5;0x0;a"b','#ZZ;5;0;0x5'],
       '\'"a"b\'', ['#ST;0;6;0x0;"a"b','#ZZ;6;0;0x6'],
       '\'"a"b"\'', ['#ST;0;7;0x0;"a"b"','#ZZ;7;0;0x7'],
@@ -318,7 +321,8 @@ describe('lex', function () {
       '\'\\"\'', ['#ST;0;4;0x0;"','#ZZ;4;0;0x4'],
       '\'\\\\\'', ['#ST;0;4;0x0;\\','#ZZ;4;0;0x4'],
       '\'\\u0040\'', ['#ST;0;8;0x0;@','#ZZ;8;0;0x8'],
-      '\'\\uQQQQ\'', ['#BD;3;4;0x3;\\uQQQQ~invalid_unicode'],
+      '\'\\uQQQQ\'', ['#BD;1;7;0x3;\\uQQQQ~invalid_unicode'],
+      '\'\\xQQ\'', ['#BD;1;4;0x3;\\xQQ~invalid_ascii'],
       '\'[{}]:,\'', ['#ST;0;8;0x0;[{}]:,', '#ZZ;8;0;0x8'],
       '\'a\\\'\'', ['#ST;0;5;0x0;a\'','#ZZ;5;0;0x5'],
       '\'a\\\'a\'', ['#ST;0;6;0x0;a\'a','#ZZ;6;0;0x6'],
