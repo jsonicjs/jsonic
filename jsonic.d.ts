@@ -3,9 +3,6 @@ declare type KV = {
 };
 declare type pin = number;
 declare type Opts = {
-    escape: {
-        [denoting_char: string]: string;
-    };
     char: KV;
     comment: {
         [start_marker: string]: string | boolean;
@@ -125,14 +122,15 @@ declare type Config = {
     tokenset: {
         [name: string]: pin[];
     };
-    escape: string[];
-    start_cm: pin[];
-    cm_single: string;
+    string: {
+        escape: {
+            [name: string]: string;
+        };
+    };
     cmk: string[];
     cmk0: string;
     cmk1: string;
     cmk_maxlen: number;
-    start_cm_char: string;
     bmk: string[];
     bmk_maxlen: number;
     single_char: string;

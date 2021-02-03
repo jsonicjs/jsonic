@@ -5,6 +5,7 @@
 // TODO: util tests
 // TODO: plugin TODOs
 // TODO: remove all String.includes( calls - use char maps
+// TODO: replace sparse lookup arrays with maps
 // TODO: deeper tests
 // TODO: test/fix .rule, .lex signatures, return values
 // TODO: types used properly in plugins, eg. LexMatcher
@@ -22,7 +23,6 @@ type pin = number
 
 // Parsing options. See defaults for commentary.
 type Opts = {
-  escape: { [denoting_char: string]: string }
   char: KV
   comment: { [start_marker: string]: string | boolean }
   balance: KV
@@ -136,14 +136,13 @@ type Config = {
   charset: { [name: string]: CharCodeMap }
   singlemap: { [char: string]: pin }
   tokenset: { [name: string]: pin[] }
-  escape: string[]
-  start_cm: pin[]       // Comment start char codes.
-  cm_single: string     // Single line comment start marker chars.
+  string: {
+    escape: { [name: string]: string }
+  },
   cmk: string[]         // Comment start markers.
   cmk0: string          // Comment start markers first chars.
   cmk1: string          // Comment start markers second chars.
   cmk_maxlen: number    // Comment start markers max len.
-  start_cm_char: string // Comment start chars.
   bmk: string[]
   bmk_maxlen: number
   single_char: string
@@ -174,17 +173,6 @@ const S = {
 function make_standard_options(): Opts {
 
   let opts: Opts = {
-
-    // String escape chars.
-    // Denoting char (follows escape char) => actual char.
-    escape: {
-      b: '\b',
-      f: '\f',
-      n: '\n',
-      r: '\r',
-      t: '\t',
-    },
-
 
     // Special chars
     char: {
@@ -240,6 +228,16 @@ function make_standard_options(): Opts {
 
     // String formats.
     string: {
+
+      // String escape chars.
+      // Denoting char (follows escape char) => actual char.
+      escape: {
+        b: '\b',
+        f: '\f',
+        n: '\n',
+        r: '\r',
+        t: '\t',
+      },
 
       // Multiline quote chars.
       multiline: '`',
@@ -567,7 +565,7 @@ class Lexer {
       next_char:
       while (sI < srclen) {
         let c0 = src[sI]
-        let c0c = src.charCodeAt(sI)
+        //let c0c = src.charCodeAt(sI)
 
 
         if (LTP === state) {
@@ -726,7 +724,7 @@ class Lexer {
             token.col = cI++
 
             let qc = c0.charCodeAt(0)
-            let multiline = opts.string.multiline.includes(c0)
+            let multiline = config.charset.multiline[c0]
 
             s = []
             cc = -1
@@ -753,16 +751,19 @@ class Lexer {
               // TODO: use opt.char.escape (string) -> config.char.escape (code)
               // Escape char. 
               else if (92 === cc) {
-                let ec = src.charCodeAt(++pI)
+                //let ec = src.charCodeAt(++pI)
+                pI++
                 cI++
 
-                let es = config.escape[ec]
+                //let es = config.escape[ec]
+                let es = config.string.escape[src[pI]]
                 if (null != es) {
                   s.push(es)
                 }
 
                 // ASCII escape \x**
-                else if (120 === ec) {
+                //else if (120 === ec) {
+                else if ('x' === src[pI]) {
                   pI++
                   let us =
                     String.fromCharCode(('0x' + src.substring(pI, pI + 2)) as any)
@@ -778,7 +779,8 @@ class Lexer {
 
                 // Unicode escape \u****.
                 // TODO: support \u{*****}
-                else if (117 === ec) {
+                //else if (117 === ec) {
+                else if ('u' === src[pI]) {
                   pI++
                   let us =
                     String.fromCharCode(('0x' + src.substring(pI, pI + 4)) as any)
@@ -840,8 +842,8 @@ class Lexer {
 
 
           // Comment chars.
-          if (config.start_cm.includes(c0c)) {
-            let is_line_comment = config.cm_single.includes(c0)
+          if (config.charset.start_commentmarker[c0]) {
+            let is_line_comment = !!config.charset.cm_single[c0]
 
             // Also check for comment markers as single comment char could be
             // a comment marker prefix (eg. # and ###, / and //, /*).
@@ -899,7 +901,6 @@ class Lexer {
           do {
             cI++
             pI++
-            //} while (null != src[pI] && !config.value_ender.includes(src[pI]))
           } while (null != src[pI] && !config.charset.value_ender[src[pI]])
 
           let txt = src.substring(sI, pI)
@@ -1814,7 +1815,7 @@ class Parser {
       do {
         t1 = lex(rule)
         ctx.tI++
-      } while (ignore && config.tokenset.IGNORE.includes(t1.pin))
+      } while (ignore && config.tokenset.IGNORE[t1.pin])
 
       ctx.t1 = { ...t1 }
 
@@ -2249,19 +2250,23 @@ let util = {
     // Char code arrays for lookup by char code.
     config.tokenset = tokenset_names
       .reduce((a: any, tsn) =>
-        (a[tsn.substring(1)] = ((opts.token[tsn] as any).s.split(',')
-          .map((tn: string) => config.token[tn])),
+        (a[tsn.substring(1)] =
+          (opts.token[tsn] as any).s.split(',')
+            .reduce((a: any, tn: string) => (a[config.token[tn]] = tn, a), {}),
           a), {})
 
+    // Lookup maps for sets of characters.
+    config.charset = {}
 
     // Lookup table for escape chars, indexed by denotating char (e.g. n for \n).
-    opts.escape = opts.escape || {}
-    config.escape = Object.keys(opts.escape)
-      .reduce((a: string[], ed: string) =>
-        (a[ed.charCodeAt(0)] = opts.escape[ed], a), [])
+    config.string = {
+      escape: Object.keys(opts.string.escape)
+        .reduce((a: any, ed: string) =>
+          (a[ed] = opts.string.escape[ed], a), {})
+    }
 
-    config.start_cm = []
-    config.cm_single = ''
+    config.charset.start_commentmarker = {}
+    config.charset.cm_single = {}
     config.cmk = []
     config.cmk0 = ''
     config.cmk1 = ''
@@ -2273,13 +2278,13 @@ let util = {
 
         // Single char comment marker (eg. `#`)
         if (1 === k.length) {
-          config.start_cm.push(k.charCodeAt(0))
-          config.cm_single += k
+          config.charset.start_commentmarker[k] = k.charCodeAt(0)
+          config.charset.cm_single[k] = k.charCodeAt(0)
         }
 
         // String comment marker (eg. `//`)
         else {
-          config.start_cm.push(k.charCodeAt(0))
+          config.charset.start_commentmarker[k[0]] = k.charCodeAt(0)
           config.cmk.push(k)
           config.cmk0 += k[0]
           config.cmk1 += k[1]
@@ -2289,17 +2294,14 @@ let util = {
       config.cmk_maxlen = util.longest(comment_markers)
     }
 
-    config.start_cm_char =
-      config.start_cm.map((cc: number) => String.fromCharCode(cc)).join('')
-
     config.single_char = Object.keys(config.singlemap).join('')
 
 
-    // Lookup maps for sets of characters.
-    config.charset = {}
-
     // All the characters that can appear in a number.
     config.charset.digital = util.charset(opts.number.digital)
+
+    // Multiline quotes
+    config.charset.multiline = util.charset(opts.string.multiline)
 
     // Enders are char sets that end lexing for a given token.
     // Value enders, end values.
@@ -2307,7 +2309,7 @@ let util = {
       config.multi.SP,
       config.multi.LN,
       config.single_char,
-      config.start_cm_char,
+      config.charset.start_commentmarker
     )
 
     // Chars that end unquoted text.
@@ -2317,7 +2319,7 @@ let util = {
     config.charset.hoover_ender = util.charset(
       config.multi.LN,
       config.single_char,
-      config.start_cm_char,
+      config.charset.start_commentmarker
     )
 
 
