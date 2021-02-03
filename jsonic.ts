@@ -4,7 +4,6 @@
 
 // TODO: util tests
 // TODO: plugin TODOs
-// TODO: remove all String.includes( calls - use char maps
 // TODO: replace sparse lookup arrays with maps
 // TODO: deeper tests
 // TODO: test/fix .rule, .lex signatures, return values
@@ -1989,9 +1988,9 @@ let util = {
 
 
   make_src_format: (config: Config) =>
-    (s: any, j?: any) => null == s ? '' : (j = JSON.stringify(s),
-      j.substring(0, config.debug.maxlen) +
-      (config.debug.maxlen < j.length ? '...' : '')),
+    (s: any, _?: any) => null == s ? '' : (_ = JSON.stringify(s),
+      _.substring(0, config.debug.maxlen) +
+      (config.debug.maxlen < _.length ? '...' : '')),
 
   // Special debug logging to console (use Jsonic('...', {log:N})).
   // log:N -> console.dir to depth N

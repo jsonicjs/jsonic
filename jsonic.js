@@ -1357,9 +1357,9 @@ let util = {
                     .join('\n');
         }
     },
-    make_src_format: (config) => (s, j) => null == s ? '' : (j = JSON.stringify(s),
-        j.substring(0, config.debug.maxlen) +
-            (config.debug.maxlen < j.length ? '...' : '')),
+    make_src_format: (config) => (s, _) => null == s ? '' : (_ = JSON.stringify(s),
+        _.substring(0, config.debug.maxlen) +
+            (config.debug.maxlen < _.length ? '...' : '')),
     // Special debug logging to console (use Jsonic('...', {log:N})).
     // log:N -> console.dir to depth N
     // log:-1 -> console.dir to depth 1, omitting objects (good summary!)

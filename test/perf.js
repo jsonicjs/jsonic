@@ -35,7 +35,7 @@ let inputs = [
 
 ]
 
-// run_lex()
+run_lex()
 run_parse()
 
 

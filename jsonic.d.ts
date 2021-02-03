@@ -230,7 +230,7 @@ declare let util: {
     longest: (strs: string[]) => number;
     marr: (a: string[], b: string[]) => boolean;
     clean_stack(err: Error): void;
-    make_src_format: (config: Config) => (s: any, j?: any) => string;
+    make_src_format: (config: Config) => (s: any, _?: any) => string;
     make_log: (ctx: Context) => ((...rest: any) => undefined) | undefined;
     wrap_bad_lex: (lex: Lex, BD: pin, ctx: Context) => any;
     errinject: (s: string, code: string, details: KV, token: Token, rule: Rule, ctx: Context) => string;

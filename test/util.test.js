@@ -17,7 +17,9 @@ const { util, Jsonic } = require('..')
 const deep = util.deep
 const errinject = util.errinject
 const marr = util.marr
-const norm_options = util.norm_options
+const make_src_format = util.make_src_format
+const wrap_bad_lex = util.wrap_bad_lex
+
 
 const I = Util.inspect
 
@@ -30,6 +32,8 @@ describe('util', () => {
       tokenI: 1,
       token: {},
     }
+
+    expect(util.token(null,config)).equals(undefined)
     
     let s1 = util.token('AA', config)
     expect(s1).equals(s+1)
@@ -290,6 +294,42 @@ describe('util', () => {
   })
 
 
+  it('make_src_format', () => {
+    let F = make_src_format({debug:{maxlen:4}})
+    expect(F('a')).equals('"a"')
+    expect(F('ab')).equals('"ab"')
+    expect(F('abc')).equals('"abc...')
+  })
+
+
+  it('wrap_bad_lex', () => {
+    let ctx = {
+      src:()=>'',
+      opts:{error:{unexpected:'unx'},hint:{unexpected:'unx'}},
+      config:{token:{}},
+      plugins:()=>[],
+    }
+
+    try {
+      wrap_bad_lex(()=>({pin:1}),1,ctx)({})
+    }
+    catch(e) {
+      // console.log(e)
+      expect(e.code).equals('unexpected')
+    }
+
+    try {
+      wrap_bad_lex(()=>({pin:1,use:{x:1}}),1,ctx)({})
+    }
+    catch(e) {
+      //console.log(e)
+      expect(e.code).equals('unexpected')
+      expect(e.details).equals({ use: { x: 1 } })
+    }
+
+  })
+
+
   it('marr', () => {
     expect(marr([],[])).true()
     expect(marr(['a'],['a'])).true()
@@ -420,45 +460,5 @@ describe('util', () => {
     expect(d1.message).includes('unknown-hint')
 
   })
-
   
-  /*
-  it('norm_options', () => {
-    expect(norm_options({
-      sc_foo: ' \t',
-      sc_bar: 'ab',
-      sc_zed: '\r\n'
-    })).includes({
-      SC_FOO: [32,9],
-      SC_BAR: [97,98],
-      SC_ZED: [13,10],
-    })
-
-    
-    let single = []
-    single[97] = 10
-    single[98] = 11
-    expect(norm_options({
-      STC: {10:'a',11:'b'},
-      AA: single[97],
-      BB: single[98],
-    })).includes({
-      SINGLES: single
-    })
-
-    
-    let escape = []
-    escape[110] = '\n'
-    escape[116] = '\t'
-    expect(norm_options({
-      escape: {
-        n: '\n',
-        t: '\t',
-      },
-    })).includes({
-      ESCAPES: escape
-    })
-
-  })
-  */
 })
