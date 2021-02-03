@@ -422,6 +422,23 @@ describe('feature', function () {
     expect(j('`a\n\nb`')).equals('a\n\nb')
     expect(j('`a\nc\nb`')).equals('a\nc\nb')
     expect(j('`a\r\n\r\nb`')).equals('a\r\n\r\nb')
+
+    expect(j(`{
+  md:
+    '''
+    First line.
+    Second line.
+      This line is indented by two spaces.
+    '''
+}`)).equals({
+  md: "First line.\nSecond line.\n  This line is indented by two spaces.",
+})
+
+    
+    expect(j("'''\na\nb\n'''")).equals('a\nb')
+
+    // NOTE: block marker is expected to be on own line
+    expect(j("'''a\nb'''")).equals('\n')
   })
 
 

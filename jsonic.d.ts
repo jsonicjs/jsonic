@@ -133,7 +133,6 @@ declare type Config = {
     cmk1: string;
     cmk_maxlen: number;
     start_cm_char: string;
-    start_bm: pin[];
     bmk: string[];
     bmk_maxlen: number;
     single_char: string;

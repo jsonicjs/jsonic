@@ -22,7 +22,6 @@ let HJson: Plugin = function hjson(jsonic: Jsonic) {
     let srclen = src.length
 
     if (ctx.t0.pin === CL) {
-      //while (pI < srclen && !ctx.config.multi.LN.includes(src[pI])) {
       while (pI < srclen && !ctx.config.multi.LN[src[pI]]) {
         pI++
       }

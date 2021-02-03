@@ -386,7 +386,7 @@ class Lexer {
                         // prefixed with digits.
                     }
                     // Block chars.
-                    if (config.start_bm.includes(c0c)) {
+                    if (config.charset.start_blockmarker[c0]) {
                         let marker = src.substring(sI, sI + config.bmk_maxlen);
                         for (let bm of config.bmk) {
                             if (marker.startsWith(bm)) {
@@ -631,7 +631,10 @@ class Lexer {
                         let uI = sI - 1;
                         while (-1 < uI && config.multi.SP[src[uI--]])
                             ;
-                        indent_str = Object.keys(config.multi.SP)[0].repeat(sI - uI - 2);
+                        let indent_len = sI - uI - 2;
+                        if (0 < indent_len) {
+                            indent_str = Object.keys(config.multi.SP)[0].repeat(indent_len);
+                        }
                     }
                     // Assume starts with open string
                     pI += open.length;
@@ -1578,14 +1581,6 @@ let util = {
         }
         config.start_cm_char =
             config.start_cm.map((cc) => String.fromCharCode(cc)).join('');
-        config.start_bm = [];
-        config.bmk = [];
-        let block_markers = Object.keys(opts.string.block);
-        block_markers.forEach(k => {
-            config.start_bm.push(k.charCodeAt(0));
-            config.bmk.push(k);
-        });
-        config.bmk_maxlen = util.longest(block_markers);
         config.single_char = Object.keys(config.singlemap).join('');
         // Lookup maps for sets of characters.
         config.charset = {};
@@ -1598,6 +1593,15 @@ let util = {
         config.charset.text_ender = config.charset.value_ender;
         // Chars that end text hoovering (including internal space).
         config.charset.hoover_ender = util.charset(config.multi.LN, config.single_char, config.start_cm_char);
+        config.charset.start_blockmarker = {};
+        config.bmk = [];
+        let block_markers = Object.keys(opts.string.block);
+        block_markers.forEach(k => {
+            config.charset.start_blockmarker[k[0]] = k.charCodeAt(0);
+            config.bmk.push(k);
+        });
+        config.bmk_maxlen = util.longest(block_markers);
+        // TODO: add rest of core tokens
         config.lex = {
             core: {
                 LN: util.token(opts.lex.core.LN, config)
