@@ -15,7 +15,6 @@ const expect = Code.expect
 
 const { util, Jsonic } = require('..')
 const deep = util.deep
-const s2cca = util.s2cca
 const errinject = util.errinject
 const marr = util.marr
 const norm_options = util.norm_options
@@ -281,13 +280,6 @@ describe('util', () => {
     let a00 = util.deep(a0)
     a00.x = 2
     expect(a00.foo()).equal(2)
-  })
-
-
-  it('s2cca', () => {
-    expect(s2cca('')).equal([])
-    expect(s2cca('a')).equal([97])
-    expect(s2cca('ab')).equal([97,98])
   })
 
 

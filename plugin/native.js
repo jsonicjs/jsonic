@@ -44,7 +44,7 @@ let Native = function native(jsonic) {
             let cD = 0;
             while (pI < srclen &&
                 !('/' === src[pI] && '\\' === src[pI - 1]) &&
-                !config.value_ender.includes(src[pI])) {
+                !config.charset.value_ender[src[pI]]) {
                 pI++;
                 cD++;
             }

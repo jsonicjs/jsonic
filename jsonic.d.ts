@@ -99,6 +99,9 @@ declare type Lex = ((rule: Rule) => Token) & {
 declare type PinMap = {
     [char: string]: pin;
 };
+declare type CharCodeMap = {
+    [char: string]: number;
+};
 declare type Config = {
     tokenI: number;
     token: any;
@@ -107,6 +110,9 @@ declare type Config = {
     };
     multi: {
         [name: string]: PinMap;
+    };
+    charset: {
+        [name: string]: CharCodeMap;
     };
     singlemap: {
         [char: string]: pin;
@@ -126,9 +132,6 @@ declare type Config = {
     bmk: string[];
     bmk_maxlen: number;
     single_char: string;
-    value_ender: string;
-    text_ender: string;
-    hoover_ender: string;
     lex: {
         core: {
             [name: string]: pin;
@@ -221,7 +224,7 @@ declare let util: {
     token: <R extends string | number, T extends string | number>(ref: R, config: Config, jsonic?: Jsonic | undefined) => T;
     deep: (base?: any, ...rest: any) => any;
     clone: (class_instance: any) => any;
-    s2cca: (s: string) => number[];
+    charset: (...parts: (string | object)[]) => CharCodeMap;
     longest: (strs: string[]) => number;
     marr: (a: string[], b: string[]) => boolean;
     clean_stack(err: Error): void;

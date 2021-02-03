@@ -3,7 +3,7 @@
 // TODO: support functions - eval to load
 
 
-import { Jsonic, Plugin, Token, Rule, RuleSpec, Context, util } from '../jsonic'
+import { Jsonic, Plugin, Token, Context } from '../jsonic'
 
 
 let Native: Plugin = function native(jsonic: Jsonic) {
@@ -64,7 +64,7 @@ let Native: Plugin = function native(jsonic: Jsonic) {
 
       while (pI < srclen &&
         !('/' === src[pI] && '\\' === src[pI - 1]) &&
-        !config.value_ender.includes(src[pI])) {
+        !config.charset.value_ender[src[pI]]) {
         pI++
         cD++
       }

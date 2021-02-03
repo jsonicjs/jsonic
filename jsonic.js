@@ -95,10 +95,12 @@ function make_standard_options() {
         // Plugin custom options, (namespace by plugin name).
         plugin: {},
         debug: {
-            // Default console for logging
+            // Default console for logging.
             get_console: () => console,
-            // Max length of parse value to print
+            // Max length of parse value to print.
             maxlen: 33,
+            // Print config built from options.
+            print_config: false
         },
         // Error messages.
         error: {
@@ -337,10 +339,11 @@ class Lexer {
                         token.loc = sI;
                         token.col = cI;
                         pI = sI;
-                        while (opts.number.digital.includes(src[++pI]))
+                        while (config.charset.digital[src[++pI]])
                             ;
                         let numstr = src.substring(sI, pI);
-                        if (null == src[pI] || config.value_ender.includes(src[pI])) {
+                        //if (null == src[pI] || config.value_ender.includes(src[pI])) {
+                        if (null == src[pI] || config.charset.value_ender[src[pI]]) {
                             token.len = pI - sI;
                             let base_char = src[sI + 1];
                             // Leading 0s are text unless hex|oct|bin val: if at least two
@@ -536,7 +539,8 @@ class Lexer {
                     do {
                         cI++;
                         pI++;
-                    } while (null != src[pI] && !config.value_ender.includes(src[pI]));
+                        //} while (null != src[pI] && !config.value_ender.includes(src[pI]))
+                    } while (null != src[pI] && !config.charset.value_ender[src[pI]]);
                     let txt = src.substring(sI, pI);
                     // A keyword literal value? (eg. true, false, null)
                     let val = opts.value[txt];
@@ -556,10 +560,10 @@ class Lexer {
                     if (matchers(LTX, rule)) {
                         return token;
                     }
-                    let text_enders = opts.text.hoover ? config.hoover_ender : config.text_ender;
+                    let text_enders = opts.text.hoover ? config.charset.hoover_ender : config.charset.text_ender;
                     // TODO: construct a RegExp to do this
                     while (null != src[pI] &&
-                        (!text_enders.includes(src[pI]) ||
+                        (!text_enders[src[pI]] ||
                             (config.cmk0.includes(src[pI]) &&
                                 !config.cmk1.includes(src[pI + 1])))) {
                         cI++;
@@ -1303,11 +1307,12 @@ let util = {
     clone: function (class_instance) {
         return util.deep(Object.create(Object.getPrototypeOf(class_instance)), class_instance);
     },
-    // Convert string to char code array.
-    // 'ab' -> [97,98]
-    s2cca: function (s) {
-        return s.split('').map((c) => c.charCodeAt(0));
-    },
+    // Lookup map for a set of chars.
+    charset: (...parts) => parts
+        .map((p) => 'object' === typeof (p) ? Object.keys(p).join('') : p)
+        .join('')
+        .split('')
+        .reduce((a, c) => (a[c] = c.charCodeAt(0), a), {}),
     longest: (strs) => strs.reduce((a, s) => a < s.length ? s.length : a, 0),
     // True if arrays match.
     marr: (a, b) => (a.length === b.length && a.reduce((a, s, i) => (a && s === b[i]), true)),
@@ -1525,23 +1530,17 @@ let util = {
             .filter(tn => S.string === typeof opts.token[tn]);
         // Char code arrays for lookup by char code.
         config.start = multi_char_token_names
-            .reduce((a, tn) => 
-        //(a[tn.substring(1)] = util.s2cca(opts.token[tn] as string), a), {})
-        (a[tn.substring(1)] =
+            .reduce((a, tn) => (a[tn.substring(1)] =
             opts.token[tn]
                 .split('')
                 .reduce((pm, c) => (pm[c] = config.token[tn], pm), {}),
             a), {});
-        //console.log(config.start)
         config.multi = multi_char_token_names
-            .reduce((a, tn) => 
-        //(a[tn.substring(1)] = opts.token[tn], a), {})
-        (a[tn.substring(1)] =
+            .reduce((a, tn) => (a[tn.substring(1)] =
             opts.token[tn]
                 .split('')
                 .reduce((pm, c) => (pm[c] = config.token[tn], pm), {}),
             a), {});
-        //console.log(config.multi)
         let tokenset_names = token_names
             .filter(tn => null != opts.token[tn].s);
         // Char code arrays for lookup by char code.
@@ -1587,20 +1586,17 @@ let util = {
         });
         config.bmk_maxlen = util.longest(block_markers);
         config.single_char = Object.keys(config.singlemap).join('');
-        // Enders are char sets that end lexing for a given token
-        config.value_ender =
-            //config.multi.SP +
-            Object.keys(config.multi.SP).join('') +
-                //config.multi.LN +
-                Object.keys(config.multi.LN).join('') +
-                config.single_char +
-                config.start_cm_char;
-        config.text_ender = config.value_ender;
-        config.hoover_ender =
-            //config.multi.LN +
-            Object.keys(config.multi.LN).join('') +
-                config.single_char +
-                config.start_cm_char;
+        // Lookup maps for sets of characters.
+        config.charset = {};
+        // All the characters that can appear in a number.
+        config.charset.digital = util.charset(opts.number.digital);
+        // Enders are char sets that end lexing for a given token.
+        // Value enders, end values.
+        config.charset.value_ender = util.charset(config.multi.SP, config.multi.LN, config.single_char, config.start_cm_char);
+        // Chars that end unquoted text.
+        config.charset.text_ender = config.charset.value_ender;
+        // Chars that end text hoovering (including internal space).
+        config.charset.hoover_ender = util.charset(config.multi.LN, config.single_char, config.start_cm_char);
         config.lex = {
             core: {
                 LN: util.token(opts.lex.core.LN, config)
@@ -1610,8 +1606,9 @@ let util = {
             sep_re: null != opts.number.sep ? new RegExp(opts.number.sep, 'g') : null
         };
         config.debug = opts.debug;
-        // TODO: maybe make this a debug option?
-        // console.log(config)
+        if (opts.debug.print_config) {
+            console.log(config);
+        }
     },
 };
 exports.util = util;
@@ -1725,5 +1722,6 @@ Jsonic.RuleSpec = RuleSpec;
 Jsonic.util = util;
 Jsonic.make = make;
 exports.default = Jsonic;
+// Build process uncomments this to enable more natural Node.s requires.
 //-NODE-MODULE-FIX;('undefined' != typeof(module) && (module.exports = exports.Jsonic));
 //# sourceMappingURL=jsonic.js.map

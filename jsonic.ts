@@ -122,12 +122,15 @@ type Lex = ((rule: Rule) => Token) & { src: string }
 
 
 type PinMap = { [char: string]: pin }
+type CharCodeMap = { [char: string]: number }
+
 
 type Config = {
   tokenI: number
   token: any
   start: { [name: string]: PinMap }
   multi: { [name: string]: PinMap }
+  charset: { [name: string]: CharCodeMap }
   singlemap: { [char: string]: pin }
   tokenset: { [name: string]: pin[] }
   escape: string[]
@@ -142,9 +145,6 @@ type Config = {
   bmk: string[]
   bmk_maxlen: number
   single_char: string
-  value_ender: string
-  text_ender: string
-  hoover_ender: string
   lex: {
     core: { [name: string]: pin }
   }
@@ -289,11 +289,14 @@ function make_standard_options(): Opts {
 
 
     debug: {
-      // Default console for logging
+      // Default console for logging.
       get_console: () => console,
 
-      // Max length of parse value to print
+      // Max length of parse value to print.
       maxlen: 33,
+
+      // Print config built from options.
+      print_config: false
     },
 
 
@@ -635,11 +638,12 @@ class Lexer {
             token.col = cI
 
             pI = sI
-            while (opts.number.digital.includes(src[++pI]));
+            while (config.charset.digital[src[++pI]]);
 
             let numstr = src.substring(sI, pI)
 
-            if (null == src[pI] || config.value_ender.includes(src[pI])) {
+            //if (null == src[pI] || config.value_ender.includes(src[pI])) {
+            if (null == src[pI] || config.charset.value_ender[src[pI]]) {
               token.len = pI - sI
 
               let base_char = src[sI + 1]
@@ -891,7 +895,8 @@ class Lexer {
           do {
             cI++
             pI++
-          } while (null != src[pI] && !config.value_ender.includes(src[pI]))
+            //} while (null != src[pI] && !config.value_ender.includes(src[pI]))
+          } while (null != src[pI] && !config.charset.value_ender[src[pI]])
 
           let txt = src.substring(sI, pI)
 
@@ -919,11 +924,11 @@ class Lexer {
           }
 
           let text_enders =
-            opts.text.hoover ? config.hoover_ender : config.text_ender
+            opts.text.hoover ? config.charset.hoover_ender : config.charset.text_ender
 
           // TODO: construct a RegExp to do this
           while (null != src[pI] &&
-            (!text_enders.includes(src[pI]) ||
+            (!text_enders[src[pI]] ||
               (config.cmk0.includes(src[pI]) &&
                 !config.cmk1.includes(src[pI + 1]))
             )) {
@@ -1913,20 +1918,19 @@ let util = {
     return base
   },
 
-
-
-
   clone: function(class_instance: any) {
     return util.deep(Object.create(Object.getPrototypeOf(class_instance)),
       class_instance)
   },
 
 
-  // Convert string to char code array.
-  // 'ab' -> [97,98]
-  s2cca: function(s: string): number[] {
-    return s.split('').map((c: string) => c.charCodeAt(0))
-  },
+  // Lookup map for a set of chars.
+  charset: (...parts: (string | object)[]): CharCodeMap => parts
+    .map((p: any) => 'object' === typeof (p) ? Object.keys(p).join('') : p)
+    .join('')
+    .split('')
+    .reduce((a: any, c: string) => (a[c] = c.charCodeAt(0), a), {}),
+
 
   longest: (strs: string[]) =>
     strs.reduce((a, s) => a < s.length ? s.length : a, 0),
@@ -2217,25 +2221,19 @@ let util = {
     // Char code arrays for lookup by char code.
     config.start = multi_char_token_names
       .reduce((a: any, tn) =>
-        //(a[tn.substring(1)] = util.s2cca(opts.token[tn] as string), a), {})
         (a[tn.substring(1)] =
           (opts.token[tn] as string)
             .split('')
             .reduce((pm, c) => (pm[c] = config.token[tn], pm), ({} as PinMap)),
           a), {})
-
-    //console.log(config.start)
 
     config.multi = multi_char_token_names
       .reduce((a: any, tn) =>
-        //(a[tn.substring(1)] = opts.token[tn], a), {})
         (a[tn.substring(1)] =
           (opts.token[tn] as string)
             .split('')
             .reduce((pm, c) => (pm[c] = config.token[tn], pm), ({} as PinMap)),
           a), {})
-
-    //console.log(config.multi)
 
     let tokenset_names = token_names
       .filter(tn => null != (opts.token[tn] as any).s)
@@ -2253,7 +2251,6 @@ let util = {
     config.escape = Object.keys(opts.escape)
       .reduce((a: string[], ed: string) =>
         (a[ed.charCodeAt(0)] = opts.escape[ed], a), [])
-
 
     config.start_cm = []
     config.cm_single = ''
@@ -2287,7 +2284,6 @@ let util = {
     config.start_cm_char =
       config.start_cm.map((cc: number) => String.fromCharCode(cc)).join('')
 
-
     config.start_bm = []
     config.bmk = []
     let block_markers = Object.keys(opts.string.block)
@@ -2299,26 +2295,33 @@ let util = {
 
     config.bmk_maxlen = util.longest(block_markers)
 
-
     config.single_char = Object.keys(config.singlemap).join('')
 
 
-    // Enders are char sets that end lexing for a given token
-    config.value_ender =
-      //config.multi.SP +
-      Object.keys(config.multi.SP).join('') +
-      //config.multi.LN +
-      Object.keys(config.multi.LN).join('') +
-      config.single_char +
-      config.start_cm_char
+    // Lookup maps for sets of characters.
+    config.charset = {}
 
-    config.text_ender = config.value_ender
+    // All the characters that can appear in a number.
+    config.charset.digital = util.charset(opts.number.digital)
 
-    config.hoover_ender =
-      //config.multi.LN +
-      Object.keys(config.multi.LN).join('') +
-      config.single_char +
-      config.start_cm_char
+    // Enders are char sets that end lexing for a given token.
+    // Value enders, end values.
+    config.charset.value_ender = util.charset(
+      config.multi.SP,
+      config.multi.LN,
+      config.single_char,
+      config.start_cm_char,
+    )
+
+    // Chars that end unquoted text.
+    config.charset.text_ender = config.charset.value_ender
+
+    // Chars that end text hoovering (including internal space).
+    config.charset.hoover_ender = util.charset(
+      config.multi.LN,
+      config.single_char,
+      config.start_cm_char,
+    )
 
     config.lex = {
       core: {
@@ -2332,8 +2335,9 @@ let util = {
 
     config.debug = opts.debug
 
-    // TODO: maybe make this a debug option?
-    // console.log(config)
+    if (opts.debug.print_config) {
+      console.log(config)
+    }
   },
 }
 
@@ -2531,6 +2535,7 @@ export {
 
 export default Jsonic
 
+// Build process uncomments this to enable more natural Node.s requires.
 //-NODE-MODULE-FIX;('undefined' != typeof(module) && (module.exports = exports.Jsonic));
 
 
