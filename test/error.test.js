@@ -149,6 +149,17 @@ describe('error', function () {
     */
   })
 
+  
+  it('error-json-desc', () => {
+    try {
+      Jsonic(']')
+    }
+    catch(e) {
+      expect(JSON.stringify(e))
+        .includes('{"code":"unexpected","details":{"open":true},'+
+                  '"meta":{},"lineNumber":0,"columnNumber":0')
+    } 
+  })
 
 
   it('bad-syntax', () => {

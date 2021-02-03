@@ -109,7 +109,6 @@ interface Context {
   t1: Token
   tI: number
   rs: Rule[]
-  // n: KV,      // Named counters.
   rsm: { [name: string]: RuleSpec }
   next: () => Token
   log?: (...rest: any) => undefined
@@ -128,7 +127,6 @@ type Config = {
   tokenI: number
   token: any
   start: { [name: string]: PinMap }
-  //multi: { [name: string]: string }
   multi: { [name: string]: PinMap }
   singlemap: { [char: string]: pin }
   tokenset: { [name: string]: pin[] }
@@ -387,84 +385,19 @@ class JsonicError extends SyntaxError {
       config: ctx.config,
       meta: ctx.meta,
       src: () => ctx.src(),
-      //root: () => ctx.root(),
       plugins: () => ctx.plugins(),
       node: ctx.node,
       t0: ctx.t0,
       t1: ctx.t1,
       tI: ctx.tI,
-
-      // TODO: fix cycle
-      // rs: ctx.rs,
-
-      // next: () => ctx.next(),
       log: ctx.log,
       use: ctx.use
     })
-    let desc = JsonicError.make_desc(code, details, token, rule, errctx)
+    let desc = util.make_error_desc(code, details, token, rule, errctx)
     super(desc.message)
     Object.assign(this, desc)
 
     util.clean_stack(this)
-  }
-
-
-  static make_desc(
-    code: string,
-    details: KV,
-    token: Token,
-    rule: Rule,
-    ctx: Context,
-  ) {
-    token = { ...token }
-    let opts = ctx.opts
-    let meta = ctx.meta
-    let errtxt = util.errinject(
-      (opts.error[code] || opts.error.unknown),
-      code, details, token, rule, ctx
-    )
-
-    if (S.function === typeof (opts.hint)) {
-      // Only expand the hints on demand. Allow for plugin-defined hints.
-      opts.hint = { ...opts.hint(), ...opts.hint }
-    }
-
-    let message = [
-      ('\x1b[31m[jsonic/' + code + ']:\x1b[0m ' +
-        ((meta && meta.mode) ? '\x1b[35m[mode:' + meta.mode + ']:\x1b[0m ' : '') +
-        errtxt),
-      '  \x1b[34m-->\x1b[0m ' + (meta.fileName || '<no-file>') + ':' + token.row + ':' + token.col,
-      util.extract(ctx.src(), errtxt, token),
-      util.errinject(
-        (opts.hint[code] || opts.hint.unknown).split('\n')
-          .map((s: string, i: number) => (0 === i ? ' ' : '  ') + s).join('\n'),
-        code, details, token, rule, ctx
-      ),
-      '  \x1b[2mhttps://jsonic.richardrodger.com\x1b[0m',
-      '  \x1b[2m--internal: rule=' + rule.name + '~' + RuleState[rule.state] +
-      '; token=' + ctx.config.token[token.pin] +
-      '; plugins=' + ctx.plugins().map((p: any) => p.name).join(',') + '--\x1b[0m\n'
-    ].join('\n')
-
-    let desc: any = {
-      internal: {
-        token,
-        ctx,
-      }
-    }
-
-    desc = {
-      ...Object.create(desc),
-      message,
-      code,
-      details,
-      meta,
-      fileName: meta.fileName,
-      lineNumber: token.row,
-      columnNumber: token.col,
-    }
-
-    return desc
   }
 
   toJSON() {
@@ -600,7 +533,6 @@ class Lexer {
             cI = match.cD ? cI + match.cD : cI
 
             lexlog && lexlog(token)
-            // lexlog && lexlog(tn(token.pin), F(token.src), sI, rI + ':' + cI, { ...token })
             return token
           }
         }
@@ -636,7 +568,6 @@ class Lexer {
           }
 
           // Space chars.
-          //if (config.start.SP.includes(c0c)) {
           if (config.start.SP[c0]) {
 
             token.pin = SP
@@ -644,7 +575,6 @@ class Lexer {
             token.col = cI++
 
             pI = sI + 1
-            //while (config.multi.SP.includes(src[pI])) cI++, pI++;
             while (config.multi.SP[src[pI]]) cI++, pI++;
 
             token.len = pI - sI
@@ -654,13 +584,11 @@ class Lexer {
             sI = pI
 
             lexlog && lexlog(token)
-            // lexlog && lexlog(tn(token.pin), F(token.src), sI, rI + ':' + cI, { ...token })
             return token
           }
 
 
           // Newline chars.
-          //if (config.start.LN.includes(c0c)) {
           if (config.start.LN[c0]) {
             token.pin = config.lex.core.LN
             token.loc = sI
@@ -669,7 +597,6 @@ class Lexer {
             pI = sI
             cI = 0
 
-            //while (config.multi.LN.includes(src[pI])) {
             while (config.multi.LN[src[pI]]) {
               // Count rows.
               rI += (opts.char.row === src[pI] ? 1 : 0)
@@ -683,7 +610,6 @@ class Lexer {
             sI = pI
 
             lexlog && lexlog(token)
-            //lexlog && lexlog(tn(token.pin), F(token.src), sI, rI + ':' + cI, { ...token })
             return token
           }
 
@@ -698,13 +624,11 @@ class Lexer {
             sI++
 
             lexlog && lexlog(token)
-            //lexlog && lexlog(tn(token.pin), F(token.src), sI, rI + ':' + cI, { ...token })
             return token
           }
 
 
           // Number chars.
-          //if (config.start.NR.includes(c0c) && opts.number.lex) {
           if (config.start.NR[c0] && opts.number.lex) {
             token.pin = NR
             token.loc = sI
@@ -759,7 +683,6 @@ class Lexer {
               sI = pI
 
               lexlog && lexlog(token)
-              //lexlog && lexlog(tn(token.pin), F(token.src), sI, rI + ':' + cI, { ...token })
               return token
             }
 
@@ -788,7 +711,6 @@ class Lexer {
 
 
           // String chars.
-          //if (config.start.ST.includes(c0c)) {
           if (config.start.ST[c0]) {
             token.pin = ST
             token.loc = sI
@@ -800,7 +722,7 @@ class Lexer {
             s = []
             cc = -1
 
-            // TODO: \xNN \u{...}
+            // TODO: \u{...}
             for (pI = sI + 1; pI < srclen; pI++) {
               cI++
 
@@ -905,7 +827,6 @@ class Lexer {
             sI = pI
 
             lexlog && lexlog(token)
-            // lexlog && lexlog(tn(token.pin), F(token.src), sI, rI + ':' + cI, { ...token })
             return token
           }
 
@@ -985,7 +906,6 @@ class Lexer {
             sI = pI
 
             lexlog && lexlog(token)
-            // lexlog && lexlog(tn(token.pin), F(token.src), sI, rI + ':' + cI, { ...token })
             return token
           }
 
@@ -1020,12 +940,10 @@ class Lexer {
           // Hoovering (ie. greedily consume non-token chars including internal space)
           // If hoovering, separate space at end from text
           if (opts.text.hoover &&
-            //config.multi.SP.includes(token.val[token.val.length - 1])) {
             config.multi.SP[token.val[token.val.length - 1]]) {
 
             // Find last non-space char
             let tI = token.val.length - 2
-            //while (0 < tI && config.multi.SP.includes(token.val[tI])) tI--;
             while (0 < tI && config.multi.SP[token.val[tI]]) tI--;
             token.val = token.val.substring(0, tI + 1)
             token.src = token.val
@@ -1043,7 +961,6 @@ class Lexer {
           }
 
           lexlog && lexlog(token)
-          // lexlog && lexlog(tn(token.pin), F(token.src), sI, rI + ':' + cI, { ...token })
           return token
         }
 
@@ -1055,7 +972,6 @@ class Lexer {
           }
 
           pI = sI
-          //while (pI < srclen && !enders.includes(src[pI])) pI++, cI++;
           while (pI < srclen && !enders[src[pI]]) pI++, cI++;
 
           token.val += src.substring(sI, pI)
@@ -1067,7 +983,6 @@ class Lexer {
           state = LTP
 
           lexlog && lexlog(token)
-          // lexlog && lexlog(tn(token.pin), F(token.src), sI, rI + ':' + cI, { ...token })
           return token
         }
 
@@ -1092,9 +1007,7 @@ class Lexer {
 
           if (has_indent) {
             let uI = sI - 1
-            //while (-1 < uI && config.multi.SP.includes(src[uI--]));
             while (-1 < uI && config.multi.SP[src[uI--]]);
-            //indent_str = config.multi.SP[0].repeat(sI - uI - 2)
             indent_str = Object.keys(config.multi.SP)[0].repeat(sI - uI - 2)
           }
 
@@ -1147,19 +1060,17 @@ class Lexer {
           state = LTP
 
           lexlog && lexlog(token)
-          // lexlog && lexlog(tn(token.pin), F(token.src), sI, rI + ':' + cI, { ...token })
           return token
         }
       }
 
 
-      // LN001: keeps returning ZZ past end of input
+      // Keeps returning ZZ past end of input.
       token.pin = ZZ
       token.loc = srclen
       token.col = cI
 
       lexlog && lexlog(token)
-      // lexlog && lexlog(tn(token.pin), F(token.src), sI, rI + ':' + cI, { ...token })
       return token
     } as Lex)
 
@@ -1340,8 +1251,6 @@ class RuleSpec {
 
     let act: RuleAct = (null == out || !out.done) ?
       this.parse_alts(this.def.open, rule, ctx) : empty_ruleact
-    //{ m: [] }
-    //new RuleAct()
 
     if (act.e) {
       throw new JsonicError(S.unexpected, { open: true }, act.e, rule, ctx)
@@ -2228,6 +2137,66 @@ let util = {
   },
 
 
+  make_error_desc(
+    code: string,
+    details: KV,
+    token: Token,
+    rule: Rule,
+    ctx: Context,
+  ): KV {
+    token = { ...token }
+    let opts = ctx.opts
+    let meta = ctx.meta
+    let errtxt = util.errinject(
+      (opts.error[code] || opts.error.unknown),
+      code, details, token, rule, ctx
+    )
+
+    if (S.function === typeof (opts.hint)) {
+      // Only expand the hints on demand. Allow for plugin-defined hints.
+      opts.hint = { ...opts.hint(), ...opts.hint }
+    }
+
+    let message = [
+      ('\x1b[31m[jsonic/' + code + ']:\x1b[0m ' +
+        ((meta && meta.mode) ? '\x1b[35m[mode:' + meta.mode + ']:\x1b[0m ' : '') +
+        errtxt),
+      '  \x1b[34m-->\x1b[0m ' + (meta && meta.fileName || '<no-file>') +
+      ':' + token.row + ':' + token.col,
+      util.extract(ctx.src(), errtxt, token),
+      util.errinject(
+        (opts.hint[code] || opts.hint.unknown).split('\n')
+          .map((s: string, i: number) => (0 === i ? ' ' : '  ') + s).join('\n'),
+        code, details, token, rule, ctx
+      ),
+      '  \x1b[2mhttps://jsonic.richardrodger.com\x1b[0m',
+      '  \x1b[2m--internal: rule=' + rule.name + '~' + RuleState[rule.state] +
+      '; token=' + ctx.config.token[token.pin] +
+      '; plugins=' + ctx.plugins().map((p: any) => p.name).join(',') + '--\x1b[0m\n'
+    ].join('\n')
+
+    let desc: any = {
+      internal: {
+        token,
+        ctx,
+      }
+    }
+
+    desc = {
+      ...Object.create(desc),
+      message,
+      code,
+      details,
+      meta,
+      fileName: meta ? meta.fileName : undefined,
+      lineNumber: token.row,
+      columnNumber: token.col,
+    }
+
+    return desc
+  },
+
+
   // Idempotent normalization of options.
   build_config_from_options: function(config: Config, opts: Opts) {
     let token_names = Object.keys(opts.token)
@@ -2363,7 +2332,7 @@ let util = {
 
     config.debug = opts.debug
 
-    // TOOD: maybe make this a debug option?
+    // TODO: maybe make this a debug option?
     // console.log(config)
   },
 }

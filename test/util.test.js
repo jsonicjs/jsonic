@@ -13,9 +13,10 @@ const describe = lab.describe
 const it = lab.it
 const expect = Code.expect
 
-const { util } = require('..')
+const { util, Jsonic } = require('..')
 const deep = util.deep
 const s2cca = util.s2cca
+const errinject = util.errinject
 const marr = util.marr
 const norm_options = util.norm_options
 
@@ -290,6 +291,13 @@ describe('util', () => {
   })
 
 
+  it('errinject', () => {
+    let args = ['c0',{a:1},{b:2},{c:3},{d:4,meta:{g:7},opts:{e:5},config:{f:6}}]
+    expect(errinject('x $code $a $b $c $d $e $f $g $Z x',...args))
+      .equal('x "c0" 1 2 3 4 5 6 7 "$Z" x')
+  })
+
+
   it('marr', () => {
     expect(marr([],[])).true()
     expect(marr(['a'],['a'])).true()
@@ -304,7 +312,7 @@ describe('util', () => {
   })
 
 
-  it('clean)stack', () => {
+  it('clean_stack', () => {
     util.clean_stack({})
   })
 
@@ -327,6 +335,101 @@ describe('util', () => {
   })
 
 
+  it('logging', () => {
+    let log = []
+    let j0 = Jsonic.make()
+    j0('a:1',{log:(...r)=>log.push(r)})
+    expect(log.map(x=>x[0]+' '+x[1]+' '+x[2])).equals([
+      'lex #TX "a"',
+      'lex #CL ":"',
+      'rule val/1 open',
+      'parse val/1 open',
+      'node val/1 open',
+      'stack 1 val/1',
+      'rule map/2 open',
+      'parse map/2 open',
+      'node map/2 open',
+      'stack 2 val/1;map/2',
+      'rule pair/3 open',
+      'parse pair/3 open',
+      'lex #NR "1"',
+      'lex #ZZ ',
+      'node pair/3 open',
+      'stack 3 val/1;map/2;pair/3',
+      'rule val/4 open',
+      'parse val/4 open',
+      'lex #ZZ ',
+      'node val/4 open',
+      'stack 3 val/1;map/2;pair/3',
+      'rule val/4 close',
+      'parse val/4 close',
+      'node val/4 close',
+      'stack 2 val/1;map/2',
+      'rule pair/3 close',
+      'parse pair/3 close',
+      'node pair/3 close',
+      'stack 1 val/1',
+      'rule map/2 close',
+      'node map/2 close',
+      'stack 0 ',
+      'rule val/1 close',
+      'parse val/1 close',
+      'node val/1 close',
+      'stack 0 '
+    ])
+    //console.log(log)
+  })
+
+
+
+  it('make_error_desc', () => {
+    let ctx0 = {
+      opts: {
+        error: {
+          foo: 'foo-code',
+          unknown: 'unknown-code'
+        },
+        hint: {
+          foo: 'foo-hint',
+          unknown: 'unknown-hint',
+        }
+      },
+      src: ()=>'src',
+      plugins: ()=>[{name:'p0'}],
+      config: {
+        token: {
+          1: '#T1',
+        }
+      }
+    }
+    
+    let d0 = util.make_error_desc(
+      'foo',
+      {},
+      {pin:1},
+      {},
+      ctx0
+    )
+    //console.log(d0)
+    expect(d0.code).equals('foo')
+    expect(d0.message).includes('foo-code')
+    expect(d0.message).includes('foo-hint')
+
+    let d1 = util.make_error_desc(
+      'not-a-code',
+      {x:1},
+      {pin:1},
+      {},
+      {...ctx0, meta:{mode:'m0',fileName:'fn0'}}
+    )
+    //console.log(d1)
+    expect(d1.code).equals('not-a-code')
+    expect(d1.message).includes('unknown-code')
+    expect(d1.message).includes('unknown-hint')
+
+  })
+
+  
   /*
   it('norm_options', () => {
     expect(norm_options({

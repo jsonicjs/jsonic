@@ -141,7 +141,6 @@ declare type Config = {
 };
 declare class JsonicError extends SyntaxError {
     constructor(code: string, details: KV, token: Token, rule: Rule, ctx: Context);
-    static make_desc(code: string, details: KV, token: Token, rule: Rule, ctx: Context): any;
     toJSON(): this & {
         __error: boolean;
         name: string;
@@ -232,6 +231,7 @@ declare let util: {
     errinject: (s: string, code: string, details: KV, token: Token, rule: Rule, ctx: Context) => string;
     extract: (src: string, errtxt: string, token: Token) => string;
     handle_meta_mode: (self: Jsonic, src: string, meta: KV) => any[];
+    make_error_desc(code: string, details: KV, token: Token, rule: Rule, ctx: Context): KV;
     build_config_from_options: (config: Config, opts: Opts) => void;
 };
 declare function make(first?: KV | Jsonic, parent?: Jsonic): Jsonic;
