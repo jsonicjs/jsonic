@@ -312,6 +312,7 @@ describe('feature', function () {
     expect(j('a:true')).equals({a:true})
     expect(j('a:false')).equals({a:false})
     expect(j('a:null')).equals({a:null})
+    expect(j('a:')).equals({a:null})
 
     expect(j('true,')).equals([true])
     expect(j('false,')).equals([false])
@@ -323,6 +324,34 @@ describe('feature', function () {
   })
 
 
+  it('null-or-undefined', () => {
+    // All ignored, so undefined
+    expect(j('')).equal(undefined)
+    expect(j(' ')).equal(undefined)
+    expect(j('\n')).equal(undefined)
+    expect(j('#')).equal(undefined)
+    expect(j('//')).equal(undefined)
+    expect(j('/**/')).equal(undefined)
+
+    // JSON only has nulls
+    expect(j('null')).equal(null)
+    expect(j('a:null')).equal({a:null})
+    expect(j('a:')).equal({a:null})
+    expect(j('{a:}')).equal({a:null})
+
+    //expect(j('[a:1]')).equal([{a:1}])
+    
+    expect(j('[{a:null}]')).equal([{a:null}])
+    //expect(j('[a:null]')).equal([{a:null}])
+    expect(j('a:null,b:null')).equal({a:null,b:null})
+    expect(j('{a:null,b:null}')).equal({a:null,b:null})
+
+    //expect(j('[a:]')).equal([{a:null}])
+    expect(j('a:,b:')).equal({a:null,b:null})
+    expect(j('{a:,b:}')).equal({a:null,b:null})
+  })
+
+  
   it('value-text', () => {
     expect(j('a')).equals('a')
     expect(j('a/b')).equals('a/b')
@@ -469,6 +498,10 @@ describe('feature', function () {
     expect(j('a,b')).equals(['a','b'])
     expect(j('{a:1},')).equals([{a:1}])
     expect(j('[1],')).equals([[1]])
+
+    expect(j('[a:1]')).equals([{a:1}])
+    expect(j('[a:1,b:2]')).equals([{a:1},{b:2}])
+    expect(j('[a:1,b:2,c:3]')).equals([{a:1},{b:2},{c:3}])
   })
 
 

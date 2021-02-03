@@ -181,19 +181,20 @@ describe('error', function () {
     expect(j(' ]')).throws(JsonicError, /unexpected/)
     expect(j(' }')).throws(JsonicError, /unexpected/)
     expect(j(',}')).throws(JsonicError, /unexpected/)
-    //expect(j('a]')).throws(JsonicError, /unexpected/)
-    //expect(j('a}')).throws(JsonicError, /unexpected/)
+    expect(j('a]')).throws(JsonicError, /unexpected/)
+    expect(j('a}')).throws(JsonicError, /unexpected/)
     expect(j('{a]')).throws(JsonicError, /unexpected/)
     expect(j('[a}')).throws(JsonicError, /unexpected/)
     expect(j('{a}')).throws(JsonicError, /unexpected/)
+    expect(j('{a:1]')).throws(JsonicError, /unexpected/)
 
     
-    expect(j('{a:b:}')).throws(JsonicError, /unexpected/)
-
-
     // These are actually OK
     expect(Jsonic(',]')).equals([null])
-
+    expect(Jsonic('{a:}')).equals({a:null})
+    expect(Jsonic('{a:b:}')).equals({a:{b:null}})
+    expect(Jsonic('[a:1]')).equals([{a:1}])
+    expect(Jsonic('[a:]')).equals([{a:null}])
   })
 
 })

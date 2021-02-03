@@ -16,6 +16,7 @@ const expect = Code.expect
 const { util } = require('..')
 const deep = util.deep
 const s2cca = util.s2cca
+const marr = util.marr
 const norm_options = util.norm_options
 
 const I = Util.inspect
@@ -286,6 +287,43 @@ describe('util', () => {
     expect(s2cca('')).equal([])
     expect(s2cca('a')).equal([97])
     expect(s2cca('ab')).equal([97,98])
+  })
+
+
+  it('marr', () => {
+    expect(marr([],[])).true()
+    expect(marr(['a'],['a'])).true()
+    expect(marr(['a','b'],['a','b'])).true()
+    expect(marr(['a','b','c'],['a','b','c'])).true()
+
+    expect(marr(['a'],['a','b'])).false()
+    expect(marr(['b','a'],['a'])).false()
+    expect(marr(['a','c'],['a','b'])).false()
+    expect(marr(['d','c'],['a','b'])).false()
+    
+  })
+
+
+  it('clean)stack', () => {
+    util.clean_stack({})
+  })
+
+
+  it('make_log', () => {
+    let tmp = {}
+    let opts = {debug:{get_console:()=>({log:((x)=>tmp.x=x), dir:((y)=>tmp.y=y)})}}
+    
+    let g0 = util.make_log({})
+    let g1 = util.make_log({log:1,opts:opts})
+    let g2 = util.make_log({log:-1,opts:opts})
+
+    expect(g0).undefined()
+
+    g1('A')
+    expect(tmp.y).equal(['A'])
+    
+    g2('B')
+    expect(tmp.x).equal('B')
   })
 
 

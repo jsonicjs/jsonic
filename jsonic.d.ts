@@ -224,8 +224,10 @@ declare let util: {
     clone: (class_instance: any) => any;
     s2cca: (s: string) => number[];
     longest: (strs: string[]) => number;
+    marr: (a: string[], b: string[]) => boolean;
+    clean_stack(err: Error): void;
     make_src_format: (config: Config) => (s: any, j?: any) => string;
-    make_log: (ctx: Context) => void;
+    make_log: (ctx: Context) => ((...rest: any) => undefined) | undefined;
     wrap_bad_lex: (lex: Lex, BD: pin, ctx: Context) => any;
     errinject: (s: string, code: string, details: KV, token: Token, rule: Rule, ctx: Context) => string;
     extract: (src: string, errtxt: string, token: Token) => string;

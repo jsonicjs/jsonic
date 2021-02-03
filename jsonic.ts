@@ -2,11 +2,8 @@
 
 
 
-// TODO: error for unexpected end of src - different from unexpected char
-// TODO: optional strictness, eg. a: -> a:null allowed?
-// TODO: fix a:,b: -> a:null,b:null  - prefer null to undefined
-// TODO: should fail: a], a}
-// TODOL plugin TODOs
+// TODO: util tests
+// TODO: plugin TODOs
 // TODO: remove all String.includes( calls - use char maps
 // TODO: deeper tests
 // TODO: test/fix .rule, .lex signatures, return values
@@ -390,7 +387,7 @@ class JsonicError extends SyntaxError {
       config: ctx.config,
       meta: ctx.meta,
       src: () => ctx.src(),
-      root: () => ctx.root(),
+      //root: () => ctx.root(),
       plugins: () => ctx.plugins(),
       node: ctx.node,
       t0: ctx.t0,
@@ -400,7 +397,7 @@ class JsonicError extends SyntaxError {
       // TODO: fix cycle
       // rs: ctx.rs,
 
-      next: () => ctx.next(),
+      // next: () => ctx.next(),
       log: ctx.log,
       use: ctx.use
     })
@@ -408,14 +405,7 @@ class JsonicError extends SyntaxError {
     super(desc.message)
     Object.assign(this, desc)
 
-    if (this.stack) {
-      this.stack =
-        this.stack.split('\n')
-          .filter(s => !s.includes('jsonic/jsonic'))
-          .map(s => s.replace(/    at /, 'at '))
-          .join('\n')
-
-    }
+    util.clean_stack(this)
   }
 
 
@@ -579,9 +569,11 @@ class Lexer {
 
     // TS2722 impedes this definition unless Context is
     // refined to (Context & { log: any })
-    let lexlog: ((...rest: any) => undefined) | undefined =
+    let lexlog: ((token: Token, ...rest: any) => undefined) | undefined =
       (null != ctx && null != ctx.log) ?
-        ((...rest: any) => (ctx as (Context & { log: any })).log('lex', ...rest)) :
+        ((...rest: any) => (ctx as (Context & { log: any }))
+          .log('lex', tn(token.pin), F(token.src),
+            sI, rI + ':' + cI, { ...token }, ...rest)) :
         undefined
 
     let self = this
@@ -607,7 +599,8 @@ class Lexer {
             rI = match.rD ? rI + match.rD : rI
             cI = match.cD ? cI + match.cD : cI
 
-            lexlog && lexlog(tn(token.pin), F(token.src), { ...token })
+            lexlog && lexlog(token)
+            // lexlog && lexlog(tn(token.pin), F(token.src), sI, rI + ':' + cI, { ...token })
             return token
           }
         }
@@ -660,7 +653,8 @@ class Lexer {
 
             sI = pI
 
-            lexlog && lexlog(tn(token.pin), F(token.src), { ...token })
+            lexlog && lexlog(token)
+            // lexlog && lexlog(tn(token.pin), F(token.src), sI, rI + ':' + cI, { ...token })
             return token
           }
 
@@ -688,7 +682,8 @@ class Lexer {
 
             sI = pI
 
-            lexlog && lexlog(tn(token.pin), F(token.src), { ...token })
+            lexlog && lexlog(token)
+            //lexlog && lexlog(tn(token.pin), F(token.src), sI, rI + ':' + cI, { ...token })
             return token
           }
 
@@ -702,7 +697,8 @@ class Lexer {
             token.src = c0
             sI++
 
-            lexlog && lexlog(tn(token.pin), F(token.src), { ...token })
+            lexlog && lexlog(token)
+            //lexlog && lexlog(tn(token.pin), F(token.src), sI, rI + ':' + cI, { ...token })
             return token
           }
 
@@ -762,7 +758,8 @@ class Lexer {
               cI += token.len
               sI = pI
 
-              lexlog && lexlog(tn(token.pin), F(token.src), { ...token })
+              lexlog && lexlog(token)
+              //lexlog && lexlog(tn(token.pin), F(token.src), sI, rI + ':' + cI, { ...token })
               return token
             }
 
@@ -907,7 +904,8 @@ class Lexer {
             token.len = pI - sI
             sI = pI
 
-            lexlog && lexlog(tn(token.pin), F(token.src), { ...token })
+            lexlog && lexlog(token)
+            // lexlog && lexlog(tn(token.pin), F(token.src), sI, rI + ':' + cI, { ...token })
             return token
           }
 
@@ -986,7 +984,8 @@ class Lexer {
             token.len = pI - sI
             sI = pI
 
-            lexlog && lexlog(tn(token.pin), F(token.src), { ...token })
+            lexlog && lexlog(token)
+            // lexlog && lexlog(tn(token.pin), F(token.src), sI, rI + ':' + cI, { ...token })
             return token
           }
 
@@ -1043,7 +1042,8 @@ class Lexer {
             sI = pI
           }
 
-          lexlog && lexlog(tn(token.pin), F(token.src), { ...token })
+          lexlog && lexlog(token)
+          // lexlog && lexlog(tn(token.pin), F(token.src), sI, rI + ':' + cI, { ...token })
           return token
         }
 
@@ -1066,7 +1066,8 @@ class Lexer {
 
           state = LTP
 
-          lexlog && lexlog(tn(token.pin), F(token.src), { ...token })
+          lexlog && lexlog(token)
+          // lexlog && lexlog(tn(token.pin), F(token.src), sI, rI + ':' + cI, { ...token })
           return token
         }
 
@@ -1145,7 +1146,8 @@ class Lexer {
 
           state = LTP
 
-          lexlog && lexlog(tn(token.pin), F(token.src), { ...token })
+          lexlog && lexlog(token)
+          // lexlog && lexlog(tn(token.pin), F(token.src), sI, rI + ':' + cI, { ...token })
           return token
         }
       }
@@ -1156,7 +1158,8 @@ class Lexer {
       token.loc = srclen
       token.col = cI
 
-      lexlog && lexlog(tn(token.pin), F(token.src), { ...token })
+      lexlog && lexlog(token)
+      // lexlog && lexlog(tn(token.pin), F(token.src), sI, rI + ':' + cI, { ...token })
       return token
     } as Lex)
 
@@ -1190,7 +1193,7 @@ class Lexer {
     token.src = src
     token.use = use
 
-    log && log(util.token(token.pin, ctx.config), ctx.F(token.src), { ...token },
+    log && log(util.token(token.pin, ctx.config), ctx.F(token.src), sI, rI + ':' + cI, { ...token },
       'error', why)
     return token
   }
@@ -1347,7 +1350,6 @@ class RuleSpec {
     rule.open = act.m
 
     if (act.n) {
-      // TODO: auto delete counters if not specified?
       for (let cn in act.n) {
         rule.n[cn] =
           0 === act.n[cn] ? 0 : (null == rule.n[cn] ? 0 : rule.n[cn]) + act.n[cn]
@@ -1380,7 +1382,7 @@ class RuleSpec {
       S.node,
       rule.name + '/' + rule.id,
       RuleState[rule.state],
-      why,
+      'w=' + why,
       F(rule.node)
     )
 
@@ -1400,7 +1402,6 @@ class RuleSpec {
 
     let act: RuleAct =
       0 < this.def.close.length ? this.parse_alts(this.def.close, rule, ctx) : empty_ruleact
-    //new RuleAct()
 
     if (act.e) {
       throw new JsonicError(S.unexpected, { close: true }, act.e, rule, ctx)
@@ -1447,7 +1448,7 @@ class RuleSpec {
       S.node,
       rule.name + '/' + rule.id,
       RuleState[rule.state],
-      why,
+      'w=' + why,
       ctx.F(rule.node)
     )
 
@@ -1484,6 +1485,18 @@ class RuleSpec {
 
           // Optional custom condition
           cond = alt.c ? alt.c(alt, rule, ctx) : true
+
+          // Depth.
+          cond = cond && null == alt.d ? true : alt.d === ctx.rs.length
+
+          // Ancestors.
+          cond = cond &&
+            (null == alt.a ? true :
+              util.marr(alt.a, ctx.rs
+                .slice(-(alt.a.length))
+                .map(r => r.name)
+                .reverse()))
+
           if (cond) {
 
             // No tokens to match.
@@ -1569,7 +1582,7 @@ class Parser {
 
   init() {
     let t = this.config.token
-    let top = (_alt: any, _rule: Rule, ctx: Context) => 0 === ctx.rs.length
+    // let top = (_alt: any, _rule: Rule, ctx: Context) => 0 === ctx.rs.length
 
     let OB = t.OB
     let CB = t.CB
@@ -1587,40 +1600,63 @@ class Parser {
 
     let rules: any = {
       val: {
-        open: [ // alternatives
-          // TODO: n - auto delete unmentioned counters
+        open: [
+
+          // Implicit map. Reset implicit map depth counter.
           { s: [OB, CA], p: S.map, n: { im: 0 } },
+
+          // Standard JSON.
           { s: [OB], p: S.map, n: { im: 0 } },
-
           { s: [OS], p: S.list },
-          { s: [CA], p: S.list, b: 1 },
 
-          // Implicit map - operates at any depth
+          // TODO: d=rs.length (aka. depth) ???
+          // Implicit list at top level
+          //{ s: [CA], c: top, p: S.list, b: 1 },
+          { s: [CA], d: 0, p: S.list, b: 1 },
+
+          // Value is null.
+          { s: [CA], b: 1 },
+
+          // Implicit map - operates at any depth. Increment counter.
           // NOTE: `n.im` counts depth of implicit maps 
           { s: [TX, CL], p: S.map, b: 2, n: { im: 1 } },
           { s: [ST, CL], p: S.map, b: 2, n: { im: 1 } },
           { s: [NR, CL], p: S.map, b: 2, n: { im: 1 } },
           { s: [VL, CL], p: S.map, b: 2, n: { im: 1 } },
 
+          // Standard JSON (apart from TX).
           { s: [TX] },
           { s: [NR] },
           { s: [ST] },
           { s: [VL] },
 
-          // TODO: concatentation? 
+          // Implicit end `{a:}` -> {"a":null}
+          {
+            s: [CB],
+            a: [S.pair],
+            b: 1
+          },
+
+          // Implicit end `[a:]` -> [{"a":null}]
+          {
+            s: [CS],
+            a: [S.pair],
+            b: 1
+          },
         ],
         close: [
           // Implicit list works only at top level
 
           {
-            s: [CA], c: top, r: S.elem,
+            //s: [CA], c: top, r: S.elem,
+            s: [CA], d: 0, r: S.elem,
             h: (_spec: RuleSpec, rule: Rule, _ctx: Context) => {
               rule.node = [rule.node]
             }
           },
 
           // TODO: merge with above - cond outputs `out` for match
-          // and thus can specificy m to move lex forward
+          // and thus can specify m to move lex forward
           {
             c: (_alt: any, _rule: Rule, ctx: Context) => {
               return (TX === ctx.t0.pin ||
@@ -1640,6 +1676,8 @@ class Parser {
           { s: [AA], b: 1 },
         ],
         before_close: (rule: Rule) => {
+          // NOTE: val can be undefined when there is no value at all
+          // (eg. empty string)
           rule.node = rule.child.node ?? rule.open[0]?.val
         },
       },
@@ -1698,6 +1736,12 @@ class Parser {
           { s: [NR, CL], n: { im: -1 }, b: 2 },
           { s: [VL, CL], n: { im: -1 }, b: 2 },
 
+          // Close implicit single prop map inside list
+          {
+            s: [CS],
+            a: [S.map, S.val, S.elem],
+            b: 1
+          },
         ],
         before_close: (rule: Rule, ctx: Context) => {
           let key_token = rule.open[0]
@@ -1706,10 +1750,7 @@ class Parser {
             let val = rule.child.node
             let prev = rule.node[key]
 
-            //rule.node[key] = null == prev ? rule.child.node :
-            //  (ctx.opts.object.extend ? util.deep(prev, rule.child.node) :
-            //    rule.child.node)
-
+            val = undefined === val ? null : val
             rule.node[key] = null == prev ? val :
               (ctx.opts.object.extend ? util.deep(prev, val) : val)
           }
@@ -1723,20 +1764,11 @@ class Parser {
           { s: [OB], p: S.map, n: { im: 0 } },
           { s: [OS], p: S.list },
 
-          // TODO: replace with { p: S.val} as last entry
-          // IMPORTANT! makes array values consistent with prop values
-          /*
-          { s: [TX] },
-          { s: [NR] },
-          { s: [ST] },
-          { s: [VL] },
-          */
-
           // Insert null for initial comma
           { s: [CA, CA], b: 2 },
           { s: [CA] },
 
-          { p: S.val },
+          { p: S.val, n: { im: 1 } },
         ],
         close: [
           // Ignore trailing comma
@@ -1745,7 +1777,7 @@ class Parser {
           // Next elemen
           { s: [CA], r: S.elem },
 
-          // End lis
+          // End list
           { s: [CS] },
 
           // Who needs commas anyway?
@@ -1825,7 +1857,6 @@ class Parser {
       next,
       rs: [],
       rsm: this.rsm,
-      //n: {},
       log: (meta && meta.log) || undefined,
       F: util.make_src_format(config),
       use: {}
@@ -1892,7 +1923,10 @@ class Parser {
       rI++
     }
 
-    // TODO: must end with t.ZZ token else error
+    // TODO: option for this
+    if (util.token('#ZZ', this.config) !== ctx.t0.pin) {
+      throw new JsonicError(S.unexpected, {}, ctx.t0, norule, ctx)
+    }
 
     // NOTE: by returning root, we get implicit closing of maps and lists.
     return root.node
@@ -1988,6 +2022,22 @@ let util = {
   longest: (strs: string[]) =>
     strs.reduce((a, s) => a < s.length ? s.length : a, 0),
 
+  // True if arrays match.
+  marr: (a: string[], b: string[]) =>
+    (a.length === b.length && a.reduce((a, s, i) => (a && s === b[i]), true)),
+
+  // Remove Jsonic internal lines as spurious for caller.
+  clean_stack(err: Error) {
+    if (err.stack) {
+      err.stack =
+        err.stack.split('\n')
+          .filter(s => !s.includes('jsonic/jsonic'))
+          .map(s => s.replace(/    at /, 'at '))
+          .join('\n')
+    }
+  },
+
+
   make_src_format: (config: Config) =>
     (s: any, j?: any) => null == s ? '' : (j = JSON.stringify(s),
       j.substring(0, config.debug.maxlen) +
@@ -2017,6 +2067,7 @@ let util = {
         return undefined
       }
     }
+    return ctx.log
   },
 
 

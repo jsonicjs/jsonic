@@ -5,7 +5,8 @@ import Fs from 'fs'
 import { Jsonic } from './jsonic'
 
 
-run()
+// Make sure JsonicError is shown nicely.
+run().catch((e) => console.error(e))
 
 
 async function run() {
@@ -60,7 +61,6 @@ async function run() {
   if ('string' === typeof (args.file) && '' !== args.file) {
     args.str = Fs.readFileSync(args.file).toString() + ' ' + args.str
   }
-
 
 
   let jsonic = Jsonic.make(args.options)

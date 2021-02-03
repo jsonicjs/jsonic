@@ -193,15 +193,17 @@ describe('jsonic', function () {
 
   it('syntax-errors', () => {
     // TODO: validate errors
-    
+
+    // TODO: remove as OK
     // pairs not valid inside list
-    expect(()=>j('[a:1]')).throws()
+    // expect(()=>j('[a:1]')).throws()
 
     // top level already a map
     expect(()=>j('a:1,2')).throws() 
 
+    // TODO: OK
     // can't mix pairs and values list
-    expect(()=>j('x:[a:1,2,b:3]')).throws() 
+    //expect(()=>j('x:[a:1,2,b:3]')).throws() 
 
     // values not valid inside map
     expect(()=>j('x:{1,2}') ).throws()
