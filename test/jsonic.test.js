@@ -18,6 +18,7 @@ const I = Util.inspect
 
 const { Jsonic, Lexer } = require('..')
 const pv_perf = require('./pv-perf')
+const exhaust = require('./exhaust')
 
 let j = Jsonic
 
@@ -836,7 +837,31 @@ describe('jsonic', function () {
   })
 
 
+  // NOTE: coverage tracing slows this down - a lot!
   it('pv-performance', {timeout:3333}, function(){
     pv_perf(200)
   })
+
+
+  // Test against all combinations of chars up to `len`
+  // NOTE: coverage tracing slows this down - a lot!
+  it('exhaust', {timeout:33333}, function(){
+    let len = 2
+    
+    // Use this env var for debug-code-test loop to avoid
+    // slowing things down. Do run this test for builds!
+    if(null == process.env.JSONIC_TEST_SKIP_EXHAUST) {
+      let out = exhaust(len)
+      console.log(out)
+
+      // NOTE: if parse algo changes then these may change.
+      // But if *not intended* changes here indicate unexpected effects.
+      expect(out).includes({
+        rmc: 62253,
+        emc: 2773,
+        ecc: { unprintable: 91, unexpected: 1981, unterminated: 701 }
+      })
+    }
+  })
+
 })

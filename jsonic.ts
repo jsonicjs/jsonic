@@ -2578,7 +2578,7 @@ export {
 
 export default Jsonic
 
-// Build process uncomments this to enable more natural Node.s requires.
+// Build process uncomments this to enable more natural Node.js requires.
 //-NODE-MODULE-FIX;('undefined' != typeof(module) && (module.exports = exports.Jsonic));
 
 
