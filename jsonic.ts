@@ -509,10 +509,11 @@ class Lexer {
     // TS2722 impedes this definition unless Context is
     // refined to (Context & { log: any })
     let lexlog: ((token: Token, ...rest: any) => undefined) | undefined =
-      (null != ctx && null != ctx.log) ?
+      (null != ctx.log) ?
         ((...rest: any) => (ctx as (Context & { log: any }))
-          .log('lex', tn(token.pin), F(token.src),
-            sI, rI + ':' + cI, { ...token }, ...rest)) :
+          .log(
+            'lex', tn(token.pin), F(token.src), sI, rI + ':' + cI, { ...token },
+            ...rest)) :
         undefined
 
     let self = this
@@ -656,8 +657,7 @@ class Lexer {
                 1 < token.len && '0' === src[sI] &&     // Maybe a 0x|o|b number?
                 (!opts.number.hex || 'x' !== base_char) && // But...
                 (!opts.number.oct || 'o' !== base_char) && //  it is...
-                (!opts.number.bin || 'b' !== base_char) && //    not.
-                true
+                (!opts.number.bin || 'b' !== base_char)    //    not.
               ) {
                 // Not a number.
                 token.val = undefined
@@ -1178,11 +1178,12 @@ class Lexer {
 }
 
 
+/* $lab:coverage:off$ */
 enum RuleState {
   open,
   close,
 }
-
+/* $lab:coverage:on$ */
 
 class Rule {
   id: number
@@ -2380,13 +2381,16 @@ let util = {
       .forEach((plugin_name: string) =>
         opts.config.modify[plugin_name](config, opts))
 
+    /* $lab:coverage:off$ */
     if (opts.debug.print_config) {
       console.log(config)
     }
+    /* $lab:coverage:on$ */
   },
 }
 
 
+/*
 function make(first?: KV | Jsonic, parent?: Jsonic): Jsonic {
 
   // Handle polymorphic params.
@@ -2395,7 +2399,10 @@ function make(first?: KV | Jsonic, parent?: Jsonic): Jsonic {
     param_opts = ({} as KV)
     parent = (first as Jsonic)
   }
+*/
 
+
+function make(param_opts?: KV, parent?: Jsonic): Jsonic {
   let lexer: Lexer
   let parser: Parser
   let config: Config
@@ -2406,7 +2413,7 @@ function make(first?: KV | Jsonic, parent?: Jsonic): Jsonic {
   let opts = util.deep(
     {},
     parent ? { ...parent.options } : make_standard_options(),
-    param_opts
+    param_opts ? param_opts : {},
   )
 
 

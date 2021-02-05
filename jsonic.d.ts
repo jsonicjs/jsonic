@@ -239,7 +239,7 @@ declare let util: {
     make_error_desc(code: string, details: KV, token: Token, rule: Rule, ctx: Context): KV;
     build_config_from_options: (config: Config, opts: Opts) => void;
 };
-declare function make(first?: KV | Jsonic, parent?: Jsonic): Jsonic;
+declare function make(param_opts?: KV, parent?: Jsonic): Jsonic;
 declare let Jsonic: Jsonic;
 export { Jsonic, Plugin, JsonicError, Lexer, Parser, Rule, RuleSpec, Token, Context, Meta, LexMatcher, LexMatcherResult, util, make, };
 export default Jsonic;

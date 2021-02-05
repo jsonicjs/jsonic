@@ -177,8 +177,8 @@ describe('plugin', function () {
   it('dynamic-basic', () => {
     let d = (x)=>JSON.parse(JSON.stringify(x))
     let k = Jsonic.make().use(Dynamic)
-    expect(d(k('a:1,b:$1+1',{xlog:-1}))).equal({a:1,b:2})
-    expect(k('a:1,b:$"{c:2}"',{xlog:-1})).equal({a:1,b:{c:2}})
+    expect(d(k('a:1,b:$1+1'))).equal({a:1,b:2})
+    expect(k('a:1,b:$"{c:2}"')).equal({a:1,b:{c:2}})
     expect(k('a:1,b:$"meta.f(2)"',{f:(x)=>({c:x})})).equal({a:1,b:{c:2}})
 
 
@@ -227,7 +227,7 @@ b: {
   d: $.a
 }
 a:{x:1,y:2}
-`,{xlog:-1})
+`)
     //console.dir(d(d3),{depth:null})
     expect(d3).equal({b:{c:{x:1,m:5,y:2},d:{y:2,n:6,x:1}},a:{x:1,y:2}})
     expect(d3).equal({b:{c:{x:1,m:5,y:2},d:{y:2,n:6,x:1}},a:{x:1,y:2}})
@@ -235,7 +235,7 @@ a:{x:1,y:2}
     
 
 
-    expect(k('a,$1+1',{xlog:-1})).equal(['a',2])
+    expect(k('a,$1+1')).equal(['a',2])
 
     let ka = Jsonic.make().use(Dynamic, {markchar:'%'})
     expect(d(ka('a:1,b:%1+1'))).equal({a:1,b:2})    
@@ -269,7 +269,7 @@ a:{x:1,y:2}
 11,22
 a x,b\tx
 "A,A","B""B"
-`,{xlog: -1}))
+`))
       .equal(rec0)
 
     // tab separated
@@ -285,7 +285,7 @@ a x,b\tx
 11\t22
 a x\t"b\\tx"
 "A,A"\t"B""B"
-`,{xlog:-1}))
+`))
       .equal(rec0)
     
     // custom record sep
@@ -295,7 +295,7 @@ a x\t"b\\tx"
       }
     })
     
-    expect(k2(`a\tb;1\t2;11\t22;a x\t"b\\tx";"A,A"\t"B""B";`,{xlog:-1}))
+    expect(k2(`a\tb;1\t2;11\t22;a x\t"b\\tx";"A,A"\t"B""B";`))
       .equal(rec0)
 
     
@@ -307,7 +307,7 @@ a x\t"b\\tx"
       }
     })
 
-    expect(k3(`a\tb;1\t2;11\t22;a x\t"b\\tx";"A,A"\t"B""B";`,{xlog:-1}))
+    expect(k3(`a\tb;1\t2;11\t22;a x\t"b\\tx";"A,A"\t"B""B";`))
       .equal(rec0)
   })
 
@@ -349,7 +349,7 @@ a x\t"b\\tx"
   it('multifile-basic', () => {
     let k = Jsonic.make().use(Multifile,{basepath:__dirname})
 
-    let d = k('@"multifile/main01.jsonic"',{xlog:-1})
+    let d = k('@"multifile/main01.jsonic"')
     expect(d).equal({
       dynamic: '$1+1',
       red: { name: 'RED' },
@@ -378,10 +378,6 @@ a x\t"b\\tx"
     let d = k('@"multifile/main01.jsonic"')
     
     // NOTE: use JSON.parse(JSON.stringify(d)) to see literals
-
-    //console.log('+++')
-    //console.dir(JSON.parse(JSON.stringify(d)),{depth:null})
-    //console.dir(JSON.parse(JSON.stringify(d)),{depth:null})
 
     let dx = {
       dynamic: 2,

@@ -181,14 +181,12 @@ describe('util', () => {
 
     let ha = ()=>{}; ha.a=1
     let hx = util.deep({},ha)
-    //console.log(hx,ha)
     expect(I(hx)).equals('[Function: ha] { a: 1 }') // CORRECT!
     expect(I(ha)).equals('[Function: ha] { a: 1 }')
 
 
     let ka = ()=>{}; ka.a=1
     let kx = util.deep({},{...ka})
-    //console.log(kx,ka)
     expect(I(ka)).equals('[Function: ka] { a: 1 }')
     expect(I(kx)).equals('{ a: 1 }')
 
@@ -225,7 +223,6 @@ describe('util', () => {
     let d0 = {a:1}
     let d00 = deep(undefined,d0)
     d0.b = 2
-    //console.log(d0,d00)
     expect(d0).equal({a:1,b:2})
     expect(d00).equal({a:1})
     expect(d0===d00).false()
@@ -233,7 +230,6 @@ describe('util', () => {
     let d1 = [1]
     let d11 = deep(undefined,d1)
     d1[1] = 2
-    //console.log(d1,d11)
     expect(d1).equal([1,2])
     expect(d11).equal([1])
     expect(d1===d11).false()
@@ -247,7 +243,6 @@ describe('util', () => {
     d22.a.c=22
     d2.a.b.push(2)
     d22.a.b.push(22)
-    //console.log(d2,d22)
     expect(d2).equal({ a: { b: [ 1, 2 ], c: 2 }, c: 2 } )
     expect(d22).equal({ a: { b: [ 1, 22 ], c: 22 }, c: 22 })
 
@@ -314,7 +309,6 @@ describe('util', () => {
       wrap_bad_lex(()=>({pin:1}),1,ctx)({})
     }
     catch(e) {
-      // console.log(e)
       expect(e.code).equals('unexpected')
     }
 
@@ -322,7 +316,6 @@ describe('util', () => {
       wrap_bad_lex(()=>({pin:1,use:{x:1}}),1,ctx)({})
     }
     catch(e) {
-      //console.log(e)
       expect(e.code).equals('unexpected')
       expect(e.details).equals({ use: { x: 1 } })
     }
@@ -409,7 +402,176 @@ describe('util', () => {
       'node val/1 close',
       'stack 0 '
     ])
-    //console.log(log)
+
+    log = []
+    let d0 = j0(`
+"a", 0x10, 0o20, 0b10000, true, a b,
+  '''
+   c
+  ''',
+  #...
+  /*
+   *
+   */
+`,{log:(...r)=>log.push(r)})
+    expect(d0).equals(['a', 16, 16, 16, true, 'a b', ' c'])
+    expect(log.map(x=>x[0]+' '+x[1]+' '+x[2])).equals([
+      'lex #LN "\\n"',
+      'lex #ST "\\"a\\""',
+      'lex #CA ","',
+      'rule val/1 open',
+      'parse val/1 open',
+      'lex #SP " "',
+      'lex #NR "0x10"',
+      'node val/1 open',
+      'stack 0 ',
+      'rule val/1 close',
+      'parse val/1 close',
+      'lex #CA ","',
+      'node val/1 close',
+      'stack 0 ',
+      'rule elem/2 open',
+      'parse elem/2 open',
+      'node elem/2 open',
+      'stack 1 elem/2',
+      'rule val/3 open',
+      'parse val/3 open',
+      'lex #SP " "',
+      'lex #NR "0o20"',
+      'node val/3 open',
+      'stack 1 elem/2',
+      'rule val/3 close',
+      'parse val/3 close',
+      'node val/3 close',
+      'stack 0 ',
+      'rule elem/2 close',
+      'parse elem/2 close',
+      'lex #CA ","',
+      'node elem/2 close',
+      'stack 0 ',
+      'rule elem/4 open',
+      'parse elem/4 open',
+      'node elem/4 open',
+      'stack 1 elem/4',
+      'rule val/5 open',
+      'parse val/5 open',
+      'lex #SP " "',
+      'lex #NR "0b10000"',
+      'node val/5 open',
+      'stack 1 elem/4',
+      'rule val/5 close',
+      'parse val/5 close',
+      'node val/5 close',
+      'stack 0 ',
+      'rule elem/4 close',
+      'parse elem/4 close',
+      'lex #CA ","',
+      'node elem/4 close',
+      'stack 0 ',
+      'rule elem/6 open',
+      'parse elem/6 open',
+      'node elem/6 open',
+      'stack 1 elem/6',
+      'rule val/7 open',
+      'parse val/7 open',
+      'lex #SP " "',
+      'lex #VL "true"',
+      'node val/7 open',
+      'stack 1 elem/6',
+      'rule val/7 close',
+      'parse val/7 close',
+      'node val/7 close',
+      'stack 0 ',
+      'rule elem/6 close',
+      'parse elem/6 close',
+      'lex #CA ","',
+      'node elem/6 close',
+      'stack 0 ',
+      'rule elem/8 open',
+      'parse elem/8 open',
+      'node elem/8 open',
+      'stack 1 elem/8',
+      'rule val/9 open',
+      'parse val/9 open',
+      'lex #SP " "',
+      'lex #TX "a b"',
+      'node val/9 open',
+      'stack 1 elem/8',
+      'rule val/9 close',
+      'parse val/9 close',
+      'node val/9 close',
+      'stack 0 ',
+      'rule elem/8 close',
+      'parse elem/8 close',
+      'lex #CA ","',
+      'node elem/8 close',
+      'stack 0 ',
+      'rule elem/10 open',
+      'parse elem/10 open',
+      'node elem/10 open',
+      'stack 1 elem/10',
+      'rule val/11 open',
+      'parse val/11 open',
+      'lex #LN "\\n"',
+      'lex #SP "  "',
+      `lex #ST "'''\\n   c\\n  '''"`,
+      'node val/11 open',
+      'stack 1 elem/10',
+      'rule val/11 close',
+      'parse val/11 close',
+      'node val/11 close',
+      'stack 0 ',
+      'rule elem/10 close',
+      'parse elem/10 close',
+      'lex #CA ","',
+      'node elem/10 close',
+      'stack 0 ',
+      'rule elem/12 open',
+      'parse elem/12 open',
+      'node elem/12 open',
+      'stack 1 elem/12',
+      'rule val/13 open',
+      'parse val/13 open',
+      'lex #LN "\\n"',
+      'lex #SP "  "',
+      'lex #CM "#..."',
+      'lex #LN "\\n"',
+      'lex #SP "  "',
+      'lex #CM "/*\\n   *\\n   */"',
+      'lex #LN "\\n"',
+      'lex #ZZ ',
+      'node val/13 open',
+      'stack 1 elem/12',
+      'rule val/13 close',
+      'parse val/13 close',
+      'node val/13 close',
+      'stack 0 ',
+      'rule elem/12 close',
+      'parse elem/12 close',
+      'lex #ZZ ',
+      'node elem/12 close',
+      'stack 0 ',
+      'rule elem/14 open',
+      'parse elem/14 open',
+      'node elem/14 open',
+      'stack 0 ',
+      'rule elem/14 close',
+      'parse elem/14 close',
+      'node elem/14 close',
+      'stack 0 '
+    ])
+
+
+    log = []
+    try {
+      j0('"',{log:(...r)=>log.push(r)})
+      Code.fail()
+    } catch(e) {
+      expect(e.code).equal('unterminated')
+      expect(log.map(x=>x[0]+' '+x[1]+' '+x[2])).equals([
+        'lex #BD ""'
+      ])
+    }
   })
 
 

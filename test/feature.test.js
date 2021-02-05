@@ -42,8 +42,6 @@ describe('feature', function () {
 
   
   it('feature-implicit-comma', () => {
-    // expect(j('[1\n2]',{log:-1})).equals([1,2])
-
     expect(j('[0,1]')).equals([0,1])
     expect(j('[0,null]')).equals([0,null])
     expect(j('{a:0,b:null}')).equals({a:0,b:null})
@@ -52,17 +50,17 @@ describe('feature', function () {
     expect(j('{a:1,\nb:2}')).equals({a:1,b:2})
     expect(j('[1,\n2]')).equals([1,2])
     expect(j('a:1,b:2')).equals({a:1,b:2})
-    expect(j('1,2',{xlog:-1})).equals([1,2])
-    expect(j('1,2,3',{xlog:-1})).equals([1,2,3])
+    expect(j('1,2')).equals([1,2])
+    expect(j('1,2,3')).equals([1,2,3])
     expect(j('a:1,\nb:2')).equals({a:1,b:2})
     expect(j('1,\n2')).equals([1,2])
     expect(j('{a:1\nb:2}')).equals({a:1,b:2})
     expect(j('[1\n2]')).equals([1,2])
     expect(j('a:1\nb:2')).equals({a:1,b:2})
-    expect(j('1\n2',{xlog:-1})).equals([1,2])
-    expect(j('a\nb',{xlog:-1})).equals(['a','b'])
-    expect(j('1\n2\n3',{xlog:-1})).equals([1,2,3])
-    expect(j('a\nb\nc',{xlog:-1})).equals(['a','b','c'])
+    expect(j('1\n2')).equals([1,2])
+    expect(j('a\nb')).equals(['a','b'])
+    expect(j('1\n2\n3')).equals([1,2,3])
+    expect(j('a\nb\nc')).equals(['a','b','c'])
   })
 
 
@@ -225,6 +223,26 @@ describe('feature', function () {
     expect(j('0x10')).equals(16)
     expect(j('0o20')).equals(16)
     expect(j('0b10000')).equals(16)
+
+    let jo = j.make({ number: { oct: false } })
+    expect(jo('1')).equals(1)
+    expect(jo('0x10')).equals(16)
+    expect(jo('0o20')).equals('0o20')
+    expect(jo('0b10000')).equals(16)
+    expect(j('1')).equals(1)
+    expect(j('0x10')).equals(16)
+    expect(j('0o20')).equals(16)
+    expect(j('0b10000')).equals(16)
+
+    let jb = j.make({ number: { bin: false } })
+    expect(jb('1')).equals(1)
+    expect(jb('0x10')).equals(16)
+    expect(jb('0o20')).equals(16)
+    expect(jb('0b10000')).equals('0b10000')
+    expect(j('1')).equals(1)
+    expect(j('0x10')).equals(16)
+    expect(j('0o20')).equals(16)
+    expect(j('0b10000')).equals(16)
   })
 
   
@@ -301,6 +319,10 @@ describe('feature', function () {
   
   it('value-text', () => {
     expect(j('a')).equals('a')
+    expect(j('a b')).equals('a b')
+    expect(j(' a b ')).equals('a b')
+    expect(j('a\tb')).equals('a\tb')
+    expect(j('\ta\tb\t')).equals('a\tb')
     expect(j('a/b')).equals('a/b')
     expect(j('a#b')).equals('a')
     expect(j('a//b')).equals('a')
@@ -309,6 +331,10 @@ describe('feature', function () {
     expect(j('\\s+')).equals('\\s+')
 
     expect(j('x:a')).equals({x:'a'})
+    expect(j('x:a b')).equals({x:'a b'})
+    expect(j('x: a b ')).equals({x:'a b'})
+    expect(j('x:a\tb')).equals({x:'a\tb'})
+    expect(j('x:\ta\tb\t')).equals({x:'a\tb'})
     expect(j('x:a/b')).equals({x:'a/b'})
     expect(j('x:a#b')).equals({x:'a'})
     expect(j('x:a//b')).equals({x:'a'})
@@ -317,12 +343,20 @@ describe('feature', function () {
     expect(j('x:\\s+')).equals({x:'\\s+'})
 
     expect(j('[a]')).equals(['a'])
+    expect(j('[a b]')).equals(['a b'])
+    expect(j('[ a b ]')).equals(['a b'])
+    expect(j('[a\tb]')).equals(['a\tb'])
+    expect(j('[\ta\tb\t]')).equals(['a\tb'])
     expect(j('[a/b]')).equals(['a/b'])
     expect(j('[a#b]')).equals(['a'])
     expect(j('[a//b]')).equals(['a'])
     expect(j('[a/*b*/]')).equals(['a'])
     expect(j('[a\\n]')).equals(['a\\n'])
     expect(j('[\\s+]')).equals(['\\s+'])
+
+    let j0 = j.make({text:{hoover:false}})
+    expect(j0('a')).equals('a')
+    expect(j0('a b')).equals(['a','b'])
   })
 
   
@@ -520,21 +554,21 @@ describe('feature', function () {
 
 
   it('property-dive', () => {
-    expect(j('{a:1,b:2}',{xlog:-1})).equals({a:1,b:2})
-    expect(j('{a:1,b:{c:2}}',{xlog:-1})).equals({a:1,b:{c:2}})
-    expect(j('{a:1,b:{c:2},d:3}',{xlog:-1})).equals({a:1,b:{c:2},d:3})
-    expect(j('{b:{c:2,e:4},d:3}',{xlog:-1})).equals({b:{c:2,e:4},d:3})
+    expect(j('{a:1,b:2}')).equals({a:1,b:2})
+    expect(j('{a:1,b:{c:2}}')).equals({a:1,b:{c:2}})
+    expect(j('{a:1,b:{c:2},d:3}')).equals({a:1,b:{c:2},d:3})
+    expect(j('{b:{c:2,e:4},d:3}')).equals({b:{c:2,e:4},d:3})
     
-    expect(j('{a:{b:{c:1,d:2},e:3},f:4}',{xlog:-1})).equals({a:{b:{c:1,d:2},e:3},f:4})
-    expect(j('a:b:c',{xlog:-1})).equals({a:{b:'c'}})
+    expect(j('{a:{b:{c:1,d:2},e:3},f:4}')).equals({a:{b:{c:1,d:2},e:3},f:4})
+    expect(j('a:b:c')).equals({a:{b:'c'}})
 
-    expect(j('a:b:c,d:e',{xlog:-1})).equals({a:{b:'c'},d:'e'})
-    expect(j('a:b:c:1,d:e',{xlog:-1})).equals({a:{b:{c:1}},d:'e'})
-    expect(j('a:b:c:f:{g:1},d:e',{xlog:-1})).equals({a:{b:{c:{f:{g:1}}}},d:'e'})
-    expect(j('c:f:{g:1,h:2},d:e',{xlog:-1})).equals({c:{f:{g:1,h:2}},d:'e'})
-    expect(j('c:f:[{g:1,h:2}],d:e',{xlog:-1})).equals({c:{f:[{g:1,h:2}]},d:'e'})
+    expect(j('a:b:c,d:e')).equals({a:{b:'c'},d:'e'})
+    expect(j('a:b:c:1,d:e')).equals({a:{b:{c:1}},d:'e'})
+    expect(j('a:b:c:f:{g:1},d:e')).equals({a:{b:{c:{f:{g:1}}}},d:'e'})
+    expect(j('c:f:{g:1,h:2},d:e')).equals({c:{f:{g:1,h:2}},d:'e'})
+    expect(j('c:f:[{g:1,h:2}],d:e')).equals({c:{f:[{g:1,h:2}]},d:'e'})
 
-    expect(j('a:b:c:1\nd:e',{xlog:-1})).equals({a:{b:{c:1}},d:'e'})
+    expect(j('a:b:c:1\nd:e')).equals({a:{b:{c:1}},d:'e'})
   })
 
 })

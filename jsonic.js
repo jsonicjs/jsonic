@@ -245,7 +245,7 @@ class Lexer {
         let srclen = src.length;
         // TS2722 impedes this definition unless Context is
         // refined to (Context & { log: any })
-        let lexlog = (null != ctx && null != ctx.log) ?
+        let lexlog = (null != ctx.log) ?
             ((...rest) => ctx
                 .log('lex', tn(token.pin), F(token.src), sI, rI + ':' + cI, { ...token }, ...rest)) :
             undefined;
@@ -353,8 +353,8 @@ class Lexer {
                             if (1 < token.len && '0' === src[sI] && // Maybe a 0x|o|b number?
                                 (!opts.number.hex || 'x' !== base_char) && // But...
                                 (!opts.number.oct || 'o' !== base_char) && //  it is...
-                                (!opts.number.bin || 'b' !== base_char) && //    not.
-                                true) {
+                                (!opts.number.bin || 'b' !== base_char) //    not.
+                            ) {
                                 // Not a number.
                                 token.val = undefined;
                                 pI--;
@@ -754,11 +754,13 @@ class Lexer {
     }
 }
 exports.Lexer = Lexer;
+/* $lab:coverage:off$ */
 var RuleState;
 (function (RuleState) {
     RuleState[RuleState["open"] = 0] = "open";
     RuleState[RuleState["close"] = 1] = "close";
 })(RuleState || (RuleState = {}));
+/* $lab:coverage:on$ */
 class Rule {
     constructor(spec, ctx, node) {
         this.id = ctx.rI++;
@@ -1643,25 +1645,31 @@ let util = {
         // Apply any config modifiers (probably from plugins).
         Object.keys(opts.config.modify)
             .forEach((plugin_name) => opts.config.modify[plugin_name](config, opts));
+        /* $lab:coverage:off$ */
         if (opts.debug.print_config) {
             console.log(config);
         }
+        /* $lab:coverage:on$ */
     },
 };
 exports.util = util;
-function make(first, parent) {
-    // Handle polymorphic params.
-    let param_opts = first;
-    if (S.function === typeof (first)) {
-        param_opts = {};
-        parent = first;
-    }
+/*
+function make(first?: KV | Jsonic, parent?: Jsonic): Jsonic {
+
+  // Handle polymorphic params.
+  let param_opts = (first as KV)
+  if (S.function === typeof (first)) {
+    param_opts = ({} as KV)
+    parent = (first as Jsonic)
+  }
+*/
+function make(param_opts, parent) {
     let lexer;
     let parser;
     let config;
     let plugins;
     // Merge options.
-    let opts = util.deep({}, parent ? { ...parent.options } : make_standard_options(), param_opts);
+    let opts = util.deep({}, parent ? { ...parent.options } : make_standard_options(), param_opts ? param_opts : {});
     // Create primary parsing function
     let self = function Jsonic(src, meta, partial_ctx) {
         if (S.string === typeof (src)) {

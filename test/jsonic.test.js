@@ -852,7 +852,7 @@ describe('jsonic', function () {
     // slowing things down. Do run this test for builds!
     if(null == process.env.JSONIC_TEST_SKIP_EXHAUST) {
       let out = exhaust(len)
-      console.log(out)
+      // console.log(out)
 
       // NOTE: if parse algo changes then these may change.
       // But if *not intended* changes here indicate unexpected effects.
