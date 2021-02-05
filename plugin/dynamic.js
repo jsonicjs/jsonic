@@ -42,6 +42,8 @@ let Dynamic = function dynamic(jsonic) {
                     }
                     expr = 'null,' + expr;
                     //console.log('EXPR', expr)
+                    // NOTE: the parameter names are significant as they
+                    // enter the eval context.
                     let func = function ($, _, meta) {
                         return eval(expr);
                     };
@@ -57,7 +59,7 @@ let Dynamic = function dynamic(jsonic) {
         return rs;
     });
     jsonic.rule('pair', (rs) => {
-        let ST = jsonic.options.ST;
+        let ST = jsonic.token.ST;
         let orig_before_close = rs.def.before_close;
         rs.def.before_close = (rule, ctx) => {
             let token = rule.open[0];
@@ -66,7 +68,7 @@ let Dynamic = function dynamic(jsonic) {
                 let val = rule.child.node;
                 if ('function' === typeof (val) && val.__eval$$) {
                     Object.defineProperty(val, 'name', { value: key });
-                    defineProperty(rule.node, key, val, ctx.root, ctx.meta, ctx.opts.object.extend);
+                    defineProperty(rule.node, key, val, ctx.root, ctx.meta, ctx.options.object.extend);
                 }
                 else {
                     return orig_before_close(rule, ctx);
@@ -81,7 +83,7 @@ let Dynamic = function dynamic(jsonic) {
             let val = rule.child.node;
             if ('function' === typeof (val) && val.__eval$$) {
                 Object.defineProperty(val, 'name', { value: 'i' + rule.node.length });
-                defineProperty(rule.node, rule.node.length, val, ctx.root, ctx.meta, ctx.opts.object.extend);
+                defineProperty(rule.node, rule.node.length, val, ctx.root, ctx.meta, ctx.options.object.extend);
             }
             else {
                 return orig_before_close(rule, ctx);

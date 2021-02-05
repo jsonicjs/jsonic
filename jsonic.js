@@ -15,7 +15,7 @@ const S = {
     node: 'node',
 };
 function make_standard_options() {
-    let opts = {
+    let options = {
         // Special chars
         char: {
             // Increments row (aka line) counter.
@@ -155,7 +155,7 @@ function make_standard_options() {
             modify: {}
         }
     };
-    return opts;
+    return options;
 }
 // Jsonic errors with nice formatting.
 class JsonicError extends SyntaxError {
@@ -163,7 +163,7 @@ class JsonicError extends SyntaxError {
         details = util.deep({}, details);
         let errctx = util.deep({}, {
             rI: ctx.rI,
-            opts: ctx.opts,
+            options: ctx.options,
             config: ctx.config,
             meta: ctx.meta,
             src: () => ctx.src(),
@@ -210,7 +210,7 @@ class Lexer {
     }
     // Create the lexing function.
     start(ctx) {
-        const opts = ctx.opts;
+        const options = ctx.options;
         const config = ctx.config;
         let tpin = (name) => util.token(name, config);
         let tn = (pin) => util.token(pin, config);
@@ -249,21 +249,22 @@ class Lexer {
             ((...rest) => ctx
                 .log('lex', tn(token.pin), F(token.src), sI, rI + ':' + cI, { ...token }, ...rest)) :
             undefined;
-        let self = this;
+        // Because self is global...
+        let zelf = this;
         function bad(code, cpI, badsrc, use) {
-            return self.bad(ctx, lexlog, code, token, sI, cpI, rI, cI, badsrc, badsrc, use);
+            return zelf.bad(ctx, lexlog, code, token, sI, cpI, rI, cI, badsrc, badsrc, use);
         }
         // Check for custom matchers.
         // NOTE: deliberately grabs local state (token,sI,rI,cI,...)
         function matchers(state, rule) {
-            let matchers = self.match[state];
+            let matchers = zelf.match[state];
             if (null != matchers) {
                 token.loc = sI; // TODO: move to top of while for all rules?
                 for (let matcher of matchers) {
                     let match = matcher(sI, src, token, ctx, rule, bad);
                     // Adjust lex location if there was a match.
                     if (match) {
-                        sI = match.sI;
+                        sI = match.sI ? match.sI : sI;
                         rI = match.rD ? rI + match.rD : rI;
                         cI = match.cD ? cI + match.cD : cI;
                         lexlog && lexlog(token);
@@ -315,7 +316,7 @@ class Lexer {
                         cI = 0;
                         while (config.multi.LN[src[pI]]) {
                             // Count rows.
-                            rI += (opts.char.row === src[pI] ? 1 : 0);
+                            rI += (options.char.row === src[pI] ? 1 : 0);
                             pI++;
                         }
                         token.len = pI - sI;
@@ -337,7 +338,7 @@ class Lexer {
                         return token;
                     }
                     // Number chars.
-                    if (config.start.NR[c0] && opts.number.lex) {
+                    if (config.start.NR[c0] && options.number.lex) {
                         token.pin = NR;
                         token.loc = sI;
                         token.col = cI;
@@ -351,9 +352,9 @@ class Lexer {
                             // Leading 0s are text unless hex|oct|bin val: if at least two
                             // digits and does not start with 0x|o|b, then text.
                             if (1 < token.len && '0' === src[sI] && // Maybe a 0x|o|b number?
-                                (!opts.number.hex || 'x' !== base_char) && // But...
-                                (!opts.number.oct || 'o' !== base_char) && //  it is...
-                                (!opts.number.bin || 'b' !== base_char) //    not.
+                                (!options.number.hex || 'x' !== base_char) && // But...
+                                (!options.number.oct || 'o' !== base_char) && //  it is...
+                                (!options.number.bin || 'b' !== base_char) //    not.
                             ) {
                                 // Not a number.
                                 token.val = undefined;
@@ -394,7 +395,7 @@ class Lexer {
                                 token.loc = sI;
                                 token.col = cI;
                                 state = LML;
-                                state_param = [bm, opts.string.block[bm], null, true];
+                                state_param = [bm, options.string.block[bm], null, true];
                                 continue next_char;
                             }
                         }
@@ -414,7 +415,7 @@ class Lexer {
                             cs = src[pI];
                             // Quote char.
                             if (c0 === cs) {
-                                if (opts.string.escapedouble && c0 === src[pI + 1]) {
+                                if (options.string.escapedouble && c0 === src[pI + 1]) {
                                     s.push(src[pI]);
                                     pI++;
                                 }
@@ -438,7 +439,7 @@ class Lexer {
                                 else if ('x' === src[pI]) {
                                     pI++;
                                     let us = String.fromCharCode(('0x' + src.substring(pI, pI + 2)));
-                                    if (opts.char.bad_unicode === us) {
+                                    if (options.char.bad_unicode === us) {
                                         sI = pI - 2;
                                         return bad('invalid_ascii', pI + 2, src.substring(pI - 2, pI + 2));
                                     }
@@ -451,7 +452,7 @@ class Lexer {
                                 else if ('u' === src[pI]) {
                                     pI++;
                                     let us = String.fromCharCode(('0x' + src.substring(pI, pI + 4)));
-                                    if (opts.char.bad_unicode === us) {
+                                    if (options.char.bad_unicode === us) {
                                         sI = pI - 2;
                                         return bad('invalid_unicode', pI + 5, src.substring(pI - 2, pI + 4));
                                     }
@@ -489,7 +490,7 @@ class Lexer {
                                 cs = src[pI];
                                 if (cc < 32) {
                                     if (multiline && config.start.LN[cs]) {
-                                        if (cs === opts.char.row) {
+                                        if (cs === options.char.row) {
                                             rI++;
                                             cI = 0;
                                         }
@@ -527,13 +528,13 @@ class Lexer {
                         for (let cm of config.cmk) {
                             if (marker.startsWith(cm)) {
                                 // Multi-line comment.
-                                if (true !== opts.comment[cm]) {
+                                if (true !== options.comment[cm]) {
                                     token.pin = CM;
                                     token.loc = sI;
                                     token.col = cI;
                                     token.val = ''; // intialize for LCS.
                                     state = LML;
-                                    state_param = [cm, opts.comment[cm], 'comment'];
+                                    state_param = [cm, options.comment[cm], 'comment'];
                                     continue next_char;
                                 }
                                 else {
@@ -555,7 +556,7 @@ class Lexer {
                     // NOTE: default section. Cases above can bail to here if lookaheads
                     // fail to match (eg. NR).
                     // No explicit token recognized. That leaves:
-                    // - keyword literal values (from opts.value)
+                    // - keyword literal values (from options.value)
                     // - text values (everything up to a text_ender char (eg. newline))
                     token.loc = sI;
                     token.col = cI;
@@ -569,7 +570,7 @@ class Lexer {
                     } while (null != src[pI] && !config.charset.value_ender[src[pI]]);
                     let txt = src.substring(sI, pI);
                     // A keyword literal value? (eg. true, false, null)
-                    let val = opts.value[txt];
+                    let val = options.value[txt];
                     if (undefined !== val) {
                         token.pin = VL;
                         token.val = val;
@@ -586,7 +587,7 @@ class Lexer {
                     if (matchers(LTX, rule)) {
                         return token;
                     }
-                    let text_enders = opts.text.hoover ? config.charset.hoover_ender : config.charset.text_ender;
+                    let text_enders = options.text.hoover ? config.charset.hoover_ender : config.charset.text_ender;
                     // TODO: construct a RegExp to do this
                     while (null != src[pI] &&
                         (!text_enders[src[pI]] ||
@@ -601,7 +602,7 @@ class Lexer {
                     token.src = token.val;
                     // Hoovering (ie. greedily consume non-token chars including internal space)
                     // If hoovering, separate space at end from text
-                    if (opts.text.hoover &&
+                    if (options.text.hoover &&
                         config.multi.SP[token.val[token.val.length - 1]]) {
                         // Find last non-space char
                         let tI = token.val.length - 2;
@@ -643,11 +644,11 @@ class Lexer {
                         return token;
                     }
                     pI = sI;
-                    // Balance open and close markers (eg. if opts.balance.comment=true).
+                    // Balance open and close markers (eg. if options.balance.comment=true).
                     let depth = 1;
                     let open = state_param[0];
                     let close = state_param[1];
-                    let balance = opts.balance[state_param[2]];
+                    let balance = options.balance[state_param[2]];
                     let has_indent = !!state_param[3];
                     let indent_str = '';
                     let openlen = open.length;
@@ -679,7 +680,7 @@ class Lexer {
                         }
                         else {
                             // Count rows.
-                            if (opts.char.row === src[pI]) {
+                            if (options.char.row === src[pI]) {
                                 rI++;
                                 cI = 0;
                             }
@@ -697,7 +698,7 @@ class Lexer {
                         token.val =
                             token.val.substring(openlen, token.val.length - closelen);
                         token.val =
-                            token.val.replace(new RegExp(opts.char.row + indent_str, 'g'), '\n');
+                            token.val.replace(new RegExp(options.char.row + indent_str, 'g'), '\n');
                         token.val = token.val.substring(1, token.val.length - 1);
                     }
                     sI = pI;
@@ -735,16 +736,25 @@ class Lexer {
     // Register a custom lexing matcher to be attempted first for given lex state.
     // See _plugin_ folder for examples.
     lex(state, matcher) {
-        if (null == state && null == matcher) {
+        // If no state, return all the matchers.
+        if (null == state) {
             return this.match;
         }
-        else if (null == this.match[state]) {
-            throw new Error('jsonic: unknown lex state:' + state);
-        }
+        // Else return the list of matchers for the state.
+        let matchers = this.match[state];
+        // Else add a new matcher and possible a new state.
         if (null != matcher) {
-            this.match[state].push(matcher);
+            if (null == matchers) {
+                matchers = this.match[state] = [];
+            }
+            matchers.push(matcher);
         }
-        return this.match[state];
+        // Explicitly remove all matchers for state
+        else if (null === matcher) {
+            matchers = this.match[state];
+            delete this.match[state];
+        }
+        return matchers;
     }
     // Clone the Lexer, and in particular the registered matchers.
     clone(config) {
@@ -1000,14 +1010,13 @@ class RuleSpec {
 }
 exports.RuleSpec = RuleSpec;
 class Parser {
-    constructor(opts, config) {
+    constructor(options, config) {
         this.rsm = {};
-        this.opts = opts;
+        this.options = options;
         this.config = config;
     }
     init() {
         let t = this.config.token;
-        // let top = (_alt: any, _rule: Rule, ctx: Context) => 0 === ctx.rs.length
         let OB = t.OB;
         let CB = t.CB;
         let OS = t.OS;
@@ -1150,7 +1159,7 @@ class Parser {
                         let prev = rule.node[key];
                         val = undefined === val ? null : val;
                         rule.node[key] = null == prev ? val :
-                            (ctx.opts.object.extend ? util.deep(prev, val) : val);
+                            (ctx.options.object.extend ? util.deep(prev, val) : val);
                     }
                 },
             },
@@ -1202,17 +1211,31 @@ class Parser {
             return rs;
         }, {});
     }
+    // Multi-functional get/set for rules.
     rule(name, define) {
-        this.rsm[name] = null == define ? this.rsm[name] : (define(this.rsm[name], this.rsm) || this.rsm[name]);
-        return this.rsm[name];
+        // If no name, get all the rules.
+        if (null == name) {
+            return this.rsm;
+        }
+        // Else get a rule by name.
+        let rs = this.rsm[name];
+        // Else delete a specific rule by name.
+        if (null === define) {
+            delete this.rsm[name];
+        }
+        // Else add or redfine a rule by name.
+        else if (undefined !== define) {
+            rs = this.rsm[name] = (define(this.rsm[name], this.rsm), this.rsm[name]);
+        }
+        return rs;
     }
-    start(lexer, src, jsonic, meta, partial_ctx) {
-        let opts = this.opts;
+    start(lexer, src, jsonic, meta, parent_ctx) {
+        let options = this.options;
         let config = this.config;
         let root;
         let ctx = {
             rI: 1,
-            opts,
+            options,
             config,
             meta: meta || {},
             src: () => src,
@@ -1231,8 +1254,8 @@ class Parser {
             F: util.make_src_format(config),
             use: {}
         };
-        if (null != partial_ctx) {
-            ctx = util.deep(ctx, partial_ctx);
+        if (null != parent_ctx) {
+            ctx = util.deep(ctx, parent_ctx);
         }
         util.make_log(ctx);
         let tn = (pin) => util.token(pin, this.config);
@@ -1244,7 +1267,7 @@ class Parser {
         // virtual (like map, list), and double for safety margin (allows
         // lots of backtracking), and apply a multipler.
         let maxr = 2 * Object.keys(this.rsm).length * lex.src.length *
-            2 * opts.rule.maxmul;
+            2 * options.rule.maxmul;
         // Lex next token.
         function next(ignore = true) {
             ctx.u2 = ctx.u1;
@@ -1280,8 +1303,8 @@ class Parser {
         // NOTE: by returning root, we get implicit closing of maps and lists.
         return root.node;
     }
-    clone(opts, config) {
-        let parser = new Parser(opts, config);
+    clone(options, config) {
+        let parser = new Parser(options, config);
         parser.rsm = Object
             .keys(this.rsm)
             .reduce((a, rn) => (a[rn] = util.clone(this.rsm[rn]), a), {});
@@ -1378,10 +1401,10 @@ let util = {
                     let logstr = rest
                         .filter((item) => S.object != typeof (item))
                         .join('\t');
-                    ctx.opts.debug.get_console().log(logstr);
+                    ctx.options.debug.get_console().log(logstr);
                 }
                 else {
-                    ctx.opts.debug.get_console().dir(rest, { depth: logdepth });
+                    ctx.options.debug.get_console().dir(rest, { depth: logdepth });
                 }
                 return undefined;
             };
@@ -1410,7 +1433,7 @@ let util = {
                 token[name] ||
                 rule[name] ||
                 ctx[name] ||
-                ctx.opts[name] ||
+                ctx.options[name] ||
                 ctx.config[name] ||
                 '$' + name));
         });
@@ -1442,11 +1465,11 @@ let util = {
             .join('\n');
         return lines;
     },
-    handle_meta_mode: (self, src, meta) => {
-        let opts = self.options;
-        if (S.function === typeof (opts.mode[meta.mode])) {
+    handle_meta_mode: (zelf, src, meta) => {
+        let options = zelf.options;
+        if (S.function === typeof (options.mode[meta.mode])) {
             try {
-                return opts.mode[meta.mode].call(self, src, meta);
+                return options.mode[meta.mode].call(zelf, src, meta);
             }
             catch (ex) {
                 if ('SyntaxError' === ex.name) {
@@ -1466,7 +1489,7 @@ let util = {
                         col = cI < loc ? src.substring(cI, loc).length - 1 : 0;
                     }
                     let token = ex.token || {
-                        pin: self.token.UK,
+                        pin: zelf.token.UK,
                         loc: loc,
                         len: tsrc.length,
                         row: ex.lineNumber || row,
@@ -1478,7 +1501,7 @@ let util = {
                         msg: ex.message
                     }, token, {}, ex.ctx || {
                         rI: -1,
-                        opts,
+                        options,
                         config: { token: {} },
                         token: {},
                         meta,
@@ -1496,7 +1519,7 @@ let util = {
                         rsm: {},
                         n: {},
                         log: meta.log,
-                        F: util.make_src_format(self.internal().config),
+                        F: util.make_src_format(zelf.internal().config),
                         use: {},
                     });
                 }
@@ -1510,12 +1533,12 @@ let util = {
     },
     make_error_desc(code, details, token, rule, ctx) {
         token = { ...token };
-        let opts = ctx.opts;
+        let options = ctx.options;
         let meta = ctx.meta;
-        let errtxt = util.errinject((opts.error[code] || opts.error.unknown), code, details, token, rule, ctx);
-        if (S.function === typeof (opts.hint)) {
+        let errtxt = util.errinject((options.error[code] || options.error.unknown), code, details, token, rule, ctx);
+        if (S.function === typeof (options.hint)) {
             // Only expand the hints on demand. Allow for plugin-defined hints.
-            opts.hint = { ...opts.hint(), ...opts.hint };
+            options.hint = { ...options.hint(), ...options.hint };
         }
         let message = [
             ('\x1b[31m[jsonic/' + code + ']:\x1b[0m ' +
@@ -1524,7 +1547,7 @@ let util = {
             '  \x1b[34m-->\x1b[0m ' + (meta && meta.fileName || '<no-file>') +
                 ':' + token.row + ':' + token.col,
             util.extract(ctx.src(), errtxt, token),
-            util.errinject((opts.hint[code] || opts.hint.unknown).split('\n')
+            util.errinject((options.hint[code] || options.hint.unknown).split('\n')
                 .map((s, i) => (0 === i ? ' ' : '  ') + s).join('\n'), code, details, token, rule, ctx),
             '  \x1b[2mhttps://jsonic.richardrodger.com\x1b[0m',
             '  \x1b[2m--internal: rule=' + rule.name + '~' + RuleState[rule.state] +
@@ -1550,52 +1573,52 @@ let util = {
         return desc;
     },
     // Idempotent normalization of options.
-    build_config_from_options: function (config, opts) {
-        let token_names = Object.keys(opts.token);
+    build_config_from_options: function (config, options) {
+        let token_names = Object.keys(options.token);
         // Index of tokens by name.
         token_names.forEach(tn => util.token(tn, config));
         let single_char_token_names = token_names
-            .filter(tn => null != opts.token[tn].c);
+            .filter(tn => null != options.token[tn].c);
         config.singlemap = single_char_token_names
-            .reduce((a, tn) => (a[opts.token[tn].c] =
+            .reduce((a, tn) => (a[options.token[tn].c] =
             config.token[tn], a), {});
         let multi_char_token_names = token_names
-            .filter(tn => S.string === typeof opts.token[tn]);
+            .filter(tn => S.string === typeof options.token[tn]);
         // Char code arrays for lookup by char code.
         config.start = multi_char_token_names
             .reduce((a, tn) => (a[tn.substring(1)] =
-            opts.token[tn]
+            options.token[tn]
                 .split('')
                 .reduce((pm, c) => (pm[c] = config.token[tn], pm), {}),
             a), {});
         config.multi = multi_char_token_names
             .reduce((a, tn) => (a[tn.substring(1)] =
-            opts.token[tn]
+            options.token[tn]
                 .split('')
                 .reduce((pm, c) => (pm[c] = config.token[tn], pm), {}),
             a), {});
         let tokenset_names = token_names
-            .filter(tn => null != opts.token[tn].s);
+            .filter(tn => null != options.token[tn].s);
         // Char code arrays for lookup by char code.
         config.tokenset = tokenset_names
             .reduce((a, tsn) => (a[tsn.substring(1)] =
-            opts.token[tsn].s.split(',')
+            options.token[tsn].s.split(',')
                 .reduce((a, tn) => (a[config.token[tn]] = tn, a), {}),
             a), {});
         // Lookup maps for sets of characters.
         config.charset = {};
         // Lookup table for escape chars, indexed by denotating char (e.g. n for \n).
         config.string = {
-            escape: Object.keys(opts.string.escape)
-                .reduce((a, ed) => (a[ed] = opts.string.escape[ed], a), {})
+            escape: Object.keys(options.string.escape)
+                .reduce((a, ed) => (a[ed] = options.string.escape[ed], a), {})
         };
         config.charset.start_commentmarker = {};
         config.charset.cm_single = {};
         config.cmk = [];
         config.cmk0 = '';
         config.cmk1 = '';
-        if (opts.comment) {
-            let comment_markers = Object.keys(opts.comment);
+        if (options.comment) {
+            let comment_markers = Object.keys(options.comment);
             comment_markers.forEach(k => {
                 // Single char comment marker (eg. `#`)
                 if (1 === k.length) {
@@ -1614,9 +1637,9 @@ let util = {
         }
         config.single_char = Object.keys(config.singlemap).join('');
         // All the characters that can appear in a number.
-        config.charset.digital = util.charset(opts.number.digital);
+        config.charset.digital = util.charset(options.number.digital);
         // Multiline quotes
-        config.charset.multiline = util.charset(opts.string.multiline);
+        config.charset.multiline = util.charset(options.string.multiline);
         // Enders are char sets that end lexing for a given token.
         // Value enders, end values.
         config.charset.value_ender = util.charset(config.multi.SP, config.multi.LN, config.single_char, config.charset.start_commentmarker);
@@ -1626,7 +1649,7 @@ let util = {
         config.charset.hoover_ender = util.charset(config.multi.LN, config.single_char, config.charset.start_commentmarker);
         config.charset.start_blockmarker = {};
         config.bmk = [];
-        let block_markers = Object.keys(opts.string.block);
+        let block_markers = Object.keys(options.string.block);
         block_markers.forEach(k => {
             config.charset.start_blockmarker[k[0]] = k.charCodeAt(0);
             config.bmk.push(k);
@@ -1635,18 +1658,18 @@ let util = {
         // TODO: add rest of core tokens
         config.lex = {
             core: {
-                LN: util.token(opts.lex.core.LN, config)
+                LN: util.token(options.lex.core.LN, config)
             }
         };
         config.number = {
-            sep_re: null != opts.number.sep ? new RegExp(opts.number.sep, 'g') : null
+            sep_re: null != options.number.sep ? new RegExp(options.number.sep, 'g') : null
         };
-        config.debug = opts.debug;
+        config.debug = options.debug;
         // Apply any config modifiers (probably from plugins).
-        Object.keys(opts.config.modify)
-            .forEach((plugin_name) => opts.config.modify[plugin_name](config, opts));
+        Object.keys(options.config.modify)
+            .forEach((plugin_name) => options.config.modify[plugin_name](config, options));
         /* $lab:coverage:off$ */
-        if (opts.debug.print_config) {
+        if (options.debug.print_config) {
             console.log(config);
         }
         /* $lab:coverage:on$ */
@@ -1657,97 +1680,109 @@ exports.util = util;
 function make(first?: KV | Jsonic, parent?: Jsonic): Jsonic {
 
   // Handle polymorphic params.
-  let param_opts = (first as KV)
+  let param_options = (first as KV)
   if (S.function === typeof (first)) {
-    param_opts = ({} as KV)
+    param_options = ({} as KV)
     parent = (first as Jsonic)
   }
 */
-function make(param_opts, parent) {
+function make(param_options, parent) {
     let lexer;
     let parser;
     let config;
     let plugins;
     // Merge options.
-    let opts = util.deep({}, parent ? { ...parent.options } : make_standard_options(), param_opts ? param_opts : {});
+    let merged_options = util.deep({}, parent ? { ...parent.options } : make_standard_options(), param_options ? param_options : {});
     // Create primary parsing function
-    let self = function Jsonic(src, meta, partial_ctx) {
+    let jsonic = function Jsonic(src, meta, parent_ctx) {
         if (S.string === typeof (src)) {
-            let internal = self.internal();
-            let [done, out] = (null != meta && null != meta.mode) ? util.handle_meta_mode(self, src, meta) :
+            let internal = jsonic.internal();
+            let [done, out] = (null != meta && null != meta.mode) ?
+                util.handle_meta_mode(jsonic, src, meta) :
                 [false];
             if (!done) {
-                out = internal.parser.start(internal.lexer, src, self, meta, partial_ctx);
+                out = internal.parser.start(internal.lexer, src, jsonic, meta, parent_ctx);
             }
             return out;
         }
         return src;
     };
-    self.token = function token(ref) {
-        return util.token(ref, config, self);
+    // This lets you access options as direct properties,
+    // and set them as a funtion call.
+    let options = (change_options) => {
+        if (null != change_options && S.object === typeof (change_options)) {
+            util.build_config_from_options(config, util.deep(merged_options, change_options));
+            for (let k in merged_options) {
+                jsonic.options[k] = merged_options[k];
+            }
+        }
     };
+    // Define the API
+    let api = {
+        token: function token(ref) {
+            return util.token(ref, config, jsonic);
+        },
+        options: util.deep(options, merged_options),
+        parse: jsonic,
+        use: function use(plugin, plugin_options) {
+            //console.log('AAA', JSON.stringify(jsonic))
+            jsonic.options({ plugin: { [plugin.name]: plugin_options || {} } });
+            jsonic.internal().plugins.push(plugin);
+            return plugin(jsonic) || jsonic;
+        },
+        rule: function rule(name, define) {
+            return jsonic.internal().parser.rule(name, define);
+        },
+        lex: function lex(state, match) {
+            let lexer = jsonic.internal().lexer;
+            return lexer.lex(state, match);
+        },
+        make: function (options) {
+            return make(options, jsonic);
+        },
+    };
+    // Has to be done indirectly as we are in a fuction named `make`.
+    Object.defineProperty(api.make, 'name', { value: 'make' });
+    // Hide internals where you can still find them. 
+    Object.assign(api, {
+        internal: () => ({
+            lexer,
+            parser,
+            config,
+            plugins,
+        })
+    });
     // Transfer parent properties (preserves plugin decorations, etc).
     if (parent) {
         for (let k in parent) {
-            self[k] = parent[k];
+            jsonic[k] = parent[k];
         }
-        self.parent = parent;
+        jsonic.parent = parent;
         let parent_internal = parent.internal();
         config = util.deep({}, parent_internal.config);
-        util.build_config_from_options(config, opts);
-        Object.assign(self.token, config.token);
+        util.build_config_from_options(config, merged_options);
+        Object.assign(jsonic.token, config.token);
         plugins = [...parent_internal.plugins];
         lexer = parent_internal.lexer.clone(config);
-        parser = parent_internal.parser.clone(opts, config);
+        parser = parent_internal.parser.clone(merged_options, config);
     }
     else {
         config = {
             tokenI: 1,
             token: {}
         };
-        util.build_config_from_options(config, opts);
+        util.build_config_from_options(config, merged_options);
         plugins = [];
         lexer = new Lexer(config);
-        parser = new Parser(opts, config);
+        parser = new Parser(merged_options, config);
         parser.init();
     }
-    Object.assign(self.token, config.token);
-    self.internal = () => ({
-        lexer,
-        parser,
-        config,
-        plugins,
-    });
-    let optioner = (change_opts) => {
-        if (null != change_opts && S.object === typeof (change_opts)) {
-            util.build_config_from_options(config, util.deep(opts, change_opts));
-            for (let k in opts) {
-                self.options[k] = opts[k];
-            }
-        }
-        return self;
-    };
-    self.options = util.deep(optioner, opts);
-    self.parse = self;
-    self.use = function use(plugin, plugin_opts) {
-        self.options({ plugin: { [plugin.name]: plugin_opts || {} } });
-        self.internal().plugins.push(plugin);
-        return plugin(self) || self;
-    };
-    self.rule = function rule(name, define) {
-        let rule = self.internal().parser.rule(name, define);
-        return null == define ? rule : self;
-    };
-    self.lex = function lex(state, match) {
-        let lexer = self.internal().lexer;
-        let matching = lexer.lex(state, match);
-        return null == match ? matching : self;
-    };
-    self.make = function (opts) {
-        return make(opts, self);
-    };
-    Object.defineProperty(self.make, 'name', { value: 'make' });
-    return self;
+    // Add API methods to the core utility function.
+    Object.assign(jsonic, api);
+    // As with options, provide direct access to tokens.
+    Object.assign(jsonic.token, config.token);
+    // console.log('QQQ', api.options, 'WWW', jsonic.options)
+    return jsonic;
 }
 exports.make = make;
 // Generate hint text lookup.

@@ -55,6 +55,8 @@ let Dynamic: Plugin = function dynamic(jsonic: Jsonic) {
 
           //console.log('EXPR', expr)
 
+          // NOTE: the parameter names are significant as they
+          // enter the eval context.
           let func: any = function($: any, _: any, meta: any) {
             return eval(expr)
           }
@@ -73,7 +75,7 @@ let Dynamic: Plugin = function dynamic(jsonic: Jsonic) {
 
 
   jsonic.rule('pair', (rs: RuleSpec): RuleSpec => {
-    let ST = jsonic.options.ST
+    let ST = jsonic.token.ST
 
     let orig_before_close = rs.def.before_close
     rs.def.before_close = (rule: Rule, ctx: Context) => {
@@ -91,7 +93,7 @@ let Dynamic: Plugin = function dynamic(jsonic: Jsonic) {
             val,
             ctx.root,
             ctx.meta,
-            ctx.opts.object.extend,
+            ctx.options.object.extend,
           )
         }
 
@@ -119,7 +121,7 @@ let Dynamic: Plugin = function dynamic(jsonic: Jsonic) {
           val,
           ctx.root,
           ctx.meta,
-          ctx.opts.object.extend,
+          ctx.options.object.extend,
         )
       }
 

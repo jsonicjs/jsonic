@@ -76,7 +76,7 @@ describe('plugin', function () {
 
 
   
-  it('make', () => {
+  it('naked-make', () => {
     expect(()=>Jsonic.use(make_token_plugin('A','aaa'))).throws()
 
     // use make to avoid polluting Jsonic

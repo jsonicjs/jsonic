@@ -1,8 +1,27 @@
+declare type Jsonicer = (src: any, meta?: any, parent_ctx?: any) => any;
+declare type JsonicAPI = {
+    parse: Jsonicer;
+    options: Options & ((change_options?: KV) => void);
+    make: (options?: Options) => Jsonic;
+    use: (plugin: Plugin, plugin_options?: KV) => Jsonic;
+    rule: (name?: string, define?: RuleDefiner) => RuleSpec | RuleSpecMap;
+    lex: (state?: Tin, match?: LexMatcher) => LexMatcherListMap | LexMatcher[];
+    token: {
+        [ref: string]: Tin;
+    } & {
+        [ref: number]: string;
+    } & (<A extends string | Tin, B extends string | Tin>(ref: A) => A extends string ? B : string);
+};
+declare type Jsonic = Jsonicer & // A function that parses.
+JsonicAPI & // A utility with API methods.
+{
+    [prop: string]: any;
+};
 declare type KV = {
     [k: string]: any;
 };
-declare type pin = number;
-declare type Opts = {
+declare type Tin = number;
+declare type Options = {
     char: KV;
     comment: {
         [start_marker: string]: string | boolean;
@@ -41,21 +60,9 @@ declare type Opts = {
     };
     config: {
         modify: {
-            [plugin_name: string]: (config: Config, opts: Opts) => void;
+            [plugin_name: string]: (config: Config, options: Options) => void;
         };
     };
-};
-declare type Jsonic = ((src: any, meta?: any, partial_ctx?: any) => any) & {
-    parse: (src: any, meta?: any, partial_ctx?: any) => any;
-    options: Opts & KV & ((change_opts?: KV) => Jsonic);
-    make: (opts?: KV) => Jsonic;
-    use: (plugin: Plugin, opts?: KV) => Jsonic;
-    rule: (name?: string, define?: (rs: RuleSpec, rsm: {
-        [name: string]: RuleSpec;
-    }) => RuleSpec) => Jsonic;
-    lex: (state: string[], match: any) => any;
-} & {
-    [prop: string]: any;
 };
 declare type Plugin = (jsonic: Jsonic) => void | Jsonic;
 declare type Meta = {
@@ -74,7 +81,7 @@ declare type Token = {
 };
 interface Context {
     rI: number;
-    opts: Opts;
+    options: Options;
     config: Config;
     meta: Meta;
     src: () => string;
@@ -99,7 +106,7 @@ declare type Lex = ((rule: Rule) => Token) & {
     src: string;
 };
 declare type PinMap = {
-    [char: string]: pin;
+    [char: string]: Tin;
 };
 declare type CharCodeMap = {
     [char: string]: number;
@@ -117,10 +124,10 @@ declare type Config = {
         [name: string]: CharCodeMap;
     };
     singlemap: {
-        [char: string]: pin;
+        [char: string]: Tin;
     };
     tokenset: {
-        [name: string]: pin[];
+        [name: string]: Tin[];
     };
     string: {
         escape: {
@@ -136,7 +143,7 @@ declare type Config = {
     single_char: string;
     lex: {
         core: {
-            [name: string]: pin;
+            [name: string]: Tin;
         };
     };
     number: {
@@ -154,22 +161,21 @@ declare class JsonicError extends SyntaxError {
     };
 }
 declare type LexMatcher = (sI: number, src: string, token: Token, ctx: Context, rule: Rule, bad: any) => LexMatcherResult;
-declare type LexMatcherResult = {
+declare type LexMatcherListMap = {
+    [state: number]: LexMatcher[];
+};
+declare type LexMatcherResult = undefined | {
     sI: number;
     cD: number;
     rD: number;
 };
 declare class Lexer {
     end: Token;
-    match: {
-        [state: number]: LexMatcher[];
-    };
+    match: LexMatcherListMap;
     constructor(config: Config);
     start(ctx: Context): Lex;
     bad(ctx: Context, log: ((...rest: any) => undefined) | undefined, why: string, token: Token, sI: number, pI: number, rI: number, cI: number, val?: any, src?: any, use?: any): Token;
-    lex(state?: pin, matcher?: LexMatcher): {
-        [state: number]: LexMatcher[];
-    } | LexMatcher[];
+    lex(state?: Tin, matcher?: LexMatcher): LexMatcherListMap | LexMatcher[];
     clone(config: Config): Lexer;
 }
 declare enum RuleState {
@@ -208,19 +214,19 @@ declare class RuleSpec {
     close(rule: Rule, ctx: Context): Rule;
     parse_alts(alts: any[], rule: Rule, ctx: Context): RuleAct;
 }
+declare type RuleSpecMap = {
+    [name: string]: RuleSpec;
+};
+declare type RuleDefiner = (rs: RuleSpec, rsm: RuleSpecMap) => RuleSpecMap | RuleSpec;
 declare class Parser {
-    opts: Opts;
+    options: Options;
     config: Config;
-    rsm: {
-        [name: string]: RuleSpec;
-    };
-    constructor(opts: Opts, config: Config);
+    rsm: RuleSpecMap;
+    constructor(options: Options, config: Config);
     init(): void;
-    rule(name: string, define?: (rs: RuleSpec, rsm: {
-        [n: string]: RuleSpec;
-    }) => RuleSpec): RuleSpec;
-    start(lexer: Lexer, src: string, jsonic: Jsonic, meta?: any, partial_ctx?: any): any;
-    clone(opts: Opts, config: Config): Parser;
+    rule(name?: string, define?: RuleDefiner): RuleSpec | RuleSpecMap;
+    start(lexer: Lexer, src: string, jsonic: Jsonic, meta?: any, parent_ctx?: any): any;
+    clone(options: Options, config: Config): Parser;
 }
 declare let util: {
     token: <R extends string | number, T extends string | number>(ref: R, config: Config, jsonic?: Jsonic | undefined) => T;
@@ -232,14 +238,14 @@ declare let util: {
     clean_stack(err: Error): void;
     make_src_format: (config: Config) => (s: any, _?: any) => string;
     make_log: (ctx: Context) => ((...rest: any) => undefined) | undefined;
-    wrap_bad_lex: (lex: Lex, BD: pin, ctx: Context) => any;
+    wrap_bad_lex: (lex: Lex, BD: Tin, ctx: Context) => any;
     errinject: (s: string, code: string, details: KV, token: Token, rule: Rule, ctx: Context) => string;
     extract: (src: string, errtxt: string, token: Token) => string;
-    handle_meta_mode: (self: Jsonic, src: string, meta: KV) => any[];
+    handle_meta_mode: (zelf: Jsonic, src: string, meta: KV) => any[];
     make_error_desc(code: string, details: KV, token: Token, rule: Rule, ctx: Context): KV;
-    build_config_from_options: (config: Config, opts: Opts) => void;
+    build_config_from_options: (config: Config, options: Options) => void;
 };
-declare function make(param_opts?: KV, parent?: Jsonic): Jsonic;
+declare function make(param_options?: KV, parent?: Jsonic): Jsonic;
 declare let Jsonic: Jsonic;
-export { Jsonic, Plugin, JsonicError, Lexer, Parser, Rule, RuleSpec, Token, Context, Meta, LexMatcher, LexMatcherResult, util, make, };
+export { Jsonic, Plugin, JsonicError, Tin, Lexer, Parser, Rule, RuleSpec, RuleSpecMap, Token, Context, Meta, LexMatcher, LexMatcherListMap, LexMatcherResult, util, make, };
 export default Jsonic;

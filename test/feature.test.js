@@ -11,6 +11,9 @@ const describe = lab.describe
 const it = lab.it
 const expect = Code.expect
 
+const Util = require('util')
+const I = Util.inspect
+
 const { Jsonic, JsonicError } = require('..')
 
 const j = Jsonic
@@ -571,6 +574,64 @@ describe('feature', function () {
     expect(j('a:b:c:1\nd:e')).equals({a:{b:{c:1}},d:'e'})
   })
 
+
+
+  it('get-set-rule-and-lex', () => {
+    let p0 = Jsonic.make()
+
+    // Get all the rules
+    let rval = p0.rule()
+    expect(Object.keys(rval)).equals(['val', 'map', 'list', 'pair', 'elem'])
+
+    // Get a rule
+    rval = p0.rule('not-a-rule')
+    expect(rval).not.exists()
+    rval = p0.rule('val')
+    expect(rval.name).equals('val')
+
+    // Still OK, for now
+    expect(p0('a:1')).equals({a:1})
+
+    // Rules can be deleted
+    p0.rule('val', null)
+    rval = p0.rule('val')
+    expect(rval).not.exists()
+
+    // Parent still OK
+    expect(Jsonic('a:1')).equals({a:1})
+
+    // TODO: new rule!
+
+    
+    // Get all matchers for all states
+    let mm0 = p0.lex()
+    expect(I(mm0)).equals(`{ '19': [], '20': [], '21': [], '22': [] }`)
+
+    // Add some lex matchers
+    p0.lex(p0.token.LML,function lmA(){})
+    p0.lex(p0.token.LML,function lmB(){})
+    p0.lex(p0.token.LTX,function lmC(){})
+    mm0 = p0.lex()
+    expect(I(mm0)).equals(`{
+  '19': [],
+  '20': [ [Function: lmC] ],
+  '21': [],
+  '22': [ [Function: lmA], [Function: lmB] ]
+}`)
+
+    // Get lex matchers for a given state
+    mm0 = p0.lex(p0.token.LML)
+    expect(I(mm0)).equals(`[ [Function: lmA], [Function: lmB] ]`)
+
+    // Parent still OK
+    expect(Jsonic('a:1')).equals({a:1})
+
+    // Lex matchers can be cleared by state
+    p0.lex(p0.token.LML,null)
+    mm0 = p0.lex(p0.token.LML)
+    expect(mm0).not.exists()
+
+  })
 })
 
 

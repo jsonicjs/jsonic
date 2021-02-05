@@ -31,6 +31,7 @@ describe('compat', function () {
   second: 2
 }`)).equals({first: 1,second: 2})
 
+
     expect(j(`{
   # hash style comments
   # (because it's just one character)
@@ -98,6 +99,5 @@ describe('compat', function () {
   "this": "is OK though: {}[],:",
 })
 
-    
   })
 })

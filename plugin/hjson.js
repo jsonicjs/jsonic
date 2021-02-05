@@ -21,6 +21,8 @@ let HJson = function hjson(jsonic) {
             sI = pI;
             return {
                 sI,
+                rD: 0,
+                cD: 0,
             };
         }
     });

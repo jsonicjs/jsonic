@@ -6,7 +6,7 @@
     "noEmitOnError": true,
     "noImplicitAny": true,
     "strict": true,
-    "esModuleInterop": true,
+    "esModuleInterop": true
   },
   "exclude": [
     "dist",

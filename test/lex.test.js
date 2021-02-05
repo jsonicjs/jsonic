@@ -45,7 +45,7 @@ function alleq(ta) {
 
 
 function lexstart(src) {
-  return lexer.start({src:()=>src, config, opts:j.options})
+  return lexer.start({src:()=>src, config, options:j.options})
 }
 
 describe('lex', function () {
