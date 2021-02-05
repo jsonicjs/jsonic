@@ -3,7 +3,7 @@
 // TODO: review against: https://www.papaparse.com/
 
 
-import { Jsonic, Plugin, Token, Rule, RuleSpec, Context, util } from '../jsonic'
+import { Jsonic, Plugin, Rule, RuleSpec, Context } from '../jsonic'
 
 
 let Csv: Plugin = function csv(jsonic: Jsonic) {

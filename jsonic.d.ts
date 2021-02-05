@@ -217,7 +217,7 @@ declare class RuleSpec {
 declare type RuleSpecMap = {
     [name: string]: RuleSpec;
 };
-declare type RuleDefiner = (rs: RuleSpec, rsm: RuleSpecMap) => RuleSpecMap | RuleSpec;
+declare type RuleDefiner = (rs: RuleSpec, rsm: RuleSpecMap) => RuleSpec;
 declare class Parser {
     options: Options;
     config: Config;

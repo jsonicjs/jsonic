@@ -839,7 +839,9 @@ describe('jsonic', function () {
 
   // NOTE: coverage tracing slows this down - a lot!
   it('pv-performance', {timeout:3333}, function(){
-    pv_perf(200)
+    if(null == process.env.JSONIC_TEST_SKIP_PERF) {
+      pv_perf(200)
+    }
   })
 
 
@@ -850,7 +852,7 @@ describe('jsonic', function () {
     
     // Use this env var for debug-code-test loop to avoid
     // slowing things down. Do run this test for builds!
-    if(null == process.env.JSONIC_TEST_SKIP_EXHAUST) {
+    if(null == process.env.JSONIC_TEST_SKIP_PERF) {
       let out = exhaust(len)
       // console.log(out)
 

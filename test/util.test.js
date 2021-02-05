@@ -283,7 +283,7 @@ describe('util', () => {
 
 
   it('errinject', () => {
-    let args = ['c0',{a:1},{b:2},{c:3},{d:4,meta:{g:7},opts:{e:5},config:{f:6}}]
+    let args = ['c0',{a:1},{b:2},{c:3},{d:4,meta:{g:7},options:{e:5},config:{f:6}}]
     expect(errinject('x $code $a $b $c $d $e $f $g $Z x',...args))
       .equal('x "c0" 1 2 3 4 5 6 7 "$Z" x')
   })
@@ -300,7 +300,7 @@ describe('util', () => {
   it('wrap_bad_lex', () => {
     let ctx = {
       src:()=>'',
-      opts:{error:{unexpected:'unx'},hint:{unexpected:'unx'}},
+      options:{error:{unexpected:'unx'},hint:{unexpected:'unx'}},
       config:{token:{}},
       plugins:()=>[],
     }
@@ -344,11 +344,11 @@ describe('util', () => {
 
   it('make_log', () => {
     let tmp = {}
-    let opts = {debug:{get_console:()=>({log:((x)=>tmp.x=x), dir:((y)=>tmp.y=y)})}}
+    let options = {debug:{get_console:()=>({log:((x)=>tmp.x=x), dir:((y)=>tmp.y=y)})}}
     
     let g0 = util.make_log({})
-    let g1 = util.make_log({log:1,opts:opts})
-    let g2 = util.make_log({log:-1,opts:opts})
+    let g1 = util.make_log({log:1,options:options})
+    let g2 = util.make_log({log:-1,options:options})
 
     expect(g0).undefined()
 
@@ -578,7 +578,7 @@ describe('util', () => {
 
   it('make_error_desc', () => {
     let ctx0 = {
-      opts: {
+      options: {
         error: {
           foo: 'foo-code',
           unknown: 'unknown-code'

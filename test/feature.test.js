@@ -14,7 +14,7 @@ const expect = Code.expect
 const Util = require('util')
 const I = Util.inspect
 
-const { Jsonic, JsonicError } = require('..')
+const { Jsonic, JsonicError, RuleSpec } = require('..')
 
 const j = Jsonic
 
@@ -531,9 +531,8 @@ describe('feature', function () {
     expect(j('{a:b:1}')).equals({a:{b:1}})
     expect(j('a:{b:c:1}')).equals({a:{b:{c:1}}})
 
-    // TODO: fix!
-    //expect(Jsonic('{a:,b:')).equals({a:undefined,b:undefined})
-    //expect(Jsonic('a:,b:')).equals({a:undefined,b:undefined})
+    expect(Jsonic('{a:,b:')).equals({a:null,b:null})
+    expect(Jsonic('a:,b:')).equals({a:null,b:null})
   })
 
   
@@ -600,8 +599,14 @@ describe('feature', function () {
     // Parent still OK
     expect(Jsonic('a:1')).equals({a:1})
 
-    // TODO: new rule!
-
+    // New rule
+    p0.rule('foo',()=>{
+      return new RuleSpec('foo',{})
+    })
+    rval = p0.rule('foo')
+    expect(rval.name).equals('foo')
+    rval = p0.rule()
+    expect(Object.keys(rval)).equals(['map', 'list', 'pair', 'elem', 'foo'])
     
     // Get all matchers for all states
     let mm0 = p0.lex()

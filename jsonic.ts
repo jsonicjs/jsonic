@@ -1303,6 +1303,9 @@ class RuleSpec {
       return cond
     }
 
+    this.def.open = this.def.open || []
+    this.def.close = this.def.close || []
+
     for (let alt of this.def.open) {
       if (null != alt.c) {
         alt.c = norm_cond(alt.c)
@@ -1557,7 +1560,7 @@ class RuleSpec {
 
 
 type RuleSpecMap = { [name: string]: RuleSpec }
-type RuleDefiner = (rs: RuleSpec, rsm: RuleSpecMap) => RuleSpecMap | RuleSpec
+type RuleDefiner = (rs: RuleSpec, rsm: RuleSpecMap) => RuleSpec
 
 
 class Parser {
@@ -1823,7 +1826,7 @@ class Parser {
 
     // Else add or redfine a rule by name.
     else if (undefined !== define) {
-      rs = this.rsm[name] = (define(this.rsm[name], this.rsm), this.rsm[name])
+      rs = this.rsm[name] = (define(this.rsm[name], this.rsm) || this.rsm[name])
     }
 
     return rs
