@@ -194,10 +194,10 @@ exports.JsonicError = JsonicError;
 class Lexer {
     constructor(config) {
         this.match = {};
-        this.match[util.token('@LTP', config)] = []; // TOP
-        this.match[util.token('@LTX', config)] = []; // TEXT
-        this.match[util.token('@LCS', config)] = []; // CONSUME
-        this.match[util.token('@LML', config)] = []; // MULTILINE
+        util.token('@LTP', config); // TOP
+        util.token('@LTX', config); // TEXT
+        util.token('@LCS', config); // CONSUME
+        util.token('@LML', config); // MULTILINE
         this.end = {
             pin: util.token('#ZZ', config),
             loc: 0,
@@ -208,7 +208,7 @@ class Lexer {
             src: undefined,
         };
     }
-    // Create the lexing function.
+    // Create the lexing function, which will then return the next token on each call.
     start(ctx) {
         const options = ctx.options;
         const config = ctx.config;
@@ -261,13 +261,13 @@ class Lexer {
             if (null != matchers) {
                 token.loc = sI; // TODO: move to top of while for all rules?
                 for (let matcher of matchers) {
-                    let match = matcher(sI, src, token, ctx, rule, bad);
+                    let match = matcher(sI, rI, cI, src, token, ctx, rule, bad);
                     // Adjust lex location if there was a match.
                     if (match) {
                         sI = match.sI ? match.sI : sI;
-                        rI = match.rD ? rI + match.rD : rI;
-                        cI = match.cD ? cI + match.cD : cI;
-                        lexlog && lexlog(token);
+                        rI = match.rI ? match.rI : rI;
+                        cI = match.cI ? match.cI : cI;
+                        lexlog && lexlog(token, matcher);
                         return token;
                     }
                 }
@@ -721,11 +721,9 @@ class Lexer {
     bad(ctx, log, why, token, sI, pI, rI, cI, val, src, use) {
         token.why = why;
         token.pin = util.token('#BD', ctx.config);
-        //token.loc = pI
         token.loc = sI;
         token.row = rI;
         token.col = cI;
-        //token.len = pI - sI + 1
         token.len = pI - sI;
         token.val = val;
         token.src = src;

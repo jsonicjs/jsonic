@@ -160,14 +160,14 @@ declare class JsonicError extends SyntaxError {
         stack: string | undefined;
     };
 }
-declare type LexMatcher = (sI: number, src: string, token: Token, ctx: Context, rule: Rule, bad: any) => LexMatcherResult;
+declare type LexMatcher = (sI: number, rI: number, cI: number, src: string, token: Token, ctx: Context, rule: Rule, bad: any) => LexMatcherResult;
 declare type LexMatcherListMap = {
     [state: number]: LexMatcher[];
 };
 declare type LexMatcherResult = undefined | {
     sI: number;
-    cD: number;
-    rD: number;
+    rI: number;
+    cI: number;
 };
 declare class Lexer {
     end: Token;

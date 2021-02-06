@@ -49,9 +49,11 @@ describe('plugin', function () {
     expect(lex0.end === lex1.end).false()
     expect(lex0.match === lex1.match).false()
     expect(I(lex0.match))
-      .equal("{ '1': [], '2': [], '3': [ [Function: match0] ], '4': [] }")
+    //.equal("{ '1': [], '2': [], '3': [ [Function: match0] ], '4': [] }")
+    .equal("{ '3': [ [Function: match0] ] }")
     expect(I(lex1.match))
-      .equal("{\n  '1': [],\n  '2': [],\n  '3': [ [Function: match0] ],\n  '4': [ [Function: match1] ]\n}")    
+    //.equal("{\n  '1': [],\n  '2': [],\n  '3': [ [Function: match0] ],\n  '4': [ [Function: match1] ]\n}")
+    .equal("{ '3': [ [Function: match0] ], '4': [ [Function: match1] ] }")    
   })
 
 

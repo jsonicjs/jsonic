@@ -19,21 +19,22 @@ let Native: Plugin = function native(jsonic: Jsonic) {
 
   jsonic.lex(jsonic.token.LTP, function native(
     sI: number,
+    rI: number,
+    cI: number,
     src: string,
     token: Token,
     ctx: Context,
   ): any {
     let out: any
     let config = ctx.config
-    let c0c = src.charCodeAt(sI)
 
     let search = src.substring(sI, sI + 24)
 
     if (search.startsWith('undefined')) {
       out = {
         sI: sI + 9,
-        rD: 0,
-        cD: 9
+        rI,
+        cI: cI + 9
       }
 
       token.pin = VL
@@ -44,8 +45,8 @@ let Native: Plugin = function native(jsonic: Jsonic) {
     else if (search.match(/^\d\d\d\d-\d\d-\d\dT\d\d:\d\d:\d\d\.\d\d\dZ$/)) {
       out = {
         sI: sI + search.length,
-        rD: 0,
-        cD: 9
+        rI: 0,
+        cI: cI + 24
       }
 
       token.pin = VL
@@ -54,8 +55,7 @@ let Native: Plugin = function native(jsonic: Jsonic) {
       token.src = search
     }
 
-    // `/` === 47
-    if (47 === c0c && '/' !== src.substring(sI + 1)) {
+    if ('/' === src[sI] && '/' !== src.substring(sI + 1)) {
 
       let srclen = src.length
       let pI = sI + 1

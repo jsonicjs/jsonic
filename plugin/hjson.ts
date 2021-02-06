@@ -11,10 +11,13 @@ let HJson: Plugin = function hjson(jsonic: Jsonic) {
   let TX = jsonic.token.TX
 
 
-  // Slurp to end of line.
+  // Consume to end of line.
   // NOTE: HJson thus does not support a:foo,b:bar -> {a:'foo',b:'bar'}
+  // Rather, you get a:foo,b:bar -> {a:'foo,b:bar'}
   jsonic.lex(jsonic.token.LTX, function tx_eol(
     sI: number,
+    rI: number,
+    cI: number,
     src: string,
     token: Token,
     ctx: Context,
@@ -25,6 +28,7 @@ let HJson: Plugin = function hjson(jsonic: Jsonic) {
     if (ctx.t0.pin === CL) {
       while (pI < srclen && !ctx.config.multi.LN[src[pI]]) {
         pI++
+        cI++
       }
 
       token.len = pI - sI
@@ -34,11 +38,7 @@ let HJson: Plugin = function hjson(jsonic: Jsonic) {
 
       sI = pI
 
-      return {
-        sI,
-        rD: 0,
-        cD: 0,
-      }
+      return { sI, rI, cI }
     }
   })
 

@@ -246,6 +246,10 @@ describe('feature', function () {
     expect(j('0x10')).equals(16)
     expect(j('0o20')).equals(16)
     expect(j('0b10000')).equals(16)
+
+    let js = j.make({ number: { sep: null} })
+    expect(js('1_0')).equals('1_0')
+    expect(j('1_0')).equals(10)
   })
 
   
@@ -610,7 +614,8 @@ describe('feature', function () {
     
     // Get all matchers for all states
     let mm0 = p0.lex()
-    expect(I(mm0)).equals(`{ '19': [], '20': [], '21': [], '22': [] }`)
+    //expect(I(mm0)).equals(`{ '19': [], '20': [], '21': [], '22': [] }`)
+    expect(mm0).equals({})
 
     // Add some lex matchers
     p0.lex(p0.token.LML,function lmA(){})
@@ -618,9 +623,7 @@ describe('feature', function () {
     p0.lex(p0.token.LTX,function lmC(){})
     mm0 = p0.lex()
     expect(I(mm0)).equals(`{
-  '19': [],
   '20': [ [Function: lmC] ],
-  '21': [],
   '22': [ [Function: lmA], [Function: lmB] ]
 }`)
 

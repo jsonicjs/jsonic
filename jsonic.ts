@@ -1,10 +1,9 @@
 /* Copyright (c) 2013-2021 Richard Rodger, MIT License */
 
+// TODO: options to switch off built in lex tokens - like options.number.lex
 // TODO: util tests
 // TODO: plugin TODOs
-// TODO: replace sparse lookup arrays with maps
 // TODO: deeper tests
-// TODO: test/fix .rule, .lex signatures, return values
 // TODO: types used properly in plugins, eg. LexMatcher
 
 // TODO: post release: plugin for path expr: a.b:1 -> {a:{b:1}}
@@ -441,6 +440,8 @@ class JsonicError extends SyntaxError {
 
 type LexMatcher = (
   sI: number,
+  rI: number,
+  cI: number,
   src: string,
   token: Token,
   ctx: Context,
@@ -453,8 +454,8 @@ type LexMatcherListMap = { [state: number]: LexMatcher[] }
 
 type LexMatcherResult = undefined | {
   sI: number,
-  cD: number,
-  rD: number
+  rI: number
+  cI: number,
 }
 
 
@@ -464,10 +465,10 @@ class Lexer {
   match: LexMatcherListMap = {}
 
   constructor(config: Config) {
-    this.match[(util.token('@LTP', config) as Tin)] = [] // TOP
-    this.match[(util.token('@LTX', config) as Tin)] = [] // TEXT
-    this.match[(util.token('@LCS', config) as Tin)] = [] // CONSUME
-    this.match[(util.token('@LML', config) as Tin)] = [] // MULTILINE
+    util.token('@LTP', config) // TOP
+    util.token('@LTX', config) // TEXT
+    util.token('@LCS', config) // CONSUME
+    util.token('@LML', config) // MULTILINE
 
     this.end = {
       pin: util.token('#ZZ', config),
@@ -481,8 +482,7 @@ class Lexer {
   }
 
 
-
-  // Create the lexing function.
+  // Create the lexing function, which will then return the next token on each call.
   start(
     ctx: Context
   ): Lex {
@@ -554,15 +554,15 @@ class Lexer {
         token.loc = sI // TODO: move to top of while for all rules?
 
         for (let matcher of matchers) {
-          let match = matcher(sI, src, token, ctx, rule, bad)
+          let match = matcher(sI, rI, cI, src, token, ctx, rule, bad)
 
           // Adjust lex location if there was a match.
           if (match) {
             sI = match.sI ? match.sI : sI
-            rI = match.rD ? rI + match.rD : rI
-            cI = match.cD ? cI + match.cD : cI
+            rI = match.rI ? match.rI : rI
+            cI = match.cI ? match.cI : cI
 
-            lexlog && lexlog(token)
+            lexlog && lexlog(token, matcher)
             return token
           }
         }
@@ -1158,11 +1158,9 @@ class Lexer {
   ): Token {
     token.why = why
     token.pin = util.token('#BD', ctx.config)
-    //token.loc = pI
     token.loc = sI
     token.row = rI
     token.col = cI
-    //token.len = pI - sI + 1
     token.len = pI - sI
     token.val = val
     token.src = src

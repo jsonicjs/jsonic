@@ -10,16 +10,15 @@ let Native = function native(jsonic) {
         }
     });
     let VL = jsonic.token.VL;
-    jsonic.lex(jsonic.token.LTP, function native(sI, src, token, ctx) {
+    jsonic.lex(jsonic.token.LTP, function native(sI, rI, cI, src, token, ctx) {
         let out;
         let config = ctx.config;
-        let c0c = src.charCodeAt(sI);
         let search = src.substring(sI, sI + 24);
         if (search.startsWith('undefined')) {
             out = {
                 sI: sI + 9,
-                rD: 0,
-                cD: 9
+                rI,
+                cI: cI + 9
             };
             token.pin = VL;
             token.len = 9;
@@ -29,16 +28,15 @@ let Native = function native(jsonic) {
         else if (search.match(/^\d\d\d\d-\d\d-\d\dT\d\d:\d\d:\d\d\.\d\d\dZ$/)) {
             out = {
                 sI: sI + search.length,
-                rD: 0,
-                cD: 9
+                rI: 0,
+                cI: cI + 24
             };
             token.pin = VL;
             token.len = search.length;
             token.val = new Date(search);
             token.src = search;
         }
-        // `/` === 47
-        if (47 === c0c && '/' !== src.substring(sI + 1)) {
+        if ('/' === src[sI] && '/' !== src.substring(sI + 1)) {
             let srclen = src.length;
             let pI = sI + 1;
             let cD = 0;

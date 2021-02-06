@@ -572,6 +572,82 @@ describe('util', () => {
         'lex #BD ""'
       ])
     }
+
+
+    let j1 = Jsonic.make()
+    j1.use(function uppercaser(jsonic) {
+      j1.lex(jsonic.token.LTX, (sI,rI,cI,src,token,ctx)=>{
+        let pI = sI
+        let srclen = src.length
+        
+        if('<'===src[pI]) {
+          while(pI < srclen && '>'!==src[pI]) {
+            if(jsonic.options.char.row = src[pI]) {
+              rI++
+              cI = 0
+            }
+            else {
+              cI++
+            }
+            pI++
+          }
+
+          token.len = pI - sI + 1
+          token.pin = jsonic.token.TX
+          token.val = src.substring(sI+1, pI).toUpperCase()
+          token.src = src.substring(sI, pI+1)
+
+          sI = pI + 1
+
+          // console.log('T', token)
+          
+          return { sI, rI, cI }
+        }
+      })
+    })
+
+    
+    log = []
+    let d1 = j1('a:<x\ny>',{log:(...r)=>log.push(r)})
+    expect(d1).equals({a:'X\nY'})
+    expect(log.map(x=>x[0]+' '+x[1]+' '+x[2])).equals([
+      'lex #TX "a"',
+      'lex #CL ":"',
+      'rule val/1 open',
+      'parse val/1 open',
+      'node val/1 open',
+      'stack 1 val/1',
+      'rule map/2 open',
+      'parse map/2 open',
+      'node map/2 open',
+      'stack 2 val/1;map/2',
+      'rule pair/3 open',
+      'parse pair/3 open',
+      'lex #TX "<x\\ny>"',
+      'lex #ZZ ',
+      'node pair/3 open',
+      'stack 3 val/1;map/2;pair/3',
+      'rule val/4 open',
+      'parse val/4 open',
+      'lex #ZZ ',
+      'node val/4 open',
+      'stack 3 val/1;map/2;pair/3',
+      'rule val/4 close',
+      'parse val/4 close',
+      'node val/4 close',
+      'stack 2 val/1;map/2',
+      'rule pair/3 close',
+      'parse pair/3 close',
+      'node pair/3 close',
+      'stack 1 val/1',
+      'rule map/2 close',
+      'node map/2 close',
+      'stack 0 ',
+      'rule val/1 close',
+      'parse val/1 close',
+      'node val/1 close',
+      'stack 0 '
+    ])
   })
 
 
