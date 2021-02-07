@@ -62,29 +62,34 @@ describe('lex', function () {
     //let lex0 = lexer.start({src:()=>' {123 ', config, opts:j.options})
     let lex0 = lexstart(' {123 ')
     expect(lex0()).equals(
-      { pin: t.SP, loc: 0, len: 1, row: 0, col: 0, val: ' ', src: ' ' })
+      { pin: t.SP, loc: 0, len: 1, row: 0, col: 0, val: ' ', src: ' ',
+        use: undefined })
     expect(lex0()).equals(
-      { pin: t.OB, loc: 1, len: 1, row: 0, col: 1, val: undefined, src: '{' })
+      { pin: t.OB, loc: 1, len: 1, row: 0, col: 1, val: undefined, src: '{',
+        use: undefined})
     expect(lex0()).equals(
-      { pin: t.NR, loc: 2, len: 3, row: 0, col: 2, val: 123, src: '123'  })
+      { pin: t.NR, loc: 2, len: 3, row: 0, col: 2, val: 123, src: '123',
+        use: undefined  })
     expect(lex0()).equals(
-      { pin: t.SP, loc: 5, len: 1, row: 0, col: 5, val: ' ', src: ' ' })
+      { pin: t.SP, loc: 5, len: 1, row: 0, col: 5, val: ' ', src: ' ',
+        use: undefined })
     expect(lex0()).equals(
       { pin: t.ZZ, loc: 6, len: 0, row: 0, col: 6,
-        val: undefined, src: undefined })
+        val: undefined, src: undefined, use: undefined })
 
     // LN001
     expect(lex0()).equals(
       { pin: t.ZZ, loc: 6, len: 0, row: 0, col: 6,
-        val: undefined, src: undefined })
+        val: undefined, src: undefined, use: undefined })
     expect(lex0()).equals(
       { pin: t.ZZ, loc: 6, len: 0, row: 0, col: 6,
-        val: undefined, src: undefined })
+        val: undefined, src: undefined, use: undefined })
 
     let lex1 = lexstart('"\\u0040"')
     //let lex1 = lexer.start({src:()=>'"\\u0040"'})
     expect(lex1()).equals(
-      { pin: t.ST, loc: 0, len: 8, row: 0, col: 0, val: '@', src:'"\\u0040"' })
+      { pin: t.ST, loc: 0, len: 8, row: 0, col: 0, val: '@', src:'"\\u0040"',
+        use: undefined  })
 
     
     expect(lexall(' {123')).equals([
@@ -104,23 +109,31 @@ describe('lex', function () {
     //let lex2 = lexer.start({src:()=>' m n '})
     let lex2 = lexstart(' m n ')
     expect(lex2()).equals(
-      { pin: t.SP, loc: 0, len: 1, row: 0, col: 0, val: ' ', src: ' ' })
+      { pin: t.SP, loc: 0, len: 1, row: 0, col: 0, val: ' ', src: ' ',
+        use: undefined })
     expect(lex2()).equals(
-      { pin: t.TX, loc: 1, len: 3, row: 0, col: 1, val: 'm n', src: 'm n' })
+      { pin: t.TX, loc: 1, len: 3, row: 0, col: 1, val: 'm n', src: 'm n',
+        use: undefined  })
     expect(lex2()).equals(
-      { pin: t.SP, loc: 4, len: 1, row: 0, col: 4, val: ' ', src: ' ' })
+      { pin: t.SP, loc: 4, len: 1, row: 0, col: 4, val: ' ', src: ' ',
+        use: undefined  })
     expect(lex2()).equals(
-      { pin: t.ZZ, loc: 5, len: 0, row: 0, col: 5, val: undefined, src: undefined })
+      { pin: t.ZZ, loc: 5, len: 0, row: 0, col: 5, val: undefined, src: undefined,
+        use: undefined  })
 
     let lex3 = lexstart(' b a ')
     expect(lex3()).equals(
-      { pin: t.SP, loc: 0, len: 1, row: 0, col: 0, val: ' ', src: ' ' })
+      { pin: t.SP, loc: 0, len: 1, row: 0, col: 0, val: ' ', src: ' ',
+        use: undefined  })
     expect(lex3()).equals(
-      { pin: t.TX, loc: 1, len: 3, row: 0, col: 1, val: 'b a', src: 'b a' })
+      { pin: t.TX, loc: 1, len: 3, row: 0, col: 1, val: 'b a', src: 'b a',
+        use: undefined  })
     expect(lex3()).equals(
-      { pin: t.SP, loc: 4, len: 1, row: 0, col: 4, val: ' ', src: ' ' })
+      { pin: t.SP, loc: 4, len: 1, row: 0, col: 4, val: ' ', src: ' ',
+        use: undefined  })
     expect(lex3()).equals(
-      { pin: t.ZZ, loc: 5, len: 0, row: 0, col: 5, val: undefined, src: undefined })
+      { pin: t.ZZ, loc: 5, len: 0, row: 0, col: 5, val: undefined, src: undefined,
+        use: undefined  })
 
   })
 
@@ -129,7 +142,7 @@ describe('lex', function () {
     let lex0 = lexstart(' \t')
     expect(lex0()).equals(
       { pin: t.SP,
-        loc: 0, len: 2, row: 0, col: 0, val: ' \t', src: ' \t' })
+        loc: 0, len: 2, row: 0, col: 0, val: ' \t', src: ' \t', use: undefined  })
 
     alleq([
       ' ', ['#SP;0;1;0x0','#ZZ;1;0;0x1'],
@@ -225,7 +238,8 @@ describe('lex', function () {
     let lex0 = lexstart('123')
     expect(lex0())
       .equal({
-        pin: t.NR, loc: 0, len: 3, row: 0, col: 0, val: 123, src: '123'
+        pin: t.NR, loc: 0, len: 3, row: 0, col: 0, val: 123, src: '123',
+        use: undefined 
       })
     
     alleq([

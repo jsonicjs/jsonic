@@ -3,7 +3,7 @@
 // TODO: support functions - eval to load
 
 
-import { Jsonic, Plugin, Token, Context } from '../jsonic'
+import { Jsonic, Plugin, Token, Context, Rule, RuleSpec } from '../jsonic'
 
 
 let Native: Plugin = function native(jsonic: Jsonic) {
@@ -41,6 +41,9 @@ let Native: Plugin = function native(jsonic: Jsonic) {
       token.len = 9
       token.val = undefined
       token.src = 'undefined'
+
+      token.use = (token.use || {})
+      token.use.undefined = true
     }
     else if (search.match(/^\d\d\d\d-\d\d-\d\dT\d\d:\d\d:\d\d\.\d\d\dZ$/)) {
       out = {
@@ -95,6 +98,19 @@ let Native: Plugin = function native(jsonic: Jsonic) {
     }
 
     return out
+  })
+
+  jsonic.rule('elem', (rs: RuleSpec) => {
+    let orig_before_close = rs.def.before_close
+    rs.def.before_close = function(rule: Rule, ctx: Context) {
+      if (ctx.u1.use && ctx.u1.use.undefined) {
+        rule.node.push(undefined)
+      }
+      else {
+        return orig_before_close(...arguments)
+      }
+    }
+    return rs
   })
 }
 

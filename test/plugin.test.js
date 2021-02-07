@@ -313,7 +313,6 @@ a x\t"b\\tx"
       .equal(rec0)
   })
 
-  // TODO: fix undefined
   // TODO: test // cases fully
   it('native-basic', () => {
     let k0 = Jsonic.make().use(Native)
@@ -322,27 +321,28 @@ a x\t"b\\tx"
       NaN,
       /x/g,
       2021-01-20T19:24:26.650Z,
-      #undefined,
+      undefined,
       Infinity
     ]`)).equal([
       NaN,
       /x/g,
       new Date('2021-01-20T19:24:26.650Z'),
-      //undefined,
+      undefined,
       Infinity
     ])
+
 
     expect(k0(`{
       a: NaN,
       b: /x/g,
       c: 2021-01-20T19:24:26.650Z,
-      #d: undefined,
+      d: undefined,
       e: Infinity
     }`)).equal({
       a: NaN,
       b: /x/g,
       c: new Date('2021-01-20T19:24:26.650Z'),
-      //d: undefined,
+      d: undefined,
       e: Infinity
     })
   })

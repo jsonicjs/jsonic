@@ -576,6 +576,7 @@ class Lexer {
       token.val = undefined
       token.src = undefined
       token.row = rI
+      token.use = undefined
 
       let state = LTP
       let state_param: any = null
@@ -1721,6 +1722,7 @@ class Parser {
           { s: [NR, CL], c: { n: { im: 1 } }, r: S.pair, b: 2 },
           { s: [VL, CL], c: { n: { im: 1 } }, r: S.pair, b: 2 },
 
+          // Walk back up the implicit pairs
           { s: [ST, CL], n: { im: -1 }, b: 2 },
           { s: [TX, CL], n: { im: -1 }, b: 2 },
           { s: [NR, CL], n: { im: -1 }, b: 2 },
@@ -1740,7 +1742,11 @@ class Parser {
             let val = rule.child.node
             let prev = rule.node[key]
 
-            val = undefined === val ? null : val
+            // Convert undefined to null when there was no pair value
+            // Otherwise leave it alone (eg. dynamic plugin sets undefined)
+            if (undefined === val && CL === ctx.u1.pin) {
+              val = null
+            }
             rule.node[key] = null == prev ? val :
               (ctx.options.object.extend ? util.deep(prev, val) : val)
           }

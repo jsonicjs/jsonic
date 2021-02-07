@@ -451,6 +451,13 @@ describe('feature', function () {
     expect(j('{a: {b: c d}}')).equals({a:{b:'c d'}})
     expect(j(' x , y z ')).equal(['x', 'y z'])
     expect(j('a: x , b: y z ')).equal({a:'x', b:'y z'})
+
+    let k = j.make({text:{hoover:false}})
+    expect(k('a b')).equals(['a','b'])
+    expect(()=>k('a: b c')).throws('JsonicError',/unexpected/)
+    expect(()=>k('{a: {b: c d}}')).throws('JsonicError',/unexpected/)
+    expect(k(' x , y z ')).equal(['x', 'y', 'z'])
+    expect(()=>k('a: x , b: y z ')).throws('JsonicError',/unexpected/)
   })
   
 
@@ -475,6 +482,23 @@ describe('feature', function () {
     expect(j('{a:1,}')).equals({a:1})
     expect(j('{,a:1,}')).equals({a:1})
     expect(j('{a:1,b:2,}')).equals({a:1,b:2})
+
+    expect(j('[{a:1},]')).equals([{a:1}])
+    expect(j('[{a:1},{b:2}]')).equals([{a:1},{b:2}])
+    
+    expect(j('[[a],]')).equals([['a']])
+    expect(j('[[a],[b],]')).equals([['a'],['b']])
+    expect(j('[[a],[b],[c],]')).equals([['a'],['b'],['c']])
+    expect(j('[[a]]')).equals([['a']])
+    expect(j('[[a][b]]')).equals([['a'],['b']])
+    expect(j('[[a][b][c]]')).equals([['a'],['b'],['c']])
+
+    expect(j('[[0],]')).equals([[0]])
+    expect(j('[[0],[1],]')).equals([[0],[1]])
+    expect(j('[[0],[1],[2],]')).equals([[0],[1],[2]])
+    expect(j('[[0]]')).equals([[0]])
+    expect(j('[[0][1]]')).equals([[0],[1]])
+    expect(j('[[0][1][2]]')).equals([[0],[1],[2]])
   })
 
 

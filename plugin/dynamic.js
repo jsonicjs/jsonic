@@ -61,7 +61,7 @@ let Dynamic = function dynamic(jsonic) {
     jsonic.rule('pair', (rs) => {
         let ST = jsonic.token.ST;
         let orig_before_close = rs.def.before_close;
-        rs.def.before_close = (rule, ctx) => {
+        rs.def.before_close = function (rule, ctx) {
             let token = rule.open[0];
             if (token) {
                 let key = ST === token.pin ? token.val : token.src;
@@ -71,7 +71,7 @@ let Dynamic = function dynamic(jsonic) {
                     defineProperty(rule.node, key, val, ctx.root, ctx.meta, ctx.options.object.extend);
                 }
                 else {
-                    return orig_before_close(rule, ctx);
+                    return orig_before_close(...arguments);
                 }
             }
         };

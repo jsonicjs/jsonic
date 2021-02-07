@@ -78,7 +78,7 @@ let Dynamic: Plugin = function dynamic(jsonic: Jsonic) {
     let ST = jsonic.token.ST
 
     let orig_before_close = rs.def.before_close
-    rs.def.before_close = (rule: Rule, ctx: Context) => {
+    rs.def.before_close = function(rule: Rule, ctx: Context) {
       let token = rule.open[0]
       if (token) {
         let key = ST === token.pin ? token.val : token.src
@@ -98,7 +98,7 @@ let Dynamic: Plugin = function dynamic(jsonic: Jsonic) {
         }
 
         else {
-          return orig_before_close(rule, ctx)
+          return orig_before_close(...arguments)
         }
       }
     }

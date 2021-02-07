@@ -24,6 +24,8 @@ let Native = function native(jsonic) {
             token.len = 9;
             token.val = undefined;
             token.src = 'undefined';
+            token.use = (token.use || {});
+            token.use.undefined = true;
         }
         else if (search.match(/^\d\d\d\d-\d\d-\d\dT\d\d:\d\d:\d\d\.\d\d\dZ$/)) {
             out = {
@@ -67,6 +69,18 @@ let Native = function native(jsonic) {
             }
         }
         return out;
+    });
+    jsonic.rule('elem', (rs) => {
+        let orig_before_close = rs.def.before_close;
+        rs.def.before_close = function (rule, ctx) {
+            if (ctx.u1.use && ctx.u1.use.undefined) {
+                rule.node.push(undefined);
+            }
+            else {
+                return orig_before_close(...arguments);
+            }
+        };
+        return rs;
     });
 };
 exports.Native = Native;
