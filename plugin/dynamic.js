@@ -24,8 +24,8 @@ let Dynamic = function dynamic(jsonic) {
         // Special case: `$$`
         rs.def.after_open = (rule) => {
             if (rule.open[0] && rule.open[1] &&
-                T$ === rule.open[0].pin &&
-                T$ === rule.open[1].pin) {
+                T$ === rule.open[0].tin &&
+                T$ === rule.open[1].tin) {
                 rule.open[1].use = rule;
                 //console.log('DOUBLE$', rule.name + '/' + rule.id, rule.open)
             }
@@ -33,7 +33,7 @@ let Dynamic = function dynamic(jsonic) {
         let bc = rs.def.before_close;
         rs.def.before_close = (rule, _ctx) => {
             if (rule.open[0] && rule.open[1]) {
-                if (T$ === rule.open[0].pin && T$ !== rule.open[1].pin) {
+                if (T$ === rule.open[0].tin && T$ !== rule.open[1].tin) {
                     // console.log('CHECK', rule.name + '/' + rule.id, rule.open)
                     let expr = (rule.open[0].use ? '$' : '') + rule.open[1].val;
                     //console.log('EXPR<', expr, '>')
@@ -64,7 +64,7 @@ let Dynamic = function dynamic(jsonic) {
         rs.def.before_close = function (rule, ctx) {
             let token = rule.open[0];
             if (token) {
-                let key = ST === token.pin ? token.val : token.src;
+                let key = ST === token.tin ? token.val : token.src;
                 let val = rule.child.node;
                 if ('function' === typeof (val) && val.__eval$$) {
                     Object.defineProperty(val, 'name', { value: key });

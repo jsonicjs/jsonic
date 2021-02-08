@@ -34,7 +34,7 @@ let Multifile = function multifile(jsonic) {
         rs.def.open.push({ s: [AT, ST] }, { s: [AT, TX] });
         let orig_before_close = rs.def.before_close;
         rs.def.before_close = function (rule, ctx) {
-            if (rule.open[0] && AT === rule.open[0].pin) {
+            if (rule.open[0] && AT === rule.open[0].tin) {
                 // TODO: text TX=foo/bar as @"foo/bar" works but @foo/bar does not!
                 let filepath = rule.open[1].val;
                 let fullpath = path_1.default.resolve(ctx.meta.basepath || popts.basepath, filepath);

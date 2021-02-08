@@ -101,7 +101,7 @@ type Meta = { [k: string]: any }
 
 // Tokens from the lexer.
 type Token = {
-  pin: any,  // Token kind.
+  tin: any,  // Token kind.
   loc: number,   // Location of token index in source text.
   len: number,   // Length of Token source text.
   row: number,   // Row location of token in source text.
@@ -456,6 +456,7 @@ type LexMatcherResult = undefined | {
   sI: number,
   rI: number
   cI: number,
+  state?: number,
 }
 
 
@@ -471,7 +472,7 @@ class Lexer {
     util.token('@LML', config) // MULTILINE
 
     this.end = {
-      pin: util.token('#ZZ', config),
+      tin: util.token('#ZZ', config),
       loc: 0,
       len: 0,
       row: 0,
@@ -510,7 +511,7 @@ class Lexer {
 
     // NOTE: always returns this object!
     let token: Token = {
-      pin: ZZ,
+      tin: ZZ,
       loc: 0,
       row: 0,
       col: 0,
@@ -524,6 +525,8 @@ class Lexer {
     let rI = 0 // Source row index.
     let cI = 0 // Source column index.
 
+    let state = LTP // Starting state.
+
     let src = ctx.src()
     let srclen = src.length
 
@@ -533,8 +536,8 @@ class Lexer {
       (null != ctx.log) ?
         ((...rest: any) => (ctx as (Context & { log: any }))
           .log(
-            'lex', tn(token.pin), F(token.src), sI, rI + ':' + cI, { ...token },
-            ...rest)) :
+            'lex', tn(token.tin), F(token.src), sI, rI + ':' + cI, tn(state),
+            { ...token }, ...rest)) :
         undefined
 
 
@@ -548,7 +551,8 @@ class Lexer {
 
     // Check for custom matchers.
     // NOTE: deliberately grabs local state (token,sI,rI,cI,...)
-    function matchers(state: Tin, rule: Rule) {
+    //function matchers(state: Tin, rule: Rule) {
+    function matchers(rule: Rule) {
       let matchers = zelf.match[state]
       if (null != matchers) {
         token.loc = sI // TODO: move to top of while for all rules?
@@ -561,6 +565,7 @@ class Lexer {
             sI = match.sI ? match.sI : sI
             rI = match.rI ? match.rI : rI
             cI = match.cI ? match.cI : cI
+            state = null == match.state ? state : match.state
 
             lexlog && lexlog(token, matcher)
             return token
@@ -578,7 +583,6 @@ class Lexer {
       token.row = rI
       token.use = undefined
 
-      let state = LTP
       let state_param: any = null
       let enders: PinMap = {}
 
@@ -589,19 +593,17 @@ class Lexer {
       next_char:
       while (sI < srclen) {
         let c0 = src[sI]
-        //let c0c = src.charCodeAt(sI)
-
 
         if (LTP === state) {
 
-          if (matchers(LTP, rule)) {
+          if (matchers(rule)) {
             return token
           }
 
           // Space chars.
           if (config.start.SP[c0]) {
 
-            token.pin = SP
+            token.tin = SP
             token.loc = sI
             token.col = cI++
 
@@ -621,7 +623,7 @@ class Lexer {
 
           // Newline chars.
           if (config.start.LN[c0]) {
-            token.pin = config.lex.core.LN
+            token.tin = config.lex.core.LN
             token.loc = sI
             token.col = cI
 
@@ -647,7 +649,7 @@ class Lexer {
 
           // Single char tokens.
           if (null != config.singlemap[c0]) {
-            token.pin = config.singlemap[c0]
+            token.tin = config.singlemap[c0]
             token.loc = sI
             token.col = cI++
             token.len = 1
@@ -661,7 +663,7 @@ class Lexer {
 
           // Number chars.
           if (config.start.NR[c0] && options.number.lex) {
-            token.pin = NR
+            token.tin = NR
             token.loc = sI
             token.col = cI
 
@@ -728,7 +730,7 @@ class Lexer {
             for (let bm of config.bmk) {
               if (marker.startsWith(bm)) {
 
-                token.pin = ST
+                token.tin = ST
                 token.loc = sI
                 token.col = cI
 
@@ -742,7 +744,7 @@ class Lexer {
 
           // String chars.
           if (config.start.ST[c0]) {
-            token.pin = ST
+            token.tin = ST
             token.loc = sI
             token.col = cI++
 
@@ -888,7 +890,7 @@ class Lexer {
 
                 // Multi-line comment.
                 if (true !== options.comment[cm]) {
-                  token.pin = CM
+                  token.tin = CM
                   token.loc = sI
                   token.col = cI
                   token.val = '' // intialize for LCS.
@@ -903,7 +905,7 @@ class Lexer {
             }
 
             // It's a single line comment.
-            token.pin = CM
+            token.tin = CM
             token.loc = sI
             token.col = cI
             token.val = '' // intialize for LCS.
@@ -940,7 +942,7 @@ class Lexer {
           let val = options.value[txt]
 
           if (undefined !== val) {
-            token.pin = VL
+            token.tin = VL
             token.val = val
             token.src = txt
             token.len = pI - sI
@@ -955,7 +957,7 @@ class Lexer {
           continue next_char
         }
         else if (LTX === state) {
-          if (matchers(LTX, rule)) {
+          if (matchers(rule)) {
             return token
           }
 
@@ -974,7 +976,7 @@ class Lexer {
 
 
           token.len = pI - sI
-          token.pin = TX
+          token.tin = TX
           token.val = src.substring(sI, pI)
           token.src = token.val
 
@@ -1001,6 +1003,8 @@ class Lexer {
             sI = pI
           }
 
+          state = LTP
+
           lexlog && lexlog(token)
           return token
         }
@@ -1008,7 +1012,7 @@ class Lexer {
 
         // Lexer State: CONSUME => all chars up to first ender
         else if (LCS === state) {
-          if (matchers(LCS, rule)) {
+          if (matchers(rule)) {
             return token
           }
 
@@ -1030,7 +1034,7 @@ class Lexer {
 
         // Lexer State: MULTILINE => all chars up to last close marker, or end
         else if (LML === state) {
-          if (matchers(LML, rule)) {
+          if (matchers(rule)) {
             return token
           }
 
@@ -1107,11 +1111,14 @@ class Lexer {
           lexlog && lexlog(token)
           return token
         }
+        else {
+          return bad('invalid_lex_state', sI, src[sI], { state: state })
+        }
       }
 
 
       // Keeps returning ZZ past end of input.
-      token.pin = ZZ
+      token.tin = ZZ
       token.loc = srclen
       token.col = cI
 
@@ -1140,7 +1147,7 @@ class Lexer {
     use?: any
   ): Token {
     token.why = why
-    token.pin = util.token('#BD', ctx.config)
+    token.tin = util.token('#BD', ctx.config)
     token.loc = sI
     token.row = rI
     token.col = cI
@@ -1149,7 +1156,7 @@ class Lexer {
     token.src = src
     token.use = use
 
-    log && log(util.token(token.pin, ctx.config), ctx.F(token.src), sI, rI + ':' + cI, { ...token },
+    log && log(util.token(token.tin, ctx.config), ctx.F(token.src), sI, rI + ':' + cI, { ...token },
       'error', why)
     return token
   }
@@ -1444,7 +1451,7 @@ class RuleSpec {
     let cond
 
     // End token not yet reached...
-    if (t.ZZ !== ctx.t0.pin) {
+    if (t.ZZ !== ctx.t0.tin) {
 
       //if (0 < alts.length) {
       out.e = ctx.t0
@@ -1467,7 +1474,6 @@ class RuleSpec {
               .reverse()))
 
         if (cond) {
-          //console.log('ALT S', alt.s)
 
           // No tokens to match.
           if (null == alt.s || 0 === alt.s.length) {
@@ -1476,13 +1482,13 @@ class RuleSpec {
           }
 
           // Match 1 or 2 tokens in sequence.
-          else if (alt.s[0] === ctx.t0.pin) {
+          else if (alt.s[0] === ctx.t0.tin) {
             if (1 === alt.s.length) {
               out.m = [ctx.t0]
               out.e = undefined
               break
             }
-            else if (alt.s[1] === ctx.t1.pin) {
+            else if (alt.s[1] === ctx.t1.tin) {
               out.m = [ctx.t0, ctx.t1]
               out.e = undefined
               break
@@ -1521,7 +1527,7 @@ class RuleSpec {
       'p=' + (out.p || ''),
       'r=' + (out.r || ''),
       'b=' + (out.b || ''),
-      out.m.map((tkn: Token) => t[tkn.pin]).join(' '),
+      out.m.map((tkn: Token) => t[tkn.tin]).join(' '),
       ctx.F(out.m.map((tkn: Token) => tkn.src)),
       'c:' + ((alt && alt.c) ? cond : ''),
       'n:' + Object.entries(rule.n).join(';'),
@@ -1631,10 +1637,10 @@ class Parser {
           // and thus can specify m to move lex forward
           {
             c: (_alt: any, _rule: Rule, ctx: Context) => {
-              return (TX === ctx.t0.pin ||
-                NR === ctx.t0.pin ||
-                ST === ctx.t0.pin ||
-                VL === ctx.t0.pin
+              return (TX === ctx.t0.tin ||
+                NR === ctx.t0.tin ||
+                ST === ctx.t0.tin ||
+                VL === ctx.t0.tin
               ) && 0 === ctx.rs.length
             },
             r: S.elem,
@@ -1718,14 +1724,14 @@ class Parser {
         ],
         before_close: (rule: Rule, ctx: Context) => {
           let key_token = rule.open[0]
-          if (key_token && CB !== key_token.pin) {
-            let key = ST === key_token.pin ? key_token.val : key_token.src
+          if (key_token && CB !== key_token.tin) {
+            let key = ST === key_token.tin ? key_token.val : key_token.src
             let val = rule.child.node
             let prev = rule.node[key]
 
             // Convert undefined to null when there was no pair value
             // Otherwise leave it alone (eg. dynamic plugin sets undefined)
-            if (undefined === val && CL === ctx.u1.pin) {
+            if (undefined === val && CL === ctx.u1.tin) {
               val = null
             }
             rule.node[key] = null == prev ? val :
@@ -1882,7 +1888,7 @@ class Parser {
       do {
         t1 = lex(rule)
         ctx.tI++
-      } while (ignore && config.tokenset.IGNORE[t1.pin])
+      } while (ignore && config.tokenset.IGNORE[t1.tin])
 
       ctx.t1 = { ...t1 }
 
@@ -1901,7 +1907,7 @@ class Parser {
     while (norule !== rule && rI < maxr) {
       ctx.log &&
         ctx.log('rule', rule.name + '/' + rule.id, RuleState[rule.state],
-          ctx.rs.length, ctx.tI, '[' + tn(ctx.t0.pin) + ' ' + tn(ctx.t1.pin) + ']',
+          ctx.rs.length, ctx.tI, '[' + tn(ctx.t0.tin) + ' ' + tn(ctx.t1.tin) + ']',
           '[' + ctx.F(ctx.t0.src) + ' ' + ctx.F(ctx.t1.src) + ']', rule, ctx)
 
       rule = rule.process(ctx)
@@ -1914,7 +1920,7 @@ class Parser {
     }
 
     // TODO: option for this
-    if (util.token('#ZZ', this.config) !== ctx.t0.pin) {
+    if (util.token('#ZZ', this.config) !== ctx.t0.tin) {
       throw new JsonicError(S.unexpected, {}, ctx.t0, norule, ctx)
     }
 
@@ -2047,6 +2053,7 @@ let util = {
         if (exclude_objects) {
           let logstr = rest
             .filter((item: any) => S.object != typeof (item))
+            .map((item: any) => S.function == typeof (item) ? item.name : item)
             .join('\t')
           ctx.options.debug.get_console().log(logstr)
         }
@@ -2064,7 +2071,7 @@ let util = {
     let wrap: any = (rule: Rule) => {
       let token = lex(rule)
 
-      if (BD === token.pin) {
+      if (BD === token.tin) {
         let details: any = {}
         if (null != token.use) {
           details.use = token.use
@@ -2167,7 +2174,7 @@ let util = {
           }
 
           let token = ex.token || {
-            pin: zelf.token.UK,
+            tin: zelf.token.UK,
             loc: loc,
             len: tsrc.length,
             row: ex.lineNumber || row,
@@ -2251,7 +2258,7 @@ let util = {
       ),
       '  \x1b[2mhttps://jsonic.richardrodger.com\x1b[0m',
       '  \x1b[2m--internal: rule=' + rule.name + '~' + RuleState[rule.state] +
-      '; token=' + ctx.config.token[token.pin] +
+      '; token=' + ctx.config.token[token.tin] +
       '; plugins=' + ctx.plugins().map((p: any) => p.name).join(',') + '--\x1b[0m\n'
     ].join('\n')
 
@@ -2502,8 +2509,6 @@ function make(param_options?: KV, parent?: Jsonic): Jsonic {
     parse: jsonic,
 
     use: function use(plugin: Plugin, plugin_options?: KV): Jsonic {
-      //console.log('AAA', JSON.stringify(jsonic))
-
       jsonic.options({ plugin: { [plugin.name]: plugin_options || {} } })
       jsonic.internal().plugins.push(plugin)
       return plugin(jsonic) || jsonic
@@ -2584,17 +2589,13 @@ function make(param_options?: KV, parent?: Jsonic): Jsonic {
   Object.assign(jsonic.token, config.token)
 
 
-  // console.log('QQQ', api.options, 'WWW', jsonic.options)
-
-
-
   return jsonic
 }
 
 
 // Generate hint text lookup.
 // NOTE: generated and inserted by hint.js
-function make_hint(d = (t: any, r = 'replace') => t[r](/[A-Z]/g, (m: any) => ' ' + m.toLowerCase())[r](/[~%][a-z]/g, (m: any) => ('~' == m[0] ? ' ' : '') + m[1].toUpperCase()), s = '~sinceTheErrorIsUnknown,ThisIsProbablyABugInsideJsonic\nitself.~pleaseConsiderPostingAGithubIssue -Thanks!|~theCharacter(s) $srcShouldNotOccurAtThisPointAsItIsNot\nvalid %j%s%o%nSyntax,EvenUnderTheRelaxedJsonicRules.~ifItIs\nnotObviouslyWrong,TheActualSyntaxErrorMayBeElsewhere.~try\ncommentingOutLargerAreasAroundThisPointUntilYouGetNoErrors,\nthenRemoveTheCommentsInSmallSectionsUntilYouFindThe\noffendingSyntax.~n%o%t%e:~alsoCheckIfAnyPluginsOrModesYouAre\nusingExpectDifferentSyntaxInThisCase.|~theEscapeSequence $srcDoesNotEncodeAValidUnicodeCodePoint\nnumber.~youMayNeedToValidateYourStringDataManuallyUsingTest\ncodeToSeeHow~javaScriptWillInterpretIt.~alsoConsiderThatYour\ndataMayHaveBecomeCorrupted,OrTheEscapeSequenceHasNotBeen\ngeneratedCorrectly.|~theEscapeSequence $srcDoesNotEncodeAValid~a%s%c%i%iCharacter.~you\nmayNeedToValidateYourStringDataManuallyUsingTestCodeToSee\nhow~javaScriptWillInterpretIt.~alsoConsiderThatYourDataMay\nhaveBecomeCorrupted,OrTheEscapeSequenceHasNotBeenGenerated\ncorrectly.|~stringValuesCannotContainUnprintableCharacters (characterCodes\nbelow 32).~theCharacter $srcIsUnprintable.~youMayNeedToRemove\ntheseCharactersFromYourSourceData.~alsoCheckThatItHasNot\nbecomeCorrupted.|~stringValuesCannotBeMissingTheirFinalQuoteCharacter,Which\nshouldMatchTheirInitialQuoteCharacter.'.split('|')): any { return 'unknown|unexpected|invalid_unicode|invalid_ascii|unprintable|unterminated'.split('|').reduce((a: any, n, i) => (a[n] = d(s[i]), a), {}) }
+function make_hint(d = (t: any, r = 'replace') => t[r](/[A-Z]/g, (m: any) => ' ' + m.toLowerCase())[r](/[~%][a-z]/g, (m: any) => ('~' == m[0] ? ' ' : '') + m[1].toUpperCase()), s = '~sinceTheErrorIsUnknown,ThisIsProbablyABugInsideJsonic\nitself,OrAPlugin.~pleaseConsiderPostingAGithubIssue -Thanks!|~theCharacter(s) $srcShouldNotOccurAtThisPointAsItIsNot\nvalid %j%s%o%nSyntax,EvenUnderTheRelaxedJsonicRules.~ifItIs\nnotObviouslyWrong,TheActualSyntaxErrorMayBeElsewhere.~try\ncommentingOutLargerAreasAroundThisPointUntilYouGetNoErrors,\nthenRemoveTheCommentsInSmallSectionsUntilYouFindThe\noffendingSyntax.~n%o%t%e:~alsoCheckIfAnyPluginsOrModesYouAre\nusingExpectDifferentSyntaxInThisCase.|~theEscapeSequence $srcDoesNotEncodeAValidUnicodeCodePoint\nnumber.~youMayNeedToValidateYourStringDataManuallyUsingTest\ncodeToSeeHow~javaScriptWillInterpretIt.~alsoConsiderThatYour\ndataMayHaveBecomeCorrupted,OrTheEscapeSequenceHasNotBeen\ngeneratedCorrectly.|~theEscapeSequence $srcDoesNotEncodeAValid~a%s%c%i%iCharacter.~you\nmayNeedToValidateYourStringDataManuallyUsingTestCodeToSee\nhow~javaScriptWillInterpretIt.~alsoConsiderThatYourDataMay\nhaveBecomeCorrupted,OrTheEscapeSequenceHasNotBeenGenerated\ncorrectly.|~stringValuesCannotContainUnprintableCharacters (characterCodes\nbelow 32).~theCharacter $srcIsUnprintable.~youMayNeedToRemove\ntheseCharactersFromYourSourceData.~alsoCheckThatItHasNot\nbecomeCorrupted.|~stringValuesCannotBeMissingTheirFinalQuoteCharacter,Which\nshouldMatchTheirInitialQuoteCharacter.'.split('|')): any { return 'unknown|unexpected|invalid_unicode|invalid_ascii|unprintable|unterminated'.split('|').reduce((a: any, n, i) => (a[n] = d(s[i]), a), {}) }
 
 
 

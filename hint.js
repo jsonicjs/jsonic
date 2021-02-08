@@ -15,7 +15,7 @@ const Fs = require('fs')
 let hint = {
   unknown:
   ` Since the error is unknown, this is probably a bug inside jsonic
-itself. Please consider posting a github issue - thanks!`,
+itself, or a plugin. Please consider posting a github issue - thanks!`,
 
   unexpected:
   ` The character(s) $src should not occur at this point as it is not

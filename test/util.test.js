@@ -306,14 +306,14 @@ describe('util', () => {
     }
 
     try {
-      wrap_bad_lex(()=>({pin:1}),1,ctx)({})
+      wrap_bad_lex(()=>({tin:1}),1,ctx)({})
     }
     catch(e) {
       expect(e.code).equals('unexpected')
     }
 
     try {
-      wrap_bad_lex(()=>({pin:1,use:{x:1}}),1,ctx)({})
+      wrap_bad_lex(()=>({tin:1,use:{x:1}}),1,ctx)({})
     }
     catch(e) {
       expect(e.code).equals('unexpected')
@@ -403,6 +403,26 @@ describe('util', () => {
       'stack 0 '
     ])
 
+    log = []
+    expect(()=>j0('{{',{log:(...r)=>log.push(r)})).throws()
+    expect(log.map(x=>x[0]+' '+x[1]+' '+x[2])).equals([
+      'lex #OB "{"',
+      'lex #OB "{"',
+      'rule val/1 open',
+      'parse val/1 open',
+      'lex #ZZ ',
+      'node val/1 open',
+      'stack 1 val/1',
+      'rule map/2 open',
+      'parse map/2 open',
+      'node map/2 open',
+      'stack 2 val/1;map/2',
+      'rule pair/3 open',
+      'parse pair/3 open'
+    ])
+
+
+    
     log = []
     let d0 = j0(`
 "a", 0x10, 0o20, 0b10000, true, a b,
@@ -593,7 +613,7 @@ describe('util', () => {
           }
 
           token.len = pI - sI + 1
-          token.pin = jsonic.token.TX
+          token.tin = jsonic.token.TX
           token.val = src.substring(sI+1, pI).toUpperCase()
           token.src = src.substring(sI, pI+1)
 
@@ -648,6 +668,9 @@ describe('util', () => {
       'node val/1 close',
       'stack 0 '
     ])
+
+
+
   })
 
 
@@ -676,7 +699,7 @@ describe('util', () => {
     let d0 = util.make_error_desc(
       'foo',
       {},
-      {pin:1},
+      {tin:1},
       {},
       ctx0
     )
@@ -688,7 +711,7 @@ describe('util', () => {
     let d1 = util.make_error_desc(
       'not-a-code',
       {x:1},
-      {pin:1},
+      {tin:1},
       {},
       {...ctx0, meta:{mode:'m0',fileName:'fn0'}}
     )

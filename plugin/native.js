@@ -20,7 +20,7 @@ let Native = function native(jsonic) {
                 rI,
                 cI: cI + 9
             };
-            token.pin = VL;
+            token.tin = VL;
             token.len = 9;
             token.val = undefined;
             token.src = 'undefined';
@@ -33,7 +33,7 @@ let Native = function native(jsonic) {
                 rI: 0,
                 cI: cI + 24
             };
-            token.pin = VL;
+            token.tin = VL;
             token.len = search.length;
             token.val = new Date(search);
             token.src = search;
@@ -57,7 +57,7 @@ let Native = function native(jsonic) {
                     cD++;
                 }
                 let res = src.substring(sI, pI);
-                token.pin = VL;
+                token.tin = VL;
                 token.src = res;
                 token.len = res.length;
                 token.val = eval(res);

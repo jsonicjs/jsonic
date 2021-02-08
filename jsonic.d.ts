@@ -69,7 +69,7 @@ declare type Meta = {
     [k: string]: any;
 };
 declare type Token = {
-    pin: any;
+    tin: any;
     loc: number;
     len: number;
     row: number;
@@ -168,6 +168,7 @@ declare type LexMatcherResult = undefined | {
     sI: number;
     rI: number;
     cI: number;
+    state?: number;
 };
 declare class Lexer {
     end: Token;

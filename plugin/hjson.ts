@@ -9,6 +9,7 @@ import { Jsonic, Plugin, Token, Context } from '../jsonic'
 let HJson: Plugin = function hjson(jsonic: Jsonic) {
   let CL = jsonic.token.CL
   let TX = jsonic.token.TX
+  let LTP = jsonic.token.LTP
 
 
   // Consume to end of line.
@@ -25,20 +26,20 @@ let HJson: Plugin = function hjson(jsonic: Jsonic) {
     let pI = sI
     let srclen = src.length
 
-    if (ctx.t0.pin === CL) {
+    if (ctx.t0.tin === CL) {
       while (pI < srclen && !ctx.config.multi.LN[src[pI]]) {
         pI++
         cI++
       }
 
       token.len = pI - sI
-      token.pin = TX
+      token.tin = TX
       token.val = src.substring(sI, pI)
       token.src = token.val
 
       sI = pI
 
-      return { sI, rI, cI }
+      return { sI, rI, cI, state: LTP }
     }
   })
 

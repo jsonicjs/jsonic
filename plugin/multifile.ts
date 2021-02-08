@@ -41,7 +41,7 @@ let Multifile: Plugin = function multifile(jsonic: Jsonic) {
 
     let orig_before_close = rs.def.before_close
     rs.def.before_close = function(rule: any, ctx: any) {
-      if (rule.open[0] && AT === rule.open[0].pin) {
+      if (rule.open[0] && AT === rule.open[0].tin) {
         // TODO: text TX=foo/bar as @"foo/bar" works but @foo/bar does not!
         let filepath = rule.open[1].val
         let fullpath = Path.resolve(ctx.meta.basepath || popts.basepath, filepath)

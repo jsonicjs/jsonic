@@ -37,7 +37,7 @@ let Native: Plugin = function native(jsonic: Jsonic) {
         cI: cI + 9
       }
 
-      token.pin = VL
+      token.tin = VL
       token.len = 9
       token.val = undefined
       token.src = 'undefined'
@@ -52,7 +52,7 @@ let Native: Plugin = function native(jsonic: Jsonic) {
         cI: cI + 24
       }
 
-      token.pin = VL
+      token.tin = VL
       token.len = search.length
       token.val = new Date(search)
       token.src = search
@@ -84,7 +84,7 @@ let Native: Plugin = function native(jsonic: Jsonic) {
 
         let res = src.substring(sI, pI)
 
-        token.pin = VL
+        token.tin = VL
         token.src = res
         token.len = res.length
         token.val = eval(res)
