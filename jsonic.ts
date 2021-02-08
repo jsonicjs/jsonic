@@ -1305,8 +1305,9 @@ class RuleSpec {
       rule.node = out && out.node || rule.node
     }
 
-    let act: RuleAct = (null == out || !out.done) ?
-      this.parse_alts(this.def.open, rule, ctx) : empty_ruleact
+    let act: RuleAct = (out && out.act) ? { ...empty_ruleact, ...out.act } :
+      0 < this.def.open.length ? this.parse_alts(this.def.open, rule, ctx) :
+        empty_ruleact
 
     if (act.e) {
       throw new JsonicError(S.unexpected, { open: true }, act.e, rule, ctx)
@@ -1361,12 +1362,15 @@ class RuleSpec {
     let next: Rule = norule
     let why = ''
 
+    let out
     if (this.def.before_close) {
-      this.def.before_close.call(this, rule, ctx)
+      out = this.def.before_close.call(this, rule, ctx, next)
+      rule.node = out && out.node || rule.node
     }
 
-    let act: RuleAct =
-      0 < this.def.close.length ? this.parse_alts(this.def.close, rule, ctx) : empty_ruleact
+    let act: RuleAct = (out && out.act) ? { ...empty_ruleact, ...out.act } :
+      0 < this.def.close.length ? this.parse_alts(this.def.close, rule, ctx) :
+        empty_ruleact
 
     if (act.e) {
       throw new JsonicError(S.unexpected, { close: true }, act.e, rule, ctx)
@@ -1381,7 +1385,7 @@ class RuleSpec {
     }
 
     if (act.h) {
-      next = act.h(this, rule, ctx) || next
+      next = act.h(this, rule, ctx, next) || next
       why += 'H'
     }
 
@@ -1442,65 +1446,68 @@ class RuleSpec {
     // End token not yet reached...
     if (t.ZZ !== ctx.t0.pin) {
 
-      if (0 < alts.length) {
-        out.e = ctx.t0
+      //if (0 < alts.length) {
+      out.e = ctx.t0
 
-        for (altI = 0; altI < alts.length; altI++) {
-          alt = alts[altI]
+      for (altI = 0; altI < alts.length; altI++) {
+        alt = alts[altI]
 
-          // Optional custom condition
-          cond = alt.c ? alt.c(alt, rule, ctx) : true
+        // Optional custom condition
+        cond = alt.c ? alt.c(alt, rule, ctx) : true
 
-          // Depth.
-          cond = cond && null == alt.d ? true : alt.d === ctx.rs.length
+        // Depth.
+        cond = cond && null == alt.d ? true : alt.d === ctx.rs.length
 
-          // Ancestors.
-          cond = cond &&
-            (null == alt.a ? true :
-              util.marr(alt.a, ctx.rs
-                .slice(-(alt.a.length))
-                .map(r => r.name)
-                .reverse()))
+        // Ancestors.
+        cond = cond &&
+          (null == alt.a ? true :
+            util.marr(alt.a, ctx.rs
+              .slice(-(alt.a.length))
+              .map(r => r.name)
+              .reverse()))
 
-          if (cond) {
+        if (cond) {
+          //console.log('ALT S', alt.s)
 
-            // No tokens to match.
-            if (null == alt.s || 0 === alt.s.length) {
-              out.e = undefined
-              break
-            }
+          // No tokens to match.
+          if (null == alt.s || 0 === alt.s.length) {
+            out.e = undefined
+            break
+          }
 
-            // Match 1 or 2 tokens in sequence.
-            else if (alt.s[0] === ctx.t0.pin) {
-              if (1 === alt.s.length) {
-                out.m = [ctx.t0]
-                out.e = undefined
-                break
-              }
-              else if (alt.s[1] === ctx.t1.pin) {
-                out.m = [ctx.t0, ctx.t1]
-                out.e = undefined
-                break
-              }
-            }
-
-            // Match any token.
-            else if (t.AA === alt.s[0]) {
+          // Match 1 or 2 tokens in sequence.
+          else if (alt.s[0] === ctx.t0.pin) {
+            if (1 === alt.s.length) {
               out.m = [ctx.t0]
               out.e = undefined
               break
             }
+            else if (alt.s[1] === ctx.t1.pin) {
+              out.m = [ctx.t0, ctx.t1]
+              out.e = undefined
+              break
+            }
+          }
+
+          // Match any token.
+          else if (t.AA === alt.s[0]) {
+            out.m = [ctx.t0]
+            out.e = undefined
+            break
           }
         }
 
-        if (null != alt) {
-          out.b = alt.b ? alt.b : out.b
-          out.p = alt.p ? alt.p : out.p
-          out.r = alt.r ? alt.r : out.r
-          out.n = alt.n ? alt.n : out.n
-          out.h = alt.h ? alt.h : out.h
-        }
+        alt = null
       }
+
+      if (null != alt) {
+        out.b = alt.b ? alt.b : out.b
+        out.p = alt.p ? alt.p : out.p
+        out.r = alt.r ? alt.r : out.r
+        out.n = alt.n ? alt.n : out.n
+        out.h = alt.h ? alt.h : out.h
+      }
+      //}
     }
 
     ctx.log && ctx.log(
@@ -1521,12 +1528,10 @@ class RuleSpec {
       out)
 
     // Lex forward
-    if (out.m) {
-      let mI = 0
-      let rewind = out.m.length - (out.b || 0)
-      while (mI++ < rewind) {
-        ctx.next()
-      }
+    let mI = 0
+    let rewind = out.m.length - (out.b || 0)
+    while (mI++ < rewind) {
+      ctx.next()
     }
 
     return out

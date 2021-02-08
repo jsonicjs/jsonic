@@ -64,6 +64,7 @@ describe('feature', function () {
     expect(j('a\nb')).equals(['a','b'])
     expect(j('1\n2\n3')).equals([1,2,3])
     expect(j('a\nb\nc')).equals(['a','b','c'])
+    expect(j('true\nfalse\nnull')).equals([true,false,null])
   })
 
 

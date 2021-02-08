@@ -543,6 +543,86 @@ describe('jsonic', function () {
   })
 
 
+
+  // NOTE: do not use this as a template! It's silly way to do things driven
+  // by code coverage.
+  it('custom-parser', () => {
+    let c0 = j.make()
+    let rns = c0.rule()
+    Object.keys(rns).map(rn=>c0.rule(rn,null))
+    expect(Object.keys(c0.rule())).equal([])
+
+    let NR = c0.token.NR
+    let CA = c0.token.CA
+    
+    c0.rule('val', (rs,rsm)=>{
+      rs = new j.RuleSpec('val',{
+        open:[
+          {p:'list'}
+        ],
+        before_open: (rule, ctx) => {
+          rule.node = rule.node || {v:0}
+        },
+      })
+      return rs
+    })
+
+    c0.rule('list', (rs,rsm)=>{
+      rs = new j.RuleSpec('list',{
+        open:[
+          {r:'done'}
+        ],
+        before_close: (rule) => ({node:rule.node}),
+        before_open: (rule) => ({node:rule.node}),
+      })
+      return rs
+    })
+
+    c0.rule('done', (rs,rsm)=>{
+      rs = new j.RuleSpec('done',{
+        before_open: (rule,ctx) => {
+          return {act:{p:'add'}}
+        },
+        before_close: (rule,ctx) => {
+          return {act:{}}
+        }
+      })
+      return rs
+    })
+
+    
+    c0.rule('add', (rs,rsm)=>{
+      rs = new j.RuleSpec('add',{
+        open:[
+          {s:[NR]}
+        ],
+        close: [
+          {s:[],r:'sep'}
+        ],
+        before_close: () => ({}),
+        before_open: () => ({}),
+      })
+      return rs
+    })
+
+    c0.rule('sep', (rs,rsm)=>{
+      rs = new j.RuleSpec('sep',{
+        close:[
+          {s:[CA],r:'add',n:{x:1},h:(rule,ctx,next)=>next}
+        ],
+        before_close: (rule) => ({node:rule.node}),
+        after_close: (rule, ctx) => {
+          rule.node.v += (ctx.u2 ? ctx.u2.val : 0)
+          return {node:rule.node}
+        }
+      })
+      return rs
+    })
+
+    expect(c0('1, 2, 3,',{xlog:-1})).equal({v:6})
+  })
+
+  
   // Test against all combinations of chars up to `len`
   // NOTE: coverage tracing slows this down - a lot!
   it('exhaust', {timeout:33333}, function(){
