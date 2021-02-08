@@ -821,19 +821,6 @@ class Lexer {
                 }
               }
 
-              /*
-              // Unprintable chars.
-              //else if (cc < 32) {
-              else if (cs.charCodeAt(0) < 32) {
-                if (multiline && config.start.LN[cs]) {
-                  s.push(src[pI])
-                }
-                else {
-                  return bad('unprintable', pI, 'char-code=' + src[pI].charCodeAt(0))
-                }
-              }
-              */
-
               // Body part of string.
               else {
                 let bI = pI
@@ -868,9 +855,8 @@ class Lexer {
                 else {
                   s.push(src.substring(bI, pI))
 
-                  if (esc === cc || qc === cc || isNaN(cc)) {
-                    pI--
-                  }
+                  // Handle qc, esc, EOF at top of loop
+                  pI--
                 }
               }
             }
@@ -892,9 +878,8 @@ class Lexer {
 
           // Comment chars.
           if (config.charset.start_commentmarker[c0]) {
-            let is_line_comment = !!config.charset.cm_single[c0]
 
-            // Also check for comment markers as single comment char could be
+            // Check for comment markers as single comment char could be
             // a comment marker prefix (eg. # and ###, / and //, /*).
             let marker = src.substring(sI, sI + config.cmk_maxlen)
 
@@ -912,23 +897,20 @@ class Lexer {
                   state_param = [cm, options.comment[cm], 'comment']
                   continue next_char
                 }
-                else {
-                  is_line_comment = true
-                }
+
                 break;
               }
             }
 
-            if (is_line_comment) {
-              token.pin = CM
-              token.loc = sI
-              token.col = cI
-              token.val = '' // intialize for LCS.
+            // It's a single line comment.
+            token.pin = CM
+            token.loc = sI
+            token.col = cI
+            token.val = '' // intialize for LCS.
 
-              state = LCS
-              enders = config.multi.LN
-              continue next_char
-            }
+            state = LCS
+            enders = config.multi.LN
+            continue next_char
           }
 
 
@@ -1305,13 +1287,7 @@ class RuleSpec {
     this.def.open = this.def.open || []
     this.def.close = this.def.close || []
 
-    for (let alt of this.def.open) {
-      if (null != alt.c) {
-        alt.c = norm_cond(alt.c)
-      }
-    }
-
-    for (let alt of this.def.close) {
+    for (let alt of [...this.def.open, ...this.def.close]) {
       if (null != alt.c) {
         alt.c = norm_cond(alt.c)
       }
