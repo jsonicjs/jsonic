@@ -147,7 +147,49 @@ describe('plugin', function () {
   })
 
 
+  it('mode', () => {
+    let j0 = Jsonic.make({mode:{
+      foo: ()=>[true,'FOO!'],
+      bar: 'BAR', // will be ignored as not a function
+      err: ()=>{throw new Error('bad-mode')},
+      natural_syntax_error: (src)=>{return[true,eval(src)]},
+      broken_syntax_error: ()=>{throw new SyntaxError('broken')},
+      custom0: ()=>{
+        let e = new SyntaxError('custom0');
+        e.code = 'custom0'
+        e.details = {x:1}
+        e.ctx = {y:2,src:()=>'',plugins:()=>[],
+                 config:{token:{}},
+                 options:{error:{unknown:'unknown'},
+                          hint:{unknown:'unknown'}}}
+        e.token = {z:3}
+        throw e
+      },
+      custom1: ()=>{
+        let e = new SyntaxError('custom1');
+        e.code = 'custom1'
+        e.details = {x:1}
+        e.ctx = {y:2,src:()=>'',plugins:()=>[],
+                 config:{token:{}},
+                 options:{error:{unknown:'unknown'},
+                          hint:{unknown:'unknown'}}}
+        e.lineNumber = 4
+        e.columnNumber = 5
+        throw e
+      }
+    }})
+    expect(j0('a:1')).equals({a:1})
+    expect(j0('a:1',{mode:'foo'})).equals('FOO!')
+    expect(j0('a:1',{mode:'bar'})).equals({a:1})
+    expect(()=>j0('a:1',{mode:'err'})).throws('Error', /bad-mode/)
+    expect(()=>j0('}',{mode:'natural_syntax_error'})).throws('SyntaxError',/unknown/)
+    expect(()=>j0('a:1',{mode:'broken_syntax_error'})).throws('Error', /broken/)
+    expect(()=>j0('a:1',{mode:'custom0'})).throws('SyntaxError', /custom0/)
+    expect(()=>j0('a:1',{mode:'custom1'})).throws('SyntaxError', /custom1/)
+  })
 
+
+  
   it('plugin-opts', () => {
     // use make to avoid polluting Jsonic
     let x = null

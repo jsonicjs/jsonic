@@ -420,7 +420,6 @@ class JsonicError extends SyntaxError {
     let desc = util.make_error_desc(code, details, token, rule, errctx)
     super(desc.message)
     Object.assign(this, desc)
-
     util.clean_stack(this)
   }
 
@@ -2150,7 +2149,8 @@ let util = {
   },
 
 
-  handle_meta_mode: (zelf: Jsonic, src: string, meta: KV): any[] => {
+  // Returns tuple to allow for undefined as a result: [done, value].
+  handle_meta_mode: (zelf: Jsonic, src: string, meta: KV): [boolean, any] => {
     let options = zelf.options
     if (S.function === typeof (options.mode[meta.mode])) {
       try {
@@ -2170,7 +2170,7 @@ let util = {
             //row = row < 0 ? 0 : row
             let cI = loc - 1
             while (-1 < cI && '\n' !== src.charAt(cI)) cI--;
-            col = cI < loc ? src.substring(cI, loc).length - 1 : 0
+            col = Math.max(src.substring(cI, loc).length - 1, 0)
           }
 
           let token = ex.token || {
@@ -2219,7 +2219,7 @@ let util = {
       }
     }
     else {
-      return [false]
+      return [false, null]
     }
   },
 
