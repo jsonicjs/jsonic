@@ -1665,6 +1665,7 @@ let util = {
         // Apply any config modifiers (probably from plugins).
         Object.keys(options.config.modify)
             .forEach((plugin_name) => options.config.modify[plugin_name](config, options));
+        // TODO: use options.debug.get_console! then test!
         /* $lab:coverage:off$ */
         if (options.debug.print_config) {
             console.log(config);

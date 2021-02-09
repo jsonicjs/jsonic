@@ -2432,6 +2432,7 @@ let util = {
       .forEach((plugin_name: string) =>
         options.config.modify[plugin_name](config, options))
 
+    // TODO: use options.debug.get_console! then test!
     /* $lab:coverage:off$ */
     if (options.debug.print_config) {
       console.log(config)

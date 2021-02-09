@@ -27,13 +27,15 @@ let HJson: Plugin = function hjson(jsonic: Jsonic) {
     let srclen = src.length
 
     if (ctx.t0.tin === CL) {
+      /* $lab:coverage:off$ */
       while (pI < srclen && !ctx.config.multi.LN[src[pI]]) {
+        /* $lab:coverage:on$ */
         pI++
         cI++
       }
 
-      token.len = pI - sI
       token.tin = TX
+      token.len = pI - sI
       token.val = src.substring(sI, pI)
       token.src = token.val
 

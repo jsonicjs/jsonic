@@ -6,3 +6,4 @@ blue:    @blue01.js
 cyan:    @cyan.csv
 tree:    @"trunk/branch.jsonic"
 again:   @again.jsonic
+func:    @func.js

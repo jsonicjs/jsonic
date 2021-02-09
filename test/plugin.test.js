@@ -16,6 +16,7 @@ const expect = Code.expect
 
 const { Jsonic, Lexer, Parser, JsonicError, make } = require('..')
 const { Json } = require('../plugin/json')
+const { HJson } = require('../plugin/hjson')
 const { Csv } = require('../plugin/csv')
 const { Dynamic } = require('../plugin/dynamic')
 const { Native } = require('../plugin/native')
@@ -313,6 +314,15 @@ a:{x:1,y:2}
   })
 
 
+  it('hjson-basic', () => {
+    let k = Jsonic.make().use(HJson)
+    expect(k('a:1')).equal({a:1})
+    expect(k('{a:1}')).equal({a:1})
+    expect(k('a:a')).equal({a:'a'})
+    expect(k('{a:a}')).equal({a:'a}'})
+  })
+
+
   it('csv-basic', () => {
     let rec0 = [
       { a: 1, b: 2 },
@@ -426,8 +436,13 @@ a x\t"b\\tx"
   it('multifile-basic', () => {
     let k = Jsonic.make().use(Multifile,{basepath:__dirname})
 
-    let d = k('@"multifile/main01.jsonic"')
-    expect(d).equal({
+    let d = k('')
+    expect(undefined).equal(d)
+    d = k('#')
+    expect(undefined).equal(d)
+
+    
+    let d0 = {
       dynamic: '$1+1',
       red: { name: 'RED' },
       redder: { red: '$.red' },
@@ -438,8 +453,22 @@ a x\t"b\\tx"
       again: { foo: '$1+1',
                red_name: '$.red.name',
                item0: { extra: 0 },
-               item1: { extra: 1 } }
-    })
+               item1: { extra: 1 } },
+      func: 'FUNC',
+    }
+    
+    d = k('@"multifile/main01.jsonic"')
+    expect(d).equal(d0)
+
+    d = k('')
+    expect(undefined).equal(d)
+    
+    let k0 = Jsonic
+        .make({plugin:{json:{},csv:{}}})
+        .use(Multifile,{basepath:__dirname})
+    d = k0('@"multifile/main01.jsonic"')
+    expect(d).equal(d0)
+
   })
 
 
@@ -466,7 +495,8 @@ a x\t"b\\tx"
       tree: { stem0: 'leaf0', stem1: { caterpillar: { tummy: 'yummy!' } } },
       again: { foo: 2, red_name: 'RED',
                item0: { name: 'RED', extra: 0 },
-               item1: { name: 'RED', extra: 1 } }
+               item1: { name: 'RED', extra: 1 } },
+      func: 'FUNC',
     }
 
     // NOTE: verifying getters are stable
