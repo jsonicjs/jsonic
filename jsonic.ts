@@ -1654,8 +1654,10 @@ class Parser {
         ],
         before_close: (rule: Rule) => {
           // NOTE: val can be undefined when there is no value at all
-          // (eg. empty string)
-          rule.node = rule.child.node ?? rule.open[0]?.val
+          // (eg. empty string, thus no matched opening token)
+          rule.node = undefined === rule.child.node ?
+            (null == rule.open[0] ? undefined : rule.open[0].val) :
+            rule.child.node
         },
       },
 
@@ -1814,7 +1816,7 @@ class Parser {
       delete this.rsm[name]
     }
 
-    // Else add or redfine a rule by name.
+    // Else add or redefine a rule by name.
     else if (undefined !== define) {
       rs = this.rsm[name] = (define(this.rsm[name], this.rsm) || this.rsm[name])
     }
@@ -1878,7 +1880,7 @@ class Parser {
       2 * options.rule.maxmul
 
     // Lex next token.
-    function next(ignore = true) {
+    function next() {
       ctx.u2 = ctx.u1
       ctx.u1 = ctx.t0
       ctx.t0 = ctx.t1
@@ -1887,7 +1889,7 @@ class Parser {
       do {
         t1 = lex(rule)
         ctx.tI++
-      } while (ignore && config.tokenset.IGNORE[t1.tin])
+      } while (config.tokenset.IGNORE[t1.tin])
 
       ctx.t1 = { ...t1 }
 

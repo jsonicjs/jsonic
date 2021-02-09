@@ -636,6 +636,18 @@ describe('feature', function () {
     expect(rval.name).equals('foo')
     rval = p0.rule()
     expect(Object.keys(rval)).equals(['map', 'list', 'pair', 'elem', 'foo'])
+
+
+    // Modify RuleSpec
+    p0.rule('foo',(rs)=>{
+      rs.x = 1
+    })
+    rval = p0.rule('foo')
+    expect(rval.name).equals('foo')
+    expect(rval.x).equals(1)
+    rval = p0.rule()
+    expect(Object.keys(rval)).equals(['map', 'list', 'pair', 'elem', 'foo'])
+
     
     // Get all matchers for all states
     let mm0 = p0.lex()

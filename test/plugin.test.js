@@ -189,7 +189,6 @@ describe('plugin', function () {
   })
 
 
-  
   it('plugin-opts', () => {
     // use make to avoid polluting Jsonic
     let x = null

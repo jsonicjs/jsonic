@@ -1080,10 +1080,11 @@ class Parser {
                     { s: [AA], b: 1 },
                 ],
                 before_close: (rule) => {
-                    var _a, _b;
                     // NOTE: val can be undefined when there is no value at all
-                    // (eg. empty string)
-                    rule.node = (_a = rule.child.node) !== null && _a !== void 0 ? _a : (_b = rule.open[0]) === null || _b === void 0 ? void 0 : _b.val;
+                    // (eg. empty string, thus no matched opening token)
+                    rule.node = undefined === rule.child.node ?
+                        (null == rule.open[0] ? undefined : rule.open[0].val) :
+                        rule.child.node;
                 },
             },
             map: {
@@ -1215,7 +1216,7 @@ class Parser {
         if (null === define) {
             delete this.rsm[name];
         }
-        // Else add or redfine a rule by name.
+        // Else add or redefine a rule by name.
         else if (undefined !== define) {
             rs = this.rsm[name] = (define(this.rsm[name], this.rsm) || this.rsm[name]);
         }
@@ -1261,7 +1262,7 @@ class Parser {
         let maxr = 2 * Object.keys(this.rsm).length * lex.src.length *
             2 * options.rule.maxmul;
         // Lex next token.
-        function next(ignore = true) {
+        function next() {
             ctx.u2 = ctx.u1;
             ctx.u1 = ctx.t0;
             ctx.t0 = ctx.t1;
@@ -1269,7 +1270,7 @@ class Parser {
             do {
                 t1 = lex(rule);
                 ctx.tI++;
-            } while (ignore && config.tokenset.IGNORE[t1.tin]);
+            } while (config.tokenset.IGNORE[t1.tin]);
             ctx.t1 = { ...t1 };
             return ctx.t0;
         }
