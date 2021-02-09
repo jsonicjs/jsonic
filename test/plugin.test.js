@@ -230,9 +230,11 @@ describe('plugin', function () {
     let d = (x)=>JSON.parse(JSON.stringify(x))
     let k = Jsonic.make().use(Dynamic)
     expect(d(k('a:1,b:$1+1'))).equal({a:1,b:2})
+    expect(d(k('a:1,b:$.a+1'))).equal({a:1,b:2})
+    expect(d(k('a:1,b:$$.a+1'))).equal({a:1,b:2})
     expect(k('a:1,b:$"{c:2}"')).equal({a:1,b:{c:2}})
     expect(k('a:1,b:$"meta.f(2)"',{f:(x)=>({c:x})})).equal({a:1,b:{c:2}})
-
+    expect(d(k('a:1,"b":$1+1'))).equal({a:1,b:2})
 
     let d0 = k('a:{x:1},b:$.a,b:{y:2},c:$.a,c:{y:3}',{xlog:-1})
     // NOTE: multiple calls verify dynamic getters are stable
@@ -240,6 +242,11 @@ describe('plugin', function () {
     expect(d0).equal({a:{x:1},b:{x:1,y:2},c:{x:1,y:3}})
     expect(d0).equal({a:{x:1},b:{x:1,y:2},c:{x:1,y:3}})
 
+    let kx = k.make({object:{extend:false}})
+    let d0x = kx('a:{x:1},b:$.a,b:{y:2},c:$.a,c:{y:3}')
+    expect(d(d0x)).equal({a: { x: 1 }, b: { y: 2 }, c: { y: 3 }})
+    let d0x1 = kx('a:{x:1},c:{z:2},c:$.a,c:{y:3}')
+    expect(d(d0x1)).equal({a: { x: 1 }, c: { y: 3 }})
     
     let d1 = k(`
 a:{x:1,y:2}
@@ -370,30 +377,48 @@ a x\t"b\\tx"
     expect(k0(`[
       NaN,
       /x/g,
+      /y\\/z/,
       2021-01-20T19:24:26.650Z,
       undefined,
-      Infinity
+      Infinity,
+      -Infinity,
+      // comment
+      /x,
     ]`)).equal([
       NaN,
       /x/g,
+      /y\/z/,
       new Date('2021-01-20T19:24:26.650Z'),
       undefined,
-      Infinity
+      Infinity,
+      -Infinity,
+      '/x'
     ])
 
 
+    expect(k0('/')).equal('/')
+    expect(k0('/x/')).equal(/x/)
+    expect(k0('2021-01-20T19:24:26.650Z'))
+      .equal(new Date('2021-01-20T19:24:26.650Z'),)
+
+    
     expect(k0(`{
       a: NaN,
       b: /x/g,
+      bb: /y\\/z/,
       c: 2021-01-20T19:24:26.650Z,
       d: undefined,
-      e: Infinity
+      e: Infinity,
+      f: -Infinity,
+      // comment
     }`)).equal({
       a: NaN,
       b: /x/g,
+      bb: /y\/z/,
       c: new Date('2021-01-20T19:24:26.650Z'),
       d: undefined,
-      e: Infinity
+      e: Infinity,
+      f: -Infinity,
     })
   })
 
@@ -475,6 +500,8 @@ a x\t"b\\tx"
     expect( k.stringify("a'a") ).equal("a'a")
     expect( k.stringify("\"a") ).equal("'\"a'")
     expect( k.stringify("a\"a") ).equal("a\"a")
+    expect( k.stringify("}") ).equal("'}'")
+    expect( k.stringify(",") ).equal("','")
     expect( k.stringify( function f(){ return 'f' }) ).equal('')
 
 
@@ -557,9 +584,14 @@ a x\t"b\\tx"
     var o1 = {a:1,toString:function(){return '<A>'}}
     expect( k.stringify(o1) ).equal('{a:1}')
     expect( k.stringify(o1,{custom:true}) ).equal('<A>')
+    expect( k.stringify({b:2}) ).equal('{b:2}')
+    expect( k.stringify({b:2},{custom:true}) ).equal('{b:2}')
+
     var o1_1 = {a:1,inspect:function(){return '<A>'}}
     expect( k.stringify(o1_1) ).equal('{a:1}')
     expect( k.stringify(o1_1,{custom:true}) ).equal('<A>')
+    expect( k.stringify({b:2}) ).equal('{b:2}')
+    expect( k.stringify({b:2},{custom:true}) ).equal('{b:2}')
 
 
     // maxitems
@@ -582,6 +614,12 @@ a x\t"b\\tx"
     expect( k.stringify(o4) ).equal('{a:1}')
     expect( k.stringify(o4,{showfunc:true}) )
       .equal('{a:1,b:function b() {}}')
+    expect( k.stringify(o4,{f:true}) )
+      .equal('{a:1,b:function b() {}}')
+    expect( k.stringify(o4,{showfunc:false}) )
+      .equal('{a:1}')
+    expect( k.stringify(o4,{f:false}) )
+      .equal('{a:1}')
 
 
     // exception
@@ -598,7 +636,6 @@ a x\t"b\\tx"
     expect( k.stringify([1,2,3],{maxitems:2}) ).equal('[1,2]')
     expect( k.stringify({a:1,b:2,c:3},{maxitems:2}) ).equal('{a:1,b:2}')
 
-
     // wierd keys
     expect( k.stringify({"_":0,"$":1,":":2,"":3,"\'":4,"\"":5,"\n":6}) )
       .equal( '{_:0,":":2,"":3,"\'":4,"\\"":5,"\\n":6}' )
@@ -612,6 +649,9 @@ a x\t"b\\tx"
     expect( k.stringify([1,2,3],{mc:4}) ).equal('[1,2')
     expect( k.stringify([1,2,3],{mi:2}) ).equal('[1,2]')
 
+    // arrays
+    expect( k.stringify([1]) ).equal('[1]')
+    expect( k.stringify([1,undefined,null]) ).equal('[1,null,null]')
   })
 
 })

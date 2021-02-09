@@ -80,26 +80,26 @@ let Dynamic: Plugin = function dynamic(jsonic: Jsonic) {
     let orig_before_close = rs.def.before_close
     rs.def.before_close = function(rule: Rule, ctx: Context) {
       let token = rule.open[0]
-      if (token) {
-        let key = ST === token.tin ? token.val : token.src
-        let val = rule.child.node
+      let key = ST === token.tin ? token.val : token.src
+      let val = rule.child.node
 
-        if ('function' === typeof (val) && val.__eval$$) {
-          Object.defineProperty(val, 'name', { value: key })
+      /* $lab:coverage:off$ */
+      if ('function' === typeof (val) && val.__eval$$) {
+        /* $lab:coverage:on$ */
+        Object.defineProperty(val, 'name', { value: key })
 
-          defineProperty(
-            rule.node,
-            key,
-            val,
-            ctx.root,
-            ctx.meta,
-            ctx.options.object.extend,
-          )
-        }
+        defineProperty(
+          rule.node,
+          key,
+          val,
+          ctx.root,
+          ctx.meta,
+          ctx.options.object.extend,
+        )
+      }
 
-        else {
-          return orig_before_close(...arguments)
-        }
+      else {
+        return orig_before_close(...arguments)
       }
     }
     return rs
@@ -112,7 +112,9 @@ let Dynamic: Plugin = function dynamic(jsonic: Jsonic) {
     rs.def.before_close = (rule: Rule, ctx: Context) => {
       let val = rule.child.node
 
+      /* $lab:coverage:off$ */
       if ('function' === typeof (val) && val.__eval$$) {
+        /* $lab:coverage:on$ */
         Object.defineProperty(val, 'name', { value: 'i' + rule.node.length })
 
         defineProperty(
@@ -163,7 +165,7 @@ function defineProperty(
         (extend ? util.deep({}, prev, out) : out)
 
       if (null != over) {
-        out = util.deep({}, out, over)
+        out = (extend ? util.deep({}, out, over) : over)
       }
 
       return out
