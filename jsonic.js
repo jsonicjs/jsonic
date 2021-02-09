@@ -795,8 +795,8 @@ class RuleAct {
 const ruleact = new RuleAct();
 const empty_ruleact = new RuleAct();
 class RuleSpec {
-    constructor(name, def) {
-        this.name = name;
+    constructor(def) {
+        this.name = '-';
         this.def = def;
         function norm_cond(cond) {
             if ('object' === typeof (cond)) {
@@ -1199,9 +1199,10 @@ class Parser {
                 },
             }
         };
-        this.rsm = Object.keys(rules).reduce((rs, rn) => {
-            rs[rn] = new RuleSpec(rn, rules[rn]);
-            return rs;
+        this.rsm = Object.keys(rules).reduce((rsm, rn) => {
+            rsm[rn] = new RuleSpec(rules[rn]);
+            rsm[rn].name = rn;
+            return rsm;
         }, {});
     }
     // Multi-functional get/set for rules.
@@ -1219,6 +1220,7 @@ class Parser {
         // Else add or redefine a rule by name.
         else if (undefined !== define) {
             rs = this.rsm[name] = (define(this.rsm[name], this.rsm) || this.rsm[name]);
+            rs.name = name;
         }
         return rs;
     }

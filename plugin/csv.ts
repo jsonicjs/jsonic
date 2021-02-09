@@ -1,6 +1,7 @@
 /* Copyright (c) 2013-2021 Richard Rodger, MIT License */
 
 // TODO: review against: https://www.papaparse.com/
+// TODO: mode for strictness - values can't be objects
 
 
 import { Jsonic, Plugin, Rule, RuleSpec, Context } from '../jsonic'
@@ -49,7 +50,7 @@ let Csv: Plugin = function csv(jsonic: Jsonic) {
   })
 
   jsonic.rule('record', (_ignore: RuleSpec) => {
-    let rs = new RuleSpec('record', {
+    let rs = new RuleSpec({
       open: [
         { p: 'list' },
       ],

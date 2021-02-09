@@ -3,6 +3,7 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.Csv = void 0;
 // TODO: review against: https://www.papaparse.com/
+// TODO: mode for strictness - values can't be objects
 const jsonic_1 = require("../jsonic");
 let Csv = function csv(jsonic) {
     jsonic.options({
@@ -35,7 +36,7 @@ let Csv = function csv(jsonic) {
         return rs;
     });
     jsonic.rule('record', (_ignore) => {
-        let rs = new jsonic_1.RuleSpec('record', {
+        let rs = new jsonic_1.RuleSpec({
             open: [
                 { p: 'list' },
             ],

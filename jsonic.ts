@@ -1268,11 +1268,10 @@ const empty_ruleact = new RuleAct()
 
 
 class RuleSpec {
-  name: string
+  name: string = '-'
   def: any
 
-  constructor(name: string, def: any) {
-    this.name = name
+  constructor(def: any) {
     this.def = def
 
     function norm_cond(cond: any) {
@@ -1793,9 +1792,10 @@ class Parser {
       }
     }
 
-    this.rsm = Object.keys(rules).reduce((rs: any, rn: string) => {
-      rs[rn] = new RuleSpec(rn, rules[rn])
-      return rs
+    this.rsm = Object.keys(rules).reduce((rsm: any, rn: string) => {
+      rsm[rn] = new RuleSpec(rules[rn])
+      rsm[rn].name = rn
+      return rsm
     }, {})
   }
 
@@ -1819,6 +1819,7 @@ class Parser {
     // Else add or redefine a rule by name.
     else if (undefined !== define) {
       rs = this.rsm[name] = (define(this.rsm[name], this.rsm) || this.rsm[name])
+      rs.name = name
     }
 
     return rs

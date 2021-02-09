@@ -512,19 +512,19 @@ describe('jsonic', function () {
 
 
   it('rule-spec', () => {
-    let rs0 = new j.RuleSpec('rs0',{})
-    expect(rs0.name).equal('rs0')
+    let rs0 = new j.RuleSpec({})
+    expect(rs0.name).equal('-')
     expect(rs0.def.open).equal([])
     expect(rs0.def.close).equal([])
 
-    let rs1 = new j.RuleSpec('rs1',{
+    let rs1 = new j.RuleSpec({
       open:[{},{c:()=>true},{c:{n:{}}},{c:{}}]
     })
     expect(rs1.def.open[0].c).equals(undefined)
     expect(rs1.def.open[1].c).function()
     expect(rs1.def.open[2].c).function()
 
-    let rs2 = new j.RuleSpec('rs2',{
+    let rs2 = new j.RuleSpec({
       open:[{c:{n:{a:10,b:20}}}]
     })
     let c0 = rs2.def.open[0].c
@@ -556,7 +556,7 @@ describe('jsonic', function () {
     let CA = c0.token.CA
     
     c0.rule('val', (rs,rsm)=>{
-      rs = new j.RuleSpec('val',{
+      rs = new j.RuleSpec({
         open:[
           {p:'list'}
         ],
@@ -568,7 +568,7 @@ describe('jsonic', function () {
     })
 
     c0.rule('list', (rs,rsm)=>{
-      rs = new j.RuleSpec('list',{
+      rs = new j.RuleSpec({
         open:[
           {r:'done'}
         ],
@@ -579,7 +579,7 @@ describe('jsonic', function () {
     })
 
     c0.rule('done', (rs,rsm)=>{
-      rs = new j.RuleSpec('done',{
+      rs = new j.RuleSpec({
         before_open: (rule,ctx) => {
           return {act:{p:'add'}}
         },
@@ -592,7 +592,7 @@ describe('jsonic', function () {
 
     
     c0.rule('add', (rs,rsm)=>{
-      rs = new j.RuleSpec('add',{
+      rs = new j.RuleSpec({
         open:[
           {s:[NR]}
         ],
@@ -606,7 +606,7 @@ describe('jsonic', function () {
     })
 
     c0.rule('sep', (rs,rsm)=>{
-      rs = new j.RuleSpec('sep',{
+      rs = new j.RuleSpec({
         close:[
           {s:[CA],r:'add',n:{x:1},h:(rule,ctx,next)=>next}
         ],

@@ -210,7 +210,7 @@ declare class RuleAct {
 declare class RuleSpec {
     name: string;
     def: any;
-    constructor(name: string, def: any);
+    constructor(def: any);
     open(rule: Rule, ctx: Context): Rule;
     close(rule: Rule, ctx: Context): Rule;
     parse_alts(alts: any[], rule: Rule, ctx: Context): RuleAct;

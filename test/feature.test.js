@@ -630,7 +630,7 @@ describe('feature', function () {
 
     // New rule
     p0.rule('foo',()=>{
-      return new RuleSpec('foo',{})
+      return new RuleSpec({})
     })
     rval = p0.rule('foo')
     expect(rval.name).equals('foo')
