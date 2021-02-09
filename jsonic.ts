@@ -61,7 +61,7 @@ type Tin = number
 // Parsing options. See defaults for commentary.
 type Options = {
   char: KV
-  comment: { [start_marker: string]: string | boolean }
+  comment: { [start_marker: string]: string | boolean } | false
   balance: KV
   number: KV
   string: KV
@@ -156,6 +156,7 @@ type Config = {
   string: {
     escape: { [name: string]: string }
   },
+  comment: { [start_marker: string]: string | boolean }
   cmk: string[]         // Comment start markers.
   cmk0: string          // Comment start markers first chars.
   cmk1: string          // Comment start markers second chars.
@@ -888,14 +889,14 @@ class Lexer {
               if (marker.startsWith(cm)) {
 
                 // Multi-line comment.
-                if (true !== options.comment[cm]) {
+                if (true !== config.comment[cm]) {
                   token.tin = CM
                   token.loc = sI
                   token.col = cI
                   token.val = '' // intialize for LCS.
 
                   state = LML
-                  state_param = [cm, options.comment[cm], 'comment']
+                  state_param = [cm, config.comment[cm], 'comment']
                   continue next_char
                 }
 
@@ -1757,7 +1758,7 @@ class Parser {
           // Ignore trailing comma
           { s: [CA, CS] },
 
-          // Next elemen
+          // Next element
           { s: [CA], r: S.elem },
 
           // End list
@@ -1779,9 +1780,8 @@ class Parser {
         ],
         after_open: (rule: Rule, _ctx: Context, next: Rule) => {
           if (rule === next && rule.open[0]) {
-            let val = rule.open[0].val
-            // Insert `null` if no value preceeded the comma (eg. [,1] -> [null, 1])
-            rule.node.push(null != val ? val : null)
+            // Repeated comma, so insert null
+            rule.node.push(null)
           }
         },
         before_close: (rule: Rule) => {
@@ -2349,6 +2349,8 @@ let util = {
     config.cmk1 = ''
 
     if (options.comment) {
+      config.comment = options.comment
+
       let comment_markers = Object.keys(options.comment)
 
       comment_markers.forEach(k => {

@@ -516,13 +516,13 @@ class Lexer {
                         for (let cm of config.cmk) {
                             if (marker.startsWith(cm)) {
                                 // Multi-line comment.
-                                if (true !== options.comment[cm]) {
+                                if (true !== config.comment[cm]) {
                                     token.tin = CM;
                                     token.loc = sI;
                                     token.col = cI;
                                     token.val = ''; // intialize for LCS.
                                     state = LML;
-                                    state_param = [cm, options.comment[cm], 'comment'];
+                                    state_param = [cm, config.comment[cm], 'comment'];
                                     continue next_char;
                                 }
                                 break;
@@ -1169,7 +1169,7 @@ class Parser {
                 close: [
                     // Ignore trailing comma
                     { s: [CA, CS] },
-                    // Next elemen
+                    // Next element
                     { s: [CA], r: S.elem },
                     // End list
                     { s: [CS] },
@@ -1187,9 +1187,8 @@ class Parser {
                 ],
                 after_open: (rule, _ctx, next) => {
                     if (rule === next && rule.open[0]) {
-                        let val = rule.open[0].val;
-                        // Insert `null` if no value preceeded the comma (eg. [,1] -> [null, 1])
-                        rule.node.push(null != val ? val : null);
+                        // Repeated comma, so insert null
+                        rule.node.push(null);
                     }
                 },
                 before_close: (rule) => {
@@ -1615,6 +1614,7 @@ let util = {
         config.cmk0 = '';
         config.cmk1 = '';
         if (options.comment) {
+            config.comment = options.comment;
             let comment_markers = Object.keys(options.comment);
             comment_markers.forEach(k => {
                 // Single char comment marker (eg. `#`)

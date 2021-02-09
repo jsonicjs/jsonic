@@ -38,6 +38,28 @@ describe('jsonic', function () {
     expect(Jsonic('["a",1]')).equals(['a',1])
   })
 
+
+  it('options', () => {
+    let j = Jsonic.make({x:1})
+
+    expect(j.options.x).equal(1)
+    expect({...j.options}).includes({x:1})
+
+    j.options({x:2})
+    expect(j.options.x).equal(2)
+    expect({...j.options}).includes({x:2})
+
+    j.options()
+    expect(j.options.x).equal(2)
+
+    j.options(null)
+    expect(j.options.x).equal(2)
+
+    j.options('ignored')
+    expect(j.options.x).equal(2)
+
+  })
+  
   
   it('token-gen', () => {
     let suffix = Math.random()
@@ -409,6 +431,9 @@ describe('jsonic', function () {
 
   it('process-comment', () => {
     expect(j('a:q\nb:w #X\nc:r \n\nd:t\n\n#')).equal({a:'q',b:'w',c:'r',d:'t'})
+
+    let jm = j.make({comment: false})
+    expect(jm('a:q\nb:w #X\nc:r \n\nd:t')).equal({a: 'q', b: 'w #X', c: 'r', d: 't'})
   })
   
   

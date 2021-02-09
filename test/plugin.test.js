@@ -200,6 +200,15 @@ describe('plugin', function () {
   })
 
 
+  it('wrap-jsonic', () => {
+    const j = make()
+    let jp = j.use(function foo(jsonic) {
+      return new Proxy(jsonic,{})
+    })
+    expect(jp('a:1')).equal({a:1})
+  })
+
+
   it('config-modifiers', () => {
     const j = make()
     j.use(function foo(jsonic) {

@@ -415,12 +415,22 @@ describe('lex', function () {
       return { sI:sI+1, rI, cI:cI+1, state: LTP }
     })
 
-    
-    let s = m('1234',{xlog:-1})
-    //console.log(s)
+
+    let s = m('1234')
     expect(s).equal(['A', 'B', 'C', 'D' ])
 
+    
+    let log = []
+    let m0 = m.make({debug:{get_console:()=>{
+      return {log:(...r)=>log.push(r)}
+    }}})
+    s = m0('1234',{log:-1})
+    expect(s).equal(['A', 'B', 'C', 'D' ])
 
+    // debug logs name of lex function
+    expect(log[0][0]).contains('m_ltp')
+
+    
     let m1 = Jsonic.make()
     m1.lex(LTP, function m_ltp(sI,rI,cI,src,token,ctx,rule,bad) {
       token.tin=TX 

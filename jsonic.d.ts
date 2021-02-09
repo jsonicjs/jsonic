@@ -25,7 +25,7 @@ declare type Options = {
     char: KV;
     comment: {
         [start_marker: string]: string | boolean;
-    };
+    } | false;
     balance: KV;
     number: KV;
     string: KV;
@@ -133,6 +133,9 @@ declare type Config = {
         escape: {
             [name: string]: string;
         };
+    };
+    comment: {
+        [start_marker: string]: string | boolean;
     };
     cmk: string[];
     cmk0: string;
