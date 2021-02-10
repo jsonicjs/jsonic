@@ -56,7 +56,7 @@ let Multifile = function multifile(jsonic) {
                     };
                     let content = fs_1.default.readFileSync(fullpath).toString();
                     if ('.json' === file_ext) {
-                        val = json(content, { mode: 'json', fileName: fullpath }, partial_ctx);
+                        val = json(content, { fileName: fullpath }, partial_ctx);
                     }
                     else if ('.jsonic' === file_ext) {
                         val = jsonic(content, { basepath: basepath, fileName: fullpath }, partial_ctx);

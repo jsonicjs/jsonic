@@ -84,7 +84,7 @@ describe('error', function () {
           '        \u001b[31m^^^ foo: "FOO"!\u001b[0m\n' +
           '\u001b[34m  2 | \u001b[0m\n' +
           '\u001b[34m  3 | \u001b[0m\n' +
-          ' Foo hint.\n' +
+          '  Foo hint.\n' +
           '  \u001b[2mhttps://jsonic.richardrodger.com\u001b[0m\n' +
           '  \u001b[2m--internal: rule=pair~open; token=#BD; plugins=foo--\u001b[0m\n'
       )

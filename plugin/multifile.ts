@@ -66,7 +66,7 @@ let Multifile: Plugin = function multifile(jsonic: Jsonic) {
           }
           let content = Fs.readFileSync(fullpath).toString()
           if ('.json' === file_ext) {
-            val = json(content, { mode: 'json', fileName: fullpath }, partial_ctx)
+            val = json(content, { fileName: fullpath }, partial_ctx)
           }
           else if ('.jsonic' === file_ext) {
             val = jsonic(

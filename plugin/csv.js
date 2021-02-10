@@ -3,10 +3,17 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.Csv = void 0;
 // TODO: review against: https://www.papaparse.com/
-// TODO: mode for strictness - values can't be objects
+// TODO: option for strictness - values can't be objects
 const jsonic_1 = require("../jsonic");
 let Csv = function csv(jsonic) {
     jsonic.options({
+        error: {
+            csv_unexpected_field: 'unexpected field value: $fsrc'
+        },
+        hint: {
+            csv_unexpected_field: `Row $row has too many fields (the first of which is: $fsrc). Only $len
+fields per row are expected.`,
+        },
         string: {
             escapedouble: true,
         },
@@ -50,7 +57,20 @@ let Csv = function csv(jsonic) {
                 }
                 else if (rule.child.node) {
                     let record = {};
-                    rule.child.node.forEach((v, i) => record[fields[i]] = v);
+                    for (let i = 0; i < rule.child.node.length; i++) {
+                        let field_name = fields[i];
+                        if (null == field_name) {
+                            let out = {
+                                err: 'csv_unexpected_field',
+                                fsrc: ctx.u1.src,
+                                index: i,
+                                len: fields.length,
+                                row: ctx.u1.row,
+                            };
+                            return out;
+                        }
+                        record[field_name] = rule.child.node[i];
+                    }
                     rule.node.push(record);
                 }
             }

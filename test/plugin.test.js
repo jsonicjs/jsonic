@@ -146,49 +146,7 @@ describe('plugin', function () {
     expect(a1('x:A,y:B,z:C')).equals({x:'aaa',y:'B',z:'C'})
     expect(j('x:A,y:B,z:C')).equals({x:'aaa',y:'B',z:'C'})
   })
-
-
-  it('mode', () => {
-    let j0 = Jsonic.make({mode:{
-      foo: ()=>[true,'FOO!'],
-      bar: 'BAR', // will be ignored as not a function
-      err: ()=>{throw new Error('bad-mode')},
-      natural_syntax_error: (src)=>{return[true,eval(src)]},
-      broken_syntax_error: ()=>{throw new SyntaxError('broken')},
-      custom0: ()=>{
-        let e = new SyntaxError('custom0');
-        e.code = 'custom0'
-        e.details = {x:1}
-        e.ctx = {y:2,src:()=>'',plugins:()=>[],
-                 config:{token:{}},
-                 options:{error:{unknown:'unknown'},
-                          hint:{unknown:'unknown'}}}
-        e.token = {z:3}
-        throw e
-      },
-      custom1: ()=>{
-        let e = new SyntaxError('custom1');
-        e.code = 'custom1'
-        e.details = {x:1}
-        e.ctx = {y:2,src:()=>'',plugins:()=>[],
-                 config:{token:{}},
-                 options:{error:{unknown:'unknown'},
-                          hint:{unknown:'unknown'}}}
-        e.lineNumber = 4
-        e.columnNumber = 5
-        throw e
-      }
-    }})
-    expect(j0('a:1')).equals({a:1})
-    expect(j0('a:1',{mode:'foo'})).equals('FOO!')
-    expect(j0('a:1',{mode:'bar'})).equals({a:1})
-    expect(()=>j0('a:1',{mode:'err'})).throws('Error', /bad-mode/)
-    expect(()=>j0('}',{mode:'natural_syntax_error'})).throws('SyntaxError',/unknown/)
-    expect(()=>j0('a:1',{mode:'broken_syntax_error'})).throws('Error', /broken/)
-    expect(()=>j0('a:1',{mode:'custom0'})).throws('SyntaxError', /custom0/)
-    expect(()=>j0('a:1',{mode:'custom1'})).throws('SyntaxError', /custom1/)
-  })
-
+  
 
   it('plugin-opts', () => {
     // use make to avoid polluting Jsonic
@@ -308,9 +266,9 @@ a:{x:1,y:2}
 
   it('json-basic', () => {
     let k = Jsonic.make().use(Json)
-    expect(k('a:1')).equal({a:1})
-    expect(k('{"a":1}',{mode:'json'})).equal({a:1})
-    expect(()=>k('{a:1}',{mode:'json'})).throws(JsonicError, /jsonic\/json/)
+    expect(k('{"a":1}')).equal({a:1})
+    expect(k('{"a":1}',{json:[(k,v)=>'a'===k?2:v]})).equal({a:2})
+    expect(()=>k('{a:1}')).throws(JsonicError, /jsonic\/json/)
   })
 
 
@@ -684,6 +642,43 @@ a x\t"b\\tx"
     expect( k.stringify([1,undefined,null]) ).equal('[1,null,null]')
   })
 
+
+  it('custom-parser-error', ()=>{
+    let j = Jsonic.make().use(function foo(jsonic) {
+      jsonic.options({
+        parser: {
+          start: function(lexer, src, meta) {
+            if('e:0'===src) {
+              throw new Error('bad-parser:e:0')
+            }
+            else if('e:1'===src) {
+              let e1 = new SyntaxError('Unexpected token e:1 at position 0')
+              e1.lineNumber = 1
+              e1.columnNumber = 1
+              throw e1
+            }
+            else if('e:2'===src) {
+              let e2 = new SyntaxError('bad-parser:e:2')
+              e2.code = 'e2'
+              e2.token = {}
+              e2.details = {}
+              e2.ctx = {
+                src:()=>'',
+                options:{error:{e2:'e:2'},hint:{e2:'e:2'}},
+                config:{token:{}},
+                plugins:()=>[]
+              }
+              throw e2
+            }
+          },
+        }
+      })
+    })
+
+    expect(()=>j('e:0')).throws('Error', /e:0/)
+    expect(()=>j('e:1',{log:()=>null})).throws('SyntaxError', /e:1/)
+    expect(()=>j('e:2')).throws('SyntaxError', /e:2/)
+  })
 })
 
 

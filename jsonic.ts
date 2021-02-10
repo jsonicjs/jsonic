@@ -68,7 +68,6 @@ type Options = {
   text: KV
   object: KV
   value: KV
-  mode: KV
   plugin: KV
   debug: KV
   error: { [code: string]: string }
@@ -88,6 +87,15 @@ type Options = {
   },
   config: {
     modify: { [plugin_name: string]: (config: Config, options: Options) => void }
+  },
+  parser: {
+    start?: (
+      lexer: Lexer,
+      src: string,
+      jsonic: Jsonic,
+      meta?: any,
+      parent_ctx?: any
+    ) => any
   }
 }
 
@@ -298,10 +306,6 @@ function make_standard_options(): Options {
     },
 
 
-    // Parsing modes.
-    mode: {},
-
-
     // Plugin custom options, (namespace by plugin name).
     plugin: {},
 
@@ -387,6 +391,12 @@ function make_standard_options(): Options {
 
     config: {
       modify: {}
+    },
+
+
+    // Provide a custom parser.
+    parser: {
+      // start: Parser.start
     }
   }
 
@@ -1371,6 +1381,9 @@ class RuleSpec {
     let out
     if (this.def.before_close) {
       out = this.def.before_close.call(this, rule, ctx, next)
+      if (out && out.err) {
+        throw new JsonicError(out.err, { ...out, close: true }, ctx.t0, rule, ctx)
+      }
       rule.node = out && out.node || rule.node
     }
 
@@ -1452,7 +1465,6 @@ class RuleSpec {
     // End token not yet reached...
     if (t.ZZ !== ctx.t0.tin) {
 
-      //if (0 < alts.length) {
       out.e = ctx.t0
 
       for (altI = 0; altI < alts.length; altI++) {
@@ -2106,7 +2118,7 @@ let util = {
       return JSON.stringify(
         'code' === name ? code : (
           details[name] ||
-          ctx.meta[name] ||
+          (ctx.meta ? ctx.meta[name] : undefined) ||
           (token as KV)[name] ||
           (rule as KV)[name] ||
           (ctx as KV)[name] ||
@@ -2152,77 +2164,80 @@ let util = {
   },
 
 
-  // Returns tuple to allow for undefined as a result: [done, value].
-  handle_meta_mode: (zelf: Jsonic, src: string, meta: KV): [boolean, any] => {
-    let options = zelf.options
-    if (S.function === typeof (options.mode[meta.mode])) {
-      try {
-        return options.mode[meta.mode].call(zelf, src, meta)
-      }
-      catch (ex) {
-        if ('SyntaxError' === ex.name) {
-          let loc = 0
-          let row = 0
-          let col = 0
-          let tsrc = ''
-          let errloc = ex.message.match(/^Unexpected token (.) .*position\s+(\d+)/i)
-          if (errloc) {
-            tsrc = errloc[1]
-            loc = parseInt(errloc[2])
-            row = src.substring(0, loc).replace(/[^\n]/g, '').length
-            //row = row < 0 ? 0 : row
-            let cI = loc - 1
-            while (-1 < cI && '\n' !== src.charAt(cI)) cI--;
-            col = Math.max(src.substring(cI, loc).length - 1, 0)
+  wrap_parser: (parser: any) => {
+    return {
+      start: function(
+        lexer: Lexer,
+        src: string,
+        jsonic: Jsonic,
+        meta?: any,
+        parent_ctx?: any
+      ) {
+        try {
+          return parser.start(lexer, src, jsonic, meta, parent_ctx)
+        } catch (ex) {
+          if ('SyntaxError' === ex.name) {
+            let loc = 0
+            let row = 0
+            let col = 0
+            let tsrc = ''
+            let errloc = ex.message.match(/^Unexpected token (.) .*position\s+(\d+)/i)
+            if (errloc) {
+              tsrc = errloc[1]
+              loc = parseInt(errloc[2])
+              row = src.substring(0, loc).replace(/[^\n]/g, '').length
+              let cI = loc - 1
+              while (-1 < cI && '\n' !== src.charAt(cI)) cI--;
+              col = Math.max(src.substring(cI, loc).length, 0)
+            }
+
+            let token = ex.token || {
+              tin: jsonic.token.UK,
+              loc: loc,
+              len: tsrc.length,
+              row: ex.lineNumber || row,
+              col: ex.columnNumber || col,
+              val: undefined,
+              src: tsrc,
+            } as Token
+
+            throw new JsonicError(
+              ex.code || 'json',
+              ex.details || {
+                msg: ex.message
+              },
+              token,
+              ({} as Rule),
+              ex.ctx || {
+                rI: -1,
+                options: jsonic.options,
+                config: ({ token: {} } as Config),
+                token: token,
+                meta,
+                src: () => src,
+                root: () => undefined,
+                plugins: () => jsonic.internal().plugins,
+                node: undefined,
+                u2: token,
+                u1: token,
+                t0: token,
+                t1: token, // TODO: should be end token
+                tI: -1,
+                rs: [],
+                next: () => token, // TODO: should be end token
+                rsm: {},
+                n: {},
+                log: meta ? meta.log : undefined,
+                F: util.make_src_format(jsonic.internal().config),
+                use: {},
+              } as Context,
+            )
           }
-
-          let token = ex.token || {
-            tin: zelf.token.UK,
-            loc: loc,
-            len: tsrc.length,
-            row: ex.lineNumber || row,
-            col: ex.columnNumber || col,
-            val: undefined,
-            src: tsrc,
-          } as Token
-
-          throw new JsonicError(
-            ex.code || 'json',
-            ex.details || {
-              msg: ex.message
-            },
-            token,
-            ({} as Rule),
-            ex.ctx || {
-              rI: -1,
-              options,
-              config: ({ token: {} } as Config),
-              token: {},
-              meta,
-              src: () => src,
-              root: () => undefined,
-              plugins: () => [],
-              node: undefined,
-              u2: token,
-              u1: token,
-              t0: token,
-              t1: token, // TODO: should be end token
-              tI: -1,
-              rs: [],
-              next: () => token, // TODO: should be end token
-              rsm: {},
-              n: {},
-              log: meta.log,
-              F: util.make_src_format(zelf.internal().config),
-              use: {},
-            } as Context,
-          )
+          else {
+            throw ex
+          }
         }
-        else throw ex
       }
-    }
-    else {
-      return [false, null]
     }
   },
 
@@ -2248,14 +2263,14 @@ let util = {
     }
 
     let message = [
-      ('\x1b[31m[jsonic/' + code + ']:\x1b[0m ' +
-        ((meta && meta.mode) ? '\x1b[35m[mode:' + meta.mode + ']:\x1b[0m ' : '') +
-        errtxt),
+      ('\x1b[31m[jsonic/' + code + ']:\x1b[0m ' + errtxt),
       '  \x1b[34m-->\x1b[0m ' + (meta && meta.fileName || '<no-file>') +
       ':' + token.row + ':' + token.col,
       util.extract(ctx.src(), errtxt, token),
       util.errinject(
-        (options.hint[code] || options.hint.unknown).split('\n')
+        (options.hint[code] || options.hint.unknown)
+          .replace(/^([^ ])/, ' $1')
+          .split('\n')
           .map((s: string, i: number) => (0 === i ? ' ' : '  ') + s).join('\n'),
         code, details, token, rule, ctx
       ),
@@ -2474,17 +2489,9 @@ function make(param_options?: KV, parent?: Jsonic): Jsonic {
     function Jsonic(src: any, meta?: any, parent_ctx?: any): any {
       if (S.string === typeof (src)) {
         let internal = jsonic.internal()
-
-        let [done, out] =
-          (null != meta && null != meta.mode) ?
-            util.handle_meta_mode(jsonic, src, meta) :
-            [false]
-
-        if (!done) {
-          out = internal.parser.start(internal.lexer, src, jsonic, meta, parent_ctx)
-        }
-
-        return out
+        let parser = options.parser.start ?
+          util.wrap_parser(options.parser) : internal.parser
+        return parser.start(internal.lexer, src, jsonic, meta, parent_ctx)
       }
 
       return src
@@ -2493,9 +2500,10 @@ function make(param_options?: KV, parent?: Jsonic): Jsonic {
 
   // This lets you access options as direct properties,
   // and set them as a funtion call.
-  let options = (change_options?: KV) => {
+  let options: any = (change_options?: KV) => {
     if (null != change_options && S.object === typeof (change_options)) {
-      util.build_config_from_options(config, util.deep(merged_options, change_options))
+      util.build_config_from_options(config,
+        util.deep(merged_options, change_options))
       for (let k in merged_options) {
         jsonic.options[k] = merged_options[k]
       }
@@ -2601,7 +2609,7 @@ function make(param_options?: KV, parent?: Jsonic): Jsonic {
 
 // Generate hint text lookup.
 // NOTE: generated and inserted by hint.js
-function make_hint(d = (t: any, r = 'replace') => t[r](/[A-Z]/g, (m: any) => ' ' + m.toLowerCase())[r](/[~%][a-z]/g, (m: any) => ('~' == m[0] ? ' ' : '') + m[1].toUpperCase()), s = '~sinceTheErrorIsUnknown,ThisIsProbablyABugInsideJsonic\nitself,OrAPlugin.~pleaseConsiderPostingAGithubIssue -Thanks!|~theCharacter(s) $srcShouldNotOccurAtThisPointAsItIsNot\nvalid %j%s%o%nSyntax,EvenUnderTheRelaxedJsonicRules.~ifItIs\nnotObviouslyWrong,TheActualSyntaxErrorMayBeElsewhere.~try\ncommentingOutLargerAreasAroundThisPointUntilYouGetNoErrors,\nthenRemoveTheCommentsInSmallSectionsUntilYouFindThe\noffendingSyntax.~n%o%t%e:~alsoCheckIfAnyPluginsOrModesYouAre\nusingExpectDifferentSyntaxInThisCase.|~theEscapeSequence $srcDoesNotEncodeAValidUnicodeCodePoint\nnumber.~youMayNeedToValidateYourStringDataManuallyUsingTest\ncodeToSeeHow~javaScriptWillInterpretIt.~alsoConsiderThatYour\ndataMayHaveBecomeCorrupted,OrTheEscapeSequenceHasNotBeen\ngeneratedCorrectly.|~theEscapeSequence $srcDoesNotEncodeAValid~a%s%c%i%iCharacter.~you\nmayNeedToValidateYourStringDataManuallyUsingTestCodeToSee\nhow~javaScriptWillInterpretIt.~alsoConsiderThatYourDataMay\nhaveBecomeCorrupted,OrTheEscapeSequenceHasNotBeenGenerated\ncorrectly.|~stringValuesCannotContainUnprintableCharacters (characterCodes\nbelow 32).~theCharacter $srcIsUnprintable.~youMayNeedToRemove\ntheseCharactersFromYourSourceData.~alsoCheckThatItHasNot\nbecomeCorrupted.|~stringValuesCannotBeMissingTheirFinalQuoteCharacter,Which\nshouldMatchTheirInitialQuoteCharacter.'.split('|')): any { return 'unknown|unexpected|invalid_unicode|invalid_ascii|unprintable|unterminated'.split('|').reduce((a: any, n, i) => (a[n] = d(s[i]), a), {}) }
+function make_hint(d = (t: any, r = 'replace') => t[r](/[A-Z]/g, (m: any) => ' ' + m.toLowerCase())[r](/[~%][a-z]/g, (m: any) => ('~' == m[0] ? ' ' : '') + m[1].toUpperCase()), s = '~sinceTheErrorIsUnknown,ThisIsProbablyABugInsideJsonic\nitself,OrAPlugin.~pleaseConsiderPostingAGithubIssue -Thanks!|~theCharacter(s) $srcShouldNotOccurAtThisPointAsItIsNot\nvalid %j%s%o%nSyntax,EvenUnderTheRelaxedJsonicRules.~ifItIs\nnotObviouslyWrong,TheActualSyntaxErrorMayBeElsewhere.~try\ncommentingOutLargerAreasAroundThisPointUntilYouGetNoErrors,\nthenRemoveTheCommentsInSmallSectionsUntilYouFindThe\noffendingSyntax.~n%o%t%e:~alsoCheckIfAnyPluginsYouAreUsing\nexpectDifferentSyntaxInThisCase.|~theEscapeSequence $srcDoesNotEncodeAValidUnicodeCodePoint\nnumber.~youMayNeedToValidateYourStringDataManuallyUsingTest\ncodeToSeeHow~javaScriptWillInterpretIt.~alsoConsiderThatYour\ndataMayHaveBecomeCorrupted,OrTheEscapeSequenceHasNotBeen\ngeneratedCorrectly.|~theEscapeSequence $srcDoesNotEncodeAValid~a%s%c%i%iCharacter.~you\nmayNeedToValidateYourStringDataManuallyUsingTestCodeToSee\nhow~javaScriptWillInterpretIt.~alsoConsiderThatYourDataMay\nhaveBecomeCorrupted,OrTheEscapeSequenceHasNotBeenGenerated\ncorrectly.|~stringValuesCannotContainUnprintableCharacters (characterCodes\nbelow 32).~theCharacter $srcIsUnprintable.~youMayNeedToRemove\ntheseCharactersFromYourSourceData.~alsoCheckThatItHasNot\nbecomeCorrupted.|~stringValuesCannotBeMissingTheirFinalQuoteCharacter,Which\nshouldMatchTheirInitialQuoteCharacter.'.split('|')): any { return 'unknown|unexpected|invalid_unicode|invalid_ascii|unprintable|unterminated'.split('|').reduce((a: any, n, i) => (a[n] = d(s[i]), a), {}) }
 
 
 
@@ -2646,8 +2654,9 @@ export {
 export default Jsonic
 
 // Build process uncomments this to enable more natural Node.js requires.
+/* $lab:coverage:off$ */
 //-NODE-MODULE-FIX;('undefined' != typeof(module) && (module.exports = exports.Jsonic));
-
+/* $lab:coverage:on$ */
 
 
 

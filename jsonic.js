@@ -90,8 +90,6 @@ function make_standard_options() {
             'true': true,
             'false': false,
         },
-        // Parsing modes.
-        mode: {},
         // Plugin custom options, (namespace by plugin name).
         plugin: {},
         debug: {
@@ -153,6 +151,10 @@ function make_standard_options() {
         },
         config: {
             modify: {}
+        },
+        // Provide a custom parser.
+        parser: {
+        // start: Parser.start
         }
     };
     return options;
@@ -872,6 +874,9 @@ class RuleSpec {
         let out;
         if (this.def.before_close) {
             out = this.def.before_close.call(this, rule, ctx, next);
+            if (out && out.err) {
+                throw new JsonicError(out.err, { ...out, close: true }, ctx.t0, rule, ctx);
+            }
             rule.node = out && out.node || rule.node;
         }
         let act = (out && out.act) ? { ...empty_ruleact, ...out.act } :
@@ -932,7 +937,6 @@ class RuleSpec {
         let cond;
         // End token not yet reached...
         if (t.ZZ !== ctx.t0.tin) {
-            //if (0 < alts.length) {
             out.e = ctx.t0;
             for (altI = 0; altI < alts.length; altI++) {
                 alt = alts[altI];
@@ -1424,7 +1428,7 @@ let util = {
     errinject: (s, code, details, token, rule, ctx) => {
         return s.replace(/\$([\w_]+)/g, (_m, name) => {
             return JSON.stringify('code' === name ? code : (details[name] ||
-                ctx.meta[name] ||
+                (ctx.meta ? ctx.meta[name] : undefined) ||
                 token[name] ||
                 rule[name] ||
                 ctx[name] ||
@@ -1460,72 +1464,69 @@ let util = {
             .join('\n');
         return lines;
     },
-    // Returns tuple to allow for undefined as a result: [done, value].
-    handle_meta_mode: (zelf, src, meta) => {
-        let options = zelf.options;
-        if (S.function === typeof (options.mode[meta.mode])) {
-            try {
-                return options.mode[meta.mode].call(zelf, src, meta);
-            }
-            catch (ex) {
-                if ('SyntaxError' === ex.name) {
-                    let loc = 0;
-                    let row = 0;
-                    let col = 0;
-                    let tsrc = '';
-                    let errloc = ex.message.match(/^Unexpected token (.) .*position\s+(\d+)/i);
-                    if (errloc) {
-                        tsrc = errloc[1];
-                        loc = parseInt(errloc[2]);
-                        row = src.substring(0, loc).replace(/[^\n]/g, '').length;
-                        //row = row < 0 ? 0 : row
-                        let cI = loc - 1;
-                        while (-1 < cI && '\n' !== src.charAt(cI))
-                            cI--;
-                        col = Math.max(src.substring(cI, loc).length - 1, 0);
-                    }
-                    let token = ex.token || {
-                        tin: zelf.token.UK,
-                        loc: loc,
-                        len: tsrc.length,
-                        row: ex.lineNumber || row,
-                        col: ex.columnNumber || col,
-                        val: undefined,
-                        src: tsrc,
-                    };
-                    throw new JsonicError(ex.code || 'json', ex.details || {
-                        msg: ex.message
-                    }, token, {}, ex.ctx || {
-                        rI: -1,
-                        options,
-                        config: { token: {} },
-                        token: {},
-                        meta,
-                        src: () => src,
-                        root: () => undefined,
-                        plugins: () => [],
-                        node: undefined,
-                        u2: token,
-                        u1: token,
-                        t0: token,
-                        t1: token,
-                        tI: -1,
-                        rs: [],
-                        next: () => token,
-                        rsm: {},
-                        n: {},
-                        log: meta.log,
-                        F: util.make_src_format(zelf.internal().config),
-                        use: {},
-                    });
+    wrap_parser: (parser) => {
+        return {
+            start: function (lexer, src, jsonic, meta, parent_ctx) {
+                try {
+                    return parser.start(lexer, src, jsonic, meta, parent_ctx);
                 }
-                else
-                    throw ex;
+                catch (ex) {
+                    if ('SyntaxError' === ex.name) {
+                        let loc = 0;
+                        let row = 0;
+                        let col = 0;
+                        let tsrc = '';
+                        let errloc = ex.message.match(/^Unexpected token (.) .*position\s+(\d+)/i);
+                        if (errloc) {
+                            tsrc = errloc[1];
+                            loc = parseInt(errloc[2]);
+                            row = src.substring(0, loc).replace(/[^\n]/g, '').length;
+                            let cI = loc - 1;
+                            while (-1 < cI && '\n' !== src.charAt(cI))
+                                cI--;
+                            col = Math.max(src.substring(cI, loc).length, 0);
+                        }
+                        let token = ex.token || {
+                            tin: jsonic.token.UK,
+                            loc: loc,
+                            len: tsrc.length,
+                            row: ex.lineNumber || row,
+                            col: ex.columnNumber || col,
+                            val: undefined,
+                            src: tsrc,
+                        };
+                        throw new JsonicError(ex.code || 'json', ex.details || {
+                            msg: ex.message
+                        }, token, {}, ex.ctx || {
+                            rI: -1,
+                            options: jsonic.options,
+                            config: { token: {} },
+                            token: token,
+                            meta,
+                            src: () => src,
+                            root: () => undefined,
+                            plugins: () => jsonic.internal().plugins,
+                            node: undefined,
+                            u2: token,
+                            u1: token,
+                            t0: token,
+                            t1: token,
+                            tI: -1,
+                            rs: [],
+                            next: () => token,
+                            rsm: {},
+                            n: {},
+                            log: meta ? meta.log : undefined,
+                            F: util.make_src_format(jsonic.internal().config),
+                            use: {},
+                        });
+                    }
+                    else {
+                        throw ex;
+                    }
+                }
             }
-        }
-        else {
-            return [false, null];
-        }
+        };
     },
     make_error_desc(code, details, token, rule, ctx) {
         token = { ...token };
@@ -1537,13 +1538,13 @@ let util = {
             options.hint = { ...options.hint(), ...options.hint };
         }
         let message = [
-            ('\x1b[31m[jsonic/' + code + ']:\x1b[0m ' +
-                ((meta && meta.mode) ? '\x1b[35m[mode:' + meta.mode + ']:\x1b[0m ' : '') +
-                errtxt),
+            ('\x1b[31m[jsonic/' + code + ']:\x1b[0m ' + errtxt),
             '  \x1b[34m-->\x1b[0m ' + (meta && meta.fileName || '<no-file>') +
                 ':' + token.row + ':' + token.col,
             util.extract(ctx.src(), errtxt, token),
-            util.errinject((options.hint[code] || options.hint.unknown).split('\n')
+            util.errinject((options.hint[code] || options.hint.unknown)
+                .replace(/^([^ ])/, ' $1')
+                .split('\n')
                 .map((s, i) => (0 === i ? ' ' : '  ') + s).join('\n'), code, details, token, rule, ctx),
             '  \x1b[2mhttps://jsonic.richardrodger.com\x1b[0m',
             '  \x1b[2m--internal: rule=' + rule.name + '~' + RuleState[rule.state] +
@@ -1695,13 +1696,9 @@ function make(param_options, parent) {
     let jsonic = function Jsonic(src, meta, parent_ctx) {
         if (S.string === typeof (src)) {
             let internal = jsonic.internal();
-            let [done, out] = (null != meta && null != meta.mode) ?
-                util.handle_meta_mode(jsonic, src, meta) :
-                [false];
-            if (!done) {
-                out = internal.parser.start(internal.lexer, src, jsonic, meta, parent_ctx);
-            }
-            return out;
+            let parser = options.parser.start ?
+                util.wrap_parser(options.parser) : internal.parser;
+            return parser.start(internal.lexer, src, jsonic, meta, parent_ctx);
         }
         return src;
     };
@@ -1783,7 +1780,7 @@ function make(param_options, parent) {
 exports.make = make;
 // Generate hint text lookup.
 // NOTE: generated and inserted by hint.js
-function make_hint(d = (t, r = 'replace') => t[r](/[A-Z]/g, (m) => ' ' + m.toLowerCase())[r](/[~%][a-z]/g, (m) => ('~' == m[0] ? ' ' : '') + m[1].toUpperCase()), s = '~sinceTheErrorIsUnknown,ThisIsProbablyABugInsideJsonic\nitself,OrAPlugin.~pleaseConsiderPostingAGithubIssue -Thanks!|~theCharacter(s) $srcShouldNotOccurAtThisPointAsItIsNot\nvalid %j%s%o%nSyntax,EvenUnderTheRelaxedJsonicRules.~ifItIs\nnotObviouslyWrong,TheActualSyntaxErrorMayBeElsewhere.~try\ncommentingOutLargerAreasAroundThisPointUntilYouGetNoErrors,\nthenRemoveTheCommentsInSmallSectionsUntilYouFindThe\noffendingSyntax.~n%o%t%e:~alsoCheckIfAnyPluginsOrModesYouAre\nusingExpectDifferentSyntaxInThisCase.|~theEscapeSequence $srcDoesNotEncodeAValidUnicodeCodePoint\nnumber.~youMayNeedToValidateYourStringDataManuallyUsingTest\ncodeToSeeHow~javaScriptWillInterpretIt.~alsoConsiderThatYour\ndataMayHaveBecomeCorrupted,OrTheEscapeSequenceHasNotBeen\ngeneratedCorrectly.|~theEscapeSequence $srcDoesNotEncodeAValid~a%s%c%i%iCharacter.~you\nmayNeedToValidateYourStringDataManuallyUsingTestCodeToSee\nhow~javaScriptWillInterpretIt.~alsoConsiderThatYourDataMay\nhaveBecomeCorrupted,OrTheEscapeSequenceHasNotBeenGenerated\ncorrectly.|~stringValuesCannotContainUnprintableCharacters (characterCodes\nbelow 32).~theCharacter $srcIsUnprintable.~youMayNeedToRemove\ntheseCharactersFromYourSourceData.~alsoCheckThatItHasNot\nbecomeCorrupted.|~stringValuesCannotBeMissingTheirFinalQuoteCharacter,Which\nshouldMatchTheirInitialQuoteCharacter.'.split('|')) { return 'unknown|unexpected|invalid_unicode|invalid_ascii|unprintable|unterminated'.split('|').reduce((a, n, i) => (a[n] = d(s[i]), a), {}); }
+function make_hint(d = (t, r = 'replace') => t[r](/[A-Z]/g, (m) => ' ' + m.toLowerCase())[r](/[~%][a-z]/g, (m) => ('~' == m[0] ? ' ' : '') + m[1].toUpperCase()), s = '~sinceTheErrorIsUnknown,ThisIsProbablyABugInsideJsonic\nitself,OrAPlugin.~pleaseConsiderPostingAGithubIssue -Thanks!|~theCharacter(s) $srcShouldNotOccurAtThisPointAsItIsNot\nvalid %j%s%o%nSyntax,EvenUnderTheRelaxedJsonicRules.~ifItIs\nnotObviouslyWrong,TheActualSyntaxErrorMayBeElsewhere.~try\ncommentingOutLargerAreasAroundThisPointUntilYouGetNoErrors,\nthenRemoveTheCommentsInSmallSectionsUntilYouFindThe\noffendingSyntax.~n%o%t%e:~alsoCheckIfAnyPluginsYouAreUsing\nexpectDifferentSyntaxInThisCase.|~theEscapeSequence $srcDoesNotEncodeAValidUnicodeCodePoint\nnumber.~youMayNeedToValidateYourStringDataManuallyUsingTest\ncodeToSeeHow~javaScriptWillInterpretIt.~alsoConsiderThatYour\ndataMayHaveBecomeCorrupted,OrTheEscapeSequenceHasNotBeen\ngeneratedCorrectly.|~theEscapeSequence $srcDoesNotEncodeAValid~a%s%c%i%iCharacter.~you\nmayNeedToValidateYourStringDataManuallyUsingTestCodeToSee\nhow~javaScriptWillInterpretIt.~alsoConsiderThatYourDataMay\nhaveBecomeCorrupted,OrTheEscapeSequenceHasNotBeenGenerated\ncorrectly.|~stringValuesCannotContainUnprintableCharacters (characterCodes\nbelow 32).~theCharacter $srcIsUnprintable.~youMayNeedToRemove\ntheseCharactersFromYourSourceData.~alsoCheckThatItHasNot\nbecomeCorrupted.|~stringValuesCannotBeMissingTheirFinalQuoteCharacter,Which\nshouldMatchTheirInitialQuoteCharacter.'.split('|')) { return 'unknown|unexpected|invalid_unicode|invalid_ascii|unprintable|unterminated'.split('|').reduce((a, n, i) => (a[n] = d(s[i]), a), {}); }
 let Jsonic = make();
 exports.Jsonic = Jsonic;
 Jsonic.use = () => {
@@ -1799,5 +1796,7 @@ Jsonic.util = util;
 Jsonic.make = make;
 exports.default = Jsonic;
 // Build process uncomments this to enable more natural Node.js requires.
+/* $lab:coverage:off$ */
 //-NODE-MODULE-FIX;('undefined' != typeof(module) && (module.exports = exports.Jsonic));
+/* $lab:coverage:on$ */
 //# sourceMappingURL=jsonic.js.map

@@ -13,6 +13,7 @@ const expect = Code.expect
 
 const { Jsonic } = require('..')
 const { HJson } = require('../plugin/hjson')
+const { Csv } = require('../plugin/csv')
 
 
 function testlog(...rest) {
@@ -99,5 +100,17 @@ describe('compat', function () {
   "this": "is OK though: {}[],:",
 })
 
+  })
+
+
+  it('csv-with-json', () => {
+    let j = Jsonic.make().use(Csv)
+
+    expect(j('a,b\n1,2')).equals([ { a: 1, b: 2 } ])
+    expect(j('a,b\n{x:1},2')).equals([ { a: {x:1}, b: 2 } ])
+    expect(j('a,b\n{x:1},[c]')).equals([ { a: {x:1}, b: [ 'c' ] } ])
+    expect(j('a,b\n{x:1},[c]\ntrue,false'))
+      .equals([ { a: {x:1}, b: [ 'c' ] }, {a:true, b:false} ])
+    expect(()=>j('a,b\n{x:1},[c]\ntrue,false,null')).throws('JsonicError',/csv_unexpected_field/)
   })
 })

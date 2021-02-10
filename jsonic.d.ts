@@ -32,7 +32,6 @@ declare type Options = {
     text: KV;
     object: KV;
     value: KV;
-    mode: KV;
     plugin: KV;
     debug: KV;
     error: {
@@ -62,6 +61,9 @@ declare type Options = {
         modify: {
             [plugin_name: string]: (config: Config, options: Options) => void;
         };
+    };
+    parser: {
+        start?: (lexer: Lexer, src: string, jsonic: Jsonic, meta?: any, parent_ctx?: any) => any;
     };
 };
 declare type Plugin = (jsonic: Jsonic) => void | Jsonic;
@@ -245,7 +247,9 @@ declare let util: {
     wrap_bad_lex: (lex: Lex, BD: Tin, ctx: Context) => any;
     errinject: (s: string, code: string, details: KV, token: Token, rule: Rule, ctx: Context) => string;
     extract: (src: string, errtxt: string, token: Token) => string;
-    handle_meta_mode: (zelf: Jsonic, src: string, meta: KV) => [boolean, any];
+    wrap_parser: (parser: any) => {
+        start: (lexer: Lexer, src: string, jsonic: Jsonic, meta?: any, parent_ctx?: any) => any;
+    };
     make_error_desc(code: string, details: KV, token: Token, rule: Rule, ctx: Context): KV;
     build_config_from_options: (config: Config, options: Options) => void;
 };
