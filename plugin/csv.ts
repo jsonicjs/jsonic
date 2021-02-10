@@ -1,13 +1,28 @@
 /* Copyright (c) 2013-2021 Richard Rodger, MIT License */
 
 // TODO: review against: https://www.papaparse.com/
-// TODO: option for strictness - values can't be objects
 
 
 import { Jsonic, Plugin, Rule, RuleSpec, Context } from '../jsonic'
 
 
 let Csv: Plugin = function csv(jsonic: Jsonic) {
+  let opts: any = jsonic.options.plugin.csv
+
+  let token: any = {
+    '#IGNORE': { s: '#SP,#CM' },
+  }
+
+  // If strict, don't parse JSON structures inside fields.
+  // NOTE: this is how you "turn off" tokens
+  if (opts.strict) {
+    token['#OB'] = false
+    token['#CB'] = false
+    token['#OS'] = false
+    token['#CS'] = false
+    token['#CL'] = false
+  }
+
   jsonic.options({
     error: {
       csv_unexpected_field: 'unexpected field value: $fsrc'
@@ -20,9 +35,7 @@ fields per row are expected.`,
     string: {
       escapedouble: true,
     },
-    token: {
-      '#IGNORE': { s: '#SP,#CM' },
-    },
+    token: token
   })
 
 
@@ -34,7 +47,6 @@ fields per row are expected.`,
     let use: any = ctx.use.csv = (ctx.use.csv || {})
     let frm: any = use.frm = (use.frm || { val: true, list: true, record: true })
     let res = (frm[rule.name] && (frm[rule.name] = false, true)) // locking latch
-    //console.log('F', res, rule.name)
     return res
   }
 

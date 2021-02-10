@@ -1,6 +1,5 @@
 /* Copyright (c) 2013-2021 Richard Rodger, MIT License */
 
-// TODO: options to switch off built in lex tokens - like options.number.lex
 // TODO: util tests
 // TODO: plugin TODOs
 // TODO: deeper tests
@@ -2657,6 +2656,3 @@ export default Jsonic
 /* $lab:coverage:off$ */
 //-NODE-MODULE-FIX;('undefined' != typeof(module) && (module.exports = exports.Jsonic));
 /* $lab:coverage:on$ */
-
-
-
