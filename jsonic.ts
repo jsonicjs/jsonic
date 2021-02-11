@@ -1,5 +1,6 @@
 /* Copyright (c) 2013-2021 Richard Rodger, MIT License */
 
+// TODO: data file to diff exhaust changes
 // TODO: util tests
 // TODO: plugin TODOs
 // TODO: deeper tests
@@ -62,7 +63,7 @@ type Options = {
   char: KV
   comment: { [start_marker: string]: string | boolean } | false
   balance: KV
-  number: KV
+  number: KV & false
   string: KV
   text: KV
   object: KV
@@ -176,7 +177,7 @@ type Config = {
   }
   number: {
     sep_re: RegExp | null
-  }
+  } & KV,
   debug: KV
 }
 
@@ -229,7 +230,7 @@ function make_standard_options(): Options {
 
 
     // Control number formats.
-    number: {
+    number: ({
 
       // Recognize numbers in the Lexer.
       lex: true,
@@ -248,7 +249,7 @@ function make_standard_options(): Options {
 
       // Allow embedded separator. `null` to disable.
       sep: '_',
-    },
+    } as any),
 
 
     // String formats.
@@ -671,7 +672,7 @@ class Lexer {
 
 
           // Number chars.
-          if (config.start.NR[c0] && options.number.lex) {
+          if (options.number && config.start.NR[c0] && config.number.lex) {
             token.tin = NR
             token.loc = sI
             token.col = cI
@@ -690,9 +691,9 @@ class Lexer {
               // digits and does not start with 0x|o|b, then text.
               if (
                 1 < token.len && '0' === src[sI] &&     // Maybe a 0x|o|b number?
-                (!options.number.hex || 'x' !== base_char) && // But...
-                (!options.number.oct || 'o' !== base_char) && //  it is...
-                (!options.number.bin || 'b' !== base_char)    //    not.
+                (!config.number.hex || 'x' !== base_char) && // But...
+                (!config.number.oct || 'o' !== base_char) && //  it is...
+                (!config.number.bin || 'b' !== base_char)    //    not.
               ) {
                 // Not a number.
                 token.val = undefined
@@ -2391,7 +2392,7 @@ let util = {
 
 
     // All the characters that can appear in a number.
-    config.charset.digital = util.charset(options.number.digital)
+    config.charset.digital = util.charset(options.number.digital || '')
 
     // Multiline quotes
     config.charset.multiline = util.charset(options.string.multiline)
@@ -2436,7 +2437,9 @@ let util = {
     }
 
     config.number = {
-      sep_re: null != options.number.sep ? new RegExp(options.number.sep, 'g') : null
+      ...(false !== options.number ? (options.number as any) : {}),
+      sep_re: null != options.number.sep ?
+        new RegExp((options.number as any).sep, 'g') : null
     }
 
     config.debug = options.debug

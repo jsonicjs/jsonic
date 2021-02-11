@@ -113,9 +113,10 @@ describe('compat', function () {
       .equals([ { a: {x:1}, b: [ 'c' ] }, {a:true, b:false} ])
     expect(()=>j('a,b\n{x:1},[c]\ntrue,false,null')).throws('JsonicError',/csv_unexpected_field/)
 
+    // and without
     let k = Jsonic.make().use(Csv,{strict:true})
-    expect(k('a,b\n1,2')).equals([ { a: 1, b: 2 } ])
-    expect(k('a,b\n{x:1},2')).equals([ { a: '{x:1}', b: 2 } ])
+    expect(k('a,b\n1,"2"')).equals([ { a: '1', b: '2' } ])
+    expect(k('a,b\n{x:1},#2')).equals([ { a: '{x:1}', b: '#2' } ])
     
   })
 })

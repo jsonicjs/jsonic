@@ -7,23 +7,13 @@ import { Jsonic, Plugin, Rule, RuleSpec, Context } from '../jsonic'
 
 
 let Csv: Plugin = function csv(jsonic: Jsonic) {
-  let opts: any = jsonic.options.plugin.csv
+  let plugin_opts: any = jsonic.options.plugin.csv
 
   let token: any = {
     '#IGNORE': { s: '#SP,#CM' },
   }
 
-  // If strict, don't parse JSON structures inside fields.
-  // NOTE: this is how you "turn off" tokens
-  if (opts.strict) {
-    token['#OB'] = false
-    token['#CB'] = false
-    token['#OS'] = false
-    token['#CS'] = false
-    token['#CL'] = false
-  }
-
-  jsonic.options({
+  let options: any = {
     error: {
       csv_unexpected_field: 'unexpected field value: $fsrc'
     },
@@ -36,7 +26,29 @@ fields per row are expected.`,
       escapedouble: true,
     },
     token: token
-  })
+  }
+
+  // If strict, don't parse JSON structures inside fields.
+  // NOTE: this is how you "turn off" tokens
+  if (plugin_opts.strict) {
+    token['#OB'] = false
+    token['#CB'] = false
+    token['#OS'] = false
+    token['#CS'] = false
+    token['#CL'] = false
+
+    token['#ST'] = '"'
+
+    options.number = false
+    options.comment = false
+
+    options.string.multiline = ''
+    options.string.block = {}
+
+    options.value = {}
+  }
+
+  jsonic.options(options)
 
 
 

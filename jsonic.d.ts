@@ -27,7 +27,7 @@ declare type Options = {
         [start_marker: string]: string | boolean;
     } | false;
     balance: KV;
-    number: KV;
+    number: KV & false;
     string: KV;
     text: KV;
     object: KV;
@@ -153,7 +153,7 @@ declare type Config = {
     };
     number: {
         sep_re: RegExp | null;
-    };
+    } & KV;
     debug: KV;
 };
 declare class JsonicError extends SyntaxError {

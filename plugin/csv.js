@@ -5,20 +5,11 @@ exports.Csv = void 0;
 // TODO: review against: https://www.papaparse.com/
 const jsonic_1 = require("../jsonic");
 let Csv = function csv(jsonic) {
-    let opts = jsonic.options.plugin.csv;
+    let plugin_opts = jsonic.options.plugin.csv;
     let token = {
         '#IGNORE': { s: '#SP,#CM' },
     };
-    // If strict, don't parse JSON structures inside fields.
-    // NOTE: this is how you "turn off" tokens
-    if (opts.strict) {
-        token['#OB'] = false;
-        token['#CB'] = false;
-        token['#OS'] = false;
-        token['#CS'] = false;
-        token['#CL'] = false;
-    }
-    jsonic.options({
+    let options = {
         error: {
             csv_unexpected_field: 'unexpected field value: $fsrc'
         },
@@ -30,7 +21,23 @@ fields per row are expected.`,
             escapedouble: true,
         },
         token: token
-    });
+    };
+    // If strict, don't parse JSON structures inside fields.
+    // NOTE: this is how you "turn off" tokens
+    if (plugin_opts.strict) {
+        token['#OB'] = false;
+        token['#CB'] = false;
+        token['#OS'] = false;
+        token['#CS'] = false;
+        token['#CL'] = false;
+        token['#ST'] = '"';
+        options.number = false;
+        options.comment = false;
+        options.string.multiline = '';
+        options.string.block = {};
+        options.value = {};
+    }
+    jsonic.options(options);
     let LN = jsonic.token.LN;
     // Match alt only if first occurrence of rule 
     let first = (_alt, rule, ctx) => {

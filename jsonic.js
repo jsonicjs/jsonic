@@ -342,7 +342,7 @@ class Lexer {
                         return token;
                     }
                     // Number chars.
-                    if (config.start.NR[c0] && options.number.lex) {
+                    if (options.number && config.start.NR[c0] && config.number.lex) {
                         token.tin = NR;
                         token.loc = sI;
                         token.col = cI;
@@ -356,9 +356,9 @@ class Lexer {
                             // Leading 0s are text unless hex|oct|bin val: if at least two
                             // digits and does not start with 0x|o|b, then text.
                             if (1 < token.len && '0' === src[sI] && // Maybe a 0x|o|b number?
-                                (!options.number.hex || 'x' !== base_char) && // But...
-                                (!options.number.oct || 'o' !== base_char) && //  it is...
-                                (!options.number.bin || 'b' !== base_char) //    not.
+                                (!config.number.hex || 'x' !== base_char) && // But...
+                                (!config.number.oct || 'o' !== base_char) && //  it is...
+                                (!config.number.bin || 'b' !== base_char) //    not.
                             ) {
                                 // Not a number.
                                 token.val = undefined;
@@ -1635,7 +1635,7 @@ let util = {
         }
         config.single_char = Object.keys(config.singlemap).join('');
         // All the characters that can appear in a number.
-        config.charset.digital = util.charset(options.number.digital);
+        config.charset.digital = util.charset(options.number.digital || '');
         // Multiline quotes
         config.charset.multiline = util.charset(options.string.multiline);
         // Enders are char sets that end lexing for a given token.
@@ -1660,7 +1660,9 @@ let util = {
             }
         };
         config.number = {
-            sep_re: null != options.number.sep ? new RegExp(options.number.sep, 'g') : null
+            ...(false !== options.number ? options.number : {}),
+            sep_re: null != options.number.sep ?
+                new RegExp(options.number.sep, 'g') : null
         };
         config.debug = options.debug;
         // Apply any config modifiers (probably from plugins).
