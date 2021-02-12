@@ -6,7 +6,7 @@ let HJson = function hjson(jsonic) {
     let CL = jsonic.token.CL;
     let TX = jsonic.token.TX;
     let LTP = jsonic.token.LTP;
-    // Consume to end of line.
+    // HJson unquoted string
     // NOTE: HJson thus does not support a:foo,b:bar -> {a:'foo',b:'bar'}
     // Rather, you get a:foo,b:bar -> {a:'foo,b:bar'}
     jsonic.lex(jsonic.token.LTX, function tx_eol(sI, rI, cI, src, token, ctx) {

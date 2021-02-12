@@ -343,8 +343,18 @@ describe('util', () => {
 
 
   it('make_log', () => {
-    let tmp = {}
-    let options = {debug:{get_console:()=>({log:((x)=>tmp.x=x), dir:((y)=>tmp.y=y)})}}
+    let log = []
+    let dir = []
+
+    let options = {
+      debug:{
+        print_config: true,
+        get_console:()=>({
+          log:((x)=>log.push(x)),
+          dir:((x)=>dir.push(x))
+        })
+      }
+    }
     
     let g0 = util.make_log({})
     let g1 = util.make_log({log:1,options:options})
@@ -352,11 +362,25 @@ describe('util', () => {
 
     expect(g0).undefined()
 
+    log = []
+    dir = []
     g1('A')
-    expect(tmp.y).equal(['A'])
-    
+    expect(log).equal([])
+    expect(dir).equal([['A']])
+
+
+    log = []
+    dir = []
     g2('B')
-    expect(tmp.x).equal('B')
+    expect(log).equal(['B'])
+    expect(dir).equal([])
+
+    log = []
+    dir = []
+    let j = Jsonic.make(options)
+    j('a:1',{log:-1})
+    expect(log.length).equal(36) // may need to be changed if logging changes
+    expect(dir[0].debug.print_config).true()
   })
 
 

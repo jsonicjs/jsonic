@@ -12,7 +12,7 @@ let HJson: Plugin = function hjson(jsonic: Jsonic) {
   let LTP = jsonic.token.LTP
 
 
-  // Consume to end of line.
+  // HJson unquoted string
   // NOTE: HJson thus does not support a:foo,b:bar -> {a:'foo',b:'bar'}
   // Rather, you get a:foo,b:bar -> {a:'foo,b:bar'}
   jsonic.lex(jsonic.token.LTX, function tx_eol(

@@ -5,7 +5,7 @@
 // TODO: plugin TODOs
 // TODO: deeper tests
 // TODO: types used properly in plugins, eg. LexMatcher
-
+// TODO: proper type for Lex matcher args
 // TODO: post release: plugin for path expr: a.b:1 -> {a:{b:1}}
 
 
@@ -2449,12 +2449,9 @@ let util = {
       .forEach((plugin_name: string) =>
         options.config.modify[plugin_name](config, options))
 
-    // TODO: use options.debug.get_console! then test!
-    /* $lab:coverage:off$ */
     if (options.debug.print_config) {
-      console.log(config)
+      options.debug.get_console().dir(config, { depth: null })
     }
-    /* $lab:coverage:on$ */
   },
 }
 

@@ -17,7 +17,7 @@ const expect = Code.expect
 const I = Util.inspect
 
 const { Jsonic, Lexer } = require('..')
-const pv_perf = require('./pv-perf')
+const pv_perf = require('./first-version-perf')
 
 
 let j = Jsonic
@@ -340,7 +340,7 @@ describe('first-version', function () {
   })
 */
 
-  it( 'pv-json', function(){
+  it( 'fv-json', function(){
     var js = JSON.stringify
     var jp = JSON.parse
     var x,g

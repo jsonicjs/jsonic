@@ -17,7 +17,6 @@ const expect = Code.expect
 const I = Util.inspect
 
 const { Jsonic, Lexer, JsonicError } = require('..')
-const pv_perf = require('./pv-perf')
 
 let j = Jsonic
 let lexer = j.internal().lexer
