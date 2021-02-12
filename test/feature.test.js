@@ -161,6 +161,7 @@ describe('feature', function () {
 
   it('feature-number', () => {
     expect(j('1')).equals(1)
+    expect(j('0.9')).equals(0.9)
     expect(j('[1]')).equals([1])
     expect(j('a:1')).equals({a:1})
     expect(j('1:a')).equals({'1':'a'})
@@ -187,6 +188,7 @@ describe('feature', function () {
     expect(j('1e6:a')).equals({'1e6':'a'}) // NOTE: "1e6" not "1000000"
 
     expect(j('a:1')).equals({a:1})
+    expect(j('a:0.1')).equals({a:0.1})
     expect(j('a:[1]')).equals({a:[1]})
     expect(j('a:a:1')).equals({a:{a:1}})
     expect(j('a:1:a')).equals({a:{'1':'a'}})
@@ -211,7 +213,9 @@ describe('feature', function () {
     expect(j('a:0o_12')).equals({a:10})
     expect(j('a:0b_1010')).equals({a:10})
     expect(j('a:1e6:a')).equals({a:{'1e6':'a'}}) // NOTE: "1e6" not "1000000"
-
+    expect(j('[1,0]')).equals([1,0])
+    expect(j('[1,0.5]')).equals([1,0.5])
+    
     let jn = j.make({ number: { lex: false } })
     expect(jn('1')).equals('1') // Now it's a string.
     expect(j('1')).equals(1)
@@ -418,6 +422,21 @@ describe('feature', function () {
     expect(j('`a\nc\nb`')).equals('a\nc\nb')
     expect(j('`a\r\n\r\nb`')).equals('a\r\n\r\nb')
 
+
+    expect(j("'''a\nb'''")).equals('a\nb')
+    expect(j("'''\na\nb'''")).equals('a\nb')
+    expect(j("'''\na\nb\n'''")).equals('a\nb')
+    expect(j("\n'''\na\nb\n'''\n")).equals('a\nb')
+    expect(j(" '''\na\nb\n''' ")).equals('a\nb')
+
+    expect(j("''' a\nb\n'''")).equals(' a\nb')
+    expect(j(" '''a\n b\n'''")).equals('a\nb')
+    expect(j(" ''' \na\n b\n'''")).equals('a\nb')
+    expect(j(" ''' \na\n  b\n'''")).equals('a\n b')
+    expect(j(" ''' \na\nb\n'''")).equals('a\nb')
+    expect(j(" ''' a\n b\n'''")).equals('a\nb')
+    expect(j(" ''' a\nb\n'''")).equals('a\nb')
+    
     expect(j(`{
   md:
     '''
@@ -431,9 +450,7 @@ describe('feature', function () {
 
     
     expect(j("'''\na\nb\n'''")).equals('a\nb')
-
-    // NOTE: block marker is expected to be on own line
-    expect(j("'''a\nb'''")).equals('\n')
+    expect(j("'''a\nb'''")).equals('a\nb')
 
     try {
       j('[`a\n`,`b')

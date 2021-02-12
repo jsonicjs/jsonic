@@ -19,6 +19,7 @@ const errinject = util.errinject
 const marr = util.marr
 const make_src_format = util.make_src_format
 const wrap_bad_lex = util.wrap_bad_lex
+const regexp = util.regexp
 
 
 const I = Util.inspect
@@ -342,6 +343,16 @@ describe('util', () => {
   })
 
 
+  it('regexp', () => {
+    expect(regexp('','a')).equal(/a/)
+    expect(regexp('g','a','b')).equal(/ab/g)
+    expect(regexp('g','%a','b')).equal(/\ab/g)
+    expect(regexp('g','[', '%a',']*','b')).equal(/[\a]*b/g)
+    expect(regexp('g','[', '%a',' ',']*','b')).equal(/[\a ]*b/g)
+  })
+
+
+  
   it('make_log', () => {
     let log = []
     let dir = []

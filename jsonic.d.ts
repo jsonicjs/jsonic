@@ -152,9 +152,12 @@ declare type Config = {
         };
     };
     number: {
-        sep_re: RegExp | null;
+        sep_RE: RegExp | null;
     } & KV;
     debug: KV;
+    re: {
+        [name: string]: RegExp;
+    };
 };
 declare class JsonicError extends SyntaxError {
     constructor(code: string, details: KV, token: Token, rule: Rule, ctx: Context);
@@ -245,6 +248,7 @@ declare let util: {
     make_src_format: (config: Config) => (s: any, _?: any) => string;
     make_log: (ctx: Context) => ((...rest: any) => undefined) | undefined;
     wrap_bad_lex: (lex: Lex, BD: Tin, ctx: Context) => any;
+    regexp: (flags: string, ...parts: string[]) => RegExp;
     errinject: (s: string, code: string, details: KV, token: Token, rule: Rule, ctx: Context) => string;
     extract: (src: string, errtxt: string, token: Token) => string;
     wrap_parser: (parser: any) => {

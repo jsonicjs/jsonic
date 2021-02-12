@@ -176,9 +176,10 @@ type Config = {
     core: { [name: string]: Tin }
   }
   number: {
-    sep_re: RegExp | null
+    sep_RE: RegExp | null
   } & KV,
-  debug: KV
+  debug: KV,
+  re: { [name: string]: RegExp }
 }
 
 
@@ -193,6 +194,7 @@ const S = {
   pair: 'pair',
   val: 'val',
   node: 'node',
+  no_re_flags: '',
 }
 
 
@@ -200,13 +202,17 @@ function make_standard_options(): Options {
 
   let options: Options = {
 
+    // TODO: rename to special
     // Special chars
     char: {
 
       // Increments row (aka line) counter.
       row: '\n',
 
-      // Invalid code point.
+      // TODO: use this
+      // Line separator regexp (as string)
+      line_sep_RES: '\r*\n',
+
       bad_unicode: String.fromCharCode('0x0000' as any),
     },
 
@@ -462,6 +468,7 @@ type LexMatcher = (
 type LexMatcherListMap = { [state: number]: LexMatcher[] }
 
 
+// TODO: include state_param
 type LexMatcherResult = undefined | {
   sI: number,
   rI: number
@@ -690,7 +697,9 @@ class Lexer {
               // Leading 0s are text unless hex|oct|bin val: if at least two
               // digits and does not start with 0x|o|b, then text.
               if (
-                1 < token.len && '0' === src[sI] &&     // Maybe a 0x|o|b number?
+                1 < token.len && '0' === src[sI] && '.' !== src[sI + 1] &&
+
+                // Maybe a 0|x|o|b number?
                 (!config.number.hex || 'x' !== base_char) && // But...
                 (!config.number.oct || 'o' !== base_char) && //  it is...
                 (!config.number.bin || 'b' !== base_char)    //    not.
@@ -705,8 +714,8 @@ class Lexer {
                 token.val = +numstr
 
                 // Allow number format 1000_000_000 === 1e9.
-                if (null != config.number.sep_re && isNaN(token.val)) {
-                  token.val = +(numstr.replace(config.number.sep_re, ''))
+                if (null != config.number.sep_RE && isNaN(token.val)) {
+                  token.val = +(numstr.replace(config.number.sep_RE, ''))
                 }
 
                 // Not a number, just a random collection of digital chars.
@@ -798,35 +807,41 @@ class Lexer {
                 // ASCII escape \x**
                 else if ('x' === src[pI]) {
                   pI++
-                  let us =
-                    String.fromCharCode(('0x' + src.substring(pI, pI + 2)) as any)
+                  let cc = parseInt(src.substring(pI, pI + 2), 16)
 
-                  if (options.char.bad_unicode === us) {
+                  if (isNaN(cc)) {
                     sI = pI - 2
+                    cI -= 2
                     return bad('invalid_ascii', pI + 2, src.substring(pI - 2, pI + 2))
                   }
+
+                  let us = String.fromCharCode(cc)
 
                   s.push(us)
                   pI += 1 // Loop increments pI.
                   cI += 2
                 }
 
-                // Unicode escape \u****.
-                // TODO: support \u{*****}
+                // Unicode escape \u**** and \u{*****}.
                 else if ('u' === src[pI]) {
                   pI++
-                  let us =
-                    String.fromCharCode(('0x' + src.substring(pI, pI + 4)) as any)
+                  let ux = '{' === src[pI] ? (pI++, 1) : 0
+                  let ulen = ux ? 6 : 4
 
-                  if (options.char.bad_unicode === us) {
-                    sI = pI - 2
-                    return bad('invalid_unicode', pI + 5,
-                      src.substring(pI - 2, pI + 4))
+                  let cc = parseInt(src.substring(pI, pI + ulen), 16)
+
+                  if (isNaN(cc)) {
+                    sI = pI - 2 - ux
+                    cI -= 2
+                    return bad('invalid_unicode', pI + ulen + 1,
+                      src.substring(pI - 2 - ux, pI + ulen + ux))
                   }
 
+                  let us = String.fromCodePoint(cc)
+
                   s.push(us)
-                  pI += 3 // Loop increments pI.
-                  cI += 4
+                  pI += (ulen - 1) + ux // Loop increments pI.
+                  cI += ulen + ux
                 }
                 else {
                   s.push(src[pI])
@@ -1057,18 +1072,22 @@ class Lexer {
           let balance = options.balance[state_param[2]]
           let has_indent = !!state_param[3]
           let indent_str = ''
+          let indent_len = 0
           let openlen = open.length
           let closelen = close.length
 
           if (has_indent) {
             let uI = sI - 1
-            while (-1 < uI && config.multi.SP[src[uI--]]);
+            while (-1 < uI && config.multi.SP[src[uI]]) uI--;
 
-            let indent_len = sI - uI - 2
+            //indent_len = sI - uI - 2
+            indent_len = sI - uI - 1
             if (0 < indent_len) {
               indent_str = Object.keys(config.multi.SP)[0].repeat(indent_len)
             }
           }
+
+          //console.log('INDENT:', indent_len, sI, '<' + indent_str + '>')
 
           // Assume starts with open string
           pI += open.length
@@ -1109,9 +1128,53 @@ class Lexer {
           if (has_indent) {
             token.val =
               token.val.substring(openlen, token.val.length - closelen)
+
+            // Remove spurious space at start
+            if (null == config.re.block_prefix) {
+              config.re.block_prefix = util.regexp(
+                S.no_re_flags,
+                '^[', '%' + options.token['#SP'], ']*',
+                '(', options.char.line_sep_RES, ')',
+                //'[', '%' + options.token['#SP'], ']*'
+              )
+            }
             token.val =
-              token.val.replace(new RegExp(options.char.row + indent_str, 'g'), '\n')
-            token.val = token.val.substring(1, token.val.length - 1)
+              token.val.replace(config.re.block_prefix, '')
+
+            // Remove spurious space at end
+            if (null == config.re.block_suffix) {
+              config.re.block_suffix = util.regexp(
+                S.no_re_flags,
+                options.char.line_sep_RES,
+                '[', '%' + options.token['#SP'], ']*$'
+              )
+            }
+            token.val =
+              token.val.replace(config.re.block_suffix, '')
+
+            // Remove indent
+            let block_indent_RE = config.re['block_indent_' + indent_str] =
+              config.re['block_indent_' + indent_str] || util.regexp(
+                'g',
+                '^(', '%' + indent_str, ')|(',
+                '(', options.char.line_sep_RES, ')',
+                '%' + indent_str, ')'
+              )
+
+            //console.log('BIrep A', block_indent_RE, JSON.stringify(token.val))
+            token.val =
+              token.val.replace(block_indent_RE, '$3')
+            //console.log('BIrep Z', block_indent_RE, JSON.stringify(token.val))
+
+            /*
+            let re0 = new RegExp(
+              '(' + options.char.line_sep_RES + ')' + indent_str, 'g')
+
+            console.log('RE bi', config.re.block_indent, re0, '<' + indent_str + '>')
+
+            token.val =
+              token.val.replace(re0, '$1')
+            */
           }
 
           sI = pI
@@ -2106,6 +2169,19 @@ let util = {
   },
 
 
+  // Construct a RegExp from arguments.
+  // Prefix with '%' to escape regexp special chars.
+  // NOTE: flags first allows parts to be rest.
+  regexp: (flags: string, ...parts: string[]): RegExp => {
+    return new RegExp(
+      parts
+        .map(p => '%' === p[0] ? p.substring(1).replace(/./g, '\\$&') : p)
+        .join(''),
+      flags
+    )
+  },
+
+
   errinject: (
     s: string,
     code: string,
@@ -2436,19 +2512,30 @@ let util = {
       }
     }
 
+
+    // TODO: move to config.re, use util.regexp
     config.number = {
       ...(false !== options.number ? (options.number as any) : {}),
-      sep_re: null != options.number.sep ?
+      sep_RE: null != options.number.sep ?
         new RegExp((options.number as any).sep, 'g') : null
     }
 
+
+    // RegExp cache
+    config.re = {}
+
+
+    // Debug options
     config.debug = options.debug
+
 
     // Apply any config modifiers (probably from plugins).
     Object.keys(options.config.modify)
       .forEach((plugin_name: string) =>
         options.config.modify[plugin_name](config, options))
 
+
+    // Debug the config - useful for plugin authors.
     if (options.debug.print_config) {
       options.debug.get_console().dir(config, { depth: null })
     }

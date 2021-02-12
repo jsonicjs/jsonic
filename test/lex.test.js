@@ -84,12 +84,15 @@ describe('lex', function () {
       { tin: t.ZZ, loc: 6, len: 0, row: 0, col: 6,
         val: undefined, src: undefined, use: undefined })
 
-    let lex1 = lexstart('"\\u0040"')
-    //let lex1 = lexer.start({src:()=>'"\\u0040"'})
+    let lex1 = lexstart('"\\u0040\\u{012345}"')
     expect(lex1()).equals(
-      { tin: t.ST, loc: 0, len: 8, row: 0, col: 0, val: '@', src:'"\\u0040"',
-        use: undefined  })
+      { tin: t.ST, loc: 0, len: 18, row: 0, col: 0, val: '\u0040\u{012345}',
+        src:'"\\u0040\\u{012345}"',
+        use: undefined  }
+    )
 
+
+    
     
     expect(lexall(' {123')).equals([
       '#SP;0;1;0x0', '#OB;1;1;0x1', '#NR;2;3;0x2;123', '#ZZ;5;0;0x5'
@@ -296,8 +299,9 @@ describe('lex', function () {
       '"\\\'"', ['#ST;0;4;0x0;\'','#ZZ;4;0;0x4'],
       '"\\\\"', ['#ST;0;4;0x0;\\','#ZZ;4;0;0x4'],
       '"\\u0040"', ['#ST;0;8;0x0;@','#ZZ;8;0;0x8'],
-      '"\\uQQQQ"', ['#BD;1;7;0x3;\\uQQQQ~invalid_unicode'],
-      '"\\xQQ"', ['#BD;1;4;0x3;\\xQQ~invalid_ascii'],
+      '"\\uQQQQ"', ['#BD;1;7;0x1;\\uQQQQ~invalid_unicode'],
+      '"\\u{QQQQQQ}"', ['#BD;1;10;0x1;\\u{QQQQQQ}~invalid_unicode'],
+      '"\\xQQ"', ['#BD;1;4;0x1;\\xQQ~invalid_ascii'],
       '"[{}]:,"', ['#ST;0;8;0x0;[{}]:,', '#ZZ;8;0;0x8'],
       '"a\\""', ['#ST;0;5;0x0;a"','#ZZ;5;0;0x5'],
       '"a\\"a"', ['#ST;0;6;0x0;a"a','#ZZ;6;0;0x6'],
@@ -334,8 +338,9 @@ describe('lex', function () {
       '\'\\"\'', ['#ST;0;4;0x0;"','#ZZ;4;0;0x4'],
       '\'\\\\\'', ['#ST;0;4;0x0;\\','#ZZ;4;0;0x4'],
       '\'\\u0040\'', ['#ST;0;8;0x0;@','#ZZ;8;0;0x8'],
-      '\'\\uQQQQ\'', ['#BD;1;7;0x3;\\uQQQQ~invalid_unicode'],
-      '\'\\xQQ\'', ['#BD;1;4;0x3;\\xQQ~invalid_ascii'],
+      '\'\\uQQQQ\'', ['#BD;1;7;0x1;\\uQQQQ~invalid_unicode'],
+      '\'\\u{QQQQQQ}\'', ['#BD;1;10;0x1;\\u{QQQQQQ}~invalid_unicode'],
+      '\'\\xQQ\'', ['#BD;1;4;0x1;\\xQQ~invalid_ascii'],
       '\'[{}]:,\'', ['#ST;0;8;0x0;[{}]:,', '#ZZ;8;0;0x8'],
       '\'a\\\'\'', ['#ST;0;5;0x0;a\'','#ZZ;5;0;0x5'],
       '\'a\\\'a\'', ['#ST;0;6;0x0;a\'a','#ZZ;6;0;0x6'],

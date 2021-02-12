@@ -96,7 +96,13 @@ describe('error', function () {
   
 
   it('lex-unicode', () => {
-    let src0 = '\n\n\n\n\n\n\n\n\n\n   "\\u0000"'
+    let src0 = '\n\n\n\n\n\n\n\n\n\n   "\\uQQQQ"'
+    //j(src0)()
+    expect(j(src0))
+      .throws(JsonicError, /invalid_unicode/)
+
+    let src1 = '\n\n\n\n\n\n\n\n\n\n   "\\u{QQQQQQ}"'
+    //j(src1)()
     expect(j(src0))
       .throws(JsonicError, /invalid_unicode/)
   })
@@ -104,6 +110,7 @@ describe('error', function () {
 
   it('lex-ascii', () => {
     let src0 = '\n\n\n\n\n\n\n\n\n\n   "\\x!!"'
+    // j(src0)()
     expect(j(src0))
       .throws(JsonicError, /invalid_ascii/)
   })

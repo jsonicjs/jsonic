@@ -11,7 +11,6 @@ let HJson: Plugin = function hjson(jsonic: Jsonic) {
   let TX = jsonic.token.TX
   let LTP = jsonic.token.LTP
 
-
   // HJson unquoted string
   // NOTE: HJson thus does not support a:foo,b:bar -> {a:'foo',b:'bar'}
   // Rather, you get a:foo,b:bar -> {a:'foo,b:bar'}
