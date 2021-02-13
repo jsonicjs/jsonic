@@ -277,7 +277,8 @@ a:{x:1,y:2}
     expect(k('a:1')).equal({a:1})
     expect(k('{a:1}')).equal({a:1})
     expect(k('a:a')).equal({a:'a'})
-    expect(k('{a:a}')).equal({a:'a}'})
+    expect(k('{}')).equal({})
+    expect(()=>k('{a:a}')).throws()
   })
 
 

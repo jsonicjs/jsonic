@@ -1,28 +1,20 @@
 /* Copyright (c) 2013-2021 Richard Rodger, MIT License */
 
-// TODO: test cases of https://hjson.github.io/ ?
 
 
-import { Jsonic, Plugin, Token, Context, RuleSpec } from '../jsonic'
+import { Jsonic, Plugin, Token, Context, Rule, RuleSpec } from '../jsonic'
 
-/*
-let specials: any = {
-  'null': { val: null },
-  'true': { val: true },
-  'false': { val: false },
-}
-*/
 
+// Most of these mods nerf Jsonic (eg. auto finishing) to fit the HJson rules.
 let HJson: Plugin = function hjson(jsonic: Jsonic) {
   let CL = jsonic.token.CL
-  //let OS = jsonic.token.OS
-  //let CA = jsonic.token.CA
   let TX = jsonic.token.TX
-  //let NR = jsonic.token.NR
   let LTP = jsonic.token.LTP
 
   jsonic.options({
-    // number: false
+    rule: {
+      finish: false
+    }
   })
 
   // Implicit maps are OK.
@@ -31,12 +23,15 @@ let HJson: Plugin = function hjson(jsonic: Jsonic) {
   jsonic.rule('val', (rs: RuleSpec) => {
     rs.def.open.forEach((alt: any) => {
       if (alt.g &&
-        alt.g.includes('imp') &&
-        (alt.g.includes('list') ||
-          alt.g.includes('null'))
-      ) {
-        alt.e = true
-        //alt.d = 0
+        alt.g.includes('imp')) {
+
+        if (alt.g.includes('list') ||
+          alt.g.includes('null')) {
+          alt.e = (_alt: any, _rule: Rule, ctx: Context) => ctx.t0
+        }
+        else if (alt.g.includes('map')) {
+          alt.d = 0
+        }
       }
     })
     rs.def.close.forEach((alt: any) => {
@@ -44,7 +39,7 @@ let HJson: Plugin = function hjson(jsonic: Jsonic) {
         alt.g.includes('imp') &&
         alt.g.includes('list')
       ) {
-        alt.e = true
+        alt.e = (_alt: any, _rule: Rule, ctx: Context) => ctx.t0
       }
     })
     return rs
@@ -53,9 +48,36 @@ let HJson: Plugin = function hjson(jsonic: Jsonic) {
   jsonic.rule('elem', (rs: RuleSpec) => {
     rs.def.open.forEach((alt: any) => {
       if (alt.g && alt.g.includes('null')) {
-        alt.e = true
+        alt.e = (_alt: any, _rule: Rule, ctx: Context) => ctx.t0
       }
     })
+    return rs
+  })
+
+
+  jsonic.rule('pair', (rs: RuleSpec) => {
+    rs.def.close.forEach((alt: any) => {
+      if (alt.g && alt.g.includes('end')) {
+        let orig_e = alt.e
+        alt.e = (alt: any, rule: Rule, ctx: Context) => {
+          // Allow implicit top level map to finish
+          if (0 === rule.n.im) {
+            return orig_e && orig_e(alt, rule, ctx)
+          }
+        }
+      }
+    })
+
+    // Don't allow unquoted keys to contain space
+    let orig_before_close = rs.def.before_close
+    rs.def.before_close = (rule: Rule, ctx: Context) => {
+      let key_token = rule.open[0]
+      if (key_token && TX === key_token.tin && key_token.val.match(/[ \t]/)) {
+        return { err: 'unexpected' }
+      }
+      return orig_before_close(rule, ctx)
+    }
+
     return rs
   })
 
@@ -74,8 +96,6 @@ let HJson: Plugin = function hjson(jsonic: Jsonic) {
     let pI = sI
     let srclen = src.length
 
-    //    console.log('R', ctx.rule)
-
     if (ctx.t0.tin === CL) {
       /* $lab:coverage:off$ */
       while (pI < srclen && !ctx.config.multi.LN[src[pI]]) {
@@ -88,25 +108,6 @@ let HJson: Plugin = function hjson(jsonic: Jsonic) {
       token.len = pI - sI
       token.val = src.substring(sI, pI).trim()
       token.src = token.val
-
-
-      /*
-      console.log('C', '<' + token.val + '>')
-
-      let checkval = token.val.replace(/[, \t]+/g, '')
-
-      // Check for specials
-      if (specials[checkval]) {
-        token.val = specials[checkval].val
-      }
-
-      // Check for numbers
-      let n = +(checkval)
-      if (!isNaN(n)) {
-        token.tin = NR
-        token.val = n
-      }
-      */
 
       sI = pI
 

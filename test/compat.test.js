@@ -41,7 +41,7 @@ describe('compat', function () {
   // (because it's like C/JavaScript/...)
 
   /* block style comments because
-     it allows you to comment out a block * /
+     it allows you to comment out a block */
 
   # Everything you do in comments,
   # stays in comments ;-}

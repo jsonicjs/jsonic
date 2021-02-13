@@ -1660,7 +1660,7 @@ class Parser {
         open: [
 
           // Implicit map. Reset implicit map depth counter.
-          { s: [OB, CA], p: S.map, n: { im: 0 }, g: 'imp' },
+          { s: [OB, CA], p: S.map, n: { im: 0 }, g: 'imp,map' },
 
           // Standard JSON.
           { s: [OB], p: S.map, n: { im: 0 } },
@@ -1674,10 +1674,10 @@ class Parser {
 
           // Implicit map - operates at any depth. Increment counter.
           // NOTE: `n.im` counts depth of implicit maps 
-          { s: [TX, CL], p: S.map, b: 2, n: { im: 1 }, g: 'imp' },
-          { s: [ST, CL], p: S.map, b: 2, n: { im: 1 }, g: 'imp' },
-          { s: [NR, CL], p: S.map, b: 2, n: { im: 1 }, g: 'imp' },
-          { s: [VL, CL], p: S.map, b: 2, n: { im: 1 }, g: 'imp' },
+          { s: [TX, CL], p: S.map, b: 2, n: { im: 1 }, g: 'imp,map' },
+          { s: [ST, CL], p: S.map, b: 2, n: { im: 1 }, g: 'imp,map' },
+          { s: [NR, CL], p: S.map, b: 2, n: { im: 1 }, g: 'imp,map' },
+          { s: [VL, CL], p: S.map, b: 2, n: { im: 1 }, g: 'imp,map' },
 
           // Standard JSON (apart from TX).
           { s: [TX] },
