@@ -49,9 +49,9 @@
     "@hapi/lab": "^24.1.0",
     "hapi-lab-shim": "0.0.2",
     "lab-transform-typescript": "^3.0.1",
-    "prettier": "^2.1.2",
+    "prettier": "^2.2.1",
     "browserify": "^17.0.0",
     "tinyify": "^3.0.0",
-    "typescript": "^4.0.5"
+    "typescript": "^4.1.3"
   }
 }

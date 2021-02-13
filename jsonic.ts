@@ -2310,19 +2310,19 @@ let util = {
     // Char code arrays for lookup by char code.
     config.start = multi_char_token_names
       .reduce((a: any, tn) =>
-        (a[tn.substring(1)] =
-          (options.token[tn] as string)
-            .split('')
-            .reduce((pm, c) => (pm[c] = config.token[tn], pm), ({} as PinMap)),
-          a), {})
+      (a[tn.substring(1)] =
+        (options.token[tn] as string)
+          .split('')
+          .reduce((pm, c) => (pm[c] = config.token[tn], pm), ({} as PinMap)),
+        a), {})
 
     config.multi = multi_char_token_names
       .reduce((a: any, tn) =>
-        (a[tn.substring(1)] =
-          (options.token[tn] as string)
-            .split('')
-            .reduce((pm, c) => (pm[c] = config.token[tn], pm), ({} as PinMap)),
-          a), {})
+      (a[tn.substring(1)] =
+        (options.token[tn] as string)
+          .split('')
+          .reduce((pm, c) => (pm[c] = config.token[tn], pm), ({} as PinMap)),
+        a), {})
 
     let tokenset_names = token_names
       .filter(tn => null != (options.token[tn] as any).s)
@@ -2330,10 +2330,10 @@ let util = {
     // Char code arrays for lookup by char code.
     config.tokenset = tokenset_names
       .reduce((a: any, tsn) =>
-        (a[tsn.substring(1)] =
-          (options.token[tsn] as any).s.split(',')
-            .reduce((a: any, tn: string) => (a[config.token[tn]] = tn, a), {}),
-          a), {})
+      (a[tsn.substring(1)] =
+        (options.token[tsn] as any).s.split(',')
+          .reduce((a: any, tn: string) => (a[config.token[tn]] = tn, a), {}),
+        a), {})
 
     // Lookup maps for sets of characters.
     config.charset = {}
