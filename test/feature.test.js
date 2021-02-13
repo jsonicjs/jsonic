@@ -607,6 +607,19 @@ describe('feature', function () {
   })
 
 
+  it('finish', () => {
+    expect(j('a:{b:')).equals({ a: { b: null } })
+    expect(j('{a:{b:{c:1}')).equals({ a: { b: { c: 1 } } })
+    expect(j('[[1')).equals([[1]])
+    
+    // TODO: needs own error code
+    let k = j.make({rule:{finish:false}})
+    expect(()=>k('a:{b:')).throws('JsonicError', /unexpected/)
+    expect(()=>k('{a:{b:{c:1}')).throws('JsonicError', /unexpected/)
+    expect(()=>k('[[1')).throws('JsonicError', /unexpected/)
+  })
+  
+
   it('property-dive', () => {
     expect(j('{a:1,b:2}')).equals({a:1,b:2})
     expect(j('{a:1,b:{c:2}}')).equals({a:1,b:{c:2}})

@@ -84,6 +84,7 @@ type Options = {
     core: { [name: string]: string }
   },
   rule: {
+    finish: boolean,
     maxmul: number,
   },
   config: {
@@ -211,7 +212,6 @@ function make_standard_options(): Options {
       // Increments row (aka line) counter.
       row: '\n',
 
-      // TODO: use this
       // Line separator regexp (as string)
       line_sep_RES: '\r*\n',
 
@@ -296,10 +296,8 @@ function make_standard_options(): Options {
     },
 
 
-    // TODO: rename to map for consistency
     // Object formats.
     map: {
-      // TODO: allow: true - allow duplicates, else error
 
       // Later duplicates extend earlier ones, rather than replacing them.
       extend: true,
@@ -391,6 +389,9 @@ function make_standard_options(): Options {
 
     // Parser rule options.
     rule: {
+
+      // Automatically close remaining structures at EOF.
+      finish: true,
 
       // Multiplier to increase the maximum number of rule occurences.
       maxmul: 3,
@@ -607,7 +608,6 @@ class Lexer {
 
       let pI = 0 // Current lex position (only update sI at end of rule).
       let s: string[] = [] // Parsed string chars and substrings.
-      //let cc = -1 // Char code.
 
       next_char:
       while (sI < srclen) {
@@ -989,7 +989,8 @@ class Lexer {
           }
 
           let text_enders =
-            options.text.hoover ? config.charset.hoover_ender : config.charset.text_ender
+            options.text.hoover ? config.charset.hoover_ender :
+              config.charset.text_ender
 
           // TODO: construct a RegExp to do this
           while (null != src[pI] &&
@@ -1089,8 +1090,6 @@ class Lexer {
             }
           }
 
-          //console.log('INDENT:', indent_len, sI, '<' + indent_str + '>')
-
           // Assume starts with open string
           pI += open.length
 
@@ -1137,7 +1136,6 @@ class Lexer {
                 S.no_re_flags,
                 '^[', '%' + options.token['#SP'], ']*',
                 '(', options.char.line_sep_RES, ')',
-                //'[', '%' + options.token['#SP'], ']*'
               )
             }
             token.val =
@@ -1163,20 +1161,8 @@ class Lexer {
                 '%' + indent_str, ')'
               )
 
-            //console.log('BIrep A', block_indent_RE, JSON.stringify(token.val))
             token.val =
               token.val.replace(block_indent_RE, '$3')
-            //console.log('BIrep Z', block_indent_RE, JSON.stringify(token.val))
-
-            /*
-            let re0 = new RegExp(
-              '(' + options.char.line_sep_RES + ')' + indent_str, 'g')
-
-            console.log('RE bi', config.re.block_indent, re0, '<' + indent_str + '>')
-
-            token.val =
-              token.val.replace(re0, '$1')
-            */
           }
 
           sI = pI
@@ -1231,7 +1217,8 @@ class Lexer {
     token.src = src
     token.use = use
 
-    log && log(util.token(token.tin, ctx.config), ctx.F(token.src), sI, rI + ':' + cI, { ...token },
+    log && log(util.token(token.tin, ctx.config), ctx.F(token.src),
+      sI, rI + ':' + cI, { ...token },
       'error', why)
     return token
   }
@@ -1283,6 +1270,7 @@ enum RuleState {
   close,
 }
 /* $lab:coverage:on$ */
+
 
 class Rule {
   id: number
@@ -1557,7 +1545,7 @@ class RuleSpec {
 
         // No tokens to match.
         if (null == alt.s || 0 === alt.s.length) {
-          out.e = alt.e ? alt.e : undefined
+          out.e = alt.e && alt.e(alt, rule, ctx) || undefined
           break
         }
 
@@ -1565,12 +1553,12 @@ class RuleSpec {
         else if (alt.s[0] === ctx.t0.tin) {
           if (1 === alt.s.length) {
             out.m = [ctx.t0]
-            out.e = alt.e ? alt.e : undefined
+            out.e = alt.e && alt.e(alt, rule, ctx) || undefined
             break
           }
           else if (alt.s[1] === ctx.t1.tin) {
             out.m = [ctx.t0, ctx.t1]
-            out.e = alt.e ? alt.e : undefined
+            out.e = alt.e && alt.e(alt, rule, ctx) || undefined
             break
           }
         }
@@ -1578,7 +1566,7 @@ class RuleSpec {
         // Match any token.
         else if (t.AA === alt.s[0]) {
           out.m = [ctx.t0]
-          out.e = alt.e ? alt.e : undefined
+          out.e = alt.e && alt.e(alt, rule, ctx) || undefined
           break
         }
       }
@@ -1658,6 +1646,14 @@ class Parser {
 
     let AA = t.AA
     let ZZ = t.ZZ
+
+    let finish = (_alt: any, _rule: Rule, ctx: Context) => {
+      if (!this.options.rule.finish) {
+        // TODO: needs own error code
+        ctx.t0.src = 'END-OF-FILE'
+        return ctx.t0
+      }
+    }
 
     let rules: any = {
       val: {
@@ -1809,7 +1805,7 @@ class Parser {
             b: 1
           },
 
-          { s: [ZZ], g: 'end' },
+          { s: [ZZ], e: finish, g: 'end' },
         ],
         before_close: (rule: Rule, ctx: Context) => {
           let key_token = rule.open[0]
@@ -1866,7 +1862,7 @@ class Parser {
           { s: [ST], r: S.elem, b: 1 },
           { s: [VL], r: S.elem, b: 1 },
 
-          { s: [ZZ], g: 'end' },
+          { s: [ZZ], e: finish, g: 'end' },
         ],
         after_open: (rule: Rule, _ctx: Context, next: Rule) => {
           if (rule === next && rule.open[0]) {
@@ -2559,18 +2555,6 @@ let util = {
     }
   },
 }
-
-
-/*
-function make(first?: KV | Jsonic, parent?: Jsonic): Jsonic {
-
-  // Handle polymorphic params.
-  let param_options = (first as KV)
-  if (S.function === typeof (first)) {
-    param_options = ({} as KV)
-    parent = (first as Jsonic)
-  }
-*/
 
 
 function make(param_options?: KV, parent?: Jsonic): Jsonic {

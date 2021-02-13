@@ -22,7 +22,6 @@ function make_standard_options() {
         char: {
             // Increments row (aka line) counter.
             row: '\n',
-            // TODO: use this
             // Line separator regexp (as string)
             line_sep_RES: '\r*\n',
             bad_unicode: String.fromCharCode('0x0000'),
@@ -81,10 +80,8 @@ function make_standard_options() {
             // Consume to end of line.
             endofline: false,
         },
-        // TODO: rename to map for consistency
         // Object formats.
         map: {
-            // TODO: allow: true - allow duplicates, else error
             // Later duplicates extend earlier ones, rather than replacing them.
             extend: true,
         },
@@ -150,6 +147,8 @@ function make_standard_options() {
         },
         // Parser rule options.
         rule: {
+            // Automatically close remaining structures at EOF.
+            finish: true,
             // Multiplier to increase the maximum number of rule occurences.
             maxmul: 3,
         },
@@ -293,7 +292,6 @@ class Lexer {
             let enders = {};
             let pI = 0; // Current lex position (only update sI at end of rule).
             let s = []; // Parsed string chars and substrings.
-            //let cc = -1 // Char code.
             next_char: while (sI < srclen) {
                 let c0 = src[sI];
                 if (LTP === state) {
@@ -583,7 +581,8 @@ class Lexer {
                     if (matchers(rule)) {
                         return token;
                     }
-                    let text_enders = options.text.hoover ? config.charset.hoover_ender : config.charset.text_ender;
+                    let text_enders = options.text.hoover ? config.charset.hoover_ender :
+                        config.charset.text_ender;
                     // TODO: construct a RegExp to do this
                     while (null != src[pI] &&
                         (!text_enders[src[pI]] ||
@@ -661,7 +660,6 @@ class Lexer {
                             indent_str = Object.keys(config.multi.SP)[0].repeat(indent_len);
                         }
                     }
-                    //console.log('INDENT:', indent_len, sI, '<' + indent_str + '>')
                     // Assume starts with open string
                     pI += open.length;
                     while (pI < srclen && 0 < depth) {
@@ -712,19 +710,8 @@ class Lexer {
                         // Remove indent
                         let block_indent_RE = config.re['block_indent_' + indent_str] =
                             config.re['block_indent_' + indent_str] || util.regexp('g', '^(', '%' + indent_str, ')|(', '(', options.char.line_sep_RES, ')', '%' + indent_str, ')');
-                        //console.log('BIrep A', block_indent_RE, JSON.stringify(token.val))
                         token.val =
                             token.val.replace(block_indent_RE, '$3');
-                        //console.log('BIrep Z', block_indent_RE, JSON.stringify(token.val))
-                        /*
-                        let re0 = new RegExp(
-                          '(' + options.char.line_sep_RES + ')' + indent_str, 'g')
-            
-                        console.log('RE bi', config.re.block_indent, re0, '<' + indent_str + '>')
-            
-                        token.val =
-                          token.val.replace(re0, '$1')
-                        */
                     }
                     sI = pI;
                     state = LTP;
@@ -994,26 +981,26 @@ class RuleSpec {
             if (cond) {
                 // No tokens to match.
                 if (null == alt.s || 0 === alt.s.length) {
-                    out.e = alt.e ? alt.e : undefined;
+                    out.e = alt.e && alt.e(alt, rule, ctx) || undefined;
                     break;
                 }
                 // Match 1 or 2 tokens in sequence.
                 else if (alt.s[0] === ctx.t0.tin) {
                     if (1 === alt.s.length) {
                         out.m = [ctx.t0];
-                        out.e = alt.e ? alt.e : undefined;
+                        out.e = alt.e && alt.e(alt, rule, ctx) || undefined;
                         break;
                     }
                     else if (alt.s[1] === ctx.t1.tin) {
                         out.m = [ctx.t0, ctx.t1];
-                        out.e = alt.e ? alt.e : undefined;
+                        out.e = alt.e && alt.e(alt, rule, ctx) || undefined;
                         break;
                     }
                 }
                 // Match any token.
                 else if (t.AA === alt.s[0]) {
                     out.m = [ctx.t0];
-                    out.e = alt.e ? alt.e : undefined;
+                    out.e = alt.e && alt.e(alt, rule, ctx) || undefined;
                     break;
                 }
             }
@@ -1061,6 +1048,13 @@ class Parser {
         let VL = t.VL;
         let AA = t.AA;
         let ZZ = t.ZZ;
+        let finish = (_alt, _rule, ctx) => {
+            if (!this.options.rule.finish) {
+                // TODO: needs own error code
+                ctx.t0.src = 'END-OF-FILE';
+                return ctx.t0;
+            }
+        };
         let rules = {
             val: {
                 open: [
@@ -1187,7 +1181,7 @@ class Parser {
                         a: [S.map, S.val, S.elem],
                         b: 1
                     },
-                    { s: [ZZ], g: 'end' },
+                    { s: [ZZ], e: finish, g: 'end' },
                 ],
                 before_close: (rule, ctx) => {
                     let key_token = rule.open[0];
@@ -1233,7 +1227,7 @@ class Parser {
                     { s: [NR], r: S.elem, b: 1 },
                     { s: [ST], r: S.elem, b: 1 },
                     { s: [VL], r: S.elem, b: 1 },
-                    { s: [ZZ], g: 'end' },
+                    { s: [ZZ], e: finish, g: 'end' },
                 ],
                 after_open: (rule, _ctx, next) => {
                     if (rule === next && rule.open[0]) {
@@ -1736,16 +1730,6 @@ let util = {
     },
 };
 exports.util = util;
-/*
-function make(first?: KV | Jsonic, parent?: Jsonic): Jsonic {
-
-  // Handle polymorphic params.
-  let param_options = (first as KV)
-  if (S.function === typeof (first)) {
-    param_options = ({} as KV)
-    parent = (first as Jsonic)
-  }
-*/
 function make(param_options, parent) {
     let lexer;
     let parser;

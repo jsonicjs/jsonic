@@ -55,6 +55,7 @@ declare type Options = {
         };
     };
     rule: {
+        finish: boolean;
         maxmul: number;
     };
     config: {
