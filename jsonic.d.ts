@@ -89,6 +89,7 @@ interface Context {
     src: () => string;
     root: () => any;
     plugins: () => Plugin[];
+    rule: Rule;
     node: any;
     u2: Token;
     u1: Token;

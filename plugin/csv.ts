@@ -53,6 +53,8 @@ fields per row are expected.`,
 
 
   let LN = jsonic.token.LN
+  let ZZ = jsonic.token.ZZ
+
 
   // Match alt only if first occurrence of rule 
   let first = (_alt: any, rule: Rule, ctx: Context) => {
@@ -87,6 +89,7 @@ fields per row are expected.`,
         { p: 'list' },
       ],
       close: [
+        { s: [LN, ZZ] },
         { s: [LN], r: 'record' }
       ],
 

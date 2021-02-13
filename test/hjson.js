@@ -19,6 +19,11 @@ const tests = Fs
       .filter(tp=>tp[1]==='hjson')
       .filter(tp=>(null==only||tp[0].includes(only)))
 
+let results = {
+  pass: 0,
+  fail: 0
+}
+
 for(let tI = 0; tI < tests.length; tI++) {
   // console.log(tests[tI])
   let tp = tests[tI]
@@ -37,19 +42,36 @@ for(let tI = 0; tI < tests.length; tI++) {
     let srcd = hjson(src)
     if(null != res) {
       let resd = JSON.parse(res)
-      console.log(JSON.stringify(srcd) === JSON.stringify(resd), tp[0])
+      let pass = JSON.stringify(srcd) === JSON.stringify(resd)
+      console.log(pass, tp[0])
+      if(pass) {
+        results.pass++
+      }
+      else {
+        results.fail++
+        console.log(src)
+        console.dir(srcd)
+        console.dir(resd)
+      }
     }
     else {
+      results.fail++
       console.log('FAILED', tp[0], 'nothing thrown')
+      console.log(src)
+      console.dir(srcd)
     }
   }
   catch(je) {
     if(tp[0].startsWith('fail')) {
+      results.pass++
       console.log(true, tp[0])
     }
     else {
+      results.fail++
       console.log('FAILED', tp[0], je.message)
+      console.log(src)
     }
   }
 }
 
+console.log('\nRESULTS\npass: '+results.pass+'\nfail: '+results.fail)

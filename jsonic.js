@@ -838,26 +838,27 @@ class RuleSpec {
     constructor(def) {
         this.name = '-';
         this.def = def;
-        function norm_cond(cond) {
-            if ('object' === typeof (cond)) {
-                if (cond.n) {
-                    return (_alt, rule, _ctx) => {
-                        let pass = true;
-                        for (let cn in cond.n) {
-                            pass = pass && (null == rule.n[cn] || (rule.n[cn] <= cond.n[cn]));
-                        }
-                        return pass;
-                    };
-                }
+        function norm_alt(alt) {
+            // Convert counter abbrev condition into an actual function.
+            if (null != alt.c && alt.c.n) {
+                let counters = alt.c.n;
+                alt.c = (_alt, rule, _ctx) => {
+                    let pass = true;
+                    for (let cn in counters) {
+                        pass = pass && (null == rule.n[cn] || (rule.n[cn] <= counters[cn]));
+                    }
+                    return pass;
+                };
             }
-            return cond;
+            // Ensure groups are a string[]
+            if ('string' === typeof (alt.g)) {
+                alt.g = alt.g.split(/\s*,\s*/);
+            }
         }
         this.def.open = this.def.open || [];
         this.def.close = this.def.close || [];
         for (let alt of [...this.def.open, ...this.def.close]) {
-            if (null != alt.c) {
-                alt.c = norm_cond(alt.c);
-            }
+            norm_alt(alt);
         }
     }
     open(rule, ctx) {
@@ -869,29 +870,29 @@ class RuleSpec {
             out = this.def.before_open.call(this, rule, ctx);
             rule.node = out && out.node || rule.node;
         }
-        let act = (out && out.act) ? { ...empty_ruleact, ...out.act } :
+        let alt = (out && out.alt) ? { ...empty_ruleact, ...out.alt } :
             0 < this.def.open.length ? this.parse_alts(this.def.open, rule, ctx) :
                 empty_ruleact;
-        if (act.e) {
-            throw new JsonicError(S.unexpected, { open: true }, act.e, rule, ctx);
+        if (alt.e) {
+            throw new JsonicError(S.unexpected, { open: true }, alt.e, rule, ctx);
         }
-        rule.open = act.m;
-        if (act.n) {
-            for (let cn in act.n) {
+        rule.open = alt.m;
+        if (alt.n) {
+            for (let cn in alt.n) {
                 rule.n[cn] =
-                    0 === act.n[cn] ? 0 : (null == rule.n[cn] ? 0 : rule.n[cn]) + act.n[cn];
+                    0 === alt.n[cn] ? 0 : (null == rule.n[cn] ? 0 : rule.n[cn]) + alt.n[cn];
                 rule.n[cn] = 0 < rule.n[cn] ? rule.n[cn] : 0;
             }
         }
-        if (act.p) {
+        if (alt.p) {
             ctx.rs.push(rule);
-            next = rule.child = new Rule(ctx.rsm[act.p], ctx, rule.node);
+            next = rule.child = new Rule(ctx.rsm[alt.p], ctx, rule.node);
             next.parent = rule;
             next.n = { ...rule.n };
             why += 'U';
         }
-        else if (act.r) {
-            next = new Rule(ctx.rsm[act.r], ctx, rule.node);
+        else if (alt.r) {
+            next = new Rule(ctx.rsm[alt.r], ctx, rule.node);
             next.parent = rule.parent;
             next.n = { ...rule.n };
             why += 'R';
@@ -917,32 +918,33 @@ class RuleSpec {
             }
             rule.node = out && out.node || rule.node;
         }
-        let act = (out && out.act) ? { ...empty_ruleact, ...out.act } :
+        let alt = (out && out.alt) ? { ...empty_ruleact, ...out.alt } :
             0 < this.def.close.length ? this.parse_alts(this.def.close, rule, ctx) :
                 empty_ruleact;
-        if (act.e) {
-            throw new JsonicError(S.unexpected, { close: true }, act.e, rule, ctx);
+        // console.log('CLOSE ALT', alt)
+        if (alt.e) {
+            throw new JsonicError(S.unexpected, { close: true }, alt.e, rule, ctx);
         }
-        if (act.n) {
-            for (let cn in act.n) {
+        if (alt.n) {
+            for (let cn in alt.n) {
                 rule.n[cn] =
-                    0 === act.n[cn] ? 0 : (null == rule.n[cn] ? 0 : rule.n[cn]) + act.n[cn];
+                    0 === alt.n[cn] ? 0 : (null == rule.n[cn] ? 0 : rule.n[cn]) + alt.n[cn];
                 rule.n[cn] = 0 < rule.n[cn] ? rule.n[cn] : 0;
             }
         }
-        if (act.h) {
-            next = act.h(this, rule, ctx, next) || next;
+        if (alt.h) {
+            next = alt.h(this, rule, ctx, next) || next;
             why += 'H';
         }
-        if (act.p) {
+        if (alt.p) {
             ctx.rs.push(rule);
-            next = rule.child = new Rule(ctx.rsm[act.p], ctx, rule.node);
+            next = rule.child = new Rule(ctx.rsm[alt.p], ctx, rule.node);
             next.parent = rule;
             next.n = { ...rule.n };
             why += 'U';
         }
-        else if (act.r) {
-            next = new Rule(ctx.rsm[act.r], ctx, rule.node);
+        else if (alt.r) {
+            next = new Rule(ctx.rsm[alt.r], ctx, rule.node);
             next.parent = rule.parent;
             next.n = { ...rule.n };
             why += 'R';
@@ -961,70 +963,71 @@ class RuleSpec {
     // First match wins.
     parse_alts(alts, rule, ctx) {
         let out = ruleact;
-        out.m = [];
-        out.b = 0;
-        out.p = '';
-        out.r = '';
-        out.n = undefined;
-        out.h = undefined;
-        out.e = undefined;
+        out.m = []; // Match 0, 1, or 2 tokens in order .
+        out.b = 0; // Backtrack n tokens.
+        out.p = ''; // Push named rule onto stack. 
+        out.r = ''; // Replace current rule with named rule.
+        out.n = undefined; // Increment named counters.
+        out.h = undefined; // Custom handler function.
+        out.e = undefined; // Error token.
         //let out = new RuleAct()
         let alt;
         let altI = 0;
         let t = ctx.config.token;
         let cond;
         // End token not yet reached...
-        if (t.ZZ !== ctx.t0.tin) {
-            out.e = ctx.t0;
-            for (altI = 0; altI < alts.length; altI++) {
-                alt = alts[altI];
-                // Optional custom condition
-                cond = alt.c ? alt.c(alt, rule, ctx) : true;
-                // Depth.
-                cond = cond && null == alt.d ? true : alt.d === ctx.rs.length;
-                // Ancestors.
-                cond = cond &&
-                    (null == alt.a ? true :
-                        util.marr(alt.a, ctx.rs
-                            .slice(-(alt.a.length))
-                            .map(r => r.name)
-                            .reverse()));
-                if (cond) {
-                    // No tokens to match.
-                    if (null == alt.s || 0 === alt.s.length) {
-                        out.e = undefined;
+        //if (t.ZZ !== ctx.t0.tin) {
+        //out.e = ctx.t0
+        for (altI = 0; altI < alts.length; altI++) {
+            alt = alts[altI];
+            // Optional custom condition
+            cond = alt.c ? alt.c(alt, rule, ctx) : true;
+            // Depth.
+            cond = cond && null == alt.d ? true : alt.d === ctx.rs.length;
+            // Ancestors.
+            cond = cond &&
+                (null == alt.a ? true :
+                    util.marr(alt.a, ctx.rs
+                        .slice(-(alt.a.length))
+                        .map(r => r.name)
+                        .reverse()));
+            if (cond) {
+                // No tokens to match.
+                if (null == alt.s || 0 === alt.s.length) {
+                    out.e = alt.e ? alt.e : undefined;
+                    break;
+                }
+                // Match 1 or 2 tokens in sequence.
+                else if (alt.s[0] === ctx.t0.tin) {
+                    if (1 === alt.s.length) {
+                        out.m = [ctx.t0];
+                        out.e = alt.e ? alt.e : undefined;
                         break;
                     }
-                    // Match 1 or 2 tokens in sequence.
-                    else if (alt.s[0] === ctx.t0.tin) {
-                        if (1 === alt.s.length) {
-                            out.m = [ctx.t0];
-                            out.e = undefined;
-                            break;
-                        }
-                        else if (alt.s[1] === ctx.t1.tin) {
-                            out.m = [ctx.t0, ctx.t1];
-                            out.e = undefined;
-                            break;
-                        }
-                    }
-                    // Match any token.
-                    else if (t.AA === alt.s[0]) {
-                        out.m = [ctx.t0];
-                        out.e = undefined;
+                    else if (alt.s[1] === ctx.t1.tin) {
+                        out.m = [ctx.t0, ctx.t1];
+                        out.e = alt.e ? alt.e : undefined;
                         break;
                     }
                 }
-                alt = null;
+                // Match any token.
+                else if (t.AA === alt.s[0]) {
+                    out.m = [ctx.t0];
+                    out.e = alt.e ? alt.e : undefined;
+                    break;
+                }
             }
-            if (null != alt) {
-                out.b = alt.b ? alt.b : out.b;
-                out.p = alt.p ? alt.p : out.p;
-                out.r = alt.r ? alt.r : out.r;
-                out.n = alt.n ? alt.n : out.n;
-                out.h = alt.h ? alt.h : out.h;
-            }
-            //}
+            alt = null;
+        }
+        if (null == alt && t.ZZ !== ctx.t0.tin) {
+            out.e = ctx.t0;
+        }
+        if (null != alt) {
+            out.b = alt.b ? alt.b : out.b;
+            out.p = alt.p ? alt.p : out.p;
+            out.r = alt.r ? alt.r : out.r;
+            out.n = alt.n ? alt.n : out.n;
+            out.h = alt.h ? alt.h : out.h;
         }
         ctx.log && ctx.log('parse', rule.name + '/' + rule.id, RuleState[rule.state], altI < alts.length ? 'alt=' + altI : 'no-alt', altI < alts.length && alt && alt.s ?
             '[' + alt.s.map((pin) => t[pin]).join(' ') + ']' : '[]', ctx.tI, 'p=' + (out.p || ''), 'r=' + (out.r || ''), 'b=' + (out.b || ''), out.m.map((tkn) => t[tkn.tin]).join(' '), ctx.F(out.m.map((tkn) => tkn.src)), 'c:' + ((alt && alt.c) ? cond : ''), 'n:' + Object.entries(rule.n).join(';'), out);
@@ -1057,26 +1060,25 @@ class Parser {
         let ST = t.ST;
         let VL = t.VL;
         let AA = t.AA;
+        let ZZ = t.ZZ;
         let rules = {
             val: {
                 open: [
                     // Implicit map. Reset implicit map depth counter.
-                    { s: [OB, CA], p: S.map, n: { im: 0 } },
+                    { s: [OB, CA], p: S.map, n: { im: 0 }, g: 'imp' },
                     // Standard JSON.
                     { s: [OB], p: S.map, n: { im: 0 } },
                     { s: [OS], p: S.list },
-                    // TODO: d=rs.length (aka. depth) ???
                     // Implicit list at top level
-                    //{ s: [CA], c: top, p: S.list, b: 1 },
-                    { s: [CA], d: 0, p: S.list, b: 1 },
+                    { s: [CA], d: 0, p: S.list, b: 1, g: 'imp,list' },
                     // Value is null.
-                    { s: [CA], b: 1 },
+                    { s: [CA], b: 1, g: 'imp,list' },
                     // Implicit map - operates at any depth. Increment counter.
                     // NOTE: `n.im` counts depth of implicit maps 
-                    { s: [TX, CL], p: S.map, b: 2, n: { im: 1 } },
-                    { s: [ST, CL], p: S.map, b: 2, n: { im: 1 } },
-                    { s: [NR, CL], p: S.map, b: 2, n: { im: 1 } },
-                    { s: [VL, CL], p: S.map, b: 2, n: { im: 1 } },
+                    { s: [TX, CL], p: S.map, b: 2, n: { im: 1 }, g: 'imp' },
+                    { s: [ST, CL], p: S.map, b: 2, n: { im: 1 }, g: 'imp' },
+                    { s: [NR, CL], p: S.map, b: 2, n: { im: 1 }, g: 'imp' },
+                    { s: [VL, CL], p: S.map, b: 2, n: { im: 1 }, g: 'imp' },
                     // Standard JSON (apart from TX).
                     { s: [TX] },
                     { s: [NR] },
@@ -1086,26 +1088,29 @@ class Parser {
                     {
                         s: [CB],
                         a: [S.pair],
-                        b: 1
+                        b: 1,
+                        g: 'imp,null'
                     },
                     // Implicit end `[a:]` -> [{"a":null}]
                     {
                         s: [CS],
                         a: [S.pair],
-                        b: 1
+                        b: 1,
+                        g: 'imp,null'
                     },
                 ],
                 close: [
                     // Implicit list works only at top level
                     {
-                        //s: [CA], c: top, r: S.elem,
                         s: [CA], d: 0, r: S.elem,
                         h: (_spec, rule, _ctx) => {
                             rule.node = [rule.node];
-                        }
+                        },
+                        g: 'imp,list'
                     },
                     // TODO: merge with above - cond outputs `out` for match
                     // and thus can specify m to move lex forward
+                    // Handle space separated elements (no CA)
                     {
                         c: (_alt, _rule, ctx) => {
                             return (TX === ctx.t0.tin ||
@@ -1116,7 +1121,8 @@ class Parser {
                         r: S.elem,
                         h: (_spec, rule, _ctx) => {
                             rule.node = [rule.node];
-                        }
+                        },
+                        g: 'imp,list'
                     },
                     // Close value, and map or list, but perhaps there are more elem?
                     { s: [AA], b: 1 },
@@ -1181,6 +1187,7 @@ class Parser {
                         a: [S.map, S.val, S.elem],
                         b: 1
                     },
+                    { s: [ZZ], g: 'end' },
                 ],
                 before_close: (rule, ctx) => {
                     let key_token = rule.open[0];
@@ -1204,8 +1211,8 @@ class Parser {
                     { s: [OB], p: S.map, n: { im: 0 } },
                     { s: [OS], p: S.list },
                     // Insert null for initial comma
-                    { s: [CA, CA], b: 2 },
-                    { s: [CA] },
+                    { s: [CA, CA], b: 2, g: 'null' },
+                    { s: [CA], g: 'null' },
                     { p: S.val, n: { im: 1 } },
                 ],
                 close: [
@@ -1226,6 +1233,7 @@ class Parser {
                     { s: [NR], r: S.elem, b: 1 },
                     { s: [ST], r: S.elem, b: 1 },
                     { s: [VL], r: S.elem, b: 1 },
+                    { s: [ZZ], g: 'end' },
                 ],
                 after_open: (rule, _ctx, next) => {
                     if (rule === next && rule.open[0]) {
@@ -1277,6 +1285,7 @@ class Parser {
             src: () => src,
             root: () => root.node,
             plugins: () => jsonic.internal().plugins,
+            rule: norule,
             node: undefined,
             u2: lexer.end,
             u1: lexer.end,
@@ -1327,6 +1336,7 @@ class Parser {
         while (norule !== rule && rI < maxr) {
             ctx.log &&
                 ctx.log('rule', rule.name + '/' + rule.id, RuleState[rule.state], ctx.rs.length, ctx.tI, '[' + tn(ctx.t0.tin) + ' ' + tn(ctx.t1.tin) + ']', '[' + ctx.F(ctx.t0.src) + ' ' + ctx.F(ctx.t1.src) + ']', rule, ctx);
+            ctx.rule = rule;
             rule = rule.process(ctx);
             ctx.log &&
                 ctx.log('stack', ctx.rs.length, ctx.rs.map((r) => r.name + '/' + r.id).join(';'), rule, ctx);
@@ -1552,6 +1562,7 @@ let util = {
                             src: () => src,
                             root: () => undefined,
                             plugins: () => jsonic.internal().plugins,
+                            rule: norule,
                             node: undefined,
                             u2: token,
                             u1: token,

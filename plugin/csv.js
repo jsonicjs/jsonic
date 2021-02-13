@@ -39,6 +39,7 @@ fields per row are expected.`,
     }
     jsonic.options(options);
     let LN = jsonic.token.LN;
+    let ZZ = jsonic.token.ZZ;
     // Match alt only if first occurrence of rule 
     let first = (_alt, rule, ctx) => {
         let use = ctx.use.csv = (ctx.use.csv || {});
@@ -64,6 +65,7 @@ fields per row are expected.`,
                 { p: 'list' },
             ],
             close: [
+                { s: [LN, ZZ] },
                 { s: [LN], r: 'record' }
             ],
             before_close: (rule, ctx) => {

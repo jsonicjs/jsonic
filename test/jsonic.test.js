@@ -579,6 +579,7 @@ describe('jsonic', function () {
 
     let NR = c0.token.NR
     let CA = c0.token.CA
+    let ZZ = c0.token.ZZ
     
     c0.rule('val', (rs,rsm)=>{
       rs = new j.RuleSpec({
@@ -606,10 +607,10 @@ describe('jsonic', function () {
     c0.rule('done', (rs,rsm)=>{
       rs = new j.RuleSpec({
         before_open: (rule,ctx) => {
-          return {act:{p:'add'}}
+          return {alt:{p:'add'}}
         },
         before_close: (rule,ctx) => {
-          return {act:{}}
+          return {alt:{}}
         }
       })
       return rs
@@ -622,7 +623,8 @@ describe('jsonic', function () {
           {s:[NR]}
         ],
         close: [
-          {s:[],r:'sep'}
+          {s:[ZZ]},
+          {s:[],r:'sep'},
         ],
         before_close: () => ({}),
         before_open: () => ({}),
@@ -637,6 +639,7 @@ describe('jsonic', function () {
         ],
         before_close: (rule) => ({node:rule.node}),
         after_close: (rule, ctx) => {
+          console.log('u2val',ctx.u2 && ctx.u2.val)
           rule.node.v += (ctx.u2 ? ctx.u2.val : 0)
           return {node:rule.node}
         }
