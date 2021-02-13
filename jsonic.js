@@ -345,7 +345,7 @@ class Lexer {
                         return token;
                     }
                     // Number chars.
-                    if (options.number && config.start.NR[c0] && config.number.lex) {
+                    if (config.start.NR[c0] && config.number.lex) {
                         token.tin = NR;
                         token.loc = sI;
                         token.col = cI;
@@ -1707,7 +1707,7 @@ let util = {
         config.bmk_maxlen = util.longest(block_markers);
         // TODO: move to config.re, use util.regexp
         config.number = {
-            ...(false !== options.number ? options.number : {}),
+            ...options.number,
             sep_RE: null != options.number.sep ?
                 new RegExp(options.number.sep, 'g') : null
         };
@@ -1837,6 +1837,6 @@ Jsonic.make = make;
 exports.default = Jsonic;
 // Build process uncomments this to enable more natural Node.js requires.
 /* $lab:coverage:off$ */
-;('undefined' != typeof(module) && (module.exports = exports.Jsonic));
+//-NODE-MODULE-FIX;('undefined' != typeof(module) && (module.exports = exports.Jsonic));
 /* $lab:coverage:on$ */
 //# sourceMappingURL=jsonic.js.map

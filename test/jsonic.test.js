@@ -639,7 +639,6 @@ describe('jsonic', function () {
         ],
         before_close: (rule) => ({node:rule.node}),
         after_close: (rule, ctx) => {
-          console.log('u2val',ctx.u2 && ctx.u2.val)
           rule.node.v += (ctx.u2 ? ctx.u2.val : 0)
           return {node:rule.node}
         }

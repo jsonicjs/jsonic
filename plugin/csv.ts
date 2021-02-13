@@ -39,7 +39,7 @@ fields per row are expected.`,
 
     token['#ST'] = '"'
 
-    options.number = false
+    options.number = { lex: false }
     options.comment = false
 
     options.string.multiline = ''

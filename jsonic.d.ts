@@ -27,7 +27,14 @@ declare type Options = {
         [start_marker: string]: string | boolean;
     } | false;
     balance: KV;
-    number: KV & false;
+    number: {
+        lex: boolean;
+        hex: boolean;
+        oct: boolean;
+        bin: boolean;
+        digital: string;
+        sep: string;
+    };
     string: KV;
     text: KV;
     map: KV;

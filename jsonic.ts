@@ -64,7 +64,14 @@ type Options = {
   char: KV
   comment: { [start_marker: string]: string | boolean } | false
   balance: KV
-  number: KV & false
+  number: {
+    lex: boolean
+    hex: boolean
+    oct: boolean
+    bin: boolean
+    digital: string
+    sep: string
+  }
   string: KV
   text: KV
   map: KV
@@ -238,7 +245,7 @@ function make_standard_options(): Options {
 
 
     // Control number formats.
-    number: ({
+    number: {
 
       // Recognize numbers in the Lexer.
       lex: true,
@@ -257,7 +264,7 @@ function make_standard_options(): Options {
 
       // Allow embedded separator. `null` to disable.
       sep: '_',
-    } as any),
+    },
 
 
     // String formats.
@@ -682,7 +689,7 @@ class Lexer {
 
 
           // Number chars.
-          if (options.number && config.start.NR[c0] && config.number.lex) {
+          if (config.start.NR[c0] && config.number.lex) {
             token.tin = NR
             token.loc = sI
             token.col = cI
@@ -2522,9 +2529,9 @@ let util = {
 
     // TODO: move to config.re, use util.regexp
     config.number = {
-      ...(false !== options.number ? (options.number as any) : {}),
+      ...options.number,
       sep_RE: null != options.number.sep ?
-        new RegExp((options.number as any).sep, 'g') : null
+        new RegExp(options.number.sep, 'g') : null
     }
 
 
