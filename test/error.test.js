@@ -54,7 +54,7 @@ describe('error', function () {
           foo: 'Foo hint.'
         }
       })
-      jsonic.lex(jsonic.token.LTP,(sI,rI,cI,src,token,ctx,rule,bad)=>{
+      jsonic.lex(jsonic.token.LTP,({sI,rI,cI,src,token,ctx,rule,bad})=>{
         if(src.substring(sI).startsWith('FOO')) {
           return bad('foo',sI,'FOO')
         }
@@ -84,7 +84,7 @@ describe('error', function () {
           '        \u001b[31m^^^ foo: "FOO"!\u001b[0m\n' +
           '\u001b[34m  2 | \u001b[0m\n' +
           '\u001b[34m  3 | \u001b[0m\n' +
-          ' Foo hint.\n' +
+          '  Foo hint.\n' +
           '  \u001b[2mhttps://jsonic.richardrodger.com\u001b[0m\n' +
           '  \u001b[2m--internal: rule=pair~open; token=#BD; plugins=foo--\u001b[0m\n'
       )
@@ -96,7 +96,13 @@ describe('error', function () {
   
 
   it('lex-unicode', () => {
-    let src0 = '\n\n\n\n\n\n\n\n\n\n   "\\u0000"'
+    let src0 = '\n\n\n\n\n\n\n\n\n\n   "\\uQQQQ"'
+    //j(src0)()
+    expect(j(src0))
+      .throws(JsonicError, /invalid_unicode/)
+
+    let src1 = '\n\n\n\n\n\n\n\n\n\n   "\\u{QQQQQQ}"'
+    //j(src1)()
     expect(j(src0))
       .throws(JsonicError, /invalid_unicode/)
   })
@@ -104,6 +110,7 @@ describe('error', function () {
 
   it('lex-ascii', () => {
     let src0 = '\n\n\n\n\n\n\n\n\n\n   "\\x!!"'
+    // j(src0)()
     expect(j(src0))
       .throws(JsonicError, /invalid_ascii/)
   })

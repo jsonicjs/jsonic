@@ -64,6 +64,7 @@ describe('feature', function () {
     expect(j('a\nb')).equals(['a','b'])
     expect(j('1\n2\n3')).equals([1,2,3])
     expect(j('a\nb\nc')).equals(['a','b','c'])
+    expect(j('true\nfalse\nnull')).equals([true,false,null])
   })
 
 
@@ -160,6 +161,7 @@ describe('feature', function () {
 
   it('feature-number', () => {
     expect(j('1')).equals(1)
+    expect(j('0.9')).equals(0.9)
     expect(j('[1]')).equals([1])
     expect(j('a:1')).equals({a:1})
     expect(j('1:a')).equals({'1':'a'})
@@ -186,6 +188,7 @@ describe('feature', function () {
     expect(j('1e6:a')).equals({'1e6':'a'}) // NOTE: "1e6" not "1000000"
 
     expect(j('a:1')).equals({a:1})
+    expect(j('a:0.1')).equals({a:0.1})
     expect(j('a:[1]')).equals({a:[1]})
     expect(j('a:a:1')).equals({a:{a:1}})
     expect(j('a:1:a')).equals({a:{'1':'a'}})
@@ -210,7 +213,9 @@ describe('feature', function () {
     expect(j('a:0o_12')).equals({a:10})
     expect(j('a:0b_1010')).equals({a:10})
     expect(j('a:1e6:a')).equals({a:{'1e6':'a'}}) // NOTE: "1e6" not "1000000"
-
+    expect(j('[1,0]')).equals([1,0])
+    expect(j('[1,0.5]')).equals([1,0.5])
+    
     let jn = j.make({ number: { lex: false } })
     expect(jn('1')).equals('1') // Now it's a string.
     expect(j('1')).equals(1)
@@ -417,6 +422,21 @@ describe('feature', function () {
     expect(j('`a\nc\nb`')).equals('a\nc\nb')
     expect(j('`a\r\n\r\nb`')).equals('a\r\n\r\nb')
 
+
+    expect(j("'''a\nb'''")).equals('a\nb')
+    expect(j("'''\na\nb'''")).equals('a\nb')
+    expect(j("'''\na\nb\n'''")).equals('a\nb')
+    expect(j("\n'''\na\nb\n'''\n")).equals('a\nb')
+    expect(j(" '''\na\nb\n''' ")).equals('a\nb')
+
+    expect(j("''' a\nb\n'''")).equals(' a\nb')
+    expect(j(" '''a\n b\n'''")).equals('a\nb')
+    expect(j(" ''' \na\n b\n'''")).equals('a\nb')
+    expect(j(" ''' \na\n  b\n'''")).equals('a\n b')
+    expect(j(" ''' \na\nb\n'''")).equals('a\nb')
+    expect(j(" ''' a\n b\n'''")).equals('a\nb')
+    expect(j(" ''' a\nb\n'''")).equals('a\nb')
+    
     expect(j(`{
   md:
     '''
@@ -430,9 +450,7 @@ describe('feature', function () {
 
     
     expect(j("'''\na\nb\n'''")).equals('a\nb')
-
-    // NOTE: block marker is expected to be on own line
-    expect(j("'''a\nb'''")).equals('\n')
+    expect(j("'''a\nb'''")).equals('a\nb')
 
     try {
       j('[`a\n`,`b')
@@ -451,6 +469,13 @@ describe('feature', function () {
     expect(j('{a: {b: c d}}')).equals({a:{b:'c d'}})
     expect(j(' x , y z ')).equal(['x', 'y z'])
     expect(j('a: x , b: y z ')).equal({a:'x', b:'y z'})
+
+    let k = j.make({text:{hoover:false}})
+    expect(k('a b')).equals(['a','b'])
+    expect(()=>k('a: b c')).throws('JsonicError',/unexpected/)
+    expect(()=>k('{a: {b: c d}}')).throws('JsonicError',/unexpected/)
+    expect(k(' x , y z ')).equal(['x', 'y', 'z'])
+    expect(()=>k('a: x , b: y z ')).throws('JsonicError',/unexpected/)
   })
   
 
@@ -475,6 +500,23 @@ describe('feature', function () {
     expect(j('{a:1,}')).equals({a:1})
     expect(j('{,a:1,}')).equals({a:1})
     expect(j('{a:1,b:2,}')).equals({a:1,b:2})
+
+    expect(j('[{a:1},]')).equals([{a:1}])
+    expect(j('[{a:1},{b:2}]')).equals([{a:1},{b:2}])
+    
+    expect(j('[[a],]')).equals([['a']])
+    expect(j('[[a],[b],]')).equals([['a'],['b']])
+    expect(j('[[a],[b],[c],]')).equals([['a'],['b'],['c']])
+    expect(j('[[a]]')).equals([['a']])
+    expect(j('[[a][b]]')).equals([['a'],['b']])
+    expect(j('[[a][b][c]]')).equals([['a'],['b'],['c']])
+
+    expect(j('[[0],]')).equals([[0]])
+    expect(j('[[0],[1],]')).equals([[0],[1]])
+    expect(j('[[0],[1],[2],]')).equals([[0],[1],[2]])
+    expect(j('[[0]]')).equals([[0]])
+    expect(j('[[0][1]]')).equals([[0],[1]])
+    expect(j('[[0][1][2]]')).equals([[0],[1],[2]])
   })
 
 
@@ -496,6 +538,12 @@ describe('feature', function () {
     expect(j('a,')).equals(['a'])
     expect(j('"a",')).equals(['a'])
     expect(j('1,')).equals([1])
+    expect(j('1,,')).equals([1,null])
+    expect(j('1,,,')).equals([1,null,null])
+    expect(j('1,null')).equals([1,null])
+    expect(j('1,null,')).equals([1,null])
+    expect(j('1,null,null')).equals([1,null,null])
+    expect(j('1,null,null,')).equals([1,null,null])
     expect(j('true,')).equals([true])
     expect(j('[],')).equals([[]])
     expect(j('{},')).equals([{}])
@@ -553,11 +601,24 @@ describe('feature', function () {
     expect(j('a:[{b:1},{x:1}],a:[{b:2},{y:2}],a:[{b:3},{z:3}]'))
       .equals({ a: [{ b: 3}, {x: 1, y: 2, z: 3}] })
 
-    let k = j.make({object:{extend:false}})
+    let k = j.make({map:{extend:false}})
     expect(k('a:{b:1,c:2},a:{c:3,e:4}'))
       .equals({ a: { c: 3, e: 4 } })
   })
 
+
+  it('finish', () => {
+    expect(j('a:{b:')).equals({ a: { b: null } })
+    expect(j('{a:{b:{c:1}')).equals({ a: { b: { c: 1 } } })
+    expect(j('[[1')).equals([[1]])
+    
+    // TODO: needs own error code
+    let k = j.make({rule:{finish:false}})
+    expect(()=>k('a:{b:')).throws('JsonicError', /unexpected/)
+    expect(()=>k('{a:{b:{c:1}')).throws('JsonicError', /unexpected/)
+    expect(()=>k('[[1')).throws('JsonicError', /unexpected/)
+  })
+  
 
   it('property-dive', () => {
     expect(j('{a:1,b:2}')).equals({a:1,b:2})
@@ -605,12 +666,24 @@ describe('feature', function () {
 
     // New rule
     p0.rule('foo',()=>{
-      return new RuleSpec('foo',{})
+      return new RuleSpec({})
     })
     rval = p0.rule('foo')
     expect(rval.name).equals('foo')
     rval = p0.rule()
     expect(Object.keys(rval)).equals(['map', 'list', 'pair', 'elem', 'foo'])
+
+
+    // Modify RuleSpec
+    p0.rule('foo',(rs)=>{
+      rs.x = 1
+    })
+    rval = p0.rule('foo')
+    expect(rval.name).equals('foo')
+    expect(rval.x).equals(1)
+    rval = p0.rule()
+    expect(Object.keys(rval)).equals(['map', 'list', 'pair', 'elem', 'foo'])
+
     
     // Get all matchers for all states
     let mm0 = p0.lex()

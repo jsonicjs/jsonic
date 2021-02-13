@@ -16,6 +16,7 @@ const expect = Code.expect
 
 const { Jsonic, Lexer, Parser, JsonicError, make } = require('..')
 const { Json } = require('../plugin/json')
+const { HJson } = require('../plugin/hjson')
 const { Csv } = require('../plugin/csv')
 const { Dynamic } = require('../plugin/dynamic')
 const { Native } = require('../plugin/native')
@@ -145,8 +146,7 @@ describe('plugin', function () {
     expect(a1('x:A,y:B,z:C')).equals({x:'aaa',y:'B',z:'C'})
     expect(j('x:A,y:B,z:C')).equals({x:'aaa',y:'B',z:'C'})
   })
-
-
+  
 
   it('plugin-opts', () => {
     // use make to avoid polluting Jsonic
@@ -156,6 +156,15 @@ describe('plugin', function () {
       x = jsonic.options.plugin.foo.x
     }, {x:1})
     expect(x).equal(1)
+  })
+
+
+  it('wrap-jsonic', () => {
+    const j = make()
+    let jp = j.use(function foo(jsonic) {
+      return new Proxy(jsonic,{})
+    })
+    expect(jp('a:1')).equal({a:1})
   })
 
 
@@ -180,9 +189,11 @@ describe('plugin', function () {
     let d = (x)=>JSON.parse(JSON.stringify(x))
     let k = Jsonic.make().use(Dynamic)
     expect(d(k('a:1,b:$1+1'))).equal({a:1,b:2})
+    expect(d(k('a:1,b:$.a+1'))).equal({a:1,b:2})
+    expect(d(k('a:1,b:$$.a+1'))).equal({a:1,b:2})
     expect(k('a:1,b:$"{c:2}"')).equal({a:1,b:{c:2}})
     expect(k('a:1,b:$"meta.f(2)"',{f:(x)=>({c:x})})).equal({a:1,b:{c:2}})
-
+    expect(d(k('a:1,"b":$1+1'))).equal({a:1,b:2})
 
     let d0 = k('a:{x:1},b:$.a,b:{y:2},c:$.a,c:{y:3}',{xlog:-1})
     // NOTE: multiple calls verify dynamic getters are stable
@@ -190,6 +201,11 @@ describe('plugin', function () {
     expect(d0).equal({a:{x:1},b:{x:1,y:2},c:{x:1,y:3}})
     expect(d0).equal({a:{x:1},b:{x:1,y:2},c:{x:1,y:3}})
 
+    let kx = k.make({map:{extend:false}})
+    let d0x = kx('a:{x:1},b:$.a,b:{y:2},c:$.a,c:{y:3}')
+    expect(d(d0x)).equal({a: { x: 1 }, b: { y: 2 }, c: { y: 3 }})
+    let d0x1 = kx('a:{x:1},c:{z:2},c:$.a,c:{y:3}')
+    expect(d(d0x1)).equal({a: { x: 1 }, c: { y: 3 }})
     
     let d1 = k(`
 a:{x:1,y:2}
@@ -250,9 +266,19 @@ a:{x:1,y:2}
 
   it('json-basic', () => {
     let k = Jsonic.make().use(Json)
+    expect(k('{"a":1}')).equal({a:1})
+    expect(k('{"a":1}',{json:[(k,v)=>'a'===k?2:v]})).equal({a:2})
+    expect(()=>k('{a:1}')).throws(JsonicError, /jsonic\/json/)
+  })
+
+
+  it('hjson-basic', () => {
+    let k = Jsonic.make().use(HJson)
     expect(k('a:1')).equal({a:1})
-    expect(k('{"a":1}',{mode:'json'})).equal({a:1})
-    expect(()=>k('{a:1}',{mode:'json'})).throws(JsonicError, /jsonic\/json/)
+    expect(k('{a:1}')).equal({a:1})
+    expect(k('a:a')).equal({a:'a'})
+    expect(k('{}')).equal({})
+    expect(()=>k('{a:a}')).throws()
   })
 
 
@@ -313,7 +339,6 @@ a x\t"b\\tx"
       .equal(rec0)
   })
 
-  // TODO: fix undefined
   // TODO: test // cases fully
   it('native-basic', () => {
     let k0 = Jsonic.make().use(Native)
@@ -321,38 +346,65 @@ a x\t"b\\tx"
     expect(k0(`[
       NaN,
       /x/g,
+      /y\\/z/,
       2021-01-20T19:24:26.650Z,
-      #undefined,
-      Infinity
+      undefined,
+      Infinity,
+      -Infinity,
+      // comment
+      /x,
     ]`)).equal([
       NaN,
       /x/g,
+      /y\/z/,
       new Date('2021-01-20T19:24:26.650Z'),
-      //undefined,
-      Infinity
+      undefined,
+      Infinity,
+      -Infinity,
+      '/x'
     ])
 
+
+    expect(k0('/')).equal('/')
+    expect(k0('/x/')).equal(/x/)
+    expect(k0('2021-01-20T19:24:26.650Z'))
+      .equal(new Date('2021-01-20T19:24:26.650Z'),)
+
+    
     expect(k0(`{
       a: NaN,
       b: /x/g,
+      bb: /y\\/z/,
       c: 2021-01-20T19:24:26.650Z,
-      #d: undefined,
-      e: Infinity
+      d: undefined,
+      e: Infinity,
+      f: -Infinity,
+      // comment
     }`)).equal({
       a: NaN,
       b: /x/g,
+      bb: /y\/z/,
       c: new Date('2021-01-20T19:24:26.650Z'),
-      //d: undefined,
-      e: Infinity
+      d: undefined,
+      e: Infinity,
+      f: -Infinity,
     })
+
+    
+
   })
 
 
   it('multifile-basic', () => {
     let k = Jsonic.make().use(Multifile,{basepath:__dirname})
 
-    let d = k('@"multifile/main01.jsonic"')
-    expect(d).equal({
+    let d = k('')
+    expect(undefined).equal(d)
+    d = k('#')
+    expect(undefined).equal(d)
+
+    
+    let d0 = {
       dynamic: '$1+1',
       red: { name: 'RED' },
       redder: { red: '$.red' },
@@ -363,8 +415,22 @@ a x\t"b\\tx"
       again: { foo: '$1+1',
                red_name: '$.red.name',
                item0: { extra: 0 },
-               item1: { extra: 1 } }
-    })
+               item1: { extra: 1 } },
+      func: 'FUNC',
+    }
+    
+    d = k('@"multifile/main01.jsonic"')
+    expect(d).equal(d0)
+
+    d = k('')
+    expect(undefined).equal(d)
+    
+    let k0 = Jsonic
+        .make({plugin:{json:{},csv:{}}})
+        .use(Multifile,{basepath:__dirname})
+    d = k0('@"multifile/main01.jsonic"')
+    expect(d).equal(d0)
+
   })
 
 
@@ -391,7 +457,8 @@ a x\t"b\\tx"
       tree: { stem0: 'leaf0', stem1: { caterpillar: { tummy: 'yummy!' } } },
       again: { foo: 2, red_name: 'RED',
                item0: { name: 'RED', extra: 0 },
-               item1: { name: 'RED', extra: 1 } }
+               item1: { name: 'RED', extra: 1 } },
+      func: 'FUNC',
     }
 
     // NOTE: verifying getters are stable
@@ -425,6 +492,8 @@ a x\t"b\\tx"
     expect( k.stringify("a'a") ).equal("a'a")
     expect( k.stringify("\"a") ).equal("'\"a'")
     expect( k.stringify("a\"a") ).equal("a\"a")
+    expect( k.stringify("}") ).equal("'}'")
+    expect( k.stringify(",") ).equal("','")
     expect( k.stringify( function f(){ return 'f' }) ).equal('')
 
 
@@ -507,9 +576,14 @@ a x\t"b\\tx"
     var o1 = {a:1,toString:function(){return '<A>'}}
     expect( k.stringify(o1) ).equal('{a:1}')
     expect( k.stringify(o1,{custom:true}) ).equal('<A>')
+    expect( k.stringify({b:2}) ).equal('{b:2}')
+    expect( k.stringify({b:2},{custom:true}) ).equal('{b:2}')
+
     var o1_1 = {a:1,inspect:function(){return '<A>'}}
     expect( k.stringify(o1_1) ).equal('{a:1}')
     expect( k.stringify(o1_1,{custom:true}) ).equal('<A>')
+    expect( k.stringify({b:2}) ).equal('{b:2}')
+    expect( k.stringify({b:2},{custom:true}) ).equal('{b:2}')
 
 
     // maxitems
@@ -532,6 +606,12 @@ a x\t"b\\tx"
     expect( k.stringify(o4) ).equal('{a:1}')
     expect( k.stringify(o4,{showfunc:true}) )
       .equal('{a:1,b:function b() {}}')
+    expect( k.stringify(o4,{f:true}) )
+      .equal('{a:1,b:function b() {}}')
+    expect( k.stringify(o4,{showfunc:false}) )
+      .equal('{a:1}')
+    expect( k.stringify(o4,{f:false}) )
+      .equal('{a:1}')
 
 
     // exception
@@ -548,7 +628,6 @@ a x\t"b\\tx"
     expect( k.stringify([1,2,3],{maxitems:2}) ).equal('[1,2]')
     expect( k.stringify({a:1,b:2,c:3},{maxitems:2}) ).equal('{a:1,b:2}')
 
-
     // wierd keys
     expect( k.stringify({"_":0,"$":1,":":2,"":3,"\'":4,"\"":5,"\n":6}) )
       .equal( '{_:0,":":2,"":3,"\'":4,"\\"":5,"\\n":6}' )
@@ -562,8 +641,48 @@ a x\t"b\\tx"
     expect( k.stringify([1,2,3],{mc:4}) ).equal('[1,2')
     expect( k.stringify([1,2,3],{mi:2}) ).equal('[1,2]')
 
+    // arrays
+    expect( k.stringify([1]) ).equal('[1]')
+    expect( k.stringify([1,undefined,null]) ).equal('[1,null,null]')
   })
 
+
+  it('custom-parser-error', ()=>{
+    let j = Jsonic.make().use(function foo(jsonic) {
+      jsonic.options({
+        parser: {
+          start: function(lexer, src, meta) {
+            if('e:0'===src) {
+              throw new Error('bad-parser:e:0')
+            }
+            else if('e:1'===src) {
+              let e1 = new SyntaxError('Unexpected token e:1 at position 0')
+              e1.lineNumber = 1
+              e1.columnNumber = 1
+              throw e1
+            }
+            else if('e:2'===src) {
+              let e2 = new SyntaxError('bad-parser:e:2')
+              e2.code = 'e2'
+              e2.token = {}
+              e2.details = {}
+              e2.ctx = {
+                src:()=>'',
+                options:{error:{e2:'e:2'},hint:{e2:'e:2'}},
+                config:{token:{}},
+                plugins:()=>[]
+              }
+              throw e2
+            }
+          },
+        }
+      })
+    })
+
+    expect(()=>j('e:0')).throws('Error', /e:0/)
+    expect(()=>j('e:1',{log:()=>null})).throws('SyntaxError', /e:1/)
+    expect(()=>j('e:2')).throws('SyntaxError', /e:2/)
+  })
 })
 
 
@@ -584,7 +703,7 @@ function make_token_plugin(char, val) {
 
       let bc = rs.def.before_close
       rs.def.before_close = (rule) => {
-        if (rule.open[0] && TT === rule.open[0].pin) {
+        if (rule.open[0] && TT === rule.open[0].tin) {
           rule.open[0].val = val
         }
         return bc(rule)

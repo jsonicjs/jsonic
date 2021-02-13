@@ -1,12 +1,13 @@
 /* Copyright (c) 2013-2021 Richard Rodger, MIT License */
-
-// TODO: use prev code
-
+/* $lab:coverage:off$ */
+'use strict'
 import Fs from 'fs'
 import Path from 'path'
 import { Jsonic, Plugin, RuleSpec, util } from '../jsonic'
 import { Json } from './json'
 import { Csv } from './csv'
+/* $lab:coverage:on$ */
+
 
 let DEFAULTS = {
   markchar: '@',
@@ -39,9 +40,9 @@ let Multifile: Plugin = function multifile(jsonic: Jsonic) {
       { s: [AT, TX] }
     )
 
-    let bc = rs.def.before_close
-    rs.def.before_close = (rule: any, ctx: any) => {
-      if (rule.open[0] && AT === rule.open[0].pin) {
+    let orig_before_close = rs.def.before_close
+    rs.def.before_close = function(rule: any, ctx: any) {
+      if (rule.open[0] && AT === rule.open[0].tin) {
         // TODO: text TX=foo/bar as @"foo/bar" works but @foo/bar does not!
         let filepath = rule.open[1].val
         let fullpath = Path.resolve(ctx.meta.basepath || popts.basepath, filepath)
@@ -65,23 +66,30 @@ let Multifile: Plugin = function multifile(jsonic: Jsonic) {
           }
           let content = Fs.readFileSync(fullpath).toString()
           if ('.json' === file_ext) {
-            val = json(content, { mode: 'json', fileName: fullpath }, partial_ctx)
+            val = json(content, { fileName: fullpath }, partial_ctx)
           }
           else if ('.jsonic' === file_ext) {
-            // TODO: need a way to init root node so refs work!
             val = jsonic(
               content,
               { basepath: basepath, fileName: fullpath },
               partial_ctx)
           }
+
+          /* $lab:coverage:off$ */
           else if ('.csv' === file_ext) {
             val = csv(content, {}, partial_ctx)
           }
+          else {
+            // TODO: define how to do this properly?
+            // TODO: needs a test case
+            throw new Error('unsupported file: ' + fullpath)
+          }
+          /* $lab:coverage:on$ */
         }
 
         rule.open[0].val = val
       }
-      return bc(rule, ctx)
+      return orig_before_close(...arguments)
     }
 
     return rs

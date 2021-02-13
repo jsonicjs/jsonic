@@ -75,7 +75,9 @@ function stringify(val, opts, depth) {
         if (depth <= opts.depth) {
             for (; i < val.length && i < opts.maxitems; i++) {
                 var str = stringify(val[i], opts, depth);
+                /* $lab:coverage:off$ */
                 if (null != str) {
+                    /* $lab:coverage:on$ */
                     out.push(str);
                 }
             }
@@ -84,9 +86,11 @@ function stringify(val, opts, depth) {
     }
     else {
         var valstr = val.toString();
+        /* $lab:coverage:off$ */
         if (~" \"'\r\n\t,}]".indexOf(valstr[0]) ||
-            !~valstr.match(/,}]/) ||
+            !~valstr.match(/,}]/) || // Hmmm? leaving this alone for backwards compat!
             ~" \r\n\t".indexOf(valstr[valstr.length - 1])) {
+            /* $lab:coverage:on$ */
             valstr = "'" + valstr.replace(/'/g, "\\'") + "'";
         }
         return valstr;

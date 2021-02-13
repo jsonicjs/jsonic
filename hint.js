@@ -15,7 +15,7 @@ const Fs = require('fs')
 let hint = {
   unknown:
   ` Since the error is unknown, this is probably a bug inside jsonic
-itself. Please consider posting a github issue - thanks!`,
+itself, or a plugin. Please consider posting a github issue - thanks!`,
 
   unexpected:
   ` The character(s) $src should not occur at this point as it is not
@@ -23,8 +23,8 @@ valid %j%s%o%n syntax, even under the relaxed jsonic rules. If it is
 not obviously wrong, the actual syntax error may be elsewhere. Try
 commenting out larger areas around this point until you get no errors,
 then remove the comments in small sections until you find the
-offending syntax. N%o%t%e: Also check if any plugins or modes you are
-using expect different syntax in this case.`,
+offending syntax. N%o%t%e: Also check if any plugins you are using
+expect different syntax in this case.`,
 
   invalid_unicode:
   ` The escape sequence $src does not encode a valid unicode code point

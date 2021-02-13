@@ -1,16 +1,17 @@
-"use strict";
 /* Copyright (c) 2013-2021 Richard Rodger, MIT License */
+/* $lab:coverage:off$ */
+'use strict';
 var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.Multifile = void 0;
-// TODO: use prev code
 const fs_1 = __importDefault(require("fs"));
 const path_1 = __importDefault(require("path"));
 const jsonic_1 = require("../jsonic");
 const json_1 = require("./json");
 const csv_1 = require("./csv");
+/* $lab:coverage:on$ */
 let DEFAULTS = {
     markchar: '@',
     basepath: '.',
@@ -32,9 +33,9 @@ let Multifile = function multifile(jsonic) {
     let AT = jsonic.token(tn);
     jsonic.rule('val', (rs) => {
         rs.def.open.push({ s: [AT, ST] }, { s: [AT, TX] });
-        let bc = rs.def.before_close;
-        rs.def.before_close = (rule, ctx) => {
-            if (rule.open[0] && AT === rule.open[0].pin) {
+        let orig_before_close = rs.def.before_close;
+        rs.def.before_close = function (rule, ctx) {
+            if (rule.open[0] && AT === rule.open[0].tin) {
                 // TODO: text TX=foo/bar as @"foo/bar" works but @foo/bar does not!
                 let filepath = rule.open[1].val;
                 let fullpath = path_1.default.resolve(ctx.meta.basepath || popts.basepath, filepath);
@@ -55,19 +56,25 @@ let Multifile = function multifile(jsonic) {
                     };
                     let content = fs_1.default.readFileSync(fullpath).toString();
                     if ('.json' === file_ext) {
-                        val = json(content, { mode: 'json', fileName: fullpath }, partial_ctx);
+                        val = json(content, { fileName: fullpath }, partial_ctx);
                     }
                     else if ('.jsonic' === file_ext) {
-                        // TODO: need a way to init root node so refs work!
                         val = jsonic(content, { basepath: basepath, fileName: fullpath }, partial_ctx);
                     }
+                    /* $lab:coverage:off$ */
                     else if ('.csv' === file_ext) {
                         val = csv(content, {}, partial_ctx);
                     }
+                    else {
+                        // TODO: define how to do this properly?
+                        // TODO: needs a test case
+                        throw new Error('unsupported file: ' + fullpath);
+                    }
+                    /* $lab:coverage:on$ */
                 }
                 rule.open[0].val = val;
             }
-            return bc(rule, ctx);
+            return orig_before_close(...arguments);
         };
         return rs;
     });

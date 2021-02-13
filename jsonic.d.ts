@@ -25,14 +25,13 @@ declare type Options = {
     char: KV;
     comment: {
         [start_marker: string]: string | boolean;
-    };
+    } | false;
     balance: KV;
-    number: KV;
+    number: KV & false;
     string: KV;
     text: KV;
-    object: KV;
+    map: KV;
     value: KV;
-    mode: KV;
     plugin: KV;
     debug: KV;
     error: {
@@ -56,6 +55,7 @@ declare type Options = {
         };
     };
     rule: {
+        finish: boolean;
         maxmul: number;
     };
     config: {
@@ -63,13 +63,16 @@ declare type Options = {
             [plugin_name: string]: (config: Config, options: Options) => void;
         };
     };
+    parser: {
+        start?: (lexer: Lexer, src: string, jsonic: Jsonic, meta?: any, parent_ctx?: any) => any;
+    };
 };
 declare type Plugin = (jsonic: Jsonic) => void | Jsonic;
 declare type Meta = {
     [k: string]: any;
 };
 declare type Token = {
-    pin: any;
+    tin: any;
     loc: number;
     len: number;
     row: number;
@@ -87,6 +90,7 @@ interface Context {
     src: () => string;
     root: () => any;
     plugins: () => Plugin[];
+    rule: Rule;
     node: any;
     u2: Token;
     u1: Token;
@@ -134,6 +138,9 @@ declare type Config = {
             [name: string]: string;
         };
     };
+    comment: {
+        [start_marker: string]: string | boolean;
+    };
     cmk: string[];
     cmk0: string;
     cmk1: string;
@@ -147,9 +154,12 @@ declare type Config = {
         };
     };
     number: {
-        sep_re: RegExp | null;
-    };
+        sep_RE: RegExp | null;
+    } & KV;
     debug: KV;
+    re: {
+        [name: string]: RegExp;
+    };
 };
 declare class JsonicError extends SyntaxError {
     constructor(code: string, details: KV, token: Token, rule: Rule, ctx: Context);
@@ -160,7 +170,17 @@ declare class JsonicError extends SyntaxError {
         stack: string | undefined;
     };
 }
-declare type LexMatcher = (sI: number, rI: number, cI: number, src: string, token: Token, ctx: Context, rule: Rule, bad: any) => LexMatcherResult;
+declare type LexMatcherState = {
+    sI: number;
+    rI: number;
+    cI: number;
+    src: string;
+    token: Token;
+    ctx: Context;
+    rule: Rule;
+    bad: any;
+};
+declare type LexMatcher = (lms: LexMatcherState) => LexMatcherResult;
 declare type LexMatcherListMap = {
     [state: number]: LexMatcher[];
 };
@@ -168,6 +188,7 @@ declare type LexMatcherResult = undefined | {
     sI: number;
     rI: number;
     cI: number;
+    state?: number;
 };
 declare class Lexer {
     end: Token;
@@ -209,7 +230,7 @@ declare class RuleAct {
 declare class RuleSpec {
     name: string;
     def: any;
-    constructor(name: string, def: any);
+    constructor(def: any);
     open(rule: Rule, ctx: Context): Rule;
     close(rule: Rule, ctx: Context): Rule;
     parse_alts(alts: any[], rule: Rule, ctx: Context): RuleAct;
@@ -239,13 +260,16 @@ declare let util: {
     make_src_format: (config: Config) => (s: any, _?: any) => string;
     make_log: (ctx: Context) => ((...rest: any) => undefined) | undefined;
     wrap_bad_lex: (lex: Lex, BD: Tin, ctx: Context) => any;
+    regexp: (flags: string, ...parts: string[]) => RegExp;
     errinject: (s: string, code: string, details: KV, token: Token, rule: Rule, ctx: Context) => string;
     extract: (src: string, errtxt: string, token: Token) => string;
-    handle_meta_mode: (zelf: Jsonic, src: string, meta: KV) => any[];
+    wrap_parser: (parser: any) => {
+        start: (lexer: Lexer, src: string, jsonic: Jsonic, meta?: any, parent_ctx?: any) => any;
+    };
     make_error_desc(code: string, details: KV, token: Token, rule: Rule, ctx: Context): KV;
     build_config_from_options: (config: Config, options: Options) => void;
 };
 declare function make(param_options?: KV, parent?: Jsonic): Jsonic;
 declare let Jsonic: Jsonic;
-export { Jsonic, Plugin, JsonicError, Tin, Lexer, Parser, Rule, RuleSpec, RuleSpecMap, Token, Context, Meta, LexMatcher, LexMatcherListMap, LexMatcherResult, util, make, };
+export { Jsonic, Plugin, JsonicError, Tin, Lexer, Parser, Rule, RuleSpec, RuleSpecMap, Token, Context, Meta, LexMatcher, LexMatcherListMap, LexMatcherResult, LexMatcherState, util, make, };
 export default Jsonic;

@@ -16,8 +16,7 @@ const expect = Code.expect
 
 const I = Util.inspect
 
-const { Jsonic, Lexer } = require('..')
-const pv_perf = require('./pv-perf')
+const { Jsonic, Lexer, JsonicError } = require('..')
 
 let j = Jsonic
 let lexer = j.internal().lexer
@@ -32,8 +31,8 @@ function lexall(src) {
     // console.log(out[out.length-1])
     out.push({...lex()})
   }
-  while( t.ZZ != out[out.length-1].pin &&
-         t.BD != out[out.length-1].pin )
+  while( t.ZZ != out[out.length-1].tin &&
+         t.BD != out[out.length-1].tin )
   return out.map(t=>st(t))
 }
 
@@ -62,30 +61,38 @@ describe('lex', function () {
     //let lex0 = lexer.start({src:()=>' {123 ', config, opts:j.options})
     let lex0 = lexstart(' {123 ')
     expect(lex0()).equals(
-      { pin: t.SP, loc: 0, len: 1, row: 0, col: 0, val: ' ', src: ' ' })
+      { tin: t.SP, loc: 0, len: 1, row: 0, col: 0, val: ' ', src: ' ',
+        use: undefined })
     expect(lex0()).equals(
-      { pin: t.OB, loc: 1, len: 1, row: 0, col: 1, val: undefined, src: '{' })
+      { tin: t.OB, loc: 1, len: 1, row: 0, col: 1, val: undefined, src: '{',
+        use: undefined})
     expect(lex0()).equals(
-      { pin: t.NR, loc: 2, len: 3, row: 0, col: 2, val: 123, src: '123'  })
+      { tin: t.NR, loc: 2, len: 3, row: 0, col: 2, val: 123, src: '123',
+        use: undefined  })
     expect(lex0()).equals(
-      { pin: t.SP, loc: 5, len: 1, row: 0, col: 5, val: ' ', src: ' ' })
+      { tin: t.SP, loc: 5, len: 1, row: 0, col: 5, val: ' ', src: ' ',
+        use: undefined })
     expect(lex0()).equals(
-      { pin: t.ZZ, loc: 6, len: 0, row: 0, col: 6,
-        val: undefined, src: undefined })
+      { tin: t.ZZ, loc: 6, len: 0, row: 0, col: 6,
+        val: undefined, src: undefined, use: undefined })
 
     // LN001
     expect(lex0()).equals(
-      { pin: t.ZZ, loc: 6, len: 0, row: 0, col: 6,
-        val: undefined, src: undefined })
+      { tin: t.ZZ, loc: 6, len: 0, row: 0, col: 6,
+        val: undefined, src: undefined, use: undefined })
     expect(lex0()).equals(
-      { pin: t.ZZ, loc: 6, len: 0, row: 0, col: 6,
-        val: undefined, src: undefined })
+      { tin: t.ZZ, loc: 6, len: 0, row: 0, col: 6,
+        val: undefined, src: undefined, use: undefined })
 
-    let lex1 = lexstart('"\\u0040"')
-    //let lex1 = lexer.start({src:()=>'"\\u0040"'})
+    let lex1 = lexstart('"\\u0040\\u{012345}"')
     expect(lex1()).equals(
-      { pin: t.ST, loc: 0, len: 8, row: 0, col: 0, val: '@', src:'"\\u0040"' })
+      { tin: t.ST, loc: 0, len: 18, row: 0, col: 0, val: '\u0040\u{012345}',
+        src:'"\\u0040\\u{012345}"',
+        use: undefined  }
+    )
 
+
+    
     
     expect(lexall(' {123')).equals([
       '#SP;0;1;0x0', '#OB;1;1;0x1', '#NR;2;3;0x2;123', '#ZZ;5;0;0x5'
@@ -104,23 +111,31 @@ describe('lex', function () {
     //let lex2 = lexer.start({src:()=>' m n '})
     let lex2 = lexstart(' m n ')
     expect(lex2()).equals(
-      { pin: t.SP, loc: 0, len: 1, row: 0, col: 0, val: ' ', src: ' ' })
+      { tin: t.SP, loc: 0, len: 1, row: 0, col: 0, val: ' ', src: ' ',
+        use: undefined })
     expect(lex2()).equals(
-      { pin: t.TX, loc: 1, len: 3, row: 0, col: 1, val: 'm n', src: 'm n' })
+      { tin: t.TX, loc: 1, len: 3, row: 0, col: 1, val: 'm n', src: 'm n',
+        use: undefined  })
     expect(lex2()).equals(
-      { pin: t.SP, loc: 4, len: 1, row: 0, col: 4, val: ' ', src: ' ' })
+      { tin: t.SP, loc: 4, len: 1, row: 0, col: 4, val: ' ', src: ' ',
+        use: undefined  })
     expect(lex2()).equals(
-      { pin: t.ZZ, loc: 5, len: 0, row: 0, col: 5, val: undefined, src: undefined })
+      { tin: t.ZZ, loc: 5, len: 0, row: 0, col: 5, val: undefined, src: undefined,
+        use: undefined  })
 
     let lex3 = lexstart(' b a ')
     expect(lex3()).equals(
-      { pin: t.SP, loc: 0, len: 1, row: 0, col: 0, val: ' ', src: ' ' })
+      { tin: t.SP, loc: 0, len: 1, row: 0, col: 0, val: ' ', src: ' ',
+        use: undefined  })
     expect(lex3()).equals(
-      { pin: t.TX, loc: 1, len: 3, row: 0, col: 1, val: 'b a', src: 'b a' })
+      { tin: t.TX, loc: 1, len: 3, row: 0, col: 1, val: 'b a', src: 'b a',
+        use: undefined  })
     expect(lex3()).equals(
-      { pin: t.SP, loc: 4, len: 1, row: 0, col: 4, val: ' ', src: ' ' })
+      { tin: t.SP, loc: 4, len: 1, row: 0, col: 4, val: ' ', src: ' ',
+        use: undefined  })
     expect(lex3()).equals(
-      { pin: t.ZZ, loc: 5, len: 0, row: 0, col: 5, val: undefined, src: undefined })
+      { tin: t.ZZ, loc: 5, len: 0, row: 0, col: 5, val: undefined, src: undefined,
+        use: undefined  })
 
   })
 
@@ -128,8 +143,8 @@ describe('lex', function () {
   it('space', () => {
     let lex0 = lexstart(' \t')
     expect(lex0()).equals(
-      { pin: t.SP,
-        loc: 0, len: 2, row: 0, col: 0, val: ' \t', src: ' \t' })
+      { tin: t.SP,
+        loc: 0, len: 2, row: 0, col: 0, val: ' \t', src: ' \t', use: undefined  })
 
     alleq([
       ' ', ['#SP;0;1;0x0','#ZZ;1;0;0x1'],
@@ -225,7 +240,8 @@ describe('lex', function () {
     let lex0 = lexstart('123')
     expect(lex0())
       .equal({
-        pin: t.NR, loc: 0, len: 3, row: 0, col: 0, val: 123, src: '123'
+        tin: t.NR, loc: 0, len: 3, row: 0, col: 0, val: 123, src: '123',
+        use: undefined 
       })
     
     alleq([
@@ -283,8 +299,9 @@ describe('lex', function () {
       '"\\\'"', ['#ST;0;4;0x0;\'','#ZZ;4;0;0x4'],
       '"\\\\"', ['#ST;0;4;0x0;\\','#ZZ;4;0;0x4'],
       '"\\u0040"', ['#ST;0;8;0x0;@','#ZZ;8;0;0x8'],
-      '"\\uQQQQ"', ['#BD;1;7;0x3;\\uQQQQ~invalid_unicode'],
-      '"\\xQQ"', ['#BD;1;4;0x3;\\xQQ~invalid_ascii'],
+      '"\\uQQQQ"', ['#BD;1;7;0x1;\\uQQQQ~invalid_unicode'],
+      '"\\u{QQQQQQ}"', ['#BD;1;10;0x1;\\u{QQQQQQ}~invalid_unicode'],
+      '"\\xQQ"', ['#BD;1;4;0x1;\\xQQ~invalid_ascii'],
       '"[{}]:,"', ['#ST;0;8;0x0;[{}]:,', '#ZZ;8;0;0x8'],
       '"a\\""', ['#ST;0;5;0x0;a"','#ZZ;5;0;0x5'],
       '"a\\"a"', ['#ST;0;6;0x0;a"a','#ZZ;6;0;0x6'],
@@ -321,8 +338,9 @@ describe('lex', function () {
       '\'\\"\'', ['#ST;0;4;0x0;"','#ZZ;4;0;0x4'],
       '\'\\\\\'', ['#ST;0;4;0x0;\\','#ZZ;4;0;0x4'],
       '\'\\u0040\'', ['#ST;0;8;0x0;@','#ZZ;8;0;0x8'],
-      '\'\\uQQQQ\'', ['#BD;1;7;0x3;\\uQQQQ~invalid_unicode'],
-      '\'\\xQQ\'', ['#BD;1;4;0x3;\\xQQ~invalid_ascii'],
+      '\'\\uQQQQ\'', ['#BD;1;7;0x1;\\uQQQQ~invalid_unicode'],
+      '\'\\u{QQQQQQ}\'', ['#BD;1;10;0x1;\\u{QQQQQQ}~invalid_unicode'],
+      '\'\\xQQ\'', ['#BD;1;4;0x1;\\xQQ~invalid_ascii'],
       '\'[{}]:,\'', ['#ST;0;8;0x0;[{}]:,', '#ZZ;8;0;0x8'],
       '\'a\\\'\'', ['#ST;0;5;0x0;a\'','#ZZ;5;0;0x5'],
       '\'a\\\'a\'', ['#ST;0;6;0x0;a\'a','#ZZ;6;0;0x6'],
@@ -366,7 +384,69 @@ describe('lex', function () {
       ],
     ])
   })
+
+
+  it('matchers', () => {
+    // console.log(Jsonic('a:1',{log:-1}))
+
+    let m = Jsonic.make()
+    let TX = m.token.TX
+    let LTP = m.token.LTP
+    let LTX = m.token.LTX
+    let LCS = m.token.LCS
+    let LML = m.token.LML
+
+
+    m.lex(LTP, function m_ltp({sI,rI,cI,src,token,ctx,rule,bad}) {
+      token.tin=TX 
+      token.val='A'
+      return { sI:sI+1, rI, cI:cI+1, state: LTX }
+    })
+    m.lex(LTX, function m_ltx({sI,rI,cI,src,token,ctx,rule,bad}) {
+      token.tin=TX 
+      token.val='B'
+      return { sI:sI+1, rI, cI:cI+1, state: LCS }
+    })
+    m.lex(LCS,({sI,rI,cI,src,token,ctx,rule,bad})=>{
+      token.tin=TX 
+      token.val='C'
+      return { sI:sI+1, rI, cI:cI+1, state: LML }
+    })
+
+    m.lex(LML,({sI,rI,cI,src,token,ctx,rule,bad})=>{
+      token.tin=TX 
+      token.val='D'
+      return { sI:sI+1, rI, cI:cI+1, state: LTP }
+    })
+
+
+    let s = m('1234')
+    expect(s).equal(['A', 'B', 'C', 'D' ])
+
+    
+    let log = []
+    let m0 = m.make({debug:{get_console:()=>{
+      return {log:(...r)=>log.push(r)}
+    }}})
+    s = m0('1234',{log:-1})
+    expect(s).equal(['A', 'B', 'C', 'D' ])
+
+    // debug logs name of lex function
+    expect(log[0][0]).contains('m_ltp')
+
+    
+    let m1 = Jsonic.make()
+    m1.lex(LTP, function m_ltp({sI,rI,cI,src,token,ctx,rule,bad}) {
+      token.tin=TX 
+      token.val='A'
+      return { sI:sI+1, rI, cI:cI+1, state: -1 }
+    })
+
+    expect(()=>m1('1234')).throws(JsonicError,/invalid_lex_state/)
+  })
+
 })
+
 
 
 function st(tkn) {
@@ -376,7 +456,7 @@ function st(tkn) {
     return [s.substring(0,3),t.loc,t.len,t.row+'x'+t.col,v?(''+t.val):null]
   }
 
-  switch(tkn.pin) {
+  switch(tkn.tin) {
   case t.SP:
     out = m('#SP',0,tkn)
     break

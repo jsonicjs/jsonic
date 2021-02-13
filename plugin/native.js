@@ -6,11 +6,14 @@ let Native = function native(jsonic) {
     jsonic.options({
         value: {
             'Infinity': Infinity,
+            '-Infinity': -Infinity,
             'NaN': NaN
         }
     });
     let VL = jsonic.token.VL;
-    jsonic.lex(jsonic.token.LTP, function native(sI, rI, cI, src, token, ctx) {
+    let TX = jsonic.token.TX;
+    jsonic.lex(jsonic.token.LTP, function native(lms) {
+        let { sI, rI, cI, src, token, ctx } = lms;
         let out;
         let config = ctx.config;
         let search = src.substring(sI, sI + 24);
@@ -20,10 +23,14 @@ let Native = function native(jsonic) {
                 rI,
                 cI: cI + 9
             };
-            token.pin = VL;
+            token.tin = VL;
             token.len = 9;
             token.val = undefined;
             token.src = 'undefined';
+            /* $lab:coverage:off$ */
+            token.use = (token.use || {});
+            /* $lab:coverage:on$ */
+            token.use.undefined = true;
         }
         else if (search.match(/^\d\d\d\d-\d\d-\d\dT\d\d:\d\d:\d\d\.\d\d\dZ$/)) {
             out = {
@@ -31,18 +38,18 @@ let Native = function native(jsonic) {
                 rI: 0,
                 cI: cI + 24
             };
-            token.pin = VL;
+            token.tin = VL;
             token.len = search.length;
             token.val = new Date(search);
             token.src = search;
         }
-        if ('/' === src[sI] && '/' !== src.substring(sI + 1)) {
+        else if ('/' === src[sI] && '/' !== src[sI + 1]) {
             let srclen = src.length;
             let pI = sI + 1;
             let cD = 0;
             while (pI < srclen &&
-                !('/' === src[pI] && '\\' === src[pI - 1]) &&
-                !config.charset.value_ender[src[pI]]) {
+                (('/' === src[pI] && '\\' === src[pI - 1]) ||
+                    !config.charset.value_ender[src[pI]])) {
                 pI++;
                 cD++;
             }
@@ -55,18 +62,39 @@ let Native = function native(jsonic) {
                     cD++;
                 }
                 let res = src.substring(sI, pI);
-                token.pin = VL;
+                token.tin = VL;
                 token.src = res;
                 token.len = res.length;
                 token.val = eval(res);
-                out = {
-                    sI: pI,
-                    rD: 0,
-                    cD: cD,
-                };
             }
+            // Not a complete regexp, so assume it's text
+            else {
+                token.tin = TX;
+                token.src = src.substring(sI, pI);
+                token.len = pI - sI;
+                token.val = token.src;
+            }
+            out = {
+                sI: pI,
+                rD: 0,
+                cD: cD,
+            };
         }
         return out;
+    });
+    jsonic.rule('elem', (rs) => {
+        let orig_before_close = rs.def.before_close;
+        rs.def.before_close = function (rule, ctx) {
+            /* $lab:coverage:off$ */
+            if (ctx.u1.use && ctx.u1.use.undefined) {
+                /* $lab:coverage:on$ */
+                rule.node.push(undefined);
+            }
+            else {
+                return orig_before_close(...arguments);
+            }
+        };
+        return rs;
     });
 };
 exports.Native = Native;
