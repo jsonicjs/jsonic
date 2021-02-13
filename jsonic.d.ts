@@ -30,7 +30,7 @@ declare type Options = {
     number: KV & false;
     string: KV;
     text: KV;
-    object: KV;
+    map: KV;
     value: KV;
     plugin: KV;
     debug: KV;

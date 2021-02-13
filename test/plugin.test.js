@@ -201,7 +201,7 @@ describe('plugin', function () {
     expect(d0).equal({a:{x:1},b:{x:1,y:2},c:{x:1,y:3}})
     expect(d0).equal({a:{x:1},b:{x:1,y:2},c:{x:1,y:3}})
 
-    let kx = k.make({object:{extend:false}})
+    let kx = k.make({map:{extend:false}})
     let d0x = kx('a:{x:1},b:$.a,b:{y:2},c:$.a,c:{y:3}')
     expect(d(d0x)).equal({a: { x: 1 }, b: { y: 2 }, c: { y: 3 }})
     let d0x1 = kx('a:{x:1},c:{z:2},c:$.a,c:{y:3}')

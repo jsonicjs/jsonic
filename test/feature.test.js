@@ -601,7 +601,7 @@ describe('feature', function () {
     expect(j('a:[{b:1},{x:1}],a:[{b:2},{y:2}],a:[{b:3},{z:3}]'))
       .equals({ a: [{ b: 3}, {x: 1, y: 2, z: 3}] })
 
-    let k = j.make({object:{extend:false}})
+    let k = j.make({map:{extend:false}})
     expect(k('a:{b:1,c:2},a:{c:3,e:4}'))
       .equals({ a: { c: 3, e: 4 } })
   })

@@ -67,7 +67,7 @@ type Options = {
   number: KV & false
   string: KV
   text: KV
-  object: KV
+  map: KV
   value: KV
   plugin: KV
   debug: KV
@@ -298,7 +298,7 @@ function make_standard_options(): Options {
 
     // TODO: rename to map for consistency
     // Object formats.
-    object: {
+    map: {
       // TODO: allow: true - allow duplicates, else error
 
       // Later duplicates extend earlier ones, rather than replacing them.
@@ -1824,7 +1824,7 @@ class Parser {
               val = null
             }
             rule.node[key] = null == prev ? val :
-              (ctx.options.object.extend ? util.deep(prev, val) : val)
+              (ctx.options.map.extend ? util.deep(prev, val) : val)
           }
         },
       },

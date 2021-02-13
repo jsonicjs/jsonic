@@ -83,7 +83,7 @@ function make_standard_options() {
         },
         // TODO: rename to map for consistency
         // Object formats.
-        object: {
+        map: {
             // TODO: allow: true - allow duplicates, else error
             // Later duplicates extend earlier ones, rather than replacing them.
             extend: true,
@@ -1201,7 +1201,7 @@ class Parser {
                             val = null;
                         }
                         rule.node[key] = null == prev ? val :
-                            (ctx.options.object.extend ? util.deep(prev, val) : val);
+                            (ctx.options.map.extend ? util.deep(prev, val) : val);
                     }
                 },
             },
