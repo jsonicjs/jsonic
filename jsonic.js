@@ -353,12 +353,15 @@ class Lexer {
                         while (config.charset.digital[src[++pI]])
                             ;
                         let numstr = src.substring(sI, pI);
+                        console.log('NUMSTR', '[' + numstr + ']', src[pI], config.charset.value_ender);
                         if (null == src[pI] || config.charset.value_ender[src[pI]]) {
                             token.len = pI - sI;
                             let base_char = src[sI + 1];
                             // Leading 0s are text unless hex|oct|bin val: if at least two
                             // digits and does not start with 0x|o|b, then text.
                             if (1 < token.len && '0' === src[sI] && '.' !== src[sI + 1] &&
+                                // PROBLEM: Hjson needs this - how to provide?
+                                !config.start.SP[src[sI + 1]] &&
                                 // Maybe a 0|x|o|b number?
                                 (!config.number.hex || 'x' !== base_char) && // But...
                                 (!config.number.oct || 'o' !== base_char) && //  it is...
@@ -371,6 +374,7 @@ class Lexer {
                             // Attempt to parse natively as a number, using +(string).
                             else {
                                 token.val = +numstr;
+                                console.log('NUM A', token.val, numstr);
                                 // Allow number format 1000_000_000 === 1e9.
                                 if (null != config.number.sep_RE && isNaN(token.val)) {
                                     token.val = +(numstr.replace(config.number.sep_RE, ''));

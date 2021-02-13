@@ -161,6 +161,7 @@ describe('feature', function () {
 
   it('feature-number', () => {
     expect(j('1')).equals(1)
+    expect(j('0')).equals(0)
     expect(j('0.9')).equals(0.9)
     expect(j('[1]')).equals([1])
     expect(j('a:1')).equals({a:1})
@@ -188,6 +189,7 @@ describe('feature', function () {
     expect(j('1e6:a')).equals({'1e6':'a'}) // NOTE: "1e6" not "1000000"
 
     expect(j('a:1')).equals({a:1})
+    expect(j('a:0')).equals({a:0})
     expect(j('a:0.1')).equals({a:0.1})
     expect(j('a:[1]')).equals({a:[1]})
     expect(j('a:a:1')).equals({a:{a:1}})

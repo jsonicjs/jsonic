@@ -11,6 +11,9 @@ let HJson = function hjson(jsonic) {
     jsonic.options({
         rule: {
             finish: false
+        },
+        number: {
+            digital: jsonic.options.number.digital + ' \t'
         }
     });
     // Implicit maps are OK.

@@ -15,6 +15,9 @@ let HJson: Plugin = function hjson(jsonic: Jsonic) {
   jsonic.options({
     rule: {
       finish: false
+    },
+    number: {
+      digital: jsonic.options.number.digital + ' \t'
     }
   })
 
