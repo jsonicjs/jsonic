@@ -231,7 +231,7 @@ class Lexer {
         let ST = tpin('#ST');
         let TX = tpin('#TX');
         let VL = tpin('#VL');
-        tpin('#LN');
+        let LN = tpin('#LN');
         // NOTE: always returns this object!
         let token = {
             tin: ZZ,
@@ -268,7 +268,8 @@ class Lexer {
             if (null != matchers) {
                 token.loc = sI; // TODO: move to top of while for all rules?
                 for (let matcher of matchers) {
-                    let match = matcher(sI, rI, cI, src, token, ctx, rule, bad);
+                    //let match = matcher(sI, rI, cI, src, token, ctx, rule, bad)
+                    let match = matcher({ sI, rI, cI, src, token, ctx, rule, bad });
                     // Adjust lex location if there was a match.
                     if (match) {
                         sI = match.sI ? match.sI : sI;
@@ -315,7 +316,7 @@ class Lexer {
                     }
                     // Newline chars.
                     if (config.start.LN[c0]) {
-                        token.tin = config.lex.core.LN;
+                        token.tin = LN;
                         token.loc = sI;
                         token.col = cI;
                         pI = sI;
@@ -1704,12 +1705,6 @@ let util = {
             config.bmk.push(k);
         });
         config.bmk_maxlen = util.longest(block_markers);
-        // TODO: add rest of core tokens
-        config.lex = {
-            core: {
-                LN: util.token(options.lex.core.LN, config)
-            }
-        };
         // TODO: move to config.re, use util.regexp
         config.number = {
             ...(false !== options.number ? options.number : {}),

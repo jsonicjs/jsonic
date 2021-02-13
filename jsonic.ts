@@ -456,8 +456,7 @@ class JsonicError extends SyntaxError {
 }
 
 
-
-type LexMatcher = (
+type LexMatcherState = {
   sI: number,
   rI: number,
   cI: number,
@@ -466,7 +465,9 @@ type LexMatcher = (
   ctx: Context,
   rule: Rule,
   bad: any,
-) => LexMatcherResult
+}
+
+type LexMatcher = (lms: LexMatcherState) => LexMatcherResult
 
 type LexMatcherListMap = { [state: number]: LexMatcher[] }
 
@@ -526,8 +527,7 @@ class Lexer {
     let ST = tpin('#ST')
     let TX = tpin('#TX')
     let VL = tpin('#VL')
-
-    tpin('#LN')
+    let LN = tpin('#LN')
 
     // NOTE: always returns this object!
     let token: Token = {
@@ -578,7 +578,8 @@ class Lexer {
         token.loc = sI // TODO: move to top of while for all rules?
 
         for (let matcher of matchers) {
-          let match = matcher(sI, rI, cI, src, token, ctx, rule, bad)
+          //let match = matcher(sI, rI, cI, src, token, ctx, rule, bad)
+          let match = matcher({ sI, rI, cI, src, token, ctx, rule, bad })
 
           // Adjust lex location if there was a match.
           if (match) {
@@ -642,7 +643,7 @@ class Lexer {
 
           // Newline chars.
           if (config.start.LN[c0]) {
-            token.tin = config.lex.core.LN
+            token.tin = LN
             token.loc = sI
             token.col = cI
 
@@ -2519,14 +2520,6 @@ let util = {
     config.bmk_maxlen = util.longest(block_markers)
 
 
-    // TODO: add rest of core tokens
-    config.lex = {
-      core: {
-        LN: util.token(options.lex.core.LN, config)
-      }
-    }
-
-
     // TODO: move to config.re, use util.regexp
     config.number = {
       ...(false !== options.number ? (options.number as any) : {}),
@@ -2735,6 +2728,7 @@ export {
   LexMatcher,
   LexMatcherListMap,
   LexMatcherResult,
+  LexMatcherState,
   util,
   make,
 }

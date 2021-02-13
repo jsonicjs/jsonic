@@ -54,7 +54,7 @@ describe('error', function () {
           foo: 'Foo hint.'
         }
       })
-      jsonic.lex(jsonic.token.LTP,(sI,rI,cI,src,token,ctx,rule,bad)=>{
+      jsonic.lex(jsonic.token.LTP,({sI,rI,cI,src,token,ctx,rule,bad})=>{
         if(src.substring(sI).startsWith('FOO')) {
           return bad('foo',sI,'FOO')
         }

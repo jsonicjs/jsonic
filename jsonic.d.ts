@@ -170,7 +170,17 @@ declare class JsonicError extends SyntaxError {
         stack: string | undefined;
     };
 }
-declare type LexMatcher = (sI: number, rI: number, cI: number, src: string, token: Token, ctx: Context, rule: Rule, bad: any) => LexMatcherResult;
+declare type LexMatcherState = {
+    sI: number;
+    rI: number;
+    cI: number;
+    src: string;
+    token: Token;
+    ctx: Context;
+    rule: Rule;
+    bad: any;
+};
+declare type LexMatcher = (lms: LexMatcherState) => LexMatcherResult;
 declare type LexMatcherListMap = {
     [state: number]: LexMatcher[];
 };
@@ -261,5 +271,5 @@ declare let util: {
 };
 declare function make(param_options?: KV, parent?: Jsonic): Jsonic;
 declare let Jsonic: Jsonic;
-export { Jsonic, Plugin, JsonicError, Tin, Lexer, Parser, Rule, RuleSpec, RuleSpecMap, Token, Context, Meta, LexMatcher, LexMatcherListMap, LexMatcherResult, util, make, };
+export { Jsonic, Plugin, JsonicError, Tin, Lexer, Parser, Rule, RuleSpec, RuleSpecMap, Token, Context, Meta, LexMatcher, LexMatcherListMap, LexMatcherResult, LexMatcherState, util, make, };
 export default Jsonic;

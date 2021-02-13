@@ -2,13 +2,14 @@
 
 
 
-import { Jsonic, Plugin, Token, Context, Rule, RuleSpec } from '../jsonic'
+import { Jsonic, Plugin, Context, Rule, RuleSpec, LexMatcherState } from '../jsonic'
 
 
 // Most of these mods nerf Jsonic (eg. auto finishing) to fit the HJson rules.
 let HJson: Plugin = function hjson(jsonic: Jsonic) {
   let CL = jsonic.token.CL
   let TX = jsonic.token.TX
+  let ST = jsonic.token.ST
   let LTP = jsonic.token.LTP
 
   jsonic.options({
@@ -69,13 +70,19 @@ let HJson: Plugin = function hjson(jsonic: Jsonic) {
     })
 
     // Don't allow unquoted keys to contain space
+    // or keys to come from blocks
     let orig_before_close = rs.def.before_close
     rs.def.before_close = (rule: Rule, ctx: Context) => {
       let key_token = rule.open[0]
-      if (key_token && TX === key_token.tin && key_token.val.match(/[ \t]/)) {
-        return { err: 'unexpected' }
+      if (key_token) {
+        if (
+          (TX === key_token.tin && key_token.src.match(/[ \t]/)) ||
+          (ST === key_token.tin && key_token.src.match(/^'''/))
+        ) {
+          return { err: 'unexpected' }
+        }
+        return orig_before_close(rule, ctx)
       }
-      return orig_before_close(rule, ctx)
     }
 
     return rs
@@ -85,14 +92,9 @@ let HJson: Plugin = function hjson(jsonic: Jsonic) {
   // HJson unquoted string
   // NOTE: HJson thus does not support a:foo,b:bar -> {a:'foo',b:'bar'}
   // Rather, you get a:foo,b:bar -> {a:'foo,b:bar'}
-  jsonic.lex(jsonic.token.LTX, function tx_eol(
-    sI: number,
-    rI: number,
-    cI: number,
-    src: string,
-    token: Token,
-    ctx: Context,
-  ) {
+  jsonic.lex(jsonic.token.LTX, function tx_eol(lms: LexMatcherState) {
+    let { sI, rI, cI, src, token, ctx } = lms
+
     let pI = sI
     let srclen = src.length
 

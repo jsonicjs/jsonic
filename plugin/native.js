@@ -12,10 +12,10 @@ let Native = function native(jsonic) {
     });
     let VL = jsonic.token.VL;
     let TX = jsonic.token.TX;
-    jsonic.lex(jsonic.token.LTP, function native(sI, rI, cI, src, token, ctx) {
+    jsonic.lex(jsonic.token.LTP, function native(lms) {
+        let { sI, rI, cI, src, token, ctx } = lms;
         let out;
         let config = ctx.config;
-        let osI = sI;
         let search = src.substring(sI, sI + 24);
         if (search.startsWith('undefined')) {
             out = {

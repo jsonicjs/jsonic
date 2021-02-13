@@ -6,6 +6,7 @@ exports.HJson = void 0;
 let HJson = function hjson(jsonic) {
     let CL = jsonic.token.CL;
     let TX = jsonic.token.TX;
+    let ST = jsonic.token.ST;
     let LTP = jsonic.token.LTP;
     jsonic.options({
         rule: {
@@ -57,20 +58,25 @@ let HJson = function hjson(jsonic) {
             }
         });
         // Don't allow unquoted keys to contain space
+        // or keys to come from blocks
         let orig_before_close = rs.def.before_close;
         rs.def.before_close = (rule, ctx) => {
             let key_token = rule.open[0];
-            if (key_token && TX === key_token.tin && key_token.val.match(/[ \t]/)) {
-                return { err: 'unexpected' };
+            if (key_token) {
+                if ((TX === key_token.tin && key_token.src.match(/[ \t]/)) ||
+                    (ST === key_token.tin && key_token.src.match(/^'''/))) {
+                    return { err: 'unexpected' };
+                }
+                return orig_before_close(rule, ctx);
             }
-            return orig_before_close(rule, ctx);
         };
         return rs;
     });
     // HJson unquoted string
     // NOTE: HJson thus does not support a:foo,b:bar -> {a:'foo',b:'bar'}
     // Rather, you get a:foo,b:bar -> {a:'foo,b:bar'}
-    jsonic.lex(jsonic.token.LTX, function tx_eol(sI, rI, cI, src, token, ctx) {
+    jsonic.lex(jsonic.token.LTX, function tx_eol(lms) {
+        let { sI, rI, cI, src, token, ctx } = lms;
         let pI = sI;
         let srclen = src.length;
         if (ctx.t0.tin === CL) {

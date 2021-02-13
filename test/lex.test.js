@@ -397,23 +397,23 @@ describe('lex', function () {
     let LML = m.token.LML
 
 
-    m.lex(LTP, function m_ltp(sI,rI,cI,src,token,ctx,rule,bad) {
+    m.lex(LTP, function m_ltp({sI,rI,cI,src,token,ctx,rule,bad}) {
       token.tin=TX 
       token.val='A'
       return { sI:sI+1, rI, cI:cI+1, state: LTX }
     })
-    m.lex(LTX, function m_ltx(sI,rI,cI,src,token,ctx,rule,bad) {
+    m.lex(LTX, function m_ltx({sI,rI,cI,src,token,ctx,rule,bad}) {
       token.tin=TX 
       token.val='B'
       return { sI:sI+1, rI, cI:cI+1, state: LCS }
     })
-    m.lex(LCS,(sI,rI,cI,src,token,ctx,rule,bad)=>{
+    m.lex(LCS,({sI,rI,cI,src,token,ctx,rule,bad})=>{
       token.tin=TX 
       token.val='C'
       return { sI:sI+1, rI, cI:cI+1, state: LML }
     })
 
-    m.lex(LML,(sI,rI,cI,src,token,ctx,rule,bad)=>{
+    m.lex(LML,({sI,rI,cI,src,token,ctx,rule,bad})=>{
       token.tin=TX 
       token.val='D'
       return { sI:sI+1, rI, cI:cI+1, state: LTP }
@@ -436,7 +436,7 @@ describe('lex', function () {
 
     
     let m1 = Jsonic.make()
-    m1.lex(LTP, function m_ltp(sI,rI,cI,src,token,ctx,rule,bad) {
+    m1.lex(LTP, function m_ltp({sI,rI,cI,src,token,ctx,rule,bad}) {
       token.tin=TX 
       token.val='A'
       return { sI:sI+1, rI, cI:cI+1, state: -1 }

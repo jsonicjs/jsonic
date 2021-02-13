@@ -3,7 +3,7 @@
 // TODO: support functions - eval to load
 
 
-import { Jsonic, Plugin, Token, Context, Rule, RuleSpec } from '../jsonic'
+import { Jsonic, Plugin, Context, Rule, RuleSpec, LexMatcherState } from '../jsonic'
 
 
 let Native: Plugin = function native(jsonic: Jsonic) {
@@ -20,18 +20,11 @@ let Native: Plugin = function native(jsonic: Jsonic) {
   let TX = jsonic.token.TX
 
 
-  jsonic.lex(jsonic.token.LTP, function native(
-    sI: number,
-    rI: number,
-    cI: number,
-    src: string,
-    token: Token,
-    ctx: Context,
-  ): any {
+  jsonic.lex(jsonic.token.LTP, function native(lms: LexMatcherState): any {
+    let { sI, rI, cI, src, token, ctx } = lms
+
     let out: any
     let config = ctx.config
-
-    let osI = sI
 
     let search = src.substring(sI, sI + 24)
 

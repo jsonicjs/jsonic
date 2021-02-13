@@ -452,7 +452,7 @@ describe('util', () => {
 
     let j1 = Jsonic.make()
     j1.use(function uppercaser(jsonic) {
-      j1.lex(jsonic.token.LTX, (sI,rI,cI,src,token,ctx)=>{
+      j1.lex(jsonic.token.LTX, ({sI,rI,cI,src,token,ctx})=>{
         let pI = sI
         let srclen = src.length
         
