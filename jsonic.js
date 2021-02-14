@@ -346,7 +346,7 @@ class Lexer {
                         return token;
                     }
                     // Number chars.
-                    if (options.number && config.start.NR[c0] && config.number.lex) {
+                    if (config.start.NR[c0] && config.number.lex) {
                         token.tin = NR;
                         token.loc = sI;
                         token.col = cI;
@@ -911,7 +911,6 @@ class RuleSpec {
         let alt = (out && out.alt) ? { ...empty_ruleact, ...out.alt } :
             0 < this.def.close.length ? this.parse_alts(this.def.close, rule, ctx) :
                 empty_ruleact;
-        // console.log('CLOSE ALT', alt)
         if (alt.e) {
             throw new JsonicError(S.unexpected, { close: true }, alt.e, rule, ctx);
         }
@@ -1711,7 +1710,7 @@ let util = {
         config.bmk_maxlen = util.longest(block_markers);
         // TODO: move to config.re, use util.regexp
         config.number = {
-            ...(false !== options.number ? options.number : {}),
+            ...options.number,
             sep_RE: null != options.number.sep ?
                 new RegExp(options.number.sep, 'g') : null
         };

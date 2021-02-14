@@ -16,7 +16,6 @@ const expect = Code.expect
 
 const { Jsonic, Lexer, Parser, JsonicError, make } = require('..')
 const { Json } = require('../plugin/json')
-const { HJson } = require('../plugin/hjson')
 const { Csv } = require('../plugin/csv')
 const { Dynamic } = require('../plugin/dynamic')
 const { Native } = require('../plugin/native')
@@ -269,16 +268,6 @@ a:{x:1,y:2}
     expect(k('{"a":1}')).equal({a:1})
     expect(k('{"a":1}',{json:[(k,v)=>'a'===k?2:v]})).equal({a:2})
     expect(()=>k('{a:1}')).throws(JsonicError, /jsonic\/json/)
-  })
-
-
-  it('hjson-basic', () => {
-    let k = Jsonic.make().use(HJson)
-    expect(k('a:1')).equal({a:1})
-    expect(k('{a:1}')).equal({a:1})
-    expect(k('a:a')).equal({a:'a'})
-    expect(k('{}')).equal({})
-    expect(()=>k('{a:a}')).throws()
   })
 
 

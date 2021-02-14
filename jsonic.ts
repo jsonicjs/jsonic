@@ -1,5 +1,8 @@
 /* Copyright (c) 2013-2021 Richard Rodger, MIT License */
 
+// TODO: test all json syntax paths from https://www.json.org/json-en.html
+// TODO: -p name should work if name is all lowercase
+// TODO: options.nunber.lex=false option for each lex branch
 // TODO: data file to diff exhaust changes
 // TODO: util tests
 // TODO: plugin TODOs
@@ -61,7 +64,14 @@ type Options = {
   char: KV
   comment: { [start_marker: string]: string | boolean } | false
   balance: KV
-  number: KV & false
+  number: {
+    lex: boolean
+    hex: boolean
+    oct: boolean
+    bin: boolean
+    digital: string
+    sep: string
+  }
   string: KV
   text: KV
   map: KV
@@ -236,7 +246,7 @@ function make_standard_options(): Options {
 
 
     // Control number formats.
-    number: ({
+    number: {
 
       // Recognize numbers in the Lexer.
       lex: true,
@@ -255,7 +265,7 @@ function make_standard_options(): Options {
 
       // Allow embedded separator. `null` to disable.
       sep: '_',
-    } as any),
+    },
 
 
     // String formats.
@@ -682,7 +692,7 @@ class Lexer {
 
 
           // Number chars.
-          if (options.number && config.start.NR[c0] && config.number.lex) {
+          if (config.start.NR[c0] && config.number.lex) {
             token.tin = NR
             token.loc = sI
             token.col = cI
@@ -691,7 +701,6 @@ class Lexer {
             while (config.charset.digital[src[++pI]]);
 
             let numstr = src.substring(sI, pI)
-
             if (null == src[pI] || config.charset.value_ender[src[pI]]) {
               token.len = pI - sI
 
@@ -1447,8 +1456,6 @@ class RuleSpec {
     let alt: RuleAct = (out && out.alt) ? { ...empty_ruleact, ...out.alt } :
       0 < this.def.close.length ? this.parse_alts(this.def.close, rule, ctx) :
         empty_ruleact
-
-    // console.log('CLOSE ALT', alt)
 
     if (alt.e) {
       throw new JsonicError(S.unexpected, { close: true }, alt.e, rule, ctx)
@@ -2525,9 +2532,9 @@ let util = {
 
     // TODO: move to config.re, use util.regexp
     config.number = {
-      ...(false !== options.number ? (options.number as any) : {}),
+      ...options.number,
       sep_RE: null != options.number.sep ?
-        new RegExp((options.number as any).sep, 'g') : null
+        new RegExp(options.number.sep, 'g') : null
     }
 
 

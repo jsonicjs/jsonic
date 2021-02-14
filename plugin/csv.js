@@ -31,7 +31,7 @@ fields per row are expected.`,
         token['#CS'] = false;
         token['#CL'] = false;
         token['#ST'] = '"';
-        options.number = false;
+        options.number = { lex: false };
         options.comment = false;
         options.string.multiline = '';
         options.string.block = {};

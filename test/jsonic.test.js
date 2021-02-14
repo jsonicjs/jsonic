@@ -639,7 +639,6 @@ describe('jsonic', function () {
         ],
         before_close: (rule) => ({node:rule.node}),
         after_close: (rule, ctx) => {
-          console.log('u2val',ctx.u2 && ctx.u2.val)
           rule.node.v += (ctx.u2 ? ctx.u2.val : 0)
           return {node:rule.node}
         }
@@ -665,9 +664,9 @@ describe('jsonic', function () {
       // NOTE: if parse algo changes then these may change.
       // But if *not intended* changes here indicate unexpected effects.
       expect(out).includes({
-        rmc: 62253,
-        emc: 2773,
-        ecc: { unprintable: 91, unexpected: 1981, unterminated: 701 }
+        rmc: 62258,
+        emc: 2768,
+        ecc: { unprintable: 91, unexpected: 1976, unterminated: 701 }
       })
     }
   })
