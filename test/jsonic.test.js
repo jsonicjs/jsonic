@@ -17,7 +17,8 @@ const expect = Code.expect
 const I = Util.inspect
 
 const { Jsonic, Lexer } = require('..')
-const exhaust = require('./exhaust')
+const Exhaust = require('./exhaust')
+const JsonStandard = require('./json-standard')
 
 let j = Jsonic
 
@@ -658,7 +659,7 @@ describe('jsonic', function () {
     // Use this env var for debug-code-test loop to avoid
     // slowing things down. Do run this test for builds!
     if(null == process.env.JSONIC_TEST_SKIP_PERF) {
-      let out = exhaust(len)
+      let out = Exhaust(len)
       // console.log(out)
 
       // NOTE: if parse algo changes then these may change.
@@ -671,5 +672,10 @@ describe('jsonic', function () {
     }
   })
 
+
+  // Validate pure JSON to ensure Jsonic is always a superset.
+  it('json-standard', function(){
+    JsonStandard(Jsonic)
+  })
 
 })
