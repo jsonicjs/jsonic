@@ -1,12 +1,9 @@
 /* Copyright (c) 2013-2021 Richard Rodger, MIT License */
 
-// TODO: option to turn off auto finish - use elem,pair close ZZ e:true
 // TODO: data file to diff exhaust changes
 // TODO: util tests
 // TODO: plugin TODOs
 // TODO: deeper tests
-// TODO: types used properly in plugins, eg. LexMatcher
-// TODO: proper type for Lex matcher args
 // TODO: post release: plugin for path expr: a.b:1 -> {a:{b:1}}
 
 
@@ -134,6 +131,7 @@ interface Context {
   plugins: () => Plugin[]
   rule: Rule
   node: any
+  lex: Tin
   u2: Token
   u1: Token
   t0: Token
@@ -614,6 +612,8 @@ class Lexer {
       while (sI < srclen) {
         let c0 = src[sI]
 
+        ctx.lex = state
+
         if (LTP === state) {
 
           if (matchers(rule)) {
@@ -697,6 +697,7 @@ class Lexer {
 
               let base_char = src[sI + 1]
 
+              // TODO: is this necessary? wont +numstr handle this?
               // Leading 0s are text unless hex|oct|bin val: if at least two
               // digits and does not start with 0x|o|b, then text.
               if (
@@ -1935,6 +1936,7 @@ class Parser {
       plugins: () => jsonic.internal().plugins,
       rule: norule,
       node: undefined,
+      lex: -1,
       u2: lexer.end,
       u1: lexer.end,
       t0: lexer.end,
@@ -2309,6 +2311,7 @@ let util = {
                 plugins: () => jsonic.internal().plugins,
                 rule: norule,
                 node: undefined,
+                lex: -1,
                 u2: token,
                 u1: token,
                 t0: token,

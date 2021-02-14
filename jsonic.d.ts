@@ -92,6 +92,7 @@ interface Context {
     plugins: () => Plugin[];
     rule: Rule;
     node: any;
+    lex: Tin;
     u2: Token;
     u1: Token;
     t0: Token;

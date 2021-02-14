@@ -158,7 +158,7 @@ b`
 
 
 And we haven't even begun to talk about all the fun stuff you can do
-with options and plugins, including support for multiple files, Hjson,
+with options and plugins, including support for multiple files,
 CSV (or TSV), and dynamic content.
 
 

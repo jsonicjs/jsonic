@@ -295,6 +295,7 @@ class Lexer {
             let s = []; // Parsed string chars and substrings.
             next_char: while (sI < srclen) {
                 let c0 = src[sI];
+                ctx.lex = state;
                 if (LTP === state) {
                     if (matchers(rule)) {
                         return token;
@@ -356,6 +357,7 @@ class Lexer {
                         if (null == src[pI] || config.charset.value_ender[src[pI]]) {
                             token.len = pI - sI;
                             let base_char = src[sI + 1];
+                            // TODO: is this necessary? wont +numstr handle this?
                             // Leading 0s are text unless hex|oct|bin val: if at least two
                             // digits and does not start with 0x|o|b, then text.
                             if (1 < token.len && '0' === src[sI] && '.' !== src[sI + 1] &&
@@ -1282,6 +1284,7 @@ class Parser {
             plugins: () => jsonic.internal().plugins,
             rule: norule,
             node: undefined,
+            lex: -1,
             u2: lexer.end,
             u1: lexer.end,
             t0: lexer.end,
@@ -1559,6 +1562,7 @@ let util = {
                             plugins: () => jsonic.internal().plugins,
                             rule: norule,
                             node: undefined,
+                            lex: -1,
                             u2: token,
                             u1: token,
                             t0: token,
