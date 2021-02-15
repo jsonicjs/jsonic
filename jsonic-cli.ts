@@ -6,10 +6,10 @@ import { Jsonic } from './jsonic'
 
 
 // Make sure JsonicError is shown nicely.
-run().catch((e) => console.error(e))
+run(process.argv, console).catch((e) => console.error(e))
 
 
-async function run() {
+export async function run(argv: string[], console: Console) {
   const args = {
     str: '',
     file: '',
@@ -20,8 +20,8 @@ async function run() {
 
   let accept_args = true
   let source_stdin = false
-  for (let aI = 2; aI < process.argv.length; aI++) {
-    let arg = process.argv[aI]
+  for (let aI = 2; aI < argv.length; aI++) {
+    let arg = argv[aI]
 
     if (accept_args && arg.startsWith('-')) {
       if ('-' === arg) {
@@ -31,13 +31,13 @@ async function run() {
         accept_args = false
       }
       else if ('--file' === arg || '-f' === arg) {
-        args.file = process.argv[++aI]
+        args.file = argv[++aI]
       }
       else if ('--option' === arg || '-o' === arg) {
-        handle_props(args, 'options', process.argv[++aI])
+        handle_props(args, 'options', argv[++aI])
       }
       else if ('--meta' === arg || '-m' === arg) {
-        handle_props(args, 'meta', process.argv[++aI])
+        handle_props(args, 'meta', argv[++aI])
       }
       else if ('--debug' === arg || '-d' === arg) {
         handle_props(args, 'meta', 'log=-1')
@@ -46,7 +46,7 @@ async function run() {
         help()
       }
       else if ('--plugin' === arg || '-p' === arg) {
-        handle_plugin(args, process.argv[++aI])
+        handle_plugin(args, argv[++aI])
       }
     }
     else {

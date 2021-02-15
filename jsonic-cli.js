@@ -4,11 +4,12 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.run = void 0;
 const fs_1 = __importDefault(require("fs"));
 const jsonic_1 = require("./jsonic");
 // Make sure JsonicError is shown nicely.
-run().catch((e) => console.error(e));
-async function run() {
+run(process.argv, console).catch((e) => console.error(e));
+async function run(argv, console) {
     const args = {
         str: '',
         file: '',
@@ -18,8 +19,8 @@ async function run() {
     };
     let accept_args = true;
     let source_stdin = false;
-    for (let aI = 2; aI < process.argv.length; aI++) {
-        let arg = process.argv[aI];
+    for (let aI = 2; aI < argv.length; aI++) {
+        let arg = argv[aI];
         if (accept_args && arg.startsWith('-')) {
             if ('-' === arg) {
                 source_stdin = true;
@@ -28,13 +29,13 @@ async function run() {
                 accept_args = false;
             }
             else if ('--file' === arg || '-f' === arg) {
-                args.file = process.argv[++aI];
+                args.file = argv[++aI];
             }
             else if ('--option' === arg || '-o' === arg) {
-                handle_props(args, 'options', process.argv[++aI]);
+                handle_props(args, 'options', argv[++aI]);
             }
             else if ('--meta' === arg || '-m' === arg) {
-                handle_props(args, 'meta', process.argv[++aI]);
+                handle_props(args, 'meta', argv[++aI]);
             }
             else if ('--debug' === arg || '-d' === arg) {
                 handle_props(args, 'meta', 'log=-1');
@@ -43,7 +44,7 @@ async function run() {
                 help();
             }
             else if ('--plugin' === arg || '-p' === arg) {
-                handle_plugin(args, process.argv[++aI]);
+                handle_plugin(args, argv[++aI]);
             }
         }
         else {
@@ -73,6 +74,7 @@ async function run() {
     let json = JSON.stringify(val, replacer, space);
     console.log(json);
 }
+exports.run = run;
 async function read_stdin() {
     if (process.stdin.isTTY)
         return '';

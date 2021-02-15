@@ -22,11 +22,18 @@ declare type KV = {
 };
 declare type Tin = number;
 declare type Options = {
-    char: KV;
+    line: {
+        lex: boolean;
+        row: string;
+        sep_RES: string;
+    };
     comment: {
         [start_marker: string]: string | boolean;
     } | false;
     balance: KV;
+    space: {
+        lex: boolean;
+    };
     number: {
         lex: boolean;
         hex: boolean;
@@ -56,11 +63,6 @@ declare type Options = {
         string | // Multi-char token (eg. SP=` \t`)
         true;
     };
-    lex: {
-        core: {
-            [name: string]: string;
-        };
-    };
     rule: {
         finish: boolean;
         maxmul: number;
@@ -75,9 +77,7 @@ declare type Options = {
     };
 };
 declare type Plugin = (jsonic: Jsonic) => void | Jsonic;
-declare type Meta = {
-    [k: string]: any;
-};
+declare type Meta = KV;
 declare type Token = {
     tin: any;
     loc: number;
@@ -89,7 +89,7 @@ declare type Token = {
     why?: string;
     use?: any;
 };
-interface Context {
+declare type Context = {
     rI: number;
     options: Options;
     config: Config;
@@ -113,7 +113,7 @@ interface Context {
     log?: (...rest: any) => undefined;
     F: (s: any) => string;
     use: KV;
-}
+};
 declare type Lex = ((rule: Rule) => Token) & {
     src: string;
 };
@@ -156,10 +156,8 @@ declare type Config = {
     bmk: string[];
     bmk_maxlen: number;
     single_char: string;
-    lex: {
-        core: {
-            [name: string]: Tin;
-        };
+    space: {
+        lex: boolean;
     };
     number: {
         sep_RE: RegExp | null;
@@ -197,6 +195,7 @@ declare type LexMatcherResult = undefined | {
     rI: number;
     cI: number;
     state?: number;
+    state_param?: any;
 };
 declare class Lexer {
     end: Token;

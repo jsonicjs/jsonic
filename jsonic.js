@@ -2,6 +2,7 @@
 /* Copyright (c) 2013-2021 Richard Rodger, MIT License */
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.make = exports.util = exports.RuleSpec = exports.Rule = exports.Parser = exports.Lexer = exports.JsonicError = exports.Jsonic = void 0;
+// A bit pedantic, but let's be strict about strings.
 const S = {
     object: 'object',
     string: 'string',
@@ -14,17 +15,17 @@ const S = {
     val: 'val',
     node: 'node',
     no_re_flags: '',
+    unprintable: 'unprintable',
 };
-function make_standard_options() {
+function make_default_options() {
     let options = {
-        // TODO: rename to special
-        // Special chars
-        char: {
+        // Line lexing.
+        line: {
+            lex: true,
             // Increments row (aka line) counter.
             row: '\n',
             // Line separator regexp (as string)
-            line_sep_RES: '\r*\n',
-            bad_unicode: String.fromCharCode('0x0000'),
+            sep_RES: '\r*\n',
         },
         // Comment markers.
         // <mark-char>: true -> single line comments
@@ -38,6 +39,10 @@ function make_standard_options() {
         balance: {
             // Balance multiline comments.
             comment: true,
+        },
+        // Recognize space characters in the lexer.
+        space: {
+            lex: true
         },
         // Control number formats.
         number: {
@@ -138,13 +143,18 @@ function make_standard_options() {
             // NOTE: comma-sep strings to avoid util.deep array override logic
             '#IGNORE': { s: '#SP,#LN,#CM' },
         },
+        /*
         // Lexing options.
         lex: {
-            core: {
-                // The token for line endings.
-                LN: '#LN',
-            }
+          core: {
+    
+            // The token for line endings.
+            LN: '#LN',
+    
+            // TODO: the other builtin tokens
+          }
         },
+        */
         // Parser rule options.
         rule: {
             // Automatically close remaining structures at EOF.
@@ -199,10 +209,13 @@ exports.JsonicError = JsonicError;
 class Lexer {
     constructor(config) {
         this.match = {};
+        // The token indexer is also used to generate lex state indexes.
+        // Lex state names have the prefix `@L`
         util.token('@LTP', config); // TOP
         util.token('@LTX', config); // TEXT
         util.token('@LCS', config); // CONSUME
         util.token('@LML', config); // MULTILINE
+        // End token instance (returned once end-of-source is reached).
         this.end = {
             tin: util.token('#ZZ', config),
             loc: 0,
@@ -214,7 +227,10 @@ class Lexer {
         };
     }
     // Create the lexing function, which will then return the next token on each call.
+    // NOTE: lexing is context-free with n-token lookahead (n=2). There is no
+    // deterministic relation between the current rule and the current lex.
     start(ctx) {
+        // Convenience vars
         const options = ctx.options;
         const config = ctx.config;
         let tpin = (name) => util.token(name, config);
@@ -232,7 +248,8 @@ class Lexer {
         let TX = tpin('#TX');
         let VL = tpin('#VL');
         let LN = tpin('#LN');
-        // NOTE: always returns this object!
+        // NOTE: always returns this object instance!
+        // Yes, this is deliberate. The parser clones tokens as needed.
         let token = {
             tin: ZZ,
             loc: 0,
@@ -246,29 +263,42 @@ class Lexer {
         let sI = 0; // Source text index.
         let rI = 0; // Source row index.
         let cI = 0; // Source column index.
+        // Lex state.
         let state = LTP; // Starting state.
+        let state_param = null; // Parameters for the new state.
+        // This is not a streaming lexer, sorry.
         let src = ctx.src();
         let srclen = src.length;
+        // Shortcut logging function for the lexer.
+        // If undefined, don't log.
         // TS2722 impedes this definition unless Context is
         // refined to (Context & { log: any })
         let lexlog = (null != ctx.log) ?
             ((...rest) => ctx
-                .log('lex', tn(token.tin), F(token.src), sI, rI + ':' + cI, tn(state), { ...token }, ...rest)) :
-            undefined;
-        // Because self is global...
+                .log('lex', // Log entry prefix.
+            tn(token.tin), // Name of token from tin (token identification numer).
+            F(token.src), // Format token src for log.
+            sI, // Current source index.
+            rI + ':' + cI, // Row and column.
+            tn(state), // Name of lex state.
+            { ...token }, // Copy of the token.
+            ...rest) // Context-specific additional entries.
+            ) : undefined;
+        // `Window.self` makes it dangerous to use `self` as a var name
+        // undefined ocurrences will not cause compilation errors. Yikes.
         let zelf = this;
+        // Convenience function to return a bad token.
         function bad(code, cpI, badsrc, use) {
             return zelf.bad(ctx, lexlog, code, token, sI, cpI, rI, cI, badsrc, badsrc, use);
         }
-        // Check for custom matchers.
+        // Check for custom matchers on current lex state, and call the first
+        // (if any) that returns a match.
         // NOTE: deliberately grabs local state (token,sI,rI,cI,...)
-        //function matchers(state: Tin, rule: Rule) {
         function matchers(rule) {
             let matchers = zelf.match[state];
             if (null != matchers) {
                 token.loc = sI; // TODO: move to top of while for all rules?
                 for (let matcher of matchers) {
-                    //let match = matcher(sI, rI, cI, src, token, ctx, rule, bad)
                     let match = matcher({ sI, rI, cI, src, token, ctx, rule, bad });
                     // Adjust lex location if there was a match.
                     if (match) {
@@ -276,6 +306,7 @@ class Lexer {
                         rI = match.rI ? match.rI : rI;
                         cI = match.cI ? match.cI : cI;
                         state = null == match.state ? state : match.state;
+                        state_param = null == match.state_param ? state_param : match.state_param;
                         lexlog && lexlog(token, matcher);
                         return token;
                     }
@@ -289,7 +320,6 @@ class Lexer {
             token.src = undefined;
             token.row = rI;
             token.use = undefined;
-            let state_param = null;
             let enders = {};
             let pI = 0; // Current lex position (only update sI at end of rule).
             let s = []; // Parsed string chars and substrings.
@@ -301,7 +331,7 @@ class Lexer {
                         return token;
                     }
                     // Space chars.
-                    if (config.start.SP[c0]) {
+                    if (config.space.lex && config.start.SP[c0]) {
                         token.tin = SP;
                         token.loc = sI;
                         token.col = cI++;
@@ -324,7 +354,7 @@ class Lexer {
                         cI = 0;
                         while (config.multi.LN[src[pI]]) {
                             // Count rows.
-                            rI += (options.char.row === src[pI] ? 1 : 0);
+                            rI += (options.line.row === src[pI] ? 1 : 0);
                             pI++;
                         }
                         token.len = pI - sI;
@@ -346,7 +376,7 @@ class Lexer {
                         return token;
                     }
                     // Number chars.
-                    if (config.start.NR[c0] && config.number.lex) {
+                    if (config.number.lex && config.start.NR[c0]) {
                         token.tin = NR;
                         token.loc = sI;
                         token.col = cI;
@@ -493,15 +523,14 @@ class Lexer {
                                 cs = src[pI];
                                 if (cc < 32) {
                                     if (multiline && config.start.LN[cs]) {
-                                        if (cs === options.char.row) {
+                                        if (cs === options.line.row) {
                                             rI++;
                                             cI = 0;
                                         }
                                         s.push(src.substring(bI, pI + 1));
-                                        //s.push(src[pI])
                                     }
                                     else {
-                                        return bad('unprintable', pI, 'char-code=' + src[pI].charCodeAt(0));
+                                        return bad(S.unprintable, pI, 'char-code=' + src[pI].charCodeAt(0));
                                     }
                                 }
                                 else {
@@ -681,7 +710,7 @@ class Lexer {
                         }
                         else {
                             // Count rows.
-                            if (options.char.row === src[pI]) {
+                            if (options.line.row === src[pI]) {
                                 rI++;
                                 cI = 0;
                             }
@@ -700,19 +729,19 @@ class Lexer {
                             token.val.substring(openlen, token.val.length - closelen);
                         // Remove spurious space at start
                         if (null == config.re.block_prefix) {
-                            config.re.block_prefix = util.regexp(S.no_re_flags, '^[', '%' + options.token['#SP'], ']*', '(', options.char.line_sep_RES, ')');
+                            config.re.block_prefix = util.regexp(S.no_re_flags, '^[', '%' + options.token['#SP'], ']*', '(', options.line.sep_RES, ')');
                         }
                         token.val =
                             token.val.replace(config.re.block_prefix, '');
                         // Remove spurious space at end
                         if (null == config.re.block_suffix) {
-                            config.re.block_suffix = util.regexp(S.no_re_flags, options.char.line_sep_RES, '[', '%' + options.token['#SP'], ']*$');
+                            config.re.block_suffix = util.regexp(S.no_re_flags, options.line.sep_RES, '[', '%' + options.token['#SP'], ']*$');
                         }
                         token.val =
                             token.val.replace(config.re.block_suffix, '');
                         // Remove indent
                         let block_indent_RE = config.re['block_indent_' + indent_str] =
-                            config.re['block_indent_' + indent_str] || util.regexp('g', '^(', '%' + indent_str, ')|(', '(', options.char.line_sep_RES, ')', '%' + indent_str, ')');
+                            config.re['block_indent_' + indent_str] || util.regexp('g', '^(', '%' + indent_str, ')|(', '(', options.line.sep_RES, ')', '%' + indent_str, ')');
                         token.val =
                             token.val.replace(block_indent_RE, '$3');
                     }
@@ -1053,7 +1082,7 @@ class Parser {
         let finish = (_alt, _rule, ctx) => {
             if (!this.options.rule.finish) {
                 // TODO: needs own error code
-                ctx.t0.src = 'END-OF-FILE';
+                ctx.t0.src = 'END-OF-SOURCE';
                 return ctx.t0;
             }
         };
@@ -1708,6 +1737,7 @@ let util = {
             config.bmk.push(k);
         });
         config.bmk_maxlen = util.longest(block_markers);
+        config.space = { ...options.space };
         // TODO: move to config.re, use util.regexp
         config.number = {
             ...options.number,
@@ -1734,7 +1764,7 @@ function make(param_options, parent) {
     let config;
     let plugins;
     // Merge options.
-    let merged_options = util.deep({}, parent ? { ...parent.options } : make_standard_options(), param_options ? param_options : {});
+    let merged_options = util.deep({}, parent ? { ...parent.options } : make_default_options(), param_options ? param_options : {});
     // Create primary parsing function
     let jsonic = function Jsonic(src, meta, parent_ctx) {
         if (S.string === typeof (src)) {

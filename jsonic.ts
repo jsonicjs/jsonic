@@ -1,12 +1,12 @@
 /* Copyright (c) 2013-2021 Richard Rodger, MIT License */
 
-// TODO: test all json syntax paths from https://www.json.org/json-en.html
-// TODO: -p name should work if name is all lowercase
+
 // TODO: options.nunber.lex=false option for each lex branch
 // TODO: data file to diff exhaust changes
 // TODO: util tests
 // TODO: plugin TODOs
 // TODO: deeper tests
+// TODO: post release: test use of constructed regexps - perf?
 // TODO: post release: plugin for path expr: a.b:1 -> {a:{b:1}}
 
 
@@ -61,9 +61,16 @@ type Tin = number
 
 // Parsing options. See defaults for commentary.
 type Options = {
-  char: KV
+  line: {
+    lex: boolean
+    row: string
+    sep_RES: string
+  },
   comment: { [start_marker: string]: string | boolean } | false
   balance: KV
+  space: {
+    lex: boolean
+  }
   number: {
     lex: boolean
     hex: boolean
@@ -87,9 +94,6 @@ type Options = {
     string |         // Multi-char token (eg. SP=` \t`)
     true             // Non-char token (eg. ZZ)
   }
-  lex: {
-    core: { [name: string]: string }
-  },
   rule: {
     finish: boolean,
     maxmul: number,
@@ -109,11 +113,8 @@ type Options = {
 }
 
 
-
-
 type Plugin = (jsonic: Jsonic) => void | Jsonic
-
-type Meta = { [k: string]: any }
+type Meta = KV
 
 
 // Tokens from the lexer.
@@ -130,8 +131,8 @@ type Token = {
 }
 
 
-
-interface Context {
+// Current parsing context.
+type Context = {
   rI: number // Rule index for rule.id
   options: Options
   config: Config
@@ -183,17 +184,26 @@ type Config = {
   bmk: string[]
   bmk_maxlen: number
   single_char: string
+
+  /*
   lex: {
     core: { [name: string]: Tin }
+  }
+  */
+
+  space: {
+    lex: boolean
   }
   number: {
     sep_RE: RegExp | null
   } & KV,
+
   debug: KV,
   re: { [name: string]: RegExp }
 }
 
 
+// A bit pedantic, but let's be strict about strings.
 const S = {
   object: 'object',
   string: 'string',
@@ -206,24 +216,23 @@ const S = {
   val: 'val',
   node: 'node',
   no_re_flags: '',
+  unprintable: 'unprintable',
 }
 
 
-function make_standard_options(): Options {
+function make_default_options(): Options {
 
   let options: Options = {
 
-    // TODO: rename to special
-    // Special chars
-    char: {
+    // Line lexing.
+    line: {
+      lex: true,
 
       // Increments row (aka line) counter.
       row: '\n',
 
       // Line separator regexp (as string)
-      line_sep_RES: '\r*\n',
-
-      bad_unicode: String.fromCharCode('0x0000' as any),
+      sep_RES: '\r*\n',
     },
 
 
@@ -242,6 +251,12 @@ function make_standard_options(): Options {
 
       // Balance multiline comments.
       comment: true,
+    },
+
+
+    // Recognize space characters in the lexer.
+    space: {
+      lex: true
     },
 
 
@@ -382,7 +397,7 @@ function make_standard_options(): Options {
       '#IGNORE': { s: '#SP,#LN,#CM' },
     },
 
-
+    /*
     // Lexing options.
     lex: {
       core: {
@@ -393,7 +408,7 @@ function make_standard_options(): Options {
         // TODO: the other builtin tokens
       }
     },
-
+    */
 
     // Parser rule options.
     rule: {
@@ -486,6 +501,7 @@ type LexMatcherResult = undefined | {
   rI: number
   cI: number,
   state?: number,
+  state_param?: any,
 }
 
 
@@ -495,11 +511,15 @@ class Lexer {
   match: LexMatcherListMap = {}
 
   constructor(config: Config) {
+
+    // The token indexer is also used to generate lex state indexes.
+    // Lex state names have the prefix `@L`
     util.token('@LTP', config) // TOP
     util.token('@LTX', config) // TEXT
     util.token('@LCS', config) // CONSUME
     util.token('@LML', config) // MULTILINE
 
+    // End token instance (returned once end-of-source is reached).
     this.end = {
       tin: util.token('#ZZ', config),
       loc: 0,
@@ -513,9 +533,13 @@ class Lexer {
 
 
   // Create the lexing function, which will then return the next token on each call.
+  // NOTE: lexing is context-free with n-token lookahead (n=2). There is no
+  // deterministic relation between the current rule and the current lex.
   start(
     ctx: Context
   ): Lex {
+
+    // Convenience vars
     const options = ctx.options
     const config = ctx.config
 
@@ -537,7 +561,9 @@ class Lexer {
     let VL = tpin('#VL')
     let LN = tpin('#LN')
 
-    // NOTE: always returns this object!
+
+    // NOTE: always returns this object instance!
+    // Yes, this is deliberate. The parser clones tokens as needed.
     let token: Token = {
       tin: ZZ,
       loc: 0,
@@ -548,45 +574,62 @@ class Lexer {
       src: undefined,
     }
 
+
     // Main indexes.
     let sI = 0 // Source text index.
     let rI = 0 // Source row index.
     let cI = 0 // Source column index.
 
-    let state = LTP // Starting state.
 
+    // Lex state.
+    let state = LTP // Starting state.
+    let state_param: any = null // Parameters for the new state.
+
+
+    // This is not a streaming lexer, sorry.
     let src = ctx.src()
     let srclen = src.length
 
+
+    // Shortcut logging function for the lexer.
+    // If undefined, don't log.
     // TS2722 impedes this definition unless Context is
     // refined to (Context & { log: any })
     let lexlog: ((token: Token, ...rest: any) => undefined) | undefined =
       (null != ctx.log) ?
         ((...rest: any) => (ctx as (Context & { log: any }))
           .log(
-            'lex', tn(token.tin), F(token.src), sI, rI + ':' + cI, tn(state),
-            { ...token }, ...rest)) :
-        undefined
+            'lex',         // Log entry prefix.
+            tn(token.tin), // Name of token from tin (token identification numer).
+            F(token.src),  // Format token src for log.
+            sI,            // Current source index.
+            rI + ':' + cI, // Row and column.
+            tn(state),     // Name of lex state.
+            { ...token },  // Copy of the token.
+            ...rest)       // Context-specific additional entries.
+        ) : undefined
 
 
-    // Because self is global...
+    // `Window.self` makes it dangerous to use `self` as a var name
+    // undefined ocurrences will not cause compilation errors. Yikes.
     let zelf = this
 
 
+    // Convenience function to return a bad token.
     function bad(code: string, cpI: number, badsrc: string, use?: any) {
       return zelf.bad(ctx, lexlog, code, token, sI, cpI, rI, cI, badsrc, badsrc, use)
     }
 
-    // Check for custom matchers.
+
+    // Check for custom matchers on current lex state, and call the first
+    // (if any) that returns a match.
     // NOTE: deliberately grabs local state (token,sI,rI,cI,...)
-    //function matchers(state: Tin, rule: Rule) {
     function matchers(rule: Rule) {
       let matchers = zelf.match[state]
       if (null != matchers) {
         token.loc = sI // TODO: move to top of while for all rules?
 
         for (let matcher of matchers) {
-          //let match = matcher(sI, rI, cI, src, token, ctx, rule, bad)
           let match = matcher({ sI, rI, cI, src, token, ctx, rule, bad })
 
           // Adjust lex location if there was a match.
@@ -595,6 +638,7 @@ class Lexer {
             rI = match.rI ? match.rI : rI
             cI = match.cI ? match.cI : cI
             state = null == match.state ? state : match.state
+            state_param = null == match.state_param ? state_param : match.state_param
 
             lexlog && lexlog(token, matcher)
             return token
@@ -612,7 +656,6 @@ class Lexer {
       token.row = rI
       token.use = undefined
 
-      let state_param: any = null
       let enders: PinMap = {}
 
       let pI = 0 // Current lex position (only update sI at end of rule).
@@ -631,7 +674,7 @@ class Lexer {
           }
 
           // Space chars.
-          if (config.start.SP[c0]) {
+          if (config.space.lex && config.start.SP[c0]) {
 
             token.tin = SP
             token.loc = sI
@@ -662,7 +705,7 @@ class Lexer {
 
             while (config.multi.LN[src[pI]]) {
               // Count rows.
-              rI += (options.char.row === src[pI] ? 1 : 0)
+              rI += (options.line.row === src[pI] ? 1 : 0)
               pI++
             }
 
@@ -692,7 +735,7 @@ class Lexer {
 
 
           // Number chars.
-          if (config.start.NR[c0] && config.number.lex) {
+          if (config.number.lex && config.start.NR[c0]) {
             token.tin = NR
             token.loc = sI
             token.col = cI
@@ -879,16 +922,15 @@ class Lexer {
 
                 if (cc < 32) {
                   if (multiline && config.start.LN[cs]) {
-                    if (cs === options.char.row) {
+                    if (cs === options.line.row) {
                       rI++
                       cI = 0
                     }
 
                     s.push(src.substring(bI, pI + 1))
-                    //s.push(src[pI])
                   }
                   else {
-                    return bad('unprintable', pI,
+                    return bad(S.unprintable, pI,
                       'char-code=' + src[pI].charCodeAt(0))
                   }
                 }
@@ -1121,7 +1163,7 @@ class Lexer {
             }
             else {
               // Count rows.
-              if (options.char.row === src[pI]) {
+              if (options.line.row === src[pI]) {
                 rI++
                 cI = 0
               }
@@ -1146,7 +1188,7 @@ class Lexer {
               config.re.block_prefix = util.regexp(
                 S.no_re_flags,
                 '^[', '%' + options.token['#SP'], ']*',
-                '(', options.char.line_sep_RES, ')',
+                '(', options.line.sep_RES, ')',
               )
             }
             token.val =
@@ -1156,7 +1198,7 @@ class Lexer {
             if (null == config.re.block_suffix) {
               config.re.block_suffix = util.regexp(
                 S.no_re_flags,
-                options.char.line_sep_RES,
+                options.line.sep_RES,
                 '[', '%' + options.token['#SP'], ']*$'
               )
             }
@@ -1168,7 +1210,7 @@ class Lexer {
               config.re['block_indent_' + indent_str] || util.regexp(
                 'g',
                 '^(', '%' + indent_str, ')|(',
-                '(', options.char.line_sep_RES, ')',
+                '(', options.line.sep_RES, ')',
                 '%' + indent_str, ')'
               )
 
@@ -1659,7 +1701,7 @@ class Parser {
     let finish = (_alt: any, _rule: Rule, ctx: Context) => {
       if (!this.options.rule.finish) {
         // TODO: needs own error code
-        ctx.t0.src = 'END-OF-FILE'
+        ctx.t0.src = 'END-OF-SOURCE'
         return ctx.t0
       }
     }
@@ -2530,6 +2572,9 @@ let util = {
     config.bmk_maxlen = util.longest(block_markers)
 
 
+    config.space = { ...options.space }
+
+
     // TODO: move to config.re, use util.regexp
     config.number = {
       ...options.number,
@@ -2570,7 +2615,7 @@ function make(param_options?: KV, parent?: Jsonic): Jsonic {
   // Merge options.
   let merged_options = util.deep(
     {},
-    parent ? { ...parent.options } : make_standard_options(),
+    parent ? { ...parent.options } : make_default_options(),
     param_options ? param_options : {},
   )
 
