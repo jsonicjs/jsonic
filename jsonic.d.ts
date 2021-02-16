@@ -28,9 +28,12 @@ declare type Options = {
         sep_RES: string;
     };
     comment: {
-        [start_marker: string]: string | boolean;
-    } | false;
-    balance: KV;
+        lex: boolean;
+        balance: boolean;
+        marker: {
+            [start_marker: string]: string | boolean;
+        };
+    };
     space: {
         lex: boolean;
     };
@@ -42,9 +45,28 @@ declare type Options = {
         digital: string;
         sep: string;
     };
-    string: KV;
-    text: KV;
-    map: KV;
+    block: {
+        lex: boolean;
+    };
+    string: {
+        lex: boolean;
+        escape: {
+            [char: string]: string;
+        };
+        multiline: string;
+        block: {
+            [marker: string]: string;
+        };
+        escapedouble: boolean;
+    };
+    text: {
+        lex: boolean;
+        lex_value: boolean;
+        hoover: boolean;
+    };
+    map: {
+        extend: boolean;
+    };
     value: KV;
     plugin: KV;
     debug: KV;
@@ -156,12 +178,9 @@ declare type Config = {
     bmk: string[];
     bmk_maxlen: number;
     single_char: string;
-    space: {
-        lex: boolean;
-    };
     number: {
         sep_RE: RegExp | null;
-    } & KV;
+    };
     debug: KV;
     re: {
         [name: string]: RegExp;

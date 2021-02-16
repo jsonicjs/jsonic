@@ -1,11 +1,8 @@
-/* Copyright (c) 2013-2020 Richard Rodger, MIT License */
+/* Copyright (c) 2013-2021 Richard Rodger, MIT License */
 
 
 import { Jsonic, Plugin, Rule, RuleSpec, Context, util } from '../jsonic'
 
-// TODO: markchar actually works - test!
-// TODO: array elements
-// TODO: plain values: $1, $true, etc
 
 let Dynamic: Plugin = function dynamic(jsonic: Jsonic) {
 
@@ -21,11 +18,18 @@ let Dynamic: Plugin = function dynamic(jsonic: Jsonic) {
   let T$ = jsonic.token(tn)
   let ST = jsonic.token.ST
   let TX = jsonic.token.TX
+  let NR = jsonic.token.NR
+  let VL = jsonic.token.VL
 
   jsonic.rule('val', (rs: RuleSpec) => {
 
-    // TODO: also values so that `$1`===1 will work
-    rs.def.open.push({ s: [T$, ST] }, { s: [T$, TX] }, { s: [T$, T$], b: 2 },)
+    rs.def.open.push(
+      { s: [T$, ST] },
+      { s: [T$, TX] },
+      { s: [T$, NR] },
+      { s: [T$, VL] },
+      { s: [T$, T$], b: 2 }
+    )
     rs.def.close.unshift({ s: [T$], r: 'val' })
 
     // Special case: `$$`
@@ -34,7 +38,6 @@ let Dynamic: Plugin = function dynamic(jsonic: Jsonic) {
         T$ === rule.open[0].tin &&
         T$ === rule.open[1].tin) {
         rule.open[1].use = rule
-        //console.log('DOUBLE$', rule.name + '/' + rule.id, rule.open)
       }
     }
 
@@ -42,18 +45,16 @@ let Dynamic: Plugin = function dynamic(jsonic: Jsonic) {
     rs.def.before_close = (rule: any, _ctx: Context) => {
       if (rule.open[0] && rule.open[1]) {
         if (T$ === rule.open[0].tin && T$ !== rule.open[1].tin) {
-          // console.log('CHECK', rule.name + '/' + rule.id, rule.open)
 
           let expr = (rule.open[0].use ? '$' : '') + rule.open[1].val
-          //console.log('EXPR<', expr, '>')
 
           if ('.' === expr[0]) {
             expr = '$' + expr
           }
 
+          // Ensures object literals are eval'd correctly.
+          // `eval('{a:2,b:3}')` fails, but `eval('null,{a:2,b:3}')` is good.
           expr = 'null,' + expr
-
-          //console.log('EXPR', expr)
 
           // NOTE: the parameter names are significant as they
           // enter the eval context.
@@ -148,15 +149,10 @@ function defineProperty(
   let over: any
   let prev = node[key]
 
-  //console.log('defP', node, key, valfn, root(), meta, prev)
-
   Object.defineProperty(node, key, {
     enumerable: true,
 
-    // TODO: proper JsonicError when this fails
     get() {
-      //console.log('defP-get', node, key, valfn, root(), meta, prev)
-
       let $ = root()
 
       let out = null == $ ? null : valfn($, node, meta)
@@ -176,7 +172,6 @@ function defineProperty(
   })
 
 }
-
 
 
 export { Dynamic }

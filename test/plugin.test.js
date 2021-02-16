@@ -190,7 +190,7 @@ describe('plugin', function () {
     expect(d(k('a:1,b:$1+1'))).equal({a:1,b:2})
     expect(d(k('a:1,b:$.a+1'))).equal({a:1,b:2})
     expect(d(k('a:1,b:$$.a+1'))).equal({a:1,b:2})
-    expect(k('a:1,b:$"{c:2}"')).equal({a:1,b:{c:2}})
+    expect(d(k('a:1,b:$"{c:2}"'))).equal({a:1,b:{c:2}})
     expect(k('a:1,b:$"meta.f(2)"',{f:(x)=>({c:x})})).equal({a:1,b:{c:2}})
     expect(d(k('a:1,"b":$1+1'))).equal({a:1,b:2})
 
@@ -252,7 +252,8 @@ a:{x:1,y:2}
     
 
 
-    expect(k('a,$1+1')).equal(['a',2])
+    expect(d(k('{a:$1+1,b:$3,c:$true}'))).equal({a:2,b:3,c:true})
+    expect(d(k('a,$1+1,$3,false'))).equal(['a',2,3,false])
 
     let ka = Jsonic.make().use(Dynamic, {markchar:'%'})
     expect(d(ka('a:1,b:%1+1'))).equal({a:1,b:2})    

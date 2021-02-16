@@ -434,9 +434,6 @@ describe('util', () => {
    */
 `,{log:(...r)=>log.push(r)})
     expect(d0).equals(['a', 16, 16, 16, true, 'a b', ' c'])
-    //expect(log.map(x=>x[0]+' '+x[1]+' '+x[2])).equals([
-    //])
-
 
     log = []
     try {
@@ -458,7 +455,7 @@ describe('util', () => {
         
         if('<'===src[pI]) {
           while(pI < srclen && '>'!==src[pI]) {
-            if(jsonic.options.char.row = src[pI]) {
+            if(jsonic.options.line.row = src[pI]) {
               rI++
               cI = 0
             }

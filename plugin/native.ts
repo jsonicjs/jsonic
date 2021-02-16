@@ -1,8 +1,5 @@
 /* Copyright (c) 2013-2021 Richard Rodger, MIT License */
 
-// TODO: support functions - eval to load
-
-
 import { Jsonic, Plugin, Context, Rule, RuleSpec, LexMatcherState } from '../jsonic'
 
 

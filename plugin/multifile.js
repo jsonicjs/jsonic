@@ -36,7 +36,7 @@ let Multifile = function multifile(jsonic) {
         let orig_before_close = rs.def.before_close;
         rs.def.before_close = function (rule, ctx) {
             if (rule.open[0] && AT === rule.open[0].tin) {
-                // TODO: text TX=foo/bar as @"foo/bar" works but @foo/bar does not!
+                // TODO: test TX=foo/bar as @"foo/bar" works but @foo/bar does not!
                 let filepath = rule.open[1].val;
                 let fullpath = path_1.default.resolve(ctx.meta.basepath || popts.basepath, filepath);
                 let filedesc = path_1.default.parse(fullpath);
@@ -66,8 +66,7 @@ let Multifile = function multifile(jsonic) {
                         val = csv(content, {}, partial_ctx);
                     }
                     else {
-                        // TODO: define how to do this properly?
-                        // TODO: needs a test case
+                        // TODO: handle as per csv - set hint etc
                         throw new Error('unsupported file: ' + fullpath);
                     }
                     /* $lab:coverage:on$ */

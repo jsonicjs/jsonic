@@ -143,15 +143,15 @@ describe('feature', function () {
     expect(j('/*/*/*a:1*/*/*/b:2')).equals({b:2})
 
     
-    let nobal = Jsonic.make({balance:{comment:false}})
-    expect(nobal.options.balance.comment).false()
+    let nobal = Jsonic.make({comment:{balance:false}})
+    expect(nobal.options.comment.balance).false()
 
     // NOTE: comment markers inside text are active!
     expect(nobal('/*/*/*a:1*/*/*/,b:2')).equal({ '*a': '1*', b: 2 })
 
 
     // Custom multiline comments
-    let coffee = Jsonic.make({comment:{'###':'###'}})
+    let coffee = Jsonic.make({comment:{marker:{'###':'###'}}})
     expect(coffee('\n###a:1\nb:2\n###\nc:3')).equals({c:3})
 
     // NOTE: no balancing if open === close
