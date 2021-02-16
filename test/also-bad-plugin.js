@@ -1,0 +1,2 @@
+module.exports = 'bad-plugin'
+

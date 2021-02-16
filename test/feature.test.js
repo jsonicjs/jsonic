@@ -141,6 +141,8 @@ describe('feature', function () {
   it('balanced-multi-comment', () => {
     // Active by default
     expect(j('/*/*/*a:1*/*/*/b:2')).equals({b:2})
+    expect(j('/*/*/*a:1*/*/b:2')).equals(undefined)
+    expect(j('/*/*/*a/b*/*/*/b:2')).equals({b:2})
 
     
     let nobal = Jsonic.make({comment:{balance:false}})

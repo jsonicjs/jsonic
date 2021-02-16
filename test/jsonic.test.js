@@ -580,12 +580,17 @@ describe('jsonic', function () {
 
     let NR = c0.token.NR
     let CA = c0.token.CA
+    let OB = c0.token.OB
+    let CB = c0.token.CB
+    let CS = c0.token.CS
+    let OS = c0.token.OS
     let ZZ = c0.token.ZZ
-    
+    let AA = c0.token.AA
+
     c0.rule('val', (rs,rsm)=>{
       rs = new j.RuleSpec({
-        open:[
-          {p:'list'}
+        close:[
+          {s:[],r:'go'}
         ],
         before_open: (rule, ctx) => {
           rule.node = rule.node || {v:0}
@@ -594,6 +599,17 @@ describe('jsonic', function () {
       return rs
     })
 
+    c0.rule('go', (rs,rsm)=>{
+      rs = new j.RuleSpec({
+        open:[
+          {p:'list'}
+        ],
+        close:[{}]
+      })
+      return rs
+    })
+
+    
     c0.rule('list', (rs,rsm)=>{
       rs = new j.RuleSpec({
         open:[
@@ -621,7 +637,8 @@ describe('jsonic', function () {
     c0.rule('add', (rs,rsm)=>{
       rs = new j.RuleSpec({
         open:[
-          {s:[NR]}
+          {s:[NR]},
+          {s:[ZZ]},
         ],
         close: [
           {s:[ZZ]},
@@ -635,8 +652,21 @@ describe('jsonic', function () {
 
     c0.rule('sep', (rs,rsm)=>{
       rs = new j.RuleSpec({
+        open:[
+          {s:[AA],b:1,e:(alt,rule,ctx)=>{
+            if('A'===ctx.t0.src) {
+              ctx.t0.use={src:'QAZ0'}
+              return ctx.t0
+            }
+          }}
+        ],
         close:[
-          {s:[CA],r:'add',n:{x:1},h:(rule,ctx,next)=>next}
+          {s:[CA],r:'add',n:{x:1},h:(rule,ctx,next)=>next},
+          {s:[OB],e:(alt,rule,ctx)=>null},
+          {s:[CB],e:(alt,rule,ctx)=>(ctx.t0.use={src:'ZED0'},ctx.t0)},
+          {s:[CS,CS],e:(alt,rule,ctx)=>(ctx.t0.use={src:'BAR0'},ctx.t0)},
+          {s:[OS,OS],e:(alt,rule,ctx)=>null},
+          {e:(alt,rule,ctx)=>(3===ctx.t0.val?null:(ctx.t0.use={src:'FOO0'},ctx.t0))},
         ],
         before_close: (rule) => ({node:rule.node}),
         after_close: (rule, ctx) => {
@@ -648,6 +678,17 @@ describe('jsonic', function () {
     })
 
     expect(c0('1, 2, 3,',{xlog:-1})).equal({v:6})
+
+    expect(c0('1 {',{xlog:-1})).equal({ v: 1 })
+    expect(()=>c0('1 }',{xlog:-1})).throws('JsonicError', /unexpected.*ZED0/)
+
+    expect(()=>c0('1 ] ]',{xlog:-1})).throws('JsonicError', /unexpected.*BAR0/)
+    expect(c0('1 [ [',{xlog:-1})).equal({ v: NaN })
+
+    expect(()=>c0('1 2',{xlog:-1})).throws('JsonicError', /unexpected.*FOO0/)
+    expect(()=>c0('1 3',{xlog:-1})).throws('JsonicError', /unexpected/)
+
+    expect(()=>c0('1 A',{xlog:-1})).throws('JsonicError', /unexpected.*QAZ0/)
   })
 
   

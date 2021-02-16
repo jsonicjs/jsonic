@@ -83,6 +83,7 @@ fields per row are expected.`,
   jsonic.rule('record', (_ignore: RuleSpec) => {
     let rs = new RuleSpec({
       open: [
+        { s: [LN], r: 'record' },
         { p: 'list' },
       ],
       close: [
@@ -95,7 +96,7 @@ fields per row are expected.`,
         if (null == fields) {
           fields = ctx.use.fields = rule.child.node
         }
-        else if (rule.child.node) {
+        else {
           let record: { [k: string]: any } = {}
           for (let i = 0; i < rule.child.node.length; i++) {
             let field_name = fields[i]

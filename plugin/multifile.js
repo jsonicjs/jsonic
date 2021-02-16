@@ -23,7 +23,13 @@ let Multifile = function multifile(jsonic) {
     jsonic.options({
         token: {
             [tn]: { c: markchar }
-        }
+        },
+        error: {
+            multifile_unsupported_file: 'unsupported file: $path'
+        },
+        hint: {
+            multifile_unsupported_file: `This file type is not supported and cannot be parsed: $path.`,
+        },
     });
     // These inherit previous plugins - they are not clean new instances.
     let json = jsonic.make().use(json_1.Json, jsonic.options.plugin.json || {});
@@ -54,20 +60,25 @@ let Multifile = function multifile(jsonic) {
                     let partial_ctx = {
                         root: ctx.root
                     };
-                    let content = fs_1.default.readFileSync(fullpath).toString();
+                    let content;
                     if ('.json' === file_ext) {
+                        content = fs_1.default.readFileSync(fullpath).toString();
                         val = json(content, { fileName: fullpath }, partial_ctx);
                     }
                     else if ('.jsonic' === file_ext) {
+                        content = fs_1.default.readFileSync(fullpath).toString();
                         val = jsonic(content, { basepath: basepath, fileName: fullpath }, partial_ctx);
                     }
                     /* $lab:coverage:off$ */
                     else if ('.csv' === file_ext) {
+                        content = fs_1.default.readFileSync(fullpath).toString();
                         val = csv(content, {}, partial_ctx);
                     }
                     else {
-                        // TODO: handle as per csv - set hint etc
-                        throw new Error('unsupported file: ' + fullpath);
+                        return {
+                            err: 'multifile_unsupported_file',
+                            path: fullpath,
+                        };
                     }
                     /* $lab:coverage:on$ */
                 }

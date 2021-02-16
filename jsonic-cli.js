@@ -1,5 +1,6 @@
 "use strict";
 /* Copyright (c) 2020-2021 Richard Rodger, Oliver Sturm, and other contributors, MIT License */
+/* $lab:coverage:off$ */
 var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
@@ -8,74 +9,95 @@ exports.run = void 0;
 const fs_1 = __importDefault(require("fs"));
 const jsonic_1 = require("./jsonic");
 // Make sure JsonicError is shown nicely.
-run(process.argv, console).catch((e) => console.error(e));
+if (require.main === module) {
+    run(process.argv, console).catch((e) => console.error(e));
+}
+/* $lab:coverage:on$ */
 async function run(argv, console) {
     const args = {
-        str: '',
-        file: '',
-        options: {},
-        meta: {},
-        plugins: {},
+        help: false,
+        stdin: false,
+        sources: [],
+        files: [],
+        options: [],
+        meta: [],
+        plugins: [],
     };
     let accept_args = true;
-    let source_stdin = false;
     for (let aI = 2; aI < argv.length; aI++) {
         let arg = argv[aI];
         if (accept_args && arg.startsWith('-')) {
             if ('-' === arg) {
-                source_stdin = true;
+                args.stdin = true;
             }
             else if ('--' === arg) {
                 accept_args = false;
             }
             else if ('--file' === arg || '-f' === arg) {
-                args.file = argv[++aI];
+                args.files.push(argv[++aI]);
             }
             else if ('--option' === arg || '-o' === arg) {
-                handle_props(args, 'options', argv[++aI]);
+                args.options.push(argv[++aI]);
             }
             else if ('--meta' === arg || '-m' === arg) {
-                handle_props(args, 'meta', argv[++aI]);
+                args.meta.push(argv[++aI]);
             }
             else if ('--debug' === arg || '-d' === arg) {
-                handle_props(args, 'meta', 'log=-1');
+                args.meta.push('log=-1');
             }
             else if ('--help' === arg || '-h' === arg) {
-                help();
+                args.help = true;
             }
             else if ('--plugin' === arg || '-p' === arg) {
-                handle_plugin(args, argv[++aI]);
+                args.plugins.push(argv[++aI]);
             }
         }
         else {
-            args.str += arg + ' ';
+            args.sources.push(arg);
         }
     }
-    if ('' === args.str || source_stdin) {
-        args.str = await read_stdin() + ' ' + args.str;
+    if (args.help) {
+        return help(console);
     }
-    if ('string' === typeof (args.file) && '' !== args.file) {
-        args.str = fs_1.default.readFileSync(args.file).toString() + ' ' + args.str;
+    let options = handle_props(args.options);
+    let meta = handle_props(args.meta);
+    let plugins = handle_plugins(args.plugins);
+    options.debug = options.debug || {};
+    options.debug.get_console = () => console;
+    let jsonic = jsonic_1.Jsonic.make(options);
+    for (let pn in plugins) {
+        jsonic.use(plugins[pn]);
     }
-    let jsonic = jsonic_1.Jsonic.make(args.options);
-    for (let pn in args.plugins) {
-        jsonic.use(args.plugins[pn]);
+    let data = { val: null };
+    for (let fp of args.files) {
+        if ('string' === typeof (fp) && '' !== fp) {
+            jsonic_1.util.deep(data, { val: jsonic(fs_1.default.readFileSync(fp).toString(), meta) });
+        }
     }
-    let val = jsonic(args.str, args.meta);
-    args.options.JSON =
-        null == args.options.JSON || 'object' !== typeof (args.options.JSON) ? {} :
-            args.options.JSON;
-    let replacer = jsonic_1.Jsonic(args.options.JSON.replacer);
-    let space = jsonic_1.Jsonic(args.options.JSON.space);
+    if (0 === args.sources.length || args.stdin) {
+        let stdin = await read_stdin(console);
+        jsonic_1.util.deep(data, { val: jsonic(stdin, meta) });
+    }
+    for (let src of args.sources) {
+        jsonic_1.util.deep(data, { val: jsonic(src, meta) });
+    }
+    options.JSON =
+        null == options.JSON || 'object' !== typeof (options.JSON) ? {} :
+            options.JSON;
+    let replacer = jsonic_1.Jsonic(options.JSON.replacer);
+    let space = jsonic_1.Jsonic(options.JSON.space);
     replacer = Array.isArray(replacer) ? replacer :
-        'function' === typeof (replacer) ? replacer :
-            null == replacer ? null :
-                [replacer];
-    let json = JSON.stringify(val, replacer, space);
+        null == replacer ? null :
+            [replacer];
+    let json = JSON.stringify(data.val, replacer, space);
     console.log(json);
 }
 exports.run = run;
-async function read_stdin() {
+async function read_stdin(console) {
+    if ('string' === typeof (console.test$)) {
+        return console.test$;
+    }
+    /* $lab:coverage:off$ */
     if (process.stdin.isTTY)
         return '';
     let s = '';
@@ -83,45 +105,54 @@ async function read_stdin() {
     for await (const p of process.stdin)
         s += p;
     return s;
+    /* $lab:coverage:on$ */
 }
-function handle_props(args, argname, propval) {
-    if ('string' === typeof (propval)) {
+// NOTE: uses vanilla Jsonic to parse arg vals, so you can set complex properties.
+function handle_props(propvals) {
+    let out = {};
+    for (let propval of propvals) {
         let pv = propval.split(/=/);
         if ('' !== pv[0] && '' !== pv[1]) {
             let val = jsonic_1.Jsonic(pv[1]);
-            set_prop(args[argname], pv[0], val);
+            set_prop(out, pv[0], val);
         }
     }
+    return out;
 }
-function handle_plugin(args, name) {
-    try {
-        args.plugins[name] = require(name);
-    }
-    catch (e) {
-        let err = e;
-        // Might be builtin
+function handle_plugins(plugins) {
+    let out = {};
+    for (let name of plugins) {
         try {
-            args.plugins[name] = require('./plugin/' + name);
+            out[name] = require(name);
         }
         catch (e) {
-            throw err; // NOTE: throws original error
+            let err = e;
+            // Might be builtin
+            try {
+                out[name] = require('./plugin/' + name);
+            }
+            catch (e) {
+                throw err; // NOTE: throws original error
+            }
+        }
+        if ('function' !== typeof (out[name])) {
+            let refname = name.match(/([^.\\\/]+)($|\.[^.]+$)/)[1];
+            if ('function' == typeof (out[name][refname])) {
+                out[name] = out[name][refname];
+            }
+            else if ('function' == typeof (out[name].default)) {
+                out[name] = out[name].default;
+            }
+            else if ('function' ==
+                typeof (out[name][camel(refname)])) {
+                out[name] = out[name][camel(refname)];
+            }
+            else {
+                throw new Error('Plugin is not a function: ' + name);
+            }
         }
     }
-    if ('function' !== typeof (args.plugins[name])) {
-        if ('function' == typeof (args.plugins[name][name])) {
-            args.plugins[name] = args.plugins[name][name];
-        }
-        else if ('function' == typeof (args.plugins[name].default)) {
-            args.plugins[name] = args.plugins[name].default;
-        }
-        else if ('function' ==
-            typeof (args.plugins[name][camel(name)])) {
-            args.plugins[name] = args.plugins[name][camel(name)];
-        }
-        else {
-            throw new Error('Plugin is not a function: ' + name);
-        }
-    }
+    return out;
 }
 function set_prop(obj, path, val) {
     let parts = path.split('.');
@@ -132,15 +163,13 @@ function set_prop(obj, path, val) {
             obj = (obj[pn] = (obj[pn] || {}));
         }
     }
-    if (null != pn) {
-        obj[pn] = val;
-    }
+    obj[pn] = val;
 }
 function camel(s) {
-    return null == s ? null : s[0].toUpperCase() +
+    return s[0].toUpperCase() +
         s.substring(1).replace(/-(\w)/g, (m) => (m[1][0].toUpperCase() + m[1].substring(1)));
 }
-function help() {
+function help(console) {
     let s = `
 A JSON parser that isn't strict.
 
@@ -214,6 +243,5 @@ Examples:
 See also: http://jsonic.richardrodger.com
 `;
     console.log(s);
-    process.exit(0);
 }
 //# sourceMappingURL=jsonic-cli.js.map

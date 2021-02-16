@@ -1,173 +1,210 @@
 /* Copyright (c) 2020-2021 Richard Rodger, Oliver Sturm, and other contributors, MIT License */
+/* $lab:coverage:off$ */
 
 import Fs from 'fs'
 
-import { Jsonic } from './jsonic'
+import { Jsonic, util } from './jsonic'
 
 
 // Make sure JsonicError is shown nicely.
-run(process.argv, console).catch((e) => console.error(e))
+if (require.main === module) {
+  run(process.argv, console).catch((e) => console.error(e))
+}
+
+type KV = { [name: string]: any }
+
+/* $lab:coverage:on$ */
 
 
 export async function run(argv: string[], console: Console) {
   const args = {
-    str: '',
-    file: '',
-    options: ({} as any),
-    meta: ({} as any),
-    plugins: ({} as any),
+    help: false,
+    stdin: false,
+    sources: ([] as string[]),
+    files: ([] as string[]),
+    options: ([] as string[]),
+    meta: ([] as string[]),
+    plugins: ([] as string[]),
   }
 
   let accept_args = true
-  let source_stdin = false
   for (let aI = 2; aI < argv.length; aI++) {
     let arg = argv[aI]
 
     if (accept_args && arg.startsWith('-')) {
       if ('-' === arg) {
-        source_stdin = true
+        args.stdin = true
       }
       else if ('--' === arg) {
         accept_args = false
       }
       else if ('--file' === arg || '-f' === arg) {
-        args.file = argv[++aI]
+        args.files.push(argv[++aI])
       }
       else if ('--option' === arg || '-o' === arg) {
-        handle_props(args, 'options', argv[++aI])
+        args.options.push(argv[++aI])
       }
       else if ('--meta' === arg || '-m' === arg) {
-        handle_props(args, 'meta', argv[++aI])
+        args.meta.push(argv[++aI])
       }
       else if ('--debug' === arg || '-d' === arg) {
-        handle_props(args, 'meta', 'log=-1')
+        args.meta.push('log=-1')
       }
       else if ('--help' === arg || '-h' === arg) {
-        help()
+        args.help = true
       }
       else if ('--plugin' === arg || '-p' === arg) {
-        handle_plugin(args, argv[++aI])
+        args.plugins.push(argv[++aI])
       }
     }
     else {
-      args.str += arg + ' '
+      args.sources.push(arg)
     }
   }
 
-  if ('' === args.str || source_stdin) {
-    args.str = await read_stdin() + ' ' + args.str
+  if (args.help) {
+    return help(console)
   }
 
-  if ('string' === typeof (args.file) && '' !== args.file) {
-    args.str = Fs.readFileSync(args.file).toString() + ' ' + args.str
+  let options: any = handle_props(args.options)
+  let meta: any = handle_props(args.meta)
+  let plugins: any = handle_plugins(args.plugins)
+
+  options.debug = options.debug || {}
+  options.debug.get_console = () => console
+
+  let jsonic = Jsonic.make(options)
+
+  for (let pn in plugins) {
+    jsonic.use(plugins[pn])
+  }
+
+  let data = { val: null }
+
+  for (let fp of args.files) {
+    if ('string' === typeof (fp) && '' !== fp) {
+      util.deep(data, { val: jsonic(Fs.readFileSync(fp).toString(), meta) })
+    }
   }
 
 
-  let jsonic = Jsonic.make(args.options)
-
-  for (let pn in args.plugins) {
-    jsonic.use(args.plugins[pn])
+  if (0 === args.sources.length || args.stdin) {
+    let stdin = await read_stdin(console)
+    util.deep(data, { val: jsonic(stdin, meta) })
   }
 
+  for (let src of args.sources) {
+    util.deep(data, { val: jsonic(src, meta) })
+  }
 
-  let val = jsonic(args.str, args.meta)
-
-  args.options.JSON =
-    null == args.options.JSON || 'object' !== typeof (args.options.JSON) ? {} :
-      args.options.JSON
-  let replacer = Jsonic(args.options.JSON.replacer)
-  let space = Jsonic(args.options.JSON.space)
+  options.JSON =
+    null == options.JSON || 'object' !== typeof (options.JSON) ? {} :
+      options.JSON
+  let replacer = Jsonic(options.JSON.replacer)
+  let space = Jsonic(options.JSON.space)
 
   replacer = Array.isArray(replacer) ? replacer :
-    'function' === typeof (replacer) ? replacer :
-      null == replacer ? null :
-        [replacer]
+    null == replacer ? null :
+      [replacer]
 
-  let json = JSON.stringify(val, replacer, space)
+  let json = JSON.stringify(data.val, replacer, space)
 
   console.log(json)
 }
 
 
 
-async function read_stdin() {
+async function read_stdin(console: Console) {
+  if ('string' === typeof ((console as any).test$)) {
+    return (console as any).test$
+  }
+
+  /* $lab:coverage:off$ */
   if (process.stdin.isTTY) return ''
 
   let s = ''
   process.stdin.setEncoding('utf8')
   for await (const p of process.stdin) s += p;
   return s
+  /* $lab:coverage:on$ */
 }
 
 
-function handle_props(args: any, argname: string, propval: string) {
-  if ('string' === typeof (propval)) {
+// NOTE: uses vanilla Jsonic to parse arg vals, so you can set complex properties.
+function handle_props(propvals: string[]): KV {
+  let out = {}
+  for (let propval of propvals) {
     let pv = propval.split(/=/)
     if ('' !== pv[0] && '' !== pv[1]) {
       let val = Jsonic(pv[1])
-      set_prop(args[argname], pv[0], val)
+      set_prop(out, pv[0], val)
     }
   }
+  return out
 }
 
 
-function handle_plugin(args: any, name: string) {
-  try {
-    args.plugins[name] = require(name)
-  }
-  catch (e) {
-    let err = e
-
-    // Might be builtin
+function handle_plugins(plugins: string[]): KV {
+  let out: any = {}
+  for (let name of plugins) {
     try {
-      args.plugins[name] = require('./plugin/' + name)
+      out[name] = require(name)
     }
     catch (e) {
-      throw err // NOTE: throws original error
+      let err = e
+
+      // Might be builtin
+      try {
+        out[name] = require('./plugin/' + name)
+      }
+      catch (e) {
+        throw err // NOTE: throws original error
+      }
+    }
+
+    if ('function' !== typeof (out[name])) {
+      let refname = (name as any).match(/([^.\\\/]+)($|\.[^.]+$)/)[1]
+      if ('function' == typeof (out[name][refname])) {
+        out[name] = out[name][refname]
+      }
+      else if ('function' == typeof (out[name].default)) {
+        out[name] = out[name].default
+      }
+      else if ('function' ==
+        typeof (out[name][(camel(refname) as string)])) {
+        out[name] = out[name][(camel(refname) as string)]
+      }
+      else {
+        throw new Error('Plugin is not a function: ' + name)
+      }
     }
   }
 
-  if ('function' !== typeof (args.plugins[name])) {
-    if ('function' == typeof (args.plugins[name][name])) {
-      args.plugins[name] = args.plugins[name][name]
-    }
-    else if ('function' == typeof (args.plugins[name].default)) {
-      args.plugins[name] = args.plugins[name].default
-    }
-    else if ('function' ==
-      typeof (args.plugins[name][(camel(name) as string)])) {
-      args.plugins[name] = args.plugins[name][(camel(name) as string)]
-    }
-    else {
-      throw new Error('Plugin is not a function: ' + name)
-    }
-  }
+  return out
 }
 
 
 function set_prop(obj: any, path: string, val: any) {
   let parts = path.split('.')
-  let pn
+  let pn: any
   for (let pI = 0; pI < parts.length; pI++) {
     pn = parts[pI]
     if (pI < parts.length - 1) {
       obj = (obj[pn] = (obj[pn] || {}))
     }
   }
-  if (null != pn) {
-    obj[pn] = val
-  }
+  obj[pn] = val
 }
 
 
 function camel(s: string) {
-  return null == s ? null : s[0].toUpperCase() +
+  return s[0].toUpperCase() +
     s.substring(1).replace(/-(\w)/g, (m) =>
       (m[1][0].toUpperCase() + m[1].substring(1)))
 }
 
 
-function help() {
+function help(console: Console) {
   let s = `
 A JSON parser that isn't strict.
 
@@ -242,5 +279,4 @@ See also: http://jsonic.richardrodger.com
 `
 
   console.log(s)
-  process.exit(0)
 }

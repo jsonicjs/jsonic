@@ -589,34 +589,34 @@ class Lexer {
                         enders = config.multi.LN;
                         continue next_char;
                     }
+                    // NOTE: default section. Cases above can bail to here if lookaheads
+                    // fail to match (eg. NR).
+                    // No explicit token recognized. That leaves:
+                    // - keyword literal values (from options.value)
+                    // - text values (everything up to a text_ender char (eg. newline))
+                    token.loc = sI;
+                    token.col = cI;
+                    pI = sI;
+                    // Literal values must be terminated, otherwise they are just
+                    // accidental prefixes to literal text
+                    // (e.g truex -> "truex" not `true` "x")
+                    do {
+                        cI++;
+                        pI++;
+                    } while (null != src[pI] && !config.charset.value_ender[src[pI]]);
+                    let txt = src.substring(sI, pI);
+                    // A keyword literal value? (eg. true, false, null)
+                    let val = options.value[txt];
+                    if (options.text.lex_value && undefined !== val) {
+                        token.tin = VL;
+                        token.val = val;
+                        token.src = txt;
+                        token.len = pI - sI;
+                        sI = pI;
+                        lexlog && lexlog(token);
+                        return token;
+                    }
                     if (options.text.lex) {
-                        // NOTE: default section. Cases above can bail to here if lookaheads
-                        // fail to match (eg. NR).
-                        // No explicit token recognized. That leaves:
-                        // - keyword literal values (from options.value)
-                        // - text values (everything up to a text_ender char (eg. newline))
-                        token.loc = sI;
-                        token.col = cI;
-                        pI = sI;
-                        // Literal values must be terminated, otherwise they are just
-                        // accidental prefixes to literal text
-                        // (e.g truex -> "truex" not `true` "x")
-                        do {
-                            cI++;
-                            pI++;
-                        } while (null != src[pI] && !config.charset.value_ender[src[pI]]);
-                        let txt = src.substring(sI, pI);
-                        // A keyword literal value? (eg. true, false, null)
-                        let val = options.value[txt];
-                        if (options.text.lex_value && undefined !== val) {
-                            token.tin = VL;
-                            token.val = val;
-                            token.src = txt;
-                            token.len = pI - sI;
-                            sI = pI;
-                            lexlog && lexlog(token);
-                            return token;
-                        }
                         state = LTX;
                         continue next_char;
                     }
@@ -764,6 +764,8 @@ class Lexer {
                 else {
                     return bad(S.invalid_lex_state, sI, src[sI], { state: state });
                 }
+                // Some token must match.
+                return bad(S.unexpected, sI, src[sI]);
             }
             // Keeps returning ZZ past end of input.
             token.tin = ZZ;
@@ -904,7 +906,7 @@ class RuleSpec {
             0 < this.def.open.length ? this.parse_alts(this.def.open, rule, ctx) :
                 empty_ruleact;
         if (alt.e) {
-            throw new JsonicError(S.unexpected, { open: true }, alt.e, rule, ctx);
+            throw new JsonicError(S.unexpected, { ...alt.e.use, open: true }, alt.e, rule, ctx);
         }
         rule.open = alt.m;
         if (alt.n) {
@@ -952,7 +954,7 @@ class RuleSpec {
             0 < this.def.close.length ? this.parse_alts(this.def.close, rule, ctx) :
                 empty_ruleact;
         if (alt.e) {
-            throw new JsonicError(S.unexpected, { close: true }, alt.e, rule, ctx);
+            throw new JsonicError(S.unexpected, { ...alt.e.use, close: true }, alt.e, rule, ctx);
         }
         if (alt.n) {
             for (let cn in alt.n) {
@@ -1058,7 +1060,8 @@ class RuleSpec {
             out.n = alt.n ? alt.n : out.n;
             out.h = alt.h ? alt.h : out.h;
         }
-        ctx.log && ctx.log(S.parse, rule.name + '/' + rule.id, RuleState[rule.state], altI < alts.length ? 'alt=' + altI : 'no-alt', altI < alts.length && alt && alt.s ?
+        ctx.log && ctx.log(S.parse, rule.name + '/' + rule.id, RuleState[rule.state], altI < alts.length ? 'alt=' + altI : 'no-alt', altI < alts.length &&
+            alt.s ?
             '[' + alt.s.map((pin) => t[pin]).join(' ') + ']' : '[]', ctx.tI, 'p=' + (out.p || MT), 'r=' + (out.r || MT), 'b=' + (out.b || MT), out.m.map((tkn) => t[tkn.tin]).join(' '), ctx.F(out.m.map((tkn) => tkn.src)), 'c:' + ((alt && alt.c) ? cond : MT), 'n:' + Object.entries(rule.n).join(';'), out);
         // Lex forward
         let mI = 0;
@@ -1272,7 +1275,8 @@ class Parser {
                     { s: [ZZ], e: finish, g: S.end },
                 ],
                 after_open: (rule, _ctx, next) => {
-                    if (rule === next && rule.open[0]) {
+                    //if (rule === next && rule.open[0]) {
+                    if (rule === next) {
                         // Repeated comma, so insert null
                         rule.node.push(null);
                     }
@@ -1730,7 +1734,7 @@ let util = {
         }
         config.single_char = Object.keys(config.singlemap).join(MT);
         // All the characters that can appear in a number.
-        config.charset.digital = util.charset(options.number.digital || MT);
+        config.charset.digital = util.charset(options.number.digital);
         // Multiline quotes
         config.charset.multiline = util.charset(options.string.multiline);
         // Enders are char sets that end lexing for a given token.

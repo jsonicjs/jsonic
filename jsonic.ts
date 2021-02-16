@@ -1,10 +1,12 @@
 /* Copyright (c) 2013-2021 Richard Rodger, MIT License */
 
-// TODO: multifile error hint
-// TODO: post release: test use of constructed regexps - perf?
-// TODO: post release: complete rule tagging groups g:imp etc.
-// TODO: post release: plugin for path expr: a.b:1 -> {a:{b:1}}
-// TODO: post release: data file to diff exhaust changes
+// TODO: very large, very deep, tests
+// post release: 
+// TODO: test use of constructed regexps - perf?
+// TODO: complete rule tagging groups g:imp etc.
+// TODO: plugin for path expr: a.b:1 -> {a:{b:1}}
+// TODO: data file to diff exhaust changes
+// TODO: cli - less ambiguous merging at top level
 
 // The main utility function and default export. Just import/require and go!
 type Jsonicer = (src: any, meta?: any, parent_ctx?: any) => any
@@ -98,7 +100,11 @@ type Options = {
   }
   value: KV
   plugin: KV
-  debug: KV
+  debug: {
+    get_console: () => any
+    maxlen: number
+    print_config: boolean
+  }
   error: { [code: string]: string }
   hint: any
   token: {
@@ -1020,44 +1026,43 @@ class Lexer {
           }
 
 
+          // NOTE: default section. Cases above can bail to here if lookaheads
+          // fail to match (eg. NR).
+
+          // No explicit token recognized. That leaves:
+          // - keyword literal values (from options.value)
+          // - text values (everything up to a text_ender char (eg. newline))
+
+          token.loc = sI
+          token.col = cI
+
+          pI = sI
+
+          // Literal values must be terminated, otherwise they are just
+          // accidental prefixes to literal text
+          // (e.g truex -> "truex" not `true` "x")
+          do {
+            cI++
+            pI++
+          } while (null != src[pI] && !config.charset.value_ender[src[pI]])
+
+          let txt = src.substring(sI, pI)
+
+          // A keyword literal value? (eg. true, false, null)
+          let val = options.value[txt]
+
+          if (options.text.lex_value && undefined !== val) {
+            token.tin = VL
+            token.val = val
+            token.src = txt
+            token.len = pI - sI
+            sI = pI
+
+            lexlog && lexlog(token)
+            return token
+          }
+
           if (options.text.lex) {
-            // NOTE: default section. Cases above can bail to here if lookaheads
-            // fail to match (eg. NR).
-
-            // No explicit token recognized. That leaves:
-            // - keyword literal values (from options.value)
-            // - text values (everything up to a text_ender char (eg. newline))
-
-            token.loc = sI
-            token.col = cI
-
-            pI = sI
-
-            // Literal values must be terminated, otherwise they are just
-            // accidental prefixes to literal text
-            // (e.g truex -> "truex" not `true` "x")
-            do {
-              cI++
-              pI++
-            } while (null != src[pI] && !config.charset.value_ender[src[pI]])
-
-            let txt = src.substring(sI, pI)
-
-            // A keyword literal value? (eg. true, false, null)
-            let val = options.value[txt]
-
-            if (options.text.lex_value && undefined !== val) {
-              token.tin = VL
-              token.val = val
-              token.src = txt
-              token.len = pI - sI
-              sI = pI
-
-              lexlog && lexlog(token)
-              return token
-            }
-
-
             state = LTX
             continue next_char
           }
@@ -1253,6 +1258,9 @@ class Lexer {
         else {
           return bad(S.invalid_lex_state, sI, src[sI], { state: state })
         }
+
+        // Some token must match.
+        return bad(S.unexpected, sI, src[sI])
       }
 
 
@@ -1458,7 +1466,10 @@ class RuleSpec {
         empty_ruleact
 
     if (alt.e) {
-      throw new JsonicError(S.unexpected, { open: true }, alt.e, rule, ctx)
+      throw new JsonicError(
+        S.unexpected,
+        { ...alt.e.use, open: true },
+        alt.e, rule, ctx)
     }
 
     rule.open = alt.m
@@ -1524,7 +1535,10 @@ class RuleSpec {
         empty_ruleact
 
     if (alt.e) {
-      throw new JsonicError(S.unexpected, { close: true }, alt.e, rule, ctx)
+      throw new JsonicError(
+        S.unexpected,
+        { ...alt.e.use, close: true },
+        alt.e, rule, ctx)
     }
 
     if (alt.n) {
@@ -1666,7 +1680,8 @@ class RuleSpec {
       rule.name + '/' + rule.id,
       RuleState[rule.state],
       altI < alts.length ? 'alt=' + altI : 'no-alt',
-      altI < alts.length && alt && alt.s ?
+      altI < alts.length &&
+        alt.s ?
         '[' + alt.s.map((pin: Tin) => t[pin]).join(' ') + ']' : '[]',
       ctx.tI,
       'p=' + (out.p || MT),
@@ -1940,7 +1955,8 @@ class Parser {
           { s: [ZZ], e: finish, g: S.end },
         ],
         after_open: (rule: Rule, _ctx: Context, next: Rule) => {
-          if (rule === next && rule.open[0]) {
+          //if (rule === next && rule.open[0]) {
+          if (rule === next) {
             // Repeated comma, so insert null
             rule.node.push(null)
           }
@@ -2559,7 +2575,7 @@ let util = {
 
 
     // All the characters that can appear in a number.
-    config.charset.digital = util.charset(options.number.digital || MT)
+    config.charset.digital = util.charset(options.number.digital)
 
     // Multiline quotes
     config.charset.multiline = util.charset(options.string.multiline)

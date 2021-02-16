@@ -69,7 +69,11 @@ declare type Options = {
     };
     value: KV;
     plugin: KV;
-    debug: KV;
+    debug: {
+        get_console: () => any;
+        maxlen: number;
+        print_config: boolean;
+    };
     error: {
         [code: string]: string;
     };

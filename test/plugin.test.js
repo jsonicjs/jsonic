@@ -290,6 +290,21 @@ a x,b\tx
 `))
       .equal(rec0)
 
+
+    expect(k0('')).equal(undefined)
+    expect(k0('\na')).equal([])
+    expect(k0('\n\n')).equal([])
+    expect(k0('a')).equal([])
+    expect(k0('a\n')).equal([])
+    expect(k0('a\n\n')).equal([])
+    expect(k0('\na\nb')).equal([{a:'b'}])
+    expect(k0('\n\n\nb')).equal([])
+    expect(k0('a\nb')).equal([{a:'b'}])
+    expect(k0('a\n\nb')).equal([{a:'b'}])
+    expect(k0('a\n\n\nb')).equal([{a:'b'}])
+
+
+    
     // tab separated
     let k1 = k0.make({
       token: {

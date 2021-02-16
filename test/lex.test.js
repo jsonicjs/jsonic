@@ -400,7 +400,7 @@ describe('lex', function () {
     m.lex(LTP, function m_ltp({sI,rI,cI,src,token,ctx,rule,bad}) {
       token.tin=TX 
       token.val='A'
-      return { sI:sI+1, rI, cI:cI+1, state: LTX }
+      return { sI:sI+1, rI, cI:cI+1, state: LTX, state_param: 'foo' }
     })
     m.lex(LTX, function m_ltx({sI,rI,cI,src,token,ctx,rule,bad}) {
       token.tin=TX 
@@ -445,6 +445,63 @@ describe('lex', function () {
     expect(()=>m1('1234')).throws(JsonicError,/invalid_lex_state/)
   })
 
+
+  it('lex-flags', () => {
+    let no_line = Jsonic.make({line:{lex:false}})
+    expect(Jsonic('a:\n1')).equals({a:1})
+    expect(Jsonic('a,\n1')).equals(['a',1])
+    expect(no_line('a:\n1')).equals({a:'\n1'})
+    expect(no_line('a,\n1')).equals(['a','\n1'])
+
+    let no_comment = Jsonic.make({comment:{lex:false}})
+    expect(Jsonic('a:1#b')).equals({a:1})
+    expect(Jsonic('a,1#b')).equals(['a',1])
+    expect(no_comment('a:1#b')).equals({a:'1#b'})
+    expect(no_comment('a,1#b')).equals(['a','1#b'])
+
+    let no_space = Jsonic.make({space:{lex:false}})
+    expect(Jsonic('a : 1')).equals({a:1})
+    expect(Jsonic('a , 1')).equals(['a',1])
+    expect(()=>no_space('a :1')).throws('JsonicError', /unexpected/)
+    expect(()=>no_space('a ,1')).throws('JsonicError', /unexpected/)
+    expect(no_space('a: 1')).equals({a:' 1'})
+    expect(no_space('a, 1')).equals(['a', ' 1'])
+
+    let no_number = Jsonic.make({number:{lex:false}})
+    expect(Jsonic('a:1')).equals({a:1})
+    expect(Jsonic('a,1')).equals(['a',1])
+    expect(no_number('a:1')).equals({a:'1'})
+    expect(no_number('a,1')).equals(['a','1'])
+
+    let no_block = Jsonic.make({block:{lex:false}})
+    expect(Jsonic("a:'''1'''")).equals({a:'1'})
+    expect(Jsonic("a,'''1'''")).equals(['a','1'])
+    expect(()=>no_block("a:'''1'''")).throws('JsonicError', /unexpected/)
+    expect(no_block("a,'''1'''")).equals(['a', '', '1', ''])
+
+    let no_string = Jsonic.make({string:{lex:false}})
+    expect(Jsonic('a:1')).equals({a:1})
+    expect(Jsonic('a,1')).equals(['a',1])
+    expect(Jsonic('a:"a"')).equals({a:'a'})
+    expect(Jsonic('"a",1')).equals(['a',1])
+    expect(no_string('a:1')).equals({a:1})
+    expect(no_string('a,1')).equals(['a',1])
+    expect(no_string('a:"a"')).equals({a:'"a"'})
+    expect(no_string('"a",1')).equals(['"a"',1])
+
+    let no_text = Jsonic.make({text:{lex:false}})
+    expect(Jsonic('a:b c')).equals({a:'b c'})
+    expect(Jsonic('a,b c')).equals(['a','b c'])
+    expect(()=>no_text('a:b c')).throws('JsonicError', /unexpected/)
+    expect(()=>no_text('a,b c')).throws('JsonicError', /unexpected/)
+
+    let no_value = Jsonic.make({text:{lex_value:false}})
+    expect(Jsonic('a:true')).equals({a:true})
+    expect(Jsonic('a,null')).equals(['a',null])
+    expect(no_value('a:true')).equals({a:'true'})
+    expect(no_value('a,null')).equals(['a','null'])
+
+  })
 })
 
 
