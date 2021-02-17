@@ -1,6 +1,5 @@
 /* Copyright (c) 2013-2021 Richard Rodger, MIT License */
 
-// TODO: very large, very deep, tests
 // post release: 
 // TODO: test use of constructed regexps - perf?
 // TODO: complete rule tagging groups g:imp etc.
