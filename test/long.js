@@ -8,47 +8,44 @@ const Fs = require('fs')
 
 const { Jsonic } = require('..')
 
+const strs = [
+  { len:true, gen: (r) => '{'+(Array.from({length:r}).map(x=>'"'+Math.random()+'":'+Math.random()))+'}' },
+  { len:true, gen: (r) => '['+('[1],'.repeat(r))+']' },
+  { len:false, gen: (r) => ('{'+Math.random()+':').repeat(r)+'a'+('}').repeat(r)},
+  { len:false, gen: (r) => ('[1,').repeat(r)+'a'+(']').repeat(r)},
+]
+
 
 if (require.main === module) {
   run(true,parseInt(process.argv[2]),process.argv[3])
 }
 
 
-function run(print,size,stats) {
+
+function run(print,size,step) {
   let r = size || 54321
 
-  if(stats) {
-    //let rate = parseFloat(stats) || 2
-    let step = parseInt(stats) || 2
-    let num_strs = make_strs(1).length
-    for(let sI = 0; sI < num_strs; sI++) {
+  if(step) {
+    step = parseInt(step) || 2
+    for(let sI = 0; sI < strs.length; sI++) {
       let d = [['S','R','D',
                 'Brss', 'BhpT','BhpU','Bext',
                 'Arss', 'AhpT','AhpU','Aext']]
-      //for(let rI = 10; rI < size; rI*=rate) {
       for(let rI = 10; rI < size; rI+=step) {
         let r = ~~rI
-        let res = long(false,make_strs(r)[sI],r)
+        let res = long(false,strs[sI].gen(r),r,strs[sI].len)
         d.push([sI,r,res.dur,...res.ms,res.me])
       }
       Fs.writeFileSync('./long-'+sI+'.csv', d.map(x=>x.join('\t')).join('\n'))
     }
   }
   else {
-    make_strs(r).map(s=>long(print,s,r))
+    strs.map(s=>long(print,s.gen(r),r,s.len))
   }
 }
 
-function make_strs(r) {
-  // TODO: build separately!
-  let strs = [
-    '{'+(Array.from({length:r}).map(x=>'"'+Math.random()+'":'+Math.random()))+'}',
-    '['+('[1],'.repeat(r))+']',
-  ]
-  return strs
-}
 
-function long(print,str,count) {
+function long(print,str,count,lencheck) {
   global.gc(true)
   print && console.log('>> '+str.substring(0,76))
   let ms = Object.values(process.memoryUsage())
@@ -59,7 +56,7 @@ function long(print,str,count) {
   let me = Object.values(process.memoryUsage())
   print && console.log(me.join('\t'))
   print && console.log(dur, Object.keys(d0).length)
-  if(Object.keys(d0).length !== count) {
+  if(lencheck && Object.keys(d0).length !== count) {
     throw new Error(str.substring(0,76)+' '+count+'!=='+Object.keys(d0).length)
   }
   return {dur,ms,me}
