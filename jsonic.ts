@@ -1,11 +1,15 @@
 /* Copyright (c) 2013-2021 Richard Rodger, MIT License */
 
+// TODO: prevent use of options,use,rule,lex,token on top level Jsonic
+// TODO: useful toString
 // post release: 
 // TODO: test use of constructed regexps - perf?
 // TODO: complete rule tagging groups g:imp etc.
 // TODO: plugin for path expr: a.b:1 -> {a:{b:1}}
 // TODO: data file to diff exhaust changes
 // TODO: cli - less ambiguous merging at top level
+// RODO: options - should it return full options if no arg?
+
 
 // The main utility function and default export. Just import/require and go!
 type Jsonicer = (src: any, meta?: any, parent_ctx?: any) => any
