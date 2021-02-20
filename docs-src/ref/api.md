@@ -47,7 +47,7 @@ The `earth` variable now contains the following data:
 #### Example: using the `meta` parameter
 
 ```js
-let one = Jsonic(1, {log:-1}) // one === 1
+let one = Jsonic('1', {log:-1}) // one === 1
 ```
 
 The `meta` value of `{log:-1}` prints a debug log of the lexing and
@@ -109,8 +109,11 @@ no_numbers_please('1,2,3') // === ['1', '2', '3'] as before
 
 let pipe_separated = no_numbers_please.make({token: {'#CA':{c:'|'}}})
 pipe_separated('1|2|3') // === ['1', '2', '3'], but:
-pipe_separated('1,2,3') // === ['1,2,3'] !!!
+pipe_separated('1,2,3') // === '1,2,3' !!!
 ```
+
+To understand how the `token` option works, and all the other
+options, see the [Options](/ref/options/) section.
 
 # TODO: toString ids
 
@@ -123,6 +126,7 @@ pipe_separated('1,2,3') // === ['1,2,3'] !!!
 _Returns_: Nothing
 
 * `options: object` _<small>required</small>_ : Partial options tree.
+
 
 #### Example
 
@@ -144,15 +148,45 @@ Jsonic(`
 ```
 
 
+# TODO options() should return options
+
+
 
 ### `use`: Register a plugin
 
-`.use(plugin: function): Jsonic`
+`.use(plugin: function, plugin_options?: object): Jsonic`
 
 _Returns_: Jsonic instance (this allows chaining)
 
 * `plugin: function` _<small>required</small>_ : Plugin definition function
   * `(jsonic: Jsonic) => Jsonic`
+* `plugin_options?: object` _<small>optional</small>_ : Plugin-specific options
+
+#### Example
+
+```js
+let piper = Jsonic.make().use(function piper(jsonic) {
+  jsonic.options({token: {'#CA':{c:'|'}}})
+})
+piper('a|b|c') // === ['a', 'b', 'c']
+```
+
+Plugins are defined by a function that takes the `Jsonic` instance as
+a first parameter, and then changes the options and parsing rules of
+that instance. For more, see the [plugin writing guide](/guide/write-a-plugin).
+
+
+#### Example: plugin options
+
+# TODO
+
+
+#### Example: plugin chaining
+
+When defining a custom <name-self /> instance, you'll probably be registering
+multiple plugins. The `.use` method can be chained to make this easier
+
+# TODO
 
 
 
