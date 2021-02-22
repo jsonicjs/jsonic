@@ -31,6 +31,8 @@ const S = {
     imp_list: 'imp,list',
     imp_null: 'imp,null',
     end: 'end',
+    open: 'open',
+    close: 'close',
 };
 function make_default_options() {
     let options = {
@@ -837,23 +839,17 @@ class Rule {
         this.node = node;
         this.state = RuleState.open;
         this.child = NO_RULE;
-        this.open = [];
+        this.match = [];
         this.close = [];
         this.n = {};
     }
     process(ctx) {
-        let rule = NO_RULE;
-        if (RuleState.open === this.state) {
-            rule = this.spec.open(this, ctx);
-        }
-        else if (RuleState.close === this.state) {
-            rule = this.spec.close(this, ctx);
-        }
-        return rule;
+        return this.spec.process(this, ctx, this.state);
     }
 }
 exports.Rule = Rule;
 const NO_RULE = { id: 0, spec: { name: S.norule } };
+const NO_ALTS = [];
 class RuleAct {
     constructor() {
         this.m = [];
@@ -893,22 +889,32 @@ class RuleSpec {
             norm_alt(alt);
         }
     }
-    open(rule, ctx) {
-        let next = rule;
+    process(rule, ctx, state) {
         let why = MT;
         let F = ctx.F;
+        let is_open = state === RuleState.open;
+        let next = is_open ? rule : NO_RULE;
+        let def = this.def;
+        let alts = (is_open ? def.open : def.close) || NO_ALTS;
+        let before = is_open ? def.before_open : def.before_close;
+        let after = is_open ? def.after_open : def.after_close;
         let out;
-        if (this.def.before_open) {
-            out = this.def.before_open.call(this, rule, ctx);
+        if (before) {
+            out = before.call(this, rule, ctx);
+            if (out && out.err) {
+                throw new JsonicError(out.err, {
+                    ...out, state: is_open ? S.open : S.close
+                }, ctx.t0, rule, ctx);
+            }
             rule.node = out && out.node || rule.node;
         }
         let alt = (out && out.alt) ? { ...empty_ruleact, ...out.alt } :
-            0 < this.def.open.length ? this.parse_alts(this.def.open, rule, ctx) :
+            0 < alts.length ? this.parse_alts(alts, rule, ctx) :
                 empty_ruleact;
         if (alt.e) {
-            throw new JsonicError(S.unexpected, { ...alt.e.use, open: true }, alt.e, rule, ctx);
+            throw new JsonicError(S.unexpected, { ...alt.e.use, state: is_open ? S.open : S.close }, alt.e, rule, ctx);
         }
-        rule.open = alt.m;
+        rule.match = alt.m;
         if (alt.n) {
             for (let cn in alt.n) {
                 rule.n[cn] =
@@ -916,6 +922,7 @@ class RuleSpec {
                 rule.n[cn] = 0 < rule.n[cn] ? rule.n[cn] : 0;
             }
         }
+        // TODO: move to last, should turn off before/after calls
         if (alt.h) {
             next = alt.h(this, rule, ctx, next) || next;
             why += 'H';
@@ -934,67 +941,23 @@ class RuleSpec {
             why += 'R';
         }
         else {
+            if (!is_open) {
+                next = ctx.rs.pop() || NO_RULE;
+            }
             why += 'Z';
         }
-        if (this.def.after_open) {
-            this.def.after_open.call(this, rule, ctx, next);
-        }
-        ctx.log && ctx.log(S.node, rule.name + '/' + rule.id, RuleState[rule.state], 'w=' + why, F(rule.node));
-        rule.state = RuleState.close;
-        return next;
-    }
-    close(rule, ctx) {
-        let next = NO_RULE;
-        let why = MT;
-        let out;
-        if (this.def.before_close) {
-            out = this.def.before_close.call(this, rule, ctx, next);
-            if (out && out.err) {
-                throw new JsonicError(out.err, { ...out, close: true }, ctx.t0, rule, ctx);
-            }
-            rule.node = out && out.node || rule.node;
-        }
-        let alt = (out && out.alt) ? { ...empty_ruleact, ...out.alt } :
-            0 < this.def.close.length ? this.parse_alts(this.def.close, rule, ctx) :
-                empty_ruleact;
-        if (alt.e) {
-            throw new JsonicError(S.unexpected, { ...alt.e.use, close: true }, alt.e, rule, ctx);
-        }
-        if (alt.n) {
-            for (let cn in alt.n) {
-                rule.n[cn] =
-                    0 === alt.n[cn] ? 0 : (null == rule.n[cn] ? 0 : rule.n[cn]) + alt.n[cn];
-                rule.n[cn] = 0 < rule.n[cn] ? rule.n[cn] : 0;
-            }
-        }
-        if (alt.h) {
-            next = alt.h(this, rule, ctx, next) || next;
-            why += 'H';
-        }
-        if (alt.p) {
-            ctx.rs.push(rule);
-            next = rule.child = new Rule(ctx.rsm[alt.p], ctx, rule.node);
-            next.parent = rule;
-            next.n = { ...rule.n };
-            why += 'U';
-        }
-        else if (alt.r) {
-            next = new Rule(ctx.rsm[alt.r], ctx, rule.node);
-            next.parent = rule.parent;
-            next.n = { ...rule.n };
-            why += 'R';
-        }
-        else {
-            next = ctx.rs.pop() || NO_RULE;
-            why += 'O';
-        }
-        if (this.def.after_close) {
-            this.def.after_close.call(this, rule, ctx, next);
+        // TODO: returns out like before?
+        if (after) {
+            after.call(this, rule, ctx, next);
         }
         next.why = why;
-        ctx.log && ctx.log(S.node, rule.name + '/' + rule.id, RuleState[rule.state], 'w=' + why, ctx.F(rule.node));
+        ctx.log && ctx.log(S.node, rule.name + '/' + rule.id, RuleState[rule.state], 'w=' + why, F(rule.node));
+        if (RuleState.open === rule.state) {
+            rule.state = RuleState.close;
+        }
         return next;
     }
+    // TODO: merge into process
     // First match wins.
     parse_alts(alts, rule, ctx) {
         let out = ruleact;
@@ -1176,7 +1139,7 @@ class Parser {
                     // NOTE: val can be undefined when there is no value at all
                     // (eg. empty string, thus no matched opening token)
                     rule.node = undefined === rule.child.node ?
-                        (null == rule.open[0] ? undefined : rule.open[0].val) :
+                        (null == rule.match[0] ? undefined : rule.match[0].val) :
                         rule.child.node;
                 },
             },
@@ -1235,7 +1198,7 @@ class Parser {
                     { s: [ZZ], e: finish, g: S.end },
                 ],
                 before_close: (rule, ctx) => {
-                    let key_token = rule.open[0];
+                    let key_token = rule.match[0];
                     if (key_token && CB !== key_token.tin) {
                         let key = ST === key_token.tin ? key_token.val : key_token.src;
                         let val = rule.child.node;

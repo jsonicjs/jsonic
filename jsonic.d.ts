@@ -241,7 +241,7 @@ declare class Rule {
     state: RuleState;
     child: Rule;
     parent?: Rule;
-    open: Token[];
+    match: Token[];
     close: Token[];
     n: KV;
     why?: string;
@@ -261,8 +261,7 @@ declare class RuleSpec {
     name: string;
     def: any;
     constructor(def: any);
-    open(rule: Rule, ctx: Context): Rule;
-    close(rule: Rule, ctx: Context): Rule;
+    process(rule: Rule, ctx: Context, state: RuleState): Rule;
     parse_alts(alts: any[], rule: Rule, ctx: Context): RuleAct;
 }
 declare type RuleSpecMap = {

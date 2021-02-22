@@ -41,9 +41,9 @@ let Multifile = function multifile(jsonic) {
         rs.def.open.push({ s: [AT, ST] }, { s: [AT, TX] });
         let orig_before_close = rs.def.before_close;
         rs.def.before_close = function (rule, ctx) {
-            if (rule.open[0] && AT === rule.open[0].tin) {
+            if (rule.match[0] && AT === rule.match[0].tin) {
                 // TODO: test TX=foo/bar as @"foo/bar" works but @foo/bar does not!
-                let filepath = rule.open[1].val;
+                let filepath = rule.match[1].val;
                 let fullpath = path_1.default.resolve(ctx.meta.basepath || popts.basepath, filepath);
                 let filedesc = path_1.default.parse(fullpath);
                 let basepath = filedesc.dir;
@@ -82,7 +82,7 @@ let Multifile = function multifile(jsonic) {
                     }
                     /* $lab:coverage:on$ */
                 }
-                rule.open[0].val = val;
+                rule.match[0].val = val;
             }
             return orig_before_close(...arguments);
         };

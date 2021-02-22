@@ -528,6 +528,7 @@ describe('jsonic', function () {
   })
 
 
+  /*
   it('rule', () => {
     let r0 = new j.Rule({},{},{})
     r0.state=-1
@@ -535,7 +536,7 @@ describe('jsonic', function () {
     // console.log(rr)
     expect(rr).equal({ id: 0, spec: { name: 'norule' }, why: 'O' })
   })
-
+  */
 
   it('rule-spec', () => {
     let rs0 = new j.RuleSpec({})
