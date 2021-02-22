@@ -14,7 +14,7 @@ const describe = lab.describe
 const it = lab.it
 const expect = Code.expect
 
-const { Jsonic, Lexer, Parser, JsonicError, make } = require('..')
+const { Jsonic, Lexer, Parser, JsonicError, RuleSpec, make } = require('..')
 
 // const { Json } = require('../plugin/json')
 // const { Csv } = require('../plugin/csv')
@@ -75,6 +75,10 @@ describe('docs', function () {
 
 
   it('method-options', () => {
+    let options = Jsonic.options()
+    expect(options.comment.lex).equals(true)
+    expect(Jsonic.options.comment.lex).equals(true)
+    
     let no_comment = Jsonic.make()
     no_comment.options({comment: {lex: false}})
 
@@ -134,19 +138,41 @@ describe('docs', function () {
 
 
   it('method-rule', () => {
-    let jsonic = Jsonic.make()
-    expect(Object.keys(jsonic.rule())).equals(['val', 'map', 'list', 'pair', 'elem'])
+    let ruler = Jsonic.make()
+    expect(Object.keys(ruler.rule())).equals(['val', 'map', 'list', 'pair', 'elem'])
 
-    expect(jsonic.rule('val').name).equals('val')
+    expect(ruler.rule('val').name).equals('val')
 
-    let ST = jsonic.token.ST
-    jsonic.rule('val', (rule)=>{
-      rule.def.open.unshift({s:[ST,ST], h:(rulespec,rule,ctx)=>{
-        rule.node = ctx.t0.val+ctx.t1.val
+    let ST = ruler.token.ST
+    ruler.rule('val', (rulespec)=>{
+      rulespec.def.open.unshift({s:[ST,ST], h:(alt,rule,ctx)=>{
+        rule.node = ctx.t0.val + ctx.t1.val
+        // Disable default value handling
+        rule.before_close_active = false
       }})
     })
 
-    console.log(jsonic('"a" "b"', {log:-1}))
+    expect(ruler('"a" "b"', {xlog:-1})).equals('ab')
+    expect(ruler('["a" "b"]', {xlog:-1})).equals(['ab'])
+    expect(ruler('{x:"a" "b",y:1}', {xlog:-1})).equals({x:'ab',y:1})
+
+    ruler.options({
+      token: { '#HH': {c:'%'} }
+    })
+
+    let HH = ruler.token.HH
+    ruler.rule('hundred', ()=>{
+      return new RuleSpec({
+        after_open: (rule)=>{
+          rule.node = 100
+        }
+      })
+    })
+    ruler.rule('val', (rulespec)=>{
+      rulespec.def.open.unshift({s:[HH],p:'hundred'})
+    })
+
+    expect(ruler('{x:1, y:%}', {xlog:-1})).equals({x:1,y:100})
   })
 })
 

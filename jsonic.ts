@@ -22,7 +22,7 @@ type JsonicAPI = {
   parse: Jsonicer
 
   // Get and set partial option trees.
-  options: Options & ((change_options?: KV) => void)
+  options: Options & ((change_options?: KV) => KV)
 
   // Create a new Jsonic instance to customize.
   make: (options?: Options) => Jsonic
@@ -1375,8 +1375,11 @@ class Rule {
   open: Token[]
   close: Token[]
   n: KV
-  before: boolean
-  after: boolean
+  before_open_active: boolean
+  after_open_active: boolean
+  before_close_active: boolean
+  after_close_active: boolean
+
   why?: string
 
   constructor(spec: RuleSpec, ctx: Context, node?: any) {
@@ -1389,8 +1392,10 @@ class Rule {
     this.open = []
     this.close = []
     this.n = {}
-    this.before = true
-    this.after = true
+    this.before_open_active = true
+    this.after_open_active = true
+    this.before_close_active = true
+    this.after_close_active = true
   }
 
   process(ctx: Context): Rule {
@@ -1470,11 +1475,13 @@ class RuleSpec {
     let def: RuleDef = this.def
 
     let alts = (is_open ? def.open : def.close) as Alt[]
-    let before = is_open ? def.before_open : def.before_close
+    let before = is_open ?
+      (rule.before_open_active && def.before_open) :
+      (rule.before_close_active && def.before_close)
     let after = is_open ? def.after_open : def.after_close
 
     let bout
-    if (rule.before && before) {
+    if (before) {
       bout = before.call(this, rule, ctx)
       if (bout) {
         if (bout.err) {
@@ -1538,7 +1545,7 @@ class RuleSpec {
     }
 
     let aout
-    if (rule.after && after) {
+    if (after) {
       aout = after.call(this, rule, ctx, next)
       if (aout) {
         if (aout.err) {
@@ -1798,7 +1805,7 @@ class Parser {
           // and thus can specify m to move lex forward
           // Handle space separated elements (no CA)
           {
-            c: (_alt: any, _rule: Rule, ctx: Context) => {
+            c: (_alt: Alt, _rule: Rule, ctx: Context) => {
               return (TX === ctx.t0.tin ||
                 NR === ctx.t0.tin ||
                 ST === ctx.t0.tin ||
@@ -2672,7 +2679,9 @@ function make(param_options?: KV, parent?: Jsonic): Jsonic {
       for (let k in merged_options) {
         jsonic.options[k] = merged_options[k]
       }
+      Object.assign(jsonic.token, config.token)
     }
+    return { ...jsonic.options }
   }
 
 

@@ -842,8 +842,10 @@ class Rule {
         this.open = [];
         this.close = [];
         this.n = {};
-        this.before = true;
-        this.after = true;
+        this.before_open_active = true;
+        this.after_open_active = true;
+        this.before_close_active = true;
+        this.after_close_active = true;
     }
     process(ctx) {
         return this.spec.process(this, ctx, this.state);
@@ -897,10 +899,12 @@ class RuleSpec {
         let next = is_open ? rule : NO_RULE;
         let def = this.def;
         let alts = (is_open ? def.open : def.close);
-        let before = is_open ? def.before_open : def.before_close;
+        let before = is_open ?
+            (rule.before_open_active && def.before_open) :
+            (rule.before_close_active && def.before_close);
         let after = is_open ? def.after_open : def.after_close;
         let bout;
-        if (rule.before && before) {
+        if (before) {
             bout = before.call(this, rule, ctx);
             if (bout) {
                 if (bout.err) {
@@ -954,7 +958,7 @@ class RuleSpec {
             why += 'Z';
         }
         let aout;
-        if (rule.after && after) {
+        if (after) {
             aout = after.call(this, rule, ctx, next);
             if (aout) {
                 if (aout.err) {
@@ -1790,7 +1794,9 @@ function make(param_options, parent) {
             for (let k in merged_options) {
                 jsonic.options[k] = merged_options[k];
             }
+            Object.assign(jsonic.token, config.token);
         }
+        return { ...jsonic.options };
     };
     // Define the API
     let api = {

@@ -1,7 +1,7 @@
 declare type Jsonicer = (src: any, meta?: any, parent_ctx?: any) => any;
 declare type JsonicAPI = {
     parse: Jsonicer;
-    options: Options & ((change_options?: KV) => void);
+    options: Options & ((change_options?: KV) => KV);
     make: (options?: Options) => Jsonic;
     use: (plugin: Plugin, plugin_options?: KV) => Jsonic;
     rule: (name?: string, define?: RuleDefiner) => RuleSpec | RuleSpecMap;
@@ -244,8 +244,10 @@ declare class Rule {
     open: Token[];
     close: Token[];
     n: KV;
-    before: boolean;
-    after: boolean;
+    before_open_active: boolean;
+    after_open_active: boolean;
+    before_close_active: boolean;
+    after_close_active: boolean;
     why?: string;
     constructor(spec: RuleSpec, ctx: Context, node?: any);
     process(ctx: Context): Rule;

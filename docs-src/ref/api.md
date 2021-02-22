@@ -2,6 +2,14 @@
 
 The <name-self/> API is deliberately kept as small as possible.
 
+::: tip
+If all you want to do is parse easy-going JSON, you don't need this API!
+Just call `Jsonic(...your-json-source...)` and use the return value.
+
+This API is for customizing the JSON parser, so if that is your game, read on...
+:::
+
+
 The default import `Jsonic` is intended as utility function and to be
 used as-is. For customization, and to access the API methods, create a
 new <name-self/> instance with `Jsonic.make()`.
@@ -10,7 +18,7 @@ Some plugins may decorate the main `Jsonic` object with additional methods.
 
 * [`Jsonic`](#jsonic-just-parse-already)
 * [`make`](#make-create-a-new-customizable-jsonic-instance)
-* [`options`](#options-set-options-for-a-jsonic-instance)
+* [`options`](#options-get-and-set-options-for-a-jsonic-instance)
 * [`use`](#use-register-a-plugin)
 * [`rule`](#rule-define-or-modify-a-parser-rule)
 * [`lex`](#lex-define-a-lex-matcher)
@@ -20,7 +28,7 @@ Some plugins may decorate the main `Jsonic` object with additional methods.
 
 ## Methods
 
-### `Jsonic`: just parse already!
+### `Jsonic`: Just parse already!
 
 `Jsonic(source: string, meta?: object): any`
 
@@ -78,7 +86,7 @@ parameters. See your friendly neighbourhood plugin documentation for
 more.
 
 
-### `make`: create a new customizable Jsonic instance
+### `make`: Create a new customizable Jsonic instance.
 
 `.make(options?: object): Jsonic`
 
@@ -124,11 +132,11 @@ options, see the [Options](/ref/options/) section.
 
 
 
-### `options`: Set options for a Jsonic instance
+### `options`: Get and set options for a Jsonic instance.
 
-`.options(options: object): void`
+`.options(options: object): object`
 
-_Returns_: Nothing
+_Returns_: `object` merged object containing the full option tree
 
 * `options: object` _<small>required</small>_ : Partial options tree.
 
@@ -136,6 +144,10 @@ _Returns_: Nothing
 #### Example
 
 ```js
+
+Jsonic.options().comment.lex // === true
+Jsonic.options.comment.lex // === true - as a convenience
+
 let no_comment = Jsonic.make()
 no_comment.options({comment: {lex: false}})
 
@@ -153,11 +165,8 @@ Jsonic(`
 ```
 
 
-# TODO options() should return options
 
-
-
-### `use`: Register a plugin
+### `use`: Register a plugin.
 
 `.use(plugin: function, plugin_options?: object): Jsonic`
 
@@ -226,7 +235,7 @@ let jsonic = Jsonic.make()
 
 
 
-### `rule`: Define or modify a parser rule
+### `rule`: Define or modify a parser rule.
 
 `.rule(name?: string, define?: function): RuleSpec`
 
@@ -240,25 +249,52 @@ _Returns_: `RuleSpec` Rule specification
 # Example
 
 ```js
-let jsonic = Jsonic.make()
+let ruler = Jsonic.make()
 
 // Get all the rules
-Object.keys(jsonic.rule()) // === ['val', 'map', 'list', 'pair', 'elem']
+Object.keys(ruler.rule()) // === ['val', 'map', 'list', 'pair', 'elem']
 
 // Get a rule by name
 let val_rule = jsonic.rule('val') // val_rule.name === 'val'
 
 // Modify a rule 
-jsonic.rule('val',(rs)=>{
+let ST = ruler.token.ST
+ruler.rule('val',(rule)=>{
+  // Concatentate strings (ST) instead of forming array elements
+  rule.def.open.unshift({s:[ST,ST], h:(alt,rule,ctx)=>{
+    rule.node = ctx.t0.val + ctx.t1.val
+    // Disable default value handling
+    rule.before_close_active = false
+  }})
+})
 
-    })
+ruler('"a" "b"') // === 'ab'
+Jsonic('"a" "b"') // === ['a', 'b']
 
+// Create a new rule (for a new token)
+ruler.options({
+  token: { '#HH': {c:'%'} }
+})
 
+let HH = ruler.token.HH
+ruler.rule('hundred', ()=>{
+  return new RuleSpec({
+    after_open: (rule)=>{
+      // % always becomes the value 100
+      rule.node = 100
+    }
+  })
+})
+ruler.rule('val', (rulespec)=>{
+  rulespec.def.open.unshift({s:[HH], p:'hundred'})
+})
+
+ruler('{x:1, y:%}') // === {x:1, y:100}
 ```
 
 
 
-### `lex`: Define a lex matcher
+### `lex`: Define a lex matcher.
 
 `.lex(state?: Tin, match?: function): LexMatcher[]`
 
@@ -270,7 +306,8 @@ _Returns_: `LexMatcher[]` Ordered list of lex matchers for this lex state.
 
 
 
-### `token`: Resolve a token by name or index
+
+### `token`: Resolve a token by name or index.
 
 `.token(ref: Tin | string): string | Tin`
 
