@@ -1485,6 +1485,11 @@ class RuleSpec {
       }
     }
 
+    if (alt.h) {
+      next = alt.h(this, rule, ctx, next) || next
+      why += 'H'
+    }
+
     if (alt.p) {
       ctx.rs.push(rule)
       next = rule.child = new Rule(ctx.rsm[alt.p], ctx, rule.node)
@@ -1696,6 +1701,9 @@ class RuleSpec {
       'n:' + Object.entries(rule.n).join(';'),
       out)
 
+
+    // TODO: should happen and end of open/close functions !!!
+    // need ctx.t0 and ctx.t0 to reflect match!
     // Lex forward
     let mI = 0
     let rewind = out.m.length - (out.b || 0)

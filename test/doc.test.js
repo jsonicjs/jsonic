@@ -95,12 +95,62 @@ describe('docs', function () {
 
 
   it('method-use', () => {
-    let piper = Jsonic.make().use(function piper(jsonic) {
+    let jsonic = Jsonic.make().use(function piper(jsonic) {
       jsonic.options({token: {'#CA':{c:'|'}}})
     })
-    let out = piper('a|b|c') // === ['a', 'b', 'c']
+    let out = jsonic('a|b|c') // === ['a', 'b', 'c']
     expect(out).equals(['a', 'b', 'c'])
   })
+
+
+  it('method-use-options', () => {
+    function sepper(jsonic) {
+      let sep = jsonic.options.plugin.sepper.sep
+      jsonic.options({token: {'#CA':{c:sep}}})
+    }
+    let jsonic = Jsonic.make().use(sepper, {sep:';'})
+    let out = jsonic('a;b;c') // === ['a', 'b', 'c']
+    expect(out).equals(['a', 'b', 'c'])
+  })
+
+
+  it('method-use-chaining', () => {
+    function foo(jsonic) {
+      jsonic.foo = function() {
+        return 1
+      }
+    }
+    function bar(jsonic) {
+      jsonic.bar = function() {
+        return this.foo() * 2
+      }
+    }
+    let jsonic = Jsonic.make()
+        .use(foo)
+        .use(bar)
+    expect(jsonic.foo()).equals(1)
+    expect(jsonic.bar()).equals(2)
+  })
+
+
+  /*
+  it('method-rule', () => {
+    let jsonic = Jsonic.make()
+    expect(Object.keys(jsonic.rule())).equals(['val', 'map', 'list', 'pair', 'elem'])
+
+    expect(jsonic.rule('val').name).equals('val')
+
+    let ST = jsonic.token.ST
+    jsonic.rule('val', (rule)=>{
+      rule.def.open.unshift({s:[ST,ST], h:(rulespec,rule,ctx)=>{
+        //rule.node = 'S:'+ctx.t0.src+ctx.t1.src
+        rule.node = 'S:'+rule.open[0].val+rule.open[1].val
+      }})
+    })
+
+    console.log(jsonic('"a" "b"', {log:-1}))
+  })
+  */
 })
 
 

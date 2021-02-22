@@ -916,6 +916,10 @@ class RuleSpec {
                 rule.n[cn] = 0 < rule.n[cn] ? rule.n[cn] : 0;
             }
         }
+        if (alt.h) {
+            next = alt.h(this, rule, ctx, next) || next;
+            why += 'H';
+        }
         if (alt.p) {
             ctx.rs.push(rule);
             next = rule.child = new Rule(ctx.rsm[alt.p], ctx, rule.node);
@@ -1063,6 +1067,8 @@ class RuleSpec {
         ctx.log && ctx.log(S.parse, rule.name + '/' + rule.id, RuleState[rule.state], altI < alts.length ? 'alt=' + altI : 'no-alt', altI < alts.length &&
             alt.s ?
             '[' + alt.s.map((pin) => t[pin]).join(' ') + ']' : '[]', ctx.tI, 'p=' + (out.p || MT), 'r=' + (out.r || MT), 'b=' + (out.b || MT), out.m.map((tkn) => t[tkn.tin]).join(' '), ctx.F(out.m.map((tkn) => tkn.src)), 'c:' + ((alt && alt.c) ? cond : MT), 'n:' + Object.entries(rule.n).join(';'), out);
+        // TODO: should happen and end of open/close functions !!!
+        // need ctx.t0 and ctx.t0 to reflect match!
         // Lex forward
         let mI = 0;
         let rewind = out.m.length - (out.b || 0);

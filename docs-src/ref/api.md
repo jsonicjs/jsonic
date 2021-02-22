@@ -1,6 +1,11 @@
 # API
 
 The <name-self/> API is deliberately kept as small as possible.
+
+The default import `Jsonic` is intended as utility function and to be
+used as-is. For customization, and to access the API methods, create a
+new <name-self/> instance with `Jsonic.make()`.
+
 Some plugins may decorate the main `Jsonic` object with additional methods.
 
 * [`Jsonic`](#jsonic-just-parse-already)
@@ -165,10 +170,10 @@ _Returns_: Jsonic instance (this allows chaining)
 #### Example
 
 ```js
-let piper = Jsonic.make().use(function piper(jsonic) {
+let jsonic = Jsonic.make().use(function piper(jsonic) {
   jsonic.options({token: {'#CA':{c:'|'}}})
 })
-piper('a|b|c') // === ['a', 'b', 'c']
+jsonic('a|b|c') // === ['a', 'b', 'c']
 ```
 
 Plugins are defined by a function that takes the `Jsonic` instance as
@@ -178,15 +183,46 @@ that instance. For more, see the [plugin writing guide](/guide/write-a-plugin).
 
 #### Example: plugin options
 
-# TODO
+```js
+function sepper(jsonic) {
+  let sep = jsonic.options.plugin.sepper.sep
+  jsonic.options({token: {'#CA':{c:sep}}})
+}
+
+let jsonic = Jsonic.make().use(sepper, {sep:';'})
+jsonic('a;b;c') // === ['a', 'b', 'c']
+```
+
+Plugin options are added to the main options under the `plugin` key using the
+name of the plugin function as a sub-key. Thus `function sepper(...)` means that 
+`jsonic.options.plugin.sepper` contains the plugin option.
+
+Notice that you can refer to options directly as properties of the
+`.options` method, as a convenience.
 
 
 #### Example: plugin chaining
 
 When defining a custom <name-self /> instance, you'll probably be registering
-multiple plugins. The `.use` method can be chained to make this easier
+multiple plugins. The `.use` method can be chained to make this easier.
 
-# TODO
+```js
+function foo(jsonic) {
+  jsonic.foo = function() {
+    return 1
+  }
+}
+function bar(jsonic) {
+  jsonic.bar = function() {
+    return this.foo() * 2
+  }
+}
+let jsonic = Jsonic.make()
+    .use(foo)
+    .use(bar)
+// jsonic.foo() === 1
+// jsonic.bar() === 2
+```
 
 
 
@@ -199,6 +235,26 @@ _Returns_: `RuleSpec` Rule specification
 * `name?: string` _<small>optional</small>_ : Rule name
 * `define?: function` _<small>optional</small>_ : Rule definition function
   * `(rs: RuleSpec, rsm: RuleSpecMap) => RuleSpec` 
+
+
+# Example
+
+```js
+let jsonic = Jsonic.make()
+
+// Get all the rules
+Object.keys(jsonic.rule()) // === ['val', 'map', 'list', 'pair', 'elem']
+
+// Get a rule by name
+let val_rule = jsonic.rule('val') // val_rule.name === 'val'
+
+// Modify a rule 
+jsonic.rule('val',(rs)=>{
+
+    })
+
+
+```
 
 
 
