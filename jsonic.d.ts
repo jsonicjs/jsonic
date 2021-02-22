@@ -241,14 +241,14 @@ declare class Rule {
     state: RuleState;
     child: Rule;
     parent?: Rule;
-    match: Token[];
+    open: Token[];
     close: Token[];
     n: KV;
     why?: string;
     constructor(spec: RuleSpec, ctx: Context, node?: any);
     process(ctx: Context): Rule;
 }
-declare class RuleAct {
+declare class Alt {
     m: Token[];
     p: string;
     r: string;
@@ -262,7 +262,7 @@ declare class RuleSpec {
     def: any;
     constructor(def: any);
     process(rule: Rule, ctx: Context, state: RuleState): Rule;
-    parse_alts(alts: any[], rule: Rule, ctx: Context): RuleAct;
+    parse_alts(alts: any[], rule: Rule, ctx: Context): Alt;
 }
 declare type RuleSpecMap = {
     [name: string]: RuleSpec;

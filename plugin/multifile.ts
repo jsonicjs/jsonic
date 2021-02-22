@@ -49,10 +49,10 @@ let Multifile: Plugin = function multifile(jsonic: Jsonic) {
 
     let orig_before_close = rs.def.before_close
     rs.def.before_close = function(rule: Rule, ctx: Context) {
-      if (rule.match[0] && AT === rule.match[0].tin) {
+      if (rule.open[0] && AT === rule.open[0].tin) {
 
         // TODO: test TX=foo/bar as @"foo/bar" works but @foo/bar does not!
-        let filepath = rule.match[1].val
+        let filepath = rule.open[1].val
         let fullpath = Path.resolve(ctx.meta.basepath || popts.basepath, filepath)
         let filedesc = Path.parse(fullpath)
         let basepath = filedesc.dir
@@ -100,7 +100,7 @@ let Multifile: Plugin = function multifile(jsonic: Jsonic) {
           /* $lab:coverage:on$ */
         }
 
-        rule.match[0].val = val
+        rule.open[0].val = val
       }
       return orig_before_close(...arguments)
     }

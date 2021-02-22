@@ -1371,7 +1371,7 @@ class Rule {
   state: RuleState
   child: Rule
   parent?: Rule
-  match: Token[]
+  open: Token[]
   close: Token[]
   n: KV
   why?: string
@@ -1383,7 +1383,7 @@ class Rule {
     this.node = node
     this.state = RuleState.open
     this.child = NO_RULE
-    this.match = []
+    this.open = []
     this.close = []
     this.n = {}
   }
@@ -1396,9 +1396,8 @@ class Rule {
 
 
 const NO_RULE = ({ id: 0, spec: { name: S.norule } } as Rule)
-const NO_ALTS: any[] = []
 
-class RuleAct {
+class Alt {
   m: Token[] = []
   p: string = MT
   r: string = MT
@@ -1408,8 +1407,8 @@ class RuleAct {
   e?: Token
 }
 
-const ruleact = new RuleAct()
-const empty_ruleact = new RuleAct()
+const palt = new Alt()
+const empty_alt = new Alt()
 
 
 type RuleDef = {
@@ -1466,7 +1465,7 @@ class RuleSpec {
 
     let def: RuleDef = this.def
 
-    let alts = (is_open ? def.open : def.close) || NO_ALTS
+    let alts = (is_open ? def.open : def.close) as Alt[]
     let before = is_open ? def.before_open : def.before_close
     let after = is_open ? def.after_open : def.after_close
 
@@ -1481,9 +1480,16 @@ class RuleSpec {
       rule.node = out && out.node || rule.node
     }
 
-    let alt: RuleAct = (out && out.alt) ? { ...empty_ruleact, ...out.alt } :
+    let alt: Alt = (out && out.alt) ? { ...empty_alt, ...out.alt } :
       0 < alts.length ? this.parse_alts(alts, rule, ctx) :
-        empty_ruleact
+        empty_alt
+
+    if (is_open) {
+      rule.open = alt.m
+    }
+    else {
+      rule.close = alt.m
+    }
 
     if (alt.e) {
       throw new JsonicError(
@@ -1491,8 +1497,6 @@ class RuleSpec {
         { ...alt.e.use, state: is_open ? S.open : S.close },
         alt.e, rule, ctx)
     }
-
-    rule.match = alt.m
 
     if (alt.n) {
       for (let cn in alt.n) {
@@ -1543,6 +1547,14 @@ class RuleSpec {
       F(rule.node)
     )
 
+    // Lex next tokens (up to backtrack).
+    let mI = 0
+    let rewind = alt.m.length - (alt.b || 0)
+    while (mI++ < rewind) {
+      ctx.next()
+    }
+
+    // Must be last as state is for next process call.
     if (RuleState.open === rule.state) {
       rule.state = RuleState.close
     }
@@ -1553,8 +1565,8 @@ class RuleSpec {
 
   // TODO: merge into process
   // First match wins.
-  parse_alts(alts: any[], rule: Rule, ctx: Context): RuleAct {
-    let out = ruleact
+  parse_alts(alts: any[], rule: Rule, ctx: Context): Alt {
+    let out = palt
     out.m = []          // Match 0, 1, or 2 tokens in order .
     out.b = 0           // Backtrack n tokens.
     out.p = MT          // Push named rule onto stack. 
@@ -1656,6 +1668,7 @@ class RuleSpec {
       out)
 
 
+    /*
     // TODO: should happen and end of open/close functions !!!
     // need ctx.t0 and ctx.t0 to reflect match!
     // Lex forward
@@ -1664,6 +1677,7 @@ class RuleSpec {
     while (mI++ < rewind) {
       ctx.next()
     }
+    */
 
     return out
   }
@@ -1793,7 +1807,7 @@ class Parser {
           // NOTE: val can be undefined when there is no value at all
           // (eg. empty string, thus no matched opening token)
           rule.node = undefined === rule.child.node ?
-            (null == rule.match[0] ? undefined : rule.match[0].val) :
+            (null == rule.open[0] ? undefined : rule.open[0].val) :
             rule.child.node
         },
       },
@@ -1863,7 +1877,7 @@ class Parser {
           { s: [ZZ], e: finish, g: S.end },
         ],
         before_close: (rule: Rule, ctx: Context) => {
-          let key_token = rule.match[0]
+          let key_token = rule.open[0]
           if (key_token && CB !== key_token.tin) {
             let key = ST === key_token.tin ? key_token.val : key_token.src
             let val = rule.child.node

@@ -21,17 +21,17 @@ let Dynamic = function dynamic(jsonic) {
         rs.def.close.unshift({ s: [T$], r: 'val' });
         // Special case: `$$`
         rs.def.after_open = (rule) => {
-            if (rule.match[0] && rule.match[1] &&
-                T$ === rule.match[0].tin &&
-                T$ === rule.match[1].tin) {
-                rule.match[1].use = rule;
+            if (rule.open[0] && rule.open[1] &&
+                T$ === rule.open[0].tin &&
+                T$ === rule.open[1].tin) {
+                rule.open[1].use = rule;
             }
         };
         let bc = rs.def.before_close;
         rs.def.before_close = (rule, _ctx) => {
-            if (rule.match[0] && rule.match[1]) {
-                if (T$ === rule.match[0].tin && T$ !== rule.match[1].tin) {
-                    let expr = (rule.match[0].use ? '$' : '') + rule.match[1].val;
+            if (rule.open[0] && rule.open[1]) {
+                if (T$ === rule.open[0].tin && T$ !== rule.open[1].tin) {
+                    let expr = (rule.open[0].use ? '$' : '') + rule.open[1].val;
                     if ('.' === expr[0]) {
                         expr = '$' + expr;
                     }
@@ -44,9 +44,9 @@ let Dynamic = function dynamic(jsonic) {
                         return eval(expr);
                     };
                     func.__eval$$ = true;
-                    rule.match[0].val = func;
-                    if (rule.match[0].use) {
-                        rule.match[0].use.node = func;
+                    rule.open[0].val = func;
+                    if (rule.open[0].use) {
+                        rule.open[0].use.node = func;
                     }
                 }
             }
@@ -58,7 +58,7 @@ let Dynamic = function dynamic(jsonic) {
         let ST = jsonic.token.ST;
         let orig_before_close = rs.def.before_close;
         rs.def.before_close = function (rule, ctx) {
-            let token = rule.match[0];
+            let token = rule.open[0];
             let key = ST === token.tin ? token.val : token.src;
             let val = rule.child.node;
             /* $lab:coverage:off$ */

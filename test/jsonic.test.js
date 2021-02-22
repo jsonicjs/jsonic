@@ -646,7 +646,16 @@ describe('jsonic', function () {
           {s:[],r:'sep'},
         ],
         before_close: () => ({}),
-        before_open: () => ({}),
+        before_open: (rule,ctx) => {
+          if(99 === ctx.t0.val) {
+            return {err: 'unexpected'}
+          }
+        },
+        after_open: (rule, ctx) => {
+          rule.node.v += (ctx.t0 ? ctx.t0.val || 0 : 0)
+          return {node:rule.node}
+        }
+
       })
       return rs
     })
@@ -671,7 +680,6 @@ describe('jsonic', function () {
         ],
         before_close: (rule) => ({node:rule.node}),
         after_close: (rule, ctx) => {
-          rule.node.v += (ctx.u2 ? ctx.u2.val : 0)
           return {node:rule.node}
         }
       })
@@ -680,11 +688,13 @@ describe('jsonic', function () {
 
     expect(c0('1, 2, 3,',{xlog:-1})).equal({v:6})
 
+    expect(()=>c0('1, 99, 3,',{xlog:-1})).throws('JsonicError', /unexpected.*99/)
+
     expect(c0('1 {',{xlog:-1})).equal({ v: 1 })
     expect(()=>c0('1 }',{xlog:-1})).throws('JsonicError', /unexpected.*ZED0/)
 
     expect(()=>c0('1 ] ]',{xlog:-1})).throws('JsonicError', /unexpected.*BAR0/)
-    expect(c0('1 [ [',{xlog:-1})).equal({ v: NaN })
+    expect(c0('1 [ [',{xlog:-1})).equal({ v: 1 })
 
     expect(()=>c0('1 2',{xlog:-1})).throws('JsonicError', /unexpected.*FOO0/)
     expect(()=>c0('1 3',{xlog:-1})).throws('JsonicError', /unexpected/)
