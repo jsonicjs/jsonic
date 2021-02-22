@@ -842,6 +842,8 @@ class Rule {
         this.open = [];
         this.close = [];
         this.n = {};
+        this.before = true;
+        this.after = true;
     }
     process(ctx) {
         return this.spec.process(this, ctx, this.state);
@@ -897,19 +899,25 @@ class RuleSpec {
         let alts = (is_open ? def.open : def.close);
         let before = is_open ? def.before_open : def.before_close;
         let after = is_open ? def.after_open : def.after_close;
-        let out;
-        if (before) {
-            out = before.call(this, rule, ctx);
-            if (out && out.err) {
-                throw new JsonicError(out.err, {
-                    ...out, state: is_open ? S.open : S.close
-                }, ctx.t0, rule, ctx);
+        let bout;
+        if (rule.before && before) {
+            bout = before.call(this, rule, ctx);
+            if (bout) {
+                if (bout.err) {
+                    throw new JsonicError(bout.err, {
+                        ...bout, state: is_open ? S.open : S.close
+                    }, ctx.t0, rule, ctx);
+                }
+                rule.node = bout.node || rule.node;
             }
-            rule.node = out && out.node || rule.node;
         }
-        let alt = (out && out.alt) ? { ...empty_alt, ...out.alt } :
+        let alt = (bout && bout.alt) ? { ...empty_alt, ...bout.alt } :
             0 < alts.length ? this.parse_alts(alts, rule, ctx) :
                 empty_alt;
+        if (alt.h) {
+            alt = alt.h(alt, rule, ctx, next) || alt;
+            why += 'H';
+        }
         if (is_open) {
             rule.open = alt.m;
         }
@@ -925,11 +933,6 @@ class RuleSpec {
                     0 === alt.n[cn] ? 0 : (null == rule.n[cn] ? 0 : rule.n[cn]) + alt.n[cn];
                 rule.n[cn] = 0 < rule.n[cn] ? rule.n[cn] : 0;
             }
-        }
-        // TODO: move to last, should turn off before/after calls
-        if (alt.h) {
-            next = alt.h(this, rule, ctx, next) || next;
-            why += 'H';
         }
         if (alt.p) {
             ctx.rs.push(rule);
@@ -950,9 +953,17 @@ class RuleSpec {
             }
             why += 'Z';
         }
-        // TODO: returns out like before?
-        if (after) {
-            after.call(this, rule, ctx, next);
+        let aout;
+        if (rule.after && after) {
+            aout = after.call(this, rule, ctx, next);
+            if (aout) {
+                if (aout.err) {
+                    throw new JsonicError(aout.err, {
+                        ...bout, state: is_open ? S.open : S.close
+                    }, ctx.t0, rule, ctx);
+                }
+                next = aout.next || next;
+            }
         }
         next.why = why;
         ctx.log && ctx.log(S.node, rule.name + '/' + rule.id, RuleState[rule.state], 'w=' + why, F(rule.node));
@@ -1124,7 +1135,7 @@ class Parser {
                     // Implicit list works only at top level
                     {
                         s: [CA], d: 0, r: S.elem,
-                        h: (_spec, rule, _ctx) => {
+                        h: (_alt, rule, _ctx) => {
                             rule.node = [rule.node];
                         },
                         g: S.imp_list
@@ -1140,7 +1151,7 @@ class Parser {
                                 VL === ctx.t0.tin) && 0 === ctx.rs.length;
                         },
                         r: S.elem,
-                        h: (_spec, rule, _ctx) => {
+                        h: (_alt, rule, _ctx) => {
                             rule.node = [rule.node];
                         },
                         g: S.imp_list
@@ -1151,9 +1162,10 @@ class Parser {
                 before_close: (rule) => {
                     // NOTE: val can be undefined when there is no value at all
                     // (eg. empty string, thus no matched opening token)
-                    rule.node = undefined === rule.child.node ?
-                        (null == rule.open[0] ? undefined : rule.open[0].val) :
-                        rule.child.node;
+                    rule.node =
+                        undefined === rule.child.node ?
+                            (null == rule.open[0] ? undefined : rule.open[0].val) :
+                            rule.child.node;
                 },
             },
             map: {

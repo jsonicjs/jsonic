@@ -244,6 +244,8 @@ declare class Rule {
     open: Token[];
     close: Token[];
     n: KV;
+    before: boolean;
+    after: boolean;
     why?: string;
     constructor(spec: RuleSpec, ctx: Context, node?: any);
     process(ctx: Context): Rule;

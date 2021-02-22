@@ -570,7 +570,7 @@ describe('jsonic', function () {
   })
 
 
-
+  /*
   // NOTE: do not use this as a template! It's silly way to do things driven
   // by code coverage.
   it('custom-parser', () => {
@@ -671,22 +671,21 @@ describe('jsonic', function () {
           }}
         ],
         close:[
-          {s:[CA],r:'add',n:{x:1},h:(rule,ctx,next)=>next},
+          {s:[CA],r:'add',n:{x:1},h:(rule,ctx,next)=>null},
           {s:[OB],e:(alt,rule,ctx)=>null},
           {s:[CB],e:(alt,rule,ctx)=>(ctx.t0.use={src:'ZED0'},ctx.t0)},
           {s:[CS,CS],e:(alt,rule,ctx)=>(ctx.t0.use={src:'BAR0'},ctx.t0)},
           {s:[OS,OS],e:(alt,rule,ctx)=>null},
-          {e:(alt,rule,ctx)=>(3===ctx.t0.val?null:(ctx.t0.use={src:'FOO0'},ctx.t0))},
+          {s:[AA],b:1}
+          //{e:(alt,rule,ctx)=>(3===ctx.t0.val?null:(ctx.t0.use={src:'FOO0'},ctx.t0))},
         ],
         before_close: (rule) => ({node:rule.node}),
-        after_close: (rule, ctx) => {
-          return {node:rule.node}
-        }
+        after_close: (rule, ctx) => ({next:rule})
       })
       return rs
     })
 
-    expect(c0('1, 2, 3,',{xlog:-1})).equal({v:6})
+    expect(c0('1, 2, 3,',{log:-1})).equal({v:6})
 
     expect(()=>c0('1, 99, 3,',{xlog:-1})).throws('JsonicError', /unexpected.*99/)
 
@@ -696,12 +695,13 @@ describe('jsonic', function () {
     expect(()=>c0('1 ] ]',{xlog:-1})).throws('JsonicError', /unexpected.*BAR0/)
     expect(c0('1 [ [',{xlog:-1})).equal({ v: 1 })
 
-    expect(()=>c0('1 2',{xlog:-1})).throws('JsonicError', /unexpected.*FOO0/)
-    expect(()=>c0('1 3',{xlog:-1})).throws('JsonicError', /unexpected/)
+    //expect(()=>c0('1 2',{xlog:-1})).throws('JsonicError', /unexpected.*FOO0/)
+    //expect(()=>c0('1 3',{xlog:-1})).throws('JsonicError', /unexpected/)
 
     expect(()=>c0('1 A',{xlog:-1})).throws('JsonicError', /unexpected.*QAZ0/)
   })
-
+  */
+  
   
   // Test against all combinations of chars up to `len`
   // NOTE: coverage tracing slows this down - a lot!

@@ -156,6 +156,7 @@ type Token = {
 
 // Current parsing context.
 type Context = {
+  // TODO: rename
   rI: number // Rule index for rule.id
   options: Options
   config: Config
@@ -1374,6 +1375,8 @@ class Rule {
   open: Token[]
   close: Token[]
   n: KV
+  before: boolean
+  after: boolean
   why?: string
 
   constructor(spec: RuleSpec, ctx: Context, node?: any) {
@@ -1386,8 +1389,9 @@ class Rule {
     this.open = []
     this.close = []
     this.n = {}
+    this.before = true
+    this.after = true
   }
-
 
   process(ctx: Context): Rule {
     return this.spec.process(this, ctx, this.state)
@@ -1469,20 +1473,27 @@ class RuleSpec {
     let before = is_open ? def.before_open : def.before_close
     let after = is_open ? def.after_open : def.after_close
 
-    let out
-    if (before) {
-      out = before.call(this, rule, ctx)
-      if (out && out.err) {
-        throw new JsonicError(out.err, {
-          ...out, state: is_open ? S.open : S.close
-        }, ctx.t0, rule, ctx)
+    let bout
+    if (rule.before && before) {
+      bout = before.call(this, rule, ctx)
+      if (bout) {
+        if (bout.err) {
+          throw new JsonicError(bout.err, {
+            ...bout, state: is_open ? S.open : S.close
+          }, ctx.t0, rule, ctx)
+        }
+        rule.node = bout.node || rule.node
       }
-      rule.node = out && out.node || rule.node
     }
 
-    let alt: Alt = (out && out.alt) ? { ...empty_alt, ...out.alt } :
+    let alt: Alt = (bout && bout.alt) ? { ...empty_alt, ...bout.alt } :
       0 < alts.length ? this.parse_alts(alts, rule, ctx) :
         empty_alt
+
+    if (alt.h) {
+      alt = alt.h(alt, rule, ctx, next) || alt
+      why += 'H'
+    }
 
     if (is_open) {
       rule.open = alt.m
@@ -1506,12 +1517,6 @@ class RuleSpec {
       }
     }
 
-    // TODO: move to last, should turn off before/after calls
-    if (alt.h) {
-      next = alt.h(this, rule, ctx, next) || next
-      why += 'H'
-    }
-
     if (alt.p) {
       ctx.rs.push(rule)
       next = rule.child = new Rule(ctx.rsm[alt.p], ctx, rule.node)
@@ -1532,9 +1537,17 @@ class RuleSpec {
       why += 'Z'
     }
 
-    // TODO: returns out like before?
-    if (after) {
-      after.call(this, rule, ctx, next)
+    let aout
+    if (rule.after && after) {
+      aout = after.call(this, rule, ctx, next)
+      if (aout) {
+        if (aout.err) {
+          throw new JsonicError(aout.err, {
+            ...bout, state: is_open ? S.open : S.close
+          }, ctx.t0, rule, ctx)
+        }
+        next = aout.next || next
+      }
     }
 
     next.why = why
@@ -1775,7 +1788,7 @@ class Parser {
 
           {
             s: [CA], d: 0, r: S.elem,
-            h: (_spec: RuleSpec, rule: Rule, _ctx: Context) => {
+            h: (_alt: Alt, rule: Rule, _ctx: Context) => {
               rule.node = [rule.node]
             },
             g: S.imp_list
@@ -1793,7 +1806,7 @@ class Parser {
               ) && 0 === ctx.rs.length
             },
             r: S.elem,
-            h: (_spec: RuleSpec, rule: Rule, _ctx: Context) => {
+            h: (_alt: Alt, rule: Rule, _ctx: Context) => {
               rule.node = [rule.node]
             },
             g: S.imp_list
@@ -1806,9 +1819,10 @@ class Parser {
         before_close: (rule: Rule) => {
           // NOTE: val can be undefined when there is no value at all
           // (eg. empty string, thus no matched opening token)
-          rule.node = undefined === rule.child.node ?
-            (null == rule.open[0] ? undefined : rule.open[0].val) :
-            rule.child.node
+          rule.node =
+            undefined === rule.child.node ?
+              (null == rule.open[0] ? undefined : rule.open[0].val) :
+              rule.child.node
         },
       },
 

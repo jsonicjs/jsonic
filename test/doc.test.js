@@ -133,7 +133,6 @@ describe('docs', function () {
   })
 
 
-  /*
   it('method-rule', () => {
     let jsonic = Jsonic.make()
     expect(Object.keys(jsonic.rule())).equals(['val', 'map', 'list', 'pair', 'elem'])
@@ -143,14 +142,12 @@ describe('docs', function () {
     let ST = jsonic.token.ST
     jsonic.rule('val', (rule)=>{
       rule.def.open.unshift({s:[ST,ST], h:(rulespec,rule,ctx)=>{
-        //rule.node = 'S:'+ctx.t0.src+ctx.t1.src
-        rule.node = 'S:'+rule.open[0].val+rule.open[1].val
+        rule.node = ctx.t0.val+ctx.t1.val
       }})
     })
 
     console.log(jsonic('"a" "b"', {log:-1}))
   })
-  */
 })
 
 
