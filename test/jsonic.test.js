@@ -16,7 +16,7 @@ const expect = Code.expect
 
 const I = Util.inspect
 
-const { Jsonic, Lexer } = require('..')
+const { Jsonic, Lexer, Rule, RuleSpec } = require('..')
 const Exhaust = require('./exhaust')
 const JsonStandard = require('./json-standard')
 
@@ -528,16 +528,6 @@ describe('jsonic', function () {
   })
 
 
-  /*
-  it('rule', () => {
-    let r0 = new j.Rule({},{},{})
-    r0.state=-1
-    let rr = r0.process({})
-    // console.log(rr)
-    expect(rr).equal({ id: 0, spec: { name: 'norule' }, why: 'O' })
-  })
-  */
-
   it('rule-spec', () => {
     let rs0 = new j.RuleSpec({})
     expect(rs0.name).equal('-')
@@ -591,6 +581,290 @@ describe('jsonic', function () {
     expect(s0).not.equal(s2)
     expect(s1).not.equal(s2)
   })
+
+
+  it('custom-parser-empty', () => {
+    expect(Jsonic('a:1')).equals({a:1})
+
+    let j = make_empty()
+    expect(Object.keys(j.rule())).equal([])
+    expect(j('a:1')).equals(undefined)
+  })
+
+
+  it('custom-parser-handler-actives', () => {
+    let b = ''
+    let j = make_empty({rule:{start:'top'}})
+
+    let AA = j.token.AA
+    j.rule('top', () => {
+      return new RuleSpec({
+        open: [
+          {
+            s:[AA,AA],
+            h: (alt,rule) => {
+              // No effect: rule.before_open_active - already called at this point.
+              // rule.before_open_active = false
+              rule.after_open_active = false
+              rule.before_close_active = false
+              rule.after_close_active = false
+              rule.node = 1111
+              return alt
+            }
+          }
+        ],
+        close:[
+          {s:[AA,AA]}
+        ],
+        before_open: ()=>(b+='bo;'),
+        after_open: ()=>(b+='ao;'),
+        before_close: ()=>(b+='bc;'),
+        after_close: ()=>(b+='ac;'),
+      })
+    })
+
+    expect(j('a b c d e f')).equal(1111)
+    expect(b).equal('bo;') // h: is too late to avoid before_open
+  })
+
+
+  it('custom-parser-rulespec-actives', () => {
+    let b = ''
+    let j = make_empty({rule:{start:'top'}})
+
+    let AA = j.token.AA
+    j.rule('top', () => {
+      let rs = new RuleSpec({
+        open: [{s:[AA,AA]}],
+        close:[{s:[AA,AA], h:(alt,rule)=>(rule.node=2222, alt)}],
+        before_open: ()=>(b+='bo;'),
+        after_open: ()=>(b+='ao;'),
+        before_close: ()=>(b+='bc;'),
+        after_close: ()=>(b+='ac;'),
+
+      })
+      rs.before_open_active = false
+      rs.after_open_active = false
+      rs.before_close_active = false
+      rs.after_close_active = false
+      return rs
+    })
+
+    
+    //console.log(j('a:1',{xlog:-1}))
+    expect(j('a b c d e f')).equal(2222)
+    expect(b).equal('')
+  })
+
+
+  it('custom-parser-action-errors', () => {
+    let b = ''
+    let j = make_empty({rule:{start:'top'}})
+
+    let AA = j.token.AA
+
+    let rsdef = {
+      open: [{s:[AA,AA]}],
+      close:[{s:[AA,AA]}],
+    }
+
+
+    j.rule('top', () => {
+      let rs = new RuleSpec({
+        ...rsdef,
+        before_open: ()=>({err:'unexpected', src:'BO'}),
+      })
+      return rs
+    })
+    expect(()=>j('a')).throws('JsonicError', /unexpected.*BO/)
+    
+    j.rule('top', () => {
+      let rs = new RuleSpec({
+        ...rsdef,
+        after_open: ()=>({err:'unexpected', src:'AO'}),
+      })
+      return rs
+    })
+    expect(()=>j('a')).throws('JsonicError', /unexpected.*AO/)
+
+    j.rule('top', () => {
+      let rs = new RuleSpec({
+        ...rsdef,
+        before_close: ()=>({err:'unexpected', src:'BC'}),
+      })
+      return rs
+    })
+    expect(()=>j('a')).throws('JsonicError', /unexpected.*BC/)
+
+    j.rule('top', () => {
+      let rs = new RuleSpec({
+        ...rsdef,
+        after_close: ()=>({err:'unexpected', src:'AC'}),
+      })
+      return rs
+    })
+    expect(()=>j('a')).throws('JsonicError', /unexpected.*AC/)
+  })
+
+
+  it('custom-parser-before-node', () => {
+    let b = ''
+    let j = make_empty({rule:{start:'top'}})
+
+    let AA = j.token.AA
+
+    let rsdef = {
+      open: [{s:[AA,AA]}],
+      close:[{s:[AA,AA]}],
+    }
+
+
+    j.rule('top', () => {
+      let rs = new RuleSpec({
+        ...rsdef,
+        before_open: ()=>({node:'BO'}),
+      })
+      return rs
+    })
+    expect(j('a')).equals('BO')
+
+    j.rule('top', () => {
+      let rs = new RuleSpec({
+        ...rsdef,
+        before_close: ()=>({node:'BC'}),
+      })
+      return rs
+    })
+    expect(j('a')).equals('BC')
+
+  })
+
+
+  it('custom-parser-before-alt', () => {
+    let b = ''
+    let j = make_empty({rule:{start:'top'}})
+
+    let AA = j.token.AA
+
+    j.rule('top', () => {
+      let rs = new RuleSpec({
+        before_open: ()=>({alt:{m:[{val:'WW'}],test$:1}}),
+        after_close: (rule,ctx)=>{
+          rule.node=rule.open[0].val
+        }
+      })
+      return rs
+    })
+    expect(j('a')).equals('WW')
+
+    j.rule('top', () => {
+      let rs = new RuleSpec({
+        before_close: ()=>({alt:{m:[{val:'YY'}],test$:1}}),
+        after_close: (rule,ctx)=>{
+          rule.node=rule.close[0].val
+        }
+      })
+      return rs
+    })
+    expect(j('a')).equals('YY')
+
+  })
+
+
+  it('custom-parser-after-next', () => {
+    let b = ''
+    let j = make_empty({rule:{start:'top'}})
+
+    let AA = j.token.AA
+
+    j.rule('top', () => {
+      let rs = new RuleSpec({
+        open: [{s:[AA,AA]}],
+        before_open: (rule)=>(rule.node=[]),
+        after_open: (rule,ctx)=>({
+          next: 'a' === ctx.t0.val ? new Rule(ctx.rsm.foo, ctx, rule.node) : null
+        }),
+      })
+      return rs
+    })
+    j.rule('foo', () => {
+      return new RuleSpec({
+        open: [{s:[AA]}],
+        after_close: (rule)=>{
+          rule.node[0] = 3333
+        },
+      })
+    })
+
+
+    expect(j('a')).equals([3333])
+    expect(j('b')).equals([])
+
+  })
+
+
+  it('custom-parser-empty-seq', () => {
+    let b = ''
+    let j = make_empty({rule:{start:'top'}})
+
+    let AA = j.token.AA
+
+    j.rule('top', () => {
+      return new RuleSpec({
+        open: [{s:[]}],
+        close: [{s:[AA]}],
+        before_open: (rule)=>(rule.node=4444),
+      })
+    })
+
+    expect(j('a')).equals(4444)
+  })
+
+
+  it('custom-parser-any-def', () => {
+    let b = ''
+    let j = make_empty({rule:{start:'top'}})
+
+    let AA = j.token.AA
+    let TX = j.token.TX
+
+    j.rule('top', () => {
+      return new RuleSpec({
+        open: [{s:[AA,TX]}],
+        after_close: (rule)=>{
+          rule.node = rule.open[0].val+rule.open[1].val
+        }
+      })
+    })
+
+    expect(j('a\nb')).equals('ab')
+    expect(()=>j('AAA,')).throws('JsonicError', /unexpected.*AAA/)
+  })
+
+
+  it('custom-parser-token-error-why', () => {
+    let b = ''
+    let j = make_empty({rule:{start:'top'}})
+
+    let AA = j.token.AA
+
+    j.rule('top', () => {
+      return new RuleSpec({
+        open: [{s:[AA]}],
+        close: [{s:[AA]}],
+        after_close: (rule)=>{
+          return {
+            err:'unexpected',
+            src:'AAA'
+          }
+        }
+      })
+    })
+
+    expect(()=>j('a')).throws('JsonicError',/unexpected.*AAA/)
+  })
+
+  
   
   /*
   // NOTE: do not use this as a template! It's silly way to do things driven
@@ -753,3 +1027,11 @@ describe('jsonic', function () {
   })
 
 })
+
+
+function make_empty(opts) {
+  let j = Jsonic.make(opts)
+  let rns = j.rule()
+  Object.keys(rns).map(rn=>j.rule(rn,null))
+  return j
+}

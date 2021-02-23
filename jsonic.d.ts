@@ -93,6 +93,7 @@ declare type Options = {
         true;
     };
     rule: {
+        start: string;
         finish: boolean;
         maxmul: number;
     };
@@ -267,6 +268,10 @@ declare class Alt {
 declare class RuleSpec {
     name: string;
     def: any;
+    before_open_active: boolean;
+    after_open_active: boolean;
+    before_close_active: boolean;
+    after_close_active: boolean;
     constructor(def: any);
     process(rule: Rule, ctx: Context, state: RuleState): Rule;
     parse_alts(alts: any[], rule: Rule, ctx: Context): Alt;

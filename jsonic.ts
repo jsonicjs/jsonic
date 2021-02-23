@@ -8,7 +8,7 @@
 // TODO: plugin for path expr: a.b:1 -> {a:{b:1}}
 // TODO: data file to diff exhaust changes
 // TODO: cli - less ambiguous merging at top level
-// RODO: options - should it return full options if no arg?
+// TODO: internal errors - e.g. adding a null rulespec
 
 
 // The main utility function and default export. Just import/require and go!
@@ -123,6 +123,7 @@ type Options = {
     true             // Non-char token (eg. ZZ)
   }
   rule: {
+    start: string,
     finish: boolean,
     maxmul: number,
   },
@@ -247,7 +248,7 @@ const S = {
   parse: 'parse',
   block_indent_: 'block_indent_',
   error: 'error',
-  norule: 'norule',
+  none: 'none',
   END_OF_SOURCE: 'END_OF_SOURCE',
   imp_map: 'imp,map',
   imp_list: 'imp,list',
@@ -428,6 +429,11 @@ function make_default_options(): Options {
     hint: make_hint,
 
 
+    // Token definitions:
+    // { c: 'X' }: single character
+    // 'XY': multiple characters
+    // true: non-character tokens
+    // '#X,#Y': token set
     token: {
       // Single char tokens.
       '#OB': { c: '{' }, // OPEN BRACE
@@ -459,8 +465,12 @@ function make_default_options(): Options {
       '#IGNORE': { s: '#SP,#LN,#CM' },
     },
 
+
     // Parser rule options.
     rule: {
+
+      // Name of the starting rule.
+      start: 'val',
 
       // Automatically close remaining structures at EOF.
       finish: true,
@@ -470,7 +480,10 @@ function make_default_options(): Options {
     },
 
 
+    // Configuration options.
     config: {
+
+      // Configuration modifiers.
       modify: {}
     },
 
@@ -1396,14 +1409,14 @@ class Rule {
     this.spec = spec
     this.node = node
     this.state = RuleState.open
-    this.child = NO_RULE
+    this.child = NONE
     this.open = []
     this.close = []
     this.n = {}
-    this.before_open_active = true
-    this.after_open_active = true
-    this.before_close_active = true
-    this.after_close_active = true
+    this.before_open_active = false === spec.before_open_active ? false : true
+    this.after_open_active = false === spec.after_open_active ? false : true
+    this.before_close_active = false === spec.before_close_active ? false : true
+    this.after_close_active = false === spec.after_close_active ? false : true
   }
 
   process(ctx: Context): Rule {
@@ -1412,7 +1425,7 @@ class Rule {
 }
 
 
-const NO_RULE = ({ id: 0, spec: { name: S.norule } } as Rule)
+const NONE = ({ name: S.none, state: 0 } as Rule)
 
 class Alt {
   m: Token[] = []
@@ -1441,6 +1454,10 @@ type RuleDef = {
 class RuleSpec {
   name: string = '-'
   def: any
+  before_open_active: boolean = true
+  after_open_active: boolean = true
+  before_close_active: boolean = true
+  after_close_active: boolean = true
 
   constructor(def: any) {
     this.def = def
@@ -1478,15 +1495,17 @@ class RuleSpec {
     let F = ctx.F
 
     let is_open = state === RuleState.open
-    let next = is_open ? rule : NO_RULE
+    let next = is_open ? rule : NONE
 
     let def: RuleDef = this.def
 
+    // Match alternates for current state.
     let alts = (is_open ? def.open : def.close) as Alt[]
+
+    // Handle "before" call.
     let before = is_open ?
       (rule.before_open_active && def.before_open) :
       (rule.before_close_active && def.before_close)
-    let after = is_open ? def.after_open : def.after_close
 
     let bout
     if (before) {
@@ -1501,15 +1520,22 @@ class RuleSpec {
       }
     }
 
+    //console.log('BOUT', bout, bout && { ...empty_alt, ...bout.alt })
+
+    // Attempt to match one of the alts.
     let alt: Alt = (bout && bout.alt) ? { ...empty_alt, ...bout.alt } :
       0 < alts.length ? this.parse_alts(alts, rule, ctx) :
         empty_alt
 
+    //console.log('ALT', alt)
+
+    // Custom alt handler.
     if (alt.h) {
       alt = alt.h(alt, rule, ctx, next) || alt
       why += 'H'
     }
 
+    // Expose match to handlers.
     if (is_open) {
       rule.open = alt.m
     }
@@ -1517,6 +1543,7 @@ class RuleSpec {
       rule.close = alt.m
     }
 
+    // Unconditional error.
     if (alt.e) {
       throw new JsonicError(
         S.unexpected,
@@ -1524,6 +1551,7 @@ class RuleSpec {
         alt.e, rule, ctx)
     }
 
+    // Update counters.
     if (alt.n) {
       for (let cn in alt.n) {
         rule.n[cn] =
@@ -1532,6 +1560,7 @@ class RuleSpec {
       }
     }
 
+    // Push a new rule onto the stack.
     if (alt.p) {
       ctx.rs.push(rule)
       next = rule.child = new Rule(ctx.rsm[alt.p], ctx, rule.node)
@@ -1539,26 +1568,35 @@ class RuleSpec {
       next.n = { ...rule.n }
       why += 'U'
     }
+
+    // Replace with a new rule.
     else if (alt.r) {
       next = new Rule(ctx.rsm[alt.r], ctx, rule.node)
       next.parent = rule.parent
       next.n = { ...rule.n }
       why += 'R'
     }
+
+    // Pop closed rule off stack.
     else {
       if (!is_open) {
-        next = ctx.rs.pop() || NO_RULE
+        next = ctx.rs.pop() || NONE
       }
       why += 'Z'
     }
 
-    let aout
+    // Handle "after" call.
+    let after = is_open ?
+      (rule.after_open_active && def.after_open) :
+      (rule.after_close_active && def.after_close)
+
     if (after) {
-      aout = after.call(this, rule, ctx, next)
+      let aout = after.call(this, rule, ctx, next)
       if (aout) {
         if (aout.err) {
+          ctx.t0.why = why
           throw new JsonicError(aout.err, {
-            ...bout, state: is_open ? S.open : S.close
+            ...aout, state: is_open ? S.open : S.close
           }, ctx.t0, rule, ctx)
         }
         next = aout.next || next
@@ -1591,7 +1629,7 @@ class RuleSpec {
   }
 
 
-  // TODO: merge into process
+  // TODO: merge into process - maybe?
   // First match wins.
   parse_alts(alts: any[], rule: Rule, ctx: Context): Alt {
     let out = palt
@@ -1603,17 +1641,10 @@ class RuleSpec {
     out.h = undefined   // Custom handler function.
     out.e = undefined   // Error token.
 
-    //let out = new RuleAct()
-
     let alt
     let altI = 0
     let t = ctx.config.token
     let cond
-
-    // End token not yet reached...
-    //if (t.ZZ !== ctx.t0.tin) {
-
-    //out.e = ctx.t0
 
     for (altI = 0; altI < alts.length; altI++) {
       alt = alts[altI]
@@ -1633,32 +1664,23 @@ class RuleSpec {
             .reverse()))
 
       if (cond) {
+        out.e = alt.e && alt.e(alt, rule, ctx) || undefined
 
         // No tokens to match.
         if (null == alt.s || 0 === alt.s.length) {
-          out.e = alt.e && alt.e(alt, rule, ctx) || undefined
           break
         }
 
         // Match 1 or 2 tokens in sequence.
-        else if (alt.s[0] === ctx.t0.tin) {
+        else if (alt.s[0] === ctx.t0.tin || alt.s[0] === t.AA) {
           if (1 === alt.s.length) {
             out.m = [ctx.t0]
-            out.e = alt.e && alt.e(alt, rule, ctx) || undefined
             break
           }
-          else if (alt.s[1] === ctx.t1.tin) {
+          else if (alt.s[1] === ctx.t1.tin || alt.s[1] === t.AA) {
             out.m = [ctx.t0, ctx.t1]
-            out.e = alt.e && alt.e(alt, rule, ctx) || undefined
             break
           }
-        }
-
-        // Match any token.
-        else if (t.AA === alt.s[0]) {
-          out.m = [ctx.t0]
-          out.e = alt.e && alt.e(alt, rule, ctx) || undefined
-          break
         }
       }
 
@@ -1694,18 +1716,6 @@ class RuleSpec {
       'c:' + ((alt && alt.c) ? cond : MT),
       'n:' + Object.entries(rule.n).join(';'),
       out)
-
-
-    /*
-    // TODO: should happen and end of open/close functions !!!
-    // need ctx.t0 and ctx.t0 to reflect match!
-    // Lex forward
-    let mI = 0
-    let rewind = out.m.length - (out.b || 0)
-    while (mI++ < rewind) {
-      ctx.next()
-    }
-    */
 
     return out
   }
@@ -2031,7 +2041,7 @@ class Parser {
       src: () => src, // Avoid printing src
       root: () => root.node,
       plugins: () => jsonic.internal().plugins,
-      rule: NO_RULE,
+      rule: NONE,
       node: undefined,
       lex: -1,
       u2: lexer.end,
@@ -2056,7 +2066,14 @@ class Parser {
     let tn = (pin: Tin): string => util.token(pin, this.config)
     let lex: Lex =
       util.wrap_bad_lex(lexer.start(ctx), util.token('#BD', this.config), ctx)
-    let rule = new Rule(this.rsm.val, ctx)
+    let startspec = this.rsm[options.rule.start]
+
+    // The starting rule is always 'val'
+    if (null == startspec) {
+      return undefined
+    }
+
+    let rule = new Rule(startspec, ctx)
 
     root = rule
 
@@ -2093,7 +2110,7 @@ class Parser {
 
     // This loop is the heart of the engine. Keep processing rule
     // occurrences until there's none left.
-    while (NO_RULE !== rule && rI < maxr) {
+    while (NONE !== rule && rI < maxr) {
       ctx.log &&
         ctx.log('rule', rule.name + '/' + rule.id, RuleState[rule.state],
           ctx.rs.length, ctx.tI, '[' + tn(ctx.t0.tin) + ' ' + tn(ctx.t1.tin) + ']',
@@ -2111,7 +2128,7 @@ class Parser {
 
     // TODO: option for this
     if (util.token('#ZZ', this.config) !== ctx.t0.tin) {
-      throw new JsonicError(S.unexpected, {}, ctx.t0, NO_RULE, ctx)
+      throw new JsonicError(S.unexpected, {}, ctx.t0, NONE, ctx)
     }
 
     // NOTE: by returning root, we get implicit closing of maps and lists.
@@ -2406,7 +2423,7 @@ let util = {
                 src: () => src,
                 root: () => undefined,
                 plugins: () => jsonic.internal().plugins,
-                rule: NO_RULE,
+                rule: NONE,
                 node: undefined,
                 lex: -1,
                 u2: token,
@@ -2468,6 +2485,7 @@ let util = {
       '  \x1b[2mhttps://jsonic.richardrodger.com\x1b[0m',
       '  \x1b[2m--internal: rule=' + rule.name + '~' + RuleState[rule.state] +
       '; token=' + ctx.config.token[token.tin] +
+      (null == token.why ? '' : ('~' + token.why)) +
       '; plugins=' + ctx.plugins().map((p: any) => p.name).join(',') + '--\x1b[0m\n'
     ].join('\n')
 
@@ -2637,8 +2655,8 @@ let util = {
 
     // Apply any config modifiers (probably from plugins).
     Object.keys(options.config.modify)
-      .forEach((plugin_name: string) =>
-        options.config.modify[plugin_name](config, options))
+      .forEach((modifer: string) =>
+        options.config.modify[modifer](config, options))
 
 
     // Debug the config - useful for plugin authors.
