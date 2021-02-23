@@ -42,6 +42,10 @@ type JsonicAPI = {
   { [ref: number]: string } &
   (<A extends string | Tin, B extends string | Tin>(ref: A)
     => A extends string ? B : string)
+
+  id: string
+
+  toString: () => string
 }
 
 
@@ -62,6 +66,7 @@ type Tin = number
 
 // Parsing options. See defaults for commentary.
 type Options = {
+  tag: string
   line: {
     lex: boolean
     row: string
@@ -256,6 +261,9 @@ const S = {
 function make_default_options(): Options {
 
   let options: Options = {
+
+    // Default tag - set your own! 
+    tag: '-',
 
     // Line lexing.
     line: {
@@ -2716,6 +2724,15 @@ function make(param_options?: KV, parent?: Jsonic): Jsonic {
     make: function(options?: Options) {
       return make(options, jsonic)
     },
+
+    id: 'Jsonic/' +
+      Date.now() + '/' +
+      ('' + Math.random()).substring(2, 8).padEnd(6, '0') + '/' +
+      options.tag,
+
+    toString: function() {
+      return this.id
+    }
   }
 
 

@@ -16,19 +16,25 @@ new <name-self/> instance with `Jsonic.make()`.
 
 Some plugins may decorate the main `Jsonic` object with additional methods.
 
-* [`Jsonic`](#jsonic-just-parse-already)
-* [`make`](#make-create-a-new-customizable-jsonic-instance)
-* [`options`](#options-get-and-set-options-for-a-jsonic-instance)
-* [`use`](#use-register-a-plugin)
-* [`rule`](#rule-define-or-modify-a-parser-rule)
-* [`lex`](#lex-define-a-lex-matcher)
-* [`token`](#token-resolve-a-token-by-name-or-index)
+* :strawberry: :pear: [`Jsonic`](#jsonic-just-parse-already)
+* &nbsp;&nbsp;&nbsp;&nbsp; :pear: [`id`](#id-unique-instance-identifier)
+* :strawberry: &nbsp;&nbsp;&nbsp;&nbsp; [`toString`](#tostring-string-description-of-the-jsonic-instance)
+* :strawberry: &nbsp;&nbsp;&nbsp;&nbsp; [`make`](#make-create-a-new-customizable-jsonic-instance)
+* :strawberry: :pear: [`options`](#options-get-and-set-options-for-a-jsonic-instance)
+* :strawberry: &nbsp;&nbsp;&nbsp;&nbsp; [`use`](#use-register-a-plugin)
+* :strawberry: &nbsp;&nbsp;&nbsp;&nbsp; [`rule`](#rule-define-or-modify-a-parser-rule)
+* :strawberry: &nbsp;&nbsp;&nbsp;&nbsp; [`lex`](#lex-define-a-lex-matcher)
+* :strawberry: :pear: [`token`](#token-resolve-a-token-by-name-or-index)
+
+<small>
+(🍓 method, 🍐 property or set of properties)
+</small>
 
 
-
+<br><br>
 ## Methods
 
-### `Jsonic`: Just parse already!
+### :strawberry: :pear: `Jsonic`: Just parse already!
 
 `Jsonic(source: string, meta?: object): any`
 
@@ -37,7 +43,7 @@ _Returns_: `any` Object (or value) containing the parsed JSON data.
 * `source: string` _<small>required</small>_ : The JSON source text to parse.
 * `meta?: object` _<small>optional</small>_ : Provide meta data for this parse.
 
-#### Example
+#### :thumbsup: Example
 
 ```js
 let earth = Jsonic('name: Terra, moons: [{name: Luna}]')
@@ -57,7 +63,7 @@ The `earth` variable now contains the following data:
 }
 ```
 
-#### Example: using the `meta` parameter
+#### :thumbsup: Example: using the `meta` parameter
 
 ```js
 let one = Jsonic('1', {log:-1}) // one === 1
@@ -85,8 +91,49 @@ Apart from `log`, the meta object contains plugin-specific
 parameters. See your friendly neighbourhood plugin documentation for
 more.
 
+<br>
+---
+### :pear: `id`: Unique instance identifier
 
-### `make`: Create a new customizable Jsonic instance.
+`.id: string`
+
+It's useful to be able to identify unique instances when you're debugging.
+
+Use the `tag` option to set a custom tag for the instance.
+
+
+#### :thumbsup: Example
+
+```js
+// format: Jsonic/<Date.now()>/<Math.random()[2:8]>/<options.tag>
+Jsonic.id // === 'Jsonic/1614085850042/022636/-'
+Jsonic.make({tag:'foo'}).id // === 'Jsonic/1614085851902/375149/foo'
+```
+
+
+<br>
+---
+### :strawberry: `toString`: String description of the Jsonic instance
+
+`.toString(): string`
+
+Returns the value of the `.id` property as the string description of
+the instance.
+
+
+#### :thumbsup: Example
+
+```js
+// format: Jsonic/<Date.now()>/<Math.random()[2:8]>/<options.tag>
+''+Jsonic // === 'Jsonic/1614085850042/022636/-'
+''+(Jsonic.make({tag:'foo'})) // === 'Jsonic/1614085851902/375149/foo'
+```
+
+
+
+<br>
+---
+### :strawberry: `make`: Create a new customizable Jsonic instance.
 
 `.make(options?: object): Jsonic`
 
@@ -95,7 +142,7 @@ _Returns_: `Jsonic` A new Jsonic instance that can be modified.
 * `options?: object` _<small>optional</small>_ : Partial options tree.
 
 
-#### Example
+#### :thumbsup: Example
 
 ```js
 let array_of_numbers = Jsonic('1,2,3') 
@@ -114,7 +161,7 @@ another new instance that inherits the configuration of its parent and
 can itself be independently customized. Which is what you want.
 
 
-#### Example: child instances inherit from parent instances
+#### :thumbsup: Example: child instances inherit from parent instances
 
 ```js
 let no_numbers_please = Jsonic.make({number: {lex: false}})
@@ -128,11 +175,11 @@ pipe_separated('1,2,3') // === '1,2,3' !!!
 To understand how the `token` option works, and all the other
 options, see the [Options](/ref/options/) section.
 
-# TODO: toString ids
 
 
-
-### `options`: Get and set options for a Jsonic instance.
+<br>
+---
+### :strawberry: :pear: `options`: Get and set options for a Jsonic instance.
 
 `.options(options: object): object`
 
@@ -141,7 +188,7 @@ _Returns_: `object` merged object containing the full option tree
 * `options: object` _<small>required</small>_ : Partial options tree.
 
 
-#### Example
+#### :thumbsup: Example
 
 ```js
 
@@ -166,7 +213,9 @@ Jsonic(`
 
 
 
-### `use`: Register a plugin.
+<br>
+---
+### :strawberry: `use`: Register a plugin.
 
 `.use(plugin: function, plugin_options?: object): Jsonic`
 
@@ -176,7 +225,7 @@ _Returns_: Jsonic instance (this allows chaining)
   * `(jsonic: Jsonic) => Jsonic`
 * `plugin_options?: object` _<small>optional</small>_ : Plugin-specific options
 
-#### Example
+#### :thumbsup: Example
 
 ```js
 let jsonic = Jsonic.make().use(function piper(jsonic) {
@@ -190,7 +239,7 @@ a first parameter, and then changes the options and parsing rules of
 that instance. For more, see the [plugin writing guide](/guide/write-a-plugin).
 
 
-#### Example: plugin options
+#### :thumbsup: Example: plugin options
 
 ```js
 function sepper(jsonic) {
@@ -210,7 +259,7 @@ Notice that you can refer to options directly as properties of the
 `.options` method, as a convenience.
 
 
-#### Example: plugin chaining
+#### :thumbsup: Example: plugin chaining
 
 When defining a custom <name-self /> instance, you'll probably be registering
 multiple plugins. The `.use` method can be chained to make this easier.
@@ -235,7 +284,9 @@ let jsonic = Jsonic.make()
 
 
 
-### `rule`: Define or modify a parser rule.
+<br>
+---
+### :strawberry: `rule`: Define or modify a parser rule.
 
 `.rule(name?: string, define?: function): RuleSpec`
 
@@ -245,21 +296,33 @@ _Returns_: `RuleSpec` Rule specification
 * `define?: function` _<small>optional</small>_ : Rule definition function
   * `(rs: RuleSpec, rsm: RuleSpecMap) => RuleSpec` 
 
+The `.rule` method (and the `.lex` and `.token`) methods ar intended
+mostly for use inside plugin definitions. They allow you to modify the way that
+<name-self/> works.
 
-# Example
+The `.rule` method takes the name of a rule and if it exists, provides
+the rule specification as first parameter to the rule definition
+function. If the rule does not exist, you can create a new rule
+specification and return that to define a new rule.
+
+The details of rule definition are covered in the [Plugins](/plugins/)
+section.
+
+
+#### :thumbsup: Example
 
 ```js
-let ruler = Jsonic.make()
+let concat = Jsonic.make()
 
 // Get all the rules
-Object.keys(ruler.rule()) // === ['val', 'map', 'list', 'pair', 'elem']
+Object.keys(concat.rule()) // === ['val', 'map', 'list', 'pair', 'elem']
 
 // Get a rule by name
 let val_rule = jsonic.rule('val') // val_rule.name === 'val'
 
 // Modify a rule 
-let ST = ruler.token.ST
-ruler.rule('val',(rule)=>{
+let ST = concat.token.ST
+concat.rule('val',(rule)=>{
   // Concatentate strings (ST) instead of forming array elements
   rule.def.open.unshift({s:[ST,ST], h:(alt,rule,ctx)=>{
     rule.node = ctx.t0.val + ctx.t1.val
@@ -268,16 +331,16 @@ ruler.rule('val',(rule)=>{
   }})
 })
 
-ruler('"a" "b"') // === 'ab'
+concat('"a" "b"') // === 'ab'
 Jsonic('"a" "b"') // === ['a', 'b']
 
 // Create a new rule (for a new token)
-ruler.options({
+concat.options({
   token: { '#HH': {c:'%'} }
 })
 
-let HH = ruler.token.HH
-ruler.rule('hundred', ()=>{
+let HH = concat.token.HH
+concat.rule('hundred', ()=>{
   return new RuleSpec({
     after_open: (rule)=>{
       // % always becomes the value 100
@@ -285,16 +348,18 @@ ruler.rule('hundred', ()=>{
     }
   })
 })
-ruler.rule('val', (rulespec)=>{
+concat.rule('val', (rulespec)=>{
   rulespec.def.open.unshift({s:[HH], p:'hundred'})
 })
 
-ruler('{x:1, y:%}') // === {x:1, y:100}
+concat('{x:1, y:%}') // === {x:1, y:100}
 ```
 
 
 
-### `lex`: Define a lex matcher.
+<br>
+---
+### :strawberry: `lex`: Define a lex matcher.
 
 `.lex(state?: Tin, match?: function): LexMatcher[]`
 
@@ -305,9 +370,51 @@ _Returns_: `LexMatcher[]` Ordered list of lex matchers for this lex state.
   * `(state: LexMatcherState) => LexMatcherResult`
 
 
+The `.lex` method (like the `.rule` and `.token` methods) allows you
+to change the way that <name-self /> works. The `.lex` method attaches
+a matcher function to a given lex state. This matcher has the
+opportunity to examine the current source text position and generate a
+token, or pass lexing over to the standard machinery.
+
+The <name-self /> is state based, although most of the normal lexing
+happens in the top lex state (LTP).
+
+For more about lex matchers, see the [Plugins](/plugins/) section.
 
 
-### `token`: Resolve a token by name or index.
+#### :thumbsup: Example
+
+```js
+let tens = Jsonic.make()
+let VL = tens.token.VL
+let LTP = tens.token.LTP
+
+// Match characters in the top lex state (LTP)
+tens.lex(LTP, function tens_matcher(state) {
+
+  // % -> 10, %% -> 20, %%% -> 30, etc.
+  let marks = state.src.substring(state.sI).match(/^%+/)
+  if(marks) {
+    let len = marks[0].length
+    state.token.tin = VL
+    state.token.val = 10 * len
+
+    // Update lexer position and column
+    return {
+      sI: state.sI + len,
+      cI: state.cI + len
+    }
+  }
+})
+
+tens('a:1,b:%%,c:[%%%%]') // === {a:1, b:20, c:[40]}
+```
+
+
+
+<br>
+---
+### :strawberry: :pear: `token`: Resolve a token by name or index.
 
 `.token(ref: Tin | string): string | Tin`
 
@@ -316,3 +423,21 @@ _Returns_: `string | Tin` Token identifier or token name (opposite of `ref` type
 * `ref: Tin | string` _<small>required</small>_ : Token identifier number or name
 
 
+The `.token` method lets you get the unique token identification
+number (`Tin`) of a named token in the current `Jsonic` instance, or
+lookup the name of a token by its `Tin`.
+
+As lexer states must also be unique, they are generated as
+pseudo-tokens using the same index of tokens. While child `Jsonic`
+instances (generated with `.make`) will inherit the index of their
+parents, in general token identification is usable only for a specific
+`Jsonic` instance.
+
+
+#### :thumbsup: Example
+
+```js
+Jsonic.token.ST // === 11, String token identification number
+Jsonic.token(11) // === '#ST', String token name
+Jsonic.token('#ST') // === 11, String token name
+```

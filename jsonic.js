@@ -36,6 +36,8 @@ const S = {
 };
 function make_default_options() {
     let options = {
+        // Default tag - set your own! 
+        tag: '-',
         // Line lexing.
         line: {
             // Recognize lines in the Lexer.
@@ -1820,6 +1822,13 @@ function make(param_options, parent) {
         make: function (options) {
             return make(options, jsonic);
         },
+        id: 'Jsonic/' +
+            Date.now() + '/' +
+            ('' + Math.random()).substring(2, 8).padEnd(6, '0') + '/' +
+            options.tag,
+        toString: function () {
+            return this.id;
+        }
     };
     // Has to be done indirectly as we are in a fuction named `make`.
     Object.defineProperty(api.make, 'name', { value: 'make' });

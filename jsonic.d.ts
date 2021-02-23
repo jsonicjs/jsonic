@@ -11,6 +11,8 @@ declare type JsonicAPI = {
     } & {
         [ref: number]: string;
     } & (<A extends string | Tin, B extends string | Tin>(ref: A) => A extends string ? B : string);
+    id: string;
+    toString: () => string;
 };
 declare type Jsonic = Jsonicer & // A function that parses.
 JsonicAPI & // A utility with API methods.
@@ -22,6 +24,7 @@ declare type KV = {
 };
 declare type Tin = number;
 declare type Options = {
+    tag: string;
     line: {
         lex: boolean;
         row: string;

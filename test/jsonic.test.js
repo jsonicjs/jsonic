@@ -570,6 +570,28 @@ describe('jsonic', function () {
   })
 
 
+  it('id-string', function(){
+    let s0 = ''+Jsonic
+    expect(s0).match(/Jsonic.*-/)
+    expect(''+Jsonic).equal(s0)
+    expect(''+Jsonic).equal(''+Jsonic)
+
+    let j1 = Jsonic.make()
+    let s1 = ''+j1
+    expect(s1).match(/Jsonic.*-/)
+    expect(''+j1).equal(s1)
+    expect(''+j1).equal(''+j1)
+    expect(s0).not.equal(s1)
+
+    let j2 = Jsonic.make({tag:'foo'})
+    let s2 = ''+j2
+    expect(s2).match(/Jsonic.*foo/)
+    expect(''+j2).equal(s2)
+    expect(''+j2).equal(''+j2)
+    expect(s0).not.equal(s2)
+    expect(s1).not.equal(s2)
+  })
+  
   /*
   // NOTE: do not use this as a template! It's silly way to do things driven
   // by code coverage.

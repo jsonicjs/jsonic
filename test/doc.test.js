@@ -138,13 +138,13 @@ describe('docs', function () {
 
 
   it('method-rule', () => {
-    let ruler = Jsonic.make()
-    expect(Object.keys(ruler.rule())).equals(['val', 'map', 'list', 'pair', 'elem'])
+    let concat = Jsonic.make()
+    expect(Object.keys(concat.rule())).equals(['val', 'map', 'list', 'pair', 'elem'])
 
-    expect(ruler.rule('val').name).equals('val')
+    expect(concat.rule('val').name).equals('val')
 
-    let ST = ruler.token.ST
-    ruler.rule('val', (rulespec)=>{
+    let ST = concat.token.ST
+    concat.rule('val', (rulespec)=>{
       rulespec.def.open.unshift({s:[ST,ST], h:(alt,rule,ctx)=>{
         rule.node = ctx.t0.val + ctx.t1.val
         // Disable default value handling
@@ -152,28 +152,63 @@ describe('docs', function () {
       }})
     })
 
-    expect(ruler('"a" "b"', {xlog:-1})).equals('ab')
-    expect(ruler('["a" "b"]', {xlog:-1})).equals(['ab'])
-    expect(ruler('{x:"a" "b",y:1}', {xlog:-1})).equals({x:'ab',y:1})
+    expect(concat('"a" "b"', {xlog:-1})).equals('ab')
+    expect(concat('["a" "b"]', {xlog:-1})).equals(['ab'])
+    expect(concat('{x:"a" "b",y:1}', {xlog:-1})).equals({x:'ab',y:1})
 
-    ruler.options({
+    concat.options({
       token: { '#HH': {c:'%'} }
     })
 
-    let HH = ruler.token.HH
-    ruler.rule('hundred', ()=>{
+    let HH = concat.token.HH
+    concat.rule('hundred', ()=>{
       return new RuleSpec({
         after_open: (rule)=>{
           rule.node = 100
         }
       })
     })
-    ruler.rule('val', (rulespec)=>{
+    concat.rule('val', (rulespec)=>{
       rulespec.def.open.unshift({s:[HH],p:'hundred'})
     })
 
-    expect(ruler('{x:1, y:%}', {xlog:-1})).equals({x:1,y:100})
+    expect(concat('{x:1, y:%}', {xlog:-1})).equals({x:1,y:100})
   })
+
+
+  it('method-lex', () => {
+    let tens = Jsonic.make()
+    let VL = tens.token.VL
+    let LTP = tens.token.LTP
+    tens.lex(LTP, function tens_matcher(state) {
+      let marks = state.src.substring(state.sI).match(/^%+/)
+      if(marks) {
+        let len = marks[0].length
+        state.token.tin = VL
+        state.token.val = 10 * len
+        return {
+          sI:state.sI+len,
+          cI:state.cI+len
+        }
+      }
+    })
+
+    expect(tens('a:1,b:%%,c:[%%%%]')).equals({a:1,b:20,c:[40]})
+  })
+
+
+  it('method-token', () => {
+    Jsonic.token.ST // === 11, String token identification number
+    Jsonic.token(11) // === '#ST', String token name
+    Jsonic.token('#ST') // === 11, String token name
+  })
+
+
+  it('property-id', () => {
+    expect(Jsonic.id).match(/Jsonic.*-/)
+    expect(Jsonic.make({tag:'foo'}).id).match(/Jsonic.*foo/)
+  })
+
 })
 
 
