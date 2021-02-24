@@ -157,13 +157,13 @@ declare type Config = {
     tI: number;
     t: any;
     s: {
-        [name: string]: TinMap;
+        [token_name: string]: TinMap;
     };
-    multi: {
-        [name: string]: TinMap;
+    m: {
+        [token_name: string]: TinMap;
     };
-    charset: {
-        [name: string]: CharCodeMap;
+    cs: {
+        [charset_name: string]: CharCodeMap;
     };
     singlemap: {
         [char: string]: Tin;

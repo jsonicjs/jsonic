@@ -202,9 +202,9 @@ type CharCodeMap = { [char: string]: number }
 type Config = {
   tI: number // Token identifier index
   t: any // Token index map
-  s: { [name: string]: TinMap } // Token start character 
-  multi: { [name: string]: TinMap }
-  charset: { [name: string]: CharCodeMap }
+  s: { [token_name: string]: TinMap } // Token start character 
+  m: { [token_name: string]: TinMap } // multi-character Tokens
+  cs: { [charset_name: string]: CharCodeMap } // Character set
   singlemap: { [char: string]: Tin }
   tokenset: { [name: string]: Tin[] }
   string: {
@@ -745,7 +745,7 @@ class Lexer {
             token.col = cI++
 
             pI = sI + 1
-            while (config.multi.SP[src[pI]]) cI++, pI++;
+            while (config.m.SP[src[pI]]) cI++, pI++;
 
             token.len = pI - sI
             token.val = src.substring(sI, pI)
@@ -767,7 +767,7 @@ class Lexer {
             pI = sI
             cI = 0
 
-            while (config.multi.LN[src[pI]]) {
+            while (config.m.LN[src[pI]]) {
               // Count rows.
               rI += (options.line.row === src[pI] ? 1 : 0)
               pI++
@@ -805,10 +805,10 @@ class Lexer {
             token.col = cI
 
             pI = sI
-            while (config.charset.digital[src[++pI]]);
+            while (config.cs.digital[src[++pI]]);
 
             let numstr = src.substring(sI, pI)
-            if (null == src[pI] || config.charset.value_ender[src[pI]]) {
+            if (null == src[pI] || config.cs.value_ender[src[pI]]) {
               token.len = pI - sI
 
               let base_char = src[sI + 1]
@@ -863,7 +863,7 @@ class Lexer {
 
 
           // Block chars.
-          if (options.block.lex && config.charset.start_blockmarker[c0]) {
+          if (options.block.lex && config.cs.start_blockmarker[c0]) {
             let marker = src.substring(sI, sI + config.bmk_maxlen)
 
             for (let bm of config.bmk) {
@@ -887,7 +887,7 @@ class Lexer {
             token.loc = sI
             token.col = cI++
 
-            let multiline = config.charset.multiline[c0]
+            let multiline = config.cs.multiline[c0]
 
             s = []
             let cs = MT
@@ -1018,7 +1018,7 @@ class Lexer {
 
 
           // Comment chars.
-          if (options.comment.lex && config.charset.start_commentmarker[c0]) {
+          if (options.comment.lex && config.cs.start_commentmarker[c0]) {
 
             // Check for comment markers as single comment char could be
             // a comment marker prefix (eg. # and ###, / and //, /*).
@@ -1050,7 +1050,7 @@ class Lexer {
             token.val = MT // intialize for LCS.
 
             state = LCS
-            enders = config.multi.LN
+            enders = config.m.LN
             continue next_char
           }
 
@@ -1073,7 +1073,7 @@ class Lexer {
           do {
             cI++
             pI++
-          } while (null != src[pI] && !config.charset.value_ender[src[pI]])
+          } while (null != src[pI] && !config.cs.value_ender[src[pI]])
 
           let txt = src.substring(sI, pI)
 
@@ -1102,8 +1102,8 @@ class Lexer {
           }
 
           let text_enders =
-            options.text.hoover ? config.charset.hoover_ender :
-              config.charset.text_ender
+            options.text.hoover ? config.cs.hoover_ender :
+              config.cs.text_ender
 
           // TODO: construct a RegExp to do this
           while (null != src[pI] &&
@@ -1124,11 +1124,11 @@ class Lexer {
           // Hoovering (ie. greedily consume non-token chars including internal space)
           // If hoovering, separate space at end from text
           if (options.text.hoover &&
-            config.multi.SP[token.val[token.val.length - 1]]) {
+            config.m.SP[token.val[token.val.length - 1]]) {
 
             // Find last non-space char
             let tI = token.val.length - 2
-            while (0 < tI && config.multi.SP[token.val[tI]]) tI--;
+            while (0 < tI && config.m.SP[token.val[tI]]) tI--;
             token.val = token.val.substring(0, tI + 1)
             token.src = token.val
 
@@ -1194,11 +1194,11 @@ class Lexer {
 
           if (has_indent) {
             let uI = sI - 1
-            while (-1 < uI && config.multi.SP[src[uI]]) uI--;
+            while (-1 < uI && config.m.SP[src[uI]]) uI--;
 
             indent_len = sI - uI - 1
             if (0 < indent_len) {
-              indent_str = Object.keys(config.multi.SP)[0].repeat(indent_len)
+              indent_str = Object.keys(config.m.SP)[0].repeat(indent_len)
             }
           }
 
@@ -2539,7 +2539,7 @@ let util = {
           .reduce((pm, c) => (pm[c] = config.t[tn], pm), ({} as TinMap)),
         a), {})
 
-    config.multi = multi_char_token_names
+    config.m = multi_char_token_names
       .reduce((a: any, tn) =>
       (a[tn.substring(1)] =
         (options.token[tn] as string)
@@ -2559,7 +2559,7 @@ let util = {
         a), {})
 
     // Lookup maps for sets of characters.
-    config.charset = {}
+    config.cs = {}
 
     // Lookup table for escape chars, indexed by denotating char (e.g. n for \n).
     config.string = {
@@ -2568,8 +2568,8 @@ let util = {
           (a[ed] = options.string.escape[ed], a), {})
     }
 
-    config.charset.start_commentmarker = {}
-    config.charset.cm_single = {}
+    config.cs.start_commentmarker = {}
+    config.cs.cm_single = {}
     config.cmk = []
     config.cmk0 = MT
     config.cmk1 = MT
@@ -2583,13 +2583,13 @@ let util = {
 
         // Single char comment marker (eg. `#`)
         if (1 === k.length) {
-          config.charset.start_commentmarker[k] = k.charCodeAt(0)
-          config.charset.cm_single[k] = k.charCodeAt(0)
+          config.cs.start_commentmarker[k] = k.charCodeAt(0)
+          config.cs.cm_single[k] = k.charCodeAt(0)
         }
 
         // String comment marker (eg. `//`)
         else {
-          config.charset.start_commentmarker[k[0]] = k.charCodeAt(0)
+          config.cs.start_commentmarker[k[0]] = k.charCodeAt(0)
           config.cmk.push(k)
           config.cmk0 += k[0]
           config.cmk1 += k[1]
@@ -2603,37 +2603,37 @@ let util = {
 
 
     // All the characters that can appear in a number.
-    config.charset.digital = util.charset(options.number.digital)
+    config.cs.digital = util.charset(options.number.digital)
 
     // Multiline quotes
-    config.charset.multiline = util.charset(options.string.multiline)
+    config.cs.multiline = util.charset(options.string.multiline)
 
     // Enders are char sets that end lexing for a given token.
     // Value enders, end values.
-    config.charset.value_ender = util.charset(
-      config.multi.SP,
-      config.multi.LN,
+    config.cs.value_ender = util.charset(
+      config.m.SP,
+      config.m.LN,
       config.single_char,
-      config.charset.start_commentmarker
+      config.cs.start_commentmarker
     )
 
     // Chars that end unquoted text.
-    config.charset.text_ender = config.charset.value_ender
+    config.cs.text_ender = config.cs.value_ender
 
     // Chars that end text hoovering (including internal space).
-    config.charset.hoover_ender = util.charset(
-      config.multi.LN,
+    config.cs.hoover_ender = util.charset(
+      config.m.LN,
       config.single_char,
-      config.charset.start_commentmarker
+      config.cs.start_commentmarker
     )
 
 
-    config.charset.start_blockmarker = {}
+    config.cs.start_blockmarker = {}
     config.bmk = []
     let block_markers = Object.keys(options.string.block)
 
     block_markers.forEach(k => {
-      config.charset.start_blockmarker[k[0]] = k.charCodeAt(0)
+      config.cs.start_blockmarker[k[0]] = k.charCodeAt(0)
       config.bmk.push(k)
     })
 

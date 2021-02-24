@@ -173,13 +173,13 @@ describe('plugin', function () {
       jsonic.options({
         config: {
           modify: {
-            foo: (config)=>config.charset.text_ender.X='X'.charCodeAt(0)
+            foo: (config)=>config.cs.text_ender.X='X'.charCodeAt(0)
           }
         }
       })
     })
     //console.log(j.internal().config)
-    expect(j.internal().config.charset.text_ender.X).equal('X'.charCodeAt(0))
+    expect(j.internal().config.cs.text_ender.X).equal('X'.charCodeAt(0))
   })
 
   
