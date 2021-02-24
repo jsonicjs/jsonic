@@ -18,10 +18,10 @@ const I = Util.inspect
 
 const { Jsonic, Lexer, JsonicError } = require('..')
 
-let j = Jsonic
+let j = Jsonic.make()
 let lexer = j.internal().lexer
 let config = j.internal().config
-let t = Jsonic.token
+let t = j.token
 
 
 function lexall(src) {
@@ -50,7 +50,7 @@ function lexstart(src) {
 describe('lex', function () {
 
   it('jsonic-token', () => {
-    expect(Jsonic.token.OB).exists()
+    expect(j.token.OB).exists()
     expect(t.CB).exists()
   })
 

@@ -13,7 +13,7 @@ const expect = Code.expect
 
 const { Jsonic, JsonicError } = require('..')
 
-const j = (s) => () => Jsonic(s)
+const je = (s) => () => Jsonic(s)
 
 
 describe('error', function () {
@@ -98,28 +98,28 @@ describe('error', function () {
 
   it('lex-unicode', () => {
     let src0 = '\n\n\n\n\n\n\n\n\n\n   "\\uQQQQ"'
-    //j(src0)()
-    expect(j(src0))
+    //je(src0)()
+    expect(je(src0))
       .throws(JsonicError, /invalid_unicode/)
 
     let src1 = '\n\n\n\n\n\n\n\n\n\n   "\\u{QQQQQQ}"'
-    //j(src1)()
-    expect(j(src0))
+    //je(src1)()
+    expect(je(src0))
       .throws(JsonicError, /invalid_unicode/)
   })
 
 
   it('lex-ascii', () => {
     let src0 = '\n\n\n\n\n\n\n\n\n\n   "\\x!!"'
-    // j(src0)()
-    expect(j(src0))
+    // je(src0)()
+    expect(je(src0))
       .throws(JsonicError, /invalid_ascii/)
   })
 
 
   it('lex-unprintable', () => {
     let src0 = '"\x00"'
-    expect(j(src0))
+    expect(je(src0))
       .throws(JsonicError, /unprintable/)
   })
 
@@ -127,7 +127,7 @@ describe('error', function () {
   it('lex-unterminated', () => {
     let src0 = '"a'
 
-    expect(j(src0))
+    expect(je(src0))
       .throws(JsonicError, /unterminated/)
 
     /*
@@ -144,7 +144,7 @@ describe('error', function () {
   it('parse-unexpected', () => {
     let src0 = '\n\n\n\n\n\n\n\n\n\n   }'
 
-    expect(j(src0))
+    expect(je(src0))
       .throws(JsonicError, /unexpected/)
 
     /*
@@ -172,7 +172,7 @@ describe('error', function () {
 
   it('bad-syntax', () => {
     // TODO: unexpected end of src needs own case, otherwise incorrect explanation
-    // expect(j('{a')).throws(JsonicError, /incomplete/)
+    // expect(je('{a')).throws(JsonicError, /incomplete/)
 
     // TODO: should all be null
     //expect(Jsonic('a:')).equals({a:undefined})
@@ -181,31 +181,31 @@ describe('error', function () {
     //expect(Jsonic('a:,b:')).equals({a:undefined,b:undefined})
 
     // Invalid pair.
-    expect(j('{]')).throws(JsonicError, /unexpected/)
-    expect(j('[}')).throws(JsonicError, /unexpected/)
-    expect(j(':')).throws(JsonicError, /unexpected/)
-    expect(j(':a')).throws(JsonicError, /unexpected/)
-    expect(j(' : ')).throws(JsonicError, /unexpected/)
-    expect(j('{,]')).throws(JsonicError, /unexpected/)
-    expect(j('[,}')).throws(JsonicError, /unexpected/)
-    expect(j(',:')).throws(JsonicError, /unexpected/)
-    expect(j(',:a')).throws(JsonicError, /unexpected/)
-    expect(j('[:')).throws(JsonicError, /unexpected/)
-    expect(j('[:a')).throws(JsonicError, /unexpected/)
+    expect(je('{]')).throws(JsonicError, /unexpected/)
+    expect(je('[}')).throws(JsonicError, /unexpected/)
+    expect(je(':')).throws(JsonicError, /unexpected/)
+    expect(je(':a')).throws(JsonicError, /unexpected/)
+    expect(je(' : ')).throws(JsonicError, /unexpected/)
+    expect(je('{,]')).throws(JsonicError, /unexpected/)
+    expect(je('[,}')).throws(JsonicError, /unexpected/)
+    expect(je(',:')).throws(JsonicError, /unexpected/)
+    expect(je(',:a')).throws(JsonicError, /unexpected/)
+    expect(je('[:')).throws(JsonicError, /unexpected/)
+    expect(je('[:a')).throws(JsonicError, /unexpected/)
 
     
     // Unexpected close
-    expect(j(']')).throws(JsonicError, /unexpected/)
-    expect(j('}')).throws(JsonicError, /unexpected/)
-    expect(j(' ]')).throws(JsonicError, /unexpected/)
-    expect(j(' }')).throws(JsonicError, /unexpected/)
-    expect(j(',}')).throws(JsonicError, /unexpected/)
-    expect(j('a]')).throws(JsonicError, /unexpected/)
-    expect(j('a}')).throws(JsonicError, /unexpected/)
-    expect(j('{a]')).throws(JsonicError, /unexpected/)
-    expect(j('[a}')).throws(JsonicError, /unexpected/)
-    expect(j('{a}')).throws(JsonicError, /unexpected/)
-    expect(j('{a:1]')).throws(JsonicError, /unexpected/)
+    expect(je(']')).throws(JsonicError, /unexpected/)
+    expect(je('}')).throws(JsonicError, /unexpected/)
+    expect(je(' ]')).throws(JsonicError, /unexpected/)
+    expect(je(' }')).throws(JsonicError, /unexpected/)
+    expect(je(',}')).throws(JsonicError, /unexpected/)
+    expect(je('a]')).throws(JsonicError, /unexpected/)
+    expect(je('a}')).throws(JsonicError, /unexpected/)
+    expect(je('{a]')).throws(JsonicError, /unexpected/)
+    expect(je('[a}')).throws(JsonicError, /unexpected/)
+    expect(je('{a}')).throws(JsonicError, /unexpected/)
+    expect(je('{a:1]')).throws(JsonicError, /unexpected/)
 
     
     // These are actually OK

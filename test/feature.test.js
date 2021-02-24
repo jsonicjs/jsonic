@@ -461,6 +461,7 @@ describe('feature', function () {
       Code.fail()
     }
     catch(e) {
+      console.log(e)
       expect(e.lineNumber).equal(1)
       expect(e.columnNumber).equal(4)
     }

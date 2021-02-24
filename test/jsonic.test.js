@@ -63,29 +63,31 @@ describe('jsonic', function () {
   
   
   it('token-gen', () => {
-    let suffix = Math.random()
-    let s = Jsonic.token('__'+suffix)
+    let j = Jsonic.make()
     
-    let s1 = Jsonic.token('AA'+suffix)
+    let suffix = Math.random()
+    let s = j.token('__'+suffix)
+    
+    let s1 = j.token('AA'+suffix)
     expect(s1).equals(s+1)
-    expect(Jsonic.token['AA'+suffix]).equals(s+1)
-    expect(Jsonic.token[s+1]).equals('AA'+suffix)
-    expect(Jsonic.token('AA'+suffix)).equals(s+1)
-    expect(Jsonic.token(s+1)).equals('AA'+suffix)
+    expect(j.token['AA'+suffix]).equals(s+1)
+    expect(j.token[s+1]).equals('AA'+suffix)
+    expect(j.token('AA'+suffix)).equals(s+1)
+    expect(j.token(s+1)).equals('AA'+suffix)
 
-    let s1a = Jsonic.token('AA'+suffix)
+    let s1a = j.token('AA'+suffix)
     expect(s1a).equals(s+1)
-    expect(Jsonic.token['AA'+suffix]).equals(s+1)
-    expect(Jsonic.token[s+1]).equals('AA'+suffix)
-    expect(Jsonic.token('AA'+suffix)).equals(s+1)
-    expect(Jsonic.token(s+1)).equals('AA'+suffix)
+    expect(j.token['AA'+suffix]).equals(s+1)
+    expect(j.token[s+1]).equals('AA'+suffix)
+    expect(j.token('AA'+suffix)).equals(s+1)
+    expect(j.token(s+1)).equals('AA'+suffix)
 
-    let s2 = Jsonic.token('BB'+suffix)
+    let s2 = j.token('BB'+suffix)
     expect(s2).equals(s+2)
-    expect(Jsonic.token['BB'+suffix]).equals(s+2)
-    expect(Jsonic.token[s+2]).equals('BB'+suffix)
-    expect(Jsonic.token('BB'+suffix)).equals(s+2)
-    expect(Jsonic.token(s+2)).equals('BB'+suffix)
+    expect(j.token['BB'+suffix]).equals(s+2)
+    expect(j.token[s+2]).equals('BB'+suffix)
+    expect(j.token('BB'+suffix)).equals(s+2)
+    expect(j.token(s+2)).equals('BB'+suffix)
   })
 
   
@@ -215,22 +217,15 @@ describe('jsonic', function () {
 
 
   it('syntax-errors', () => {
-    // TODO: validate errors
+    // bad close
+    expect(()=>j('}')).throws()
+    expect(()=>j(']')).throws() 
 
-    // TODO: remove as OK
-    // pairs not valid inside list
-    // expect(()=>j('[a:1]')).throws()
-
-    // top level already a map
+    // top level already is a map
     expect(()=>j('a:1,2')).throws() 
-
-    // TODO: OK
-    // can't mix pairs and values list
-    //expect(()=>j('x:[a:1,2,b:3]')).throws() 
 
     // values not valid inside map
     expect(()=>j('x:{1,2}') ).throws()
-
   })
   
 

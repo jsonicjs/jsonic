@@ -16,18 +16,18 @@ new <name-self/> instance with `Jsonic.make()`.
 
 Some plugins may decorate the main `Jsonic` object with additional methods.
 
-* :strawberry: :pear: [`Jsonic`](#jsonic-just-parse-already)
-* &nbsp;&nbsp;&nbsp;&nbsp; :pear: [`id`](#id-unique-instance-identifier)
-* :strawberry: &nbsp;&nbsp;&nbsp;&nbsp; [`toString`](#tostring-string-description-of-the-jsonic-instance)
-* :strawberry: &nbsp;&nbsp;&nbsp;&nbsp; [`make`](#make-create-a-new-customizable-jsonic-instance)
-* :strawberry: :pear: [`options`](#options-get-and-set-options-for-a-jsonic-instance)
-* :strawberry: &nbsp;&nbsp;&nbsp;&nbsp; [`use`](#use-register-a-plugin)
-* :strawberry: &nbsp;&nbsp;&nbsp;&nbsp; [`rule`](#rule-define-or-modify-a-parser-rule)
-* :strawberry: &nbsp;&nbsp;&nbsp;&nbsp; [`lex`](#lex-define-a-lex-matcher)
-* :strawberry: :pear: [`token`](#token-resolve-a-token-by-name-or-index)
+* &nbsp;&nbsp;&nbsp;&nbsp; :strawberry: :pear: [`Jsonic`](#jsonic-just-parse-already)
+* &nbsp;&nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp;&nbsp; :pear: [`id`](#id-unique-instance-identifier)
+* &nbsp;&nbsp;&nbsp;&nbsp; :strawberry: &nbsp;&nbsp;&nbsp;&nbsp; [`toString`](#tostring-string-description-of-the-jsonic-instance)
+* &nbsp;&nbsp;&nbsp;&nbsp; :strawberry: &nbsp;&nbsp;&nbsp;&nbsp; [`make`](#make-create-a-new-customizable-jsonic-instance)
+* :cherries: :strawberry: :pear: [`options`](#options-get-and-set-options-for-a-jsonic-instance)
+* :cherries: :strawberry: &nbsp;&nbsp;&nbsp;&nbsp; [`use`](#use-register-a-plugin)
+* :cherries: :strawberry: &nbsp;&nbsp;&nbsp;&nbsp; [`rule`](#rule-define-or-modify-a-parser-rule)
+* :cherries: :strawberry: &nbsp;&nbsp;&nbsp;&nbsp; [`lex`](#lex-define-a-lex-matcher)
+* :cherries: :strawberry: :pear: [`token`](#token-resolve-a-token-by-name-or-index)
 
 <small>
-(🍓 method, 🍐 property or set of properties)
+(🍒 available after <code>Jsonic.make()</code>, 🍓 method or function, 🍐 property or set of properties)
 </small>
 
 
@@ -43,7 +43,18 @@ _Returns_: `any` Object (or value) containing the parsed JSON data.
 * `source: string` _<small>required</small>_ : The JSON source text to parse.
 * `meta?: object` _<small>optional</small>_ : Provide meta data for this parse.
 
-#### :thumbsup: Example
+
+This is the top level utility function that parses JSON source text
+using the standard syntax extensions of <name-self />. It cannot be
+customized (call `Jsonic.make()` to do that), and always behaves the
+same way.
+
+
+> * :strawberry: Function: `Jsonic(...)`
+> * :pear: Property set: `jsonic.id`
+
+
+#### :sparkles: Example
 
 ```js
 let earth = Jsonic('name: Terra, moons: [{name: Luna}]')
@@ -63,7 +74,7 @@ The `earth` variable now contains the following data:
 }
 ```
 
-#### :thumbsup: Example: using the `meta` parameter
+#### :sparkles: Example: using the `meta` parameter
 
 ```js
 let one = Jsonic('1', {log:-1}) // one === 1
@@ -105,7 +116,10 @@ It's useful to be able to identify unique instances when you're debugging.
 Use the `tag` option to set a custom tag for the instance.
 
 
-#### :thumbsup: Example
+> * :pear: Property: `jsonic.id`
+
+
+#### :sparkles: Example
 
 ```js
 // format: Jsonic/<Date.now()>/<Math.random()[2:8]>/<options.tag>
@@ -126,7 +140,10 @@ Returns the value of the `.id` property as the string description of
 the instance.
 
 
-#### :thumbsup: Example
+> * :strawberry: Method: `jsonic.toString()`
+
+
+#### :sparkles: Example
 
 ```js
 // format: Jsonic/<Date.now()>/<Math.random()[2:8]>/<options.tag>
@@ -147,7 +164,15 @@ _Returns_: `Jsonic` A new Jsonic instance that can be modified.
 * `options?: object` _<small>optional</small>_ : Partial options tree.
 
 
-#### :thumbsup: Example
+The returned function can be used in the same way as the top level
+`Jsonic` function. It also exposes the rest of the API (such as
+`options`) so you can customize the parser.
+
+
+> * :strawberry: Method: `jsonic.make(...)`
+
+
+#### :sparkles: Example
 
 ```js
 let array_of_numbers = Jsonic('1,2,3') 
@@ -166,7 +191,7 @@ another new instance that inherits the configuration of its parent and
 can itself be independently customized. Which is what you want.
 
 
-#### :thumbsup: Example: child instances inherit from parent instances
+#### :sparkles: Example: child instances inherit from parent instances
 
 ```js
 let no_numbers_please = Jsonic.make({number: {lex: false}})
@@ -194,12 +219,18 @@ _Returns_: `object` merged object containing the full option tree
 * `options: object` _<small>required</small>_ : Partial options tree.
 
 
-#### :thumbsup: Example
+> * :cherries: Only available on: `jsonic = Jsonic.make()`
+> * :strawberry: Method: `jsonic.options(...)`
+> * :pear: Property set of option tree: `jsonic.options.number.lex`
+
+
+#### :sparkles: Example
 
 ```js
+let jsonic = Jsonic.make()
 
-Jsonic.options().comment.lex // === true
-Jsonic.options.comment.lex // === true - as a convenience
+jsonic.options().comment.lex // === true
+jsonic.options.comment.lex // === true - as a convenience
 
 let no_comment = Jsonic.make()
 no_comment.options({comment: {lex: false}})
@@ -222,7 +253,7 @@ Jsonic(`
 
 ---
 
-### :strawberry: `use`: Register a plugin.
+### :cherries: :strawberry: `use`: Register a plugin.
 
 `.use(plugin: function, plugin_options?: object): Jsonic`
 
@@ -232,7 +263,12 @@ _Returns_: Jsonic instance (this allows chaining)
   * `(jsonic: Jsonic) => Jsonic`
 * `plugin_options?: object` _<small>optional</small>_ : Plugin-specific options
 
-#### :thumbsup: Example
+
+> * :cherries: Only available on: `jsonic = Jsonic.make()`
+> * :strawberry: Method: `jsonic.use(...)`
+
+
+#### :sparkles: Example
 
 ```js
 let jsonic = Jsonic.make().use(function piper(jsonic) {
@@ -246,7 +282,7 @@ a first parameter, and then changes the options and parsing rules of
 that instance. For more, see the [plugin writing guide](/guide/write-a-plugin).
 
 
-#### :thumbsup: Example: plugin options
+#### :sparkles: Example: plugin options
 
 ```js
 function sepper(jsonic) {
@@ -266,7 +302,7 @@ Notice that you can refer to options directly as properties of the
 `.options` method, as a convenience.
 
 
-#### :thumbsup: Example: plugin chaining
+#### :sparkles: Example: plugin chaining
 
 When defining a custom <name-self /> instance, you'll probably be registering
 multiple plugins. The `.use` method can be chained to make this easier.
@@ -294,7 +330,7 @@ let jsonic = Jsonic.make()
 
 ---
 
-### :strawberry: `rule`: Define or modify a parser rule.
+### :cherries: :strawberry: `rule`: Define or modify a parser rule.
 
 `.rule(name?: string, define?: function): RuleSpec`
 
@@ -317,7 +353,11 @@ The details of rule definition are covered in the [Plugins](/plugins/)
 section.
 
 
-#### :thumbsup: Example
+> * :cherries: Only available on: `jsonic = Jsonic.make()`
+> * :strawberry: Method: `jsonic.rule(...)`
+
+
+#### :cherries: :sparkles: Example
 
 ```js
 let concat = Jsonic.make()
@@ -368,7 +408,7 @@ concat('{x:1, y:%}') // === {x:1, y:100}
 
 ---
 
-### :strawberry: `lex`: Define a lex matcher.
+### :cherries: :strawberry: `lex`: Define a lex matcher.
 
 `.lex(state?: Tin, match?: function): LexMatcher[]`
 
@@ -391,7 +431,11 @@ happens in the top lex state (LTP).
 For more about lex matchers, see the [Plugins](/plugins/) section.
 
 
-#### :thumbsup: Example
+> * :cherries: Only available on: `jsonic = Jsonic.make()`
+> * :strawberry: Method: `jsonic.lex(...)`
+
+
+#### :sparkles: Example
 
 ```js
 let tens = Jsonic.make()
@@ -424,7 +468,7 @@ tens('a:1,b:%%,c:[%%%%]') // === {a:1, b:20, c:[40]}
 
 ---
 
-### :strawberry: :pear: `token`: Resolve a token by name or index.
+### :cherries: :strawberry: :pear: `token`: Resolve a token by name or index.
 
 `.token(ref: Tin | string): string | Tin`
 
@@ -443,11 +487,17 @@ instances (generated with `.make`) will inherit the index of their
 parents, in general token identification is usable only for a specific
 `Jsonic` instance.
 
+> * :cherries: Only available on: `jsonic = Jsonic.make()`
+> * :strawberry: Method: `jsonic.token(...)`
+> * :pear: Property set of token names and Tins: `jsonic.token.NR`
 
-#### :thumbsup: Example
+
+
+#### :sparkles: Example
 
 ```js
-Jsonic.token.ST // === 11, String token identification number
-Jsonic.token(11) // === '#ST', String token name
-Jsonic.token('#ST') // === 11, String token name
+let jsonic = Jsonic.make()
+jsonic.token.ST // === 11, String token identification number
+jsonic.token(11) // === '#ST', String token name
+jsonic.token('#ST') // === 11, String token name
 ```

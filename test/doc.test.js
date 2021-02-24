@@ -75,9 +75,11 @@ describe('docs', function () {
 
 
   it('method-options', () => {
-    let options = Jsonic.options()
+    let jsonic = Jsonic.make()
+
+    let options = jsonic.options()
     expect(options.comment.lex).equals(true)
-    expect(Jsonic.options.comment.lex).equals(true)
+    expect(jsonic.options.comment.lex).equals(true)
     
     let no_comment = Jsonic.make()
     no_comment.options({comment: {lex: false}})
@@ -198,9 +200,10 @@ describe('docs', function () {
 
 
   it('method-token', () => {
-    Jsonic.token.ST // === 11, String token identification number
-    Jsonic.token(11) // === '#ST', String token name
-    Jsonic.token('#ST') // === 11, String token name
+    let jsonic = Jsonic.make()
+    jsonic.token.ST // === 11, String token identification number
+    jsonic.token(11) // === '#ST', String token name
+    jsonic.token('#ST') // === 11, String token name
   })
 
 

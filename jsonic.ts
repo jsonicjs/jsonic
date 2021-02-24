@@ -1,7 +1,6 @@
 /* Copyright (c) 2013-2021 Richard Rodger, MIT License */
 
 // TODO: prevent use of options,use,rule,lex,token on top level Jsonic
-// TODO: useful toString
 // post release: 
 // TODO: test use of constructed regexps - perf?
 // TODO: complete rule tagging groups g:imp etc.
@@ -198,7 +197,7 @@ type CharCodeMap = { [char: string]: number }
 
 
 // Internal configuration derived from options.
-// See build_config_from_options.
+// See build_config.
 type Config = {
   tI: number // Token identifier index.
   t: any // Token index map.
@@ -218,11 +217,8 @@ type Config = {
   bmk: string[] // Block start markers.
   bmx: number // Block start markers max length.
   sc: string    // Token start characters.
-  num: {
-    sepRE: RegExp | null // Number separator regexp.
-  },
   d: KV, // Debug options.
-  re: { [name: string]: RegExp } // RegExp map.
+  re: { [name: string]: RegExp | null } // RegExp map.
 }
 
 const MT = '' // Empty ("MT"!) string.
@@ -462,7 +458,7 @@ function make_default_options(): Options {
       '#AA': true, // ANY
 
       // Token sets
-      // NOTE: comma-sep strings to avoid util.deep array override logic
+      // NOTE: comma-sep strings to avoid deep array override logic
       '#IGNORE': { s: '#SP,#LN,#CM' },
     },
 
@@ -508,8 +504,8 @@ class JsonicError extends SyntaxError {
     rule: Rule,
     ctx: Context,
   ) {
-    details = util.deep({}, details)
-    let errctx: any = util.deep({}, {
+    details = deep({}, details)
+    let errctx: any = deep({}, {
       rI: ctx.rI,
       options: ctx.options,
       config: ctx.config,
@@ -523,10 +519,10 @@ class JsonicError extends SyntaxError {
       log: ctx.log,
       use: ctx.use
     })
-    let desc = util.make_error_desc(code, details, token, rule, errctx)
+    let desc = make_error_desc(code, details, token, rule, errctx)
     super(desc.message)
     Object.assign(this, desc)
-    util.clean_stack(this)
+    clean_stack(this)
   }
 
   toJSON() {
@@ -577,14 +573,14 @@ class Lexer {
 
     // The token indexer is also used to generate lex state indexes.
     // Lex state names have the prefix `@L`
-    util.token('@LTP', config) // TOP
-    util.token('@LTX', config) // TEXT
-    util.token('@LCS', config) // CONSUME
-    util.token('@LML', config) // MULTILINE
+    tokenize('@LTP', config) // TOP
+    tokenize('@LTX', config) // TEXT
+    tokenize('@LCS', config) // CONSUME
+    tokenize('@LML', config) // MULTILINE
 
     // End token instance (returned once end-of-source is reached).
     this.end = {
-      tin: util.token('#ZZ', config),
+      tin: tokenize('#ZZ', config),
       loc: 0,
       len: 0,
       row: 0,
@@ -606,8 +602,8 @@ class Lexer {
     const options = ctx.options
     const config = ctx.config
 
-    let tpin = (name: string): Tin => util.token(name, config)
-    let tn = (pin: Tin): string => util.token(pin, config)
+    let tpin = (name: string): Tin => tokenize(name, config)
+    let tn = (pin: Tin): string => tokenize(pin, config)
     let F = ctx.F
 
     let LTP = tpin('@LTP')
@@ -833,8 +829,9 @@ class Lexer {
                 token.val = +numstr
 
                 // Allow number format 1000_000_000 === 1e9.
-                if (null != config.num.sepRE && isNaN(token.val)) {
-                  token.val = +(numstr.replace(config.num.sepRE, MT))
+                //if (null != config.num.sepRE && isNaN(token.val)) {
+                if (null != config.re.ns && isNaN(token.val)) {
+                  token.val = +(numstr.replace(config.re.ns, MT))
                 }
 
                 // Not a number, just a random collection of digital chars.
@@ -1243,7 +1240,7 @@ class Lexer {
 
             // Remove spurious space at start
             if (null == config.re.block_prefix) {
-              config.re.block_prefix = util.regexp(
+              config.re.block_prefix = regexp(
                 S.no_re_flags,
                 '^[', '%' + options.token['#SP'], ']*',
                 '(', options.line.sep_RES, ')',
@@ -1254,7 +1251,7 @@ class Lexer {
 
             // Remove spurious space at end
             if (null == config.re.block_suffix) {
-              config.re.block_suffix = util.regexp(
+              config.re.block_suffix = regexp(
                 S.no_re_flags,
                 options.line.sep_RES,
                 '[', '%' + options.token['#SP'], ']*$'
@@ -1265,7 +1262,7 @@ class Lexer {
 
             // Remove indent
             let block_indent_RE = config.re[S.block_indent_ + indent_str] =
-              config.re[S.block_indent_ + indent_str] || util.regexp(
+              config.re[S.block_indent_ + indent_str] || regexp(
                 'g',
                 '^(', '%' + indent_str, ')|(',
                 '(', options.line.sep_RES, ')',
@@ -1322,7 +1319,7 @@ class Lexer {
     use?: any
   ): Token {
     token.why = why
-    token.tin = util.token('#BD', ctx.config)
+    token.tin = tokenize('#BD', ctx.config)
     token.loc = sI
     token.row = rI
     token.col = cI
@@ -1331,7 +1328,7 @@ class Lexer {
     token.src = src
     token.use = use
 
-    log && log(util.token(token.tin, ctx.config), ctx.F(token.src),
+    log && log(tokenize(token.tin, ctx.config), ctx.F(token.src),
       sI, rI + ':' + cI, { ...token },
       S.error, why)
     return token
@@ -1372,7 +1369,7 @@ class Lexer {
   // Clone the Lexer, and in particular the registered matchers.
   clone(config: Config) {
     let lexer = new Lexer(config)
-    util.deep(lexer.match, this.match)
+    deep(lexer.match, this.match)
     return lexer
   }
 }
@@ -1659,7 +1656,7 @@ class RuleSpec {
       // Ancestors.
       cond = cond &&
         (null == alt.a ? true :
-          util.marr(alt.a, ctx.rs
+          marr(alt.a, ctx.rs
             .slice(-(alt.a.length))
             .map(r => r.name)
             .reverse()))
@@ -1929,7 +1926,7 @@ class Parser {
               val = null
             }
             rule.node[key] = null == prev ? val :
-              (ctx.options.map.extend ? util.deep(prev, val) : val)
+              (ctx.options.map.extend ? deep(prev, val) : val)
           }
         },
       },
@@ -2059,14 +2056,14 @@ class Parser {
     }
 
     if (null != parent_ctx) {
-      ctx = util.deep(ctx, parent_ctx)
+      ctx = deep(ctx, parent_ctx)
     }
 
-    util.make_log(ctx)
+    make_log(ctx)
 
-    let tn = (pin: Tin): string => util.token(pin, this.config)
+    let tn = (pin: Tin): string => tokenize(pin, this.config)
     let lex: Lex =
-      util.wrap_bad_lex(lexer.start(ctx), util.token('#BD', this.config), ctx)
+      wrap_bad_lex(lexer.start(ctx), tokenize('#BD', this.config), ctx)
     let startspec = this.rsm[options.rule.start]
 
     // The starting rule is always 'val'
@@ -2128,7 +2125,7 @@ class Parser {
     }
 
     // TODO: option for this
-    if (util.token('#ZZ', this.config) !== ctx.t0.tin) {
+    if (tokenize('#ZZ', this.config) !== ctx.t0.tin) {
       throw new JsonicError(S.unexpected, {}, ctx.t0, NONE, ctx)
     }
 
@@ -2142,7 +2139,7 @@ class Parser {
 
     parser.rsm = Object
       .keys(this.rsm)
-      .reduce((a, rn) => (a[rn] = util.clone(this.rsm[rn]), a), ({} as any))
+      .reduce((a, rn) => (a[rn] = clone(this.rsm[rn]), a), ({} as any))
 
     return parser
   }
@@ -2150,525 +2147,22 @@ class Parser {
 
 
 let util = {
-  // Uniquely resolve or assign token pin number
-  token: function token<R extends string | Tin, T extends string | Tin>(
-    ref: R,
-    config: Config,
-    jsonic?: Jsonic):
-    T {
-    let tokenmap: any = config.t
-    let token: string | Tin = tokenmap[ref]
-
-    if (null == token && S.string === typeof (ref)) {
-      token = config.tI++
-      tokenmap[token] = ref
-      tokenmap[ref] = token
-      tokenmap[(ref as string).substring(1)] = token
-
-      if (null != jsonic) {
-        Object.assign(jsonic.token, config.t)
-      }
-    }
-
-    return (token as T)
-  },
-
-  // Deep override for plain data. Retains base object and array.
-  // Array merge by `over` index, `over` wins non-matching types, expect:
-  // `undefined` always loses, `over` plain objects inject into functions,
-  // and `over` functions always win. Over always copied.
-  deep: function(base?: any, ...rest: any): any {
-    let base_is_function = S.function === typeof (base)
-    let base_is_object = null != base &&
-      (S.object === typeof (base) || base_is_function)
-    for (let over of rest) {
-      let over_is_function = S.function === typeof (over)
-      let over_is_object = null != over &&
-        (S.object === typeof (over) || over_is_function)
-      if (base_is_object &&
-        over_is_object &&
-        !over_is_function &&
-        (Array.isArray(base) === Array.isArray(over))
-      ) {
-        for (let k in over) {
-          base[k] = util.deep(base[k], over[k])
-        }
-      }
-      else {
-        base = undefined === over ? base :
-          over_is_function ? over :
-            (over_is_object ?
-              util.deep(Array.isArray(over) ? [] : {}, over) : over)
-
-        base_is_function = S.function === typeof (base)
-        base_is_object = null != base &&
-          (S.object === typeof (base) || base_is_function)
-      }
-    }
-    return base
-  },
-
-  clone: function(class_instance: any) {
-    return util.deep(Object.create(Object.getPrototypeOf(class_instance)),
-      class_instance)
-  },
-
-
-  // Lookup map for a set of chars.
-  charset: (...parts: (string | object)[]): CharCodeMap => parts
-    .map((p: any) => 'object' === typeof (p) ? Object.keys(p).join(MT) : p)
-    .join(MT)
-    .split(MT)
-    .reduce((a: any, c: string) => (a[c] = c.charCodeAt(0), a), {}),
-
-
-  longest: (strs: string[]) =>
-    strs.reduce((a, s) => a < s.length ? s.length : a, 0),
-
-  // True if arrays match.
-  marr: (a: string[], b: string[]) =>
-    (a.length === b.length && a.reduce((a, s, i) => (a && s === b[i]), true)),
-
-  // Remove Jsonic internal lines as spurious for caller.
-  clean_stack(err: Error) {
-    if (err.stack) {
-      err.stack =
-        err.stack.split('\n')
-          .filter(s => !s.includes('jsonic/jsonic'))
-          .map(s => s.replace(/    at /, 'at '))
-          .join('\n')
-    }
-  },
-
-
+  tokenize,
   make_src_format,
-
-  /*
-  make_src_format: (config: Config) =>
-    (s: any, _?: any) => null == s ? MT : (_ = JSON.stringify(s),
-      _.substring(0, config.d.maxlen) +
-      (config.d.maxlen < _.length ? '...' : MT)),
-  */
-
-  // Special debug logging to console (use Jsonic('...', {log:N})).
-  // log:N -> console.dir to depth N
-  // log:-1 -> console.dir to depth 1, omitting objects (good summary!)
-  make_log: (ctx: Context) => {
-    if ('number' === typeof ctx.log) {
-      let exclude_objects = false
-      let logdepth = (ctx.log as number)
-      if (-1 === logdepth) {
-        logdepth = 1
-        exclude_objects = true
-      }
-      ctx.log = (...rest: any) => {
-        if (exclude_objects) {
-          let logstr = rest
-            .filter((item: any) => S.object != typeof (item))
-            .map((item: any) => S.function == typeof (item) ? item.name : item)
-            .join('\t')
-          ctx.options.debug.get_console().log(logstr)
-        }
-        else {
-          ctx.options.debug.get_console().dir(rest, { depth: logdepth })
-        }
-        return undefined
-      }
-    }
-    return ctx.log
-  },
-
-
-  wrap_bad_lex: (lex: Lex, BD: Tin, ctx: Context) => {
-    let wrap: any = (rule: Rule) => {
-      let token = lex(rule)
-
-      if (BD === token.tin) {
-        let details: any = {}
-        if (null != token.use) {
-          details.use = token.use
-        }
-        throw new JsonicError(
-          token.why || S.unexpected,
-          details,
-          token,
-          rule,
-          ctx,
-        )
-      }
-
-      return token
-    }
-    wrap.src = lex.src
-    return wrap
-  },
-
-
-  // Construct a RegExp from arguments.
-  // Prefix with '%' to escape regexp special chars.
-  // NOTE: flags first allows parts to be rest.
-  regexp: (flags: string, ...parts: string[]): RegExp => {
-    return new RegExp(
-      parts
-        .map(p => '%' === p[0] ? p.substring(1).replace(/./g, '\\$&') : p)
-        .join(MT),
-      flags
-    )
-  },
-
-
-  errinject: (
-    s: string,
-    code: string,
-    details: KV,
-    token: Token,
-    rule: Rule,
-    ctx: Context
-  ) => {
-    return s.replace(/\$([\w_]+)/g, (_m: any, name: string) => {
-      return JSON.stringify(
-        'code' === name ? code : (
-          details[name] ||
-          (ctx.meta ? ctx.meta[name] : undefined) ||
-          (token as KV)[name] ||
-          (rule as KV)[name] ||
-          (ctx as KV)[name] ||
-          (ctx.options as any)[name] ||
-          (ctx.config as any)[name] ||
-          '$' + name
-        )
-      )
-    })
-  },
-
-
-  extract: (src: string, errtxt: string, token: Token) => {
-    let loc = 0 < token.loc ? token.loc : 0
-    let row = 0 < token.row ? token.row : 0
-    let col = 0 < token.col ? token.col : 0
-    let tsrc = null == token.src ? MT : token.src
-    let behind = src.substring(Math.max(0, loc - 333), loc).split('\n')
-    let ahead = src.substring(loc, loc + 333).split('\n')
-
-    let pad = 2 + (MT + (row + 2)).length
-    let rI = row < 2 ? 0 : row - 2
-    let ln = (s: string) => '\x1b[34m' + (MT + (rI++)).padStart(pad, ' ') +
-      ' | \x1b[0m' + (null == s ? MT : s)
-
-    let blen = behind.length
-
-    let lines = [
-      2 < blen ? ln(behind[blen - 3]) : null,
-      1 < blen ? ln(behind[blen - 2]) : null,
-      ln(behind[blen - 1] + ahead[0]),
-      (' '.repeat(pad)) + '   ' +
-      ' '.repeat(col) +
-      '\x1b[31m' + '^'.repeat(tsrc.length || 1) +
-      ' ' + errtxt + '\x1b[0m',
-      ln(ahead[1]),
-      ln(ahead[2]),
-    ]
-      .filter((line: any) => null != line)
-      .join('\n')
-
-    return lines
-  },
-
-
-  wrap_parser: (parser: any) => {
-    return {
-      start: function(
-        lexer: Lexer,
-        src: string,
-        jsonic: Jsonic,
-        meta?: any,
-        parent_ctx?: any
-      ) {
-        try {
-          return parser.start(lexer, src, jsonic, meta, parent_ctx)
-        } catch (ex) {
-          if ('SyntaxError' === ex.name) {
-            let loc = 0
-            let row = 0
-            let col = 0
-            let tsrc = MT
-            let errloc = ex.message.match(/^Unexpected token (.) .*position\s+(\d+)/i)
-            if (errloc) {
-              tsrc = errloc[1]
-              loc = parseInt(errloc[2])
-              row = src.substring(0, loc).replace(/[^\n]/g, MT).length
-              let cI = loc - 1
-              while (-1 < cI && '\n' !== src.charAt(cI)) cI--;
-              col = Math.max(src.substring(cI, loc).length, 0)
-            }
-
-            let token = ex.token || {
-              tin: jsonic.token.UK,
-              loc: loc,
-              len: tsrc.length,
-              row: ex.lineNumber || row,
-              col: ex.columnNumber || col,
-              val: undefined,
-              src: tsrc,
-            } as Token
-
-            throw new JsonicError(
-              ex.code || 'json',
-              ex.details || {
-                msg: ex.message
-              },
-              token,
-              ({} as Rule),
-              ex.ctx || {
-                rI: -1,
-                options: jsonic.options,
-                config: ({ t: {} } as Config),
-                token: token,
-                meta,
-                src: () => src,
-                root: () => undefined,
-                plugins: () => jsonic.internal().plugins,
-                rule: NONE,
-                node: undefined,
-                lex: -1,
-                u2: token,
-                u1: token,
-                t0: token,
-                t1: token, // TODO: should be end token
-                tI: -1,
-                rs: [],
-                next: () => token, // TODO: should be end token
-                rsm: {},
-                n: {},
-                log: meta ? meta.log : undefined,
-                F: make_src_format(jsonic.internal().config),
-                use: {},
-              } as Context,
-            )
-          }
-          else {
-            throw ex
-          }
-        }
-      }
-    }
-  },
-
-
-  make_error_desc(
-    code: string,
-    details: KV,
-    token: Token,
-    rule: Rule,
-    ctx: Context,
-  ): KV {
-    token = { ...token }
-    let options = ctx.options
-    let meta = ctx.meta
-    let errtxt = util.errinject(
-      (options.error[code] || options.error.unknown),
-      code, details, token, rule, ctx
-    )
-
-    if (S.function === typeof (options.hint)) {
-      // Only expand the hints on demand. Allow for plugin-defined hints.
-      options.hint = { ...options.hint(), ...options.hint }
-    }
-
-    let message = [
-      ('\x1b[31m[jsonic/' + code + ']:\x1b[0m ' + errtxt),
-      '  \x1b[34m-->\x1b[0m ' + (meta && meta.fileName || '<no-file>') +
-      ':' + token.row + ':' + token.col,
-      util.extract(ctx.src(), errtxt, token),
-      util.errinject(
-        (options.hint[code] || options.hint.unknown)
-          .replace(/^([^ ])/, ' $1')
-          .split('\n')
-          .map((s: string, i: number) => (0 === i ? ' ' : '  ') + s).join('\n'),
-        code, details, token, rule, ctx
-      ),
-      '  \x1b[2mhttps://jsonic.richardrodger.com\x1b[0m',
-      '  \x1b[2m--internal: rule=' + rule.name + '~' + RuleState[rule.state] +
-      '; token=' + ctx.config.t[token.tin] +
-      (null == token.why ? '' : ('~' + token.why)) +
-      '; plugins=' + ctx.plugins().map((p: any) => p.name).join(',') + '--\x1b[0m\n'
-    ].join('\n')
-
-    let desc: any = {
-      internal: {
-        token,
-        ctx,
-      }
-    }
-
-    desc = {
-      ...Object.create(desc),
-      message,
-      code,
-      details,
-      meta,
-      fileName: meta ? meta.fileName : undefined,
-      lineNumber: token.row,
-      columnNumber: token.col,
-    }
-
-    return desc
-  },
-
-
-  // Idempotent normalization of options.
-  build_config_from_options: function(config: Config, options: Options) {
-    let token_names = Object.keys(options.token)
-
-    // Index of tokens by name.
-    token_names.forEach(tn => util.token(tn, config))
-
-    let single_char_token_names = token_names
-      .filter(tn => null != (options.token[tn] as any).c)
-
-    config.sm = single_char_token_names
-      .reduce((a, tn) => (a[(options.token[tn] as any).c] =
-        (config.t as any)[tn], a), ({} as any))
-
-    let multi_char_token_names = token_names
-      .filter(tn => S.string === typeof options.token[tn])
-
-    // Char code arrays for lookup by char code.
-    config.s = multi_char_token_names
-      .reduce((a: any, tn) =>
-      (a[tn.substring(1)] =
-        (options.token[tn] as string)
-          .split(MT)
-          .reduce((pm, c) => (pm[c] = config.t[tn], pm), ({} as TinMap)),
-        a), {})
-
-    config.m = multi_char_token_names
-      .reduce((a: any, tn) =>
-      (a[tn.substring(1)] =
-        (options.token[tn] as string)
-          .split(MT)
-          .reduce((pm, c) => (pm[c] = config.t[tn], pm), ({} as TinMap)),
-        a), {})
-
-    let tokenset_names = token_names
-      .filter(tn => null != (options.token[tn] as any).s)
-
-    // Char code arrays for lookup by char code.
-    config.ts = tokenset_names
-      .reduce((a: any, tsn) =>
-      (a[tsn.substring(1)] =
-        (options.token[tsn] as any).s.split(',')
-          .reduce((a: any, tn: string) => (a[config.t[tn]] = tn, a), {}),
-        a), {})
-
-    // Lookup maps for sets of characters.
-    config.cs = {}
-
-    // Lookup table for escape chars, indexed by denotating char (e.g. n for \n).
-    config.str = {
-      esc: Object.keys(options.string.escape)
-        .reduce((a: any, ed: string) =>
-          (a[ed] = options.string.escape[ed], a), {})
-    }
-
-    config.cs.start_commentmarker = {}
-    config.cs.cm_single = {}
-    config.cmk = []
-    config.cmk0 = MT
-    config.cmk1 = MT
-
-    if (options.comment.lex) {
-      config.cm = options.comment.marker
-
-      let comment_markers = Object.keys(config.cm)
-
-      comment_markers.forEach(k => {
-
-        // Single char comment marker (eg. `#`)
-        if (1 === k.length) {
-          config.cs.start_commentmarker[k] = k.charCodeAt(0)
-          config.cs.cm_single[k] = k.charCodeAt(0)
-        }
-
-        // String comment marker (eg. `//`)
-        else {
-          config.cs.start_commentmarker[k[0]] = k.charCodeAt(0)
-          config.cmk.push(k)
-          config.cmk0 += k[0]
-          config.cmk1 += k[1]
-        }
-      })
-
-      config.cmx = util.longest(comment_markers)
-    }
-
-    config.sc = Object.keys(config.sm).join(MT)
-
-
-    // All the characters that can appear in a number.
-    config.cs.digital = util.charset(options.number.digital)
-
-    // Multiline quotes
-    config.cs.multiline = util.charset(options.string.multiline)
-
-    // Enders are char sets that end lexing for a given token.
-    // Value enders, end values.
-    config.cs.value_ender = util.charset(
-      config.m.SP,
-      config.m.LN,
-      config.sc,
-      config.cs.start_commentmarker
-    )
-
-    // Chars that end unquoted text.
-    config.cs.text_ender = config.cs.value_ender
-
-    // Chars that end text hoovering (including internal space).
-    config.cs.hoover_ender = util.charset(
-      config.m.LN,
-      config.sc,
-      config.cs.start_commentmarker
-    )
-
-
-    config.cs.start_blockmarker = {}
-    config.bmk = []
-    let block_markers = Object.keys(options.string.block)
-
-    block_markers.forEach(k => {
-      config.cs.start_blockmarker[k[0]] = k.charCodeAt(0)
-      config.bmk.push(k)
-    })
-
-    config.bmx = util.longest(block_markers)
-
-
-    // TODO: move to config.re, use util.regexp
-    config.num = {
-      sepRE: null != options.number.sep ?
-        new RegExp(options.number.sep, 'g') : null
-    }
-
-
-    // RegExp cache
-    config.re = {}
-
-
-    // Debug options
-    config.d = options.debug
-
-
-    // Apply any config modifiers (probably from plugins).
-    Object.keys(options.config.modify)
-      .forEach((modifer: string) =>
-        options.config.modify[modifer](config, options))
-
-
-    // Debug the config - useful for plugin authors.
-    if (options.debug.print_config) {
-      options.debug.get_console().dir(config, { depth: null })
-    }
-  },
+  deep,
+  clone,
+  charset,
+  longest,
+  marr,
+  clean_stack,
+  make_log,
+  wrap_bad_lex,
+  extract,
+  errinject,
+  make_error_desc,
+  build_config,
+  wrap_parser,
+  regexp,
 }
 
 
@@ -2680,7 +2174,7 @@ function make(param_options?: KV, parent?: Jsonic): Jsonic {
 
 
   // Merge options.
-  let merged_options = util.deep(
+  let merged_options = deep(
     {},
     parent ? { ...parent.options } : make_default_options(),
     param_options ? param_options : {},
@@ -2693,7 +2187,7 @@ function make(param_options?: KV, parent?: Jsonic): Jsonic {
       if (S.string === typeof (src)) {
         let internal = jsonic.internal()
         let parser = options.parser.start ?
-          util.wrap_parser(options.parser) : internal.parser
+          wrap_parser(options.parser) : internal.parser
         return parser.start(internal.lexer, src, jsonic, meta, parent_ctx)
       }
 
@@ -2705,8 +2199,8 @@ function make(param_options?: KV, parent?: Jsonic): Jsonic {
   // and set them as a funtion call.
   let options: any = (change_options?: KV) => {
     if (null != change_options && S.object === typeof (change_options)) {
-      util.build_config_from_options(config,
-        util.deep(merged_options, change_options))
+      build_config(config,
+        deep(merged_options, change_options))
       for (let k in merged_options) {
         jsonic.options[k] = merged_options[k]
       }
@@ -2720,10 +2214,10 @@ function make(param_options?: KV, parent?: Jsonic): Jsonic {
   let api: JsonicAPI = {
     token: (function token<A extends string | Tin, B extends string | Tin>(ref: A)
       : A extends string ? B : string {
-      return util.token(ref, config, jsonic)
+      return tokenize(ref, config, jsonic)
     } as any),
 
-    options: util.deep(options, merged_options),
+    options: deep(options, merged_options),
 
     parse: jsonic,
 
@@ -2755,23 +2249,12 @@ function make(param_options?: KV, parent?: Jsonic): Jsonic {
 
     toString: function() {
       return this.id
-    }
+    },
   }
 
 
   // Has to be done indirectly as we are in a fuction named `make`.
   Object.defineProperty(api.make, 'name', { value: 'make' })
-
-
-  // Hide internals where you can still find them. 
-  Object.assign(api, {
-    internal: () => ({
-      lexer,
-      parser,
-      config,
-      plugins,
-    })
-  })
 
 
   // Transfer parent properties (preserves plugin decorations, etc).
@@ -2783,9 +2266,9 @@ function make(param_options?: KV, parent?: Jsonic): Jsonic {
     jsonic.parent = parent
 
     let parent_internal = parent.internal()
-    config = util.deep({}, parent_internal.config)
+    config = deep({}, parent_internal.config)
 
-    util.build_config_from_options(config, merged_options)
+    build_config(config, merged_options)
     Object.assign(jsonic.token, config.t)
 
     plugins = [...parent_internal.plugins]
@@ -2799,7 +2282,7 @@ function make(param_options?: KV, parent?: Jsonic): Jsonic {
       t: {}
     } as Config)
 
-    util.build_config_from_options(config, merged_options)
+    build_config(config, merged_options)
 
     plugins = []
 
@@ -2817,16 +2300,545 @@ function make(param_options?: KV, parent?: Jsonic): Jsonic {
   Object.assign(jsonic.token, config.t)
 
 
+  // Hide internals where you can still find them. 
+  Object.defineProperty(jsonic, 'internal', {
+    value: function internal() {
+      return {
+        lexer,
+        parser,
+        config,
+        plugins,
+      }
+    }
+  })
+
+
   return jsonic
 }
 
 
+
+// Utilityfunctions
 
 function make_src_format(config: Config) {
   return (s: any, _?: any) =>
     null == s ? MT : (_ = JSON.stringify(s),
       _.substring(0, config.d.maxlen) +
       (config.d.maxlen < _.length ? '...' : MT))
+}
+
+
+// Uniquely resolve or assign token pin number
+function tokenize<R extends string | Tin, T extends string | Tin>(
+  ref: R,
+  config: Config,
+  jsonic?: Jsonic):
+  T {
+  let tokenmap: any = config.t
+  let token: string | Tin = tokenmap[ref]
+
+  if (null == token && S.string === typeof (ref)) {
+    token = config.tI++
+    tokenmap[token] = ref
+    tokenmap[ref] = token
+    tokenmap[(ref as string).substring(1)] = token
+
+    if (null != jsonic) {
+      Object.assign(jsonic.token, config.t)
+    }
+  }
+
+  return (token as T)
+}
+
+// Deep override for plain data. Retains base object and array.
+// Array merge by `over` index, `over` wins non-matching types, expect:
+// `undefined` always loses, `over` plain objects inject into functions,
+// and `over` functions always win. Over always copied.
+function deep(base?: any, ...rest: any): any {
+  let base_is_function = S.function === typeof (base)
+  let base_is_object = null != base &&
+    (S.object === typeof (base) || base_is_function)
+  for (let over of rest) {
+    let over_is_function = S.function === typeof (over)
+    let over_is_object = null != over &&
+      (S.object === typeof (over) || over_is_function)
+    if (base_is_object &&
+      over_is_object &&
+      !over_is_function &&
+      (Array.isArray(base) === Array.isArray(over))
+    ) {
+      for (let k in over) {
+        base[k] = deep(base[k], over[k])
+      }
+    }
+    else {
+      base = undefined === over ? base :
+        over_is_function ? over :
+          (over_is_object ?
+            deep(Array.isArray(over) ? [] : {}, over) : over)
+
+      base_is_function = S.function === typeof (base)
+      base_is_object = null != base &&
+        (S.object === typeof (base) || base_is_function)
+    }
+  }
+  return base
+}
+
+
+function clone(class_instance: any) {
+  return deep(Object.create(Object.getPrototypeOf(class_instance)),
+    class_instance)
+}
+
+
+// Lookup map for a set of chars.
+function charset(...parts: (string | object)[]): CharCodeMap {
+  return parts
+    .map((p: any) => 'object' === typeof (p) ? Object.keys(p).join(MT) : p)
+    .join(MT)
+    .split(MT)
+    .reduce((a: any, c: string) => (a[c] = c.charCodeAt(0), a), {})
+}
+
+
+function longest(strs: string[]) {
+  return strs.reduce((a, s) => a < s.length ? s.length : a, 0)
+}
+
+
+// True if arrays match.
+function marr(a: string[], b: string[]) {
+  return (a.length === b.length && a.reduce((a, s, i) => (a && s === b[i]), true))
+}
+
+
+// Remove Jsonic internal lines as spurious for caller.
+function clean_stack(err: Error) {
+  if (err.stack) {
+    err.stack =
+      err.stack.split('\n')
+        .filter(s => !s.includes('jsonic/jsonic'))
+        .map(s => s.replace(/    at /, 'at '))
+        .join('\n')
+  }
+}
+
+
+// Special debug logging to console (use Jsonic('...', {log:N})).
+// log:N -> console.dir to depth N
+// log:-1 -> console.dir to depth 1, omitting objects (good summary!)
+function make_log(ctx: Context) {
+  if ('number' === typeof ctx.log) {
+    let exclude_objects = false
+    let logdepth = (ctx.log as number)
+    if (-1 === logdepth) {
+      logdepth = 1
+      exclude_objects = true
+    }
+    ctx.log = (...rest: any) => {
+      if (exclude_objects) {
+        let logstr = rest
+          .filter((item: any) => S.object != typeof (item))
+          .map((item: any) => S.function == typeof (item) ? item.name : item)
+          .join('\t')
+        ctx.options.debug.get_console().log(logstr)
+      }
+      else {
+        ctx.options.debug.get_console().dir(rest, { depth: logdepth })
+      }
+      return undefined
+    }
+  }
+  return ctx.log
+}
+
+
+function wrap_bad_lex(lex: Lex, BD: Tin, ctx: Context) {
+  let wrap: any = (rule: Rule) => {
+    let token = lex(rule)
+
+    if (BD === token.tin) {
+      let details: any = {}
+      if (null != token.use) {
+        details.use = token.use
+      }
+      throw new JsonicError(
+        token.why || S.unexpected,
+        details,
+        token,
+        rule,
+        ctx,
+      )
+    }
+
+    return token
+  }
+  wrap.src = lex.src
+  return wrap
+}
+
+
+// Construct a RegExp from arguments.
+// Prefix with '%' to escape regexp special chars.
+// NOTE: flags first allows parts to be rest.
+function regexp(flags: string, ...parts: string[]): RegExp {
+  return new RegExp(
+    parts
+      .map(p => '%' === p[0] ? p.substring(1).replace(/./g, '\\$&') : p)
+      .join(MT),
+    flags
+  )
+}
+
+
+function errinject(
+  s: string,
+  code: string,
+  details: KV,
+  token: Token,
+  rule: Rule,
+  ctx: Context
+) {
+  return s.replace(/\$([\w_]+)/g, (_m: any, name: string) => {
+    return JSON.stringify(
+      'code' === name ? code : (
+        details[name] ||
+        (ctx.meta ? ctx.meta[name] : undefined) ||
+        (token as KV)[name] ||
+        (rule as KV)[name] ||
+        (ctx as KV)[name] ||
+        (ctx.options as any)[name] ||
+        (ctx.config as any)[name] ||
+        '$' + name
+      )
+    )
+  })
+}
+
+
+function extract(src: string, errtxt: string, token: Token) {
+  let loc = 0 < token.loc ? token.loc : 0
+  let row = 0 < token.row ? token.row : 0
+  let col = 0 < token.col ? token.col : 0
+  let tsrc = null == token.src ? MT : token.src
+  let behind = src.substring(Math.max(0, loc - 333), loc).split('\n')
+  let ahead = src.substring(loc, loc + 333).split('\n')
+
+  let pad = 2 + (MT + (row + 2)).length
+  let rI = row < 2 ? 0 : row - 2
+  let ln = (s: string) => '\x1b[34m' + (MT + (rI++)).padStart(pad, ' ') +
+    ' | \x1b[0m' + (null == s ? MT : s)
+
+  let blen = behind.length
+
+  let lines = [
+    2 < blen ? ln(behind[blen - 3]) : null,
+    1 < blen ? ln(behind[blen - 2]) : null,
+    ln(behind[blen - 1] + ahead[0]),
+    (' '.repeat(pad)) + '   ' +
+    ' '.repeat(col) +
+    '\x1b[31m' + '^'.repeat(tsrc.length || 1) +
+    ' ' + errtxt + '\x1b[0m',
+    ln(ahead[1]),
+    ln(ahead[2]),
+  ]
+    .filter((line: any) => null != line)
+    .join('\n')
+
+  return lines
+}
+
+
+function wrap_parser(parser: any) {
+  return {
+    start: function(
+      lexer: Lexer,
+      src: string,
+      jsonic: Jsonic,
+      meta?: any,
+      parent_ctx?: any
+    ) {
+      try {
+        return parser.start(lexer, src, jsonic, meta, parent_ctx)
+      } catch (ex) {
+        if ('SyntaxError' === ex.name) {
+          let loc = 0
+          let row = 0
+          let col = 0
+          let tsrc = MT
+          let errloc = ex.message.match(/^Unexpected token (.) .*position\s+(\d+)/i)
+          if (errloc) {
+            tsrc = errloc[1]
+            loc = parseInt(errloc[2])
+            row = src.substring(0, loc).replace(/[^\n]/g, MT).length
+            let cI = loc - 1
+            while (-1 < cI && '\n' !== src.charAt(cI)) cI--;
+            col = Math.max(src.substring(cI, loc).length, 0)
+          }
+
+          let token = ex.token || {
+            tin: jsonic.token.UK,
+            loc: loc,
+            len: tsrc.length,
+            row: ex.lineNumber || row,
+            col: ex.columnNumber || col,
+            val: undefined,
+            src: tsrc,
+          } as Token
+
+          throw new JsonicError(
+            ex.code || 'json',
+            ex.details || {
+              msg: ex.message
+            },
+            token,
+            ({} as Rule),
+            ex.ctx || {
+              rI: -1,
+              options: jsonic.options,
+              config: ({ t: {} } as Config),
+              token: token,
+              meta,
+              src: () => src,
+              root: () => undefined,
+              plugins: () => jsonic.internal().plugins,
+              rule: NONE,
+              node: undefined,
+              lex: -1,
+              u2: token,
+              u1: token,
+              t0: token,
+              t1: token, // TODO: should be end token
+              tI: -1,
+              rs: [],
+              next: () => token, // TODO: should be end token
+              rsm: {},
+              n: {},
+              log: meta ? meta.log : undefined,
+              F: make_src_format(jsonic.internal().config),
+              use: {},
+            } as Context,
+          )
+        }
+        else {
+          throw ex
+        }
+      }
+    }
+  }
+}
+
+
+function make_error_desc(
+  code: string,
+  details: KV,
+  token: Token,
+  rule: Rule,
+  ctx: Context,
+): KV {
+  token = { ...token }
+  let options = ctx.options
+  let meta = ctx.meta
+  let errtxt = errinject(
+    (options.error[code] || options.error.unknown),
+    code, details, token, rule, ctx
+  )
+
+  if (S.function === typeof (options.hint)) {
+    // Only expand the hints on demand. Allow for plugin-defined hints.
+    options.hint = { ...options.hint(), ...options.hint }
+  }
+
+  let message = [
+    ('\x1b[31m[jsonic/' + code + ']:\x1b[0m ' + errtxt),
+    '  \x1b[34m-->\x1b[0m ' + (meta && meta.fileName || '<no-file>') +
+    ':' + token.row + ':' + token.col,
+    extract(ctx.src(), errtxt, token),
+    errinject(
+      (options.hint[code] || options.hint.unknown)
+        .replace(/^([^ ])/, ' $1')
+        .split('\n')
+        .map((s: string, i: number) => (0 === i ? ' ' : '  ') + s).join('\n'),
+      code, details, token, rule, ctx
+    ),
+    '  \x1b[2mhttps://jsonic.richardrodger.com\x1b[0m',
+    '  \x1b[2m--internal: rule=' + rule.name + '~' + RuleState[rule.state] +
+    '; token=' + ctx.config.t[token.tin] +
+    (null == token.why ? '' : ('~' + token.why)) +
+    '; plugins=' + ctx.plugins().map((p: any) => p.name).join(',') + '--\x1b[0m\n'
+  ].join('\n')
+
+  let desc: any = {
+    internal: {
+      token,
+      ctx,
+    }
+  }
+
+  desc = {
+    ...Object.create(desc),
+    message,
+    code,
+    details,
+    meta,
+    fileName: meta ? meta.fileName : undefined,
+    lineNumber: token.row,
+    columnNumber: token.col,
+  }
+
+  return desc
+}
+
+
+// Idempotent normalization of options.
+function build_config(config: Config, options: Options) {
+  let token_names = Object.keys(options.token)
+
+  // Index of tokens by name.
+  token_names.forEach(tn => tokenize(tn, config))
+
+  let single_char_token_names = token_names
+    .filter(tn => null != (options.token[tn] as any).c)
+
+  config.sm = single_char_token_names
+    .reduce((a, tn) => (a[(options.token[tn] as any).c] =
+      (config.t as any)[tn], a), ({} as any))
+
+  let multi_char_token_names = token_names
+    .filter(tn => S.string === typeof options.token[tn])
+
+  // Char code arrays for lookup by char code.
+  config.s = multi_char_token_names
+    .reduce((a: any, tn) =>
+    (a[tn.substring(1)] =
+      (options.token[tn] as string)
+        .split(MT)
+        .reduce((pm, c) => (pm[c] = config.t[tn], pm), ({} as TinMap)),
+      a), {})
+
+  config.m = multi_char_token_names
+    .reduce((a: any, tn) =>
+    (a[tn.substring(1)] =
+      (options.token[tn] as string)
+        .split(MT)
+        .reduce((pm, c) => (pm[c] = config.t[tn], pm), ({} as TinMap)),
+      a), {})
+
+  let tokenset_names = token_names
+    .filter(tn => null != (options.token[tn] as any).s)
+
+  // Char code arrays for lookup by char code.
+  config.ts = tokenset_names
+    .reduce((a: any, tsn) =>
+    (a[tsn.substring(1)] =
+      (options.token[tsn] as any).s.split(',')
+        .reduce((a: any, tn: string) => (a[config.t[tn]] = tn, a), {}),
+      a), {})
+
+  // Lookup maps for sets of characters.
+  config.cs = {}
+
+  // Lookup table for escape chars, indexed by denotating char (e.g. n for \n).
+  config.str = {
+    esc: Object.keys(options.string.escape)
+      .reduce((a: any, ed: string) =>
+        (a[ed] = options.string.escape[ed], a), {})
+  }
+
+  config.cs.start_commentmarker = {}
+  config.cs.cm_single = {}
+  config.cmk = []
+  config.cmk0 = MT
+  config.cmk1 = MT
+
+  if (options.comment.lex) {
+    config.cm = options.comment.marker
+
+    let comment_markers = Object.keys(config.cm)
+
+    comment_markers.forEach(k => {
+
+      // Single char comment marker (eg. `#`)
+      if (1 === k.length) {
+        config.cs.start_commentmarker[k] = k.charCodeAt(0)
+        config.cs.cm_single[k] = k.charCodeAt(0)
+      }
+
+      // String comment marker (eg. `//`)
+      else {
+        config.cs.start_commentmarker[k[0]] = k.charCodeAt(0)
+        config.cmk.push(k)
+        config.cmk0 += k[0]
+        config.cmk1 += k[1]
+      }
+    })
+
+    config.cmx = longest(comment_markers)
+  }
+
+  config.sc = Object.keys(config.sm).join(MT)
+
+
+  // All the characters that can appear in a number.
+  config.cs.digital = charset(options.number.digital)
+
+  // Multiline quotes
+  config.cs.multiline = charset(options.string.multiline)
+
+  // Enders are char sets that end lexing for a given token.
+  // Value enders, end values.
+  config.cs.value_ender = charset(
+    config.m.SP,
+    config.m.LN,
+    config.sc,
+    config.cs.start_commentmarker
+  )
+
+  // Chars that end unquoted text.
+  config.cs.text_ender = config.cs.value_ender
+
+  // Chars that end text hoovering (including internal space).
+  config.cs.hoover_ender = charset(
+    config.m.LN,
+    config.sc,
+    config.cs.start_commentmarker
+  )
+
+
+  config.cs.start_blockmarker = {}
+  config.bmk = []
+  let block_markers = Object.keys(options.string.block)
+
+  block_markers.forEach(k => {
+    config.cs.start_blockmarker[k[0]] = k.charCodeAt(0)
+    config.bmk.push(k)
+  })
+
+  config.bmx = longest(block_markers)
+
+  // RegExp cache
+  config.re = {
+    ns: null != options.number.sep ?
+      new RegExp(options.number.sep, 'g') : null
+  }
+
+
+  // Debug options
+  config.d = options.debug
+
+
+  // Apply any config modifiers (probably from plugins).
+  Object.keys(options.config.modify)
+    .forEach((modifer: string) =>
+      options.config.modify[modifer](config, options))
+
+
+  // Debug the config - useful for plugin authors.
+  if (options.debug.print_config) {
+    options.debug.get_console().dir(config, { depth: null })
+  }
 }
 
 
@@ -2838,18 +2850,24 @@ function make_hint(d = (t: any, r = 'replace') => t[r](/[A-Z]/g, (m: any) => ' '
 
 
 let Jsonic: Jsonic = make()
-Jsonic.use = () => {
-  throw new Error(
-    'Jsonic.use cannot be called directly. Instead write: `Jsonic.make().use(...)`.')
-}
+
+// Keep global top level safe
+let top: any = Jsonic
+delete top.options
+delete top.use
+delete top.rule
+delete top.lex
+delete top.token
 
 
+// Provide deconstruction export names
 Jsonic.Jsonic = Jsonic
 Jsonic.JsonicError = JsonicError
 Jsonic.Lexer = Lexer
 Jsonic.Parser = Parser
 Jsonic.Rule = Rule
 Jsonic.RuleSpec = RuleSpec
+Jsonic.Alt = Alt
 Jsonic.util = util
 Jsonic.make = make
 
@@ -2872,6 +2890,7 @@ export {
   LexMatcherListMap,
   LexMatcherResult,
   LexMatcherState,
+  Alt,
   util,
   make,
 }

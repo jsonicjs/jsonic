@@ -5,11 +5,13 @@ const Util = require('util')
 const I = Util.inspect
 
 const { Jsonic, Lexer } = require('..')
-const lexer = Jsonic.internal().lexer
-const config = Jsonic.internal().config
-const opts = Jsonic.options
+const j01 = Jsonic.make()
 
-const ZZ = Jsonic.token.ZZ
+const lexer = j01.internal().lexer
+const config = j01.internal().config
+const opts = j01.options
+
+const ZZ = j01.token.ZZ
 
 module.exports = exhaust
 
@@ -64,7 +66,7 @@ function exhaust(size,print) {
       }
     }
     try {
-      let d = Jsonic(ts.s)
+      let d = j01(ts.s)
       rmc++
       //rm[''+ts.c+'|`'+ts.s+'`'] = d
     }

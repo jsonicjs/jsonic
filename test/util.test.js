@@ -34,28 +34,28 @@ describe('util', () => {
       t: {},
     }
 
-    expect(util.token(null,config)).equals(undefined)
+    expect(util.tokenize(null,config)).equals(undefined)
     
-    let s1 = util.token('AA', config)
+    let s1 = util.tokenize('AA', config)
     expect(s1).equals(s+1)
     expect(config.t.AA).equals(s+1)
     expect(config.t[s+1]).equals('AA')
-    expect(util.token('AA', config)).equals(s+1)
-    expect(util.token(s+1, config)).equals('AA')
+    expect(util.tokenize('AA', config)).equals(s+1)
+    expect(util.tokenize(s+1, config)).equals('AA')
 
-    let s1a = util.token('AA', config)
+    let s1a = util.tokenize('AA', config)
     expect(s1a).equals(s+1)
     expect(config.t.AA).equals(s+1)
     expect(config.t[s+1]).equals('AA')
-    expect(util.token('AA', config)).equals(s+1)
-    expect(util.token(s+1, config)).equals('AA')
+    expect(util.tokenize('AA', config)).equals(s+1)
+    expect(util.tokenize(s+1, config)).equals('AA')
 
-    let s2 = util.token('BB', config)
+    let s2 = util.tokenize('BB', config)
     expect(s2).equals(s+2)
     expect(config.t.BB).equals(s+2)
     expect(config.t[s+2]).equals('BB')
-    expect(util.token('BB', config)).equals(s+2)
-    expect(util.token(s+2, config)).equals('BB')
+    expect(util.tokenize('BB', config)).equals(s+2)
+    expect(util.tokenize(s+2, config)).equals('BB')
   })
 
   
