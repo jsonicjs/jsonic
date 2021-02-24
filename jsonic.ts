@@ -199,7 +199,7 @@ type CharCodeMap = { [char: string]: number }
 // See build_config_from_options.
 type Config = {
   tI: number // Token identifier index
-  token: any
+  t: any
   start: { [name: string]: PinMap }
   multi: { [name: string]: PinMap }
   charset: { [name: string]: CharCodeMap }
@@ -1643,7 +1643,7 @@ class RuleSpec {
 
     let alt
     let altI = 0
-    let t = ctx.config.token
+    let t = ctx.config.t
     let cond
 
     for (altI = 0; altI < alts.length; altI++) {
@@ -1737,7 +1737,7 @@ class Parser {
   }
 
   init() {
-    let t = this.config.token
+    let t = this.config.t
 
     let OB = t.OB
     let CB = t.CB
@@ -2155,7 +2155,7 @@ let util = {
     config: Config,
     jsonic?: Jsonic):
     T {
-    let tokenmap: any = config.token
+    let tokenmap: any = config.t
     let token: string | Tin = tokenmap[ref]
 
     if (null == token && S.string === typeof (ref)) {
@@ -2165,7 +2165,7 @@ let util = {
       tokenmap[(ref as string).substring(1)] = token
 
       if (null != jsonic) {
-        Object.assign(jsonic.token, config.token)
+        Object.assign(jsonic.token, config.t)
       }
     }
 
@@ -2417,7 +2417,7 @@ let util = {
               ex.ctx || {
                 rI: -1,
                 options: jsonic.options,
-                config: ({ token: {} } as Config),
+                config: ({ t: {} } as Config),
                 token: token,
                 meta,
                 src: () => src,
@@ -2484,7 +2484,7 @@ let util = {
       ),
       '  \x1b[2mhttps://jsonic.richardrodger.com\x1b[0m',
       '  \x1b[2m--internal: rule=' + rule.name + '~' + RuleState[rule.state] +
-      '; token=' + ctx.config.token[token.tin] +
+      '; token=' + ctx.config.t[token.tin] +
       (null == token.why ? '' : ('~' + token.why)) +
       '; plugins=' + ctx.plugins().map((p: any) => p.name).join(',') + '--\x1b[0m\n'
     ].join('\n')
@@ -2523,7 +2523,7 @@ let util = {
 
     config.singlemap = single_char_token_names
       .reduce((a, tn) => (a[(options.token[tn] as any).c] =
-        (config.token as any)[tn], a), ({} as any))
+        (config.t as any)[tn], a), ({} as any))
 
     let multi_char_token_names = token_names
       .filter(tn => S.string === typeof options.token[tn])
@@ -2534,7 +2534,7 @@ let util = {
       (a[tn.substring(1)] =
         (options.token[tn] as string)
           .split(MT)
-          .reduce((pm, c) => (pm[c] = config.token[tn], pm), ({} as PinMap)),
+          .reduce((pm, c) => (pm[c] = config.t[tn], pm), ({} as PinMap)),
         a), {})
 
     config.multi = multi_char_token_names
@@ -2542,7 +2542,7 @@ let util = {
       (a[tn.substring(1)] =
         (options.token[tn] as string)
           .split(MT)
-          .reduce((pm, c) => (pm[c] = config.token[tn], pm), ({} as PinMap)),
+          .reduce((pm, c) => (pm[c] = config.t[tn], pm), ({} as PinMap)),
         a), {})
 
     let tokenset_names = token_names
@@ -2553,7 +2553,7 @@ let util = {
       .reduce((a: any, tsn) =>
       (a[tsn.substring(1)] =
         (options.token[tsn] as any).s.split(',')
-          .reduce((a: any, tn: string) => (a[config.token[tn]] = tn, a), {}),
+          .reduce((a: any, tn: string) => (a[config.t[tn]] = tn, a), {}),
         a), {})
 
     // Lookup maps for sets of characters.
@@ -2705,7 +2705,7 @@ function make(param_options?: KV, parent?: Jsonic): Jsonic {
       for (let k in merged_options) {
         jsonic.options[k] = merged_options[k]
       }
-      Object.assign(jsonic.token, config.token)
+      Object.assign(jsonic.token, config.t)
     }
     return { ...jsonic.options }
   }
@@ -2781,7 +2781,7 @@ function make(param_options?: KV, parent?: Jsonic): Jsonic {
     config = util.deep({}, parent_internal.config)
 
     util.build_config_from_options(config, merged_options)
-    Object.assign(jsonic.token, config.token)
+    Object.assign(jsonic.token, config.t)
 
     plugins = [...parent_internal.plugins]
 
@@ -2791,7 +2791,7 @@ function make(param_options?: KV, parent?: Jsonic): Jsonic {
   else {
     config = ({
       tI: 1,
-      token: {}
+      t: {}
     } as Config)
 
     util.build_config_from_options(config, merged_options)
@@ -2809,7 +2809,7 @@ function make(param_options?: KV, parent?: Jsonic): Jsonic {
 
 
   // As with options, provide direct access to tokens.
-  Object.assign(jsonic.token, config.token)
+  Object.assign(jsonic.token, config.t)
 
 
   return jsonic

@@ -29,15 +29,15 @@ describe('plugin', function () {
 
 
   it('clone-lexer', () => {
-    let config0 = {config:true,mark:0,tI:1,token:{}}
+    let config0 = {config:true,mark:0,tI:1,t:{}}
     let lex0 = new Lexer(config0)
     let match0 = function(){}
-    lex0.lex(config0.token['@LCS'], match0)
+    lex0.lex(config0.t['@LCS'], match0)
 
-    let config1 = {config:true,mark:1,tI:1,token:{}}
+    let config1 = {config:true,mark:1,tI:1,t:{}}
     let lex1 = lex0.clone(config1)
     let match1 = function(){}
-    lex1.lex(config0.token['@LML'], match1)
+    lex1.lex(config0.t['@LML'], match1)
 
     // console.log('lex0')
     // console.dir(lex0)
@@ -58,11 +58,11 @@ describe('plugin', function () {
 
 
   it('clone-parser', () => {
-    let config0 = {config:true,mark:0,tI:1,token:{}}
+    let config0 = {config:true,mark:0,tI:1,t:{}}
     let opts0 = {opts:true,mark:0}
     let p0 = new Parser(opts0,config0)
 
-    let config1 = {config:true,mark:1,tI:1,token:{}}
+    let config1 = {config:true,mark:1,tI:1,t:{}}
     let opts1 = {opts:true,mark:1}
     let p1 = p0.clone(opts1,config1)
 
@@ -674,7 +674,7 @@ a x\t"b\\tx"
               e2.ctx = {
                 src:()=>'',
                 options:{error:{e2:'e:2'},hint:{e2:'e:2'}},
-                config:{token:{}},
+                config:{t:{}},
                 plugins:()=>[]
               }
               throw e2

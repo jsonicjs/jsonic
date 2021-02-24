@@ -31,29 +31,29 @@ describe('util', () => {
     let s = 0
     let config = {
       tI: 1,
-      token: {},
+      t: {},
     }
 
     expect(util.token(null,config)).equals(undefined)
     
     let s1 = util.token('AA', config)
     expect(s1).equals(s+1)
-    expect(config.token.AA).equals(s+1)
-    expect(config.token[s+1]).equals('AA')
+    expect(config.t.AA).equals(s+1)
+    expect(config.t[s+1]).equals('AA')
     expect(util.token('AA', config)).equals(s+1)
     expect(util.token(s+1, config)).equals('AA')
 
     let s1a = util.token('AA', config)
     expect(s1a).equals(s+1)
-    expect(config.token.AA).equals(s+1)
-    expect(config.token[s+1]).equals('AA')
+    expect(config.t.AA).equals(s+1)
+    expect(config.t[s+1]).equals('AA')
     expect(util.token('AA', config)).equals(s+1)
     expect(util.token(s+1, config)).equals('AA')
 
     let s2 = util.token('BB', config)
     expect(s2).equals(s+2)
-    expect(config.token.BB).equals(s+2)
-    expect(config.token[s+2]).equals('BB')
+    expect(config.t.BB).equals(s+2)
+    expect(config.t[s+2]).equals('BB')
     expect(util.token('BB', config)).equals(s+2)
     expect(util.token(s+2, config)).equals('BB')
   })
@@ -302,7 +302,7 @@ describe('util', () => {
     let ctx = {
       src:()=>'',
       options:{error:{unexpected:'unx'},hint:{unexpected:'unx'}},
-      config:{token:{}},
+      config:{t:{}},
       plugins:()=>[],
     }
 
@@ -542,7 +542,7 @@ describe('util', () => {
       src: ()=>'src',
       plugins: ()=>[{name:'p0'}],
       config: {
-        token: {
+        t: {
           1: '#T1',
         }
       }

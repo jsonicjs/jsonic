@@ -1026,7 +1026,7 @@ class RuleSpec {
         out.e = undefined; // Error token.
         let alt;
         let altI = 0;
-        let t = ctx.config.token;
+        let t = ctx.config.t;
         let cond;
         for (altI = 0; altI < alts.length; altI++) {
             alt = alts[altI];
@@ -1085,7 +1085,7 @@ class Parser {
         this.config = config;
     }
     init() {
-        let t = this.config.token;
+        let t = this.config.t;
         let OB = t.OB;
         let CB = t.CB;
         let OS = t.OS;
@@ -1413,7 +1413,7 @@ exports.Parser = Parser;
 let util = {
     // Uniquely resolve or assign token pin number
     token: function token(ref, config, jsonic) {
-        let tokenmap = config.token;
+        let tokenmap = config.t;
         let token = tokenmap[ref];
         if (null == token && S.string === typeof (ref)) {
             token = config.tI++;
@@ -1421,7 +1421,7 @@ let util = {
             tokenmap[ref] = token;
             tokenmap[ref.substring(1)] = token;
             if (null != jsonic) {
-                Object.assign(jsonic.token, config.token);
+                Object.assign(jsonic.token, config.t);
             }
         }
         return token;
@@ -1608,7 +1608,7 @@ let util = {
                         }, token, {}, ex.ctx || {
                             rI: -1,
                             options: jsonic.options,
-                            config: { token: {} },
+                            config: { t: {} },
                             token: token,
                             meta,
                             src: () => src,
@@ -1658,7 +1658,7 @@ let util = {
                 .map((s, i) => (0 === i ? ' ' : '  ') + s).join('\n'), code, details, token, rule, ctx),
             '  \x1b[2mhttps://jsonic.richardrodger.com\x1b[0m',
             '  \x1b[2m--internal: rule=' + rule.name + '~' + RuleState[rule.state] +
-                '; token=' + ctx.config.token[token.tin] +
+                '; token=' + ctx.config.t[token.tin] +
                 (null == token.why ? '' : ('~' + token.why)) +
                 '; plugins=' + ctx.plugins().map((p) => p.name).join(',') + '--\x1b[0m\n'
         ].join('\n');
@@ -1689,7 +1689,7 @@ let util = {
             .filter(tn => null != options.token[tn].c);
         config.singlemap = single_char_token_names
             .reduce((a, tn) => (a[options.token[tn].c] =
-            config.token[tn], a), {});
+            config.t[tn], a), {});
         let multi_char_token_names = token_names
             .filter(tn => S.string === typeof options.token[tn]);
         // Char code arrays for lookup by char code.
@@ -1697,13 +1697,13 @@ let util = {
             .reduce((a, tn) => (a[tn.substring(1)] =
             options.token[tn]
                 .split(MT)
-                .reduce((pm, c) => (pm[c] = config.token[tn], pm), {}),
+                .reduce((pm, c) => (pm[c] = config.t[tn], pm), {}),
             a), {});
         config.multi = multi_char_token_names
             .reduce((a, tn) => (a[tn.substring(1)] =
             options.token[tn]
                 .split(MT)
-                .reduce((pm, c) => (pm[c] = config.token[tn], pm), {}),
+                .reduce((pm, c) => (pm[c] = config.t[tn], pm), {}),
             a), {});
         let tokenset_names = token_names
             .filter(tn => null != options.token[tn].s);
@@ -1711,7 +1711,7 @@ let util = {
         config.tokenset = tokenset_names
             .reduce((a, tsn) => (a[tsn.substring(1)] =
             options.token[tsn].s.split(',')
-                .reduce((a, tn) => (a[config.token[tn]] = tn, a), {}),
+                .reduce((a, tn) => (a[config.t[tn]] = tn, a), {}),
             a), {});
         // Lookup maps for sets of characters.
         config.charset = {};
@@ -1808,7 +1808,7 @@ function make(param_options, parent) {
             for (let k in merged_options) {
                 jsonic.options[k] = merged_options[k];
             }
-            Object.assign(jsonic.token, config.token);
+            Object.assign(jsonic.token, config.t);
         }
         return { ...jsonic.options };
     };
@@ -1862,7 +1862,7 @@ function make(param_options, parent) {
         let parent_internal = parent.internal();
         config = util.deep({}, parent_internal.config);
         util.build_config_from_options(config, merged_options);
-        Object.assign(jsonic.token, config.token);
+        Object.assign(jsonic.token, config.t);
         plugins = [...parent_internal.plugins];
         lexer = parent_internal.lexer.clone(config);
         parser = parent_internal.parser.clone(merged_options, config);
@@ -1870,7 +1870,7 @@ function make(param_options, parent) {
     else {
         config = {
             tI: 1,
-            token: {}
+            t: {}
         };
         util.build_config_from_options(config, merged_options);
         plugins = [];
@@ -1881,7 +1881,7 @@ function make(param_options, parent) {
     // Add API methods to the core utility function.
     Object.assign(jsonic, api);
     // As with options, provide direct access to tokens.
-    Object.assign(jsonic.token, config.token);
+    Object.assign(jsonic.token, config.t);
     return jsonic;
 }
 exports.make = make;
@@ -1904,6 +1904,6 @@ Jsonic.make = make;
 exports.default = Jsonic;
 // Build process uncomments this to enable more natural Node.js requires.
 /* $lab:coverage:off$ */
-;('undefined' != typeof(module) && (module.exports = exports.Jsonic));
+//-NODE-MODULE-FIX;('undefined' != typeof(module) && (module.exports = exports.Jsonic));
 /* $lab:coverage:on$ */
 //# sourceMappingURL=jsonic.js.map
