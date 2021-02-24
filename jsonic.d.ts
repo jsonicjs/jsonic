@@ -154,7 +154,7 @@ declare type CharCodeMap = {
     [char: string]: number;
 };
 declare type Config = {
-    tokenI: number;
+    tI: number;
     token: any;
     start: {
         [name: string]: PinMap;

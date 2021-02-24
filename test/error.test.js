@@ -24,22 +24,22 @@ describe('error', function () {
     }
     catch(e) {
       expect(e.message).equal(
-        '\u001b[31m[jsonic/invalid_unicode]:\u001b[0m invalid unicode escape: "\\\\u0000"\n' +
-          '  \u001b[34m-->\u001b[0m <no-file>:10:6\n' +
-          '\u001b[34m   8 | \u001b[0m\n' +
-          '\u001b[34m   9 | \u001b[0m\n' +
-          '\u001b[34m  10 | \u001b[0m   "\\u0000"\n' +
-          '             \u001b[31m^^^^^^ invalid unicode escape: "\\\\u0000"\u001b[0m\n' +
-          '\u001b[34m  11 | \u001b[0m\n' +
-          '\u001b[34m  12 | \u001b[0m\n' +
-          '  The escape sequence "\\\\u0000" does not encode a valid unicode code point\n' +
-          '  number. You may need to validate your string data manually using test\n' +
-          '  code to see how Java script will interpret it. Also consider that your\n' +
-          '  data may have become corrupted, or the escape sequence has not been\n' +
-          '  generated correctly.\n' +
-          '  \u001b[2mhttps://jsonic.richardrodger.com\u001b[0m\n' +
-          '  \u001b[2m--internal: rule=val~open; token=#BD~foo; plugins=--\u001b[0m\n'
-      )
+`\u001b[31m[jsonic/invalid_unicode]:\u001b[0m invalid unicode escape: "\\\\u0000"
+  \u001b[34m-->\u001b[0m <no-file>:10:6
+\u001b[34m   8 | \u001b[0m
+\u001b[34m   9 | \u001b[0m
+\u001b[34m  10 | \u001b[0m   "\\u0000"
+             \u001b[31m^^^^^^ invalid unicode escape: "\\\\u0000"\u001b[0m
+\u001b[34m  11 | \u001b[0m
+\u001b[34m  12 | \u001b[0m
+  The escape sequence "\\\\u0000" does not encode a valid unicode code point
+  number. You may need to validate your string data manually using test
+  code to see how Java script will interpret it. Also consider that your
+  data may have become corrupted, or the escape sequence has not been
+  generated correctly.
+  \u001b[2mhttps://jsonic.richardrodger.com\u001b[0m
+  \u001b[2m--internal: rule=val~open; token=#BD~foo; plugins=--\u001b[0m'
+`      )
     }
   })
   
@@ -86,7 +86,8 @@ describe('error', function () {
           '\u001b[34m  3 | \u001b[0m\n' +
           '  Foo hint.\n' +
           '  \u001b[2mhttps://jsonic.richardrodger.com\u001b[0m\n' +
-          '  \u001b[2m--internal: rule=pair~open; token=#BD~foo; plugins=foo--\u001b[0m\n'
+          '  \u001b[2m--internal: rule=pair~open; token=#BD~foo;'+
+          ' plugins=foo--\u001b[0m\n'
       )
     }
     

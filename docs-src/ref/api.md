@@ -91,8 +91,11 @@ Apart from `log`, the meta object contains plugin-specific
 parameters. See your friendly neighbourhood plugin documentation for
 more.
 
-<br>
+
+<br><br>
+
 ---
+
 ### :pear: `id`: Unique instance identifier
 
 `.id: string`
@@ -111,8 +114,10 @@ Jsonic.make({tag:'foo'}).id // === 'Jsonic/1614085851902/375149/foo'
 ```
 
 
-<br>
+<br><br>
+
 ---
+
 ### :strawberry: `toString`: String description of the Jsonic instance
 
 `.toString(): string`
@@ -129,10 +134,10 @@ the instance.
 ''+(Jsonic.make({tag:'foo'})) // === 'Jsonic/1614085851902/375149/foo'
 ```
 
+<br><br>
 
-
-<br>
 ---
+
 ### :strawberry: `make`: Create a new customizable Jsonic instance.
 
 `.make(options?: object): Jsonic`
@@ -176,9 +181,10 @@ To understand how the `token` option works, and all the other
 options, see the [Options](/ref/options/) section.
 
 
+<br><br>
 
-<br>
 ---
+
 ### :strawberry: :pear: `options`: Get and set options for a Jsonic instance.
 
 `.options(options: object): object`
@@ -212,9 +218,10 @@ Jsonic(`
 ```
 
 
+<br><br>
 
-<br>
 ---
+
 ### :strawberry: `use`: Register a plugin.
 
 `.use(plugin: function, plugin_options?: object): Jsonic`
@@ -283,9 +290,10 @@ let jsonic = Jsonic.make()
 ```
 
 
+<br><br>
 
-<br>
 ---
+
 ### :strawberry: `rule`: Define or modify a parser rule.
 
 `.rule(name?: string, define?: function): RuleSpec`
@@ -356,9 +364,10 @@ concat('{x:1, y:%}') // === {x:1, y:100}
 ```
 
 
+<br><br>
 
-<br>
 ---
+
 ### :strawberry: `lex`: Define a lex matcher.
 
 `.lex(state?: Tin, match?: function): LexMatcher[]`
@@ -411,9 +420,10 @@ tens('a:1,b:%%,c:[%%%%]') // === {a:1, b:20, c:[40]}
 ```
 
 
+<br><br>
 
-<br>
 ---
+
 ### :strawberry: :pear: `token`: Resolve a token by name or index.
 
 `.token(ref: Tin | string): string | Tin`

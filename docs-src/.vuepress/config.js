@@ -13,7 +13,8 @@ module.exports = {
       { text: 'Github', link: 'https://github.com/rjrodger/jsonic' }
     ],
     sidebar: {
-      '/ref/': ['usage', 'api','options','syntax']
+      '/ref/': ['api','options','syntax'],
+      '/guide/': ['install'],
     }
   }
 }

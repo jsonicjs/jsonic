@@ -30,7 +30,7 @@ describe('util', () => {
   it('token-gen', () => {
     let s = 0
     let config = {
-      tokenI: 1,
+      tI: 1,
       token: {},
     }
 
