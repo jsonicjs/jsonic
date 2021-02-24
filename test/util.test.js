@@ -291,7 +291,7 @@ describe('util', () => {
 
 
   it('make_src_format', () => {
-    let F = make_src_format({debug:{maxlen:4}})
+    let F = make_src_format({d:{maxlen:4}})
     expect(F('a')).equals('"a"')
     expect(F('ab')).equals('"ab"')
     expect(F('abc')).equals('"abc...')
@@ -390,8 +390,7 @@ describe('util', () => {
     dir = []
     let j = Jsonic.make(options)
     j('a:1',{log:-1})
-    // expect(log.length).equal(36) // may need to be changed if logging changes
-    expect(dir[0].debug.print_config).true()
+    expect(dir[0].d.print_config).true()
   })
 
 

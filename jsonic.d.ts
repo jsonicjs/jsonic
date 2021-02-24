@@ -165,31 +165,31 @@ declare type Config = {
     cs: {
         [charset_name: string]: CharCodeMap;
     };
-    singlemap: {
+    sm: {
         [char: string]: Tin;
     };
-    tokenset: {
-        [name: string]: Tin[];
+    ts: {
+        [tokenset_name: string]: Tin[];
     };
-    string: {
-        escape: {
+    str: {
+        esc: {
             [name: string]: string;
         };
     };
-    comment: {
+    cm: {
         [start_marker: string]: string | boolean;
     };
     cmk: string[];
     cmk0: string;
     cmk1: string;
-    cmk_maxlen: number;
+    cmx: number;
     bmk: string[];
-    bmk_maxlen: number;
-    single_char: string;
-    number: {
-        sep_RE: RegExp | null;
+    bmx: number;
+    sc: string;
+    num: {
+        sepRE: RegExp | null;
     };
-    debug: KV;
+    d: KV;
     re: {
         [name: string]: RegExp;
     };
@@ -298,7 +298,7 @@ declare let util: {
     longest: (strs: string[]) => number;
     marr: (a: string[], b: string[]) => boolean;
     clean_stack(err: Error): void;
-    make_src_format: (config: Config) => (s: any, _?: any) => string;
+    make_src_format: typeof make_src_format;
     make_log: (ctx: Context) => ((...rest: any) => undefined) | undefined;
     wrap_bad_lex: (lex: Lex, BD: Tin, ctx: Context) => any;
     regexp: (flags: string, ...parts: string[]) => RegExp;
@@ -311,6 +311,7 @@ declare let util: {
     build_config_from_options: (config: Config, options: Options) => void;
 };
 declare function make(param_options?: KV, parent?: Jsonic): Jsonic;
+declare function make_src_format(config: Config): (s: any, _?: any) => string;
 declare let Jsonic: Jsonic;
 export { Jsonic, Plugin, JsonicError, Tin, Lexer, Parser, Rule, RuleSpec, RuleSpecMap, Token, Context, Meta, LexMatcher, LexMatcherListMap, LexMatcherResult, LexMatcherState, util, make, };
 export default Jsonic;

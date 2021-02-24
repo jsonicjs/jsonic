@@ -200,33 +200,32 @@ type CharCodeMap = { [char: string]: number }
 // Internal configuration derived from options.
 // See build_config_from_options.
 type Config = {
-  tI: number // Token identifier index
-  t: any // Token index map
-  s: { [token_name: string]: TinMap } // Token start character 
-  m: { [token_name: string]: TinMap } // multi-character Tokens
-  cs: { [charset_name: string]: CharCodeMap } // Character set
-  singlemap: { [char: string]: Tin }
-  tokenset: { [name: string]: Tin[] }
-  string: {
-    escape: { [name: string]: string }
+  tI: number // Token identifier index.
+  t: any // Token index map.
+  s: { [token_name: string]: TinMap } // Token start character .
+  m: { [token_name: string]: TinMap } // multi-character Tokens.
+  cs: { [charset_name: string]: CharCodeMap } // Character set.
+  sm: { [char: string]: Tin } // Single character token index.
+  ts: { [tokenset_name: string]: Tin[] } // Named token sets.
+  str: {
+    esc: { [name: string]: string } // String escape characters.
   },
-  comment: { [start_marker: string]: string | boolean }
-  cmk: string[]         // Comment start markers.
-  cmk0: string          // Comment start markers first chars.
-  cmk1: string          // Comment start markers second chars.
-  cmk_maxlen: number    // Comment start markers max len.
-  bmk: string[]
-  bmk_maxlen: number
-  single_char: string
-  number: {
-    sep_RE: RegExp | null
+  cm: { [start_marker: string]: string | boolean } // Comment start markers.
+  cmk: string[] // Comment start markers.
+  cmk0: string  // Comment start markers first chars.
+  cmk1: string  // Comment start markers second chars.
+  cmx: number // Comment start markers max length.
+  bmk: string[] // Block start markers.
+  bmx: number // Block start markers max length.
+  sc: string    // Token start characters.
+  num: {
+    sepRE: RegExp | null // Number separator regexp.
   },
-
-  debug: KV,
-  re: { [name: string]: RegExp }
+  d: KV, // Debug options.
+  re: { [name: string]: RegExp } // RegExp map.
 }
 
-const MT = ''
+const MT = '' // Empty ("MT"!) string.
 
 // A bit pedantic, but let's be strict about strings.
 const S = {
@@ -785,8 +784,8 @@ class Lexer {
 
 
           // Single char tokens.
-          if (null != config.singlemap[c0]) {
-            token.tin = config.singlemap[c0]
+          if (null != config.sm[c0]) {
+            token.tin = config.sm[c0]
             token.loc = sI
             token.col = cI++
             token.len = 1
@@ -834,8 +833,8 @@ class Lexer {
                 token.val = +numstr
 
                 // Allow number format 1000_000_000 === 1e9.
-                if (null != config.number.sep_RE && isNaN(token.val)) {
-                  token.val = +(numstr.replace(config.number.sep_RE, MT))
+                if (null != config.num.sepRE && isNaN(token.val)) {
+                  token.val = +(numstr.replace(config.num.sepRE, MT))
                 }
 
                 // Not a number, just a random collection of digital chars.
@@ -864,7 +863,7 @@ class Lexer {
 
           // Block chars.
           if (options.block.lex && config.cs.start_blockmarker[c0]) {
-            let marker = src.substring(sI, sI + config.bmk_maxlen)
+            let marker = src.substring(sI, sI + config.bmx)
 
             for (let bm of config.bmk) {
               if (marker.startsWith(bm)) {
@@ -914,7 +913,7 @@ class Lexer {
                 pI++
                 cI++
 
-                let es = config.string.escape[src[pI]]
+                let es = config.str.esc[src[pI]]
                 if (null != es) {
                   s.push(es)
                 }
@@ -1022,20 +1021,20 @@ class Lexer {
 
             // Check for comment markers as single comment char could be
             // a comment marker prefix (eg. # and ###, / and //, /*).
-            let marker = src.substring(sI, sI + config.cmk_maxlen)
+            let marker = src.substring(sI, sI + config.cmx)
 
             for (let cm of config.cmk) {
               if (marker.startsWith(cm)) {
 
                 // Multi-line comment.
-                if (true !== config.comment[cm]) {
+                if (true !== config.cm[cm]) {
                   token.tin = CM
                   token.loc = sI
                   token.col = cI
                   token.val = MT // intialize for LCS.
 
                   state = LML
-                  state_param = [cm, config.comment[cm], options.comment.balance]
+                  state_param = [cm, config.cm[cm], options.comment.balance]
                   continue next_char
                 }
 
@@ -2055,7 +2054,7 @@ class Parser {
       rs: [],
       rsm: this.rsm,
       log: (meta && meta.log) || undefined,
-      F: util.make_src_format(config),
+      F: make_src_format(config),
       use: {}
     }
 
@@ -2096,7 +2095,7 @@ class Parser {
       do {
         t1 = lex(rule)
         ctx.tI++
-      } while (config.tokenset.IGNORE[t1.tin])
+      } while (config.ts.IGNORE[t1.tin])
 
       ctx.t1 = { ...t1 }
 
@@ -2242,10 +2241,14 @@ let util = {
   },
 
 
+  make_src_format,
+
+  /*
   make_src_format: (config: Config) =>
     (s: any, _?: any) => null == s ? MT : (_ = JSON.stringify(s),
-      _.substring(0, config.debug.maxlen) +
-      (config.debug.maxlen < _.length ? '...' : MT)),
+      _.substring(0, config.d.maxlen) +
+      (config.d.maxlen < _.length ? '...' : MT)),
+  */
 
   // Special debug logging to console (use Jsonic('...', {log:N})).
   // log:N -> console.dir to depth N
@@ -2438,7 +2441,7 @@ let util = {
                 rsm: {},
                 n: {},
                 log: meta ? meta.log : undefined,
-                F: util.make_src_format(jsonic.internal().config),
+                F: make_src_format(jsonic.internal().config),
                 use: {},
               } as Context,
             )
@@ -2523,7 +2526,7 @@ let util = {
     let single_char_token_names = token_names
       .filter(tn => null != (options.token[tn] as any).c)
 
-    config.singlemap = single_char_token_names
+    config.sm = single_char_token_names
       .reduce((a, tn) => (a[(options.token[tn] as any).c] =
         (config.t as any)[tn], a), ({} as any))
 
@@ -2551,7 +2554,7 @@ let util = {
       .filter(tn => null != (options.token[tn] as any).s)
 
     // Char code arrays for lookup by char code.
-    config.tokenset = tokenset_names
+    config.ts = tokenset_names
       .reduce((a: any, tsn) =>
       (a[tsn.substring(1)] =
         (options.token[tsn] as any).s.split(',')
@@ -2562,8 +2565,8 @@ let util = {
     config.cs = {}
 
     // Lookup table for escape chars, indexed by denotating char (e.g. n for \n).
-    config.string = {
-      escape: Object.keys(options.string.escape)
+    config.str = {
+      esc: Object.keys(options.string.escape)
         .reduce((a: any, ed: string) =>
           (a[ed] = options.string.escape[ed], a), {})
     }
@@ -2575,9 +2578,9 @@ let util = {
     config.cmk1 = MT
 
     if (options.comment.lex) {
-      config.comment = options.comment.marker
+      config.cm = options.comment.marker
 
-      let comment_markers = Object.keys(config.comment)
+      let comment_markers = Object.keys(config.cm)
 
       comment_markers.forEach(k => {
 
@@ -2596,10 +2599,10 @@ let util = {
         }
       })
 
-      config.cmk_maxlen = util.longest(comment_markers)
+      config.cmx = util.longest(comment_markers)
     }
 
-    config.single_char = Object.keys(config.singlemap).join(MT)
+    config.sc = Object.keys(config.sm).join(MT)
 
 
     // All the characters that can appear in a number.
@@ -2613,7 +2616,7 @@ let util = {
     config.cs.value_ender = util.charset(
       config.m.SP,
       config.m.LN,
-      config.single_char,
+      config.sc,
       config.cs.start_commentmarker
     )
 
@@ -2623,7 +2626,7 @@ let util = {
     // Chars that end text hoovering (including internal space).
     config.cs.hoover_ender = util.charset(
       config.m.LN,
-      config.single_char,
+      config.sc,
       config.cs.start_commentmarker
     )
 
@@ -2637,12 +2640,12 @@ let util = {
       config.bmk.push(k)
     })
 
-    config.bmk_maxlen = util.longest(block_markers)
+    config.bmx = util.longest(block_markers)
 
 
     // TODO: move to config.re, use util.regexp
-    config.number = {
-      sep_RE: null != options.number.sep ?
+    config.num = {
+      sepRE: null != options.number.sep ?
         new RegExp(options.number.sep, 'g') : null
     }
 
@@ -2652,7 +2655,7 @@ let util = {
 
 
     // Debug options
-    config.debug = options.debug
+    config.d = options.debug
 
 
     // Apply any config modifiers (probably from plugins).
@@ -2816,6 +2819,16 @@ function make(param_options?: KV, parent?: Jsonic): Jsonic {
 
   return jsonic
 }
+
+
+
+function make_src_format(config: Config) {
+  return (s: any, _?: any) =>
+    null == s ? MT : (_ = JSON.stringify(s),
+      _.substring(0, config.d.maxlen) +
+      (config.d.maxlen < _.length ? '...' : MT))
+}
+
 
 
 // Generate hint text lookup.

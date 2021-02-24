@@ -2,7 +2,7 @@
 /* Copyright (c) 2013-2021 Richard Rodger, MIT License */
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.make = exports.util = exports.RuleSpec = exports.Rule = exports.Parser = exports.Lexer = exports.JsonicError = exports.Jsonic = void 0;
-const MT = '';
+const MT = ''; // Empty ("MT"!) string.
 // A bit pedantic, but let's be strict about strings.
 const S = {
     object: 'object',
@@ -393,8 +393,8 @@ class Lexer {
                         return token;
                     }
                     // Single char tokens.
-                    if (null != config.singlemap[c0]) {
-                        token.tin = config.singlemap[c0];
+                    if (null != config.sm[c0]) {
+                        token.tin = config.sm[c0];
                         token.loc = sI;
                         token.col = cI++;
                         token.len = 1;
@@ -432,8 +432,8 @@ class Lexer {
                             else {
                                 token.val = +numstr;
                                 // Allow number format 1000_000_000 === 1e9.
-                                if (null != config.number.sep_RE && isNaN(token.val)) {
-                                    token.val = +(numstr.replace(config.number.sep_RE, MT));
+                                if (null != config.num.sepRE && isNaN(token.val)) {
+                                    token.val = +(numstr.replace(config.num.sepRE, MT));
                                 }
                                 // Not a number, just a random collection of digital chars.
                                 if (isNaN(token.val)) {
@@ -456,7 +456,7 @@ class Lexer {
                     }
                     // Block chars.
                     if (options.block.lex && config.cs.start_blockmarker[c0]) {
-                        let marker = src.substring(sI, sI + config.bmk_maxlen);
+                        let marker = src.substring(sI, sI + config.bmx);
                         for (let bm of config.bmk) {
                             if (marker.startsWith(bm)) {
                                 token.tin = ST;
@@ -494,7 +494,7 @@ class Lexer {
                             else if ('\\' === cs) {
                                 pI++;
                                 cI++;
-                                let es = config.string.escape[src[pI]];
+                                let es = config.str.esc[src[pI]];
                                 if (null != es) {
                                     s.push(es);
                                 }
@@ -577,17 +577,17 @@ class Lexer {
                     if (options.comment.lex && config.cs.start_commentmarker[c0]) {
                         // Check for comment markers as single comment char could be
                         // a comment marker prefix (eg. # and ###, / and //, /*).
-                        let marker = src.substring(sI, sI + config.cmk_maxlen);
+                        let marker = src.substring(sI, sI + config.cmx);
                         for (let cm of config.cmk) {
                             if (marker.startsWith(cm)) {
                                 // Multi-line comment.
-                                if (true !== config.comment[cm]) {
+                                if (true !== config.cm[cm]) {
                                     token.tin = CM;
                                     token.loc = sI;
                                     token.col = cI;
                                     token.val = MT; // intialize for LCS.
                                     state = LML;
-                                    state_param = [cm, config.comment[cm], options.comment.balance];
+                                    state_param = [cm, config.cm[cm], options.comment.balance];
                                     continue next_char;
                                 }
                                 break;
@@ -1343,7 +1343,7 @@ class Parser {
             rs: [],
             rsm: this.rsm,
             log: (meta && meta.log) || undefined,
-            F: util.make_src_format(config),
+            F: make_src_format(config),
             use: {}
         };
         if (null != parent_ctx) {
@@ -1374,7 +1374,7 @@ class Parser {
             do {
                 t1 = lex(rule);
                 ctx.tI++;
-            } while (config.tokenset.IGNORE[t1.tin]);
+            } while (config.ts.IGNORE[t1.tin]);
             ctx.t1 = { ...t1 };
             return ctx.t0;
         }
@@ -1480,9 +1480,13 @@ let util = {
                     .join('\n');
         }
     },
-    make_src_format: (config) => (s, _) => null == s ? MT : (_ = JSON.stringify(s),
-        _.substring(0, config.debug.maxlen) +
-            (config.debug.maxlen < _.length ? '...' : MT)),
+    make_src_format,
+    /*
+    make_src_format: (config: Config) =>
+      (s: any, _?: any) => null == s ? MT : (_ = JSON.stringify(s),
+        _.substring(0, config.d.maxlen) +
+        (config.d.maxlen < _.length ? '...' : MT)),
+    */
     // Special debug logging to console (use Jsonic('...', {log:N})).
     // log:N -> console.dir to depth N
     // log:-1 -> console.dir to depth 1, omitting objects (good summary!)
@@ -1627,7 +1631,7 @@ let util = {
                             rsm: {},
                             n: {},
                             log: meta ? meta.log : undefined,
-                            F: util.make_src_format(jsonic.internal().config),
+                            F: make_src_format(jsonic.internal().config),
                             use: {},
                         });
                     }
@@ -1687,7 +1691,7 @@ let util = {
         token_names.forEach(tn => util.token(tn, config));
         let single_char_token_names = token_names
             .filter(tn => null != options.token[tn].c);
-        config.singlemap = single_char_token_names
+        config.sm = single_char_token_names
             .reduce((a, tn) => (a[options.token[tn].c] =
             config.t[tn], a), {});
         let multi_char_token_names = token_names
@@ -1708,7 +1712,7 @@ let util = {
         let tokenset_names = token_names
             .filter(tn => null != options.token[tn].s);
         // Char code arrays for lookup by char code.
-        config.tokenset = tokenset_names
+        config.ts = tokenset_names
             .reduce((a, tsn) => (a[tsn.substring(1)] =
             options.token[tsn].s.split(',')
                 .reduce((a, tn) => (a[config.t[tn]] = tn, a), {}),
@@ -1716,8 +1720,8 @@ let util = {
         // Lookup maps for sets of characters.
         config.cs = {};
         // Lookup table for escape chars, indexed by denotating char (e.g. n for \n).
-        config.string = {
-            escape: Object.keys(options.string.escape)
+        config.str = {
+            esc: Object.keys(options.string.escape)
                 .reduce((a, ed) => (a[ed] = options.string.escape[ed], a), {})
         };
         config.cs.start_commentmarker = {};
@@ -1726,8 +1730,8 @@ let util = {
         config.cmk0 = MT;
         config.cmk1 = MT;
         if (options.comment.lex) {
-            config.comment = options.comment.marker;
-            let comment_markers = Object.keys(config.comment);
+            config.cm = options.comment.marker;
+            let comment_markers = Object.keys(config.cm);
             comment_markers.forEach(k => {
                 // Single char comment marker (eg. `#`)
                 if (1 === k.length) {
@@ -1742,20 +1746,20 @@ let util = {
                     config.cmk1 += k[1];
                 }
             });
-            config.cmk_maxlen = util.longest(comment_markers);
+            config.cmx = util.longest(comment_markers);
         }
-        config.single_char = Object.keys(config.singlemap).join(MT);
+        config.sc = Object.keys(config.sm).join(MT);
         // All the characters that can appear in a number.
         config.cs.digital = util.charset(options.number.digital);
         // Multiline quotes
         config.cs.multiline = util.charset(options.string.multiline);
         // Enders are char sets that end lexing for a given token.
         // Value enders, end values.
-        config.cs.value_ender = util.charset(config.m.SP, config.m.LN, config.single_char, config.cs.start_commentmarker);
+        config.cs.value_ender = util.charset(config.m.SP, config.m.LN, config.sc, config.cs.start_commentmarker);
         // Chars that end unquoted text.
         config.cs.text_ender = config.cs.value_ender;
         // Chars that end text hoovering (including internal space).
-        config.cs.hoover_ender = util.charset(config.m.LN, config.single_char, config.cs.start_commentmarker);
+        config.cs.hoover_ender = util.charset(config.m.LN, config.sc, config.cs.start_commentmarker);
         config.cs.start_blockmarker = {};
         config.bmk = [];
         let block_markers = Object.keys(options.string.block);
@@ -1763,16 +1767,16 @@ let util = {
             config.cs.start_blockmarker[k[0]] = k.charCodeAt(0);
             config.bmk.push(k);
         });
-        config.bmk_maxlen = util.longest(block_markers);
+        config.bmx = util.longest(block_markers);
         // TODO: move to config.re, use util.regexp
-        config.number = {
-            sep_RE: null != options.number.sep ?
+        config.num = {
+            sepRE: null != options.number.sep ?
                 new RegExp(options.number.sep, 'g') : null
         };
         // RegExp cache
         config.re = {};
         // Debug options
-        config.debug = options.debug;
+        config.d = options.debug;
         // Apply any config modifiers (probably from plugins).
         Object.keys(options.config.modify)
             .forEach((modifer) => options.config.modify[modifer](config, options));
@@ -1885,6 +1889,11 @@ function make(param_options, parent) {
     return jsonic;
 }
 exports.make = make;
+function make_src_format(config) {
+    return (s, _) => null == s ? MT : (_ = JSON.stringify(s),
+        _.substring(0, config.d.maxlen) +
+            (config.d.maxlen < _.length ? '...' : MT));
+}
 // Generate hint text lookup.
 // NOTE: generated and inserted by hint.js
 function make_hint(d = (t, r = 'replace') => t[r](/[A-Z]/g, (m) => ' ' + m.toLowerCase())[r](/[~%][a-z]/g, (m) => ('~' == m[0] ? ' ' : '') + m[1].toUpperCase()), s = '~sinceTheErrorIsUnknown,ThisIsProbablyABugInsideJsonic\nitself,OrAPlugin.~pleaseConsiderPostingAGithubIssue -Thanks!|~theCharacter(s) $srcWasNotExpectedAtThisPointAsTheyDoNot\nmatchTheExpectedSyntax,EvenUnderTheRelaxedJsonicRules.~ifIt\nisNotObviouslyWrong,TheActualSyntaxErrorMayBeElsewhere.~try\ncommentingOutLargerAreasAroundThisPointUntilYouGetNoErrors,\nthenRemoveTheCommentsInSmallSectionsUntilYouFindThe\noffendingSyntax.~n%o%t%e:~alsoCheckIfAnyPluginsYouAreUsing\nexpectDifferentSyntaxInThisCase.|~theEscapeSequence $srcDoesNotEncodeAValidUnicodeCodePoint\nnumber.~youMayNeedToValidateYourStringDataManuallyUsingTest\ncodeToSeeHow~javaScriptWillInterpretIt.~alsoConsiderThatYour\ndataMayHaveBecomeCorrupted,OrTheEscapeSequenceHasNotBeen\ngeneratedCorrectly.|~theEscapeSequence $srcDoesNotEncodeAValid~a%s%c%i%iCharacter.~you\nmayNeedToValidateYourStringDataManuallyUsingTestCodeToSee\nhow~javaScriptWillInterpretIt.~alsoConsiderThatYourDataMay\nhaveBecomeCorrupted,OrTheEscapeSequenceHasNotBeenGenerated\ncorrectly.|~stringValuesCannotContainUnprintableCharacters (characterCodes\nbelow 32).~theCharacter $srcIsUnprintable.~youMayNeedToRemove\ntheseCharactersFromYourSourceData.~alsoCheckThatItHasNot\nbecomeCorrupted.|~stringValuesCannotBeMissingTheirFinalQuoteCharacter,Which\nshouldMatchTheirInitialQuoteCharacter.'.split('|')) { return 'unknown|unexpected|invalid_unicode|invalid_ascii|unprintable|unterminated'.split('|').reduce((a, n, i) => (a[n] = d(s[i]), a), {}); }
