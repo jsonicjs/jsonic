@@ -190,8 +190,10 @@ type Context = {
 // The lexing function returns the next token.
 type Lex = ((rule: Rule) => Token) & { src: string }
 
+// Map character to Token index.
+type TinMap = { [char: string]: Tin }
 
-type PinMap = { [char: string]: Tin }
+// Map character to code value.
 type CharCodeMap = { [char: string]: number }
 
 
@@ -199,9 +201,9 @@ type CharCodeMap = { [char: string]: number }
 // See build_config_from_options.
 type Config = {
   tI: number // Token identifier index
-  t: any
-  start: { [name: string]: PinMap }
-  multi: { [name: string]: PinMap }
+  t: any // Token index map
+  s: { [name: string]: TinMap } // Token start character 
+  multi: { [name: string]: TinMap }
   charset: { [name: string]: CharCodeMap }
   singlemap: { [char: string]: Tin }
   tokenset: { [name: string]: Tin[] }
@@ -718,7 +720,7 @@ class Lexer {
       token.row = rI
       token.use = undefined
 
-      let enders: PinMap = {}
+      let enders: TinMap = {}
 
       let pI = 0 // Current lex position (only update sI at end of rule).
       let s: string[] = [] // Parsed string chars and substrings.
@@ -736,7 +738,7 @@ class Lexer {
           }
 
           // Space chars.
-          if (options.space.lex && config.start.SP[c0]) {
+          if (options.space.lex && config.s.SP[c0]) {
 
             token.tin = SP
             token.loc = sI
@@ -757,7 +759,7 @@ class Lexer {
 
 
           // Newline chars.
-          if (options.line.lex && config.start.LN[c0]) {
+          if (options.line.lex && config.s.LN[c0]) {
             token.tin = LN
             token.loc = sI
             token.col = cI
@@ -797,7 +799,7 @@ class Lexer {
 
 
           // Number chars.
-          if (options.number.lex && config.start.NR[c0]) {
+          if (options.number.lex && config.s.NR[c0]) {
             token.tin = NR
             token.loc = sI
             token.col = cI
@@ -880,7 +882,7 @@ class Lexer {
 
 
           // String chars.
-          if (options.string.lex && config.start.ST[c0]) {
+          if (options.string.lex && config.s.ST[c0]) {
             token.tin = ST
             token.loc = sI
             token.col = cI++
@@ -978,7 +980,7 @@ class Lexer {
                 cs = src[pI]
 
                 if (cc < 32) {
-                  if (multiline && config.start.LN[cs]) {
+                  if (multiline && config.s.LN[cs]) {
                     if (cs === options.line.row) {
                       rI++
                       cI = 0
@@ -2529,12 +2531,12 @@ let util = {
       .filter(tn => S.string === typeof options.token[tn])
 
     // Char code arrays for lookup by char code.
-    config.start = multi_char_token_names
+    config.s = multi_char_token_names
       .reduce((a: any, tn) =>
       (a[tn.substring(1)] =
         (options.token[tn] as string)
           .split(MT)
-          .reduce((pm, c) => (pm[c] = config.t[tn], pm), ({} as PinMap)),
+          .reduce((pm, c) => (pm[c] = config.t[tn], pm), ({} as TinMap)),
         a), {})
 
     config.multi = multi_char_token_names
@@ -2542,7 +2544,7 @@ let util = {
       (a[tn.substring(1)] =
         (options.token[tn] as string)
           .split(MT)
-          .reduce((pm, c) => (pm[c] = config.t[tn], pm), ({} as PinMap)),
+          .reduce((pm, c) => (pm[c] = config.t[tn], pm), ({} as TinMap)),
         a), {})
 
     let tokenset_names = token_names

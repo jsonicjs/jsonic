@@ -359,7 +359,7 @@ class Lexer {
                         return token;
                     }
                     // Space chars.
-                    if (options.space.lex && config.start.SP[c0]) {
+                    if (options.space.lex && config.s.SP[c0]) {
                         token.tin = SP;
                         token.loc = sI;
                         token.col = cI++;
@@ -374,7 +374,7 @@ class Lexer {
                         return token;
                     }
                     // Newline chars.
-                    if (options.line.lex && config.start.LN[c0]) {
+                    if (options.line.lex && config.s.LN[c0]) {
                         token.tin = LN;
                         token.loc = sI;
                         token.col = cI;
@@ -404,7 +404,7 @@ class Lexer {
                         return token;
                     }
                     // Number chars.
-                    if (options.number.lex && config.start.NR[c0]) {
+                    if (options.number.lex && config.s.NR[c0]) {
                         token.tin = NR;
                         token.loc = sI;
                         token.col = cI;
@@ -469,7 +469,7 @@ class Lexer {
                         }
                     }
                     // String chars.
-                    if (options.string.lex && config.start.ST[c0]) {
+                    if (options.string.lex && config.s.ST[c0]) {
                         token.tin = ST;
                         token.loc = sI;
                         token.col = cI++;
@@ -545,7 +545,7 @@ class Lexer {
                                 cI--;
                                 cs = src[pI];
                                 if (cc < 32) {
-                                    if (multiline && config.start.LN[cs]) {
+                                    if (multiline && config.s.LN[cs]) {
                                         if (cs === options.line.row) {
                                             rI++;
                                             cI = 0;
@@ -1693,7 +1693,7 @@ let util = {
         let multi_char_token_names = token_names
             .filter(tn => S.string === typeof options.token[tn]);
         // Char code arrays for lookup by char code.
-        config.start = multi_char_token_names
+        config.s = multi_char_token_names
             .reduce((a, tn) => (a[tn.substring(1)] =
             options.token[tn]
                 .split(MT)

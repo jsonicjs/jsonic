@@ -147,7 +147,7 @@ declare type Context = {
 declare type Lex = ((rule: Rule) => Token) & {
     src: string;
 };
-declare type PinMap = {
+declare type TinMap = {
     [char: string]: Tin;
 };
 declare type CharCodeMap = {
@@ -156,11 +156,11 @@ declare type CharCodeMap = {
 declare type Config = {
     tI: number;
     t: any;
-    start: {
-        [name: string]: PinMap;
+    s: {
+        [name: string]: TinMap;
     };
     multi: {
-        [name: string]: PinMap;
+        [name: string]: TinMap;
     };
     charset: {
         [name: string]: CharCodeMap;
