@@ -1,4 +1,4 @@
-## Install
+# Install
 
 You can use <name-self/> in the browser and on the server.
 
@@ -8,8 +8,16 @@ You'll need to install the package into your project first:
 $ npm install jsonic 
 ```
 
+To validate your install, run the following code:
+
+```js
+console.log(Jsonic('a:1'))
+```
+
+This should output some strict JSON: `{"a":1}`. 
+
 &ZeroWidthSpace;<name-self /> also provides a command line utility
-that converts _jsonic_ arguments into traditional _JSON_. If you install
+that converts jsonic arguments into traditional JSON. If you install
 <name-self/> globally, then you can run this utility directly:
 
 ```sh
@@ -122,7 +130,10 @@ discussion board.
 
 
 
+## Next Steps
 
+Follow the [Getting Started](getting-started) guide to learn the extended
+<name-self/> syntax.
 
 
 

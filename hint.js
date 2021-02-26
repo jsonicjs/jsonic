@@ -18,7 +18,7 @@ let hint = {
 itself, or a plugin. Please consider posting a github issue - thanks!`,
 
   unexpected:
-  ` The character(s) $src was not expected at this point as they do not
+  ` The character(s) $src were not expected at this point as they do not
 match the expected syntax, even under the relaxed jsonic rules. If it
 is not obviously wrong, the actual syntax error may be elsewhere. Try
 commenting out larger areas around this point until you get no errors,
