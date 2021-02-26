@@ -495,7 +495,7 @@ describe('lex', function () {
     expect(()=>no_text('a:b c')).throws('JsonicError', /unexpected/)
     expect(()=>no_text('a,b c')).throws('JsonicError', /unexpected/)
 
-    let no_value = Jsonic.make({text:{lex_value:false}})
+    let no_value = Jsonic.make({value:{lex:false}})
     expect(Jsonic('a:true')).equals({a:true})
     expect(Jsonic('a,null')).equals(['a',null])
     expect(no_value('a:true')).equals({a:'true'})

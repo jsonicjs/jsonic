@@ -33,7 +33,7 @@ describe('cli', function () {
     let cn = make_cn()
     jr([0,0,'-d',
         '-o','debug.maxlen=11',
-        '--option','text.lex_value=false',
+        '--option','value.lex=false',
         '--',
         'a:true'],cn)
     expect(cn.d.log[37][0]).equals('{"a":"true"}')

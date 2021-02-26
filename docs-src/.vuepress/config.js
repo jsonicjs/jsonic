@@ -20,7 +20,10 @@ module.exports = {
       ],
       '/guide/': [
         'install',
-        'getting-started'
+        'getting-started',
+        'syntax-introduction',
+        'custom-parsers',
+        'tutorials',
       ],
     }
   }

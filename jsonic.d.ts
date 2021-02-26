@@ -70,7 +70,10 @@ declare type Options = {
     map: {
         extend: boolean;
     };
-    value: KV;
+    value: {
+        lex: boolean;
+        src: KV;
+    };
     plugin: KV;
     debug: {
         get_console: () => any;
@@ -171,6 +174,10 @@ declare type Config = {
     ts: {
         [tokenset_name: string]: Tin[];
     };
+    vs: {
+        [start_char: string]: boolean;
+    };
+    vm: KV;
     str: {
         esc: {
             [name: string]: string;
@@ -310,7 +317,7 @@ declare function make_src_format(config: Config): (s: any, _?: any) => string;
 declare function tokenize<R extends string | Tin, T extends string | Tin>(ref: R, config: Config, jsonic?: Jsonic): T;
 declare function deep(base?: any, ...rest: any): any;
 declare function clone(class_instance: any): any;
-declare function charset(...parts: (string | object)[]): CharCodeMap;
+declare function charset(...parts: (string | object | boolean)[]): CharCodeMap;
 declare function longest(strs: string[]): number;
 declare function marr(a: string[], b: string[]): boolean;
 declare function clean_stack(err: Error): void;

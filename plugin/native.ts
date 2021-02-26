@@ -6,9 +6,11 @@ import { Jsonic, Plugin, Context, Rule, RuleSpec, LexMatcherState } from '../jso
 let Native: Plugin = function native(jsonic: Jsonic) {
   jsonic.options({
     value: {
-      'Infinity': Infinity,
-      '-Infinity': -Infinity,
-      'NaN': NaN
+      src: {
+        'Infinity': Infinity,
+        '-Infinity': -Infinity,
+        'NaN': NaN,
+      }
     }
   })
 

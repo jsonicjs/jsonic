@@ -283,10 +283,62 @@ Bugs that break this commitment get the highest priority.
 
 All of the JSON enhancements can be [customized](/guide/customize).
 
+The top level `Jsonic` function cannot be customized. First, create a
+new instance with:
+
+```js
+let myjsonic = Jsonic.make()
+```
+
+Then you can set some options. let's turn off comments:
+
+```
+myjsonic.options({comment:{lex:false}})
+
+myjsonic('a:1,#b:2') // === {"a":1, "#b":2}
+Jsonic('a:1,#b:2') // === {"a":1}
+```
+
+Maybe you're just against `#` style comments, but fine with `//`?  OK,
+let's get rid of just `#` comments:
+
+```
+let nohash = Jsonic.make({comment:{marker:{'#':false}})
+
+nohash('a:1,#b:2') // === {"a":1, "#b":2}
+nohash('a:1,//b:2') // === {"a":1}
+```
+
+You can pass custom options directly to `Jsonic.make` when creating a
+new instance.`
+
+All the options are explained in the [options reference](/ref/options).
+
+&ZeroWidthSpace;<name-self/> can be extended with plugins. A few are included
+in the standard package to get you started.
+
+Let's parse some CSV:
+
+```js
+const { Csv } = require('jsonic/plugin/csv')
+let csv = Jsonic.use(Csv)
+
+// === [{"a": 1, "b": 2}, {"a": 3, "b": 4}]
+csv(`
+a, b
+1, 2
+3, 4
+`)
+```
+
+The available plugins are listed in the [plugins section](/plugin/),
+along with tutorials to help you write your own plugins.
 
 
+# Where to go next
 
-
+If you want to write custom parsers with <name-self/>, start by
+following the [tutorials](/guide/tutorials).
 
 
 

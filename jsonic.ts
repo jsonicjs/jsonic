@@ -1,6 +1,8 @@
 /* Copyright (c) 2013-2021 Richard Rodger, MIT License */
 
-// TODO: prevent use of options,use,rule,lex,token on top level Jsonic
+// TODO: config.cs names - tersify
+// TODO: lexlog - use / as path sep not ;
+// TODO: make hoover a plugin
 // post release: 
 // TODO: test use of constructed regexps - perf?
 // TODO: complete rule tagging groups g:imp etc.
@@ -105,7 +107,10 @@ type Options = {
   map: {
     extend: boolean
   }
-  value: KV
+  value: {
+    lex: boolean,
+    src: KV
+  },
   plugin: KV
   debug: {
     get_console: () => any
@@ -206,6 +211,8 @@ type Config = {
   cs: { [charset_name: string]: CharCodeMap } // Character set.
   sm: { [char: string]: Tin } // Single character token index.
   ts: { [tokenset_name: string]: Tin[] } // Named token sets.
+  vs: { [start_char: string]: boolean } // Literal value start characters.
+  vm: KV, // Map value source to actual value.
   str: {
     esc: { [name: string]: string } // String escape characters.
   },
@@ -389,9 +396,12 @@ function make_default_options(): Options {
 
     // Keyword values.
     value: {
-      'null': null,
-      'true': true,
-      'false': false,
+      lex: true,
+      src: {
+        'null': null,
+        'true': true,
+        'false': false,
+      }
     },
 
 
@@ -686,7 +696,7 @@ class Lexer {
     function matchers(rule: Rule) {
       let matchers = zelf.match[state]
       if (null != matchers) {
-        token.loc = sI // TODO: move to top of while for all rules?
+        // token.loc = sI // TODO: move to top of while for all rules?
 
         for (let matcher of matchers) {
           let match = matcher({ sI, rI, cI, src, token, ctx, rule, bad })
@@ -724,6 +734,9 @@ class Lexer {
       while (sI < srclen) {
         let c0 = src[sI]
 
+        token.loc = sI
+        token.col = cI
+
         ctx.lex = state
 
         if (LTP === state) {
@@ -736,8 +749,9 @@ class Lexer {
           if (options.space.lex && config.s.SP[c0]) {
 
             token.tin = SP
-            token.loc = sI
-            token.col = cI++
+            //token.loc = sI
+            //token.col = cI++
+            cI++
 
             pI = sI + 1
             while (config.m.SP[src[pI]]) cI++, pI++;
@@ -756,8 +770,8 @@ class Lexer {
           // Newline chars.
           if (options.line.lex && config.s.LN[c0]) {
             token.tin = LN
-            token.loc = sI
-            token.col = cI
+            //token.loc = sI
+            //token.col = cI
 
             pI = sI
             cI = 0
@@ -782,11 +796,12 @@ class Lexer {
           // Single char tokens.
           if (null != config.sm[c0]) {
             token.tin = config.sm[c0]
-            token.loc = sI
-            token.col = cI++
+            //token.loc = sI
+            //token.col = cI++
             token.len = 1
             token.src = c0
             sI++
+            cI++
 
             lexlog && lexlog(token)
             return token
@@ -796,8 +811,8 @@ class Lexer {
           // Number chars.
           if (options.number.lex && config.s.NR[c0]) {
             token.tin = NR
-            token.loc = sI
-            token.col = cI
+            //token.loc = sI
+            //token.col = cI
 
             pI = sI
             while (config.cs.digital[src[++pI]]);
@@ -866,8 +881,8 @@ class Lexer {
               if (marker.startsWith(bm)) {
 
                 token.tin = ST
-                token.loc = sI
-                token.col = cI
+                //token.loc = sI
+                //token.col = cI
 
                 state = LML
                 state_param = [bm, options.string.block[bm], null, true]
@@ -880,8 +895,9 @@ class Lexer {
           // String chars.
           if (options.string.lex && config.s.ST[c0]) {
             token.tin = ST
-            token.loc = sI
-            token.col = cI++
+            //token.loc = sI
+            //token.col = cI++
+            cI++
 
             let multiline = config.cs.multiline[c0]
 
@@ -1026,8 +1042,8 @@ class Lexer {
                 // Multi-line comment.
                 if (true !== config.cm[cm]) {
                   token.tin = CM
-                  token.loc = sI
-                  token.col = cI
+                  //token.loc = sI
+                  //token.col = cI
                   token.val = MT // intialize for LCS.
 
                   state = LML
@@ -1041,8 +1057,8 @@ class Lexer {
 
             // It's a single line comment.
             token.tin = CM
-            token.loc = sI
-            token.col = cI
+            //token.loc = sI
+            //token.col = cI
             token.val = MT // intialize for LCS.
 
             state = LCS
@@ -1051,41 +1067,41 @@ class Lexer {
           }
 
 
-          // NOTE: default section. Cases above can bail to here if lookaheads
-          // fail to match (eg. NR).
+          // Literal values.
+          if (options.value.lex && config.vs[c0]) {
+            pI = sI
 
-          // No explicit token recognized. That leaves:
-          // - keyword literal values (from options.value)
-          // - text values (everything up to a text_ender char (eg. newline))
+            do {
+              pI++
+            } while (null != src[pI] && !config.cs.value_ender[src[pI]])
 
-          token.loc = sI
-          token.col = cI
+            let txt = src.substring(sI, pI)
 
-          pI = sI
+            // A keyword literal value? (eg. true, false, null)
+            let val = config.vm[txt]
 
-          // Literal values must be terminated, otherwise they are just
-          // accidental prefixes to literal text
-          // (e.g truex -> "truex" not `true` "x")
-          do {
-            cI++
-            pI++
-          } while (null != src[pI] && !config.cs.value_ender[src[pI]])
+            if (undefined !== val) {
+              //token.loc = sI
+              //token.col = cI
+              token.tin = VL
+              token.val = val
+              token.src = txt
+              token.len = pI - sI
 
-          let txt = src.substring(sI, pI)
+              cI += token.len
+              sI = pI
 
-          // A keyword literal value? (eg. true, false, null)
-          let val = options.value[txt]
-
-          if (options.text.lex_value && undefined !== val) {
-            token.tin = VL
-            token.val = val
-            token.src = txt
-            token.len = pI - sI
-            sI = pI
-
-            lexlog && lexlog(token)
-            return token
+              lexlog && lexlog(token)
+              return token
+            }
           }
+
+
+          // Text values.
+          // No explicit token recognized. That means a text value
+          // (everything up to a text_ender char (eg. newline)) NOTE:
+          // default section. Cases above bail to here if lookaheads
+          // fail to match (eg. NR).
 
           if (options.text.lex) {
             state = LTX
@@ -1096,6 +1112,11 @@ class Lexer {
           if (matchers(rule)) {
             return token
           }
+
+          //token.loc = sI
+          //token.col = cI
+
+          pI = sI
 
           let text_enders =
             options.text.hoover ? config.cs.hoover_ender :
@@ -1292,7 +1313,7 @@ class Lexer {
       // Keeps returning ZZ past end of input.
       token.tin = ZZ
       token.loc = srclen
-      token.col = cI
+      //token.col = cI
 
       lexlog && lexlog(token)
       return token
@@ -1382,6 +1403,7 @@ enum RuleState {
 }
 /* $lab:coverage:on$ */
 
+const UNDEF: any = {}
 
 class Rule {
   id: number
@@ -1971,7 +1993,6 @@ class Parser {
           { s: [ZZ], e: finish, g: S.end },
         ],
         after_open: (rule: Rule, _ctx: Context, next: Rule) => {
-          //if (rule === next && rule.open[0]) {
           if (rule === next) {
             // Repeated comma, so insert null
             rule.node.push(null)
@@ -2394,8 +2415,9 @@ function clone(class_instance: any) {
 
 
 // Lookup map for a set of chars.
-function charset(...parts: (string | object)[]): CharCodeMap {
+function charset(...parts: (string | object | boolean)[]): CharCodeMap {
   return parts
+    .filter(p => false !== p)
     .map((p: any) => 'object' === typeof (p) ? Object.keys(p).join(MT) : p)
     .join(MT)
     .split(MT)
@@ -2737,6 +2759,12 @@ function build_config(config: Config, options: Options) {
         .reduce((a: any, tn: string) => (a[config.t[tn]] = tn, a), {}),
       a), {})
 
+
+  config.vm = options.value.src
+  config.vs = Object.keys(options.value.src)
+    .reduce((a: any, s: string) => (a[s[0]] = true, a), {})
+
+
   // Lookup maps for sets of characters.
   config.cs = {}
 
@@ -2790,10 +2818,10 @@ function build_config(config: Config, options: Options) {
   // Enders are char sets that end lexing for a given token.
   // Value enders, end values.
   config.cs.value_ender = charset(
-    config.m.SP,
-    config.m.LN,
+    options.space.lex && config.m.SP,
+    options.line.lex && config.m.LN,
     config.sc,
-    config.cs.start_commentmarker
+    options.comment.lex && config.cs.start_commentmarker
   )
 
   // Chars that end unquoted text.
@@ -2801,9 +2829,9 @@ function build_config(config: Config, options: Options) {
 
   // Chars that end text hoovering (including internal space).
   config.cs.hoover_ender = charset(
-    config.m.LN,
+    options.line.lex && config.m.LN,
     config.sc,
-    config.cs.start_commentmarker
+    options.comment.lex && config.cs.start_commentmarker
   )
 
 

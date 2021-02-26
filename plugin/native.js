@@ -5,9 +5,11 @@ exports.Native = void 0;
 let Native = function native(jsonic) {
     jsonic.options({
         value: {
-            'Infinity': Infinity,
-            '-Infinity': -Infinity,
-            'NaN': NaN
+            src: {
+                'Infinity': Infinity,
+                '-Infinity': -Infinity,
+                'NaN': NaN,
+            }
         }
     });
     let VL = jsonic.token.VL;

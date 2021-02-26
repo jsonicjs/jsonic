@@ -163,6 +163,7 @@ describe('error', function () {
       Jsonic(']')
     }
     catch(e) {
+      // console.log(e)
       expect(JSON.stringify(e))
         .includes('{"code":"unexpected","details":{"state":"open"},'+
                   '"meta":{},"lineNumber":0,"columnNumber":0')
