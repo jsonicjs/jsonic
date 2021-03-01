@@ -366,8 +366,6 @@ class Lexer {
                     // Space chars.
                     if (options.space.lex && config.s.SP[c0]) {
                         token.tin = SP;
-                        //token.loc = sI
-                        //token.col = cI++
                         cI++;
                         pI = sI + 1;
                         while (config.m.SP[src[pI]])
@@ -377,13 +375,12 @@ class Lexer {
                         token.src = token.val;
                         sI = pI;
                         lexlog && lexlog(token);
+                        // console.log('SP', cI, token)
                         return token;
                     }
                     // Newline chars.
                     if (options.line.lex && config.s.LN[c0]) {
                         token.tin = LN;
-                        //token.loc = sI
-                        //token.col = cI
                         pI = sI;
                         cI = 0;
                         while (config.m.LN[src[pI]]) {
@@ -401,8 +398,6 @@ class Lexer {
                     // Single char tokens.
                     if (null != config.sm[c0]) {
                         token.tin = config.sm[c0];
-                        //token.loc = sI
-                        //token.col = cI++
                         token.len = 1;
                         token.src = c0;
                         sI++;
@@ -413,8 +408,6 @@ class Lexer {
                     // Number chars.
                     if (options.number.lex && config.s.NR[c0]) {
                         token.tin = NR;
-                        //token.loc = sI
-                        //token.col = cI
                         pI = sI;
                         while (config.cs.digital[src[++pI]])
                             ;
@@ -468,8 +461,6 @@ class Lexer {
                         for (let bm of config.bmk) {
                             if (marker.startsWith(bm)) {
                                 token.tin = ST;
-                                //token.loc = sI
-                                //token.col = cI
                                 state = LML;
                                 state_param = [bm, options.string.block[bm], null, true];
                                 continue next_char;
@@ -479,8 +470,6 @@ class Lexer {
                     // String chars.
                     if (options.string.lex && config.s.ST[c0]) {
                         token.tin = ST;
-                        //token.loc = sI
-                        //token.col = cI++
                         cI++;
                         let multiline = config.cs.multiline[c0];
                         s = [];
@@ -604,8 +593,6 @@ class Lexer {
                         }
                         // It's a single line comment.
                         token.tin = CM;
-                        //token.loc = sI
-                        //token.col = cI
                         token.val = MT; // intialize for LCS.
                         state = LCS;
                         enders = config.m.LN;
@@ -621,8 +608,6 @@ class Lexer {
                         // A keyword literal value? (eg. true, false, null)
                         let val = config.vm[txt];
                         if (undefined !== val) {
-                            //token.loc = sI
-                            //token.col = cI
                             token.tin = VL;
                             token.val = val;
                             token.src = txt;
@@ -647,8 +632,6 @@ class Lexer {
                     if (matchers(rule)) {
                         return token;
                     }
-                    //token.loc = sI
-                    //token.col = cI
                     pI = sI;
                     let text_enders = options.text.hoover ? config.cs.hoover_ender :
                         config.cs.text_ender;
@@ -795,7 +778,7 @@ class Lexer {
             // Keeps returning ZZ past end of input.
             token.tin = ZZ;
             token.loc = srclen;
-            //token.col = cI
+            token.col = cI;
             lexlog && lexlog(token);
             return token;
         };
