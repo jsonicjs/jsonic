@@ -260,6 +260,8 @@ const S = {
   end: 'end',
   open: 'open',
   close: 'close',
+  rule: 'rule',
+  stack: 'stack',
 }
 
 
@@ -1607,7 +1609,7 @@ class RuleSpec {
 
     ctx.log && ctx.log(
       S.node,
-      rule.name + '/' + rule.id,
+      rule.name + '~' + rule.id,
       RuleState[rule.state],
       'w=' + why,
       F(rule.node)
@@ -1617,6 +1619,7 @@ class RuleSpec {
     let mI = 0
     let rewind = alt.m.length - (alt.b || 0)
     while (mI++ < rewind) {
+      //console.log('LEX NEXT', mI, rewind, alt)
       ctx.next()
     }
 
@@ -1701,7 +1704,7 @@ class RuleSpec {
 
     ctx.log && ctx.log(
       S.parse,
-      rule.name + '/' + rule.id,
+      rule.name + '~' + rule.id,
       RuleState[rule.state],
       altI < alts.length ? 'alt=' + altI : 'no-alt',
       altI < alts.length &&
@@ -1887,29 +1890,27 @@ class Parser {
         close: [
           { s: [CB] },
 
-          // NOTE: only proceed to second pair if implict depth <=1
-          // Otherwise walk back up the implicit maps. This prevents
-          // greedy capture of following pairs. See feature:property-dive test.
-
           { s: [CA], c: { n: { im: 1 } }, r: S.pair },
-          { s: [CA], n: { im: -1 }, b: 1 },
+
+          // Walk back up the implicit pairs until we reach im=1
+          { s: [CA], b: 1 },
 
           // Who needs commas anyway?
+          // NOTE: only proceed if im<=1 to prevent greedy pairs.
           { s: [ST, CL], c: { n: { im: 1 } }, r: S.pair, b: 2 },
           { s: [TX, CL], c: { n: { im: 1 } }, r: S.pair, b: 2 },
           { s: [NR, CL], c: { n: { im: 1 } }, r: S.pair, b: 2 },
           { s: [VL, CL], c: { n: { im: 1 } }, r: S.pair, b: 2 },
 
-          // Walk back up the implicit pairs
-          { s: [ST, CL], n: { im: -1 }, b: 2 },
-          { s: [TX, CL], n: { im: -1 }, b: 2 },
-          { s: [NR, CL], n: { im: -1 }, b: 2 },
-          { s: [VL, CL], n: { im: -1 }, b: 2 },
+          // Walk back up the implicit pairs until we reach im=1
+          { s: [ST, CL], b: 2 },
+          { s: [TX, CL], b: 2 },
+          { s: [NR, CL], b: 2 },
+          { s: [VL, CL], b: 2 },
 
           // Close implicit single prop map inside list
           {
             s: [CS],
-            a: [S.map, S.val, S.elem],
             b: 1
           },
 
@@ -1956,15 +1957,10 @@ class Parser {
           // End list
           { s: [CS] },
 
-          // Who needs commas anyway?
           { s: [OB], p: S.map, n: { im: 0 } },
           { s: [OS], p: S.list, },
 
-          { s: [TX, CL], p: S.map, n: { im: 0 }, b: 2 },
-          { s: [NR, CL], p: S.map, n: { im: 0 }, b: 2 },
-          { s: [ST, CL], p: S.map, n: { im: 0 }, b: 2 },
-          { s: [VL, CL], p: S.map, n: { im: 0 }, b: 2 },
-
+          // Who needs commas anyway?
           { s: [TX], r: S.elem, b: 1 },
           { s: [NR], r: S.elem, b: 1 },
           { s: [ST], r: S.elem, b: 1 },
@@ -2111,7 +2107,7 @@ class Parser {
     // occurrences until there's none left.
     while (NONE !== rule && rI < maxr) {
       ctx.log &&
-        ctx.log('rule', rule.name + '/' + rule.id, RuleState[rule.state],
+        ctx.log(S.rule, rule.name + '~' + rule.id, RuleState[rule.state],
           ctx.rs.length, ctx.tI, '[' + tn(ctx.t0.tin) + ' ' + tn(ctx.t1.tin) + ']',
           '[' + ctx.F(ctx.t0.src) + ' ' + ctx.F(ctx.t1.src) + ']', rule, ctx)
 
@@ -2119,8 +2115,14 @@ class Parser {
       rule = rule.process(ctx)
 
       ctx.log &&
-        ctx.log('stack', ctx.rs.length,
-          ctx.rs.map((r: Rule) => r.name + '/' + r.id).join(';'),
+        ctx.log(S.stack, ctx.rs.length,
+          ctx.rs.map((r: Rule) => r.name + '~' + r.id
+            /*
+              + '<' + (Object.keys(r.n)
+              .map((k: string) => k + '=' + r.n[k])
+              .reduce((a: string, s: string) => a += s, '')) + '>'
+            */
+          ).join('/'),
           rule, ctx)
       rI++
     }

@@ -632,6 +632,8 @@ describe('feature', function () {
     
     expect(j('{a:{b:{c:1,d:2},e:3},f:4}')).equals({a:{b:{c:1,d:2},e:3},f:4})
     expect(j('a:b:c')).equals({a:{b:'c'}})
+    expect(j('a:b:c, d:e:f')).equals({a:{b:'c'}, d:{e:'f'}})
+    expect(j('a:b:c\nd:e:f')).equals({a:{b:'c'}, d:{e:'f'}})
 
     expect(j('a:b:c,d:e')).equals({a:{b:'c'},d:'e'})
     expect(j('a:b:c:1,d:e')).equals({a:{b:{c:1}},d:'e'})
@@ -640,6 +642,26 @@ describe('feature', function () {
     expect(j('c:f:[{g:1,h:2}],d:e')).equals({c:{f:[{g:1,h:2}]},d:'e'})
 
     expect(j('a:b:c:1\nd:e')).equals({a:{b:{c:1}},d:'e'})
+
+
+    expect(j('[{a:1,b:2}]')).equals([{a:1,b:2}])
+    expect(j('[{a:1,b:{c:2}}]')).equals([{a:1,b:{c:2}}])
+    expect(j('[{a:1,b:{c:2},d:3}]')).equals([{a:1,b:{c:2},d:3}])
+    expect(j('[{b:{c:2,e:4},d:3}]')).equals([{b:{c:2,e:4},d:3}])
+    
+    expect(j('[{a:{b:{c:1,d:2},e:3},f:4}]')).equals([{a:{b:{c:1,d:2},e:3},f:4}])
+    expect(j('[a:b:c]')).equals([{a:{b:'c'}}])
+    expect(j('[a:b:c, d:e:f]')).equals([{a:{b:'c'}}, {d:{e:'f'}}])
+    expect(j('[a:b:c\nd:e:f]')).equals([{a:{b:'c'}}, {d:{e:'f'}}])
+
+    expect(j('[a:b:c,d:e]')).equals([{a:{b:'c'}},{d:'e'}])
+    expect(j('[a:b:c:1,d:e]')).equals([{a:{b:{c:1}}},{d:'e'}])
+    expect(j('[a:b:c:f:{g:1},d:e]')).equals([{a:{b:{c:{f:{g:1}}}}},{d:'e'}])
+    expect(j('[c:f:{g:1,h:2},d:e]')).equals([{c:{f:{g:1,h:2}}},{d:'e'}])
+    expect(j('[c:f:[{g:1,h:2}],d:e]')).equals([{c:{f:[{g:1,h:2}]}},{d:'e'}])
+
+    expect(j('[a:b:c:1\nd:e]')).equals([{a:{b:{c:1}}},{d:'e'}])
+
   })
 
 

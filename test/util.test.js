@@ -394,66 +394,67 @@ describe('util', () => {
   })
 
 
+  
   it('logging', () => {
     let log = []
     let j0 = Jsonic.make()
     j0('a:1',{log:(...r)=>log.push(r)})
     expect(log.map(x=>x[0]+' '+x[1]+' '+x[2])).equals([
-      'lex #TX "a"',
-      'lex #CL ":"',
-      'rule val/1 open',
-      'parse val/1 open',
-      'node val/1 open',
-      'stack 1 val/1',
-      'rule map/2 open',
-      'parse map/2 open',
-      'node map/2 open',
-      'stack 2 val/1;map/2',
-      'rule pair/3 open',
-      'parse pair/3 open',
-      'node pair/3 open',
-      'lex #NR "1"',
-      'lex #ZZ ',
-      'stack 3 val/1;map/2;pair/3',
-      'rule val/4 open',
-      'parse val/4 open',
-      'node val/4 open',
-      'lex #ZZ ',
-      'stack 3 val/1;map/2;pair/3',
-      'rule val/4 close',
-      'parse val/4 close',
-      'node val/4 close',
-      'stack 2 val/1;map/2',
-      'rule pair/3 close',
-      'parse pair/3 close',
-      'node pair/3 close',
-      'lex #ZZ ',
-      'stack 1 val/1',
-      'rule map/2 close',
-      'node map/2 close',
-      'stack 0 ',
-      'rule val/1 close',
-      'parse val/1 close',
-      'node val/1 close',
-      'stack 0 '
+  'lex #TX "a"',
+  'lex #CL ":"',
+  'rule val~1 open',
+  'parse val~1 open',
+  'node val~1 open',
+  'stack 1 val~1',
+  'rule map~2 open',
+  'parse map~2 open',
+  'node map~2 open',
+  'stack 2 val~1/map~2',
+  'rule pair~3 open',
+  'parse pair~3 open',
+  'node pair~3 open',
+  'lex #NR "1"',
+  'lex #ZZ ',
+  'stack 3 val~1/map~2/pair~3',
+  'rule val~4 open',
+  'parse val~4 open',
+  'node val~4 open',
+  'lex #ZZ ',
+  'stack 3 val~1/map~2/pair~3',
+  'rule val~4 close',
+  'parse val~4 close',
+  'node val~4 close',
+  'stack 2 val~1/map~2',
+  'rule pair~3 close',
+  'parse pair~3 close',
+  'node pair~3 close',
+  'lex #ZZ ',
+  'stack 1 val~1',
+  'rule map~2 close',
+  'node map~2 close',
+  'stack 0 ',
+  'rule val~1 close',
+  'parse val~1 close',
+  'node val~1 close',
+  'stack 0 '
     ])
 
     log = []
     expect(()=>j0('{{',{log:(...r)=>log.push(r)})).throws()
     expect(log.map(x=>x[0]+' '+x[1]+' '+x[2])).equals([
-      'lex #OB "{"',
-      'lex #OB "{"',
-      'rule val/1 open',
-      'parse val/1 open',
-      'node val/1 open',
-      'lex #ZZ ',
-      'stack 1 val/1',
-      'rule map/2 open',
-      'parse map/2 open',
-      'node map/2 open',
-      'stack 2 val/1;map/2',
-      'rule pair/3 open',
-      'parse pair/3 open'
+  'lex #OB "{"',
+  'lex #OB "{"',
+  'rule val~1 open',
+  'parse val~1 open',
+  'node val~1 open',
+  'lex #ZZ ',
+  'stack 1 val~1',
+  'rule map~2 open',
+  'parse map~2 open',
+  'node map~2 open',
+  'stack 2 val~1/map~2',
+  'rule pair~3 open',
+  'parse pair~3 open'
     ])
     
     log = []
@@ -517,8 +518,45 @@ describe('util', () => {
     log = []
     let d1 = j1('a:<x\ny>',{log:(...r)=>log.push(r)})
     expect(d1).equals({a:'X\nY'})
-    //expect(log.map(x=>x[0]+' '+x[1]+' '+x[2])).equals([
-    //])
+    expect(log.map(x=>x[0]+' '+x[1]+' '+x[2])).equals([
+  'lex #TX "a"',
+  'lex #CL ":"',
+  'rule val~1 open',
+  'parse val~1 open',
+  'node val~1 open',
+  'stack 1 val~1',
+  'rule map~2 open',
+  'parse map~2 open',
+  'node map~2 open',
+  'stack 2 val~1/map~2',
+  'rule pair~3 open',
+  'parse pair~3 open',
+  'node pair~3 open',
+  'lex #TX "<x\\ny>"',
+  'lex #ZZ ',
+  'stack 3 val~1/map~2/pair~3',
+  'rule val~4 open',
+  'parse val~4 open',
+  'node val~4 open',
+  'lex #ZZ ',
+  'stack 3 val~1/map~2/pair~3',
+  'rule val~4 close',
+  'parse val~4 close',
+  'node val~4 close',
+  'stack 2 val~1/map~2',
+  'rule pair~3 close',
+  'parse pair~3 close',
+  'node pair~3 close',
+  'lex #ZZ ',
+  'stack 1 val~1',
+  'rule map~2 close',
+  'node map~2 close',
+  'stack 0 ',
+  'rule val~1 close',
+  'parse val~1 close',
+  'node val~1 close',
+  'stack 0 '
+    ])
 
 
 
