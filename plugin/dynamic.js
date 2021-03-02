@@ -41,6 +41,9 @@ let Dynamic = function dynamic(jsonic) {
                     // NOTE: the parameter names are significant as they
                     // enter the eval context.
                     let func = function ($, _, meta) {
+                        let keys = Object.keys;
+                        let entries = Object.entries;
+                        let values = Object.values;
                         return eval(expr);
                     };
                     func.__eval$$ = true;

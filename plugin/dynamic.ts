@@ -59,6 +59,9 @@ let Dynamic: Plugin = function dynamic(jsonic: Jsonic) {
           // NOTE: the parameter names are significant as they
           // enter the eval context.
           let func: any = function($: any, _: any, meta: any) {
+            let keys = Object.keys
+            let entries = Object.entries
+            let values = Object.values
             return eval(expr)
           }
           func.__eval$$ = true
