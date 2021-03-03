@@ -341,6 +341,7 @@ describe('feature', function () {
     //expect(j('\ta\tb\t')).equals('a\tb')
     expect(j('a/b')).equals('a/b')
     expect(j('a#b')).equals('a')
+
     expect(j('a//b')).equals('a')
     expect(j('a/*b*/')).equals('a')
     expect(j('a\\n')).equals('a\\n')

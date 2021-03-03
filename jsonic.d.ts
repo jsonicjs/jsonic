@@ -58,7 +58,7 @@ declare type Options = {
         };
         multiline: string;
         block: {
-            [marker: string]: string;
+            [start_marker: string]: string;
         };
         escapedouble: boolean;
     };
@@ -324,7 +324,7 @@ declare function marr(a: string[], b: string[]): boolean;
 declare function clean_stack(err: Error): void;
 declare function make_log(ctx: Context): ((...rest: any) => undefined) | undefined;
 declare function wrap_bad_lex(lex: Lex, BD: Tin, ctx: Context): any;
-declare function regexp(flags: string, ...parts: string[]): RegExp;
+declare function regexp(flags: string, ...parts: string[][]): RegExp;
 declare function errinject(s: string, code: string, details: KV, token: Token, rule: Rule, ctx: Context): string;
 declare function extract(src: string, errtxt: string, token: Token): string;
 declare function wrap_parser(parser: any): {

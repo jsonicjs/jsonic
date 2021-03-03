@@ -344,11 +344,11 @@ describe('util', () => {
 
 
   it('regexp', () => {
-    expect(regexp('','a')).equal(/a/)
-    expect(regexp('g','a','b')).equal(/ab/g)
-    expect(regexp('g','%a','b')).equal(/\ab/g)
-    expect(regexp('g','[', '%a',']*','b')).equal(/[\a]*b/g)
-    expect(regexp('g','[', '%a',' ',']*','b')).equal(/[\a ]*b/g)
+    expect(regexp('',['a'])).equal(/a/)
+    expect(regexp('g',['a'],['b'])).equal(/ab/g)
+    expect(regexp('g',['%a'],['b'])).equal(/%ab/g)
+    expect(regexp('g',['['], ['a','%'],[']*'],['b'])).equal(/[\a]*b/g)
+    expect(regexp('g',['['], ['a','%'],[' '],[']*'],['b'])).equal(/[\a ]*b/g)
   })
 
 
