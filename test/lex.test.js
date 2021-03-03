@@ -76,7 +76,6 @@ describe('lex', function () {
       { tin: t.ZZ, loc: 6, len: 0, row: 0, col: 6,
         val: undefined, src: undefined, use: undefined })
 
-    // LN001
     expect(lex0()).equals(
       { tin: t.ZZ, loc: 6, len: 0, row: 0, col: 6,
         val: undefined, src: undefined, use: undefined })
@@ -108,7 +107,7 @@ describe('lex', function () {
       '0', ['#NR;0;1;0x0;0','#ZZ;1;0;0x1'],
     ])
 
-    //let lex2 = lexer.start({src:()=>' m n '})
+    /*
     let lex2 = lexstart(' m n ')
     expect(lex2()).equals(
       { tin: t.SP, loc: 0, len: 1, row: 0, col: 0, val: ' ', src: ' ',
@@ -136,7 +135,7 @@ describe('lex', function () {
     expect(lex3()).equals(
       { tin: t.ZZ, loc: 5, len: 0, row: 0, col: 5, val: undefined, src: undefined,
         use: undefined  })
-
+        */
   })
 
   
@@ -356,8 +355,14 @@ describe('lex', function () {
       '!%~', ['#TX;0;3;0x0;!%~','#ZZ;3;0;0x3'],
       'a"b', ['#TX;0;3;0x0;a"b','#ZZ;3;0;0x3'],
       'a\'b', ['#TX;0;3;0x0;a\'b','#ZZ;3;0;0x3'],
-      ' a b ', ['#SP;0;1;0x0','#TX;1;3;0x1;a b',
-                '#SP;4;1;0x4','#ZZ;5;0;0x5'],
+      ' a b ', [
+        '#SP;0;1;0x0',
+        '#TX;1;1;0x1;a',
+        '#SP;2;1;0x2',
+        '#TX;3;1;0x3;b',
+        '#SP;4;1;0x4',
+        '#ZZ;5;0;0x5'
+      ],
       'a:', ['#TX;0;1;0x0;a','#CL;1;1;0x1','#ZZ;2;0;0x2'],
     ])
   })
@@ -459,11 +464,12 @@ describe('lex', function () {
     expect(no_comment('a:1#b')).equals({a:'1#b'})
     expect(no_comment('a,1#b')).equals(['a','1#b'])
 
+    // space becomes text if turned off
     let no_space = Jsonic.make({space:{lex:false}})
-    expect(Jsonic('a : 1')).equals({a:1})
+    expect(Jsonic('a : 1')).equals({'a':1})
     expect(Jsonic('a , 1')).equals(['a',1])
-    expect(()=>no_space('a :1')).throws('JsonicError', /unexpected/)
-    expect(()=>no_space('a ,1')).throws('JsonicError', /unexpected/)
+    expect(no_space('a :1')).equals({'a ':1})
+    expect(no_space('a ,1')).equals(['a ',1])
     expect(no_space('a: 1')).equals({a:' 1'})
     expect(no_space('a, 1')).equals(['a', ' 1'])
 
@@ -490,8 +496,8 @@ describe('lex', function () {
     expect(no_string('"a",1')).equals(['"a"',1])
 
     let no_text = Jsonic.make({text:{lex:false}})
-    expect(Jsonic('a:b c')).equals({a:'b c'})
-    expect(Jsonic('a,b c')).equals(['a','b c'])
+    expect(Jsonic('a:b')).equals({a:'b'})
+    expect(Jsonic('a, b ')).equals(['a','b'])
     expect(()=>no_text('a:b c')).throws('JsonicError', /unexpected/)
     expect(()=>no_text('a,b c')).throws('JsonicError', /unexpected/)
 

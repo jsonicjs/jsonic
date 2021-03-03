@@ -65,7 +65,6 @@ declare type Options = {
     text: {
         lex: boolean;
         lex_value: boolean;
-        hoover: boolean;
     };
     map: {
         extend: boolean;
@@ -78,7 +77,9 @@ declare type Options = {
     debug: {
         get_console: () => any;
         maxlen: number;
-        print_config: boolean;
+        print: {
+            config: boolean;
+        };
     };
     error: {
         [code: string]: string;

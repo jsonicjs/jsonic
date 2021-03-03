@@ -1,7 +1,7 @@
 /* Copyright (c) 2013-2021 Richard Rodger, MIT License */
 
-// TODO: config.cs names - tersify
-// TODO: lexlog - use / as path sep not ;
+// TODO: config.cs names - tersify and make exact
+// TODO: rule active fals - tersify
 // TODO: make hoover a plugin
 // post release: 
 // TODO: test use of constructed regexps - perf?
@@ -102,7 +102,7 @@ type Options = {
   text: {
     lex: boolean
     lex_value: boolean
-    hoover: boolean
+    // hoover: boolean
   }
   map: {
     extend: boolean
@@ -115,7 +115,9 @@ type Options = {
   debug: {
     get_console: () => any
     maxlen: number
-    print_config: boolean
+    print: {
+      config: boolean
+    }
   }
   error: { [code: string]: string }
   hint: any
@@ -384,7 +386,7 @@ function make_default_options(): Options {
 
 
       // Text includes internal whitespace.
-      hoover: true,
+      // hoover: true,
     },
 
 
@@ -411,6 +413,7 @@ function make_default_options(): Options {
     plugin: {},
 
 
+    // Debug settings
     debug: {
       // Default console for logging.
       get_console: () => console,
@@ -418,8 +421,12 @@ function make_default_options(): Options {
       // Max length of parse value to print.
       maxlen: 33,
 
-      // Print config built from options.
-      print_config: false
+      // Print internal structures
+      print: {
+
+        // Print config built from options.
+        config: false
+      }
     },
 
 
@@ -1084,7 +1091,7 @@ class Lexer {
 
           // Text values.
           // No explicit token recognized. That means a text value
-          // (everything up to a text_ender char (eg. newline)) NOTE:
+          // (everything up to a value_ender char (eg. newline)) NOTE:
           // default section. Cases above bail to here if lookaheads
           // fail to match (eg. NR).
 
@@ -1100,13 +1107,14 @@ class Lexer {
 
           pI = sI
 
-          let text_enders =
-            options.text.hoover ? config.cs.hoover_ender :
-              config.cs.text_ender
+          //let text_enders =
+          //  options.text.hoover ? config.cs.hoover_ender :
+          //    config.cs.text_ender
 
           // TODO: construct a RegExp to do this
           while (null != src[pI] &&
-            (!text_enders[src[pI]] ||
+            //(!config.cs.text_ender[src[pI]] ||
+            (!config.cs.value_ender[src[pI]] ||
               (config.cmk0.includes(src[pI]) &&
                 !config.cmk1.includes(src[pI + 1]))
             )) {
@@ -1122,6 +1130,7 @@ class Lexer {
 
           // Hoovering (ie. greedily consume non-token chars including internal space)
           // If hoovering, separate space at end from text
+          /*
           if (options.text.hoover &&
             config.m.SP[token.val[token.val.length - 1]]) {
 
@@ -1142,7 +1151,9 @@ class Lexer {
           else {
             sI = pI
           }
+          */
 
+          sI = pI
           state = LTP
 
           lexlog && lexlog(token)
@@ -2807,6 +2818,7 @@ function build_config(config: Config, options: Options) {
     options.comment.lex && config.cs.start_commentmarker
   )
 
+  /*
   // Chars that end unquoted text.
   config.cs.text_ender = config.cs.value_ender
 
@@ -2816,7 +2828,7 @@ function build_config(config: Config, options: Options) {
     config.sc,
     options.comment.lex && config.cs.start_commentmarker
   )
-
+  */
 
   config.cs.start_blockmarker = {}
   config.bmk = []
@@ -2847,7 +2859,7 @@ function build_config(config: Config, options: Options) {
 
 
   // Debug the config - useful for plugin authors.
-  if (options.debug.print_config) {
+  if (options.debug.print.config) {
     options.debug.get_console().dir(config, { depth: null })
   }
 }

@@ -21,6 +21,7 @@ const { Dynamic } = require('../plugin/dynamic')
 const { Native } = require('../plugin/native')
 const { Multifile } = require('../plugin/multifile')
 const { LegacyStringify } = require('../plugin/legacy-stringify')
+const { Hoover } = require('../plugin/hoover')
 
 const I = Util.inspect
 
@@ -173,13 +174,12 @@ describe('plugin', function () {
       jsonic.options({
         config: {
           modify: {
-            foo: (config)=>config.cs.text_ender.X='X'.charCodeAt(0)
+            foo: (config)=>config.cs.value_ender.X='X'.charCodeAt(0)
           }
         }
       })
     })
-    //console.log(j.internal().config)
-    expect(j.internal().config.cs.text_ender.X).equal('X'.charCodeAt(0))
+    expect(j.internal().config.cs.value_ender.X).equal('X'.charCodeAt(0))
   })
 
   
@@ -326,7 +326,7 @@ a x\t"b\\tx"
       token: {
         '#LN': ';'
       }
-    })
+    }).use(Hoover)
     
     expect(k2(`a\tb;1\t2;11\t22;a x\t"b\\tx";"A,A"\t"B""B";`))
       .equal(rec0)
@@ -437,12 +437,8 @@ a x\t"b\\tx"
     expect(d).equal(d0)
 
   })
-
-
-
-
   
-// TODO: needs Context transfer to Jsonic instance
+
   it('multifile-dynamic', () => {
     let k = Jsonic.make()
         .use(Dynamic)
@@ -687,6 +683,50 @@ a x\t"b\\tx"
     expect(()=>j('e:0')).throws('Error', /e:0/)
     expect(()=>j('e:1',{log:()=>null})).throws('SyntaxError', /e:1/)
     expect(()=>j('e:2')).throws('SyntaxError', /e:2/)
+  })
+
+
+  it('hoover', () => {
+    let j = Jsonic.make().use(Hoover)
+    expect(Jsonic('a b')).equals(['a','b'])
+
+    expect(j('a b')).equals('a b')
+    expect(j(' a b ')).equals('a b')
+    expect(j('a\tb')).equals('a\tb')
+    expect(j('\ta\tb\t')).equals('a\tb')
+    expect(j('x: a b ')).equals({x:'a b'})
+    expect(j('x:a\tb')).equals({x:'a\tb'})
+    expect(j('x:\ta\tb\t')).equals({x:'a\tb'})
+    expect(j('a: b c')).equals({a:'b c'})
+    expect(j('{a: {b: c d}}')).equals({a:{b:'c d'}})
+    expect(j('[a b]')).equals(['a b'])
+    expect(j('[a b, c d ]')).equals(['a b', 'c d'])
+    expect(j('[[a b], [c d ]]')).equals([['a b'], ['c d']])
+    expect(j(' x , y z ')).equal(['x', 'y z'])
+    expect(j('a: x , b: y z ')).equal({a:'x', b:'y z'})
+        expect(j('{x y:1}')).equal({'x y':1})
+    expect(j('x y:1')).equal({'x y':1})
+    expect(j('[{x y:1}]')).equal([{'x y':1}])
+    expect(j('q w')).equal('q w')
+    expect(j('a:q w')).equal({a:'q w'})
+    expect(j('a:q w, b:1')).equal({a:'q w', b:1})
+    expect(j('a: q w , b:1')).equal({a:'q w', b:1})
+    expect(j('[q w]')).equal(['q w'])
+    expect(j('[ q w ]')).equal(['q w'])
+    expect(j('[ q w, 1 ]')).equal(['q w', 1])
+    expect(j('[ q w , 1 ]')).equal(['q w', 1])
+    expect(j('p:[q w]}')).equal({p:['q w']})
+    expect(j('p:[ q w ]')).equal({p:['q w']})
+    expect(j('p:[ q w, 1 ]')).equal({p:['q w', 1]})
+    expect(j('p:[ q w , 1 ]')).equal({p:['q w', 1]})
+    expect(j('p:[ q w , 1 ]')).equal({p:['q w', 1]})
+
+    
+    expect(Jsonic('a b')).equals(['a','b'])
+    expect(()=>Jsonic('a: b c')).throws('JsonicError',/unexpected/)
+    expect(()=>Jsonic('{a: {b: c d}}')).throws('JsonicError',/unexpected/)
+    expect(Jsonic(' x , y z ')).equal(['x', 'y', 'z'])
+    expect(()=>Jsonic('a: x , b: y z ')).throws('JsonicError',/unexpected/)
   })
 })
 

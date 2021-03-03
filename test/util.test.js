@@ -359,7 +359,9 @@ describe('util', () => {
 
     let options = {
       debug:{
-        print_config: true,
+        print: {
+          config: true,
+        },
         get_console:()=>({
           log:((x)=>log.push(x)),
           dir:((x)=>dir.push(x))
@@ -390,7 +392,7 @@ describe('util', () => {
     dir = []
     let j = Jsonic.make(options)
     j('a:1',{log:-1})
-    expect(dir[0].d.print_config).true()
+    expect(dir[0].d.print.config).true()
   })
 
 
@@ -459,7 +461,7 @@ describe('util', () => {
     
     log = []
     let d0 = j0(`
-"a", 0x10, 0o20, 0b10000, true, a b,
+"a", 0x10, 0o20, 0b10000, true, b,
   '''
    c
   ''',
@@ -468,7 +470,7 @@ describe('util', () => {
    *
    */
 `,{log:(...r)=>log.push(r)})
-    expect(d0).equals(['a', 16, 16, 16, true, 'a b', ' c'])
+    expect(d0).equals(['a', 16, 16, 16, true, 'b', ' c'])
 
     log = []
     try {

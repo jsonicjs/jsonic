@@ -115,8 +115,6 @@ function make_default_options() {
             lex: true,
             // Recognize value text (true, false, null, etc) in the Lexer.
             lex_value: true,
-            // Text includes internal whitespace.
-            hoover: true,
         },
         // Object formats.
         map: {
@@ -134,13 +132,17 @@ function make_default_options() {
         },
         // Plugin custom options, (namespace by plugin name).
         plugin: {},
+        // Debug settings
         debug: {
             // Default console for logging.
             get_console: () => console,
             // Max length of parse value to print.
             maxlen: 33,
-            // Print config built from options.
-            print_config: false
+            // Print internal structures
+            print: {
+                // Print config built from options.
+                config: false
+            }
         },
         // Error messages.
         error: {
@@ -622,7 +624,7 @@ class Lexer {
                     }
                     // Text values.
                     // No explicit token recognized. That means a text value
-                    // (everything up to a text_ender char (eg. newline)) NOTE:
+                    // (everything up to a value_ender char (eg. newline)) NOTE:
                     // default section. Cases above bail to here if lookaheads
                     // fail to match (eg. NR).
                     if (options.text.lex) {
@@ -635,11 +637,13 @@ class Lexer {
                         return token;
                     }
                     pI = sI;
-                    let text_enders = options.text.hoover ? config.cs.hoover_ender :
-                        config.cs.text_ender;
+                    //let text_enders =
+                    //  options.text.hoover ? config.cs.hoover_ender :
+                    //    config.cs.text_ender
                     // TODO: construct a RegExp to do this
                     while (null != src[pI] &&
-                        (!text_enders[src[pI]] ||
+                        //(!config.cs.text_ender[src[pI]] ||
+                        (!config.cs.value_ender[src[pI]] ||
                             (config.cmk0.includes(src[pI]) &&
                                 !config.cmk1.includes(src[pI + 1])))) {
                         cI++;
@@ -651,23 +655,29 @@ class Lexer {
                     token.src = token.val;
                     // Hoovering (ie. greedily consume non-token chars including internal space)
                     // If hoovering, separate space at end from text
+                    /*
                     if (options.text.hoover &&
-                        config.m.SP[token.val[token.val.length - 1]]) {
-                        // Find last non-space char
-                        let tI = token.val.length - 2;
-                        while (0 < tI && config.m.SP[token.val[tI]])
-                            tI--;
-                        token.val = token.val.substring(0, tI + 1);
-                        token.src = token.val;
-                        // Adjust column counter backwards by end space length
-                        cI -= (token.len - tI - 1);
-                        token.len = token.val.length;
-                        // Ensures end space will be seen as the next token 
-                        sI += token.len;
+                      config.m.SP[token.val[token.val.length - 1]]) {
+          
+                      // Find last non-space char
+                      let tI = token.val.length - 2
+                      while (0 < tI && config.m.SP[token.val[tI]]) tI--;
+                      token.val = token.val.substring(0, tI + 1)
+                      token.src = token.val
+          
+                      // Adjust column counter backwards by end space length
+                      cI -= (token.len - tI - 1)
+          
+                      token.len = token.val.length
+          
+                      // Ensures end space will be seen as the next token
+                      sI += token.len
                     }
                     else {
-                        sI = pI;
+                      sI = pI
                     }
+                    */
+                    sI = pI;
                     state = LTP;
                     lexlog && lexlog(token);
                     return token;
@@ -1887,10 +1897,17 @@ function build_config(config, options) {
     // Enders are char sets that end lexing for a given token.
     // Value enders, end values.
     config.cs.value_ender = charset(options.space.lex && config.m.SP, options.line.lex && config.m.LN, config.sc, options.comment.lex && config.cs.start_commentmarker);
+    /*
     // Chars that end unquoted text.
-    config.cs.text_ender = config.cs.value_ender;
+    config.cs.text_ender = config.cs.value_ender
+  
     // Chars that end text hoovering (including internal space).
-    config.cs.hoover_ender = charset(options.line.lex && config.m.LN, config.sc, options.comment.lex && config.cs.start_commentmarker);
+    config.cs.hoover_ender = charset(
+      options.line.lex && config.m.LN,
+      config.sc,
+      options.comment.lex && config.cs.start_commentmarker
+    )
+    */
     config.cs.start_blockmarker = {};
     config.bmk = [];
     let block_markers = Object.keys(options.string.block);
@@ -1910,7 +1927,7 @@ function build_config(config, options) {
     Object.keys(options.config.modify)
         .forEach((modifer) => options.config.modify[modifer](config, options));
     // Debug the config - useful for plugin authors.
-    if (options.debug.print_config) {
+    if (options.debug.print.config) {
         options.debug.get_console().dir(config, { depth: null });
     }
 }
@@ -1939,6 +1956,6 @@ Jsonic.make = make;
 exports.default = Jsonic;
 // Build process uncomments this to enable more natural Node.js requires.
 /* $lab:coverage:off$ */
-;('undefined' != typeof(module) && (module.exports = exports.Jsonic));
+//-NODE-MODULE-FIX;('undefined' != typeof(module) && (module.exports = exports.Jsonic));
 /* $lab:coverage:on$ */
 //# sourceMappingURL=jsonic.js.map

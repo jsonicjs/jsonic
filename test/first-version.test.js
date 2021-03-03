@@ -199,12 +199,14 @@ describe('first-version', function () {
   it('fv-strings', function(){
     expect(j("a:'',b:\"\"")).equal({"a":"","b":""})
 
-    expect(j("a:x y")).equal({"a":"x y"})
+    // DIFF: hoover plugin
+    // expect(j("a:x y")).equal({"a":"x y"})
 
-    expect(j("a:x, b:y z")).equal({"a":"x","b":"y z"})
+    // DIFF: hoover plugin
+    // expect(j("a:x, b:y z")).equal({"a":"x","b":"y z"})
 
-    // trimmed
-    expect(j("a: x , b: y z ")).equal({"a":"x","b":"y z"})
+    // DIFF: hoover plugin
+    // expect(j("a: x , b: y z ")).equal({"a":"x","b":"y z"})
 
     expect(j("a:'x', aa: 'x' , b:'y\"z', bb: 'y\"z' ,bbb:\"y'z\", bbbb: \"y'z\", c:\"\\n\", d:'\\n'")).equal({"a":"x","aa":"x","b":"y\"z","bb":"y\"z","bbb":"y'z","bbbb":"y\'z","c":"\n","d":"\n"})
 
