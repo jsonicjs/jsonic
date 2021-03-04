@@ -174,12 +174,12 @@ describe('plugin', function () {
       jsonic.options({
         config: {
           modify: {
-            foo: (config)=>config.cs.value_ender.X='X'.charCodeAt(0)
+            foo: (config)=>config.cs.vend.X='X'.charCodeAt(0)
           }
         }
       })
     })
-    expect(j.internal().config.cs.value_ender.X).equal('X'.charCodeAt(0))
+    expect(j.internal().config.cs.vend.X).equal('X'.charCodeAt(0))
   })
 
   

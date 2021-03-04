@@ -66,7 +66,7 @@ let Native: Plugin = function native(jsonic: Jsonic) {
 
       while (pI < srclen &&
         (('/' === src[pI] && '\\' === src[pI - 1]) ||
-          !config.cs.value_ender[src[pI]])) {
+          !config.cs.vend[src[pI]])) {
         pI++
         cD++
       }

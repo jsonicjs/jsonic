@@ -837,7 +837,7 @@ class Lexer {
             while (config.cs.dig[src[++pI]]);
 
             let numstr = src.substring(sI, pI)
-            if (null == src[pI] || config.cs.value_ender[src[pI]]) {
+            if (null == src[pI] || config.cs.vend[src[pI]]) {
               token.len = pI - sI
 
               let base_char = src[sI + 1]
@@ -1085,7 +1085,7 @@ class Lexer {
 
             do {
               pI++
-            } while (null != src[pI] && !config.cs.value_ender[src[pI]])
+            } while (null != src[pI] && !config.cs.vend[src[pI]])
 
             let txt = src.substring(sI, pI)
 
@@ -2841,12 +2841,13 @@ function build_config(config: Config, options: Options) {
   config.cs.multiline = charset(options.string.multiline)
 
   // Enders are char sets that end lexing for a given token.
-  // Value enders, end values.
-  config.cs.value_ender = charset(
+  // Value enders...end values!
+  config.cs.vend = charset(
     options.space.lex && config.m.SP,
     options.line.lex && config.m.LN,
     config.sc,
-    options.comment.lex && config.cs.start_commentmarker
+    options.comment.lex && config.cs.start_commentmarker,
+    options.block.lex && config.cs.start_blockmarker,
   )
 
   config.cs.start_blockmarker = {}
