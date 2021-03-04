@@ -27,6 +27,7 @@ const {
   tokenize,
   errdesc,
   trimstk,
+  TIME,
   } = util
 
 
@@ -639,5 +640,33 @@ describe('util', () => {
     expect(d1.message).includes('unknown-hint')
 
   })
+
+
+  /*
+  it('TIME', ()=>{
+
+    let t = [
+      'x/pin',~~(100n*TIME.x/TIME.pin),
+      'bct/pin',~~(100n*TIME.bct/TIME.pin),
+      'act/pin',~~(100n*TIME.act/TIME.pin),
+      'pat/pin',~~(100n*TIME.pat/TIME.pin),
+      'at/pin',~~(100n*TIME.at/TIME.pin),
+      'pre/pin',~~(100n*TIME.pre/TIME.pin),
+      'ww/pin',~~(100n*TIME.ww/TIME.pin),
+    ]
+    console.log(
+      'TIME',
+      TIME,
+      t,
+      'pin/p',~~(100n*TIME.pin/TIME.p),
+      'bis/pin',~~(100n*TIME.bis/TIME.pin),
+      'pata/pat',~~(100n*TIME.pata/TIME.pat),
+      'patf/pat',~~(100n*TIME.patf/TIME.pat),
+      'patc/pat',~~(100n*TIME.patc/TIME.pat),
+      'pate/pat',~~(100n*TIME.pate/TIME.pat),
+      'S',t.filter((x,i)=>(1==i%2)).reduce((a,x)=>a+x,0n)
+    )
+  })
+  */
   
 })

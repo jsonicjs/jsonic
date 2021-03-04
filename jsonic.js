@@ -1,7 +1,39 @@
 "use strict";
 /* Copyright (c) 2013-2021 Richard Rodger, MIT License */
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.make = exports.util = exports.Alt = exports.RuleSpec = exports.Rule = exports.Parser = exports.Lexer = exports.JsonicError = exports.Jsonic = void 0;
+exports.TIME = exports.make = exports.util = exports.Alt = exports.RuleSpec = exports.Rule = exports.Parser = exports.Lexer = exports.JsonicError = exports.Jsonic = void 0;
+// TODO: config.cs names - tersify and make exact
+// TODO: make hoover a plugin
+// TODO: console colors in browser?
+// post release: 
+// TODO: test use of constructed regexps - perf?
+// TODO: complete rule tagging groups g:imp etc.
+// TODO: plugin for path expr: a.b:1 -> {a:{b:1}}
+// TODO: data file to diff exhaust changes
+// TODO: cli - less ambiguous merging at top level
+// TODO: internal errors - e.g. adding a null rulespec
+// # Conventions
+//
+// ## Token names
+// * '#' prefix: parse token
+// * '@' prefix: lex state
+const TIME = {
+    p: BigInt(0),
+    x: BigInt(0),
+    bct: BigInt(0),
+    act: BigInt(0),
+    pat: BigInt(0),
+    at: BigInt(0),
+    pre: BigInt(0),
+    ww: BigInt(0),
+    bis: BigInt(0),
+    pata: BigInt(0),
+    patf: BigInt(0),
+    patc: BigInt(0),
+    pate: BigInt(0),
+    pin: BigInt(0),
+};
+exports.TIME = TIME;
 const MT = ''; // Empty ("MT"!) string.
 const keys = Object.keys;
 const assign = Object.assign;
@@ -846,7 +878,10 @@ class Rule {
         this.ac = false === spec.ac ? false : true;
     }
     process(ctx) {
-        return this.spec.process(this, ctx, this.state);
+        //let s = process.hrtime.bigint()
+        let rule = this.spec.process(this, ctx, this.state);
+        //TIME.p += (process.hrtime.bigint() - s)
+        return rule;
     }
 }
 exports.Rule = Rule;
@@ -896,6 +931,7 @@ class RuleSpec {
         }
     }
     process(rule, ctx, state) {
+        //let pin = process.hrtime.bigint()
         let why = MT;
         let F = ctx.F;
         let is_open = state === RuleState.open;
@@ -903,6 +939,8 @@ class RuleSpec {
         let def = this.def;
         // Match alternates for current state.
         let alts = (is_open ? def.open : def.close);
+        //TIME.pre += (process.hrtime.bigint() - pin)
+        //let bct = process.hrtime.bigint()
         // Handle "before" call.
         let before = is_open ?
             (rule.bo && def.before_open) :
@@ -919,10 +957,17 @@ class RuleSpec {
                 rule.node = bout.node || rule.node;
             }
         }
+        //TIME.bct += (process.hrtime.bigint() - bct)
+        // TIME 15
+        //let pat = process.hrtime.bigint()
         // Attempt to match one of the alts.
         let alt = (bout && bout.alt) ? { ...empty_alt, ...bout.alt } :
             0 < alts.length ? this.parse_alts(alts, rule, ctx) :
                 empty_alt;
+        //TIME.pat += (process.hrtime.bigint() - pat)
+        // TIME 51
+        //TIME.bis += (process.hrtime.bigint() - pin)
+        //let at = process.hrtime.bigint()
         // Custom alt handler.
         if (alt.h) {
             alt = alt.h(alt, rule, ctx, next) || alt;
@@ -969,6 +1014,9 @@ class RuleSpec {
             }
             why += 'Z';
         }
+        //TIME.at += (process.hrtime.bigint() - at)
+        // TIME 56
+        //let act = process.hrtime.bigint()
         // Handle "after" call.
         let after = is_open ?
             (rule.ao && def.after_open) :
@@ -985,18 +1033,25 @@ class RuleSpec {
                 next = aout.next || next;
             }
         }
+        //TIME.act += (process.hrtime.bigint() - act)
+        //let ww = process.hrtime.bigint()
         next.why = why;
         ctx.log && ctx.log(S.node, rule.name + '~' + rule.id, RuleState[rule.state], 'w=' + why, F(rule.node));
+        //TIME.ww += (process.hrtime.bigint() - ww)
+        // TIME 63
+        //let s = process.hrtime.bigint()
         // Lex next tokens (up to backtrack).
         let mI = 0;
         let rewind = alt.m.length - (alt.b || 0);
         while (mI++ < rewind) {
             ctx.next();
         }
+        //TIME.x += (process.hrtime.bigint() - s)
         // Must be last as state is for next process call.
         if (RuleState.open === rule.state) {
             rule.state = RuleState.close;
         }
+        //TIME.pin += (process.hrtime.bigint() - pin)
         return next;
     }
     // TODO: merge into process - maybe?
@@ -1014,12 +1069,35 @@ class RuleSpec {
         let altI = 0;
         let t = ctx.config.t;
         let cond;
-        for (altI = 0; altI < alts.length; altI++) {
+        //let patf = process.hrtime.bigint()
+        let len = alts.length;
+        //for (altI = 0; altI < alts.length; altI++) {
+        for (altI = 0; altI < len; altI++) {
+            cond = false;
             alt = alts[altI];
+            //let pata = process.hrtime.bigint()
+            // No tokens to match.
+            if (null == alt.s || 0 === alt.s.length) {
+                cond = true;
+            }
+            // Match 1 or 2 tokens in sequence.
+            else if (alt.s[0] === ctx.t0.tin || alt.s[0] === t.AA) {
+                if (1 === alt.s.length) {
+                    out.m = [ctx.t0];
+                    cond = true;
+                }
+                else if (alt.s[1] === ctx.t1.tin || alt.s[1] === t.AA) {
+                    out.m = [ctx.t0, ctx.t1];
+                    cond = true;
+                }
+            }
+            //TIME.pata += (process.hrtime.bigint() - pata)
+            //let patc = process.hrtime.bigint()
+            //alt = alts[altI]
             // Optional custom condition
-            cond = alt.c ? alt.c(alt, rule, ctx) : true;
+            cond = cond && (alt.c ? alt.c(alt, rule, ctx) : true);
             // Depth.
-            cond = cond && null == alt.d ? true : alt.d === ctx.rs.length;
+            cond = cond && (null == alt.d ? true : alt.d === ctx.rs.length);
             // Ancestors.
             cond = cond &&
                 (null == alt.a ? true :
@@ -1027,30 +1105,53 @@ class RuleSpec {
                         .slice(-(alt.a.length))
                         .map(r => r.name)
                         .reverse()));
-            if (cond) {
-                out.e = alt.e && alt.e(alt, rule, ctx) || undefined;
-                // No tokens to match.
-                if (null == alt.s || 0 === alt.s.length) {
-                    break;
-                }
-                // Match 1 or 2 tokens in sequence.
-                else if (alt.s[0] === ctx.t0.tin || alt.s[0] === t.AA) {
-                    if (1 === alt.s.length) {
-                        out.m = [ctx.t0];
-                        break;
-                    }
-                    else if (alt.s[1] === ctx.t1.tin || alt.s[1] === t.AA) {
-                        out.m = [ctx.t0, ctx.t1];
-                        break;
-                    }
-                }
+            //TIME.patc += (process.hrtime.bigint() - patc)
+            /*
+             (cond) {
+            let pate = process.hrtime.bigint()
+            
+            //out.e = alt.e && alt.e(alt, rule, ctx) || undefined
+            
+            TIME.pate += (process.hrtime.bigint() - pate)
+            
+            
+            
+            let pata = process.hrtime.bigint()
+            
+            // No tokens to match.
+            if (null == alt.s || 0 === alt.s.length) {
+              break
             }
-            alt = null;
+            
+            // Match 1 or 2 tokens in sequence.
+            else if (alt.s[0] === ctx.t0.tin || alt.s[0] === t.AA) {
+              if (1 === alt.s.length) {
+                out.m = [ctx.t0]
+                break
+              }
+              else if (alt.s[1] === ctx.t1.tin || alt.s[1] === t.AA) {
+                out.m = [ctx.t0, ctx.t1]
+                break
+              }
+            }
+            
+            TIME.pata += (process.hrtime.bigint() - pata)
+            }
+            
+            */
+            if (cond) {
+                break;
+            }
+            else {
+                alt = null;
+            }
         }
+        //TIME.patf += (process.hrtime.bigint() - patf)
         if (null == alt && t.ZZ !== ctx.t0.tin) {
             out.e = ctx.t0;
         }
         if (null != alt) {
+            out.e = alt.e && alt.e(alt, rule, ctx) || undefined;
             out.b = alt.b ? alt.b : out.b;
             out.p = alt.p ? alt.p : out.p;
             out.r = alt.r ? alt.r : out.r;
@@ -1104,7 +1205,7 @@ class Parser {
                     // Value is null.
                     { s: [CA], b: 1, g: S.imp_list },
                     // Implicit map - operates at any depth. Increment counter.
-                    // NOTE: `n.im` counts depth of implicit maps 
+                    // NOTE: `n.im` counts depth of implicit maps
                     { s: [TX, CL], p: S.map, b: 2, n: { im: 1 }, g: S.imp_map },
                     { s: [ST, CL], p: S.map, b: 2, n: { im: 1 }, g: S.imp_map },
                     { s: [NR, CL], p: S.map, b: 2, n: { im: 1 }, g: S.imp_map },
@@ -1408,6 +1509,7 @@ let util = {
     regexp,
     mesc,
     ender,
+    TIME,
 };
 exports.util = util;
 function make(param_options, parent) {
@@ -1501,7 +1603,7 @@ function make(param_options, parent) {
     assign(jsonic, api);
     // As with options, provide direct access to tokens.
     assign(jsonic.token, config.t);
-    // Hide internals where you can still find them. 
+    // Hide internals where you can still find them.
     defprop(jsonic, 'internal', {
         value: function internal() {
             return {
@@ -1941,6 +2043,6 @@ Jsonic.make = make;
 exports.default = Jsonic;
 // Build process uncomments this to enable more natural Node.js requires.
 /* $lab:coverage:off$ */
-;('undefined' != typeof(module) && (module.exports = exports.Jsonic));
+//-NODE-MODULE-FIX;('undefined' != typeof(module) && (module.exports = exports.Jsonic));
 /* $lab:coverage:on$ */
 //# sourceMappingURL=jsonic.js.map

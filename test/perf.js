@@ -3,13 +3,13 @@ const Util = require('util')
 const { Jsonic, Lexer } = require('..')
 const lexer = Jsonic.internal().lexer
 const config = Jsonic.internal().config
-const opts = Jsonic.options
+const opts = Jsonic.make().options
 
-const ZZ = Jsonic.token.ZZ
+const ZZ = Jsonic.make().token.ZZ
 
 let inputs = [
   {
-    src: `qs:"a\\"a'a",as:'a"a\\'a',hs: a \tb `,
+    src: `qs:"a\\"a'a",as:'a"a\\'a',hs: 'a \\tb' `,
     out: {qs:`a"a'a`,as:`a"a'a`,hs:'a \tb'},
   },
 
@@ -35,7 +35,7 @@ let inputs = [
 
 ]
 
-run_lex()
+//run_lex()
 run_parse()
 
 
