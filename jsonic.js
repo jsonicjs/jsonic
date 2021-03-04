@@ -413,7 +413,7 @@ class Lexer {
                     if (options.number.lex && config.s.NR[c0]) {
                         token.tin = NR;
                         pI = sI;
-                        while (config.cs.digital[src[++pI]])
+                        while (config.cs.dig[src[++pI]])
                             ;
                         let numstr = src.substring(sI, pI);
                         if (null == src[pI] || config.cs.value_ender[src[pI]]) {
@@ -1881,7 +1881,7 @@ function build_config(config, options) {
     }
     config.sc = Object.keys(config.sm).join(MT);
     // All the characters that can appear in a number.
-    config.cs.digital = charset(options.number.digital);
+    config.cs.dig = charset(options.number.digital);
     // Multiline quotes
     config.cs.multiline = charset(options.string.multiline);
     // Enders are char sets that end lexing for a given token.

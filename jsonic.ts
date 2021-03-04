@@ -834,7 +834,7 @@ class Lexer {
             token.tin = NR
             pI = sI
 
-            while (config.cs.digital[src[++pI]]);
+            while (config.cs.dig[src[++pI]]);
 
             let numstr = src.substring(sI, pI)
             if (null == src[pI] || config.cs.value_ender[src[pI]]) {
@@ -2835,7 +2835,7 @@ function build_config(config: Config, options: Options) {
 
 
   // All the characters that can appear in a number.
-  config.cs.digital = charset(options.number.digital)
+  config.cs.dig = charset(options.number.digital)
 
   // Multiline quotes
   config.cs.multiline = charset(options.string.multiline)
