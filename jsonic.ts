@@ -1107,30 +1107,6 @@ class Lexer {
 
           pI = sI
 
-          //let text_enders =
-          //  options.text.hoover ? config.cs.hoover_ender :
-          //    config.cs.text_ender
-
-          /*
-          while (null != src[pI] &&
-            //(!config.cs.text_ender[src[pI]] ||
-            (!config.cs.value_ender[src[pI]] ||
-              (config.cmk0.includes(src[pI]) &&
-                !config.cmk1.includes(src[pI + 1]))
-            )) {
-            cI++
-            pI++
-          }
-          */
-
-          /*
-          while (null != src[pI] && !config.cs.value_ender[src[pI]]) {
-            cI++
-            pI++
-          }
-          */
-
-
           let m = config.re.te && src.substring(sI).match(config.re.te)
           if (m) {
             let txlen = m[0].length
@@ -1142,31 +1118,6 @@ class Lexer {
           token.tin = TX
           token.val = src.substring(sI, pI)
           token.src = token.val
-
-          // Hoovering (ie. greedily consume non-token chars including internal space)
-          // If hoovering, separate space at end from text
-          /*
-          if (options.text.hoover &&
-            config.m.SP[token.val[token.val.length - 1]]) {
-
-            // Find last non-space char
-            let tI = token.val.length - 2
-            while (0 < tI && config.m.SP[token.val[tI]]) tI--;
-            token.val = token.val.substring(0, tI + 1)
-            token.src = token.val
-
-            // Adjust column counter backwards by end space length
-            cI -= (token.len - tI - 1)
-
-            token.len = token.val.length
-
-            // Ensures end space will be seen as the next token 
-            sI += token.len
-          }
-          else {
-            sI = pI
-          }
-          */
 
           sI = pI
           state = LTP
@@ -1271,13 +1222,12 @@ class Lexer {
             if (null == config.re.block_prefix) {
               config.re.block_prefix = regexp(
                 S.no_re_flags,
-                ['^['],
+                '^[',
                 // TODO: need config val here?
-                [(options.token['#SP'] as string), '%'],
-                [']*'],
-                ['('],
-                [options.line.sep_RES],
-                [')'],
+                mesc((options.token['#SP'] as string)),
+                ']*(',
+                options.line.sep_RES,
+                ')',
               )
             }
             token.val =
@@ -1287,11 +1237,11 @@ class Lexer {
             if (null == config.re.block_suffix) {
               config.re.block_suffix = regexp(
                 S.no_re_flags,
-                [options.line.sep_RES],
-                ['['],
+                options.line.sep_RES,
+                '[',
                 // TODO: need config val here?
-                [(options.token['#SP'] as string), '%'],
-                [']*$']
+                mesc(options.token['#SP'] as string),
+                ']*$'
               )
             }
             token.val =
@@ -1301,13 +1251,13 @@ class Lexer {
             let block_indent_RE = config.re[S.block_indent_ + indent_str] =
               config.re[S.block_indent_ + indent_str] || regexp(
                 'g',
-                ['^('],
-                [indent_str, '%'],
-                [')|(('],
-                [options.line.sep_RES],
-                [')'],
-                [indent_str, '%'],
-                [')']
+                '^(',
+                mesc(indent_str),
+                ')|((',
+                options.line.sep_RES,
+                ')',
+                mesc(indent_str),
+                ')'
               )
 
             token.val =
@@ -2154,13 +2104,7 @@ class Parser {
 
       ctx.log &&
         ctx.log(S.stack, ctx.rs.length,
-          ctx.rs.map((r: Rule) => r.name + '~' + r.id
-            /*
-              + '<' + (Object.keys(r.n)
-              .map((k: string) => k + '=' + r.n[k])
-              .reduce((a: string, s: string) => a += s, '')) + '>'
-            */
-          ).join('/'),
+          ctx.rs.map((r: Rule) => r.name + '~' + r.id).join('/'),
           rule, ctx)
       rI++
     }
@@ -2204,6 +2148,8 @@ let util = {
   build_config,
   wrap_parser,
   regexp,
+  mesc,
+  ender_re,
 }
 
 
@@ -2523,17 +2469,62 @@ function wrap_bad_lex(lex: Lex, BD: Tin, ctx: Context) {
 }
 
 
-// Construct a RegExp from arguments.
-// Prefix with '%' to escape regexp special chars (or use as flag).
-// NOTE: flags first allows parts to be rest.
-function regexp(flags: string, ...parts: string[][]): RegExp {
+
+// Mark a string for escaping by `util.regexp`.
+function mesc(s: string, _?: any) {
+  return (_ = new String(s), _.esc = true, _)
+}
+
+// Construct a RegExp. Use mesc to mark string for escaping.
+// NOTE: flags first allows concatenated parts to be rest.
+function regexp(
+  flags: string,
+  ...parts: (string | (String & { esc?: boolean }))[]
+): RegExp {
   return new RegExp(
-    parts
-      .map(p => '%' === p[1] ? p[0].replace(/./g, '\\$&') : p[0])
-      .join(MT),
-    flags
+    parts.map(p => (p as any).esc ?
+      p.replace(/[-\\|\]{}()[^$+*?.!=]/g, '\\$&')
+      : p).join(MT), flags)
+}
+
+
+
+function ender_re(endchars: CharCodeMap, endmarks: KV) {
+  let allendchars =
+    Object.keys(
+      Object.keys(endmarks)
+        .reduce((a: any, em: string) => (a[em[0]] = 1, a), { ...endchars }))
+      .join('')
+
+  let endmarkprefixes =
+    Object.entries(
+      Object.keys(endmarks)
+        .filter(cm => 1 < cm.length)
+        .reduce((a: any, s: string) =>
+          ((a[s[0]] = (a[s[0]]) || []).push(s.substring(1)), a), {}))
+      .reduce((a: any, cme: any) => (a.push([
+        cme[0],
+        cme[1].map((cms: string) => regexp('', mesc(cms)).source).join('|')
+      ]), a), [])
+      .map((cmp: any) => [
+        '|(',
+        mesc(cmp[0]),
+        '(?!(',
+        cmp[1],
+        //')).)'
+        ')))'
+      ]).flat(1)
+
+  return regexp(
+    S.no_re_flags,
+    '^(([^',
+    mesc(allendchars),
+    ']+)',
+    ...endmarkprefixes,
+    ')+'
   )
 }
+
 
 
 function errinject(
@@ -2845,18 +2836,6 @@ function build_config(config: Config, options: Options) {
     options.comment.lex && config.cs.start_commentmarker
   )
 
-  /*
-  // Chars that end unquoted text.
-  config.cs.text_ender = config.cs.value_ender
-
-  // Chars that end text hoovering (including internal space).
-  config.cs.hoover_ender = charset(
-    options.line.lex && config.m.LN,
-    config.sc,
-    options.comment.lex && config.cs.start_commentmarker
-  )
-  */
-
   config.cs.start_blockmarker = {}
   config.bmk = []
 
@@ -2871,131 +2850,25 @@ function build_config(config: Config, options: Options) {
   config.bmx = longest(block_markers)
 
 
-  /*
-  let cmA = Object.entries(
-    Object.keys(config.cm)
-      .filter(cm => 1 < cm.length)
-      .reduce((a: any, s: string) =>
-        ((a[s[0]] = (a[s[0]]) || []).push(s.substring(1)), a), {}))
-
-  let cmB = cmA.reduce((a: any, cme: any) => (a.push(
-    [cme[0],
-    cme[1].map((cms: string) => util.regexp('', [cms, '%']).source).join('|')]
-  ), a), [])
-
-  let cmC = cmB
-    .map((cmp: any) => [
-      ['|'],
-      ['('],
-      [cmp[0], '%'],
-      ['(?!('],
-      [cmp[1]],
-      [')).)']
-    ]).flat(1)
-
-  console.log(
-    'CM',
-    cmA,
-    cmB,
-    cmC
-  )
-  */
-
-  let tep = ([
-
-    // any non-token chars
-    [
-      ['^(([^'],
-      [Object.keys(charset(
-        options.space.lex && config.m.SP,
-        options.line.lex && config.m.LN,
-        config.sc,
-        options.comment.lex && config.cs.start_commentmarker,
-        options.block.lex && config.cs.start_blockmarker
-      )).join(''), '%'],
-      ['])'],
-      // TODO: negative lookahead on comments
-      // 'a#ZOOb'.match(/([^{}#]|(#?!(Q|ZOO)))+/)
-    ],
-
-    // any comment prefixes
-    options.comment.lex ?
-
-      Object.entries(
-        Object.keys(config.cm)
-          .filter(cm => 1 < cm.length)
-          .reduce((a: any, s: string) =>
-            ((a[s[0]] = (a[s[0]]) || []).push(s.substring(1)), a), {}))
-        .reduce((a: any, cme: any) => (a.push([
-          cme[0],
-          cme[1].map((cms: string) => util.regexp('', [cms, '%']).source).join('|')
-        ]), a), [])
-        .map((cmp: any) => [
-          ['|'],
-          ['('],
-          [cmp[0], '%'],
-          ['(?!('],
-          [cmp[1]],
-          [')).)']
-        ]).flat(1) : [],
-
-    /*
-    // any block prefixes
-    options.block.lex ?
-      block_markers
-        .filter(bm => 1 < bm.length)
-        .map(bm => [
-          ['|'],
-          ['('],
-          [bm[0], '%'],
-          ['(?!'],
-          [bm.substring(1), '%'],
-          [').)']
-        ]).flat(1) : [],
-    */
-
-    [[')+']]
-  ].flat(1) as any)
-
-
-
   // RegExp cache
   config.re = {
     ns: null != options.number.sep ?
       new RegExp(options.number.sep, 'g') : null,
 
-    te: util.regexp(
-      S.no_re_flags,
-
-      ...tep
+    te: ender_re(
+      charset(
+        options.space.lex && config.m.SP,
+        options.line.lex && config.m.LN,
+        config.sc,
+        options.comment.lex && config.cs.start_commentmarker,
+        options.block.lex && config.cs.start_blockmarker
+      ),
+      {
+        ...(options.comment.lex ? config.cm : {}),
+        ...(options.block.lex ? options.string.block : {}),
+      }
     )
   }
-
-
-  /*
-  console.log(
-    'CM',
-    //Object.keys(config.cm)
-    //  .filter(cm => 1 < cm.length)
-    //  .map(cm => [['|'], ['('], [cm[0], '%'], ['?!'], [cm.substring(1), '%'], [')']]).flat(1),
-    //config.re.te,
-    // any block prefixes
-    block_markers,
-    Object.keys(block_markers)
-      .filter(bm => 1 < bm.length)
-      .map(bm => [
-        ['|'],
-        ['('],
-        [bm[0], '%'],
-        ['(?!'],
-        [bm.substring(1), '%'],
-        [').)']
-      ]),
-
-    tep,
-    util.regexp('', ...tep)
-  )
-  */
 
 
   // Debug options

@@ -20,6 +20,8 @@ const marr = util.marr
 const make_src_format = util.make_src_format
 const wrap_bad_lex = util.wrap_bad_lex
 const regexp = util.regexp
+const mesc = util.mesc
+const ender_re = util.ender_re
 
 
 const I = Util.inspect
@@ -344,13 +346,32 @@ describe('util', () => {
 
 
   it('regexp', () => {
-    expect(regexp('',['a'])).equal(/a/)
-    expect(regexp('g',['a'],['b'])).equal(/ab/g)
-    expect(regexp('g',['%a'],['b'])).equal(/%ab/g)
-    expect(regexp('g',['['], ['a','%'],[']*'],['b'])).equal(/[\a]*b/g)
-    expect(regexp('g',['['], ['a','%'],[' '],[']*'],['b'])).equal(/[\a ]*b/g)
+    expect(regexp('','a')).equal(/a/)
+    expect(regexp('','a*')).equal(/a*/)
+    expect(regexp('',mesc('ab*'))).equal(/ab\*/)
   })
 
+
+  it('ender_re', () => {
+    let re0 = ender_re({a:1,b:1},{'cc':1,'dd':2,'de':3})
+    // console.log(re0)
+
+    expect('xyz'.match(re0)[0]).equal('xyz')
+    expect('xyza'.match(re0)[0]).equal('xyz')
+    expect('xyzb'.match(re0)[0]).equal('xyz')
+    expect('xyzaQ'.match(re0)[0]).equal('xyz')
+    expect('xyzbQ'.match(re0)[0]).equal('xyz')
+    expect('xyzc'.match(re0)[0]).equal('xyzc')
+    expect('xyzd'.match(re0)[0]).equal('xyzd')
+    expect('xyzcQ'.match(re0)[0]).equal('xyzcQ')
+    expect('xyzdQ'.match(re0)[0]).equal('xyzdQ')
+    expect('xyzcc'.match(re0)[0]).equal('xyz')
+    expect('xyzdd'.match(re0)[0]).equal('xyz')
+    expect('xyzde'.match(re0)[0]).equal('xyz')
+    expect('xyzccQ'.match(re0)[0]).equal('xyz')
+    expect('xyzddQ'.match(re0)[0]).equal('xyz')
+    expect('xyzdeQ'.match(re0)[0]).equal('xyz')
+  })
 
   
   it('make_log', () => {

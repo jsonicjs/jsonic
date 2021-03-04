@@ -312,6 +312,8 @@ declare let util: {
     build_config: typeof build_config;
     wrap_parser: typeof wrap_parser;
     regexp: typeof regexp;
+    mesc: typeof mesc;
+    ender_re: typeof ender_re;
 };
 declare function make(param_options?: KV, parent?: Jsonic): Jsonic;
 declare function make_src_format(config: Config): (s: any, _?: any) => string;
@@ -324,7 +326,11 @@ declare function marr(a: string[], b: string[]): boolean;
 declare function clean_stack(err: Error): void;
 declare function make_log(ctx: Context): ((...rest: any) => undefined) | undefined;
 declare function wrap_bad_lex(lex: Lex, BD: Tin, ctx: Context): any;
-declare function regexp(flags: string, ...parts: string[][]): RegExp;
+declare function mesc(s: string, _?: any): any;
+declare function regexp(flags: string, ...parts: (string | (String & {
+    esc?: boolean;
+}))[]): RegExp;
+declare function ender_re(endchars: CharCodeMap, endmarks: KV): RegExp;
 declare function errinject(s: string, code: string, details: KV, token: Token, rule: Rule, ctx: Context): string;
 declare function extract(src: string, errtxt: string, token: Token): string;
 declare function wrap_parser(parser: any): {
