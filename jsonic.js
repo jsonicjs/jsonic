@@ -835,10 +835,10 @@ class Rule {
         this.open = [];
         this.close = [];
         this.n = {};
-        this.before_open_active = false === spec.before_open_active ? false : true;
-        this.after_open_active = false === spec.after_open_active ? false : true;
-        this.before_close_active = false === spec.before_close_active ? false : true;
-        this.after_close_active = false === spec.after_close_active ? false : true;
+        this.bo = false === spec.bo ? false : true;
+        this.ao = false === spec.ao ? false : true;
+        this.bc = false === spec.bc ? false : true;
+        this.ac = false === spec.ac ? false : true;
     }
     process(ctx) {
         return this.spec.process(this, ctx, this.state);
@@ -862,10 +862,10 @@ const empty_alt = new Alt();
 class RuleSpec {
     constructor(def) {
         this.name = '-';
-        this.before_open_active = true;
-        this.after_open_active = true;
-        this.before_close_active = true;
-        this.after_close_active = true;
+        this.bo = true;
+        this.ao = true;
+        this.bc = true;
+        this.ac = true;
         this.def = def || {};
         function norm_alt(alt) {
             // Convert counter abbrev condition into an actual function.
@@ -900,8 +900,8 @@ class RuleSpec {
         let alts = (is_open ? def.open : def.close);
         // Handle "before" call.
         let before = is_open ?
-            (rule.before_open_active && def.before_open) :
-            (rule.before_close_active && def.before_close);
+            (rule.bo && def.before_open) :
+            (rule.bc && def.before_close);
         let bout;
         if (before) {
             bout = before.call(this, rule, ctx);
@@ -968,8 +968,8 @@ class RuleSpec {
         }
         // Handle "after" call.
         let after = is_open ?
-            (rule.after_open_active && def.after_open) :
-            (rule.after_close_active && def.after_close);
+            (rule.ao && def.after_open) :
+            (rule.ac && def.after_close);
         if (after) {
             let aout = after.call(this, rule, ctx, next);
             if (aout) {
@@ -1862,8 +1862,6 @@ function build_config(config, options) {
     config.cs.start_commentmarker = {};
     config.cs.cm_single = {};
     config.cmk = [];
-    //config.cmk0 = MT
-    //config.cmk1 = MT
     if (options.comment.lex) {
         config.cm = options.comment.marker;
         let comment_markers = Object.keys(config.cm);
@@ -1877,8 +1875,6 @@ function build_config(config, options) {
             else {
                 config.cs.start_commentmarker[k[0]] = k.charCodeAt(0);
                 config.cmk.push(k);
-                //config.cmk0 += k[0]
-                //config.cmk1 += k[1]
             }
         });
         config.cmx = longest(comment_markers);

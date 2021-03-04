@@ -598,11 +598,11 @@ describe('jsonic', function () {
           {
             s:[AA,AA],
             h: (alt,rule) => {
-              // No effect: rule.before_open_active - already called at this point.
-              // rule.before_open_active = false
-              rule.after_open_active = false
-              rule.before_close_active = false
-              rule.after_close_active = false
+              // No effect: rule.bo - before_open already called at this point.
+              // rule.bo = false
+              rule.ao = false
+              rule.bc = false
+              rule.ac = false
               rule.node = 1111
               return alt
             }
@@ -639,10 +639,10 @@ describe('jsonic', function () {
         after_close: ()=>(b+='ac;'),
 
       })
-      rs.before_open_active = false
-      rs.after_open_active = false
-      rs.before_close_active = false
-      rs.after_close_active = false
+      rs.bo = false
+      rs.ao = false
+      rs.bc = false
+      rs.ac = false
       return rs
     })
 

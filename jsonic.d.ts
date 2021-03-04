@@ -251,10 +251,10 @@ declare class Rule {
     open: Token[];
     close: Token[];
     n: KV;
-    before_open_active: boolean;
-    after_open_active: boolean;
-    before_close_active: boolean;
-    after_close_active: boolean;
+    bo: boolean;
+    ao: boolean;
+    bc: boolean;
+    ac: boolean;
     why?: string;
     constructor(spec: RuleSpec, ctx: Context, node?: any);
     process(ctx: Context): Rule;
@@ -271,10 +271,10 @@ declare class Alt {
 declare class RuleSpec {
     name: string;
     def: any;
-    before_open_active: boolean;
-    after_open_active: boolean;
-    before_close_active: boolean;
-    after_close_active: boolean;
+    bo: boolean;
+    ao: boolean;
+    bc: boolean;
+    ac: boolean;
     constructor(def: any);
     process(rule: Rule, ctx: Context, state: RuleState): Rule;
     parse_alts(alts: any[], rule: Rule, ctx: Context): Alt;

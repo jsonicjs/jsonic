@@ -246,8 +246,6 @@ type Config = {
   },
   cm: { [start_marker: string]: string | boolean } // Comment start markers.
   cmk: string[] // Comment start markers.
-  //cmk0: string  // Comment start markers first chars.
-  //cmk1: string  // Comment start markers second chars.
   cmx: number // Comment start markers max length.
   bmk: string[] // Block start markers.
   bmx: number // Block start markers max length.
@@ -1406,11 +1404,10 @@ class Rule {
   open: Token[]
   close: Token[]
   n: KV
-  before_open_active: boolean
-  after_open_active: boolean
-  before_close_active: boolean
-  after_close_active: boolean
-
+  bo: boolean // Call before_open.
+  ao: boolean // Call after_open.
+  bc: boolean // Call before_close.
+  ac: boolean // Call after_close.
   why?: string
 
   constructor(spec: RuleSpec, ctx: Context, node?: any) {
@@ -1423,10 +1420,10 @@ class Rule {
     this.open = []
     this.close = []
     this.n = {}
-    this.before_open_active = false === spec.before_open_active ? false : true
-    this.after_open_active = false === spec.after_open_active ? false : true
-    this.before_close_active = false === spec.before_close_active ? false : true
-    this.after_close_active = false === spec.after_close_active ? false : true
+    this.bo = false === spec.bo ? false : true
+    this.ao = false === spec.ao ? false : true
+    this.bc = false === spec.bc ? false : true
+    this.ac = false === spec.ac ? false : true
   }
 
   process(ctx: Context): Rule {
@@ -1464,10 +1461,10 @@ type RuleDef = {
 class RuleSpec {
   name: string = '-'
   def: any
-  before_open_active: boolean = true
-  after_open_active: boolean = true
-  before_close_active: boolean = true
-  after_close_active: boolean = true
+  bo: boolean = true
+  ao: boolean = true
+  bc: boolean = true
+  ac: boolean = true
 
   constructor(def: any) {
     this.def = def || {}
@@ -1514,8 +1511,8 @@ class RuleSpec {
 
     // Handle "before" call.
     let before = is_open ?
-      (rule.before_open_active && def.before_open) :
-      (rule.before_close_active && def.before_close)
+      (rule.bo && def.before_open) :
+      (rule.bc && def.before_close)
 
     let bout
     if (before) {
@@ -1597,8 +1594,8 @@ class RuleSpec {
 
     // Handle "after" call.
     let after = is_open ?
-      (rule.after_open_active && def.after_open) :
-      (rule.after_close_active && def.after_close)
+      (rule.ao && def.after_open) :
+      (rule.ac && def.after_close)
 
     if (after) {
       let aout = after.call(this, rule, ctx, next)
@@ -2810,8 +2807,6 @@ function build_config(config: Config, options: Options) {
   config.cs.start_commentmarker = {}
   config.cs.cm_single = {}
   config.cmk = []
-  //config.cmk0 = MT
-  //config.cmk1 = MT
 
   if (options.comment.lex) {
     config.cm = options.comment.marker
@@ -2830,8 +2825,6 @@ function build_config(config: Config, options: Options) {
       else {
         config.cs.start_commentmarker[k[0]] = k.charCodeAt(0)
         config.cmk.push(k)
-        //config.cmk0 += k[0]
-        //config.cmk1 += k[1]
       }
     })
 

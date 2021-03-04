@@ -149,8 +149,8 @@ describe('docs', function () {
     concat.rule('val', (rulespec)=>{
       rulespec.def.open.unshift({s:[ST,ST], h:(alt,rule,ctx)=>{
         rule.node = ctx.t0.val + ctx.t1.val
-        // Disable default value handling
-        rule.before_close_active = false
+        // Disable before_close value handling
+        rule.bc = false
       }})
     })
 

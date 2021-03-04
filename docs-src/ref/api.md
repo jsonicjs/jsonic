@@ -375,7 +375,7 @@ concat.rule('val',(rule)=>{
   rule.def.open.unshift({s:[ST,ST], h:(alt,rule,ctx)=>{
     rule.node = ctx.t0.val + ctx.t1.val
     // Disable default value handling
-    rule.before_close_active = false
+    rule.bc = false
   }})
 })
 
