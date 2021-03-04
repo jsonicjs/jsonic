@@ -44,13 +44,15 @@ type JsonicAPI = {
   (<A extends string | Tin, B extends string | Tin>(ref: A)
     => A extends string ? B : string)
 
+  // Unique identifier string for each Jsonic instance.
   id: string
 
+  // Provide identifier for string conversion.
   toString: () => string
 }
 
 
-// The full export type.
+// The full exported type.
 type Jsonic =
   Jsonicer & // A function that parses.
   JsonicAPI & // A utility with API methods.
@@ -101,8 +103,6 @@ type Options = {
   }
   text: {
     lex: boolean
-    lex_value: boolean
-    // hoover: boolean
   }
   map: {
     extend: boolean
@@ -379,14 +379,6 @@ function make_default_options(): Options {
 
       // Recognize text (non-quoted strings) in the Lexer.
       lex: true,
-
-
-      // Recognize value text (true, false, null, etc) in the Lexer.
-      lex_value: true,
-
-
-      // Text includes internal whitespace.
-      // hoover: true,
     },
 
 
@@ -1107,7 +1099,7 @@ class Lexer {
 
           pI = sI
 
-          let m = config.re.te && src.substring(sI).match(config.re.te)
+          let m = src.substring(sI).match((config.re.te as RegExp))
           if (m) {
             let txlen = m[0].length
             pI += txlen
@@ -1450,7 +1442,7 @@ class RuleSpec {
   after_close_active: boolean = true
 
   constructor(def: any) {
-    this.def = def
+    this.def = def || {}
 
     function norm_alt(alt: any) {
       // Convert counter abbrev condition into an actual function.

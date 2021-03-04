@@ -113,8 +113,6 @@ function make_default_options() {
         text: {
             // Recognize text (non-quoted strings) in the Lexer.
             lex: true,
-            // Recognize value text (true, false, null, etc) in the Lexer.
-            lex_value: true,
         },
         // Object formats.
         map: {
@@ -637,7 +635,7 @@ class Lexer {
                         return token;
                     }
                     pI = sI;
-                    let m = config.re.te && src.substring(sI).match(config.re.te);
+                    let m = src.substring(sI).match(config.re.te);
                     if (m) {
                         let txlen = m[0].length;
                         pI += txlen;
@@ -866,7 +864,7 @@ class RuleSpec {
         this.after_open_active = true;
         this.before_close_active = true;
         this.after_close_active = true;
-        this.def = def;
+        this.def = def || {};
         function norm_alt(alt) {
             // Convert counter abbrev condition into an actual function.
             if (null != alt.c && alt.c.n) {

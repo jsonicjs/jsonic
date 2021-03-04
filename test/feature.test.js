@@ -317,28 +317,32 @@ describe('feature', function () {
     // JSON only has nulls
     expect(j('null')).equal(null)
     expect(j('a:null')).equal({a:null})
-    expect(j('a:')).equal({a:null})
-    expect(j('{a:}')).equal({a:null})
 
-    //expect(j('[a:1]')).equal([{a:1}])
+
+    expect(j('[a:1]')).equal([{a:1}])
     
     expect(j('[{a:null}]')).equal([{a:null}])
-    //expect(j('[a:null]')).equal([{a:null}])
+    expect(j('[a:null]')).equal([{a:null}])
     expect(j('a:null,b:null')).equal({a:null,b:null})
     expect(j('{a:null,b:null}')).equal({a:null,b:null})
 
-    //expect(j('[a:]')).equal([{a:null}])
+    expect(j('[a:]')).equal([{a:null}])
+    expect(j('[a:,b:]')).equal([{a:null},{b:null}])
+    expect(j('[a:,b:c:]')).equal([{a:null},{b:{c:null}}])
+
+    expect(j('a:')).equal({a:null})
     expect(j('a:,b:')).equal({a:null,b:null})
+    expect(j('a:,b:c:')).equal({a:null,b:{c:null}})
+
+    expect(j('{a:}')).equal({a:null})
     expect(j('{a:,b:}')).equal({a:null,b:null})
+    expect(j('{a:,b:c:}')).equal({a:null,b:{c:null}})
   })
 
   
   it('value-text', () => {
+
     expect(j('a')).equals('a')
-    //expect(j('a b')).equals('a b')
-    //expect(j(' a b ')).equals('a b')
-    //expect(j('a\tb')).equals('a\tb')
-    //expect(j('\ta\tb\t')).equals('a\tb')
     expect(j('a/b')).equals('a/b')
     expect(j('a#b')).equals('a')
 
@@ -348,10 +352,6 @@ describe('feature', function () {
     expect(j('\\s+')).equals('\\s+')
 
     expect(j('x:a')).equals({x:'a'})
-    //expect(j('x:a b')).equals({x:'a b'})
-    //expect(j('x: a b ')).equals({x:'a b'})
-    //expect(j('x:a\tb')).equals({x:'a\tb'})
-    //expect(j('x:\ta\tb\t')).equals({x:'a\tb'})
     expect(j('x:a/b')).equals({x:'a/b'})
     expect(j('x:a#b')).equals({x:'a'})
     expect(j('x:a//b')).equals({x:'a'})
@@ -360,10 +360,6 @@ describe('feature', function () {
     expect(j('x:\\s+')).equals({x:'\\s+'})
 
     expect(j('[a]')).equals(['a'])
-    //expect(j('[a b]')).equals(['a b'])
-    //expect(j('[ a b ]')).equals(['a b'])
-    //expect(j('[a\tb]')).equals(['a\tb'])
-    //expect(j('[\ta\tb\t]')).equals(['a\tb'])
     expect(j('[a/b]')).equals(['a/b'])
     expect(j('[a#b]')).equals(['a'])
     expect(j('[a//b]')).equals(['a'])
@@ -371,9 +367,11 @@ describe('feature', function () {
     expect(j('[a\\n]')).equals(['a\\n'])
     expect(j('[\\s+]')).equals(['\\s+'])
 
-    let j0 = j.make({text:{hoover:false}})
-    expect(j0('a')).equals('a')
-    expect(j0('a b')).equals(['a','b'])
+    // Force text re to fail (also tests infinite loop protection).
+    let j0 = j.make()
+    j0.internal().config.re.te =
+      new RegExp(j0.internal().config.re.te.source.replace('#','#a'))
+    expect(()=>j0('a')).throws('JsonicError', /unexpected/)
   })
 
   
@@ -693,7 +691,7 @@ describe('feature', function () {
 
     // New rule
     p0.rule('foo',()=>{
-      return new RuleSpec({})
+      return new RuleSpec()
     })
     rval = p0.rule('foo')
     expect(rval.name).equals('foo')

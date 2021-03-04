@@ -64,7 +64,6 @@ declare type Options = {
     };
     text: {
         lex: boolean;
-        lex_value: boolean;
     };
     map: {
         extend: boolean;
