@@ -12,15 +12,23 @@
 // TODO: internal errors - e.g. adding a null rulespec
 
 
-// The main utility function and default export. Just import/require and go!
-type Jsonicer = (src: any, meta?: any, parent_ctx?: any) => any
+// # Conventions
+//
+// ## Token names
+// * '#' prefix: parse token
+// * '@' prefix: lex state
+
+
+// The main top-level utility function. 
+// NOTE: Exported as `Jsonic`; this type is internal and *not* exported.
+type JsonicParse = (src: any, meta?: any, parent_ctx?: any) => any
 
 
 // The core API is exposed as methods on the main utility function.
 type JsonicAPI = {
 
   // Explicit parse method.
-  parse: Jsonicer
+  parse: JsonicParse
 
   // Get and set partial option trees.
   options: Options & ((change_options?: KV) => KV)
@@ -54,7 +62,7 @@ type JsonicAPI = {
 
 // The full exported type.
 type Jsonic =
-  Jsonicer & // A function that parses.
+  JsonicParse & // A function that parses.
   JsonicAPI & // A utility with API methods.
   { [prop: string]: any } // Extensible by plugin decoration.
 
@@ -78,7 +86,13 @@ type Options = {
   comment: {
     lex: boolean
     balance: boolean
-    marker: { [start_marker: string]: string | boolean }
+
+    // NOTE: comment.marker uses value structure to define comment kind.
+    marker: {
+      [start_marker: string]: // Start marker (eg. `/*`).
+      string | // End marker (eg. `*/`).
+      boolean // No end marker (eg. `#`).
+    }
   },
   space: {
     lex: boolean
@@ -93,12 +107,17 @@ type Options = {
   }
   block: {
     lex: boolean
+
+    // NOTE: block.marker definition uses value structure to define start and end.
+    marker: {
+      [start_marker: string]: // Start marker (eg. `'''`).
+      string  // End marker (eg. `'''`).
+    }
   }
   string: {
     lex: boolean
     escape: { [char: string]: string }
     multiline: string
-    block: { [start_marker: string]: string }
     escapedouble: boolean
   }
   text: {
@@ -121,13 +140,20 @@ type Options = {
   }
   error: { [code: string]: string }
   hint: any
+
+  // NOTE: Token definition uses value structure to indicate token kind.
   token: {
     [name: string]:  // Token name.
-    { c: string } |  // Single char token (eg. OB=`{`)
-    { s: string } |  // Token set, comma-sep string (eg. '#SP,#LN')
-    string |         // Multi-char token (eg. SP=` \t`)
-    true             // Non-char token (eg. ZZ)
+    { c: string } |  // Single char token (eg. OB=`{`).
+
+    // Token set, comma-sep string (eg. '#SP,#LN').
+    // NOTE: array not used as util.deep would merge, not override.
+    { s: string } |
+
+    string |         // Multi-char token (eg. SP=` \t`).
+    true             // Non-char token (eg. ZZ).
   }
+
   rule: {
     start: string,
     finish: boolean,
@@ -220,8 +246,8 @@ type Config = {
   },
   cm: { [start_marker: string]: string | boolean } // Comment start markers.
   cmk: string[] // Comment start markers.
-  cmk0: string  // Comment start markers first chars.
-  cmk1: string  // Comment start markers second chars.
+  //cmk0: string  // Comment start markers first chars.
+  //cmk1: string  // Comment start markers second chars.
   cmx: number // Comment start markers max length.
   bmk: string[] // Block start markers.
   bmx: number // Block start markers max length.
@@ -299,6 +325,7 @@ function make_default_options(): Options {
       // Balance multiline comments.
       balance: true,
 
+      // Comment markers.
       marker: {
         '#': true,
         '//': true,
@@ -342,7 +369,12 @@ function make_default_options(): Options {
     block: {
 
       // Recognize blocks in the Lexer.
-      lex: true
+      lex: true,
+
+      // Block markers
+      marker: {
+        '\'\'\'': '\'\'\''
+      },
     },
 
 
@@ -364,10 +396,6 @@ function make_default_options(): Options {
 
       // Multiline quote chars.
       multiline: '`',
-
-      block: {
-        '\'\'\'': '\'\'\''
-      },
 
       // CSV-style double quote escape.
       escapedouble: false,
@@ -875,7 +903,7 @@ class Lexer {
                 token.tin = ST
 
                 state = LML
-                state_param = [bm, options.string.block[bm], null, true]
+                state_param = [bm, options.block.marker[bm], null, true]
                 continue next_char
               }
             }
@@ -2782,8 +2810,8 @@ function build_config(config: Config, options: Options) {
   config.cs.start_commentmarker = {}
   config.cs.cm_single = {}
   config.cmk = []
-  config.cmk0 = MT
-  config.cmk1 = MT
+  //config.cmk0 = MT
+  //config.cmk1 = MT
 
   if (options.comment.lex) {
     config.cm = options.comment.marker
@@ -2802,8 +2830,8 @@ function build_config(config: Config, options: Options) {
       else {
         config.cs.start_commentmarker[k[0]] = k.charCodeAt(0)
         config.cmk.push(k)
-        config.cmk0 += k[0]
-        config.cmk1 += k[1]
+        //config.cmk0 += k[0]
+        //config.cmk1 += k[1]
       }
     })
 
@@ -2832,7 +2860,7 @@ function build_config(config: Config, options: Options) {
   config.bmk = []
 
   // TODO: change to block.markers as per comments, then config.bm
-  let block_markers = Object.keys(options.string.block)
+  let block_markers = Object.keys(options.block.marker)
 
   block_markers.forEach(k => {
     config.cs.start_blockmarker[k[0]] = k.charCodeAt(0)
@@ -2857,7 +2885,7 @@ function build_config(config: Config, options: Options) {
       ),
       {
         ...(options.comment.lex ? config.cm : {}),
-        ...(options.block.lex ? options.string.block : {}),
+        ...(options.block.lex ? options.block.marker : {}),
       }
     )
   }

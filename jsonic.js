@@ -57,6 +57,7 @@ function make_default_options() {
             lex: true,
             // Balance multiline comments.
             balance: true,
+            // Comment markers.
             marker: {
                 '#': true,
                 '//': true,
@@ -86,7 +87,11 @@ function make_default_options() {
         // Multiline blocks.
         block: {
             // Recognize blocks in the Lexer.
-            lex: true
+            lex: true,
+            // Block markers
+            marker: {
+                '\'\'\'': '\'\'\''
+            },
         },
         // String formats.
         string: {
@@ -103,9 +108,6 @@ function make_default_options() {
             },
             // Multiline quote chars.
             multiline: '`',
-            block: {
-                '\'\'\'': '\'\'\''
-            },
             // CSV-style double quote escape.
             escapedouble: false,
         },
@@ -464,7 +466,7 @@ class Lexer {
                             if (marker.startsWith(bm)) {
                                 token.tin = ST;
                                 state = LML;
-                                state_param = [bm, options.string.block[bm], null, true];
+                                state_param = [bm, options.block.marker[bm], null, true];
                                 continue next_char;
                             }
                         }
@@ -1860,8 +1862,8 @@ function build_config(config, options) {
     config.cs.start_commentmarker = {};
     config.cs.cm_single = {};
     config.cmk = [];
-    config.cmk0 = MT;
-    config.cmk1 = MT;
+    //config.cmk0 = MT
+    //config.cmk1 = MT
     if (options.comment.lex) {
         config.cm = options.comment.marker;
         let comment_markers = Object.keys(config.cm);
@@ -1875,8 +1877,8 @@ function build_config(config, options) {
             else {
                 config.cs.start_commentmarker[k[0]] = k.charCodeAt(0);
                 config.cmk.push(k);
-                config.cmk0 += k[0];
-                config.cmk1 += k[1];
+                //config.cmk0 += k[0]
+                //config.cmk1 += k[1]
             }
         });
         config.cmx = longest(comment_markers);
@@ -1892,7 +1894,7 @@ function build_config(config, options) {
     config.cs.start_blockmarker = {};
     config.bmk = [];
     // TODO: change to block.markers as per comments, then config.bm
-    let block_markers = Object.keys(options.string.block);
+    let block_markers = Object.keys(options.block.marker);
     block_markers.forEach(k => {
         config.cs.start_blockmarker[k[0]] = k.charCodeAt(0);
         config.bmk.push(k);
@@ -1904,7 +1906,7 @@ function build_config(config, options) {
             new RegExp(options.number.sep, 'g') : null,
         te: ender_re(charset(options.space.lex && config.m.SP, options.line.lex && config.m.LN, config.sc, options.comment.lex && config.cs.start_commentmarker, options.block.lex && config.cs.start_blockmarker), {
             ...(options.comment.lex ? config.cm : {}),
-            ...(options.block.lex ? options.string.block : {}),
+            ...(options.block.lex ? options.block.marker : {}),
         })
     };
     // Debug options

@@ -1,6 +1,6 @@
-declare type Jsonicer = (src: any, meta?: any, parent_ctx?: any) => any;
+declare type JsonicParse = (src: any, meta?: any, parent_ctx?: any) => any;
 declare type JsonicAPI = {
-    parse: Jsonicer;
+    parse: JsonicParse;
     options: Options & ((change_options?: KV) => KV);
     make: (options?: Options) => Jsonic;
     use: (plugin: Plugin, plugin_options?: KV) => Jsonic;
@@ -14,7 +14,7 @@ declare type JsonicAPI = {
     id: string;
     toString: () => string;
 };
-declare type Jsonic = Jsonicer & // A function that parses.
+declare type Jsonic = JsonicParse & // A function that parses.
 JsonicAPI & // A utility with API methods.
 {
     [prop: string]: any;
@@ -34,7 +34,9 @@ declare type Options = {
         lex: boolean;
         balance: boolean;
         marker: {
-            [start_marker: string]: string | boolean;
+            [start_marker: string]: // Start marker (eg. `/*`).
+            string | // End marker (eg. `*/`).
+            boolean;
         };
     };
     space: {
@@ -50,6 +52,9 @@ declare type Options = {
     };
     block: {
         lex: boolean;
+        marker: {
+            [start_marker: string]: string;
+        };
     };
     string: {
         lex: boolean;
@@ -57,9 +62,6 @@ declare type Options = {
             [char: string]: string;
         };
         multiline: string;
-        block: {
-            [start_marker: string]: string;
-        };
         escapedouble: boolean;
     };
     text: {
@@ -88,11 +90,10 @@ declare type Options = {
         [name: string]: // Token name.
         {
             c: string;
-        } | // Single char token (eg. OB=`{`)
+        } | // Single char token (eg. OB=`{`).
         {
             s: string;
-        } | // Token set, comma-sep string (eg. '#SP,#LN')
-        string | // Multi-char token (eg. SP=` \t`)
+        } | string | // Multi-char token (eg. SP=` \t`).
         true;
     };
     rule: {
@@ -187,8 +188,6 @@ declare type Config = {
         [start_marker: string]: string | boolean;
     };
     cmk: string[];
-    cmk0: string;
-    cmk1: string;
     cmx: number;
     bmk: string[];
     bmx: number;
