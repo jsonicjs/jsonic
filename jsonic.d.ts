@@ -179,10 +179,8 @@ declare type Config = {
         [start_char: string]: boolean;
     };
     vm: KV;
-    str: {
-        esc: {
-            [name: string]: string;
-        };
+    esc: {
+        [name: string]: string;
     };
     cm: {
         [start_marker: string]: string | boolean;
@@ -295,47 +293,47 @@ declare class Parser {
 }
 declare let util: {
     tokenize: typeof tokenize;
-    make_src_format: typeof make_src_format;
+    srcfmt: typeof srcfmt;
     deep: typeof deep;
     clone: typeof clone;
     charset: typeof charset;
     longest: typeof longest;
     marr: typeof marr;
-    clean_stack: typeof clean_stack;
-    make_log: typeof make_log;
-    wrap_bad_lex: typeof wrap_bad_lex;
+    trimstk: typeof trimstk;
+    makelog: typeof makelog;
+    badlex: typeof badlex;
     extract: typeof extract;
     errinject: typeof errinject;
-    make_error_desc: typeof make_error_desc;
-    build_config: typeof build_config;
-    wrap_parser: typeof wrap_parser;
+    errdesc: typeof errdesc;
+    configure: typeof configure;
+    parserwrap: typeof parserwrap;
     regexp: typeof regexp;
     mesc: typeof mesc;
-    ender_re: typeof ender_re;
+    ender: typeof ender;
 };
 declare function make(param_options?: KV, parent?: Jsonic): Jsonic;
-declare function make_src_format(config: Config): (s: any, _?: any) => string;
+declare function srcfmt(config: Config): (s: any, _?: any) => string;
 declare function tokenize<R extends string | Tin, T extends string | Tin>(ref: R, config: Config, jsonic?: Jsonic): T;
 declare function deep(base?: any, ...rest: any): any;
 declare function clone(class_instance: any): any;
 declare function charset(...parts: (string | object | boolean)[]): CharCodeMap;
 declare function longest(strs: string[]): number;
 declare function marr(a: string[], b: string[]): boolean;
-declare function clean_stack(err: Error): void;
-declare function make_log(ctx: Context): ((...rest: any) => undefined) | undefined;
-declare function wrap_bad_lex(lex: Lex, BD: Tin, ctx: Context): any;
+declare function trimstk(err: Error): void;
+declare function makelog(ctx: Context): ((...rest: any) => undefined) | undefined;
+declare function badlex(lex: Lex, BD: Tin, ctx: Context): any;
 declare function mesc(s: string, _?: any): any;
 declare function regexp(flags: string, ...parts: (string | (String & {
     esc?: boolean;
 }))[]): RegExp;
-declare function ender_re(endchars: CharCodeMap, endmarks: KV): RegExp;
+declare function ender(endchars: CharCodeMap, endmarks: KV): RegExp;
 declare function errinject(s: string, code: string, details: KV, token: Token, rule: Rule, ctx: Context): string;
 declare function extract(src: string, errtxt: string, token: Token): string;
-declare function wrap_parser(parser: any): {
+declare function parserwrap(parser: any): {
     start: (lexer: Lexer, src: string, jsonic: Jsonic, meta?: any, parent_ctx?: any) => any;
 };
-declare function make_error_desc(code: string, details: KV, token: Token, rule: Rule, ctx: Context): KV;
-declare function build_config(config: Config, options: Options): void;
+declare function errdesc(code: string, details: KV, token: Token, rule: Rule, ctx: Context): KV;
+declare function configure(config: Config, options: Options): void;
 declare let Jsonic: Jsonic;
 export { Jsonic, Plugin, JsonicError, Tin, Lexer, Parser, Rule, RuleSpec, RuleSpecMap, Token, Context, Meta, LexMatcher, LexMatcherListMap, LexMatcherResult, LexMatcherState, Alt, util, make, };
 export default Jsonic;

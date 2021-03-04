@@ -14,14 +14,20 @@ const it = lab.it
 const expect = Code.expect
 
 const { util, Jsonic } = require('..')
-const deep = util.deep
-const errinject = util.errinject
-const marr = util.marr
-const make_src_format = util.make_src_format
-const wrap_bad_lex = util.wrap_bad_lex
-const regexp = util.regexp
-const mesc = util.mesc
-const ender_re = util.ender_re
+const {
+  deep,
+  errinject,
+  marr,
+  srcfmt,
+  badlex,
+  regexp,
+  mesc,
+  ender,
+  makelog,
+  tokenize,
+  errdesc,
+  trimstk,
+  } = util
 
 
 const I = Util.inspect
@@ -36,28 +42,28 @@ describe('util', () => {
       t: {},
     }
 
-    expect(util.tokenize(null,config)).equals(undefined)
+    expect(tokenize(null,config)).equals(undefined)
     
-    let s1 = util.tokenize('AA', config)
+    let s1 = tokenize('AA', config)
     expect(s1).equals(s+1)
     expect(config.t.AA).equals(s+1)
     expect(config.t[s+1]).equals('AA')
-    expect(util.tokenize('AA', config)).equals(s+1)
-    expect(util.tokenize(s+1, config)).equals('AA')
+    expect(tokenize('AA', config)).equals(s+1)
+    expect(tokenize(s+1, config)).equals('AA')
 
-    let s1a = util.tokenize('AA', config)
+    let s1a = tokenize('AA', config)
     expect(s1a).equals(s+1)
     expect(config.t.AA).equals(s+1)
     expect(config.t[s+1]).equals('AA')
-    expect(util.tokenize('AA', config)).equals(s+1)
-    expect(util.tokenize(s+1, config)).equals('AA')
+    expect(tokenize('AA', config)).equals(s+1)
+    expect(tokenize(s+1, config)).equals('AA')
 
-    let s2 = util.tokenize('BB', config)
+    let s2 = tokenize('BB', config)
     expect(s2).equals(s+2)
     expect(config.t.BB).equals(s+2)
     expect(config.t[s+2]).equals('BB')
-    expect(util.tokenize('BB', config)).equals(s+2)
-    expect(util.tokenize(s+2, config)).equals('BB')
+    expect(tokenize('BB', config)).equals(s+2)
+    expect(tokenize(s+2, config)).equals('BB')
   })
 
   
@@ -166,7 +172,7 @@ describe('util', () => {
     let a = {a:1}
     let b = {b:2}
     let c = {c:3}
-    let x = util.deep({},a,b,c)
+    let x = deep({},a,b,c)
     expect(x).equals({a:1,b:2,c:3})
     expect(a).equals({a:1})
     expect(b).equals({b:2})
@@ -176,25 +182,25 @@ describe('util', () => {
     let ga = ()=>{}; ga.a=1
     let gb = ()=>{}; gb.b=2
     let gc = ()=>{}; gc.c=3
-    let gx = util.deep(()=>{},ga,gb,gc)
+    let gx = deep(()=>{},ga,gb,gc)
     expect(I(gx)).equals('[Function: gc] { c: 3 }') // CORRECT!
     expect(I(ga)).equals('[Function: ga] { a: 1 }')
     expect(I(gb)).equals('[Function: gb] { b: 2 }')
     expect(I(gc)).equals('[Function: gc] { c: 3 }')
 
     let ha = ()=>{}; ha.a=1
-    let hx = util.deep({},ha)
+    let hx = deep({},ha)
     expect(I(hx)).equals('[Function: ha] { a: 1 }') // CORRECT!
     expect(I(ha)).equals('[Function: ha] { a: 1 }')
 
 
     let ka = ()=>{}; ka.a=1
-    let kx = util.deep({},{...ka})
+    let kx = deep({},{...ka})
     expect(I(ka)).equals('[Function: ka] { a: 1 }')
     expect(I(kx)).equals('{ a: 1 }')
 
 
-    expect(I(util.deep({},{f:()=>{},a:1}))).equals('{ f: [Function: f], a: 1 }')
+    expect(I(deep({},{f:()=>{},a:1}))).equals('{ f: [Function: f], a: 1 }')
 
     class C0 {
       constructor(a) {
@@ -208,11 +214,11 @@ describe('util', () => {
     let c0 = new C0(1)
     expect(c0.foo()).equal('FOO1')
     
-    let c00 = util.deep({},c0)
+    let c00 = deep({},c0)
     expect(c0.a).equal(c00.a)
     expect(c00.foo).undefined()
     
-    let c0p = util.deep(Object.create(Object.getPrototypeOf(c0)),c0)
+    let c0p = deep(Object.create(Object.getPrototypeOf(c0)),c0)
     expect(c0.a).equal(c0p.a)
     expect(c0.foo()).equal('FOO1')
     expect(c0p.foo()).equal('FOO1')
@@ -279,7 +285,7 @@ describe('util', () => {
     let a0 = new A(1)
     expect(a0.foo()).equal(1)
 
-    let a00 = util.deep(a0)
+    let a00 = deep(a0)
     a00.x = 2
     expect(a00.foo()).equal(2)
   })
@@ -292,15 +298,15 @@ describe('util', () => {
   })
 
 
-  it('make_src_format', () => {
-    let F = make_src_format({d:{maxlen:4}})
+  it('srcfmt', () => {
+    let F = srcfmt({d:{maxlen:4}})
     expect(F('a')).equals('"a"')
     expect(F('ab')).equals('"ab"')
     expect(F('abc')).equals('"abc...')
   })
 
 
-  it('wrap_bad_lex', () => {
+  it('badlex', () => {
     let ctx = {
       src:()=>'',
       options:{error:{unexpected:'unx'},hint:{unexpected:'unx'}},
@@ -309,14 +315,14 @@ describe('util', () => {
     }
 
     try {
-      wrap_bad_lex(()=>({tin:1}),1,ctx)({})
+      badlex(()=>({tin:1}),1,ctx)({})
     }
     catch(e) {
       expect(e.code).equals('unexpected')
     }
 
     try {
-      wrap_bad_lex(()=>({tin:1,use:{x:1}}),1,ctx)({})
+      badlex(()=>({tin:1,use:{x:1}}),1,ctx)({})
     }
     catch(e) {
       expect(e.code).equals('unexpected')
@@ -340,8 +346,8 @@ describe('util', () => {
   })
 
 
-  it('clean_stack', () => {
-    util.clean_stack({})
+  it('trimstk', () => {
+    trimstk({})
   })
 
 
@@ -352,8 +358,8 @@ describe('util', () => {
   })
 
 
-  it('ender_re', () => {
-    let re0 = ender_re({a:1,b:1},{'cc':1,'dd':2,'de':3})
+  it('ender', () => {
+    let re0 = ender({a:1,b:1},{'cc':1,'dd':2,'de':3})
     // console.log(re0)
 
     expect('xyz'.match(re0)[0]).equal('xyz')
@@ -374,7 +380,7 @@ describe('util', () => {
   })
 
   
-  it('make_log', () => {
+  it('makelog', () => {
     let log = []
     let dir = []
 
@@ -390,9 +396,9 @@ describe('util', () => {
       }
     }
     
-    let g0 = util.make_log({})
-    let g1 = util.make_log({log:1,options:options})
-    let g2 = util.make_log({log:-1,options:options})
+    let g0 = makelog({})
+    let g1 = makelog({log:1,options:options})
+    let g2 = makelog({log:-1,options:options})
 
     expect(g0).undefined()
 
@@ -587,7 +593,7 @@ describe('util', () => {
 
 
 
-  it('make_error_desc', () => {
+  it('errdesc', () => {
     let ctx0 = {
       options: {
         error: {
@@ -608,7 +614,7 @@ describe('util', () => {
       }
     }
     
-    let d0 = util.make_error_desc(
+    let d0 = errdesc(
       'foo',
       {},
       {tin:1},
@@ -620,7 +626,7 @@ describe('util', () => {
     expect(d0.message).includes('foo-code')
     expect(d0.message).includes('foo-hint')
 
-    let d1 = util.make_error_desc(
+    let d1 = errdesc(
       'not-a-code',
       {x:1},
       {tin:1},

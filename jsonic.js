@@ -3,6 +3,9 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.make = exports.util = exports.Alt = exports.RuleSpec = exports.Rule = exports.Parser = exports.Lexer = exports.JsonicError = exports.Jsonic = void 0;
 const MT = ''; // Empty ("MT"!) string.
+const keys = Object.keys;
+const assign = Object.assign;
+const defprop = Object.defineProperty;
 // A bit pedantic, but let's be strict about strings.
 const S = {
     object: 'object',
@@ -35,6 +38,9 @@ const S = {
     close: 'close',
     rule: 'rule',
     stack: 'stack',
+    nUll: 'null',
+    name: 'name',
+    make: 'make',
 };
 function make_default_options() {
     let options = {
@@ -189,7 +195,7 @@ function make_default_options() {
         // Parser rule options.
         rule: {
             // Name of the starting rule.
-            start: 'val',
+            start: S.val,
             // Automatically close remaining structures at EOF.
             finish: true,
             // Multiplier to increase the maximum number of rule occurences.
@@ -225,10 +231,10 @@ class JsonicError extends SyntaxError {
             log: ctx.log,
             use: ctx.use
         });
-        let desc = make_error_desc(code, details, token, rule, errctx);
+        let desc = errdesc(code, details, token, rule, errctx);
         super(desc.message);
-        Object.assign(this, desc);
-        clean_stack(this);
+        assign(this, desc);
+        trimstk(this);
     }
     toJSON() {
         return {
@@ -379,7 +385,6 @@ class Lexer {
                         token.src = token.val;
                         sI = pI;
                         lexlog && lexlog(token);
-                        // console.log('SP', cI, token)
                         return token;
                     }
                     // Newline chars.
@@ -460,7 +465,7 @@ class Lexer {
                         // prefixed with digits.
                     }
                     // Block chars.
-                    if (options.block.lex && config.cs.start_blockmarker[c0]) {
+                    if (options.block.lex && config.cs.bs[c0]) {
                         let marker = src.substring(sI, sI + config.bmx);
                         for (let bm of config.bmk) {
                             if (marker.startsWith(bm)) {
@@ -475,7 +480,7 @@ class Lexer {
                     if (options.string.lex && config.s.ST[c0]) {
                         token.tin = ST;
                         cI++;
-                        let multiline = config.cs.multiline[c0];
+                        let multiline = config.cs.mln[c0];
                         s = [];
                         let cs = MT;
                         for (pI = sI + 1; pI < srclen; pI++) {
@@ -496,7 +501,7 @@ class Lexer {
                             else if ('\\' === cs) {
                                 pI++;
                                 cI++;
-                                let es = config.str.esc[src[pI]];
+                                let es = config.esc[src[pI]];
                                 if (null != es) {
                                     s.push(es);
                                 }
@@ -576,7 +581,7 @@ class Lexer {
                         return token;
                     }
                     // Comment chars.
-                    if (options.comment.lex && config.cs.start_commentmarker[c0]) {
+                    if (options.comment.lex && config.cs.cs[c0]) {
                         // Check for comment markers as single comment char could be
                         // a comment marker prefix (eg. # and ###, / and //, /*).
                         let marker = src.substring(sI, sI + config.cmx);
@@ -690,7 +695,7 @@ class Lexer {
                             uI--;
                         indent_len = sI - uI - 1;
                         if (0 < indent_len) {
-                            indent_str = Object.keys(config.m.SP)[0].repeat(indent_len);
+                            indent_str = keys(config.m.SP)[0].repeat(indent_len);
                         }
                     }
                     // Assume starts with open string
@@ -914,12 +919,10 @@ class RuleSpec {
                 rule.node = bout.node || rule.node;
             }
         }
-        //console.log('BOUT', bout, bout && { ...empty_alt, ...bout.alt })
         // Attempt to match one of the alts.
         let alt = (bout && bout.alt) ? { ...empty_alt, ...bout.alt } :
             0 < alts.length ? this.parse_alts(alts, rule, ctx) :
                 empty_alt;
-        //console.log('ALT', alt)
         // Custom alt handler.
         if (alt.h) {
             alt = alt.h(alt, rule, ctx, next) || alt;
@@ -988,7 +991,6 @@ class RuleSpec {
         let mI = 0;
         let rewind = alt.m.length - (alt.b || 0);
         while (mI++ < rewind) {
-            //console.log('LEX NEXT', mI, rewind, alt)
             ctx.next();
         }
         // Must be last as state is for next process call.
@@ -1238,8 +1240,8 @@ class Parser {
                     { s: [OB], p: S.map, n: { im: 0 } },
                     { s: [OS], p: S.list },
                     // Insert null for initial comma
-                    { s: [CA, CA], b: 2, g: 'null' },
-                    { s: [CA], g: 'null' },
+                    { s: [CA, CA], b: 2, g: S.nUll },
+                    { s: [CA], g: S.nUll },
                     { p: S.val, n: { im: 1 } },
                 ],
                 close: [
@@ -1271,7 +1273,7 @@ class Parser {
                 },
             }
         };
-        this.rsm = Object.keys(rules).reduce((rsm, rn) => {
+        this.rsm = keys(rules).reduce((rsm, rn) => {
             rsm[rn] = new RuleSpec(rules[rn]);
             rsm[rn].name = rn;
             return rsm;
@@ -1320,15 +1322,15 @@ class Parser {
             rs: [],
             rsm: this.rsm,
             log: (meta && meta.log) || undefined,
-            F: make_src_format(config),
+            F: srcfmt(config),
             use: {}
         };
         if (null != parent_ctx) {
             ctx = deep(ctx, parent_ctx);
         }
-        make_log(ctx);
+        makelog(ctx);
         let tn = (pin) => tokenize(pin, this.config);
-        let lex = wrap_bad_lex(lexer.start(ctx), tokenize('#BD', this.config), ctx);
+        let lex = badlex(lexer.start(ctx), tokenize('#BD', this.config), ctx);
         let startspec = this.rsm[options.rule.start];
         // The starting rule is always 'val'
         if (null == startspec) {
@@ -1340,7 +1342,7 @@ class Parser {
         // rule open and close, and for each rule on each char to be
         // virtual (like map, list), and double for safety margin (allows
         // lots of backtracking), and apply a multipler.
-        let maxr = 2 * Object.keys(this.rsm).length * lex.src.length *
+        let maxr = 2 * keys(this.rsm).length * lex.src.length *
             2 * options.rule.maxmul;
         // Lex next token.
         function next() {
@@ -1389,23 +1391,23 @@ class Parser {
 exports.Parser = Parser;
 let util = {
     tokenize,
-    make_src_format,
+    srcfmt,
     deep,
     clone,
     charset,
     longest,
     marr,
-    clean_stack,
-    make_log,
-    wrap_bad_lex,
+    trimstk,
+    makelog,
+    badlex,
     extract,
     errinject,
-    make_error_desc,
-    build_config,
-    wrap_parser,
+    errdesc,
+    configure,
+    parserwrap,
     regexp,
     mesc,
-    ender_re,
+    ender,
 };
 exports.util = util;
 function make(param_options, parent) {
@@ -1420,7 +1422,7 @@ function make(param_options, parent) {
         if (S.string === typeof (src)) {
             let internal = jsonic.internal();
             let parser = options.parser.start ?
-                wrap_parser(options.parser) : internal.parser;
+                parserwrap(options.parser) : internal.parser;
             return parser.start(internal.lexer, src, jsonic, meta, parent_ctx);
         }
         return src;
@@ -1429,11 +1431,11 @@ function make(param_options, parent) {
     // and set them as a funtion call.
     let options = (change_options) => {
         if (null != change_options && S.object === typeof (change_options)) {
-            build_config(config, deep(merged_options, change_options));
+            configure(config, deep(merged_options, change_options));
             for (let k in merged_options) {
                 jsonic.options[k] = merged_options[k];
             }
-            Object.assign(jsonic.token, config.t);
+            assign(jsonic.token, config.t);
         }
         return { ...jsonic.options };
     };
@@ -1469,7 +1471,7 @@ function make(param_options, parent) {
         },
     };
     // Has to be done indirectly as we are in a fuction named `make`.
-    Object.defineProperty(api.make, 'name', { value: 'make' });
+    defprop(api.make, S.name, { value: S.make });
     // Transfer parent properties (preserves plugin decorations, etc).
     if (parent) {
         for (let k in parent) {
@@ -1478,8 +1480,8 @@ function make(param_options, parent) {
         jsonic.parent = parent;
         let parent_internal = parent.internal();
         config = deep({}, parent_internal.config);
-        build_config(config, merged_options);
-        Object.assign(jsonic.token, config.t);
+        configure(config, merged_options);
+        assign(jsonic.token, config.t);
         plugins = [...parent_internal.plugins];
         lexer = parent_internal.lexer.clone(config);
         parser = parent_internal.parser.clone(merged_options, config);
@@ -1489,18 +1491,18 @@ function make(param_options, parent) {
             tI: 1,
             t: {}
         };
-        build_config(config, merged_options);
+        configure(config, merged_options);
         plugins = [];
         lexer = new Lexer(config);
         parser = new Parser(merged_options, config);
         parser.init();
     }
     // Add API methods to the core utility function.
-    Object.assign(jsonic, api);
+    assign(jsonic, api);
     // As with options, provide direct access to tokens.
-    Object.assign(jsonic.token, config.t);
+    assign(jsonic.token, config.t);
     // Hide internals where you can still find them. 
-    Object.defineProperty(jsonic, 'internal', {
+    defprop(jsonic, 'internal', {
         value: function internal() {
             return {
                 lexer,
@@ -1514,7 +1516,7 @@ function make(param_options, parent) {
 }
 exports.make = make;
 // Utilityfunctions
-function make_src_format(config) {
+function srcfmt(config) {
     return (s, _) => null == s ? MT : (_ = JSON.stringify(s),
         _.substring(0, config.d.maxlen) +
             (config.d.maxlen < _.length ? '...' : MT));
@@ -1529,7 +1531,7 @@ function tokenize(ref, config, jsonic) {
         tokenmap[ref] = token;
         tokenmap[ref.substring(1)] = token;
         if (null != jsonic) {
-            Object.assign(jsonic.token, config.t);
+            assign(jsonic.token, config.t);
         }
     }
     return token;
@@ -1573,7 +1575,7 @@ function clone(class_instance) {
 function charset(...parts) {
     return parts
         .filter(p => false !== p)
-        .map((p) => 'object' === typeof (p) ? Object.keys(p).join(MT) : p)
+        .map((p) => 'object' === typeof (p) ? keys(p).join(MT) : p)
         .join(MT)
         .split(MT)
         .reduce((a, c) => (a[c] = c.charCodeAt(0), a), {});
@@ -1586,7 +1588,7 @@ function marr(a, b) {
     return (a.length === b.length && a.reduce((a, s, i) => (a && s === b[i]), true));
 }
 // Remove Jsonic internal lines as spurious for caller.
-function clean_stack(err) {
+function trimstk(err) {
     if (err.stack) {
         err.stack =
             err.stack.split('\n')
@@ -1598,7 +1600,7 @@ function clean_stack(err) {
 // Special debug logging to console (use Jsonic('...', {log:N})).
 // log:N -> console.dir to depth N
 // log:-1 -> console.dir to depth 1, omitting objects (good summary!)
-function make_log(ctx) {
+function makelog(ctx) {
     if ('number' === typeof ctx.log) {
         let exclude_objects = false;
         let logdepth = ctx.log;
@@ -1622,7 +1624,7 @@ function make_log(ctx) {
     }
     return ctx.log;
 }
-function wrap_bad_lex(lex, BD, ctx) {
+function badlex(lex, BD, ctx) {
     let wrap = (rule) => {
         let token = lex(rule);
         if (BD === token.tin) {
@@ -1648,11 +1650,11 @@ function regexp(flags, ...parts) {
         p.replace(/[-\\|\]{}()[^$+*?.!=]/g, '\\$&')
         : p).join(MT), flags);
 }
-function ender_re(endchars, endmarks) {
-    let allendchars = Object.keys(Object.keys(endmarks)
+function ender(endchars, endmarks) {
+    let allendchars = keys(keys(endmarks)
         .reduce((a, em) => (a[em[0]] = 1, a), { ...endchars }))
         .join('');
-    let endmarkprefixes = Object.entries(Object.keys(endmarks)
+    let endmarkprefixes = Object.entries(keys(endmarks)
         .filter(cm => 1 < cm.length)
         .reduce((a, s) => ((a[s[0]] = (a[s[0]]) || []).push(s.substring(1)), a), {}))
         .reduce((a, cme) => (a.push([
@@ -1708,7 +1710,7 @@ function extract(src, errtxt, token) {
         .join('\n');
     return lines;
 }
-function wrap_parser(parser) {
+function parserwrap(parser) {
     return {
         start: function (lexer, src, jsonic, meta, parent_ctx) {
             try {
@@ -1763,7 +1765,7 @@ function wrap_parser(parser) {
                         rsm: {},
                         n: {},
                         log: meta ? meta.log : undefined,
-                        F: make_src_format(jsonic.internal().config),
+                        F: srcfmt(jsonic.internal().config),
                         use: {},
                     });
                 }
@@ -1774,7 +1776,7 @@ function wrap_parser(parser) {
         }
     };
 }
-function make_error_desc(code, details, token, rule, ctx) {
+function errdesc(code, details, token, rule, ctx) {
     token = { ...token };
     let options = ctx.options;
     let meta = ctx.meta;
@@ -1817,8 +1819,8 @@ function make_error_desc(code, details, token, rule, ctx) {
     return desc;
 }
 // Idempotent normalization of options.
-function build_config(config, options) {
-    let token_names = Object.keys(options.token);
+function configure(config, options) {
+    let token_names = keys(options.token);
     // Index of tokens by name.
     token_names.forEach(tn => tokenize(tn, config));
     let single_char_token_names = token_names
@@ -1850,49 +1852,48 @@ function build_config(config, options) {
             .reduce((a, tn) => (a[config.t[tn]] = tn, a), {}),
         a), {});
     config.vm = options.value.src;
-    config.vs = Object.keys(options.value.src)
+    config.vs = keys(options.value.src)
         .reduce((a, s) => (a[s[0]] = true, a), {});
     // Lookup maps for sets of characters.
     config.cs = {};
     // Lookup table for escape chars, indexed by denotating char (e.g. n for \n).
-    config.str = {
-        esc: Object.keys(options.string.escape)
-            .reduce((a, ed) => (a[ed] = options.string.escape[ed], a), {})
-    };
-    config.cs.start_commentmarker = {};
-    config.cs.cm_single = {};
+    config.esc = keys(options.string.escape)
+        .reduce((a, ed) => (a[ed] = options.string.escape[ed], a), {});
+    // comment start markers
+    config.cs.cs = {};
+    // comment markers
     config.cmk = [];
     if (options.comment.lex) {
         config.cm = options.comment.marker;
-        let comment_markers = Object.keys(config.cm);
+        let comment_markers = keys(config.cm);
         comment_markers.forEach(k => {
             // Single char comment marker (eg. `#`)
             if (1 === k.length) {
-                config.cs.start_commentmarker[k] = k.charCodeAt(0);
-                config.cs.cm_single[k] = k.charCodeAt(0);
+                config.cs.cs[k] = k.charCodeAt(0);
             }
             // String comment marker (eg. `//`)
             else {
-                config.cs.start_commentmarker[k[0]] = k.charCodeAt(0);
+                config.cs.cs[k[0]] = k.charCodeAt(0);
                 config.cmk.push(k);
             }
         });
         config.cmx = longest(comment_markers);
     }
-    config.sc = Object.keys(config.sm).join(MT);
+    config.sc = keys(config.sm).join(MT);
     // All the characters that can appear in a number.
     config.cs.dig = charset(options.number.digital);
     // Multiline quotes
-    config.cs.multiline = charset(options.string.multiline);
+    config.cs.mln = charset(options.string.multiline);
     // Enders are char sets that end lexing for a given token.
     // Value enders...end values!
-    config.cs.vend = charset(options.space.lex && config.m.SP, options.line.lex && config.m.LN, config.sc, options.comment.lex && config.cs.start_commentmarker, options.block.lex && config.cs.start_blockmarker);
-    config.cs.start_blockmarker = {};
+    config.cs.vend = charset(options.space.lex && config.m.SP, options.line.lex && config.m.LN, config.sc, options.comment.lex && config.cs.cs, options.block.lex && config.cs.bs);
+    // block start markers
+    config.cs.bs = {};
     config.bmk = [];
     // TODO: change to block.markers as per comments, then config.bm
-    let block_markers = Object.keys(options.block.marker);
+    let block_markers = keys(options.block.marker);
     block_markers.forEach(k => {
-        config.cs.start_blockmarker[k[0]] = k.charCodeAt(0);
+        config.cs.bs[k[0]] = k.charCodeAt(0);
         config.bmk.push(k);
     });
     config.bmx = longest(block_markers);
@@ -1900,7 +1901,7 @@ function build_config(config, options) {
     config.re = {
         ns: null != options.number.sep ?
             new RegExp(options.number.sep, 'g') : null,
-        te: ender_re(charset(options.space.lex && config.m.SP, options.line.lex && config.m.LN, config.sc, options.comment.lex && config.cs.start_commentmarker, options.block.lex && config.cs.start_blockmarker), {
+        te: ender(charset(options.space.lex && config.m.SP, options.line.lex && config.m.LN, config.sc, options.comment.lex && config.cs.cs, options.block.lex && config.cs.bs), {
             ...(options.comment.lex ? config.cm : {}),
             ...(options.block.lex ? options.block.marker : {}),
         })
@@ -1908,7 +1909,7 @@ function build_config(config, options) {
     // Debug options
     config.d = options.debug;
     // Apply any config modifiers (probably from plugins).
-    Object.keys(options.config.modify)
+    keys(options.config.modify)
         .forEach((modifer) => options.config.modify[modifer](config, options));
     // Debug the config - useful for plugin authors.
     if (options.debug.print.config) {
@@ -1940,6 +1941,6 @@ Jsonic.make = make;
 exports.default = Jsonic;
 // Build process uncomments this to enable more natural Node.js requires.
 /* $lab:coverage:off$ */
-//-NODE-MODULE-FIX;('undefined' != typeof(module) && (module.exports = exports.Jsonic));
+;('undefined' != typeof(module) && (module.exports = exports.Jsonic));
 /* $lab:coverage:on$ */
 //# sourceMappingURL=jsonic.js.map

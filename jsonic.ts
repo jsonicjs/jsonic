@@ -1,8 +1,8 @@
 /* Copyright (c) 2013-2021 Richard Rodger, MIT License */
 
 // TODO: config.cs names - tersify and make exact
-// TODO: rule active fals - tersify
 // TODO: make hoover a plugin
+// TODO: console colors in browser?
 // post release: 
 // TODO: test use of constructed regexps - perf?
 // TODO: complete rule tagging groups g:imp etc.
@@ -241,9 +241,7 @@ type Config = {
   ts: { [tokenset_name: string]: Tin[] } // Named token sets.
   vs: { [start_char: string]: boolean } // Literal value start characters.
   vm: KV, // Map value source to actual value.
-  str: {
-    esc: { [name: string]: string } // String escape characters.
-  },
+  esc: { [name: string]: string } // String escape characters.
   cm: { [start_marker: string]: string | boolean } // Comment start markers.
   cmk: string[] // Comment start markers.
   cmx: number // Comment start markers max length.
@@ -255,6 +253,9 @@ type Config = {
 }
 
 const MT = '' // Empty ("MT"!) string.
+const keys = Object.keys
+const assign = Object.assign
+const defprop = Object.defineProperty
 
 // A bit pedantic, but let's be strict about strings.
 const S = {
@@ -288,6 +289,9 @@ const S = {
   close: 'close',
   rule: 'rule',
   stack: 'stack',
+  nUll: 'null',
+  name: 'name',
+  make: 'make',
 }
 
 
@@ -504,7 +508,7 @@ function make_default_options(): Options {
     rule: {
 
       // Name of the starting rule.
-      start: 'val',
+      start: S.val,
 
       // Automatically close remaining structures at EOF.
       finish: true,
@@ -556,10 +560,10 @@ class JsonicError extends SyntaxError {
       log: ctx.log,
       use: ctx.use
     })
-    let desc = make_error_desc(code, details, token, rule, errctx)
+    let desc = errdesc(code, details, token, rule, errctx)
     super(desc.message)
-    Object.assign(this, desc)
-    clean_stack(this)
+    assign(this, desc)
+    trimstk(this)
   }
 
   toJSON() {
@@ -787,8 +791,6 @@ class Lexer {
             sI = pI
 
             lexlog && lexlog(token)
-
-            // console.log('SP', cI, token)
             return token
           }
 
@@ -893,7 +895,7 @@ class Lexer {
 
 
           // Block chars.
-          if (options.block.lex && config.cs.start_blockmarker[c0]) {
+          if (options.block.lex && config.cs.bs[c0]) {
             let marker = src.substring(sI, sI + config.bmx)
 
             for (let bm of config.bmk) {
@@ -913,7 +915,7 @@ class Lexer {
             token.tin = ST
             cI++
 
-            let multiline = config.cs.multiline[c0]
+            let multiline = config.cs.mln[c0]
 
             s = []
             let cs = MT
@@ -940,7 +942,7 @@ class Lexer {
                 pI++
                 cI++
 
-                let es = config.str.esc[src[pI]]
+                let es = config.esc[src[pI]]
                 if (null != es) {
                   s.push(es)
                 }
@@ -1044,7 +1046,7 @@ class Lexer {
 
 
           // Comment chars.
-          if (options.comment.lex && config.cs.start_commentmarker[c0]) {
+          if (options.comment.lex && config.cs.cs[c0]) {
 
             // Check for comment markers as single comment char could be
             // a comment marker prefix (eg. # and ###, / and //, /*).
@@ -1192,7 +1194,7 @@ class Lexer {
 
             indent_len = sI - uI - 1
             if (0 < indent_len) {
-              indent_str = Object.keys(config.m.SP)[0].repeat(indent_len)
+              indent_str = keys(config.m.SP)[0].repeat(indent_len)
             }
           }
 
@@ -1527,14 +1529,10 @@ class RuleSpec {
       }
     }
 
-    //console.log('BOUT', bout, bout && { ...empty_alt, ...bout.alt })
-
     // Attempt to match one of the alts.
     let alt: Alt = (bout && bout.alt) ? { ...empty_alt, ...bout.alt } :
       0 < alts.length ? this.parse_alts(alts, rule, ctx) :
         empty_alt
-
-    //console.log('ALT', alt)
 
     // Custom alt handler.
     if (alt.h) {
@@ -1624,7 +1622,6 @@ class RuleSpec {
     let mI = 0
     let rewind = alt.m.length - (alt.b || 0)
     while (mI++ < rewind) {
-      //console.log('LEX NEXT', mI, rewind, alt)
       ctx.next()
     }
 
@@ -1947,8 +1944,8 @@ class Parser {
           { s: [OS], p: S.list },
 
           // Insert null for initial comma
-          { s: [CA, CA], b: 2, g: 'null' },
-          { s: [CA], g: 'null' },
+          { s: [CA, CA], b: 2, g: S.nUll },
+          { s: [CA], g: S.nUll },
 
           { p: S.val, n: { im: 1 } },
         ],
@@ -1987,7 +1984,7 @@ class Parser {
       }
     }
 
-    this.rsm = Object.keys(rules).reduce((rsm: any, rn: string) => {
+    this.rsm = keys(rules).reduce((rsm: any, rn: string) => {
       rsm[rn] = new RuleSpec(rules[rn])
       rsm[rn].name = rn
       return rsm
@@ -2053,7 +2050,7 @@ class Parser {
       rs: [],
       rsm: this.rsm,
       log: (meta && meta.log) || undefined,
-      F: make_src_format(config),
+      F: srcfmt(config),
       use: {}
     }
 
@@ -2061,11 +2058,11 @@ class Parser {
       ctx = deep(ctx, parent_ctx)
     }
 
-    make_log(ctx)
+    makelog(ctx)
 
     let tn = (pin: Tin): string => tokenize(pin, this.config)
     let lex: Lex =
-      wrap_bad_lex(lexer.start(ctx), tokenize('#BD', this.config), ctx)
+      badlex(lexer.start(ctx), tokenize('#BD', this.config), ctx)
     let startspec = this.rsm[options.rule.start]
 
     // The starting rule is always 'val'
@@ -2081,7 +2078,7 @@ class Parser {
     // rule open and close, and for each rule on each char to be
     // virtual (like map, list), and double for safety margin (allows
     // lots of backtracking), and apply a multipler.
-    let maxr = 2 * Object.keys(this.rsm).length * lex.src.length *
+    let maxr = 2 * keys(this.rsm).length * lex.src.length *
       2 * options.rule.maxmul
 
     // Lex next token.
@@ -2150,23 +2147,23 @@ class Parser {
 
 let util = {
   tokenize,
-  make_src_format,
+  srcfmt,
   deep,
   clone,
   charset,
   longest,
   marr,
-  clean_stack,
-  make_log,
-  wrap_bad_lex,
+  trimstk,
+  makelog,
+  badlex,
   extract,
   errinject,
-  make_error_desc,
-  build_config,
-  wrap_parser,
+  errdesc,
+  configure,
+  parserwrap,
   regexp,
   mesc,
-  ender_re,
+  ender,
 }
 
 
@@ -2191,7 +2188,7 @@ function make(param_options?: KV, parent?: Jsonic): Jsonic {
       if (S.string === typeof (src)) {
         let internal = jsonic.internal()
         let parser = options.parser.start ?
-          wrap_parser(options.parser) : internal.parser
+          parserwrap(options.parser) : internal.parser
         return parser.start(internal.lexer, src, jsonic, meta, parent_ctx)
       }
 
@@ -2203,12 +2200,12 @@ function make(param_options?: KV, parent?: Jsonic): Jsonic {
   // and set them as a funtion call.
   let options: any = (change_options?: KV) => {
     if (null != change_options && S.object === typeof (change_options)) {
-      build_config(config,
+      configure(config,
         deep(merged_options, change_options))
       for (let k in merged_options) {
         jsonic.options[k] = merged_options[k]
       }
-      Object.assign(jsonic.token, config.t)
+      assign(jsonic.token, config.t)
     }
     return { ...jsonic.options }
   }
@@ -2259,7 +2256,7 @@ function make(param_options?: KV, parent?: Jsonic): Jsonic {
 
 
   // Has to be done indirectly as we are in a fuction named `make`.
-  Object.defineProperty(api.make, 'name', { value: 'make' })
+  defprop(api.make, S.name, { value: S.make })
 
 
   // Transfer parent properties (preserves plugin decorations, etc).
@@ -2273,8 +2270,8 @@ function make(param_options?: KV, parent?: Jsonic): Jsonic {
     let parent_internal = parent.internal()
     config = deep({}, parent_internal.config)
 
-    build_config(config, merged_options)
-    Object.assign(jsonic.token, config.t)
+    configure(config, merged_options)
+    assign(jsonic.token, config.t)
 
     plugins = [...parent_internal.plugins]
 
@@ -2287,7 +2284,7 @@ function make(param_options?: KV, parent?: Jsonic): Jsonic {
       t: {}
     } as Config)
 
-    build_config(config, merged_options)
+    configure(config, merged_options)
 
     plugins = []
 
@@ -2298,15 +2295,15 @@ function make(param_options?: KV, parent?: Jsonic): Jsonic {
 
 
   // Add API methods to the core utility function.
-  Object.assign(jsonic, api)
+  assign(jsonic, api)
 
 
   // As with options, provide direct access to tokens.
-  Object.assign(jsonic.token, config.t)
+  assign(jsonic.token, config.t)
 
 
   // Hide internals where you can still find them. 
-  Object.defineProperty(jsonic, 'internal', {
+  defprop(jsonic, 'internal', {
     value: function internal() {
       return {
         lexer,
@@ -2325,7 +2322,7 @@ function make(param_options?: KV, parent?: Jsonic): Jsonic {
 
 // Utilityfunctions
 
-function make_src_format(config: Config) {
+function srcfmt(config: Config) {
   return (s: any, _?: any) =>
     null == s ? MT : (_ = JSON.stringify(s),
       _.substring(0, config.d.maxlen) +
@@ -2349,7 +2346,7 @@ function tokenize<R extends string | Tin, T extends string | Tin>(
     tokenmap[(ref as string).substring(1)] = token
 
     if (null != jsonic) {
-      Object.assign(jsonic.token, config.t)
+      assign(jsonic.token, config.t)
     }
   }
 
@@ -2402,7 +2399,7 @@ function clone(class_instance: any) {
 function charset(...parts: (string | object | boolean)[]): CharCodeMap {
   return parts
     .filter(p => false !== p)
-    .map((p: any) => 'object' === typeof (p) ? Object.keys(p).join(MT) : p)
+    .map((p: any) => 'object' === typeof (p) ? keys(p).join(MT) : p)
     .join(MT)
     .split(MT)
     .reduce((a: any, c: string) => (a[c] = c.charCodeAt(0), a), {})
@@ -2421,7 +2418,7 @@ function marr(a: string[], b: string[]) {
 
 
 // Remove Jsonic internal lines as spurious for caller.
-function clean_stack(err: Error) {
+function trimstk(err: Error) {
   if (err.stack) {
     err.stack =
       err.stack.split('\n')
@@ -2435,7 +2432,7 @@ function clean_stack(err: Error) {
 // Special debug logging to console (use Jsonic('...', {log:N})).
 // log:N -> console.dir to depth N
 // log:-1 -> console.dir to depth 1, omitting objects (good summary!)
-function make_log(ctx: Context) {
+function makelog(ctx: Context) {
   if ('number' === typeof ctx.log) {
     let exclude_objects = false
     let logdepth = (ctx.log as number)
@@ -2461,7 +2458,7 @@ function make_log(ctx: Context) {
 }
 
 
-function wrap_bad_lex(lex: Lex, BD: Tin, ctx: Context) {
+function badlex(lex: Lex, BD: Tin, ctx: Context) {
   let wrap: any = (rule: Rule) => {
     let token = lex(rule)
 
@@ -2506,16 +2503,16 @@ function regexp(
 
 
 
-function ender_re(endchars: CharCodeMap, endmarks: KV) {
+function ender(endchars: CharCodeMap, endmarks: KV) {
   let allendchars =
-    Object.keys(
-      Object.keys(endmarks)
+    keys(
+      keys(endmarks)
         .reduce((a: any, em: string) => (a[em[0]] = 1, a), { ...endchars }))
       .join('')
 
   let endmarkprefixes =
     Object.entries(
-      Object.keys(endmarks)
+      keys(endmarks)
         .filter(cm => 1 < cm.length)
         .reduce((a: any, s: string) =>
           ((a[s[0]] = (a[s[0]]) || []).push(s.substring(1)), a), {}))
@@ -2602,7 +2599,7 @@ function extract(src: string, errtxt: string, token: Token) {
 }
 
 
-function wrap_parser(parser: any) {
+function parserwrap(parser: any) {
   return {
     start: function(
       lexer: Lexer,
@@ -2668,7 +2665,7 @@ function wrap_parser(parser: any) {
               rsm: {},
               n: {},
               log: meta ? meta.log : undefined,
-              F: make_src_format(jsonic.internal().config),
+              F: srcfmt(jsonic.internal().config),
               use: {},
             } as Context,
           )
@@ -2682,7 +2679,7 @@ function wrap_parser(parser: any) {
 }
 
 
-function make_error_desc(
+function errdesc(
   code: string,
   details: KV,
   token: Token,
@@ -2744,8 +2741,8 @@ function make_error_desc(
 
 
 // Idempotent normalization of options.
-function build_config(config: Config, options: Options) {
-  let token_names = Object.keys(options.token)
+function configure(config: Config, options: Options) {
+  let token_names = keys(options.token)
 
   // Index of tokens by name.
   token_names.forEach(tn => tokenize(tn, config))
@@ -2790,7 +2787,7 @@ function build_config(config: Config, options: Options) {
 
 
   config.vm = options.value.src
-  config.vs = Object.keys(options.value.src)
+  config.vs = keys(options.value.src)
     .reduce((a: any, s: string) => (a[s[0]] = true, a), {})
 
 
@@ -2798,32 +2795,31 @@ function build_config(config: Config, options: Options) {
   config.cs = {}
 
   // Lookup table for escape chars, indexed by denotating char (e.g. n for \n).
-  config.str = {
-    esc: Object.keys(options.string.escape)
-      .reduce((a: any, ed: string) =>
-        (a[ed] = options.string.escape[ed], a), {})
-  }
+  config.esc = keys(options.string.escape)
+    .reduce((a: any, ed: string) =>
+      (a[ed] = options.string.escape[ed], a), {})
 
-  config.cs.start_commentmarker = {}
-  config.cs.cm_single = {}
+  // comment start markers
+  config.cs.cs = {}
+
+  // comment markers
   config.cmk = []
 
   if (options.comment.lex) {
     config.cm = options.comment.marker
 
-    let comment_markers = Object.keys(config.cm)
+    let comment_markers = keys(config.cm)
 
     comment_markers.forEach(k => {
 
       // Single char comment marker (eg. `#`)
       if (1 === k.length) {
-        config.cs.start_commentmarker[k] = k.charCodeAt(0)
-        config.cs.cm_single[k] = k.charCodeAt(0)
+        config.cs.cs[k] = k.charCodeAt(0)
       }
 
       // String comment marker (eg. `//`)
       else {
-        config.cs.start_commentmarker[k[0]] = k.charCodeAt(0)
+        config.cs.cs[k[0]] = k.charCodeAt(0)
         config.cmk.push(k)
       }
     })
@@ -2831,14 +2827,14 @@ function build_config(config: Config, options: Options) {
     config.cmx = longest(comment_markers)
   }
 
-  config.sc = Object.keys(config.sm).join(MT)
+  config.sc = keys(config.sm).join(MT)
 
 
   // All the characters that can appear in a number.
   config.cs.dig = charset(options.number.digital)
 
   // Multiline quotes
-  config.cs.multiline = charset(options.string.multiline)
+  config.cs.mln = charset(options.string.multiline)
 
   // Enders are char sets that end lexing for a given token.
   // Value enders...end values!
@@ -2846,18 +2842,20 @@ function build_config(config: Config, options: Options) {
     options.space.lex && config.m.SP,
     options.line.lex && config.m.LN,
     config.sc,
-    options.comment.lex && config.cs.start_commentmarker,
-    options.block.lex && config.cs.start_blockmarker,
+    options.comment.lex && config.cs.cs,
+    options.block.lex && config.cs.bs,
   )
 
-  config.cs.start_blockmarker = {}
+  // block start markers
+  config.cs.bs = {}
+
   config.bmk = []
 
   // TODO: change to block.markers as per comments, then config.bm
-  let block_markers = Object.keys(options.block.marker)
+  let block_markers = keys(options.block.marker)
 
   block_markers.forEach(k => {
-    config.cs.start_blockmarker[k[0]] = k.charCodeAt(0)
+    config.cs.bs[k[0]] = k.charCodeAt(0)
     config.bmk.push(k)
   })
 
@@ -2869,13 +2867,13 @@ function build_config(config: Config, options: Options) {
     ns: null != options.number.sep ?
       new RegExp(options.number.sep, 'g') : null,
 
-    te: ender_re(
+    te: ender(
       charset(
         options.space.lex && config.m.SP,
         options.line.lex && config.m.LN,
         config.sc,
-        options.comment.lex && config.cs.start_commentmarker,
-        options.block.lex && config.cs.start_blockmarker
+        options.comment.lex && config.cs.cs,
+        options.block.lex && config.cs.bs
       ),
       {
         ...(options.comment.lex ? config.cm : {}),
@@ -2890,7 +2888,7 @@ function build_config(config: Config, options: Options) {
 
 
   // Apply any config modifiers (probably from plugins).
-  Object.keys(options.config.modify)
+  keys(options.config.modify)
     .forEach((modifer: string) =>
       options.config.modify[modifer](config, options))
 
@@ -2906,7 +2904,6 @@ function build_config(config: Config, options: Options) {
 // Generate hint text lookup.
 // NOTE: generated and inserted by hint.js
 function make_hint(d = (t: any, r = 'replace') => t[r](/[A-Z]/g, (m: any) => ' ' + m.toLowerCase())[r](/[~%][a-z]/g, (m: any) => ('~' == m[0] ? ' ' : '') + m[1].toUpperCase()), s = '~sinceTheErrorIsUnknown,ThisIsProbablyABugInsideJsonic\nitself,OrAPlugin.~pleaseConsiderPostingAGithubIssue -Thanks!|~theCharacter(s) $srcWereNotExpectedAtThisPointAsTheyDoNot\nmatchTheExpectedSyntax,EvenUnderTheRelaxedJsonicRules.~ifIt\nisNotObviouslyWrong,TheActualSyntaxErrorMayBeElsewhere.~try\ncommentingOutLargerAreasAroundThisPointUntilYouGetNoErrors,\nthenRemoveTheCommentsInSmallSectionsUntilYouFindThe\noffendingSyntax.~n%o%t%e:~alsoCheckIfAnyPluginsYouAreUsing\nexpectDifferentSyntaxInThisCase.|~theEscapeSequence $srcDoesNotEncodeAValidUnicodeCodePoint\nnumber.~youMayNeedToValidateYourStringDataManuallyUsingTest\ncodeToSeeHow~javaScriptWillInterpretIt.~alsoConsiderThatYour\ndataMayHaveBecomeCorrupted,OrTheEscapeSequenceHasNotBeen\ngeneratedCorrectly.|~theEscapeSequence $srcDoesNotEncodeAValid~a%s%c%i%iCharacter.~you\nmayNeedToValidateYourStringDataManuallyUsingTestCodeToSee\nhow~javaScriptWillInterpretIt.~alsoConsiderThatYourDataMay\nhaveBecomeCorrupted,OrTheEscapeSequenceHasNotBeenGenerated\ncorrectly.|~stringValuesCannotContainUnprintableCharacters (characterCodes\nbelow 32).~theCharacter $srcIsUnprintable.~youMayNeedToRemove\ntheseCharactersFromYourSourceData.~alsoCheckThatItHasNot\nbecomeCorrupted.|~stringValuesCannotBeMissingTheirFinalQuoteCharacter,Which\nshouldMatchTheirInitialQuoteCharacter.'.split('|')): any { return 'unknown|unexpected|invalid_unicode|invalid_ascii|unprintable|unterminated'.split('|').reduce((a: any, n, i) => (a[n] = d(s[i]), a), {}) }
-
 
 
 let Jsonic: Jsonic = make()
