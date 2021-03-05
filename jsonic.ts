@@ -1,7 +1,7 @@
 /* Copyright (c) 2013-2021 Richard Rodger, MIT License */
 
-// TODO: config.cs names - tersify and make exact
 // TODO: make hoover a plugin
+// TODO: lex matcher should be able to explicitly disable rest of state logic
 // TODO: console colors in browser?
 // post release: 
 // TODO: test use of constructed regexps - perf?
@@ -10,34 +10,14 @@
 // TODO: data file to diff exhaust changes
 // TODO: cli - less ambiguous merging at top level
 // TODO: internal errors - e.g. adding a null rulespec
-
+// TODO: replace parse_alt loop with lookups
+// TODO: extend lexer to handle multi-char tokens (e.g `->`)
 
 // # Conventions
 //
 // ## Token names
 // * '#' prefix: parse token
 // * '@' prefix: lex state
-
-
-
-const TIME = {
-  p: BigInt(0),
-  x: BigInt(0),
-  bct: BigInt(0),
-  act: BigInt(0),
-  pat: BigInt(0),
-  at: BigInt(0),
-  pre: BigInt(0),
-  ww: BigInt(0),
-  bis: BigInt(0),
-
-  pata: BigInt(0),
-  patf: BigInt(0),
-  patc: BigInt(0),
-  pate: BigInt(0),
-
-  pin: BigInt(0),
-}
 
 
 // The main top-level utility function. 
@@ -255,8 +235,8 @@ type CharCodeMap = { [char: string]: number }
 type Config = {
   tI: number // Token identifier index.
   t: any // Token index map.
-  s: { [token_name: string]: TinMap } // Token start character .
-  m: { [token_name: string]: TinMap } // multi-character Tokens.
+  // s: { [token_name: string]: TinMap } // Token start character .
+  m: { [token_name: string]: TinMap } // Mutually exclusive character sets.
   cs: { [charset_name: string]: CharCodeMap } // Character set.
   sm: { [char: string]: Tin } // Single character token index.
   ts: { [tokenset_name: string]: Tin[] } // Named token sets.
@@ -798,7 +778,8 @@ class Lexer {
           }
 
           // Space chars.
-          if (options.space.lex && config.s.SP[c0]) {
+          //if (options.space.lex && config.s.SP[c0]) {
+          if (options.space.lex && config.m.SP[c0]) {
             token.tin = SP
             cI++
             pI = sI + 1
@@ -817,7 +798,8 @@ class Lexer {
 
 
           // Newline chars.
-          if (options.line.lex && config.s.LN[c0]) {
+          //if (options.line.lex && config.s.LN[c0]) {
+          if (options.line.lex && config.m.LN[c0]) {
             token.tin = LN
             pI = sI
             cI = 0
@@ -853,7 +835,8 @@ class Lexer {
 
 
           // Number chars.
-          if (options.number.lex && config.s.NR[c0]) {
+          //if (options.number.lex && config.s.NR[c0]) {
+          if (options.number.lex && config.m.NR[c0]) {
             token.tin = NR
             pI = sI
 
@@ -932,7 +915,8 @@ class Lexer {
 
 
           // String chars.
-          if (options.string.lex && config.s.ST[c0]) {
+          //if (options.string.lex && config.s.ST[c0]) {
+          if (options.string.lex && config.m.ST[c0]) {
             token.tin = ST
             cI++
 
@@ -1029,7 +1013,8 @@ class Lexer {
                 cs = src[pI]
 
                 if (cc < 32) {
-                  if (multiline && config.s.LN[cs]) {
+                  if (multiline && config.m.LN[cs]) {
+                    //if (multiline && config.s.LN[cs]) {
                     if (cs === options.line.row) {
                       rI++
                       cI = 0
@@ -1450,9 +1435,7 @@ class Rule {
   }
 
   process(ctx: Context): Rule {
-    //let s = process.hrtime.bigint()
     let rule = this.spec.process(this, ctx, this.state)
-    //TIME.p += (process.hrtime.bigint() - s)
     return rule
   }
 }
@@ -1524,8 +1507,6 @@ class RuleSpec {
 
 
   process(rule: Rule, ctx: Context, state: RuleState) {
-    //let pin = process.hrtime.bigint()
-
     let why = MT
     let F = ctx.F
 
@@ -1536,11 +1517,6 @@ class RuleSpec {
 
     // Match alternates for current state.
     let alts = (is_open ? def.open : def.close) as Alt[]
-
-    //TIME.pre += (process.hrtime.bigint() - pin)
-
-
-    //let bct = process.hrtime.bigint()
 
     // Handle "before" call.
     let before = is_open ?
@@ -1560,27 +1536,10 @@ class RuleSpec {
       }
     }
 
-    //TIME.bct += (process.hrtime.bigint() - bct)
-
-
-
-    // TIME 15
-
-
-    //let pat = process.hrtime.bigint()
-
     // Attempt to match one of the alts.
     let alt: Alt = (bout && bout.alt) ? { ...empty_alt, ...bout.alt } :
       0 < alts.length ? this.parse_alts(alts, rule, ctx) :
         empty_alt
-
-    //TIME.pat += (process.hrtime.bigint() - pat)
-
-
-    // TIME 51
-    //TIME.bis += (process.hrtime.bigint() - pin)
-
-    //let at = process.hrtime.bigint()
 
     // Custom alt handler.
     if (alt.h) {
@@ -1638,14 +1597,6 @@ class RuleSpec {
       why += 'Z'
     }
 
-    //TIME.at += (process.hrtime.bigint() - at)
-
-
-    // TIME 56
-
-
-    //let act = process.hrtime.bigint()
-
     // Handle "after" call.
     let after = is_open ?
       (rule.ao && def.after_open) :
@@ -1664,11 +1615,6 @@ class RuleSpec {
       }
     }
 
-    //TIME.act += (process.hrtime.bigint() - act)
-
-
-    //let ww = process.hrtime.bigint()
-
     next.why = why
 
     ctx.log && ctx.log(
@@ -1679,14 +1625,6 @@ class RuleSpec {
       F(rule.node)
     )
 
-    //TIME.ww += (process.hrtime.bigint() - ww)
-
-
-    // TIME 63
-
-
-    //let s = process.hrtime.bigint()
-
     // Lex next tokens (up to backtrack).
     let mI = 0
     let rewind = alt.m.length - (alt.b || 0)
@@ -1694,16 +1632,10 @@ class RuleSpec {
       ctx.next()
     }
 
-    //TIME.x += (process.hrtime.bigint() - s)
-
-
-
     // Must be last as state is for next process call.
     if (RuleState.open === rule.state) {
       rule.state = RuleState.close
     }
-
-    //TIME.pin += (process.hrtime.bigint() - pin)
 
     return next
   }
@@ -1726,16 +1658,12 @@ class RuleSpec {
     let t = ctx.config.t
     let cond
 
-    //let patf = process.hrtime.bigint()
-
+    // TODO: replace with lookup map
     let len = alts.length
-    //for (altI = 0; altI < alts.length; altI++) {
     for (altI = 0; altI < len; altI++) {
 
       cond = false
       alt = alts[altI]
-
-      //let pata = process.hrtime.bigint()
 
       // No tokens to match.
       if (null == alt.s || 0 === alt.s.length) {
@@ -1754,14 +1682,6 @@ class RuleSpec {
         }
       }
 
-      //TIME.pata += (process.hrtime.bigint() - pata)
-
-
-
-      //let patc = process.hrtime.bigint()
-
-      //alt = alts[altI]
-
       // Optional custom condition
       cond = cond && (alt.c ? alt.c(alt, rule, ctx) : true)
 
@@ -1777,42 +1697,6 @@ class RuleSpec {
             .map(r => r.name)
             .reverse()))
 
-      //TIME.patc += (process.hrtime.bigint() - patc)
-
-      /*
-       (cond) {
-      let pate = process.hrtime.bigint()
-      
-      //out.e = alt.e && alt.e(alt, rule, ctx) || undefined
-      
-      TIME.pate += (process.hrtime.bigint() - pate)
-      
-      
-      
-      let pata = process.hrtime.bigint()
-      
-      // No tokens to match.
-      if (null == alt.s || 0 === alt.s.length) {
-        break
-      }
-      
-      // Match 1 or 2 tokens in sequence.
-      else if (alt.s[0] === ctx.t0.tin || alt.s[0] === t.AA) {
-        if (1 === alt.s.length) {
-          out.m = [ctx.t0]
-          break
-        }
-        else if (alt.s[1] === ctx.t1.tin || alt.s[1] === t.AA) {
-          out.m = [ctx.t0, ctx.t1]
-          break
-        }
-      }
-      
-      TIME.pata += (process.hrtime.bigint() - pata)
-      }
-      
-      */
-
       if (cond) {
         break
       }
@@ -1820,8 +1704,6 @@ class RuleSpec {
         alt = null
       }
     }
-
-    //TIME.patf += (process.hrtime.bigint() - patf)
 
     if (null == alt && t.ZZ !== ctx.t0.tin) {
       out.e = ctx.t0
@@ -2297,7 +2179,6 @@ let util = {
   regexp,
   mesc,
   ender,
-  TIME,
 }
 
 
@@ -2891,6 +2772,8 @@ function configure(config: Config, options: Options) {
   let multi_char_token_names = token_names
     .filter(tn => S.string === typeof options.token[tn])
 
+  /*
+  // TODO: indentical to config.m? 
   // Char code arrays for lookup by char code.
   config.s = multi_char_token_names
     .reduce((a: any, tn) =>
@@ -2899,6 +2782,7 @@ function configure(config: Config, options: Options) {
         .split(MT)
         .reduce((pm, c) => (pm[c] = config.t[tn], pm), ({} as TinMap)),
       a), {})
+  */
 
   config.m = multi_char_token_names
     .reduce((a: any, tn) =>
@@ -3084,7 +2968,6 @@ export {
   Alt,
   util,
   make,
-  TIME
 }
 
 export default Jsonic

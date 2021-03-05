@@ -330,7 +330,7 @@ aa\tbb
       token: {
         '#LN': ';'
       }
-    }).use(Hoover)
+    })
     
     expect(k2(`a\tb;1\t2;11\t22;aa\tbb;"a x"\t"b\\tx";"A,A"\t"B""B";`))
       .equal(rec0)
@@ -696,8 +696,8 @@ aa\tbb
     let j = Jsonic.make().use(Hoover)
     expect(Jsonic('a b')).equals(['a','b'])
 
-    /*
     expect(j('a b')).equals('a b')
+    expect(j('1 b')).equals('1 b')
     expect(j(' a b ')).equals('a b')
     expect(j('a\tb')).equals('a\tb')
     expect(j('\ta\tb\t')).equals('a\tb')
@@ -711,7 +711,7 @@ aa\tbb
     expect(j('[[a b], [c d ]]')).equals([['a b'], ['c d']])
     expect(j(' x , y z ')).equal(['x', 'y z'])
     expect(j('a: x , b: y z ')).equal({a:'x', b:'y z'})
-        expect(j('{x y:1}')).equal({'x y':1})
+    expect(j('{x y:1}')).equal({'x y':1})
     expect(j('x y:1')).equal({'x y':1})
     expect(j('[{x y:1}]')).equal([{'x y':1}])
     expect(j('q w')).equal('q w')
@@ -728,13 +728,21 @@ aa\tbb
     expect(j('p:[ q w , 1 ]')).equal({p:['q w', 1]})
     expect(j('p:[ q w , 1 ]')).equal({p:['q w', 1]})
 
-    
+    // Jsonic not broken
     expect(Jsonic('a b')).equals(['a','b'])
     expect(()=>Jsonic('a: b c')).throws('JsonicError',/unexpected/)
     expect(()=>Jsonic('{a: {b: c d}}')).throws('JsonicError',/unexpected/)
     expect(Jsonic(' x , y z ')).equal(['x', 'y', 'z'])
     expect(()=>Jsonic('a: x , b: y z ')).throws('JsonicError',/unexpected/)
-    */
+
+
+    // coverage
+    let j1 = j.make({
+      line: { lex: false },
+      comment: { lex: false },
+      block: { lex: false },
+    }).use(Hoover)
+    expect(j1('a:x y')).equal({a:'x y'})
   })
 })
 

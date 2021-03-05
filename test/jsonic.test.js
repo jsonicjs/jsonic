@@ -998,7 +998,7 @@ describe('jsonic', function () {
   
   // Test against all combinations of chars up to `len`
   // NOTE: coverage tracing slows this down - a lot!
-  it('TIME exhaust', {timeout:33333}, function(){
+  it('exhaust', {timeout:33333}, function(){
     let len = 2
     
     // Use this env var for debug-code-test loop to avoid

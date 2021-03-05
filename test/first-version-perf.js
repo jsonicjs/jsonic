@@ -1,3 +1,6 @@
+// NOTE: the perf test used in the first version, reused against this version.
+// *Not* a test of the perf of the first verison!
+
 var j = require('..').Jsonic
 
 function pv_perf(dur) {

@@ -1,19 +1,3 @@
-declare const TIME: {
-    p: bigint;
-    x: bigint;
-    bct: bigint;
-    act: bigint;
-    pat: bigint;
-    at: bigint;
-    pre: bigint;
-    ww: bigint;
-    bis: bigint;
-    pata: bigint;
-    patf: bigint;
-    patc: bigint;
-    pate: bigint;
-    pin: bigint;
-};
 declare type JsonicParse = (src: any, meta?: any, parent_ctx?: any) => any;
 declare type JsonicAPI = {
     parse: JsonicParse;
@@ -176,9 +160,6 @@ declare type CharCodeMap = {
 declare type Config = {
     tI: number;
     t: any;
-    s: {
-        [token_name: string]: TinMap;
-    };
     m: {
         [token_name: string]: TinMap;
     };
@@ -326,22 +307,6 @@ declare let util: {
     regexp: typeof regexp;
     mesc: typeof mesc;
     ender: typeof ender;
-    TIME: {
-        p: bigint;
-        x: bigint;
-        bct: bigint;
-        act: bigint;
-        pat: bigint;
-        at: bigint;
-        pre: bigint;
-        ww: bigint;
-        bis: bigint;
-        pata: bigint;
-        patf: bigint;
-        patc: bigint;
-        pate: bigint;
-        pin: bigint;
-    };
 };
 declare function make(param_options?: KV, parent?: Jsonic): Jsonic;
 declare function srcfmt(config: Config): (s: any, _?: any) => string;
@@ -367,5 +332,5 @@ declare function parserwrap(parser: any): {
 declare function errdesc(code: string, details: KV, token: Token, rule: Rule, ctx: Context): KV;
 declare function configure(config: Config, options: Options): void;
 declare let Jsonic: Jsonic;
-export { Jsonic, Plugin, JsonicError, Tin, Lexer, Parser, Rule, RuleSpec, RuleSpecMap, Token, Context, Meta, LexMatcher, LexMatcherListMap, LexMatcherResult, LexMatcherState, Alt, util, make, TIME };
+export { Jsonic, Plugin, JsonicError, Tin, Lexer, Parser, Rule, RuleSpec, RuleSpecMap, Token, Context, Meta, LexMatcher, LexMatcherListMap, LexMatcherResult, LexMatcherState, Alt, util, make, };
 export default Jsonic;
