@@ -22,6 +22,7 @@
   "scripts": {
     "watch": "tsc -w -d",
     "build": "node hint.js && tsc -d && node mfix.js && cp jsonic.js jsonic.min.js && browserify -o jsonic.min.js -e jsonic.js -s Jsonic -im -i assert -p tinyify",
+    "diagrams": "docs-src/.vuepress/diagrams/generate.sh",
     "test": "lab -v -P test -t 90 --sourcemaps --transform node_modules/lab-transform-typescript -r console -o stdout -r html -o test/coverage.html",
     "test-quick": "lab -P test --sourcemaps --transform node_modules/lab-transform-typescript",
     "test-some": "lab -v -P test --sourcemaps --transform node_modules/lab-transform-typescript -g",
@@ -49,13 +50,13 @@
   },
   "devDependencies": {
     "@hapi/code": "^8.0.2",
-    "@hapi/lab": "^24.1.0",
+    "@hapi/lab": "^24.1.1",
     "browserify": "^17.0.0",
     "hapi-lab-shim": "0.0.2",
     "lab-transform-typescript": "^3.0.1",
     "prettier": "^2.2.1",
     "tinyify": "^3.0.0",
-    "typescript": "^4.1.5",
+    "typescript": "^4.2.3",
     "vuepress": "^1.8.2"
   }
 }

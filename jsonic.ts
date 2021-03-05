@@ -1,8 +1,5 @@
 /* Copyright (c) 2013-2021 Richard Rodger, MIT License */
 
-// TODO: make hoover a plugin
-// TODO: lex matcher should be able to explicitly disable rest of state logic
-// TODO: console colors in browser?
 // post release: 
 // TODO: test use of constructed regexps - perf?
 // TODO: complete rule tagging groups g:imp etc.
@@ -12,6 +9,9 @@
 // TODO: internal errors - e.g. adding a null rulespec
 // TODO: replace parse_alt loop with lookups
 // TODO: extend lexer to handle multi-char tokens (e.g `->`)
+// TODO: lex matcher should be able to explicitly disable rest of state logic
+// TODO: console colors in browser?
+
 
 // # Conventions
 //

@@ -3,6 +3,17 @@ module.exports = {
   description: "A JSON parser for Node.js that isn't strict.",
   dest: 'docs',
   evergreen: true,
+
+  head: [
+    [
+      'link',
+      {
+        rel: 'stylesheet',
+        href: '/railroad-diagrams.css'
+      }
+    ]
+  ],
+
   themeConfig: {
     nav: [
       { text: 'Home', link: '/' },
@@ -22,6 +33,7 @@ module.exports = {
         'install',
         'getting-started',
         'syntax-introduction',
+        'alternatives',
         'custom-parsers',
         'tutorials',
       ],
