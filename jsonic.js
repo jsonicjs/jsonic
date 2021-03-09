@@ -1205,7 +1205,7 @@ class Parser {
                     { s: [TX, CL], p: S.val },
                     { s: [NR, CL], p: S.val },
                     { s: [VL, CL], p: S.val },
-                    { s: [CB], b: 1 },
+                    { s: [CB], b: 1 }, // empty
                 ],
                 close: [
                     { s: [CB] },
@@ -1957,6 +1957,6 @@ Jsonic.make = make;
 exports.default = Jsonic;
 // Build process uncomments this to enable more natural Node.js requires.
 /* $lab:coverage:off$ */
-//-NODE-MODULE-FIX;('undefined' != typeof(module) && (module.exports = exports.Jsonic));
+;('undefined' != typeof(module) && (module.exports = exports.Jsonic));
 /* $lab:coverage:on$ */
 //# sourceMappingURL=jsonic.js.map

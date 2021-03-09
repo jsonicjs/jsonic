@@ -57,6 +57,7 @@
     "prettier": "^2.2.1",
     "tinyify": "^3.0.0",
     "typescript": "^4.2.3",
-    "vuepress": "^1.8.2"
+    "vuepress": "^1.8.2",
+    "prismjs": "rjrodger/prismjs"
   }
 }
