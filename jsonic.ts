@@ -1,5 +1,6 @@
 /* Copyright (c) 2013-2021 Richard Rodger, MIT License */
 
+// TODO: allow + to precede a number
 // post release: 
 // TODO: test use of constructed regexps - perf?
 // TODO: complete rule tagging groups g:imp etc.
@@ -11,6 +12,7 @@
 // TODO: extend lexer to handle multi-char tokens (e.g `->`)
 // TODO: lex matcher should be able to explicitly disable rest of state logic
 // TODO: console colors in browser?
+// TODO: option to control comma null insertion
 
 
 // # Conventions
