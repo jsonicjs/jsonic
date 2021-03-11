@@ -1,5 +1,6 @@
 /* Copyright (c) 2013-2021 Richard Rodger, MIT License */
 
+// TODO: quotes are value enders - x:a"a" is an err! not 'a"a"'
 // TODO: allow + to precede a number
 // post release: 
 // TODO: test use of constructed regexps - perf?
@@ -13,7 +14,7 @@
 // TODO: lex matcher should be able to explicitly disable rest of state logic
 // TODO: console colors in browser?
 // TODO: option to control comma null insertion
-
+// TODO: {,} should fail ({,,...} does).
 
 // # Conventions
 //
