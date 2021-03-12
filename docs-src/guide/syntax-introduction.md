@@ -37,7 +37,7 @@ writing your own *JSON*-based DSLs with <name-self/>
 
 Let's first informally describe the syntax extensions that
 <name-self/> provides. For a slightly more formal description, See
-the [railroad diagrams](#railroad-diagrams) section.
+the [railroad diagrams](/ref/#railroad-diagrams) section.
 
 &ZeroWidthSpace;<name-self/> is an extension
 of [JSON](https://json.org), so all the usual rules of *JSON* syntax
@@ -303,53 +303,3 @@ the value (which is what you want).
 
 
 
-
-
-
-## Cheatsheet
-
-This document shows the features of the <name-self/> syntax:
-
-```jsonic
-// jsonic                              // JSON
-
-  // cheat...       # comments
-  /*
-   * ...sheet!
-   */
-                    # implicit top level    { 
-  a:                # implicit null           "a": null,
-
-  b: 1              # optional comma           "b": 1,
-  c: 1
-  c: 2              # last duplicate wins      "c": 2,
-  
-  d: f: 3           # key chains               "d": {
-  d: g: h: 4        # object merging           "f": 3,
-                                                 "g": {
-                                                   "h": 4
-                                                 }   
-                                               }
-                                      
-TODO
-                                             }
-```
-
-
-## Railroad Diagrams
-
-
-<jsonic-railroad/>
-
-
-
-{            
-  a:          
-              
-  b: 1        
-  c: 1        
-  c: 2     
-      
-  d: f: 3     
-  d: g: h: 4  
-}             
