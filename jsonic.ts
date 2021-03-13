@@ -86,7 +86,7 @@ type Options = {
   line: {
     lex: boolean
     row: string
-    sep_RES: string
+    sep: string
   },
   comment: {
     lex: boolean
@@ -317,7 +317,7 @@ function make_default_options(): Options {
       row: '\n',
 
       // Line separator regexp (as string)
-      sep_RES: '\r*\n',
+      sep: '\r*\n',
     },
 
 
@@ -533,7 +533,7 @@ function make_default_options(): Options {
 
     // Provide a custom parser.
     parser: {
-      // start: Parser.start
+      start: undefined
     }
   }
 
@@ -1256,7 +1256,7 @@ class Lexer {
                 // TODO: need config val here?
                 mesc((options.token['#SP'] as string)),
                 ']*(',
-                options.line.sep_RES,
+                options.line.sep,
                 ')',
               )
             }
@@ -1267,7 +1267,7 @@ class Lexer {
             if (null == config.re.block_suffix) {
               config.re.block_suffix = regexp(
                 S.no_re_flags,
-                options.line.sep_RES,
+                options.line.sep,
                 '[',
                 // TODO: need config val here?
                 mesc(options.token['#SP'] as string),
@@ -1284,7 +1284,7 @@ class Lexer {
                 '^(',
                 mesc(indent_str),
                 ')|((',
-                options.line.sep_RES,
+                options.line.sep,
                 ')',
                 mesc(indent_str),
                 ')'

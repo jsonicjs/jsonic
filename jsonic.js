@@ -53,7 +53,7 @@ function make_default_options() {
             // Increments row (aka line) counter.
             row: '\n',
             // Line separator regexp (as string)
-            sep_RES: '\r*\n',
+            sep: '\r*\n',
         },
         // Comment markers.
         // <mark-char>: true -> single line comments
@@ -208,7 +208,7 @@ function make_default_options() {
         },
         // Provide a custom parser.
         parser: {
-        // start: Parser.start
+            start: undefined
         }
     };
     return options;
@@ -742,13 +742,13 @@ class Lexer {
                         if (null == config.re.block_prefix) {
                             config.re.block_prefix = regexp(S.no_re_flags, '^[', 
                             // TODO: need config val here?
-                            mesc(options.token['#SP']), ']*(', options.line.sep_RES, ')');
+                            mesc(options.token['#SP']), ']*(', options.line.sep, ')');
                         }
                         token.val =
                             token.val.replace(config.re.block_prefix, MT);
                         // Remove spurious space at end
                         if (null == config.re.block_suffix) {
-                            config.re.block_suffix = regexp(S.no_re_flags, options.line.sep_RES, '[', 
+                            config.re.block_suffix = regexp(S.no_re_flags, options.line.sep, '[', 
                             // TODO: need config val here?
                             mesc(options.token['#SP']), ']*$');
                         }
@@ -756,7 +756,7 @@ class Lexer {
                             token.val.replace(config.re.block_suffix, MT);
                         // Remove indent
                         let block_indent_RE = config.re[S.block_indent_ + indent_str] =
-                            config.re[S.block_indent_ + indent_str] || regexp('g', '^(', mesc(indent_str), ')|((', options.line.sep_RES, ')', mesc(indent_str), ')');
+                            config.re[S.block_indent_ + indent_str] || regexp('g', '^(', mesc(indent_str), ')|((', options.line.sep, ')', mesc(indent_str), ')');
                         token.val =
                             token.val.replace(block_indent_RE, '$3');
                     }

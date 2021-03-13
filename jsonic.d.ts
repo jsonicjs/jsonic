@@ -28,7 +28,7 @@ declare type Options = {
     line: {
         lex: boolean;
         row: string;
-        sep_RES: string;
+        sep: string;
     };
     comment: {
         lex: boolean;
