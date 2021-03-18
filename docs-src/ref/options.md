@@ -206,7 +206,7 @@ let jsonic = Jsonic.make({})
 ```
 
 ### block.marker
-* Type: `string`
+* Type: `{[string]: string}`
 * Default: `{
   '\'\'\'': '\'\'\''
 }`
@@ -220,6 +220,7 @@ let jsonic = Jsonic.make({})
 
 
 ## string
+
 
 ### string.lex
 * Type: `boolean`
@@ -273,131 +274,192 @@ let jsonic = Jsonic.make({})
 
 
 
-    // Text formats.
-    text: {
+## text
 
-      // Recognize text (non-quoted strings) in the Lexer.
-      lex: true,
+
+### text.lex
+* Type: `boolean`
+* Default: `true`
+
+Lorem ipsum
+
+#### Example
+```js
+let jsonic = Jsonic.make({})
+```
+
+
+## map
+
+
+### map.extend
+* Type: `boolean`
+* Default: `true`
+
+Lorem ipsum
+
+#### Example
+```js
+let jsonic = Jsonic.make({})
+```
+
+
+
+## value
+
+
+### value.lex
+* Type: `boolean`
+* Default: `true`
+
+Lorem ipsum
+
+#### Example
+```js
+let jsonic = Jsonic.make({})
+```
+
+
+
+### value.src: 
+* Type: `boolean`
+* Default: `true`
+
+Lorem ipsum
+
+#### Example
+```js
+let jsonic = Jsonic.make({})
+```
+
+
+
+### value.src: 
+* Type: `{[string]: string}`
+* Default: `{
+  'null': null,
+  'true': true,
+  'false': false,
+}`
+
+
+Lorem ipsum
+
+#### Example
+```js
+let jsonic = Jsonic.make({})
+```
+
     },
 
 
-    // Object formats.
-    map: {
-
-      // Later duplicates extend earlier ones, rather than replacing them.
-      extend: true,
-    },
+## plugin
 
 
-    // Keyword values.
-    value: {
-      lex: true,
-      src: {
-        'null': null,
-        'true': true,
-        'false': false,
-      }
-    },
+
+## debug
+
+### debug.get_console
+* Type: `() => console`
+* Default: `() => console` (System `console`)
+
+Lorem ipsum
+
+#### Example
+```js
+let jsonic = Jsonic.make({})
+```
+
+: 
+
+### debug.maxlen
+* Type: `number`
+* Default: `33`
+
+Lorem ipsum
+
+#### Example
+```js
+let jsonic = Jsonic.make({})
+```
 
 
-    // Plugin custom options, (namespace by plugin name).
-    plugin: {},
+
+### debug.print
+
+### debug.print.config
+* Type: `boolean`
+* Default: `false`
+
+Lorem ipsum
+
+#### Example
+```js
+let jsonic = Jsonic.make({})
+```
 
 
-    // Debug settings
-    debug: {
-      // Default console for logging.
-      get_console: () => console,
-
-      // Max length of parse value to print.
-      maxlen: 33,
-
-      // Print internal structures
-      print: {
-
-        // Print config built from options.
-        config: false
-      }
-    },
 
 
-    // Error messages.
-    error: {
-      unknown: 'unknown error: $code',
-      unexpected: 'unexpected character(s): $src',
-      invalid_unicode: 'invalid unicode escape: $src',
-      invalid_ascii: 'invalid ascii escape: $src',
-      unprintable: 'unprintable character: $src',
-      unterminated: 'unterminated string: $src'
-    },
+## error
 
 
-    // Error hints: {error-code: hint-text}. 
-    hint: make_hint,
+
+## hint
 
 
-    // Token definitions:
-    // { c: 'X' }: single character
-    // 'XY': multiple characters
-    // true: non-character tokens
-    // '#X,#Y': token set
-    token: {
-      // Single char tokens.
-      '#OB': { c: '{' }, // OPEN BRACE
-      '#CB': { c: '}' }, // CLOSE BRACE
-      '#OS': { c: '[' }, // OPEN SQUARE
-      '#CS': { c: ']' }, // CLOSE SQUARE
-      '#CL': { c: ':' }, // COLON
-      '#CA': { c: ',' }, // COMMA
 
-      // Multi-char tokens (start chars).
-      '#SP': ' \t',         // SPACE - NOTE: first char is used for indents
-      '#LN': '\n\r',        // LINE
-      '#CM': true,          // COMMENT
-      '#NR': '-0123456789', // NUMBER
-      '#ST': '"\'`',        // STRING
-
-      // General char tokens.
-      '#TX': true, // TEXT
-      '#VL': true, // VALUE
-
-      // Non-char tokens.
-      '#BD': true, // BAD
-      '#ZZ': true, // END
-      '#UK': true, // UNKNOWN
-      '#AA': true, // ANY
-
-      // Token sets
-      // NOTE: comma-sep strings to avoid deep array override logic
-      '#IGNORE': { s: '#SP,#LN,#CM' },
-    },
+## token
 
 
-    // Parser rule options.
-    rule: {
+## rule
 
-      // Name of the starting rule.
-      start: S.val,
+### rule.start
+* Type: `string`
+* Default: `'val'`
 
-      // Automatically close remaining structures at EOF.
-      finish: true,
+Lorem ipsum
 
-      // Multiplier to increase the maximum number of rule occurences.
-      maxmul: 3,
-    },
-
-
-    // Configuration options.
-    config: {
-
-      // Configuration modifiers.
-      modify: {}
-    },
+#### Example
+```js
+let jsonic = Jsonic.make({})
+```
 
 
-    // Provide a custom parser.
-    parser: undefined,
-  }
+
+### rule.finish
+* Type: `boolean`
+* Default: `true`
+
+Lorem ipsum
+
+#### Example
+```js
+let jsonic = Jsonic.make({})
+```
+
+
+### rule.maxmul
+* Type: `number`
+* Default: `3`
+
+Lorem ipsum
+
+#### Example
+```js
+let jsonic = Jsonic.make({})
+```
+
+## config
+
+
+### config.modify
+
+
+## parser
+
+### parser.start
+
 
 
 
