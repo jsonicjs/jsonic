@@ -19,15 +19,15 @@ module.exports = {
       { text: 'Home', link: '/' },
       { text: 'Guide', link: '/guide/' },
       { text: 'Reference', link: '/ref/' },
-      { text: 'Plugins', link: '/plugins/' },
+      { text: 'Plugins', link: '/plugin/' },
       { text: 'Community', link: '/community/' },
-      { text: 'Github', link: 'https://github.com/rjrodger/jsonic' }
+      { text: 'Github', link: 'https://github.com/jsonicjs/jsonic' }
     ],
     sidebar: {
       '/ref/': [
         'api',
         'options',
-        'syntax'
+        'syntax',
       ],
       '/guide/': [
         'install',
@@ -36,6 +36,34 @@ module.exports = {
         'alternatives',
         'custom-parsers',
         'tutorials',
+      ],
+      '/plugin/': [
+        {
+          title: 'Builtin Plugins',
+          path: '#builtin-plugins',
+          children: [
+            'native',
+            'csv',
+          ],
+        },
+
+        {
+          title: 'Standard Plugins',
+          path: '#standard-plugins',
+          children: [
+            'foo'
+          ],
+        },
+
+
+        {
+          title: 'Community Plugins',
+          path: '#community-plugins',
+          children: [
+            'bar'
+          ],
+        },
+
       ],
     }
   }

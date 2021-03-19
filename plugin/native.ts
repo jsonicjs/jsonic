@@ -9,6 +9,7 @@ let Native: Plugin = function native(jsonic: Jsonic) {
       src: {
         'Infinity': Infinity,
         '-Infinity': -Infinity,
+        '+Infinity': +Infinity,
         'NaN': NaN,
       }
     }
@@ -86,6 +87,8 @@ let Native: Plugin = function native(jsonic: Jsonic) {
         token.tin = VL
         token.src = res
         token.len = res.length
+
+        // TODO: use new RegExp instead (escape src)
         token.val = eval(res)
       }
 

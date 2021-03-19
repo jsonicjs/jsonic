@@ -274,6 +274,15 @@ a:{x:1,y:2}
 
   // TODO: handle raw tabs
   it('csv-basic', () => {
+    let k0 = Jsonic.make().use(Csv)
+    
+    expect(k0(`
+a,b    // first line is headers
+1,2
+3,4
+`)).equal([{"a":1, "b":2}, {"a":3,"b":4}])
+
+
     let rec0 = [
       { a: 1, b: 2 },
       { a: 11, b: 22 },
@@ -281,8 +290,6 @@ a:{x:1,y:2}
       { a: 'a x', b: 'b\tx' },
       { a: 'A,A', b: 'B"B' },
     ]
-
-    let k0 = Jsonic.make().use(Csv)
 
     expect(k0(`a,b
 1,2
@@ -360,6 +367,7 @@ aa\tbb
       undefined,
       Infinity,
       -Infinity,
+      +Infinity,
       // comment
       /x,
     ]`)).equal([
@@ -370,6 +378,7 @@ aa\tbb
       undefined,
       Infinity,
       -Infinity,
+      +Infinity,
       '/x'
     ])
 

@@ -8,6 +8,7 @@ let Native = function native(jsonic) {
             src: {
                 'Infinity': Infinity,
                 '-Infinity': -Infinity,
+                '+Infinity': +Infinity,
                 'NaN': NaN,
             }
         }
@@ -67,6 +68,7 @@ let Native = function native(jsonic) {
                 token.tin = VL;
                 token.src = res;
                 token.len = res.length;
+                // TODO: use new RegExp instead (escape src)
                 token.val = eval(res);
             }
             // Not a complete regexp, so assume it's text
