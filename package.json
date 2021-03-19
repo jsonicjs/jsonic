@@ -21,7 +21,8 @@
   },
   "scripts": {
     "watch": "tsc -w -d",
-    "build": "node hint.js && tsc -d && node mfix.js && cp jsonic.js jsonic.min.js && browserify -o jsonic.min.js -e jsonic.js -s Jsonic -im -i assert -p tinyify",
+    "buildx": "node hint.js && tsc -d && node mfix.js && cp jsonic.js jsonic.min.js && browserify -o jsonic.min.js -e jsonic.js -s Jsonic -im -i assert -p tinyify",
+    "build": "node hint.js && tsc -d && cp jsonic.js jsonic.min.js && browserify -o jsonic.min.js -e jsonic.js -s Jsonic -im -i assert -p tinyify",
     "diagrams": "docs-src/.vuepress/diagrams/generate.sh",
     "test": "lab -v -P test -t 90 --sourcemaps --transform node_modules/lab-transform-typescript -r console -o stdout -r html -o test/coverage.html",
     "test-quick": "lab -P test --sourcemaps --transform node_modules/lab-transform-typescript",
