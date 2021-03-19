@@ -1,4 +1,4 @@
-# `csv`
+# `json`
 
 The standard <name-self/> syntax only supports standard JSON value
 keywords: `true`, `false`, `null`.
@@ -7,7 +7,7 @@ Wouldn't it be nice to have `undefined`, `Infinity`, `NaN` as well?
 And while we're at it, how about recognizing literal `/regexp/`
 syntax, and ISO (`2021-03-19T17:15:51.845Z`) dates?
 
-The `csv` plugin will do this for you!
+The `json` plugin will do this for you!
 
 This is a good plugin to copy and extend if you just want to add some
 "magic" values to your source data.
@@ -15,14 +15,14 @@ This is a good plugin to copy and extend if you just want to add some
 
 ## Usage
 
-To use the plugin, `require` or `import` the module path: `jsonic/plugin/csv`:
+To use the plugin, `require` or `import` the module path: `jsonic/plugin/json`:
 
 ```js
 // Node.js
-let { Csv } = require('jsonic/plugin/csv')
+let { Json } = require('jsonic/plugin/json')
 
 // Web
-import { Csv } from 'jsonic/plugin/csv'
+import { Json } from 'jsonic/plugin/json'
 ```
 <p style="color:#888;text-align:right;margin-top:-20px;"><small style="font-size:10px">(The convention for loading modules that are Jsonic plugins is to deconstruct: <code>{ PluginName }</code> )</small></p>
 
@@ -32,8 +32,8 @@ Once loaded, parse your source data as normal.
 ### Quick example
 
 ```js
-let { Csv } = require('jsonic/plugin/csv') // or import
-let extra = Jsonic.make().use(Csv)
+let { Json } = require('jsonic/plugin/json') // or import
+let extra = Jsonic.make().use(Json)
 extra('a:NaN') // === {"a": NaN}
 ```
 
@@ -43,7 +43,7 @@ extra('a:NaN') // === {"a": NaN}
 The standard <name-self/> syntax remains available, with the following
 extensions:
 
-### Csv value keywords
+### Json value keywords
 
 * `undefined`
 * `NaN`
@@ -75,7 +75,7 @@ This plugin has no options.
 ## Implementation
 
 The source code for this plugin is
-here: [`plugin/csv.ts`](github.com/jsonicjs/jsonic/blob/master/plugin/csv.ts).
+here: [`plugin/json.ts`](github.com/jsonicjs/jsonic/blob/master/plugin/json.ts).
 
 
 TODO - discuss

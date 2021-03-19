@@ -44,6 +44,11 @@ module.exports = {
           children: [
             'native',
             'csv',
+            'hoover',
+            'json',
+            'dynamic',
+            'multifile',
+            'legacy-stringify',
           ],
         },
 

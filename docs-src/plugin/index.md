@@ -25,6 +25,11 @@ scratch, [copy and improve](/guide/improve-plugin-tutorial)!
 
 * [native](#native): Parse native JavaScript values such as `undefined`, `NaN`, etc. 
 * [csv](#csv): Parse CSV data that can contain embedded JSON.
+* [hoover](#hoover): TODO.
+* [json](#json): TODO.
+* [dynamic](#dynamic): TODO.
+* [multifile](#multifile): TODO.
+* [legacy-stringify](#legacy-stringify): TODO.
 
 
 ### `native`
@@ -62,6 +67,27 @@ a,b      // first line is headers
 
 
 <a name="standard-plugins"></a>
+
+
+### `hoover`
+
+
+
+### `json`
+
+
+
+### `dynamic`
+
+
+
+### `multifile`
+
+
+
+### `legacy-stringify`
+
+
 
 
 ## Standard plugins
