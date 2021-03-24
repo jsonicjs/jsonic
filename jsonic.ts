@@ -446,7 +446,7 @@ function make_default_options(): Options {
       get_console: () => console,
 
       // Max length of parse value to print.
-      maxlen: 33,
+      maxlen: 99,
 
       // Print internal structures
       print: {
@@ -1452,8 +1452,9 @@ class Alt {
   p: string = MT
   r: string = MT
   b: number = 0
-  n?: any = null
-  h?: any = null
+  n?: any
+  h?: any
+  a?: any
   e?: Token
 }
 
@@ -1576,6 +1577,12 @@ class RuleSpec {
       }
     }
 
+    // Action call.
+    if (alt.a) {
+      why += 'A'
+      alt.a.call(this, rule, ctx, next)
+    }
+
     // Push a new rule onto the stack.
     if (alt.p) {
       ctx.rs.push(rule)
@@ -1600,6 +1607,7 @@ class RuleSpec {
       }
       why += 'Z'
     }
+
 
     // Handle "after" call.
     let after = is_open ?
@@ -1655,6 +1663,7 @@ class RuleSpec {
     out.r = MT          // Replace current rule with named rule.
     out.n = undefined   // Increment named counters.
     out.h = undefined   // Custom handler function.
+    out.a = undefined
     out.e = undefined   // Error token.
 
     let alt
@@ -1692,7 +1701,7 @@ class RuleSpec {
       // Depth.
       cond = cond && (null == alt.d ? true : alt.d === ctx.rs.length)
 
-
+      /*
       // Ancestors.
       cond = cond &&
         (null == alt.a ? true :
@@ -1700,6 +1709,7 @@ class RuleSpec {
             .slice(-(alt.a.length))
             .map(r => r.name)
             .reverse()))
+      */
 
       if (cond) {
         break
@@ -1721,6 +1731,7 @@ class RuleSpec {
       out.r = alt.r ? alt.r : out.r
       out.n = alt.n ? alt.n : out.n
       out.h = alt.h ? alt.h : out.h
+      out.a = alt.a ? alt.a : out.a
     }
 
     ctx.log && ctx.log(
@@ -1819,7 +1830,7 @@ class Parser {
           // Implicit end `{a:}` -> {"a":null}
           {
             s: [CB],
-            a: [S.pair],
+            //a: [S.pair],
             b: 1,
             g: S.imp_null
           },
@@ -1827,7 +1838,7 @@ class Parser {
           // Implicit end `[a:]` -> [{"a":null}]
           {
             s: [CS],
-            a: [S.pair],
+            //a: [S.pair],
             b: 1,
             g: S.imp_null
           },

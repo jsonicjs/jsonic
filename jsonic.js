@@ -143,7 +143,7 @@ function make_default_options() {
             // Default console for logging.
             get_console: () => console,
             // Max length of parse value to print.
-            maxlen: 33,
+            maxlen: 99,
             // Print internal structures
             print: {
                 // Print config built from options.
@@ -863,8 +863,6 @@ class Alt {
         this.p = MT;
         this.r = MT;
         this.b = 0;
-        this.n = null;
-        this.h = null;
     }
 }
 exports.Alt = Alt;
@@ -953,6 +951,11 @@ class RuleSpec {
                 rule.n[cn] = 0 < rule.n[cn] ? rule.n[cn] : 0;
             }
         }
+        // Action call.
+        if (alt.a) {
+            why += 'A';
+            alt.a.call(this, rule, ctx, next);
+        }
         // Push a new rule onto the stack.
         if (alt.p) {
             ctx.rs.push(rule);
@@ -1015,6 +1018,7 @@ class RuleSpec {
         out.r = MT; // Replace current rule with named rule.
         out.n = undefined; // Increment named counters.
         out.h = undefined; // Custom handler function.
+        out.a = undefined;
         out.e = undefined; // Error token.
         let alt;
         let altI = 0;
@@ -1044,13 +1048,15 @@ class RuleSpec {
             cond = cond && (alt.c ? alt.c(alt, rule, ctx) : true);
             // Depth.
             cond = cond && (null == alt.d ? true : alt.d === ctx.rs.length);
+            /*
             // Ancestors.
             cond = cond &&
-                (null == alt.a ? true :
-                    marr(alt.a, ctx.rs
-                        .slice(-(alt.a.length))
-                        .map(r => r.name)
-                        .reverse()));
+              (null == alt.a ? true :
+                marr(alt.a, ctx.rs
+                  .slice(-(alt.a.length))
+                  .map(r => r.name)
+                  .reverse()))
+            */
             if (cond) {
                 break;
             }
@@ -1068,6 +1074,7 @@ class RuleSpec {
             out.r = alt.r ? alt.r : out.r;
             out.n = alt.n ? alt.n : out.n;
             out.h = alt.h ? alt.h : out.h;
+            out.a = alt.a ? alt.a : out.a;
         }
         ctx.log && ctx.log(S.parse, rule.name + '~' + rule.id, RuleState[rule.state], altI < alts.length ? 'alt=' + altI : 'no-alt', altI < alts.length &&
             alt.s ?
@@ -1129,14 +1136,14 @@ class Parser {
                     // Implicit end `{a:}` -> {"a":null}
                     {
                         s: [CB],
-                        a: [S.pair],
+                        //a: [S.pair],
                         b: 1,
                         g: S.imp_null
                     },
                     // Implicit end `[a:]` -> [{"a":null}]
                     {
                         s: [CS],
-                        a: [S.pair],
+                        //a: [S.pair],
                         b: 1,
                         g: S.imp_null
                     },

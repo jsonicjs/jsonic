@@ -4,7 +4,6 @@
     "module": "commonjs",
     "noEmitOnError": true,
     "noImplicitAny": true,
-    "outDir": "dist",
     "resolveJsonModule": true,
     "sourceMap": true,
     "strict": true,

@@ -261,6 +261,7 @@ declare class Alt {
     b: number;
     n?: any;
     h?: any;
+    a?: any;
     e?: Token;
 }
 declare class RuleSpec {

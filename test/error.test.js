@@ -165,7 +165,7 @@ describe('error', function () {
     catch(e) {
       // console.log(e)
       expect(JSON.stringify(e))
-        .includes('{"code":"unexpected","details":{"state":"open"},'+
+        .includes('{"code":"unexpected","details":{},'+
                   '"meta":{},"lineNumber":0,"columnNumber":0')
     } 
   })
