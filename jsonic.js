@@ -981,7 +981,7 @@ class RuleSpec {
         // Handle "after" call.
         let after = is_open ?
             (rule.ao && def.ao) :
-            (rule.ac && def.after_close);
+            (rule.ac && def.ac);
         if (after) {
             let aout = after.call(this, rule, ctx, next);
             if (aout) {

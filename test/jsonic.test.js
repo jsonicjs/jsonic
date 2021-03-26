@@ -614,7 +614,7 @@ describe('jsonic', function () {
         bo: ()=>(b+='bo;'),
         ao: ()=>(b+='ao;'),
         bc: ()=>(b+='bc;'),
-        after_close: ()=>(b+='ac;'),
+        ac: ()=>(b+='ac;'),
       })
     })
 
@@ -636,7 +636,7 @@ describe('jsonic', function () {
         bo: ()=>(b+='bo;'),
         ao: ()=>(b+='ao;'),
         bc: ()=>(b+='bc;'),
-        after_close: ()=>(b+='ac;'),
+        ac: ()=>(b+='ac;'),
 
       })
       rs.bo = false
@@ -696,7 +696,7 @@ describe('jsonic', function () {
     j.rule('top', () => {
       let rs = new RuleSpec({
         ...rsdef,
-        after_close: ()=>({err:'unexpected', src:'AC'}),
+        ac: ()=>({err:'unexpected', src:'AC'}),
       })
       return rs
     })
@@ -746,7 +746,7 @@ describe('jsonic', function () {
     j.rule('top', () => {
       let rs = new RuleSpec({
         bo: ()=>({alt:{m:[{val:'WW'}],test$:1}}),
-        after_close: (rule,ctx)=>{
+        ac: (rule,ctx)=>{
           rule.node=rule.open[0].val
         }
       })
@@ -757,7 +757,7 @@ describe('jsonic', function () {
     j.rule('top', () => {
       let rs = new RuleSpec({
         bc: ()=>({alt:{m:[{val:'YY'}],test$:1}}),
-        after_close: (rule,ctx)=>{
+        ac: (rule,ctx)=>{
           rule.node=rule.close[0].val
         }
       })
@@ -787,7 +787,7 @@ describe('jsonic', function () {
     j.rule('foo', () => {
       return new RuleSpec({
         open: [{s:[AA]}],
-        after_close: (rule)=>{
+        ac: (rule)=>{
           rule.node[0] = 3333
         },
       })
@@ -828,7 +828,7 @@ describe('jsonic', function () {
     j.rule('top', () => {
       return new RuleSpec({
         open: [{s:[AA,TX]}],
-        after_close: (rule)=>{
+        ac: (rule)=>{
           rule.node = rule.open[0].val+rule.open[1].val
         }
       })
@@ -849,7 +849,7 @@ describe('jsonic', function () {
       return new RuleSpec({
         open: [{s:[AA]}],
         close: [{s:[AA]}],
-        after_close: (rule)=>{
+        ac: (rule)=>{
           return {
             err:'unexpected',
             src:'AAA'
@@ -883,7 +883,7 @@ describe('jsonic', function () {
         open: [
           {s:[Ta,[Tb,Tc]]}
         ],
-        after_close: (r)=>{
+        ac: (r)=>{
           r.node = (r.open[0].src+r.open[1].src).toUpperCase()
         }
       })

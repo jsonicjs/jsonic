@@ -1468,7 +1468,7 @@ type RuleDef = {
   bo?: (rule: Rule, ctx: Context) => any
   bc?: (rule: Rule, ctx: Context) => any
   ao?: (rule: Rule, ctx: Context, next: Rule) => any
-  after_close?: (rule: Rule, ctx: Context, next: Rule) => any
+  ac?: (rule: Rule, ctx: Context, next: Rule) => any
 }
 
 
@@ -1612,7 +1612,7 @@ class RuleSpec {
     // Handle "after" call.
     let after = is_open ?
       (rule.ao && def.ao) :
-      (rule.ac && def.after_close)
+      (rule.ac && def.ac)
 
     if (after) {
       let aout = after.call(this, rule, ctx, next)
