@@ -24,7 +24,7 @@ let Native: Plugin = function native(jsonic: Jsonic) {
     let { sI, rI, cI, src, token, ctx } = lms
 
     let out: any
-    let config = ctx.config
+    let config = ctx.cnfg
 
     let search = src.substring(sI, sI + 24)
 

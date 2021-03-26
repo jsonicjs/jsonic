@@ -200,8 +200,8 @@ type Token = {
 type Context = {
   // TODO: rename
   rI: number // Rule index for rule.id
-  options: Options
-  config: Config
+  opts: Options
+  cnfg: Config
   meta: Meta
   src: () => string,
   root: () => any,
@@ -552,8 +552,8 @@ class JsonicError extends SyntaxError {
     details = deep({}, details)
     let errctx: any = deep({}, {
       rI: ctx.rI,
-      options: ctx.options,
-      config: ctx.config,
+      options: ctx.opts,
+      config: ctx.cnfg,
       meta: ctx.meta,
       src: () => ctx.src(),
       plugins: () => ctx.plugins(),
@@ -644,8 +644,8 @@ class Lexer {
   ): Lex {
 
     // Convenience vars
-    const options = ctx.options
-    const config = ctx.config
+    const options = ctx.opts
+    const config = ctx.cnfg
 
     let tpin = (name: string): Tin => tokenize(name, config)
     let tn = (pin: Tin): string => tokenize(pin, config)
@@ -1339,7 +1339,7 @@ class Lexer {
     use?: any
   ): Token {
     token.why = why
-    token.tin = tokenize('#BD', ctx.config)
+    token.tin = tokenize('#BD', ctx.cnfg)
     token.loc = sI
     token.row = rI
     token.col = cI
@@ -1348,7 +1348,7 @@ class Lexer {
     token.src = src
     token.use = use
 
-    log && log(tokenize(token.tin, ctx.config), ctx.F(token.src),
+    log && log(tokenize(token.tin, ctx.cnfg), ctx.F(token.src),
       sI, rI + ':' + cI, { ...token },
       S.error, why)
     return token
@@ -1667,7 +1667,7 @@ class RuleSpec {
 
     let alt
     let altI = 0
-    let t = ctx.config.t
+    let t = ctx.cnfg.t
     let cond
 
     // TODO: replace with lookup map
@@ -1942,7 +1942,7 @@ class Parser {
               val = null
             }
             rule.node[key] = null == prev ? val :
-              (ctx.options.map.extend ? deep(prev, val) : val)
+              (ctx.opts.map.extend ? deep(prev, val) : val)
           }
         },
       },
@@ -2034,8 +2034,8 @@ class Parser {
 
     let ctx: Context = {
       rI: 1,
-      options,
-      config,
+      opts,
+      cnfg,
       meta: meta || {},
       src: () => src, // Avoid printing src
       root: () => root.node,
@@ -2448,10 +2448,10 @@ function makelog(ctx: Context) {
           .filter((item: any) => S.object != typeof (item))
           .map((item: any) => S.function == typeof (item) ? item.name : item)
           .join('\t')
-        ctx.options.debug.get_console().log(logstr)
+        ctx.opts.debug.get_console().log(logstr)
       }
       else {
-        ctx.options.debug.get_console().dir(rest, { depth: logdepth })
+        ctx.opts.debug.get_console().dir(rest, { depth: logdepth })
       }
       return undefined
     }
@@ -2559,8 +2559,8 @@ function errinject(
         (token as KV)[name] ||
         (rule as KV)[name] ||
         (ctx as KV)[name] ||
-        (ctx.options as any)[name] ||
-        (ctx.config as any)[name] ||
+        (ctx.opts as any)[name] ||
+        (ctx.cnfg as any)[name] ||
         '$' + name
       )
     )
@@ -2647,8 +2647,8 @@ function parserwrap(parser: any) {
             ({} as Rule),
             ex.ctx || {
               rI: -1,
-              options: jsonic.options,
-              config: ({ t: {} } as Config),
+              opts: jsonic.options,
+              cnfg: ({ t: {} } as Config),
               token: token,
               meta,
               src: () => src,
@@ -2689,7 +2689,7 @@ function errdesc(
   ctx: Context,
 ): KV {
   token = { ...token }
-  let options = ctx.options
+  let options = ctx.opts
   let meta = ctx.meta
   let errtxt = errinject(
     (options.error[code] || options.error.unknown),
@@ -2715,7 +2715,7 @@ function errdesc(
     ),
     '  \x1b[2mhttps://jsonic.richardrodger.com\x1b[0m',
     '  \x1b[2m--internal: rule=' + rule.name + '~' + RuleState[rule.state] +
-    '; token=' + ctx.config.t[token.tin] +
+    '; token=' + ctx.cnfg.t[token.tin] +
     (null == token.why ? '' : ('~' + token.why)) +
     '; plugins=' + ctx.plugins().map((p: any) => p.name).join(',') + '--\x1b[0m\n'
   ].join('\n')

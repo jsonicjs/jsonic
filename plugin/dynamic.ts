@@ -98,7 +98,7 @@ let Dynamic: Plugin = function dynamic(jsonic: Jsonic) {
           val,
           ctx.root,
           ctx.meta,
-          ctx.options.map.extend,
+          ctx.opts.map.extend,
         )
       }
 
@@ -127,7 +127,7 @@ let Dynamic: Plugin = function dynamic(jsonic: Jsonic) {
           val,
           ctx.root,
           ctx.meta,
-          ctx.options.map.extend,
+          ctx.opts.map.extend,
         )
       }
 
