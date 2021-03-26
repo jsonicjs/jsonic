@@ -133,7 +133,7 @@ declare type Context = {
     plgn: () => Plugin[];
     rule: Rule;
     lex: Tin;
-    u2: Token;
+    v2: Token;
     u1: Token;
     t0: Token;
     t1: Token;

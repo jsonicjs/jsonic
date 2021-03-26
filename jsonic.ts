@@ -208,7 +208,7 @@ type Context = {
   rule: Rule           // Current rule instance.
   // node: any            // Current node value.
   lex: Tin
-  u2: Token
+  v2: Token
   u1: Token
   t0: Token
   t1: Token
@@ -2048,7 +2048,7 @@ class Parser {
       rule: NONE,
       //node: undefined,
       lex: -1,
-      u2: lexer.end,
+      v2: lexer.end,
       u1: lexer.end,
       t0: lexer.end,
       t1: lexer.end,
@@ -2090,7 +2090,7 @@ class Parser {
 
     // Lex next token.
     function next() {
-      ctx.u2 = ctx.u1
+      ctx.v2 = ctx.u1
       ctx.u1 = ctx.t0
       ctx.t0 = ctx.t1
 
@@ -2662,7 +2662,7 @@ function parserwrap(parser: any) {
               rule: NONE,
               node: undefined,
               lex: -1,
-              u2: token,
+              v2: token,
               u1: token,
               t0: token,
               t1: token, // TODO: should be end token
