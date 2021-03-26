@@ -80,10 +80,10 @@ fields per row are expected.`,
                         if (null == field_name) {
                             let out = {
                                 err: 'csv_unexpected_field',
-                                fsrc: ctx.u1.src,
+                                fsrc: ctx.v1.src,
                                 index: i,
                                 len: fields.length,
-                                row: ctx.u1.row,
+                                row: ctx.v1.row,
                             };
                             return out;
                         }

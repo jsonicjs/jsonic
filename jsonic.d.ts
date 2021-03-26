@@ -132,12 +132,12 @@ declare type Context = {
     root: () => any;
     plgn: () => Plugin[];
     rule: Rule;
-    lex: Tin;
+    xs: Tin;
     v2: Token;
-    u1: Token;
+    v1: Token;
     t0: Token;
     t1: Token;
-    tI: number;
+    tC: number;
     rs: Rule[];
     rsm: {
         [name: string]: RuleSpec;

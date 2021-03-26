@@ -206,19 +206,18 @@ type Context = {
   root: () => any,     // Root node.
   plgn: () => Plugin[] // Jsonic instance plugins.
   rule: Rule           // Current rule instance.
-  // node: any            // Current node value.
-  lex: Tin
-  v2: Token
-  u1: Token
-  t0: Token
-  t1: Token
-  tI: number
-  rs: Rule[]
-  rsm: { [name: string]: RuleSpec }
-  next: () => Token
-  log?: (...rest: any) => undefined
-  F: (s: any) => string
-  use: KV     // Custom meta data from plugins goes here.
+  xs: Tin              // Lex state tin.
+  v2: Token            // Previous previous token.
+  v1: Token            // Previous token.
+  t0: Token            // Current token.
+  t1: Token            // Next token. 
+  tC: number           // Token count.
+  rs: Rule[]           // Rule stack.
+  rsm: { [name: string]: RuleSpec } // RuleSpec lookup map (by rule name).
+  next: () => Token    // Move to next token.
+  log?: (...rest: any) => undefined // Log parse/lex step (if defined).
+  F: (s: any) => string // Format arbitrary data as length-limited string.
+  use: KV               // Custom meta data (for use by plugins)
 }
 
 
@@ -777,7 +776,7 @@ class Lexer {
         token.loc = sI
         token.col = cI
 
-        ctx.lex = state
+        ctx.xs = state
 
         if (LTP === state) {
 
@@ -1744,7 +1743,7 @@ class RuleSpec {
       altI < alts.length &&
         alt.s ?
         '[' + alt.s.map((pin: Tin) => t[pin]).join(' ') + ']' : '[]',
-      ctx.tI,
+      ctx.tC,
       'p=' + (out.p || MT),
       'r=' + (out.r || MT),
       'b=' + (out.b || MT),
@@ -1943,7 +1942,7 @@ class Parser {
 
             // Convert undefined to null when there was no pair value
             // Otherwise leave it alone (eg. dynamic plugin sets undefined)
-            if (undefined === val && CL === ctx.u1.tin) {
+            if (undefined === val && CL === ctx.v1.tin) {
               val = null
             }
             rule.node[key] = null == prev ? val :
@@ -2047,12 +2046,12 @@ class Parser {
       plgn: () => jsonic.internal().plugins,
       rule: NONE,
       //node: undefined,
-      lex: -1,
+      xs: -1,
       v2: lexer.end,
-      u1: lexer.end,
+      v1: lexer.end,
       t0: lexer.end,
       t1: lexer.end,
-      tI: -2,  // Prepare count for 2-token lookahead.
+      tC: -2,  // Prepare count for 2-token lookahead.
       next,
       rs: [],
       rsm: this.rsm,
@@ -2090,14 +2089,14 @@ class Parser {
 
     // Lex next token.
     function next() {
-      ctx.v2 = ctx.u1
-      ctx.u1 = ctx.t0
+      ctx.v2 = ctx.v1
+      ctx.v1 = ctx.t0
       ctx.t0 = ctx.t1
 
       let t1
       do {
         t1 = lex(rule)
-        ctx.tI++
+        ctx.tC++
       } while (ctx.cnfg.ts.IGNORE[t1.tin])
 
       ctx.t1 = { ...t1 }
@@ -2117,7 +2116,7 @@ class Parser {
     while (NONE !== rule && rI < maxr) {
       ctx.log &&
         ctx.log(S.rule, rule.name + '~' + rule.id, RuleState[rule.state],
-          ctx.rs.length, ctx.tI, '[' + tn(ctx.t0.tin) + ' ' + tn(ctx.t1.tin) + ']',
+          ctx.rs.length, ctx.tC, '[' + tn(ctx.t0.tin) + ' ' + tn(ctx.t1.tin) + ']',
           '[' + ctx.F(ctx.t0.src) + ' ' + ctx.F(ctx.t1.src) + ']', rule, ctx)
 
       ctx.rule = rule
@@ -2661,12 +2660,12 @@ function parserwrap(parser: any) {
               plgn: () => jsonic.internal().plugins,
               rule: NONE,
               node: undefined,
-              lex: -1,
+              xs: -1,
               v2: token,
-              u1: token,
+              v1: token,
               t0: token,
               t1: token, // TODO: should be end token
-              tI: -1,
+              tC: -1,
               rs: [],
               next: () => token, // TODO: should be end token
               rsm: {},

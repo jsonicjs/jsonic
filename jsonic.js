@@ -371,7 +371,7 @@ class Lexer {
                 let c0 = src[sI];
                 token.loc = sI;
                 token.col = cI;
-                ctx.lex = state;
+                ctx.xs = state;
                 if (LTP === state) {
                     if (matchers(rule)) {
                         return token;
@@ -1076,7 +1076,7 @@ class RuleSpec {
         }
         ctx.log && ctx.log(S.parse, rule.name + '~' + rule.id, RuleState[rule.state], altI < alts.length ? 'alt=' + altI : 'no-alt', altI < alts.length &&
             alt.s ?
-            '[' + alt.s.map((pin) => t[pin]).join(' ') + ']' : '[]', ctx.tI, 'p=' + (out.p || MT), 'r=' + (out.r || MT), 'b=' + (out.b || MT), out.m.map((tkn) => t[tkn.tin]).join(' '), ctx.F(out.m.map((tkn) => tkn.src)), 'c:' + ((alt && alt.c) ? cond : MT), 'n:' + Object.entries(rule.n).join(';'), out);
+            '[' + alt.s.map((pin) => t[pin]).join(' ') + ']' : '[]', ctx.tC, 'p=' + (out.p || MT), 'r=' + (out.r || MT), 'b=' + (out.b || MT), out.m.map((tkn) => t[tkn.tin]).join(' '), ctx.F(out.m.map((tkn) => tkn.src)), 'c:' + ((alt && alt.c) ? cond : MT), 'n:' + Object.entries(rule.n).join(';'), out);
         return out;
     }
 }
@@ -1227,7 +1227,7 @@ class Parser {
                         let prev = rule.node[key];
                         // Convert undefined to null when there was no pair value
                         // Otherwise leave it alone (eg. dynamic plugin sets undefined)
-                        if (undefined === val && CL === ctx.u1.tin) {
+                        if (undefined === val && CL === ctx.v1.tin) {
                             val = null;
                         }
                         rule.node[key] = null == prev ? val :
@@ -1304,12 +1304,12 @@ class Parser {
             plgn: () => jsonic.internal().plugins,
             rule: NONE,
             //node: undefined,
-            lex: -1,
+            xs: -1,
             v2: lexer.end,
-            u1: lexer.end,
+            v1: lexer.end,
             t0: lexer.end,
             t1: lexer.end,
-            tI: -2,
+            tC: -2,
             next,
             rs: [],
             rsm: this.rsm,
@@ -1338,13 +1338,13 @@ class Parser {
             2 * this.options.rule.maxmul;
         // Lex next token.
         function next() {
-            ctx.v2 = ctx.u1;
-            ctx.u1 = ctx.t0;
+            ctx.v2 = ctx.v1;
+            ctx.v1 = ctx.t0;
             ctx.t0 = ctx.t1;
             let t1;
             do {
                 t1 = lex(rule);
-                ctx.tI++;
+                ctx.tC++;
             } while (ctx.cnfg.ts.IGNORE[t1.tin]);
             ctx.t1 = { ...t1 };
             return ctx.t0;
@@ -1358,7 +1358,7 @@ class Parser {
         // occurrences until there's none left.
         while (NONE !== rule && rI < maxr) {
             ctx.log &&
-                ctx.log(S.rule, rule.name + '~' + rule.id, RuleState[rule.state], ctx.rs.length, ctx.tI, '[' + tn(ctx.t0.tin) + ' ' + tn(ctx.t1.tin) + ']', '[' + ctx.F(ctx.t0.src) + ' ' + ctx.F(ctx.t1.src) + ']', rule, ctx);
+                ctx.log(S.rule, rule.name + '~' + rule.id, RuleState[rule.state], ctx.rs.length, ctx.tC, '[' + tn(ctx.t0.tin) + ' ' + tn(ctx.t1.tin) + ']', '[' + ctx.F(ctx.t0.src) + ' ' + ctx.F(ctx.t1.src) + ']', rule, ctx);
             ctx.rule = rule;
             rule = rule.process(ctx);
             ctx.log &&
@@ -1746,12 +1746,12 @@ function parserwrap(parser) {
                         plgn: () => jsonic.internal().plugins,
                         rule: NONE,
                         node: undefined,
-                        lex: -1,
+                        xs: -1,
                         v2: token,
-                        u1: token,
+                        v1: token,
                         t0: token,
                         t1: token,
-                        tI: -1,
+                        tC: -1,
                         rs: [],
                         next: () => token,
                         rsm: {},

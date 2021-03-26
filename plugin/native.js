@@ -90,7 +90,7 @@ let Native = function native(jsonic) {
         let orig_bc = rs.def.bc;
         rs.def.bc = function (rule, ctx) {
             /* $lab:coverage:off$ */
-            if (ctx.u1.use && ctx.u1.use.undefined) {
+            if (ctx.v1.use && ctx.v1.use.undefined) {
                 /* $lab:coverage:on$ */
                 rule.node.push(undefined);
             }

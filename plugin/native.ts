@@ -115,7 +115,7 @@ let Native: Plugin = function native(jsonic: Jsonic) {
     rs.def.bc = function(rule: Rule, ctx: Context) {
 
       /* $lab:coverage:off$ */
-      if (ctx.u1.use && ctx.u1.use.undefined) {
+      if (ctx.v1.use && ctx.v1.use.undefined) {
         /* $lab:coverage:on$ */
 
         rule.node.push(undefined)
