@@ -205,7 +205,7 @@ type Context = {
   meta: Meta
   src: () => string,
   root: () => any,
-  plugins: () => Plugin[]
+  plgn: () => Plugin[]
   rule: Rule
   node: any
   lex: Tin
@@ -556,7 +556,7 @@ class JsonicError extends SyntaxError {
       config: ctx.cnfg,
       meta: ctx.meta,
       src: () => ctx.src(),
-      plugins: () => ctx.plugins(),
+      plugins: () => ctx.plgn(),
       node: ctx.node,
       t0: ctx.t0,
       t1: ctx.t1,
@@ -2039,7 +2039,7 @@ class Parser {
       meta: meta || {},
       src: () => src, // Avoid printing src
       root: () => root.node,
-      plugins: () => jsonic.internal().plugins,
+      plgn: () => jsonic.internal().plugins,
       rule: NONE,
       node: undefined,
       lex: -1,
@@ -2653,7 +2653,7 @@ function parserwrap(parser: any) {
               meta,
               src: () => src,
               root: () => undefined,
-              plugins: () => jsonic.internal().plugins,
+              plgn: () => jsonic.internal().plugins,
               rule: NONE,
               node: undefined,
               lex: -1,
@@ -2717,7 +2717,7 @@ function errdesc(
     '  \x1b[2m--internal: rule=' + rule.name + '~' + RuleState[rule.state] +
     '; token=' + ctx.cnfg.t[token.tin] +
     (null == token.why ? '' : ('~' + token.why)) +
-    '; plugins=' + ctx.plugins().map((p: any) => p.name).join(',') + '--\x1b[0m\n'
+    '; plugins=' + ctx.plgn().map((p: any) => p.name).join(',') + '--\x1b[0m\n'
   ].join('\n')
 
   let desc: any = {
