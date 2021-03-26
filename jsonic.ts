@@ -236,22 +236,21 @@ type CharCodeMap = { [char: string]: number }
 type Config = {
   tI: number // Token identifier index.
   t: any // Token index map.
-  // s: { [token_name: string]: TinMap } // Token start character .
-  m: { [token_name: string]: TinMap } // Mutually exclusive character sets.
+  m: { [token_name: string]: TinMap }         // Mutually exclusive character sets.
   cs: { [charset_name: string]: CharCodeMap } // Character set.
-  sm: { [char: string]: Tin } // Single character token index.
-  ts: { [tokenset_name: string]: Tin[] } // Named token sets.
-  vs: { [start_char: string]: boolean } // Literal value start characters.
-  vm: KV, // Map value source to actual value.
-  esc: { [name: string]: string } // String escape characters.
+  sm: { [char: string]: Tin }                 // Single character token index.
+  ts: { [tokenset_name: string]: Tin[] }      // Named token sets.
+  vs: { [start_char: string]: boolean }       // Literal value start characters.
+  vm: KV,                                     // Map value source to actual value.
+  esc: { [name: string]: string }             // String escape characters.
   cm: { [start_marker: string]: string | boolean } // Comment start markers.
-  cmk: string[] // Comment start markers.
-  cmx: number // Comment start markers max length.
-  bmk: string[] // Block start markers.
-  bmx: number // Block start markers max length.
-  sc: string    // Token start characters.
-  d: KV, // Debug options.
-  re: { [name: string]: RegExp | null } // RegExp map.
+  cmk: string[]                               // Comment start markers.
+  cmx: number                                 // Comment start markers max length.
+  bmk: string[]                               // Block start markers.
+  bmx: number                                 // Block start markers max length.
+  sc: string                                  // Token start characters.
+  d: KV,                                      // Debug options.
+  re: { [name: string]: RegExp | null }       // RegExp map.
 }
 
 const MT = '' // Empty ("MT"!) string.
@@ -259,7 +258,9 @@ const keys = Object.keys
 const assign = Object.assign
 const defprop = Object.defineProperty
 
+
 // A bit pedantic, but let's be strict about strings.
+// Also improves minification a little.
 const S = {
   object: 'object',
   string: 'string',
@@ -548,26 +549,6 @@ class JsonicError extends SyntaxError {
     ctx: Context,
   ) {
     details = deep({}, details)
-
-    /*
-    let errctx: any = deep({}, {
-      rI: ctx.uI,
-      options: ctx.opts,
-      config: ctx.cnfg,
-      meta: ctx.meta,
-      src: () => ctx.src(),
-      plugins: () => ctx.plgn(),
-      // node: ctx.node,
-      t0: ctx.t0,
-      t1: ctx.t1,
-      tI: ctx.tI,
-      log: ctx.log,
-      use: ctx.use
-    })
-    */
-
-    //let desc = errdesc(code, details, token, rule, errctx)
-
     let desc = errdesc(code, details, token, rule, ctx)
     super(desc.message)
     assign(this, desc)
@@ -599,11 +580,8 @@ type LexMatcherState = {
 }
 
 type LexMatcher = (lms: LexMatcherState) => LexMatcherResult
-
 type LexMatcherListMap = { [state: number]: LexMatcher[] }
 
-
-// TODO: include state_param
 type LexMatcherResult = undefined | {
   sI: number,
   rI: number
@@ -611,8 +589,6 @@ type LexMatcherResult = undefined | {
   state?: number,
   state_param?: any,
 }
-
-
 
 class Lexer {
   end: Token
@@ -1406,7 +1382,6 @@ enum RuleState {
 }
 /* $lab:coverage:on$ */
 
-//const UNDEF: any = {}
 
 class Rule {
   id: number
@@ -1490,8 +1465,8 @@ type AltCond = (rule: Rule, ctx: Context, alt: Alt) => boolean
 type AltHandler = (rule: Rule, ctx: Context, alt: Alt, next: Rule) => Alt
 type AltAction = (rule: Rule, ctx: Context, alt: Alt, next: Rule) => void
 
-const palt = new Alt() // As with lexing, only one alt object is created.
-const empty_alt = new Alt()
+const PALT = new Alt() // As with lexing, only one alt object is created.
+const EMPTY_ALT = new Alt()
 
 
 type RuleDef = {
@@ -1574,9 +1549,9 @@ class RuleSpec {
     }
 
     // Attempt to match one of the alts.
-    let alt: Alt = (bout && bout.alt) ? { ...empty_alt, ...bout.alt } :
+    let alt: Alt = (bout && bout.alt) ? { ...EMPTY_ALT, ...bout.alt } :
       0 < alts.length ? this.parse_alts(alts, rule, ctx) :
-        empty_alt
+        EMPTY_ALT
 
     // Custom alt handler.
     if (alt.h) {
@@ -1691,9 +1666,9 @@ class RuleSpec {
 
 
   // First match wins.
-  // NOTE: input alts specs (untyped) are used to build the Alt output.
+  // NOTE: input AltSpecs are used to build the Alt output.
   parse_alts(alts: AltSpec[], rule: Rule, ctx: Context): Alt {
-    let out = palt
+    let out = PALT
     out.m = []          // Match 0, 1, or 2 tokens in order .
     out.b = 0           // Backtrack n tokens.
     out.p = MT          // Push named rule onto stack. 
@@ -2024,6 +1999,7 @@ class Parser {
       }
     }
 
+    // TODO: just create the RuleSpec directly
     this.rsm = keys(rules).reduce((rsm: any, rn: string) => {
       rsm[rn] = new RuleSpec(rules[rn])
       rsm[rn].name = rn
@@ -2065,9 +2041,6 @@ class Parser {
     meta?: any,
     parent_ctx?: any
   ): any {
-    //let options = this.options
-    //let config = this.config
-
     let root: Rule
 
     let ctx: Context = {
@@ -2079,7 +2052,6 @@ class Parser {
       root: () => root.node,
       plgn: () => jsonic.internal().plugins,
       rule: NONE,
-      //node: undefined,
       xs: -1,
       v2: lexer.end,
       v1: lexer.end,
@@ -2117,7 +2089,7 @@ class Parser {
     // Maximum rule iterations (prevents infinite loops). Allow for
     // rule open and close, and for each rule on each char to be
     // virtual (like map, list), and double for safety margin (allows
-    // lots of backtracking), and apply a multipler.
+    // lots of backtracking), and apply a multipler options as a get-out-of-jail.
     let maxr = 2 * keys(this.rsm).length * lex.src.length *
       2 * this.options.rule.maxmul
 
@@ -2163,7 +2135,7 @@ class Parser {
       rI++
     }
 
-    // TODO: option for this
+    // TODO: option to allow trailing content
     if (tokenize('#ZZ', this.config) !== ctx.t0.tin) {
       throw new JsonicError(S.unexpected, {}, ctx.t0, NONE, ctx)
     }
@@ -2360,7 +2332,7 @@ function make(param_options?: KV, parent?: Jsonic): Jsonic {
 
 
 
-// Utilityfunctions
+// Utility functions
 
 function srcfmt(config: Config) {
   return (s: any, _?: any) =>
@@ -2693,7 +2665,6 @@ function parserwrap(parser: any) {
               root: () => undefined,
               plgn: () => jsonic.internal().plugins,
               rule: NONE,
-              node: undefined,
               xs: -1,
               v2: token,
               v1: token,
@@ -2796,18 +2767,6 @@ function configure(config: Config, options: Options) {
 
   let multi_char_token_names = token_names
     .filter(tn => S.string === typeof options.token[tn])
-
-  /*
-  // TODO: indentical to config.m? 
-  // Char code arrays for lookup by char code.
-  config.s = multi_char_token_names
-    .reduce((a: any, tn) =>
-    (a[tn.substring(1)] =
-      (options.token[tn] as string)
-        .split(MT)
-        .reduce((pm, c) => (pm[c] = config.t[tn], pm), ({} as TinMap)),
-      a), {})
-  */
 
   config.m = multi_char_token_names
     .reduce((a: any, tn) =>

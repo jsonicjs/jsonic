@@ -7,6 +7,7 @@ const keys = Object.keys;
 const assign = Object.assign;
 const defprop = Object.defineProperty;
 // A bit pedantic, but let's be strict about strings.
+// Also improves minification a little.
 const S = {
     object: 'object',
     string: 'string',
@@ -217,23 +218,6 @@ function make_default_options() {
 class JsonicError extends SyntaxError {
     constructor(code, details, token, rule, ctx) {
         details = deep({}, details);
-        /*
-        let errctx: any = deep({}, {
-          rI: ctx.uI,
-          options: ctx.opts,
-          config: ctx.cnfg,
-          meta: ctx.meta,
-          src: () => ctx.src(),
-          plugins: () => ctx.plgn(),
-          // node: ctx.node,
-          t0: ctx.t0,
-          t1: ctx.t1,
-          tI: ctx.tI,
-          log: ctx.log,
-          use: ctx.use
-        })
-        */
-        //let desc = errdesc(code, details, token, rule, errctx)
         let desc = errdesc(code, details, token, rule, ctx);
         super(desc.message);
         assign(this, desc);
@@ -836,7 +820,6 @@ var RuleState;
     RuleState[RuleState["close"] = 1] = "close";
 })(RuleState || (RuleState = {}));
 /* $lab:coverage:on$ */
-//const UNDEF: any = {}
 class Rule {
     constructor(spec, ctx, node) {
         this.id = ctx.uI++;
@@ -871,8 +854,8 @@ class Alt {
     }
 }
 exports.Alt = Alt;
-const palt = new Alt(); // As with lexing, only one alt object is created.
-const empty_alt = new Alt();
+const PALT = new Alt(); // As with lexing, only one alt object is created.
+const EMPTY_ALT = new Alt();
 class RuleSpec {
     constructor(def) {
         this.name = '-';
@@ -929,9 +912,9 @@ class RuleSpec {
             }
         }
         // Attempt to match one of the alts.
-        let alt = (bout && bout.alt) ? { ...empty_alt, ...bout.alt } :
+        let alt = (bout && bout.alt) ? { ...EMPTY_ALT, ...bout.alt } :
             0 < alts.length ? this.parse_alts(alts, rule, ctx) :
-                empty_alt;
+                EMPTY_ALT;
         // Custom alt handler.
         if (alt.h) {
             alt = alt.h(rule, ctx, alt, next) || alt;
@@ -1018,9 +1001,9 @@ class RuleSpec {
         return next;
     }
     // First match wins.
-    // NOTE: input alts specs (untyped) are used to build the Alt output.
+    // NOTE: input AltSpecs are used to build the Alt output.
     parse_alts(alts, rule, ctx) {
-        let out = palt;
+        let out = PALT;
         out.m = []; // Match 0, 1, or 2 tokens in order .
         out.b = 0; // Backtrack n tokens.
         out.p = MT; // Push named rule onto stack. 
@@ -1269,6 +1252,7 @@ class Parser {
                 },
             }
         };
+        // TODO: just create the RuleSpec directly
         this.rsm = keys(rules).reduce((rsm, rn) => {
             rsm[rn] = new RuleSpec(rules[rn]);
             rsm[rn].name = rn;
@@ -1295,8 +1279,6 @@ class Parser {
         return rs;
     }
     start(lexer, src, jsonic, meta, parent_ctx) {
-        //let options = this.options
-        //let config = this.config
         let root;
         let ctx = {
             uI: 1,
@@ -1307,7 +1289,6 @@ class Parser {
             root: () => root.node,
             plgn: () => jsonic.internal().plugins,
             rule: NONE,
-            //node: undefined,
             xs: -1,
             v2: lexer.end,
             v1: lexer.end,
@@ -1337,7 +1318,7 @@ class Parser {
         // Maximum rule iterations (prevents infinite loops). Allow for
         // rule open and close, and for each rule on each char to be
         // virtual (like map, list), and double for safety margin (allows
-        // lots of backtracking), and apply a multipler.
+        // lots of backtracking), and apply a multipler options as a get-out-of-jail.
         let maxr = 2 * keys(this.rsm).length * lex.src.length *
             2 * this.options.rule.maxmul;
         // Lex next token.
@@ -1369,7 +1350,7 @@ class Parser {
                 ctx.log(S.stack, ctx.rs.length, ctx.rs.map((r) => r.name + '~' + r.id).join('/'), rule, ctx);
             rI++;
         }
-        // TODO: option for this
+        // TODO: option to allow trailing content
         if (tokenize('#ZZ', this.config) !== ctx.t0.tin) {
             throw new JsonicError(S.unexpected, {}, ctx.t0, NONE, ctx);
         }
@@ -1511,7 +1492,7 @@ function make(param_options, parent) {
     return jsonic;
 }
 exports.make = make;
-// Utilityfunctions
+// Utility functions
 function srcfmt(config) {
     return (s, _) => null == s ? MT : (_ = JSON.stringify(s),
         _.substring(0, config.d.maxlen) +
@@ -1749,7 +1730,6 @@ function parserwrap(parser) {
                         root: () => undefined,
                         plgn: () => jsonic.internal().plugins,
                         rule: NONE,
-                        node: undefined,
                         xs: -1,
                         v2: token,
                         v1: token,
@@ -1826,17 +1806,6 @@ function configure(config, options) {
         config.t[tn], a), {});
     let multi_char_token_names = token_names
         .filter(tn => S.string === typeof options.token[tn]);
-    /*
-    // TODO: indentical to config.m?
-    // Char code arrays for lookup by char code.
-    config.s = multi_char_token_names
-      .reduce((a: any, tn) =>
-      (a[tn.substring(1)] =
-        (options.token[tn] as string)
-          .split(MT)
-          .reduce((pm, c) => (pm[c] = config.t[tn], pm), ({} as TinMap)),
-        a), {})
-    */
     config.m = multi_char_token_names
         .reduce((a, tn) => (a[tn.substring(1)] =
         options.token[tn]
