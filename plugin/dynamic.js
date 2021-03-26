@@ -27,8 +27,8 @@ let Dynamic = function dynamic(jsonic) {
                 rule.open[1].use = rule;
             }
         };
-        let bc = rs.def.before_close;
-        rs.def.before_close = (rule, _ctx) => {
+        let bc = rs.def.bc;
+        rs.def.bc = (rule, _ctx) => {
             if (rule.open[0] && rule.open[1]) {
                 if (T$ === rule.open[0].tin && T$ !== rule.open[1].tin) {
                     let expr = (rule.open[0].use ? '$' : '') + rule.open[1].val;
@@ -59,8 +59,8 @@ let Dynamic = function dynamic(jsonic) {
     });
     jsonic.rule('pair', (rs) => {
         let ST = jsonic.token.ST;
-        let orig_before_close = rs.def.before_close;
-        rs.def.before_close = function (rule, ctx) {
+        let orig_bc = rs.def.bc;
+        rs.def.bc = function (rule, ctx) {
             let token = rule.open[0];
             let key = ST === token.tin ? token.val : token.src;
             let val = rule.child.node;
@@ -71,14 +71,14 @@ let Dynamic = function dynamic(jsonic) {
                 defineProperty(rule.node, key, val, ctx.root, ctx.meta, ctx.options.map.extend);
             }
             else {
-                return orig_before_close(...arguments);
+                return orig_bc(...arguments);
             }
         };
         return rs;
     });
     jsonic.rule('elem', (rs) => {
-        let orig_before_close = rs.def.before_close;
-        rs.def.before_close = (rule, ctx) => {
+        let orig_bc = rs.def.bc;
+        rs.def.bc = (rule, ctx) => {
             let val = rule.child.node;
             /* $lab:coverage:off$ */
             if ('function' === typeof (val) && val.__eval$$) {
@@ -87,7 +87,7 @@ let Dynamic = function dynamic(jsonic) {
                 defineProperty(rule.node, rule.node.length, val, ctx.root, ctx.meta, ctx.options.map.extend);
             }
             else {
-                return orig_before_close(rule, ctx);
+                return orig_bc(rule, ctx);
             }
         };
         return rs;

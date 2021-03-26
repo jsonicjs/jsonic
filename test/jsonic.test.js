@@ -613,7 +613,7 @@ describe('jsonic', function () {
         ],
         bo: ()=>(b+='bo;'),
         after_open: ()=>(b+='ao;'),
-        before_close: ()=>(b+='bc;'),
+        bc: ()=>(b+='bc;'),
         after_close: ()=>(b+='ac;'),
       })
     })
@@ -635,7 +635,7 @@ describe('jsonic', function () {
         close:[{s:[AA,AA], h:(alt,rule)=>(rule.node=2222, alt)}],
         bo: ()=>(b+='bo;'),
         after_open: ()=>(b+='ao;'),
-        before_close: ()=>(b+='bc;'),
+        bc: ()=>(b+='bc;'),
         after_close: ()=>(b+='ac;'),
 
       })
@@ -687,7 +687,7 @@ describe('jsonic', function () {
     j.rule('top', () => {
       let rs = new RuleSpec({
         ...rsdef,
-        before_close: ()=>({err:'unexpected', src:'BC'}),
+        bc: ()=>({err:'unexpected', src:'BC'}),
       })
       return rs
     })
@@ -728,7 +728,7 @@ describe('jsonic', function () {
     j.rule('top', () => {
       let rs = new RuleSpec({
         ...rsdef,
-        before_close: ()=>({node:'BC'}),
+        bc: ()=>({node:'BC'}),
       })
       return rs
     })
@@ -756,7 +756,7 @@ describe('jsonic', function () {
 
     j.rule('top', () => {
       let rs = new RuleSpec({
-        before_close: ()=>({alt:{m:[{val:'YY'}],test$:1}}),
+        bc: ()=>({alt:{m:[{val:'YY'}],test$:1}}),
         after_close: (rule,ctx)=>{
           rule.node=rule.close[0].val
         }

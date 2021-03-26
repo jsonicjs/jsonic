@@ -111,8 +111,8 @@ let Native: Plugin = function native(jsonic: Jsonic) {
   })
 
   jsonic.rule('elem', (rs: RuleSpec) => {
-    let orig_before_close = rs.def.before_close
-    rs.def.before_close = function(rule: Rule, ctx: Context) {
+    let orig_bc = rs.def.bc
+    rs.def.bc = function(rule: Rule, ctx: Context) {
 
       /* $lab:coverage:off$ */
       if (ctx.u1.use && ctx.u1.use.undefined) {
@@ -121,7 +121,7 @@ let Native: Plugin = function native(jsonic: Jsonic) {
         rule.node.push(undefined)
       }
       else {
-        return orig_before_close(...arguments)
+        return orig_bc(...arguments)
       }
     }
     return rs

@@ -68,7 +68,7 @@ fields per row are expected.`,
                 { s: [LN, ZZ] },
                 { s: [LN], r: 'record' }
             ],
-            before_close: (rule, ctx) => {
+            bc: (rule, ctx) => {
                 let fields = ctx.use.fields;
                 if (null == fields) {
                     fields = ctx.use.fields = rule.child.node;

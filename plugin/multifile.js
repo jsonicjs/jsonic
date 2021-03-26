@@ -39,8 +39,8 @@ let Multifile = function multifile(jsonic) {
     let AT = jsonic.token(tn);
     jsonic.rule('val', (rs) => {
         rs.def.open.push({ s: [AT, ST] }, { s: [AT, TX] });
-        let orig_before_close = rs.def.before_close;
-        rs.def.before_close = function (rule, ctx) {
+        let orig_bc = rs.def.bc;
+        rs.def.bc = function (rule, ctx) {
             if (rule.open[0] && AT === rule.open[0].tin) {
                 // TODO: test TX=foo/bar as @"foo/bar" works but @foo/bar does not!
                 let filepath = rule.open[1].val;
@@ -84,7 +84,7 @@ let Multifile = function multifile(jsonic) {
                 }
                 rule.open[0].val = val;
             }
-            return orig_before_close(...arguments);
+            return orig_bc(...arguments);
         };
         return rs;
     });

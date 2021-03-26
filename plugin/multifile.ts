@@ -47,8 +47,8 @@ let Multifile: Plugin = function multifile(jsonic: Jsonic) {
       { s: [AT, TX] }
     )
 
-    let orig_before_close = rs.def.before_close
-    rs.def.before_close = function(rule: Rule, ctx: Context) {
+    let orig_bc = rs.def.bc
+    rs.def.bc = function(rule: Rule, ctx: Context) {
       if (rule.open[0] && AT === rule.open[0].tin) {
 
         // TODO: test TX=foo/bar as @"foo/bar" works but @foo/bar does not!
@@ -102,7 +102,7 @@ let Multifile: Plugin = function multifile(jsonic: Jsonic) {
 
         rule.open[0].val = val
       }
-      return orig_before_close(...arguments)
+      return orig_bc(...arguments)
     }
 
     return rs

@@ -87,15 +87,15 @@ let Native = function native(jsonic) {
         return out;
     });
     jsonic.rule('elem', (rs) => {
-        let orig_before_close = rs.def.before_close;
-        rs.def.before_close = function (rule, ctx) {
+        let orig_bc = rs.def.bc;
+        rs.def.bc = function (rule, ctx) {
             /* $lab:coverage:off$ */
             if (ctx.u1.use && ctx.u1.use.undefined) {
                 /* $lab:coverage:on$ */
                 rule.node.push(undefined);
             }
             else {
-                return orig_before_close(...arguments);
+                return orig_bc(...arguments);
             }
         };
         return rs;

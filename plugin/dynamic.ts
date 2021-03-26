@@ -41,8 +41,8 @@ let Dynamic: Plugin = function dynamic(jsonic: Jsonic) {
       }
     }
 
-    let bc = rs.def.before_close
-    rs.def.before_close = (rule: Rule, _ctx: Context) => {
+    let bc = rs.def.bc
+    rs.def.bc = (rule: Rule, _ctx: Context) => {
       if (rule.open[0] && rule.open[1]) {
         if (T$ === rule.open[0].tin && T$ !== rule.open[1].tin) {
 
@@ -81,8 +81,8 @@ let Dynamic: Plugin = function dynamic(jsonic: Jsonic) {
   jsonic.rule('pair', (rs: RuleSpec): RuleSpec => {
     let ST = jsonic.token.ST
 
-    let orig_before_close = rs.def.before_close
-    rs.def.before_close = function(rule: Rule, ctx: Context) {
+    let orig_bc = rs.def.bc
+    rs.def.bc = function(rule: Rule, ctx: Context) {
       let token = rule.open[0]
       let key = ST === token.tin ? token.val : token.src
       let val = rule.child.node
@@ -103,7 +103,7 @@ let Dynamic: Plugin = function dynamic(jsonic: Jsonic) {
       }
 
       else {
-        return orig_before_close(...arguments)
+        return orig_bc(...arguments)
       }
     }
     return rs
@@ -112,8 +112,8 @@ let Dynamic: Plugin = function dynamic(jsonic: Jsonic) {
 
   jsonic.rule('elem', (rs: RuleSpec): RuleSpec => {
 
-    let orig_before_close = rs.def.before_close
-    rs.def.before_close = (rule: Rule, ctx: Context) => {
+    let orig_bc = rs.def.bc
+    rs.def.bc = (rule: Rule, ctx: Context) => {
       let val = rule.child.node
 
       /* $lab:coverage:off$ */
@@ -132,7 +132,7 @@ let Dynamic: Plugin = function dynamic(jsonic: Jsonic) {
       }
 
       else {
-        return orig_before_close(rule, ctx)
+        return orig_bc(rule, ctx)
       }
     }
     return rs

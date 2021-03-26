@@ -771,8 +771,8 @@ function make_token_plugin(char, val) {
     jsonic.rule('val', (rs) => {
       rs.def.open.push({ s: [TT] })
 
-      let bc = rs.def.before_close
-      rs.def.before_close = (rule) => {
+      let bc = rs.def.bc
+      rs.def.bc = (rule) => {
         if (rule.open[0] && TT === rule.open[0].tin) {
           rule.open[0].val = val
         }

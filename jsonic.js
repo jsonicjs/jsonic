@@ -910,7 +910,7 @@ class RuleSpec {
         // Handle "before" call.
         let before = is_open ?
             (rule.bo && def.bo) :
-            (rule.bc && def.before_close);
+            (rule.bc && def.bc);
         let bout;
         if (before) {
             bout = before.call(this, rule, ctx);
@@ -1163,7 +1163,7 @@ class Parser {
                     // Close value, and map or list, but perhaps there are more elem?
                     { s: [AA], b: 1 },
                 ],
-                before_close: (rule) => {
+                bc: (rule) => {
                     // NOTE: val can be undefined when there is no value at all
                     // (eg. empty string, thus no matched opening token)
                     rule.node =
@@ -1216,7 +1216,7 @@ class Parser {
                     },
                     { s: [ZZ], e: finish, g: S.end },
                 ],
-                before_close: (rule, ctx) => {
+                bc: (rule, ctx) => {
                     let key_token = rule.open[0];
                     if (key_token && CB !== key_token.tin) {
                         let key = ST === key_token.tin ? key_token.val : key_token.src;
@@ -1255,7 +1255,7 @@ class Parser {
                     { s: [[TX, NR, ST, VL]], r: S.elem, b: 1 },
                     { s: [ZZ], e: finish, g: S.end },
                 ],
-                before_close: (rule) => {
+                bc: (rule) => {
                     if (undefined !== rule.child.node) {
                         rule.node.push(rule.child.node);
                     }
