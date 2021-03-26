@@ -177,12 +177,12 @@ function make_default_options() {
             // Multi-char tokens (start chars).
             '#SP': ' \t',
             '#LN': '\n\r',
-            '#CM': true,
-            '#NR': '-0123456789',
+            '#NR': '-0123456789+',
             '#ST': '"\'`',
             // General char tokens.
             '#TX': true,
             '#VL': true,
+            '#CM': true,
             // Non-char tokens.
             '#BD': true,
             '#ZZ': true,

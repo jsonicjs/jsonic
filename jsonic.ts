@@ -1,7 +1,6 @@
 /* Copyright (c) 2013-2021 Richard Rodger, MIT License */
 
 // TODO: quotes are value enders - x:a"a" is an err! not 'a"a"'
-// TODO: allow + to precede a number
 // TODO: tag should appear in error
 // TODO: remove console colors in browser?
 // post release: 
@@ -487,15 +486,15 @@ function make_default_options(): Options {
       '#CA': { c: ',' }, // COMMA
 
       // Multi-char tokens (start chars).
-      '#SP': ' \t',         // SPACE - NOTE: first char is used for indents
-      '#LN': '\n\r',        // LINE
-      '#CM': true,          // COMMENT
-      '#NR': '-0123456789', // NUMBER
-      '#ST': '"\'`',        // STRING
+      '#SP': ' \t',          // SPACE - NOTE: first char is used for indents
+      '#LN': '\n\r',         // LINE
+      '#NR': '-0123456789+', // NUMBER
+      '#ST': '"\'`',         // STRING
 
       // General char tokens.
       '#TX': true, // TEXT
       '#VL': true, // VALUE
+      '#CM': true, // COMMENT
 
       // Non-char tokens.
       '#BD': true, // BAD
