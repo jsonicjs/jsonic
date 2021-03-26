@@ -33,7 +33,7 @@ let Dynamic: Plugin = function dynamic(jsonic: Jsonic) {
     rs.def.close.unshift({ s: [T$], r: 'val' })
 
     // Special case: `$$`
-    rs.def.after_open = (rule: Rule) => {
+    rs.def.ao = (rule: Rule) => {
       if (rule.open[0] && rule.open[1] &&
         T$ === rule.open[0].tin &&
         T$ === rule.open[1].tin) {

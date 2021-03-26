@@ -165,7 +165,7 @@ describe('docs', function () {
     let HH = concat.token.HH
     concat.rule('hundred', ()=>{
       return new RuleSpec({
-        after_open: (rule)=>{
+        ao: (rule)=>{
           rule.node = 100
         }
       })

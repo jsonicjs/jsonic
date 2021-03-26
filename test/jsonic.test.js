@@ -612,7 +612,7 @@ describe('jsonic', function () {
           {s:[AA,AA]}
         ],
         bo: ()=>(b+='bo;'),
-        after_open: ()=>(b+='ao;'),
+        ao: ()=>(b+='ao;'),
         bc: ()=>(b+='bc;'),
         after_close: ()=>(b+='ac;'),
       })
@@ -634,7 +634,7 @@ describe('jsonic', function () {
         open: [{s:[AA,AA]}],
         close:[{s:[AA,AA], h:(alt,rule)=>(rule.node=2222, alt)}],
         bo: ()=>(b+='bo;'),
-        after_open: ()=>(b+='ao;'),
+        ao: ()=>(b+='ao;'),
         bc: ()=>(b+='bc;'),
         after_close: ()=>(b+='ac;'),
 
@@ -678,7 +678,7 @@ describe('jsonic', function () {
     j.rule('top', () => {
       let rs = new RuleSpec({
         ...rsdef,
-        after_open: ()=>({err:'unexpected', src:'AO'}),
+        ao: ()=>({err:'unexpected', src:'AO'}),
       })
       return rs
     })
@@ -778,7 +778,7 @@ describe('jsonic', function () {
       let rs = new RuleSpec({
         open: [{s:[AA,AA]}],
         bo: (rule)=>(rule.node=[]),
-        after_open: (rule,ctx)=>({
+        ao: (rule,ctx)=>({
           next: 'a' === ctx.t0.val ? new Rule(ctx.rsm.foo, ctx, rule.node) : null
         }),
       })

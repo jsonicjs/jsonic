@@ -20,7 +20,7 @@ let Dynamic = function dynamic(jsonic) {
         rs.def.open.push({ s: [T$, ST] }, { s: [T$, TX] }, { s: [T$, NR] }, { s: [T$, VL] }, { s: [T$, T$], b: 2 });
         rs.def.close.unshift({ s: [T$], r: 'val' });
         // Special case: `$$`
-        rs.def.after_open = (rule) => {
+        rs.def.ao = (rule) => {
             if (rule.open[0] && rule.open[1] &&
                 T$ === rule.open[0].tin &&
                 T$ === rule.open[1].tin) {
