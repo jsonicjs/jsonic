@@ -1,6 +1,6 @@
 /* Copyright (c) 2013-2021 Richard Rodger, MIT License */
 
-import { Jsonic, Plugin, Rule, RuleSpec, Context } from '../jsonic'
+import { Jsonic, Plugin, Rule, RuleSpec, Context, Alt } from '../jsonic'
 
 
 let Csv: Plugin = function csv(jsonic: Jsonic) {
@@ -54,7 +54,7 @@ fields per row are expected.`,
 
 
   // Match alt only if first occurrence of rule 
-  let first = (_alt: any, rule: Rule, ctx: Context) => {
+  let first = (rule: Rule, ctx: Context) => {
     let use: any = ctx.use.csv = (ctx.use.csv || {})
     let frm: any = use.frm = (use.frm || { val: true, list: true, record: true })
     let res = (frm[rule.name] && (frm[rule.name] = false, true)) // locking latch

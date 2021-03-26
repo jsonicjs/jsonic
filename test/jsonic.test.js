@@ -540,18 +540,18 @@ describe('jsonic', function () {
       open:[{c:{n:{a:10,b:20}}}]
     })
     let c0 = rs2.def.open[0].c
-    expect(c0({},{n:{}},{})).equals(true)
-    expect(c0({},{n:{a:5}},{})).equals(true)
-    expect(c0({},{n:{a:10}},{})).equals(true)
-    expect(c0({},{n:{a:15}},{})).equals(false)
-    expect(c0({},{n:{b:19}},{})).equals(true)
-    expect(c0({},{n:{b:20}},{})).equals(true)
-    expect(c0({},{n:{b:21}},{})).equals(false)
+    expect(c0({n:{}})).equals(true)
+    expect(c0({n:{a:5}})).equals(true)
+    expect(c0({n:{a:10}})).equals(true)
+    expect(c0({n:{a:15}})).equals(false)
+    expect(c0({n:{b:19}})).equals(true)
+    expect(c0({n:{b:20}})).equals(true)
+    expect(c0({n:{b:21}})).equals(false)
 
-    expect(c0({},{n:{a:10,b:20}},{})).equals(true)
-    expect(c0({},{n:{a:10,b:21}},{})).equals(false)
-    expect(c0({},{n:{a:11,b:21}},{})).equals(false)
-    expect(c0({},{n:{a:11,b:20}},{})).equals(false)
+    expect(c0({n:{a:10,b:20}})).equals(true)
+    expect(c0({n:{a:10,b:21}})).equals(false)
+    expect(c0({n:{a:11,b:21}})).equals(false)
+    expect(c0({n:{a:11,b:20}})).equals(false)
   })
 
 
@@ -597,7 +597,7 @@ describe('jsonic', function () {
         open: [
           {
             s:[AA,AA],
-            h: (alt,rule) => {
+            h: (rule,ctx,alt) => {
               // No effect: rule.bo - bo already called at this point.
               // rule.bo = false
               rule.ao = false
@@ -632,7 +632,7 @@ describe('jsonic', function () {
     j.rule('top', () => {
       let rs = new RuleSpec({
         open: [{s:[AA,AA]}],
-        close:[{s:[AA,AA], h:(alt,rule)=>(rule.node=2222, alt)}],
+        close:[{s:[AA,AA], h:(rule,ctx,alt)=>(rule.node=2222, undefined)}],
         bo: ()=>(b+='bo;'),
         ao: ()=>(b+='ao;'),
         bc: ()=>(b+='bc;'),

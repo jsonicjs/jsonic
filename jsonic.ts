@@ -1419,6 +1419,7 @@ class Rule {
   open: Token[]
   close: Token[]
   n: KV
+  use: any
   bo: boolean // Call bo (before-open).
   ao: boolean // Call ao (after-open).
   bc: boolean // Call bc (before-close).
@@ -1435,6 +1436,7 @@ class Rule {
     this.open = []
     this.close = []
     this.n = {}
+    this.use = {}
     this.bo = false === spec.bo ? false : true
     this.ao = false === spec.ao ? false : true
     this.bc = false === spec.bc ? false : true
@@ -1450,18 +1452,45 @@ class Rule {
 
 const NONE = ({ name: S.none, state: 0 } as Rule)
 
-class Alt {
-  m: Token[] = []
-  p: string = MT
-  r: string = MT
-  b: number = 0
+// Parse alternate specification provided by rule.
+type AltSpec = {
+  s?: any[]      // Token tin sequence to match (0,1,2 tins, or a subset of tins).
+  p?: string
+  r?: string
+  b?: number
+  c?: AltCond
+  d?: number     // Rule stack depth to match.
   n?: any
-  h?: any
-  a?: any
-  e?: Token
+  a?: AltAction
+  h?: AltHandler
+  u?: any
+  g?: string[]
+  e?: AltError
 }
 
-const palt = new Alt()
+// NOTE: errors are specified using tokens to capture row and col.
+type AltError = (rule: Rule, ctx: Context, alt: Alt) => Token | undefined
+
+// Parse match alternate (built from current tokens and AltSpec).
+class Alt {
+  m: Token[] = []   // Matched tokens (not tins!).
+  p: string = MT    // Push rule (by name).
+  r: string = MT    // Replace rule (by name).
+  b: number = 0     // Move token position backward.
+  c?: AltCond       // Custom alt match condition.
+  n?: any           // increment named counters.
+  a?: AltAction     // Match actions.
+  h?: AltHandler    // Custom match handler.
+  u?: any           // Custom properties to add to Rule.use.
+  g?: string[]      // Named groups for this alt (allows plugins to find alts).
+  e?: Token         // Error on this token (giving row and col).
+}
+
+type AltCond = (rule: Rule, ctx: Context, alt: Alt) => boolean
+type AltHandler = (rule: Rule, ctx: Context, alt: Alt, next: Rule) => Alt
+type AltAction = (rule: Rule, ctx: Context, alt: Alt, next: Rule) => void
+
+const palt = new Alt() // As with lexing, only one alt object is created.
 const empty_alt = new Alt()
 
 
@@ -1470,8 +1499,8 @@ type RuleDef = {
   close?: any[]
   bo?: (rule: Rule, ctx: Context) => any
   bc?: (rule: Rule, ctx: Context) => any
-  ao?: (rule: Rule, ctx: Context, next: Rule) => any
-  ac?: (rule: Rule, ctx: Context, next: Rule) => any
+  ao?: (rule: Rule, ctx: Context, alt: Alt, next: Rule) => any
+  ac?: (rule: Rule, ctx: Context, alt: Alt, next: Rule) => any
 }
 
 
@@ -1486,11 +1515,11 @@ class RuleSpec {
   constructor(def: any) {
     this.def = def || {}
 
-    function norm_alt(alt: any) {
+    function norm_alt(alt: Alt) {
       // Convert counter abbrev condition into an actual function.
-      if (null != alt.c && alt.c.n) {
-        let counters = alt.c.n
-        alt.c = (_alt: KV, rule: Rule, _ctx: Context) => {
+      let counters = null != alt.c && (alt.c as any).n
+      if (counters) {
+        alt.c = (rule: Rule) => {
           let pass = true
           for (let cn in counters) {
             pass = pass && (null == rule.n[cn] || (rule.n[cn] <= counters[cn]))
@@ -1501,7 +1530,7 @@ class RuleSpec {
 
       // Ensure groups are a string[]
       if (S.string === typeof (alt.g)) {
-        alt.g = alt.g.split(/\s*,\s*/)
+        alt.g = (alt as any).g.split(/\s*,\s*/)
       }
     }
 
@@ -1524,7 +1553,7 @@ class RuleSpec {
     let def: RuleDef = this.def
 
     // Match alternates for current state.
-    let alts = (is_open ? def.open : def.close) as Alt[]
+    let alts = (is_open ? def.open : def.close) as AltSpec[]
 
     // Handle "before" call.
     let before = is_open ?
@@ -1551,7 +1580,7 @@ class RuleSpec {
 
     // Custom alt handler.
     if (alt.h) {
-      alt = alt.h(alt, rule, ctx, next) || alt
+      alt = alt.h(rule, ctx, alt, next) || alt
       why += 'H'
     }
 
@@ -1580,13 +1609,18 @@ class RuleSpec {
       }
     }
 
+    // Set custom properties
+    if (alt.u) {
+      rule.use = Object.assign(rule.use, alt.u)
+    }
+
     // Action call.
     if (alt.a) {
       why += 'A'
-      alt.a.call(this, rule, ctx, next)
+      alt.a.call(this, rule, ctx, alt, next)
     }
 
-    // Push a new rule onto the stack.
+    // Push a new rule onto the stack...
     if (alt.p) {
       ctx.rs.push(rule)
       next = rule.child = new Rule(ctx.rsm[alt.p], ctx, rule.node)
@@ -1595,7 +1629,7 @@ class RuleSpec {
       why += 'U'
     }
 
-    // Replace with a new rule.
+    // ...or replace with a new rule.
     else if (alt.r) {
       next = new Rule(ctx.rsm[alt.r], ctx, rule.node)
       next.parent = rule.parent
@@ -1611,14 +1645,13 @@ class RuleSpec {
       why += 'Z'
     }
 
-
     // Handle "after" call.
     let after = is_open ?
       (rule.ao && def.ao) :
       (rule.ac && def.ac)
 
     if (after) {
-      let aout = after.call(this, rule, ctx, next)
+      let aout = after.call(this, rule, ctx, alt, next)
       if (aout) {
         if (aout.err) {
           ctx.t0.why = why
@@ -1640,6 +1673,7 @@ class RuleSpec {
       F(rule.node)
     )
 
+
     // Lex next tokens (up to backtrack).
     let mI = 0
     let rewind = alt.m.length - (alt.b || 0)
@@ -1656,9 +1690,9 @@ class RuleSpec {
   }
 
 
-  // TODO: merge into process - maybe?
   // First match wins.
-  parse_alts(alts: any[], rule: Rule, ctx: Context): Alt {
+  // NOTE: input alts specs (untyped) are used to build the Alt output.
+  parse_alts(alts: AltSpec[], rule: Rule, ctx: Context): Alt {
     let out = palt
     out.m = []          // Match 0, 1, or 2 tokens in order .
     out.b = 0           // Backtrack n tokens.
@@ -1666,7 +1700,8 @@ class RuleSpec {
     out.r = MT          // Replace current rule with named rule.
     out.n = undefined   // Increment named counters.
     out.h = undefined   // Custom handler function.
-    out.a = undefined
+    out.a = undefined   // Rule action.
+    out.u = undefined   // Custom rule properties.
     out.e = undefined   // Error token.
 
     let alt
@@ -1707,7 +1742,7 @@ class RuleSpec {
       }
 
       // Optional custom condition
-      cond = cond && (alt.c ? alt.c(alt, rule, ctx) : true)
+      cond = cond && (alt.c ? alt.c(rule, ctx, out) : true)
 
       // Depth.
       cond = cond && (null == alt.d ? true : alt.d === ctx.rs.length)
@@ -1725,7 +1760,7 @@ class RuleSpec {
     }
 
     if (null != alt) {
-      out.e = alt.e && alt.e(alt, rule, ctx) || undefined
+      out.e = alt.e && alt.e(rule, ctx, out) || undefined
 
       out.b = alt.b ? alt.b : out.b
       out.p = alt.p ? alt.p : out.p
@@ -1733,6 +1768,7 @@ class RuleSpec {
       out.n = alt.n ? alt.n : out.n
       out.h = alt.h ? alt.h : out.h
       out.a = alt.a ? alt.a : out.a
+      out.u = alt.u ? alt.u : out.u
     }
 
     ctx.log && ctx.log(
@@ -1741,8 +1777,8 @@ class RuleSpec {
       RuleState[rule.state],
       altI < alts.length ? 'alt=' + altI : 'no-alt',
       altI < alts.length &&
-        alt.s ?
-        '[' + alt.s.map((pin: Tin) => t[pin]).join(' ') + ']' : '[]',
+        (alt as any).s ?
+        '[' + (alt as any).s.map((pin: Tin) => t[pin]).join(' ') + ']' : '[]',
       ctx.tC,
       'p=' + (out.p || MT),
       'r=' + (out.r || MT),
@@ -1751,6 +1787,7 @@ class RuleSpec {
       ctx.F(out.m.map((tkn: Token) => tkn.src)),
       'c:' + ((alt && alt.c) ? cond : MT),
       'n:' + Object.entries(rule.n).join(';'),
+      'u:' + Object.entries(rule.use).join(';'),
       out)
 
     return out
@@ -1790,7 +1827,7 @@ class Parser {
     let AA = t.AA
     let ZZ = t.ZZ
 
-    let finish = (_alt: any, _rule: Rule, ctx: Context) => {
+    let finish: AltError = (_rule: Rule, ctx: Context) => {
       if (!this.options.rule.finish) {
         // TODO: needs own error code
         ctx.t0.src = S.END_OF_SOURCE
@@ -1836,14 +1873,13 @@ class Parser {
             g: S.imp_null
           },
         ],
+
         close: [
           // Implicit list works only at top level
 
           {
             s: [CA], d: 0, r: S.elem,
-            h: (_alt: Alt, rule: Rule, _ctx: Context) => {
-              rule.node = [rule.node]
-            },
+            a: (rule: Rule) => rule.node = [rule.node],
             g: S.imp_list
           },
 
@@ -1851,7 +1887,7 @@ class Parser {
           // and thus can specify m to move lex forward
           // Handle space separated elements (no CA)
           {
-            c: (_alt: Alt, _rule: Rule, ctx: Context) => {
+            c: (_rule: Rule, ctx: Context, _alt: Alt) => {
               return (TX === ctx.t0.tin ||
                 NR === ctx.t0.tin ||
                 ST === ctx.t0.tin ||
@@ -1859,9 +1895,7 @@ class Parser {
               ) && 0 === ctx.rs.length
             },
             r: S.elem,
-            h: (_alt: Alt, rule: Rule, _ctx: Context) => {
-              rule.node = [rule.node]
-            },
+            a: (rule: Rule) => rule.node = [rule.node],
             g: S.imp_list
           },
 
@@ -1907,7 +1941,7 @@ class Parser {
       pair: {
         open: [
           // TODO: rule.use.key=true
-          { s: [[TX, NR, ST, VL], CL], p: S.val },
+          { s: [[TX, NR, ST, VL], CL], p: S.val, u: { key: true } },
           { s: [CB], b: 1 }, // empty
         ],
         close: [
@@ -1934,8 +1968,8 @@ class Parser {
           { s: [ZZ], e: finish, g: S.end },
         ],
         bc: (rule: Rule, ctx: Context) => {
-          let key_token = rule.open[0]
-          if (key_token && CB !== key_token.tin) {
+          if (rule.use.key) {
+            let key_token = rule.open[0]
             let key = ST === key_token.tin ? key_token.val : key_token.src
             let val = rule.child.node
             let prev = rule.node[key]
@@ -2957,6 +2991,9 @@ export {
   LexMatcherResult,
   LexMatcherState,
   Alt,
+  AltCond,
+  AltHandler,
+  AltAction,
   util,
   make,
 }

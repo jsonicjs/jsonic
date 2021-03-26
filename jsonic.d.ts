@@ -245,6 +245,7 @@ declare class Rule {
     open: Token[];
     close: Token[];
     n: KV;
+    use: any;
     bo: boolean;
     ao: boolean;
     bc: boolean;
@@ -253,16 +254,37 @@ declare class Rule {
     constructor(spec: RuleSpec, ctx: Context, node?: any);
     process(ctx: Context): Rule;
 }
+declare type AltSpec = {
+    s?: any[];
+    p?: string;
+    r?: string;
+    b?: number;
+    c?: AltCond;
+    d?: number;
+    n?: any;
+    a?: AltAction;
+    h?: AltHandler;
+    u?: any;
+    g?: string[];
+    e?: AltError;
+};
+declare type AltError = (rule: Rule, ctx: Context, alt: Alt) => Token | undefined;
 declare class Alt {
     m: Token[];
     p: string;
     r: string;
     b: number;
+    c?: AltCond;
     n?: any;
-    h?: any;
-    a?: any;
+    a?: AltAction;
+    h?: AltHandler;
+    u?: any;
+    g?: string[];
     e?: Token;
 }
+declare type AltCond = (rule: Rule, ctx: Context, alt: Alt) => boolean;
+declare type AltHandler = (rule: Rule, ctx: Context, alt: Alt, next: Rule) => Alt;
+declare type AltAction = (rule: Rule, ctx: Context, alt: Alt, next: Rule) => void;
 declare class RuleSpec {
     name: string;
     def: any;
@@ -272,7 +294,7 @@ declare class RuleSpec {
     ac: boolean;
     constructor(def: any);
     process(rule: Rule, ctx: Context, state: RuleState): Rule;
-    parse_alts(alts: any[], rule: Rule, ctx: Context): Alt;
+    parse_alts(alts: AltSpec[], rule: Rule, ctx: Context): Alt;
 }
 declare type RuleSpecMap = {
     [name: string]: RuleSpec;
@@ -332,5 +354,5 @@ declare function parserwrap(parser: any): {
 declare function errdesc(code: string, details: KV, token: Token, rule: Rule, ctx: Context): KV;
 declare function configure(config: Config, options: Options): void;
 declare let Jsonic: Jsonic;
-export { Jsonic, Plugin, JsonicError, Tin, Lexer, Parser, Rule, RuleSpec, RuleSpecMap, Token, Context, Meta, LexMatcher, LexMatcherListMap, LexMatcherResult, LexMatcherState, Alt, util, make, };
+export { Jsonic, Plugin, JsonicError, Tin, Lexer, Parser, Rule, RuleSpec, RuleSpecMap, Token, Context, Meta, LexMatcher, LexMatcherListMap, LexMatcherResult, LexMatcherState, Alt, AltCond, AltHandler, AltAction, util, make, };
 export default Jsonic;

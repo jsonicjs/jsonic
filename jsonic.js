@@ -848,6 +848,7 @@ class Rule {
         this.open = [];
         this.close = [];
         this.n = {};
+        this.use = {};
         this.bo = false === spec.bo ? false : true;
         this.ao = false === spec.ao ? false : true;
         this.bc = false === spec.bc ? false : true;
@@ -860,16 +861,17 @@ class Rule {
 }
 exports.Rule = Rule;
 const NONE = { name: S.none, state: 0 };
+// Parse match alternate (built from current tokens and AltSpec).
 class Alt {
     constructor() {
-        this.m = [];
-        this.p = MT;
-        this.r = MT;
-        this.b = 0;
+        this.m = []; // Matched tokens (not tins!).
+        this.p = MT; // Push rule (by name).
+        this.r = MT; // Replace rule (by name).
+        this.b = 0; // Move token position backward.
     }
 }
 exports.Alt = Alt;
-const palt = new Alt();
+const palt = new Alt(); // As with lexing, only one alt object is created.
 const empty_alt = new Alt();
 class RuleSpec {
     constructor(def) {
@@ -881,9 +883,9 @@ class RuleSpec {
         this.def = def || {};
         function norm_alt(alt) {
             // Convert counter abbrev condition into an actual function.
-            if (null != alt.c && alt.c.n) {
-                let counters = alt.c.n;
-                alt.c = (_alt, rule, _ctx) => {
+            let counters = null != alt.c && alt.c.n;
+            if (counters) {
+                alt.c = (rule) => {
                     let pass = true;
                     for (let cn in counters) {
                         pass = pass && (null == rule.n[cn] || (rule.n[cn] <= counters[cn]));
@@ -932,7 +934,7 @@ class RuleSpec {
                 empty_alt;
         // Custom alt handler.
         if (alt.h) {
-            alt = alt.h(alt, rule, ctx, next) || alt;
+            alt = alt.h(rule, ctx, alt, next) || alt;
             why += 'H';
         }
         // Expose match to handlers.
@@ -954,12 +956,16 @@ class RuleSpec {
                 rule.n[cn] = 0 < rule.n[cn] ? rule.n[cn] : 0;
             }
         }
+        // Set custom properties
+        if (alt.u) {
+            rule.use = Object.assign(rule.use, alt.u);
+        }
         // Action call.
         if (alt.a) {
             why += 'A';
-            alt.a.call(this, rule, ctx, next);
+            alt.a.call(this, rule, ctx, alt, next);
         }
-        // Push a new rule onto the stack.
+        // Push a new rule onto the stack...
         if (alt.p) {
             ctx.rs.push(rule);
             next = rule.child = new Rule(ctx.rsm[alt.p], ctx, rule.node);
@@ -967,7 +973,7 @@ class RuleSpec {
             next.n = { ...rule.n };
             why += 'U';
         }
-        // Replace with a new rule.
+        // ...or replace with a new rule.
         else if (alt.r) {
             next = new Rule(ctx.rsm[alt.r], ctx, rule.node);
             next.parent = rule.parent;
@@ -986,7 +992,7 @@ class RuleSpec {
             (rule.ao && def.ao) :
             (rule.ac && def.ac);
         if (after) {
-            let aout = after.call(this, rule, ctx, next);
+            let aout = after.call(this, rule, ctx, alt, next);
             if (aout) {
                 if (aout.err) {
                     ctx.t0.why = why;
@@ -1011,8 +1017,8 @@ class RuleSpec {
         }
         return next;
     }
-    // TODO: merge into process - maybe?
     // First match wins.
+    // NOTE: input alts specs (untyped) are used to build the Alt output.
     parse_alts(alts, rule, ctx) {
         let out = palt;
         out.m = []; // Match 0, 1, or 2 tokens in order .
@@ -1021,7 +1027,8 @@ class RuleSpec {
         out.r = MT; // Replace current rule with named rule.
         out.n = undefined; // Increment named counters.
         out.h = undefined; // Custom handler function.
-        out.a = undefined;
+        out.a = undefined; // Rule action.
+        out.u = undefined; // Custom rule properties.
         out.e = undefined; // Error token.
         let alt;
         let altI = 0;
@@ -1052,7 +1059,7 @@ class RuleSpec {
                 }
             }
             // Optional custom condition
-            cond = cond && (alt.c ? alt.c(alt, rule, ctx) : true);
+            cond = cond && (alt.c ? alt.c(rule, ctx, out) : true);
             // Depth.
             cond = cond && (null == alt.d ? true : alt.d === ctx.rs.length);
             if (cond) {
@@ -1066,17 +1073,18 @@ class RuleSpec {
             out.e = ctx.t0;
         }
         if (null != alt) {
-            out.e = alt.e && alt.e(alt, rule, ctx) || undefined;
+            out.e = alt.e && alt.e(rule, ctx, out) || undefined;
             out.b = alt.b ? alt.b : out.b;
             out.p = alt.p ? alt.p : out.p;
             out.r = alt.r ? alt.r : out.r;
             out.n = alt.n ? alt.n : out.n;
             out.h = alt.h ? alt.h : out.h;
             out.a = alt.a ? alt.a : out.a;
+            out.u = alt.u ? alt.u : out.u;
         }
         ctx.log && ctx.log(S.parse, rule.name + '~' + rule.id, RuleState[rule.state], altI < alts.length ? 'alt=' + altI : 'no-alt', altI < alts.length &&
             alt.s ?
-            '[' + alt.s.map((pin) => t[pin]).join(' ') + ']' : '[]', ctx.tC, 'p=' + (out.p || MT), 'r=' + (out.r || MT), 'b=' + (out.b || MT), out.m.map((tkn) => t[tkn.tin]).join(' '), ctx.F(out.m.map((tkn) => tkn.src)), 'c:' + ((alt && alt.c) ? cond : MT), 'n:' + Object.entries(rule.n).join(';'), out);
+            '[' + alt.s.map((pin) => t[pin]).join(' ') + ']' : '[]', ctx.tC, 'p=' + (out.p || MT), 'r=' + (out.r || MT), 'b=' + (out.b || MT), out.m.map((tkn) => t[tkn.tin]).join(' '), ctx.F(out.m.map((tkn) => tkn.src)), 'c:' + ((alt && alt.c) ? cond : MT), 'n:' + Object.entries(rule.n).join(';'), 'u:' + Object.entries(rule.use).join(';'), out);
         return out;
     }
 }
@@ -1101,7 +1109,7 @@ class Parser {
         let VL = t.VL;
         let AA = t.AA;
         let ZZ = t.ZZ;
-        let finish = (_alt, _rule, ctx) => {
+        let finish = (_rule, ctx) => {
             if (!this.options.rule.finish) {
                 // TODO: needs own error code
                 ctx.t0.src = S.END_OF_SOURCE;
@@ -1142,25 +1150,21 @@ class Parser {
                     // Implicit list works only at top level
                     {
                         s: [CA], d: 0, r: S.elem,
-                        h: (_alt, rule, _ctx) => {
-                            rule.node = [rule.node];
-                        },
+                        a: (rule) => rule.node = [rule.node],
                         g: S.imp_list
                     },
                     // TODO: merge with above - cond outputs `out` for match
                     // and thus can specify m to move lex forward
                     // Handle space separated elements (no CA)
                     {
-                        c: (_alt, _rule, ctx) => {
+                        c: (_rule, ctx, _alt) => {
                             return (TX === ctx.t0.tin ||
                                 NR === ctx.t0.tin ||
                                 ST === ctx.t0.tin ||
                                 VL === ctx.t0.tin) && 0 === ctx.rs.length;
                         },
                         r: S.elem,
-                        h: (_alt, rule, _ctx) => {
-                            rule.node = [rule.node];
-                        },
+                        a: (rule) => rule.node = [rule.node],
                         g: S.imp_list
                     },
                     // Close value, and map or list, but perhaps there are more elem?
@@ -1199,7 +1203,7 @@ class Parser {
             pair: {
                 open: [
                     // TODO: rule.use.key=true
-                    { s: [[TX, NR, ST, VL], CL], p: S.val },
+                    { s: [[TX, NR, ST, VL], CL], p: S.val, u: { key: true } },
                     { s: [CB], b: 1 }, // empty
                 ],
                 close: [
@@ -1220,8 +1224,8 @@ class Parser {
                     { s: [ZZ], e: finish, g: S.end },
                 ],
                 bc: (rule, ctx) => {
-                    let key_token = rule.open[0];
-                    if (key_token && CB !== key_token.tin) {
+                    if (rule.use.key) {
+                        let key_token = rule.open[0];
                         let key = ST === key_token.tin ? key_token.val : key_token.src;
                         let val = rule.child.node;
                         let prev = rule.node[key];

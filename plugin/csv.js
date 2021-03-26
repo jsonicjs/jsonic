@@ -40,7 +40,7 @@ fields per row are expected.`,
     let LN = jsonic.token.LN;
     let ZZ = jsonic.token.ZZ;
     // Match alt only if first occurrence of rule 
-    let first = (_alt, rule, ctx) => {
+    let first = (rule, ctx) => {
         let use = ctx.use.csv = (ctx.use.csv || {});
         let frm = use.frm = (use.frm || { val: true, list: true, record: true });
         let res = (frm[rule.name] && (frm[rule.name] = false, true)); // locking latch

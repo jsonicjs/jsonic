@@ -147,10 +147,11 @@ describe('docs', function () {
 
     let ST = concat.token.ST
     concat.rule('val', (rulespec)=>{
-      rulespec.def.open.unshift({s:[ST,ST], h:(alt,rule,ctx)=>{
+      rulespec.def.open.unshift({s:[ST,ST], h:(rule,ctx,alt)=>{
         rule.node = ctx.t0.val + ctx.t1.val
         // Disable bc value handling
         rule.bc = false
+        return alt
       }})
     })
 
