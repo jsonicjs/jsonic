@@ -598,7 +598,7 @@ describe('jsonic', function () {
           {
             s:[AA,AA],
             h: (alt,rule) => {
-              // No effect: rule.bo - before_open already called at this point.
+              // No effect: rule.bo - bo already called at this point.
               // rule.bo = false
               rule.ao = false
               rule.bc = false
@@ -611,7 +611,7 @@ describe('jsonic', function () {
         close:[
           {s:[AA,AA]}
         ],
-        before_open: ()=>(b+='bo;'),
+        bo: ()=>(b+='bo;'),
         after_open: ()=>(b+='ao;'),
         before_close: ()=>(b+='bc;'),
         after_close: ()=>(b+='ac;'),
@@ -620,7 +620,7 @@ describe('jsonic', function () {
 
     //expect(j('a b c d e f')).equal(1111)
     expect(j('a')).equal(1111)
-    expect(b).equal('bo;') // h: is too late to avoid before_open
+    expect(b).equal('bo;') // h: is too late to avoid bo
   })
 
 
@@ -633,7 +633,7 @@ describe('jsonic', function () {
       let rs = new RuleSpec({
         open: [{s:[AA,AA]}],
         close:[{s:[AA,AA], h:(alt,rule)=>(rule.node=2222, alt)}],
-        before_open: ()=>(b+='bo;'),
+        bo: ()=>(b+='bo;'),
         after_open: ()=>(b+='ao;'),
         before_close: ()=>(b+='bc;'),
         after_close: ()=>(b+='ac;'),
@@ -669,7 +669,7 @@ describe('jsonic', function () {
     j.rule('top', () => {
       let rs = new RuleSpec({
         ...rsdef,
-        before_open: ()=>({err:'unexpected', src:'BO'}),
+        bo: ()=>({err:'unexpected', src:'BO'}),
       })
       return rs
     })
@@ -719,7 +719,7 @@ describe('jsonic', function () {
     j.rule('top', () => {
       let rs = new RuleSpec({
         ...rsdef,
-        before_open: ()=>({node:'BO'}),
+        bo: ()=>({node:'BO'}),
       })
       return rs
     })
@@ -745,7 +745,7 @@ describe('jsonic', function () {
 
     j.rule('top', () => {
       let rs = new RuleSpec({
-        before_open: ()=>({alt:{m:[{val:'WW'}],test$:1}}),
+        bo: ()=>({alt:{m:[{val:'WW'}],test$:1}}),
         after_close: (rule,ctx)=>{
           rule.node=rule.open[0].val
         }
@@ -777,7 +777,7 @@ describe('jsonic', function () {
     j.rule('top', () => {
       let rs = new RuleSpec({
         open: [{s:[AA,AA]}],
-        before_open: (rule)=>(rule.node=[]),
+        bo: (rule)=>(rule.node=[]),
         after_open: (rule,ctx)=>({
           next: 'a' === ctx.t0.val ? new Rule(ctx.rsm.foo, ctx, rule.node) : null
         }),
@@ -810,7 +810,7 @@ describe('jsonic', function () {
       return new RuleSpec({
         open: [{s:[]}],
         close: [{s:[AA]}],
-        before_open: (rule)=>(rule.node=4444),
+        bo: (rule)=>(rule.node=4444),
       })
     })
 
@@ -861,139 +861,38 @@ describe('jsonic', function () {
     expect(()=>j('a')).throws('JsonicError',/unexpected.*AAA/)
   })
 
-  
-  
-  /*
-  // NOTE: do not use this as a template! It's silly way to do things driven
-  // by code coverage.
-  it('custom-parser', () => {
-    let c0 = j.make()
-    let rns = c0.rule()
-    Object.keys(rns).map(rn=>c0.rule(rn,null))
-    expect(Object.keys(c0.rule())).equal([])
 
-    let NR = c0.token.NR
-    let CA = c0.token.CA
-    let OB = c0.token.OB
-    let CB = c0.token.CB
-    let CS = c0.token.CS
-    let OS = c0.token.OS
-    let ZZ = c0.token.ZZ
-    let AA = c0.token.AA
+  it('custom-parser-multi-alts', () => {
+    expect(Jsonic('a:1')).equals({a:1})
 
-    c0.rule('val', (rs,rsm)=>{
-      rs = new j.RuleSpec({
-        close:[
-          {s:[],r:'go'}
-        ],
-        before_open: (rule, ctx) => {
-          rule.node = rule.node || {v:0}
-        },
-      })
-      return rs
+    let j = make_empty({rule:{start:'top'}})
+    j.options({
+      token: {
+        'Ta': { c:'a' },
+        'Tb': { c:'b' },
+        'Tc': { c:'c' },
+      }
     })
 
-    c0.rule('go', (rs,rsm)=>{
-      rs = new j.RuleSpec({
-        open:[
-          {p:'list'}
+    let Ta = j.token.Ta
+    let Tb = j.token.Tb
+    let Tc = j.token.Tc
+       
+    j.rule('top', ()=>{
+      return new RuleSpec({
+        open: [
+          {s:[Ta,[Tb,Tc]]}
         ],
-        close:[{}]
-      })
-      return rs
-    })
-
-    
-    c0.rule('list', (rs,rsm)=>{
-      rs = new j.RuleSpec({
-        open:[
-          {r:'done'}
-        ],
-        before_close: (rule) => ({node:rule.node}),
-        before_open: (rule) => ({node:rule.node}),
-      })
-      return rs
-    })
-
-    c0.rule('done', (rs,rsm)=>{
-      rs = new j.RuleSpec({
-        before_open: (rule,ctx) => {
-          return {alt:{p:'add'}}
-        },
-        before_close: (rule,ctx) => {
-          return {alt:{}}
+        after_close: (r)=>{
+          r.node = (r.open[0].src+r.open[1].src).toUpperCase()
         }
       })
-      return rs
     })
-
     
-    c0.rule('add', (rs,rsm)=>{
-      rs = new j.RuleSpec({
-        open:[
-          {s:[NR]},
-          {s:[ZZ]},
-        ],
-        close: [
-          {s:[ZZ]},
-          {s:[],r:'sep'},
-        ],
-        before_close: () => ({}),
-        before_open: (rule,ctx) => {
-          if(99 === ctx.t0.val) {
-            return {err: 'unexpected'}
-          }
-        },
-        after_open: (rule, ctx) => {
-          rule.node.v += (ctx.t0 ? ctx.t0.val || 0 : 0)
-          return {node:rule.node}
-        }
-
-      })
-      return rs
-    })
-
-    c0.rule('sep', (rs,rsm)=>{
-      rs = new j.RuleSpec({
-        open:[
-          {s:[AA],b:1,e:(alt,rule,ctx)=>{
-            if('A'===ctx.t0.src) {
-              ctx.t0.use={src:'QAZ0'}
-              return ctx.t0
-            }
-          }}
-        ],
-        close:[
-          {s:[CA],r:'add',n:{x:1},h:(rule,ctx,next)=>null},
-          {s:[OB],e:(alt,rule,ctx)=>null},
-          {s:[CB],e:(alt,rule,ctx)=>(ctx.t0.use={src:'ZED0'},ctx.t0)},
-          {s:[CS,CS],e:(alt,rule,ctx)=>(ctx.t0.use={src:'BAR0'},ctx.t0)},
-          {s:[OS,OS],e:(alt,rule,ctx)=>null},
-          {s:[AA],b:1}
-          //{e:(alt,rule,ctx)=>(3===ctx.t0.val?null:(ctx.t0.use={src:'FOO0'},ctx.t0))},
-        ],
-        before_close: (rule) => ({node:rule.node}),
-        after_close: (rule, ctx) => ({next:rule})
-      })
-      return rs
-    })
-
-    expect(c0('1, 2, 3,',{log:-1})).equal({v:6})
-
-    expect(()=>c0('1, 99, 3,',{xlog:-1})).throws('JsonicError', /unexpected.*99/)
-
-    expect(c0('1 {',{xlog:-1})).equal({ v: 1 })
-    expect(()=>c0('1 }',{xlog:-1})).throws('JsonicError', /unexpected.*ZED0/)
-
-    expect(()=>c0('1 ] ]',{xlog:-1})).throws('JsonicError', /unexpected.*BAR0/)
-    expect(c0('1 [ [',{xlog:-1})).equal({ v: 1 })
-
-    //expect(()=>c0('1 2',{xlog:-1})).throws('JsonicError', /unexpected.*FOO0/)
-    //expect(()=>c0('1 3',{xlog:-1})).throws('JsonicError', /unexpected/)
-
-    expect(()=>c0('1 A',{xlog:-1})).throws('JsonicError', /unexpected.*QAZ0/)
+    expect(j('ab')).equals('AB')
+    expect(j('ac')).equals('AC')
+    expect(()=>j('ad')).throws('JsonicError',/unexpected.*d/)
   })
-  */
   
   
   // Test against all combinations of chars up to `len`

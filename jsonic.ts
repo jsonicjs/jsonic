@@ -1416,10 +1416,10 @@ class Rule {
   open: Token[]
   close: Token[]
   n: KV
-  bo: boolean // Call before_open.
-  ao: boolean // Call after_open.
-  bc: boolean // Call before_close.
-  ac: boolean // Call after_close.
+  bo: boolean // Call bo (before-open).
+  ao: boolean // Call ao (after-open).
+  bc: boolean // Call bc (before-close).
+  ac: boolean // Call ac (after-close).
   why?: string
 
   constructor(spec: RuleSpec, ctx: Context, node?: any) {
@@ -1465,7 +1465,7 @@ const empty_alt = new Alt()
 type RuleDef = {
   open?: any[]
   close?: any[]
-  before_open?: (rule: Rule, ctx: Context) => any
+  bo?: (rule: Rule, ctx: Context) => any
   before_close?: (rule: Rule, ctx: Context) => any
   after_open?: (rule: Rule, ctx: Context, next: Rule) => any
   after_close?: (rule: Rule, ctx: Context, next: Rule) => any
@@ -1525,7 +1525,7 @@ class RuleSpec {
 
     // Handle "before" call.
     let before = is_open ?
-      (rule.bo && def.before_open) :
+      (rule.bo && def.bo) :
       (rule.bc && def.before_close)
 
     let bout
@@ -1684,12 +1684,20 @@ class RuleSpec {
       }
 
       // Match 1 or 2 tokens in sequence.
-      else if (alt.s[0] === ctx.t0.tin || alt.s[0] === t.AA) {
+      else if (
+        alt.s[0] === ctx.t0.tin ||
+        alt.s[0] === t.AA ||
+        (Array.isArray(alt.s[0]) && alt.s[0].includes(ctx.t0.tin))
+      ) {
         if (1 === alt.s.length) {
           out.m = [ctx.t0]
           cond = true
         }
-        else if (alt.s[1] === ctx.t1.tin || alt.s[1] === t.AA) {
+        else if (
+          alt.s[1] === ctx.t1.tin ||
+          alt.s[1] === t.AA ||
+          (Array.isArray(alt.s[1]) && alt.s[1].includes(ctx.t1.tin))
+        ) {
           out.m = [ctx.t0, ctx.t1]
           cond = true
         }
@@ -1700,16 +1708,6 @@ class RuleSpec {
 
       // Depth.
       cond = cond && (null == alt.d ? true : alt.d === ctx.rs.length)
-
-      /*
-      // Ancestors.
-      cond = cond &&
-        (null == alt.a ? true :
-          marr(alt.a, ctx.rs
-            .slice(-(alt.a.length))
-            .map(r => r.name)
-            .reverse()))
-      */
 
       if (cond) {
         break
@@ -1816,21 +1814,14 @@ class Parser {
 
           // Implicit map - operates at any depth. Increment counter.
           // NOTE: `n.im` counts depth of implicit maps
-          { s: [TX, CL], p: S.map, b: 2, n: { im: 1 }, g: S.imp_map },
-          { s: [ST, CL], p: S.map, b: 2, n: { im: 1 }, g: S.imp_map },
-          { s: [NR, CL], p: S.map, b: 2, n: { im: 1 }, g: S.imp_map },
-          { s: [VL, CL], p: S.map, b: 2, n: { im: 1 }, g: S.imp_map },
+          { s: [[TX, NR, ST, VL], CL], p: S.map, b: 2, n: { im: 1 }, g: S.imp_map },
 
           // Standard JSON (apart from TX).
-          { s: [TX] },
-          { s: [NR] },
-          { s: [ST] },
-          { s: [VL] },
+          { s: [[TX, NR, ST, VL]] },
 
           // Implicit end `{a:}` -> {"a":null}
           {
             s: [CB],
-            //a: [S.pair],
             b: 1,
             g: S.imp_null
           },
@@ -1838,7 +1829,6 @@ class Parser {
           // Implicit end `[a:]` -> [{"a":null}]
           {
             s: [CS],
-            //a: [S.pair],
             b: 1,
             g: S.imp_null
           },
@@ -1888,7 +1878,7 @@ class Parser {
 
 
       map: {
-        before_open: () => {
+        bo: () => {
           return { node: {} }
         },
         open: [
@@ -1899,7 +1889,7 @@ class Parser {
       },
 
       list: {
-        before_open: () => {
+        bo: () => {
           return { node: [] }
         },
         open: [
@@ -1913,10 +1903,8 @@ class Parser {
       // sets key:val on node
       pair: {
         open: [
-          { s: [ST, CL], p: S.val },
-          { s: [TX, CL], p: S.val },
-          { s: [NR, CL], p: S.val },
-          { s: [VL, CL], p: S.val },
+          // TODO: rule.use.key=true
+          { s: [[TX, NR, ST, VL], CL], p: S.val },
           { s: [CB], b: 1 }, // empty
         ],
         close: [
@@ -1929,16 +1917,10 @@ class Parser {
 
           // Who needs commas anyway?
           // NOTE: only proceed if im<=1 to prevent greedy pairs.
-          { s: [ST, CL], c: { n: { im: 1 } }, r: S.pair, b: 2 },
-          { s: [TX, CL], c: { n: { im: 1 } }, r: S.pair, b: 2 },
-          { s: [NR, CL], c: { n: { im: 1 } }, r: S.pair, b: 2 },
-          { s: [VL, CL], c: { n: { im: 1 } }, r: S.pair, b: 2 },
+          { s: [[TX, NR, ST, VL], CL], c: { n: { im: 1 } }, r: S.pair, b: 2 },
 
           // Walk back up the implicit pairs until we reach im=1
-          { s: [ST, CL], b: 2 },
-          { s: [TX, CL], b: 2 },
-          { s: [NR, CL], b: 2 },
-          { s: [VL, CL], b: 2 },
+          { s: [[TX, NR, ST, VL], CL], b: 2 },
 
           // Close implicit single prop map inside list
           {
@@ -1974,8 +1956,8 @@ class Parser {
           { s: [OS], p: S.list },
 
           // Insert null for initial comma
-          { s: [CA, CA], b: 2, g: S.nUll },
-          { s: [CA], g: S.nUll },
+          { s: [CA, CA], b: 2, g: S.nUll, a: (r: Rule) => r.node.push(null) },
+          { s: [CA], g: S.nUll, a: (r: Rule) => r.node.push(null) },
 
           { p: S.val, n: { im: 1 } },
         ],
@@ -1993,19 +1975,10 @@ class Parser {
           { s: [OS], p: S.list, },
 
           // Who needs commas anyway?
-          { s: [TX], r: S.elem, b: 1 },
-          { s: [NR], r: S.elem, b: 1 },
-          { s: [ST], r: S.elem, b: 1 },
-          { s: [VL], r: S.elem, b: 1 },
+          { s: [[TX, NR, ST, VL]], r: S.elem, b: 1 },
 
           { s: [ZZ], e: finish, g: S.end },
         ],
-        after_open: (rule: Rule, _ctx: Context, next: Rule) => {
-          if (rule === next) {
-            // Repeated comma, so insert null
-            rule.node.push(null)
-          }
-        },
         before_close: (rule: Rule) => {
           if (undefined !== rule.child.node) {
             rule.node.push(rule.child.node)
