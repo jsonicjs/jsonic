@@ -293,7 +293,7 @@ describe('util', () => {
 
 
   it('errinject', () => {
-    let args = ['c0',{a:1},{b:2},{c:3},{d:4,meta:{g:7},options:{e:5},config:{f:6}}]
+    let args = ['c0',{a:1},{b:2},{c:3},{d:4,meta:{g:7},opts:{e:5},cnfg:{f:6}}]
     expect(errinject('x $code $a $b $c $d $e $f $g $Z x',...args))
       .equal('x "c0" 1 2 3 4 5 6 7 "$Z" x')
   })
@@ -310,9 +310,9 @@ describe('util', () => {
   it('badlex', () => {
     let ctx = {
       src:()=>'',
-      options:{error:{unexpected:'unx'},hint:{unexpected:'unx'}},
-      config:{t:{}},
-      plugins:()=>[],
+      opts:{error:{unexpected:'unx'},hint:{unexpected:'unx'}},
+      cnfg:{t:{}},
+      plgn:()=>[],
     }
 
     try {
@@ -398,8 +398,8 @@ describe('util', () => {
     }
     
     let g0 = makelog({})
-    let g1 = makelog({log:1,options:options})
-    let g2 = makelog({log:-1,options:options})
+    let g1 = makelog({log:1,opts:options})
+    let g2 = makelog({log:-1,opts:options})
 
     expect(g0).undefined()
 
@@ -505,6 +505,7 @@ describe('util', () => {
       j0('"',{log:(...r)=>log.push(r)})
       Code.fail()
     } catch(e) {
+      // console.log(e)
       expect(e.code).equal('unterminated')
       expect(log.map(x=>x[0]+' '+x[1]+' '+x[2])).equals([
         'lex #BD ""'
@@ -596,7 +597,7 @@ describe('util', () => {
 
   it('errdesc', () => {
     let ctx0 = {
-      options: {
+      opts: {
         error: {
           foo: 'foo-code',
           unknown: 'unknown-code'
@@ -607,8 +608,8 @@ describe('util', () => {
         }
       },
       src: ()=>'src',
-      plugins: ()=>[{name:'p0'}],
-      config: {
+      plgn: ()=>[{name:'p0'}],
+      cnfg: {
         t: {
           1: '#T1',
         }

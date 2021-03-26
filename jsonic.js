@@ -217,21 +217,24 @@ function make_default_options() {
 class JsonicError extends SyntaxError {
     constructor(code, details, token, rule, ctx) {
         details = deep({}, details);
-        let errctx = deep({}, {
-            rI: ctx.rI,
-            options: ctx.options,
-            config: ctx.config,
-            meta: ctx.meta,
-            src: () => ctx.src(),
-            plugins: () => ctx.plugins(),
-            node: ctx.node,
-            t0: ctx.t0,
-            t1: ctx.t1,
-            tI: ctx.tI,
-            log: ctx.log,
-            use: ctx.use
-        });
-        let desc = errdesc(code, details, token, rule, errctx);
+        /*
+        let errctx: any = deep({}, {
+          rI: ctx.uI,
+          options: ctx.opts,
+          config: ctx.cnfg,
+          meta: ctx.meta,
+          src: () => ctx.src(),
+          plugins: () => ctx.plgn(),
+          // node: ctx.node,
+          t0: ctx.t0,
+          t1: ctx.t1,
+          tI: ctx.tI,
+          log: ctx.log,
+          use: ctx.use
+        })
+        */
+        //let desc = errdesc(code, details, token, rule, errctx)
+        let desc = errdesc(code, details, token, rule, ctx);
         super(desc.message);
         assign(this, desc);
         trimstk(this);
@@ -272,8 +275,8 @@ class Lexer {
     // deterministic relation between the current rule and the current lex.
     start(ctx) {
         // Convenience vars
-        const options = ctx.options;
-        const config = ctx.config;
+        const options = ctx.opts;
+        const config = ctx.cnfg;
         let tpin = (name) => tokenize(name, config);
         let tn = (pin) => tokenize(pin, config);
         let F = ctx.F;
@@ -784,7 +787,7 @@ class Lexer {
     // Describe state when lexing goes wrong using the signal token "#BD" (bad token!).
     bad(ctx, log, why, token, sI, pI, rI, cI, val, src, use) {
         token.why = why;
-        token.tin = tokenize('#BD', ctx.config);
+        token.tin = tokenize('#BD', ctx.cnfg);
         token.loc = sI;
         token.row = rI;
         token.col = cI;
@@ -792,7 +795,7 @@ class Lexer {
         token.val = val;
         token.src = src;
         token.use = use;
-        log && log(tokenize(token.tin, ctx.config), ctx.F(token.src), sI, rI + ':' + cI, { ...token }, S.error, why);
+        log && log(tokenize(token.tin, ctx.cnfg), ctx.F(token.src), sI, rI + ':' + cI, { ...token }, S.error, why);
         return token;
     }
     // Register a custom lexing matcher to be attempted first for given lex state.
@@ -836,7 +839,7 @@ var RuleState;
 //const UNDEF: any = {}
 class Rule {
     constructor(spec, ctx, node) {
-        this.id = ctx.rI++;
+        this.id = ctx.uI++;
         this.name = spec.name;
         this.spec = spec;
         this.node = node;
@@ -1022,7 +1025,7 @@ class RuleSpec {
         out.e = undefined; // Error token.
         let alt;
         let altI = 0;
-        let t = ctx.config.t;
+        let t = ctx.cnfg.t;
         let cond;
         // TODO: replace with lookup map
         let len = alts.length;
@@ -1228,7 +1231,7 @@ class Parser {
                             val = null;
                         }
                         rule.node[key] = null == prev ? val :
-                            (ctx.options.map.extend ? deep(prev, val) : val);
+                            (ctx.opts.map.extend ? deep(prev, val) : val);
                     }
                 },
             },
@@ -1288,19 +1291,19 @@ class Parser {
         return rs;
     }
     start(lexer, src, jsonic, meta, parent_ctx) {
-        let options = this.options;
-        let config = this.config;
+        //let options = this.options
+        //let config = this.config
         let root;
         let ctx = {
-            rI: 1,
-            options,
-            config,
+            uI: 1,
+            opts: this.options,
+            cnfg: this.config,
             meta: meta || {},
             src: () => src,
             root: () => root.node,
-            plugins: () => jsonic.internal().plugins,
+            plgn: () => jsonic.internal().plugins,
             rule: NONE,
-            node: undefined,
+            //node: undefined,
             lex: -1,
             u2: lexer.end,
             u1: lexer.end,
@@ -1311,7 +1314,7 @@ class Parser {
             rs: [],
             rsm: this.rsm,
             log: (meta && meta.log) || undefined,
-            F: srcfmt(config),
+            F: srcfmt(this.config),
             use: {}
         };
         if (null != parent_ctx) {
@@ -1320,7 +1323,7 @@ class Parser {
         makelog(ctx);
         let tn = (pin) => tokenize(pin, this.config);
         let lex = badlex(lexer.start(ctx), tokenize('#BD', this.config), ctx);
-        let startspec = this.rsm[options.rule.start];
+        let startspec = this.rsm[this.options.rule.start];
         // The starting rule is always 'val'
         if (null == startspec) {
             return undefined;
@@ -1332,7 +1335,7 @@ class Parser {
         // virtual (like map, list), and double for safety margin (allows
         // lots of backtracking), and apply a multipler.
         let maxr = 2 * keys(this.rsm).length * lex.src.length *
-            2 * options.rule.maxmul;
+            2 * this.options.rule.maxmul;
         // Lex next token.
         function next() {
             ctx.u2 = ctx.u1;
@@ -1342,7 +1345,7 @@ class Parser {
             do {
                 t1 = lex(rule);
                 ctx.tI++;
-            } while (config.ts.IGNORE[t1.tin]);
+            } while (ctx.cnfg.ts.IGNORE[t1.tin]);
             ctx.t1 = { ...t1 };
             return ctx.t0;
         }
@@ -1603,10 +1606,10 @@ function makelog(ctx) {
                     .filter((item) => S.object != typeof (item))
                     .map((item) => S.function == typeof (item) ? item.name : item)
                     .join('\t');
-                ctx.options.debug.get_console().log(logstr);
+                ctx.opts.debug.get_console().log(logstr);
             }
             else {
-                ctx.options.debug.get_console().dir(rest, { depth: logdepth });
+                ctx.opts.debug.get_console().dir(rest, { depth: logdepth });
             }
             return undefined;
         };
@@ -1667,8 +1670,8 @@ function errinject(s, code, details, token, rule, ctx) {
             token[name] ||
             rule[name] ||
             ctx[name] ||
-            ctx.options[name] ||
-            ctx.config[name] ||
+            ctx.opts[name] ||
+            ctx.cnfg[name] ||
             '$' + name));
     });
 }
@@ -1733,14 +1736,14 @@ function parserwrap(parser) {
                     throw new JsonicError(ex.code || 'json', ex.details || {
                         msg: ex.message
                     }, token, {}, ex.ctx || {
-                        rI: -1,
-                        options: jsonic.options,
-                        config: { t: {} },
+                        uI: -1,
+                        opts: jsonic.options,
+                        cnfg: { t: {} },
                         token: token,
                         meta,
                         src: () => src,
                         root: () => undefined,
-                        plugins: () => jsonic.internal().plugins,
+                        plgn: () => jsonic.internal().plugins,
                         rule: NONE,
                         node: undefined,
                         lex: -1,
@@ -1767,7 +1770,7 @@ function parserwrap(parser) {
 }
 function errdesc(code, details, token, rule, ctx) {
     token = { ...token };
-    let options = ctx.options;
+    let options = ctx.opts;
     let meta = ctx.meta;
     let errtxt = errinject((options.error[code] || options.error.unknown), code, details, token, rule, ctx);
     if (S.function === typeof (options.hint)) {
@@ -1785,9 +1788,9 @@ function errdesc(code, details, token, rule, ctx) {
             .map((s, i) => (0 === i ? ' ' : '  ') + s).join('\n'), code, details, token, rule, ctx),
         '  \x1b[2mhttps://jsonic.richardrodger.com\x1b[0m',
         '  \x1b[2m--internal: rule=' + rule.name + '~' + RuleState[rule.state] +
-            '; token=' + ctx.config.t[token.tin] +
+            '; token=' + ctx.cnfg.t[token.tin] +
             (null == token.why ? '' : ('~' + token.why)) +
-            '; plugins=' + ctx.plugins().map((p) => p.name).join(',') + '--\x1b[0m\n'
+            '; plugins=' + ctx.plgn().map((p) => p.name).join(',') + '--\x1b[0m\n'
     ].join('\n');
     let desc = {
         internal: {

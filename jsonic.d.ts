@@ -124,15 +124,14 @@ declare type Token = {
     use?: any;
 };
 declare type Context = {
-    rI: number;
-    options: Options;
-    config: Config;
+    uI: number;
+    opts: Options;
+    cnfg: Config;
     meta: Meta;
     src: () => string;
     root: () => any;
-    plugins: () => Plugin[];
+    plgn: () => Plugin[];
     rule: Rule;
-    node: any;
     lex: Tin;
     u2: Token;
     u1: Token;

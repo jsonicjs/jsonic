@@ -682,9 +682,9 @@ aa\tbb
               e2.details = {}
               e2.ctx = {
                 src:()=>'',
-                options:{error:{e2:'e:2'},hint:{e2:'e:2'}},
-                config:{t:{}},
-                plugins:()=>[]
+                opts:{error:{e2:'e:2'},hint:{e2:'e:2'}},
+                cnfg:{t:{}},
+                plgn:()=>[]
               }
               throw e2
             }

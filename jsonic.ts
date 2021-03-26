@@ -198,16 +198,15 @@ type Token = {
 
 // Current parsing context.
 type Context = {
-  // TODO: rename
-  rI: number // Rule index for rule.id
-  opts: Options
-  cnfg: Config
-  meta: Meta
-  src: () => string,
-  root: () => any,
-  plgn: () => Plugin[]
-  rule: Rule
-  node: any
+  uI: number           // Rule index.
+  opts: Options        // Jsonic instance options.
+  cnfg: Config         // Jsonic instance config.
+  meta: Meta           // Parse meta parameters.
+  src: () => string,   // source text to parse.
+  root: () => any,     // Root node.
+  plgn: () => Plugin[] // Jsonic instance plugins.
+  rule: Rule           // Current rule instance.
+  // node: any            // Current node value.
   lex: Tin
   u2: Token
   u1: Token
@@ -550,21 +549,27 @@ class JsonicError extends SyntaxError {
     ctx: Context,
   ) {
     details = deep({}, details)
+
+    /*
     let errctx: any = deep({}, {
-      rI: ctx.rI,
+      rI: ctx.uI,
       options: ctx.opts,
       config: ctx.cnfg,
       meta: ctx.meta,
       src: () => ctx.src(),
       plugins: () => ctx.plgn(),
-      node: ctx.node,
+      // node: ctx.node,
       t0: ctx.t0,
       t1: ctx.t1,
       tI: ctx.tI,
       log: ctx.log,
       use: ctx.use
     })
-    let desc = errdesc(code, details, token, rule, errctx)
+    */
+
+    //let desc = errdesc(code, details, token, rule, errctx)
+
+    let desc = errdesc(code, details, token, rule, ctx)
     super(desc.message)
     assign(this, desc)
     trimstk(this)
@@ -1422,7 +1427,7 @@ class Rule {
   why?: string
 
   constructor(spec: RuleSpec, ctx: Context, node?: any) {
-    this.id = ctx.rI++
+    this.id = ctx.uI++
     this.name = spec.name
     this.spec = spec
     this.node = node
@@ -2027,32 +2032,32 @@ class Parser {
     meta?: any,
     parent_ctx?: any
   ): any {
-    let options = this.options
-    let config = this.config
+    //let options = this.options
+    //let config = this.config
 
     let root: Rule
 
     let ctx: Context = {
-      rI: 1,
-      opts,
-      cnfg,
+      uI: 1,
+      opts: this.options,
+      cnfg: this.config,
       meta: meta || {},
       src: () => src, // Avoid printing src
       root: () => root.node,
       plgn: () => jsonic.internal().plugins,
       rule: NONE,
-      node: undefined,
+      //node: undefined,
       lex: -1,
       u2: lexer.end,
       u1: lexer.end,
       t0: lexer.end,
       t1: lexer.end,
-      tI: -2,  // prepare count for 2-token lookahead
+      tI: -2,  // Prepare count for 2-token lookahead.
       next,
       rs: [],
       rsm: this.rsm,
       log: (meta && meta.log) || undefined,
-      F: srcfmt(config),
+      F: srcfmt(this.config),
       use: {}
     }
 
@@ -2065,7 +2070,7 @@ class Parser {
     let tn = (pin: Tin): string => tokenize(pin, this.config)
     let lex: Lex =
       badlex(lexer.start(ctx), tokenize('#BD', this.config), ctx)
-    let startspec = this.rsm[options.rule.start]
+    let startspec = this.rsm[this.options.rule.start]
 
     // The starting rule is always 'val'
     if (null == startspec) {
@@ -2081,7 +2086,7 @@ class Parser {
     // virtual (like map, list), and double for safety margin (allows
     // lots of backtracking), and apply a multipler.
     let maxr = 2 * keys(this.rsm).length * lex.src.length *
-      2 * options.rule.maxmul
+      2 * this.options.rule.maxmul
 
     // Lex next token.
     function next() {
@@ -2093,7 +2098,7 @@ class Parser {
       do {
         t1 = lex(rule)
         ctx.tI++
-      } while (config.ts.IGNORE[t1.tin])
+      } while (ctx.cnfg.ts.IGNORE[t1.tin])
 
       ctx.t1 = { ...t1 }
 
@@ -2646,7 +2651,7 @@ function parserwrap(parser: any) {
             token,
             ({} as Rule),
             ex.ctx || {
-              rI: -1,
+              uI: -1,
               opts: jsonic.options,
               cnfg: ({ t: {} } as Config),
               token: token,

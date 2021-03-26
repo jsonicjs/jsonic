@@ -68,7 +68,7 @@ let Dynamic = function dynamic(jsonic) {
             if ('function' === typeof (val) && val.__eval$$) {
                 /* $lab:coverage:on$ */
                 Object.defineProperty(val, 'name', { value: key });
-                defineProperty(rule.node, key, val, ctx.root, ctx.meta, ctx.options.map.extend);
+                defineProperty(rule.node, key, val, ctx.root, ctx.meta, ctx.opts.map.extend);
             }
             else {
                 return orig_bc(...arguments);
@@ -84,7 +84,7 @@ let Dynamic = function dynamic(jsonic) {
             if ('function' === typeof (val) && val.__eval$$) {
                 /* $lab:coverage:on$ */
                 Object.defineProperty(val, 'name', { value: 'i' + rule.node.length });
-                defineProperty(rule.node, rule.node.length, val, ctx.root, ctx.meta, ctx.options.map.extend);
+                defineProperty(rule.node, rule.node.length, val, ctx.root, ctx.meta, ctx.opts.map.extend);
             }
             else {
                 return orig_bc(rule, ctx);
