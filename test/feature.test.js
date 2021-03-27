@@ -219,6 +219,11 @@ describe('feature', function () {
     expect(j('a:1e6:a')).equals({a:{'1e6':'a'}}) // NOTE: "1e6" not "1000000"
     expect(j('[1,0]')).equals([1,0])
     expect(j('[1,0.5]')).equals([1,0.5])
+
+    expect(j('1+')).equals([1,'+'])
+    expect(j('1-')).equals([1,'-'])
+    expect(j('1-+')).equals([1,'-+'])
+
     
     let jn = j.make({ number: { lex: false } })
     expect(jn('1')).equals('1') // Now it's a string.

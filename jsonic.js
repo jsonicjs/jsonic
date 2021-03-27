@@ -430,10 +430,17 @@ class Lexer {
                             // Attempt to parse natively as a number, using +(string).
                             else {
                                 token.val = +numstr;
+                                // Remove trailing +-
+                                let m;
+                                if (isNaN(token.val) && (m = numstr.match(/[-+]+$/))) {
+                                    numstr = numstr.substring(0, numstr.length - m[0].length);
+                                    token.val = '' != numstr ? +numstr : NaN;
+                                    pI -= m[0].length;
+                                }
                                 // Allow number format 1000_000_000 === 1e9.
-                                //if (null != config.num.sepRE && isNaN(token.val)) {
                                 if (null != config.re.ns && isNaN(token.val)) {
-                                    token.val = +(numstr.replace(config.re.ns, MT));
+                                    let numstrpure = numstr.replace(config.re.ns, MT);
+                                    token.val = '' != numstrpure ? +numstrpure : NaN;
                                 }
                                 // Not a number, just a random collection of digital chars.
                                 if (isNaN(token.val)) {
