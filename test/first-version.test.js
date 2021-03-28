@@ -223,7 +223,9 @@ describe('first-version', function () {
     expect(j("x:0,a:102,b:1.2,c:1e2,d:1.2e3,e:1e+2,f:1e-2,g:1.2e+3,h:1.2e-3,i:-1.2e+3,j:-1.2e-3")).equal({"x":0,"a":102,"b":1.2,"c":100,"d":1200,"e":100,"f":0.01,"g":1200,"h":0.0012,"i":-1200,"j":-0.0012})
 
     // digit prefix, but actually a string - could be an ID etc.
-    expect(j("x:01,a:1a,b:10b,c:1e2e")).equal({"x":"01","a":"1a","b":"10b","c":"1e2e"})
+    // expect(j("x:01,a:1a,b:10b,c:1e2e")).equal({"x":"01","a":"1a","b":"10b","c":"1e2e"})
+    // DIFF 0 prefixes allowed in numbers
+    expect(j("x:01,a:1a,b:10b,c:1e2e")).equal({"x":1,"a":"1a","b":"10b","c":"1e2e"})
   })
 
 

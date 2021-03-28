@@ -253,10 +253,7 @@ describe('lex', function () {
       '-1.5E2', ['#NR;0;6;0x0;-150','#ZZ;6;0;0x6'],
       '0x', ['#TX;0;2;0x0;0x','#ZZ;2;0;0x2'],
       '-0xA', ['#TX;0;4;0x0;-0xA','#ZZ;4;0;0x4'],
-
-      // leading 0s (but not 0x) considered text - could be an indentifier
-      '01', ['#TX;0;2;0x0;01','#ZZ;2;0;0x2'],
-
+      '01', ['#NR;0;2;0x0;1','#ZZ;2;0;0x2'],
       '1x', ['#TX;0;2;0x0;1x','#ZZ;2;0;0x2'],
       '12x', ['#TX;0;3;0x0;12x','#ZZ;3;0;0x3'],
       '1%', ['#TX;0;2;0x0;1%','#ZZ;2;0;0x2'],

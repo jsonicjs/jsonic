@@ -220,9 +220,10 @@ describe('feature', function () {
     expect(j('[1,0]')).equals([1,0])
     expect(j('[1,0.5]')).equals([1,0.5])
 
-    expect(j('1+')).equals([1,'+'])
-    expect(j('1-')).equals([1,'-'])
-    expect(j('1-+')).equals([1,'-+'])
+    // text as +- not value enders
+    expect(j('1+')).equals('1+')
+    expect(j('1-')).equals('1-')
+    expect(j('1-+')).equals('1-+')
 
     
     let jn = j.make({ number: { lex: false } })
@@ -348,6 +349,7 @@ describe('feature', function () {
   it('value-text', () => {
 
     expect(j('a')).equals('a')
+    expect(j('1a')).equals('1a') // NOTE: not a number!
     expect(j('a/b')).equals('a/b')
     expect(j('a#b')).equals('a')
 

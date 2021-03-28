@@ -694,22 +694,17 @@ class Lexer {
         ) : undefined
 
 
-    // `Window.self` makes it dangerous to use `self` as a var name
-    // undefined ocurrences will not cause compilation errors. Yikes.
-    let zelf = this
-
-
     // Convenience function to return a bad token.
-    function bad(code: string, cpI: number, badsrc: string, use?: any) {
-      return zelf.bad(ctx, lexlog, code, token, sI, cpI, rI, cI, badsrc, badsrc, use)
+    let bad = (code: string, cpI: number, badsrc: string, use?: any) => {
+      return this.bad(ctx, lexlog, code, token, sI, cpI, rI, cI, badsrc, badsrc, use)
     }
 
 
     // Check for custom matchers on current lex state, and call the first
     // (if any) that returns a match.
     // NOTE: deliberately grabs local state (token,sI,rI,cI,...)
-    function matchers(rule: Rule) {
-      let matchers = zelf.match[state]
+    let matchers = (rule: Rule) => {
+      let matchers = this.match[state]
       if (null != matchers) {
         // token.loc = sI // TODO: move to top of while for all rules?
 
@@ -805,74 +800,32 @@ class Lexer {
 
 
           // Number chars.
-          //if (options.number.lex && config.s.NR[c0]) {
           if (options.number.lex && config.m.NR[c0]) {
-            token.tin = NR
-            pI = sI
+            let num_match = src.substring(sI).match((config.re.nm as RegExp))
 
-            while (config.cs.dig[src[++pI]]);
+            if (null != num_match) {
+              let numstr = num_match[0]
+              pI = sI + numstr.length
 
-            let numstr = src.substring(sI, pI)
-            if (null == src[pI] || config.cs.vend[src[pI]]) {
-              token.len = pI - sI
+              // Numbers must end with a value ender char, otherwise
+              // it must just be text with prefixed digits: '1a' -> "1a"
+              if (null == src[pI] || config.cs.vend[src[pI]]) {
+                let numval =
+                  +(config.re.ns ? numstr.replace(config.re.ns, '') : numstr)
 
-              let base_char = src[sI + 1]
+                if (!isNaN(numval)) {
+                  token.tin = NR
+                  token.src = numstr
+                  token.val = numval
+                  token.len = numstr.length
+                  sI += token.len
+                  cI += token.len
 
-              // TODO: is this necessary? wont +numstr handle this?
-              // Leading 0s are text unless hex|oct|bin val: if at least two
-              // digits and does not start with 0x|o|b, then text.
-              if (
-                1 < token.len && '0' === src[sI] && '.' !== src[sI + 1] &&
-
-                // Maybe a 0|x|o|b number?
-                (!options.number.hex || 'x' !== base_char) && // But...
-                (!options.number.oct || 'o' !== base_char) && //  it is...
-                (!options.number.bin || 'b' !== base_char)    //    not.
-              ) {
-                // Not a number.
-                token.val = undefined
-                pI--
-              }
-
-              // Attempt to parse natively as a number, using +(string).
-              else {
-                token.val = +numstr
-
-                // Remove trailing +-
-                let m
-                if (isNaN(token.val) && (m = numstr.match(/[-+]+$/))) {
-                  numstr = numstr.substring(0, numstr.length - m[0].length)
-                  token.val = '' != numstr ? +numstr : NaN
-                  pI -= m[0].length
-                }
-
-                // Allow number format 1000_000_000 === 1e9.
-                if (null != config.re.ns && isNaN(token.val)) {
-                  let numstrpure = numstr.replace(config.re.ns, MT)
-                  token.val = '' != numstrpure ? +numstrpure : NaN
-                }
-
-                // Not a number, just a random collection of digital chars.
-                if (isNaN(token.val)) {
-                  token.val = undefined
-                  pI--
+                  lexlog && lexlog(token)
+                  return token
                 }
               }
             }
-
-            // It was a number
-            if (null != token.val) {
-              // Ensure verbatim src (eg. src="1e6" -> val=1000000).
-              token.src = numstr
-              cI += token.len
-              sI = pI
-
-              lexlog && lexlog(token)
-              return token
-            }
-
-            // NOTE: else drop through to default, as this must be literal text
-            // prefixed with digits.
           }
 
 
@@ -2872,10 +2825,12 @@ function configure(config: Config, options: Options) {
   config.bmx = longest(block_markers)
 
 
+  let re_ns = null != options.number.sep ?
+    new RegExp(options.number.sep, 'g') : null
+
   // RegExp cache
   config.re = {
-    ns: null != options.number.sep ?
-      new RegExp(options.number.sep, 'g') : null,
+    ns: re_ns,
 
     te: ender(
       charset(
@@ -2889,9 +2844,24 @@ function configure(config: Config, options: Options) {
         ...(options.comment.lex ? config.cm : {}),
         ...(options.block.lex ? options.block.marker : {}),
       }
-    )
-  }
+    ),
 
+    nm: new RegExp(
+      [
+        '^[-+]?(0(',
+        [
+          options.number.hex ? 'x[0-9a-fA-F_]+' : null,
+          options.number.oct ? 'o[0-7_]+' : null,
+          options.number.bin ? 'b[01_]+' : null,
+        ].filter(s => null != s).join('|'),
+        ')|[0-9]+([0-9_]*[0-9])?)',
+        '(\\.[0-9]+([0-9_]*[0-9])?)?',
+        '([eE][-+]?[0-9]+([0-9_]*[0-9])?)?',
+      ]
+        .filter(s =>
+          s.replace(/_/g, null == re_ns ? '' : options.number.sep))
+        .join('')
+    )
 
   // Debug options
   config.d = options.debug
@@ -2904,7 +2874,7 @@ function configure(config: Config, options: Options) {
 
 
   // Debug the config - useful for plugin authors.
-  if (options.debug.print.config) {
+  if(options.debug.print.config) {
     options.debug.get_console().dir(config, { depth: null })
   }
 }
