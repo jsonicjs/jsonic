@@ -393,16 +393,6 @@ class Lexer {
                         lexlog && lexlog(token);
                         return token;
                     }
-                    // Single char tokens.
-                    if (null != config.sm[c0]) {
-                        token.tin = config.sm[c0];
-                        token.len = 1;
-                        token.src = c0;
-                        sI++;
-                        cI++;
-                        lexlog && lexlog(token);
-                        return token;
-                    }
                     // Number chars.
                     //if (options.number.lex && config.s.NR[c0]) {
                     if (options.number.lex && config.m.NR[c0]) {
@@ -460,6 +450,16 @@ class Lexer {
                         }
                         // NOTE: else drop through to default, as this must be literal text
                         // prefixed with digits.
+                    }
+                    // Single char tokens.
+                    if (null != config.sm[c0]) {
+                        token.tin = config.sm[c0];
+                        token.len = 1;
+                        token.src = c0;
+                        sI++;
+                        cI++;
+                        lexlog && lexlog(token);
+                        return token;
                     }
                     // Block chars.
                     if (options.block.lex && config.cs.bs[c0]) {
