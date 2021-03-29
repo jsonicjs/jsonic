@@ -9,6 +9,10 @@ import { Csv } from './csv'
 /* $lab:coverage:on$ */
 
 
+// TODO: .jsonic suffix optional
+// TODO: jsonic-cli should provide basepath
+// TODO: auto load index.jsonic, index.<folder-name>.jsonic
+
 let DEFAULTS = {
   markchar: '@',
   basepath: '.',

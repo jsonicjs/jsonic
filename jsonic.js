@@ -1491,7 +1491,9 @@ function deep(base, ...rest) {
     let base_is_object = null != base &&
         (S.object === typeof (base) || base_is_function);
     for (let over of rest) {
-        let over_is_function = S.function === typeof (over);
+        let over_is_function = S.function === typeof (over) ||
+            // HACK for aontu!!!
+            (over && over.$$);
         let over_is_object = null != over &&
             (S.object === typeof (over) || over_is_function);
         if (base_is_object &&
@@ -1893,6 +1895,6 @@ Jsonic.make = make;
 exports.default = Jsonic;
 // Build process uncomments this to enable more natural Node.js requires.
 /* $lab:coverage:off$ */
-;('undefined' != typeof(module) && (module.exports = exports.Jsonic));
+//-NODE-MODULE-FIX;('undefined' != typeof(module) && (module.exports = exports.Jsonic));
 /* $lab:coverage:on$ */
 //# sourceMappingURL=jsonic.js.map

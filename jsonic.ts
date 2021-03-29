@@ -1,5 +1,7 @@
 /* Copyright (c) 2013-2021 Richard Rodger, MIT License */
 
+// TODO: FIX: jsonic script direct invocation in package.json not working
+
 // TODO: quotes are value enders - x:a"a" is an err! not 'a"a"'
 // TODO: tag should appear in error
 // TODO: remove console colors in browser?
@@ -2335,7 +2337,10 @@ function deep(base?: any, ...rest: any): any {
   let base_is_object = null != base &&
     (S.object === typeof (base) || base_is_function)
   for (let over of rest) {
-    let over_is_function = S.function === typeof (over)
+    let over_is_function = S.function === typeof (over) ||
+      // HACK for aontu!!!
+      (over && over.$$)
+
     let over_is_object = null != over &&
       (S.object === typeof (over) || over_is_function)
     if (base_is_object &&

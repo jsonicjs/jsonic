@@ -12,6 +12,9 @@ const jsonic_1 = require("../jsonic");
 const json_1 = require("./json");
 const csv_1 = require("./csv");
 /* $lab:coverage:on$ */
+// TODO: .jsonic suffix optional
+// TODO: jsonic-cli should provide basepath
+// TODO: auto load index.jsonic, index.<folder-name>.jsonic
 let DEFAULTS = {
     markchar: '@',
     basepath: '.',
