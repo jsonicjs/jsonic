@@ -2862,6 +2862,8 @@ function configure(config: Config, options: Options) {
           s.replace(/_/g, null == re_ns ? '' : options.number.sep))
         .join('')
     )
+  }
+
 
   // Debug options
   config.d = options.debug
@@ -2874,7 +2876,7 @@ function configure(config: Config, options: Options) {
 
 
   // Debug the config - useful for plugin authors.
-  if(options.debug.print.config) {
+  if (options.debug.print.config) {
     options.debug.get_console().dir(config, { depth: null })
   }
 }

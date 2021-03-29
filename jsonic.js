@@ -391,14 +391,13 @@ class Lexer {
                         return token;
                     }
                     // Number chars.
-                    //if (options.number.lex && config.s.NR[c0]) {
                     if (options.number.lex && config.m.NR[c0]) {
-                        // TODO: update make config to handle optional hex/oct/bin parsing
-                        // let num_re = /^[-+]?(0(x[0-9a-fA-F_]+|o[0-7_]+|b[01_]+)|[0-9]+([0-9_]*[0-9])?)(\.[0-9]+([0-9_]*[0-9])?)?([eE][-+]?[0-9]+([0-9_]*[0-9])?)?/
                         let num_match = src.substring(sI).match(config.re.nm);
                         if (null != num_match) {
                             let numstr = num_match[0];
                             pI = sI + numstr.length;
+                            // Numbers must end with a value ender char, otherwise
+                            // it must just be text with prefixed digits: '1a' -> "1a"
                             if (null == src[pI] || config.cs.vend[src[pI]]) {
                                 let numval = +(config.re.ns ? numstr.replace(config.re.ns, '') : numstr);
                                 if (!isNaN(numval)) {
@@ -413,74 +412,6 @@ class Lexer {
                                 }
                             }
                         }
-                        /*
-                        token.tin = NR
-                        pI = sI
-            
-                        while (config.cs.dig[src[++pI]]);
-            
-                        let numstr = src.substring(sI, pI)
-                        if (null == src[pI] || config.cs.vend[src[pI]]) {
-                          token.len = pI - sI
-            
-                          let base_char = src[sI + 1]
-            
-                          // TODO: is this necessary? wont +numstr handle this?
-                          // Leading 0s are text unless hex|oct|bin val: if at least two
-                          // digits and does not start with 0x|o|b, then text.
-                          if (
-                            1 < token.len && '0' === src[sI] && '.' !== src[sI + 1] &&
-            
-                            // Maybe a 0|x|o|b number?
-                            (!options.number.hex || 'x' !== base_char) && // But...
-                            (!options.number.oct || 'o' !== base_char) && //  it is...
-                            (!options.number.bin || 'b' !== base_char)    //    not.
-                          ) {
-                            // Not a number.
-                            token.val = undefined
-                            pI--
-                          }
-            
-                          // Attempt to parse natively as a number, using +(string).
-                          else {
-                            token.val = +numstr
-            
-                            // Remove trailing +-
-                            let m
-                            if (isNaN(token.val) && (m = numstr.match(/[-+]+$/))) {
-                              numstr = numstr.substring(0, numstr.length - m[0].length)
-                              token.val = '' != numstr ? +numstr : NaN
-                              pI -= m[0].length
-                            }
-            
-                            // Allow number format 1000_000_000 === 1e9.
-                            if (null != config.re.ns && isNaN(token.val)) {
-                              let numstrpure = numstr.replace(config.re.ns, MT)
-                              token.val = '' != numstrpure ? +numstrpure : NaN
-                            }
-            
-                            // Not a number, just a random collection of digital chars.
-                            if (isNaN(token.val)) {
-                              token.val = undefined
-                              pI--
-                            }
-                          }
-                        }
-            
-                        // It was a number
-                        if (null != token.val) {
-                          // Ensure verbatim src (eg. src="1e6" -> val=1000000).
-                          token.src = numstr
-                          cI += token.len
-                          sI = pI
-            
-                          lexlog && lexlog(token)
-                          return token
-                        }
-            
-                        // NOTE: else drop through to default, as this must be literal text
-                        // prefixed with digits.
-                        */
                     }
                     // Single char tokens.
                     if (null != config.sm[c0]) {
@@ -1926,11 +1857,7 @@ function configure(config, options) {
         ]
             .filter(s => s.replace(/_/g, null == re_ns ? '' : options.number.sep))
             .join(''))
-        // /^[-+]?(0(x[0-9a-fA-F_]+|o[0-7_]+|b[01_]+)|[0-9]+([0-9_]*[0-9])?)(\.[0-9]+([0-9_]*[0-9])?)?([eE][-+]?[0-9]+([0-9_]*[0-9])?)?/
     };
-    //console.log('A', /^[-+]?(0(x[0-9a-fA-F_]+|o[0-7_]+|b[01_]+)|[0-9]+([0-9_]*[0-9])?)(\.[0-9]+([0-9_]*[0-9])?)?([eE][-+]?[0-9]+([0-9_]*[0-9])?)?/)
-    //console.log(config.re.ns)
-    //console.log('B', config.re.nm)
     // Debug options
     config.d = options.debug;
     // Apply any config modifiers (probably from plugins).
@@ -1966,6 +1893,6 @@ Jsonic.make = make;
 exports.default = Jsonic;
 // Build process uncomments this to enable more natural Node.js requires.
 /* $lab:coverage:off$ */
-//-NODE-MODULE-FIX;('undefined' != typeof(module) && (module.exports = exports.Jsonic));
+;('undefined' != typeof(module) && (module.exports = exports.Jsonic));
 /* $lab:coverage:on$ */
 //# sourceMappingURL=jsonic.js.map
