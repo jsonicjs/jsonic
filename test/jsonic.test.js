@@ -895,6 +895,22 @@ describe('jsonic', function () {
   })
   
   
+  it('custom-parser-value', () => {
+    let b = ''
+    let j = Jsonic.make({
+      value: {
+        src: {
+          foo: 'FOO',
+          bar: (lex)=>'BAR'+lex.sI
+        }
+      }
+    })
+
+    expect(j('foo')).equals('FOO')
+    expect(j('bar')).equals('BAR0')
+  })
+
+
   // Test against all combinations of chars up to `len`
   // NOTE: coverage tracing slows this down - a lot!
   it('exhaust', {timeout:33333}, function(){

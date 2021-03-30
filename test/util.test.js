@@ -289,6 +289,17 @@ describe('util', () => {
     let a00 = deep(a0)
     a00.x = 2
     expect(a00.foo()).equal(2)
+
+    //console.log(a0, a00)
+
+    let a1 = deep(a0,{x:3})
+    //console.log(a1)
+    expect(a1.x).equal(3)
+    
+    let a2 = deep({x:4},a0)
+    //console.log(a2)
+    expect(a2.x).equal(3)
+
   })
 
 

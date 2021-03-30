@@ -1045,6 +1045,8 @@ class Lexer {
 
             // A keyword literal value? (eg. true, false, null)
             let val = config.vm[txt]
+            val = S.function === typeof (val) ?
+              val({ sI, rI, cI, src, token, ctx, rule, bad }) : val
 
             if (undefined !== val) {
               token.tin = VL
@@ -2333,19 +2335,16 @@ function tokenize<R extends string | Tin, T extends string | Tin>(
 // `undefined` always loses, `over` plain objects inject into functions,
 // and `over` functions always win. Over always copied.
 function deep(base?: any, ...rest: any): any {
-  let base_is_function = S.function === typeof (base)
-  let base_is_object = null != base &&
-    (S.object === typeof (base) || base_is_function)
+  let base_isf = S.function === typeof (base)
+  let base_iso = null != base &&
+    (S.object === typeof (base) || base_isf)
   for (let over of rest) {
-    let over_is_function = S.function === typeof (over) ||
-      // HACK for aontu!!!
-      (over && over.$$)
-
-    let over_is_object = null != over &&
-      (S.object === typeof (over) || over_is_function)
-    if (base_is_object &&
-      over_is_object &&
-      !over_is_function &&
+    let over_isf = S.function === typeof (over)
+    let over_iso = null != over &&
+      (S.object === typeof (over) || over_isf)
+    if (base_iso &&
+      over_iso &&
+      !over_isf &&
       (Array.isArray(base) === Array.isArray(over))
     ) {
       for (let k in over) {
@@ -2354,13 +2353,13 @@ function deep(base?: any, ...rest: any): any {
     }
     else {
       base = undefined === over ? base :
-        over_is_function ? over :
-          (over_is_object ?
+        over_isf ? over :
+          (over_iso ?
             deep(Array.isArray(over) ? [] : {}, over) : over)
 
-      base_is_function = S.function === typeof (base)
-      base_is_object = null != base &&
-        (S.object === typeof (base) || base_is_function)
+      base_isf = S.function === typeof (base)
+      base_iso = null != base &&
+        (S.object === typeof (base) || base_isf)
     }
   }
   return base
