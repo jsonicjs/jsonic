@@ -1,6 +1,7 @@
 /* Copyright (c) 2013-2021 Richard Rodger, MIT License */
 
 // TODO: FIX: jsonic script direct invocation in package.json not working
+// TODO: norm alt should be called as needed to handle new dynamic alts
 
 // TODO: quotes are value enders - x:a"a" is an err! not 'a"a"'
 // TODO: tag should appear in error
@@ -257,6 +258,7 @@ type Config = {
 
 const MT = '' // Empty ("MT"!) string.
 const keys = Object.keys
+const entries = Object.entries
 const assign = Object.assign
 const defprop = Object.defineProperty
 
@@ -1356,6 +1358,7 @@ class Rule {
   state: RuleState
   child: Rule
   parent?: Rule
+  prev?: Rule
   open: Token[]
   close: Token[]
   n: KV
@@ -1573,6 +1576,7 @@ class RuleSpec {
     else if (alt.r) {
       next = new Rule(ctx.rsm[alt.r], ctx, rule.node)
       next.parent = rule.parent
+      next.prev = rule
       next.n = { ...rule.n }
       why += 'R'
     }
@@ -1726,8 +1730,8 @@ class RuleSpec {
       out.m.map((tkn: Token) => t[tkn.tin]).join(' '),
       ctx.F(out.m.map((tkn: Token) => tkn.src)),
       'c:' + ((alt && alt.c) ? cond : MT),
-      'n:' + Object.entries(rule.n).join(';'),
-      'u:' + Object.entries(rule.use).join(';'),
+      'n:' + entries(rule.n).join(';'),
+      'u:' + entries(rule.use).join(';'),
       out)
 
     return out
@@ -2480,7 +2484,7 @@ function regexp(
 
 
 
-function ender(endchars: CharCodeMap, endmarks: KV) {
+function ender(endchars: CharCodeMap, endmarks: KV, singles?: KV) {
   let allendchars =
     keys(
       keys(endmarks)
@@ -2488,9 +2492,16 @@ function ender(endchars: CharCodeMap, endmarks: KV) {
       .join('')
 
   let endmarkprefixes =
-    Object.entries(
+    entries(
       keys(endmarks)
-        .filter(cm => 1 < cm.length)
+        .filter(cm =>
+          1 < cm.length && // only for long marks
+
+          // Not needed if first char is already an endchar,
+          // otherwise edge case where first char won't match as ender,
+          // see test custom-parser-mixed-token
+          (!singles || !singles[cm[0]])
+        )
         .reduce((a: any, s: string) =>
           ((a[s[0]] = (a[s[0]]) || []).push(s.substring(1)), a), {}))
       .reduce((a: any, cme: any) => (a.push([
@@ -2847,7 +2858,8 @@ function configure(config: Config, options: Options) {
       {
         ...(options.comment.lex ? config.cm : {}),
         ...(options.block.lex ? options.block.marker : {}),
-      }
+      },
+      config.sm
     ),
 
     nm: new RegExp(

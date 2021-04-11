@@ -911,6 +911,42 @@ describe('jsonic', function () {
   })
 
 
+  it('custom-parser-mixed-token', () => {
+    expect(Jsonic('a:1')).equals({a:1})
+
+    let cs = [
+      'Q',  // generic char
+      '/'   // mixed use as comment marker
+    ]
+
+    for(let c of cs) {
+      let j = Jsonic.make()
+      j.options({
+        token: {
+          '#T/': { c:c },
+        }
+      })
+      
+      let FS = j.token['#T/']
+      let TX = j.token.TX
+      
+      j.rule('val', (rs)=>{
+        rs.def.open.unshift({
+          s:[FS,TX], a:(r)=>r.open[0].val='@'+r.open[1].val
+        })
+      })
+      
+      j.rule('elem', (rs)=>{
+        rs.def.close.unshift({
+          s:[FS,TX], r:'elem', b:2
+        })
+      })
+      
+      expect(j('['+c+'x'+c+'y]')).equals(['@x','@y'])
+    }
+  })
+
+
   // Test against all combinations of chars up to `len`
   // NOTE: coverage tracing slows this down - a lot!
   it('exhaust', {timeout:33333}, function(){

@@ -242,6 +242,7 @@ declare class Rule {
     state: RuleState;
     child: Rule;
     parent?: Rule;
+    prev?: Rule;
     open: Token[];
     close: Token[];
     n: KV;
@@ -345,7 +346,7 @@ declare function mesc(s: string, _?: any): any;
 declare function regexp(flags: string, ...parts: (string | (String & {
     esc?: boolean;
 }))[]): RegExp;
-declare function ender(endchars: CharCodeMap, endmarks: KV): RegExp;
+declare function ender(endchars: CharCodeMap, endmarks: KV, singles?: KV): RegExp;
 declare function errinject(s: string, code: string, details: KV, token: Token, rule: Rule, ctx: Context): string;
 declare function extract(src: string, errtxt: string, token: Token): string;
 declare function parserwrap(parser: any): {

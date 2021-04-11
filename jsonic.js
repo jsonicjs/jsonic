@@ -4,6 +4,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.make = exports.util = exports.Alt = exports.RuleSpec = exports.Rule = exports.Parser = exports.Lexer = exports.JsonicError = exports.Jsonic = void 0;
 const MT = ''; // Empty ("MT"!) string.
 const keys = Object.keys;
+const entries = Object.entries;
 const assign = Object.assign;
 const defprop = Object.defineProperty;
 // A bit pedantic, but let's be strict about strings.
@@ -931,6 +932,7 @@ class RuleSpec {
         else if (alt.r) {
             next = new Rule(ctx.rsm[alt.r], ctx, rule.node);
             next.parent = rule.parent;
+            next.prev = rule;
             next.n = { ...rule.n };
             why += 'R';
         }
@@ -1038,7 +1040,7 @@ class RuleSpec {
         }
         ctx.log && ctx.log(S.parse, rule.name + '~' + rule.id, RuleState[rule.state], altI < alts.length ? 'alt=' + altI : 'no-alt', altI < alts.length &&
             alt.s ?
-            '[' + alt.s.map((pin) => t[pin]).join(' ') + ']' : '[]', ctx.tC, 'p=' + (out.p || MT), 'r=' + (out.r || MT), 'b=' + (out.b || MT), out.m.map((tkn) => t[tkn.tin]).join(' '), ctx.F(out.m.map((tkn) => tkn.src)), 'c:' + ((alt && alt.c) ? cond : MT), 'n:' + Object.entries(rule.n).join(';'), 'u:' + Object.entries(rule.use).join(';'), out);
+            '[' + alt.s.map((pin) => t[pin]).join(' ') + ']' : '[]', ctx.tC, 'p=' + (out.p || MT), 'r=' + (out.r || MT), 'b=' + (out.b || MT), out.m.map((tkn) => t[tkn.tin]).join(' '), ctx.F(out.m.map((tkn) => tkn.src)), 'c:' + ((alt && alt.c) ? cond : MT), 'n:' + entries(rule.n).join(';'), 'u:' + entries(rule.use).join(';'), out);
         return out;
     }
 }
@@ -1598,12 +1600,16 @@ function regexp(flags, ...parts) {
         p.replace(/[-\\|\]{}()[^$+*?.!=]/g, '\\$&')
         : p).join(MT), flags);
 }
-function ender(endchars, endmarks) {
+function ender(endchars, endmarks, singles) {
     let allendchars = keys(keys(endmarks)
         .reduce((a, em) => (a[em[0]] = 1, a), { ...endchars }))
         .join('');
-    let endmarkprefixes = Object.entries(keys(endmarks)
-        .filter(cm => 1 < cm.length)
+    let endmarkprefixes = entries(keys(endmarks)
+        .filter(cm => 1 < cm.length && // only for long marks
+        // Not needed if first char is already an endchar,
+        // otherwise edge case where first char won't match as ender,
+        // see test custom-parser-mixed-token
+        (!singles || !singles[cm[0]]))
         .reduce((a, s) => ((a[s[0]] = (a[s[0]]) || []).push(s.substring(1)), a), {}))
         .reduce((a, cme) => (a.push([
         cme[0],
@@ -1845,7 +1851,7 @@ function configure(config, options) {
         te: ender(charset(options.space.lex && config.m.SP, options.line.lex && config.m.LN, config.sc, options.comment.lex && config.cs.cs, options.block.lex && config.cs.bs), {
             ...(options.comment.lex ? config.cm : {}),
             ...(options.block.lex ? options.block.marker : {}),
-        }),
+        }, config.sm),
         nm: new RegExp([
             '^[-+]?(0(',
             [
