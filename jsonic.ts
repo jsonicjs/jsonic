@@ -1,8 +1,8 @@
 /* Copyright (c) 2013-2021 Richard Rodger, MIT License */
 
+// TODO: multipe merges, also with dynamic
 // TODO: FIX: jsonic script direct invocation in package.json not working
 // TODO: norm alt should be called as needed to handle new dynamic alts
-
 // TODO: quotes are value enders - x:a"a" is an err! not 'a"a"'
 // TODO: tag should appear in error
 // TODO: remove console colors in browser?
@@ -18,6 +18,8 @@
 // TODO: lex matcher should be able to explicitly disable rest of state logic
 // TODO: option to control comma null insertion
 // TODO: {,} should fail ({,,...} does).
+// TODO: import of plugins convenience: import { Foo, Bar } from 'jsonic/plugin'
+
 
 // # Conventions
 //
@@ -132,6 +134,7 @@ type Options = {
   }
   map: {
     extend: boolean
+    merge?: (prev: any, curr: any) => any
   }
   value: {
     lex: boolean,
@@ -424,6 +427,9 @@ function make_default_options(): Options {
 
       // Later duplicates extend earlier ones, rather than replacing them.
       extend: true,
+
+      // Custom merge function for duplicates (optional).
+      merge: undefined,
     },
 
 
@@ -1924,7 +1930,8 @@ class Parser {
               val = null
             }
             rule.node[key] = null == prev ? val :
-              (ctx.opts.map.extend ? deep(prev, val) : val)
+              (ctx.opts.map.merge ? ctx.opts.map.merge(prev, val) :
+                (ctx.opts.map.extend ? deep(prev, val) : val))
           }
         },
       },

@@ -947,6 +947,27 @@ describe('jsonic', function () {
   })
 
 
+  it('custom-merge', () => {
+    // verify standard merges
+    expect(Jsonic('a:1,a:2')).equals({a:2})
+    expect(Jsonic('a:1,a:2,a:3')).equals({a:3})
+    expect(Jsonic('a:{x:1},a:{y:2}')).equals({a:{x:1,y:2}})
+    expect(Jsonic('a:{x:1},a:{y:2},a:{z:3}')).equals({a:{x:1,y:2,z:3}})
+
+    let b = ''
+    let j = Jsonic.make({
+      map: {
+        merge: (prev, curr)=>{
+          return prev+curr
+        }
+      }
+    })
+
+    expect(j('a:1,a:2')).equals({a:3})
+    expect(j('a:1,a:2,a:3')).equals({a:6})
+  })
+
+  
   // Test against all combinations of chars up to `len`
   // NOTE: coverage tracing slows this down - a lot!
   it('exhaust', {timeout:33333}, function(){

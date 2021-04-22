@@ -128,6 +128,8 @@ function make_default_options() {
         map: {
             // Later duplicates extend earlier ones, rather than replacing them.
             extend: true,
+            // Custom merge function for duplicates (optional).
+            merge: undefined,
         },
         // Keyword values.
         value: {
@@ -1191,7 +1193,8 @@ class Parser {
                             val = null;
                         }
                         rule.node[key] = null == prev ? val :
-                            (ctx.opts.map.extend ? deep(prev, val) : val);
+                            (ctx.opts.map.merge ? ctx.opts.map.merge(prev, val) :
+                                (ctx.opts.map.extend ? deep(prev, val) : val));
                     }
                 },
             },

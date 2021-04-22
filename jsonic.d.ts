@@ -69,6 +69,7 @@ declare type Options = {
     };
     map: {
         extend: boolean;
+        merge?: (prev: any, curr: any) => any;
     };
     value: {
         lex: boolean;
