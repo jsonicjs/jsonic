@@ -12,6 +12,7 @@ const jsonic_1 = require("../jsonic");
 const json_1 = require("./json");
 const csv_1 = require("./csv");
 /* $lab:coverage:on$ */
+// REMOVE - replaced by @jsonic/multisource
 // TODO: .jsonic suffix optional
 // TODO: jsonic-cli should provide basepath
 // TODO: auto load index.jsonic, index.<folder-name>.jsonic

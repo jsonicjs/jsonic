@@ -1,5 +1,6 @@
 /* Copyright (c) 2013-2021 Richard Rodger, MIT License */
 
+// TODO: test custom alt error: eg.  { e: (r: Rule) => r.close[0] } ??? bug: r.close empty!
 // TODO: multipe merges, also with dynamic
 // TODO: FIX: jsonic script direct invocation in package.json not working
 // TODO: norm alt should be called as needed to handle new dynamic alts

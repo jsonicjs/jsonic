@@ -8,6 +8,8 @@ import { Json } from './json'
 import { Csv } from './csv'
 /* $lab:coverage:on$ */
 
+// REMOVE - replaced by @jsonic/multisource
+
 
 // TODO: .jsonic suffix optional
 // TODO: jsonic-cli should provide basepath
