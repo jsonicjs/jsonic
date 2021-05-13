@@ -201,21 +201,6 @@ declare class JsonicError extends SyntaxError {
         stack: string | undefined;
     };
 }
-declare abstract class MatcherNG {
-    token: any;
-}
-declare class LexerNG {
-    token_src: string[];
-    token_re: RegExp;
-    token_tm: {
-        [src: string]: {
-            tin: Tin;
-            val?: any;
-        };
-    };
-    add(m: MatcherNG): void;
-    start(ctx: Context): Lex;
-}
 declare type LexMatcherState = {
     sI: number;
     rI: number;
@@ -371,5 +356,5 @@ declare function parserwrap(parser: any): {
 declare function errdesc(code: string, details: KV, token: Token, rule: Rule, ctx: Context): KV;
 declare function configure(config: Config, options: Options): void;
 declare let Jsonic: Jsonic;
-export { Jsonic, Plugin, JsonicError, Tin, Lexer, LexerNG, Parser, Rule, RuleSpec, RuleSpecMap, Token, Context, Meta, LexMatcher, LexMatcherListMap, LexMatcherResult, LexMatcherState, Alt, AltCond, AltHandler, AltAction, util, make, };
+export { Jsonic, Plugin, JsonicError, Tin, Lexer, Parser, Rule, RuleSpec, RuleSpecMap, Token, Context, Meta, LexMatcher, LexMatcherListMap, LexMatcherResult, LexMatcherState, Alt, AltCond, AltHandler, AltAction, util, make, };
 export default Jsonic;

@@ -488,11 +488,11 @@ describe('util', () => {
   'rule val~1 open',
   'parse val~1 open',
   'node val~1 open',
-  'lex #ZZ ',
   'stack 1 val~1',
   'rule map~2 open',
   'parse map~2 open',
   'node map~2 open',
+  'lex #ZZ ',
   'stack 2 val~1/map~2',
   'rule pair~3 open',
   'parse pair~3 open'

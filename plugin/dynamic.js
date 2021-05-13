@@ -21,7 +21,8 @@ let Dynamic = function dynamic(jsonic) {
         rs.def.close.unshift({ s: [T$], r: 'val' });
         // Special case: `$$`
         rs.def.ao = (rule) => {
-            if (rule.open[0] && rule.open[1] &&
+            // if (rule.open[0] && rule.open[1] &&
+            if (rule.open[1] &&
                 T$ === rule.open[0].tin &&
                 T$ === rule.open[1].tin) {
                 rule.open[1].use = rule;
@@ -29,7 +30,8 @@ let Dynamic = function dynamic(jsonic) {
         };
         let bc = rs.def.bc;
         rs.def.bc = (rule, _ctx) => {
-            if (rule.open[0] && rule.open[1]) {
+            //if (rule.open[0] && rule.open[1]) {
+            if (rule.open[1]) {
                 if (T$ === rule.open[0].tin && T$ !== rule.open[1].tin) {
                     let expr = (rule.open[0].use ? '$' : '') + rule.open[1].val;
                     if ('.' === expr[0]) {

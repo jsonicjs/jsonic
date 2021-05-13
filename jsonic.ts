@@ -579,7 +579,8 @@ class JsonicError extends SyntaxError {
 }
 
 
-
+// WIP: restructure lexing to use matchers consistently
+/*
 abstract class MatcherNG {
   token: any = undefined
 }
@@ -670,7 +671,7 @@ class LexerNG {
     return lex
   }
 }
-
+*/
 
 
 type LexMatcherState = {
@@ -2082,6 +2083,8 @@ class Parser {
 
           { s: [CA], p: S.elem, b: 1 },
 
+          { p: S.elem },
+
           /*
           { s: [CS] }, // empty
           { p: S.elem } // no tokens, pass node
@@ -2096,6 +2099,8 @@ class Parser {
       pair: {
         open: [
           { s: [VAL, CL], p: S.val, u: { key: true } },
+
+          { s: [CA] },
 
           /*
           { s: [[TX, NR, ST, VL], CL], p: S.val, u: { key: true } },
@@ -2119,6 +2124,7 @@ class Parser {
             b: 1
           },
 
+          { s: [ZZ], e: finish, g: S.end },
 
           /*
           { s: [CB] },
@@ -2201,6 +2207,8 @@ class Parser {
           { s: [[...VAL, OB, OS]], r: S.elem, b: 1 },
 
           { s: [CS] },
+
+          { s: [ZZ], e: finish, g: S.end },
 
           /*
           // Ignore trailing comma
@@ -2296,9 +2304,7 @@ class Parser {
       use: {}
     }
 
-    if (null != parent_ctx) {
-      ctx = deep(ctx, parent_ctx)
-    }
+    ctx = deep(ctx, parent_ctx)
 
     makelog(ctx)
 
@@ -3195,7 +3201,7 @@ export {
   JsonicError,
   Tin,
   Lexer,
-  LexerNG,
+  // LexerNG,
   Parser,
   Rule,
   RuleSpec,

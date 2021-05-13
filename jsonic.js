@@ -1,7 +1,7 @@
 "use strict";
 /* Copyright (c) 2013-2021 Richard Rodger, MIT License */
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.make = exports.util = exports.Alt = exports.RuleSpec = exports.Rule = exports.Parser = exports.LexerNG = exports.Lexer = exports.JsonicError = exports.Jsonic = void 0;
+exports.make = exports.util = exports.Alt = exports.RuleSpec = exports.Rule = exports.Parser = exports.Lexer = exports.JsonicError = exports.Jsonic = void 0;
 const MT = ''; // Empty ("MT"!) string.
 const keys = Object.keys;
 const entries = Object.entries;
@@ -237,74 +237,6 @@ class JsonicError extends SyntaxError {
     }
 }
 exports.JsonicError = JsonicError;
-class MatcherNG {
-    constructor() {
-        this.token = undefined;
-    }
-}
-class TokenMatcherNG extends MatcherNG {
-    constructor(token) {
-        super();
-        this.token = {};
-        this.token = token;
-    }
-}
-class LexerNG {
-    constructor() {
-        this.token_src = [];
-        this.token_re = new RegExp('');
-        this.token_tm = {};
-    }
-    add(m) {
-        if (m.token) {
-            // TODO: escapes, unique check
-            this.token_src.push(...Object.keys(m.token));
-            this.token_re = new RegExp('^(' + this.token_src.join('|') + ')');
-            Object.assign(this.token_tm, m.token);
-        }
-    }
-    start(ctx) {
-        const config = ctx.cnfg;
-        const tpin = (name) => tokenize(name, config);
-        let ZZ = tpin('#ZZ');
-        let token = {
-            tin: ZZ,
-            loc: 0,
-            row: 0,
-            col: 0,
-            len: 0,
-            val: undefined,
-            src: undefined,
-        };
-        // Main indexes.
-        let sI = 0; // Source text index.
-        let rI = 0; // Source row index.
-        let cI = 0; // Source column index.
-        let src = ctx.src();
-        let token_re = this.token_re;
-        let token_tm = this.token_tm;
-        // Lex next Token.
-        let lex = function lex(rule) {
-            token.len = 0;
-            token.val = undefined;
-            token.src = undefined;
-            token.row = rI;
-            token.use = undefined;
-            let srcfwd = src.substring(sI);
-            let tsrc;
-            if (tsrc = srcfwd.match(token_re)) {
-                let tm = token_tm[tsrc[0]];
-                token.tin = tm.tin;
-                token.val = tm.val;
-                return token;
-            }
-            return token;
-        };
-        lex.src = src;
-        return lex;
-    }
-}
-exports.LexerNG = LexerNG;
 class Lexer {
     constructor(config) {
         this.match = {};
@@ -1314,6 +1246,7 @@ class Parser {
                     { s: [OS, CS] },
                     { s: [OS], p: S.elem },
                     { s: [CA], p: S.elem, b: 1 },
+                    { p: S.elem },
                     /*
                     { s: [CS] }, // empty
                     { p: S.elem } // no tokens, pass node
@@ -1325,6 +1258,7 @@ class Parser {
             pair: {
                 open: [
                     { s: [VAL, CL], p: S.val, u: { key: true } },
+                    { s: [CA] },
                     /*
                     { s: [[TX, NR, ST, VL], CL], p: S.val, u: { key: true } },
                     { s: [CB], b: 1 }, // empty
@@ -1341,6 +1275,7 @@ class Parser {
                         s: [CS],
                         b: 1
                     },
+                    { s: [ZZ], e: finish, g: S.end },
                     /*
                     { s: [CB] },
           
@@ -1410,6 +1345,7 @@ class Parser {
                     { s: [CA], r: S.elem },
                     { s: [[...VAL, OB, OS]], r: S.elem, b: 1 },
                     { s: [CS] },
+                    { s: [ZZ], e: finish, g: S.end },
                     /*
                     // Ignore trailing comma
                     { s: [CA, CS] },
@@ -1486,9 +1422,7 @@ class Parser {
             F: srcfmt(this.config),
             use: {}
         };
-        if (null != parent_ctx) {
-            ctx = deep(ctx, parent_ctx);
-        }
+        ctx = deep(ctx, parent_ctx);
         makelog(ctx);
         let tn = (pin) => tokenize(pin, this.config);
         let lex = badlex(lexer.start(ctx), tokenize('#BD', this.config), ctx);

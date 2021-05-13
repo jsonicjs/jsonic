@@ -19,7 +19,6 @@ const { Json } = require('../plugin/json')
 const { Csv } = require('../plugin/csv')
 const { Dynamic } = require('../plugin/dynamic')
 const { Native } = require('../plugin/native')
-const { Multifile } = require('../plugin/multifile')
 const { LegacyStringify } = require('../plugin/legacy-stringify')
 const { Hoover } = require('../plugin/hoover')
 
@@ -194,7 +193,7 @@ describe('plugin', function () {
     expect(k('a:1,b:$"meta.f(2)"',{f:(x)=>({c:x})})).equal({a:1,b:{c:2}})
     expect(d(k('a:1,"b":$1+1'))).equal({a:1,b:2})
 
-    let d0 = k('a:{x:1},b:$.a,b:{y:2},c:$.a,c:{y:3}',{xlog:-1})
+    let d0 = k('a:{x:1},b:$.a,b:{y:2},c:$.a,c:{y:3}')
     // NOTE: multiple calls verify dynamic getters are stable
     expect(d0).equal({a:{x:1},b:{x:1,y:2},c:{x:1,y:3}})
     expect(d0).equal({a:{x:1},b:{x:1,y:2},c:{x:1,y:3}})
@@ -214,7 +213,7 @@ b: {
   d: $.a
   d: {y:4,n:6}
 }
-`,{xlog:-1})
+`)
     //console.dir(d(d1),{depth:null})
     expect(d1).equal({a:{x:1,y:2},b:{c:{x:3,y:2,m:5},d:{x:1,y:4,n:6}}})
     expect(d1).equal({a:{x:1,y:2},b:{c:{x:3,y:2,m:5},d:{x:1,y:4,n:6}}})
@@ -229,7 +228,7 @@ b: {
   d: {y:4,n:6}
 }
 a:{x:1,y:2}
-`,{xlog:-1})
+`)
     //console.dir(d(d2),{depth:null})
     expect(d2).equal({a:{x:1,y:2},b:{c:{x:3,y:2,m:5},d:{x:1,y:4,n:6}}})
     expect(d2).equal({a:{x:1,y:2},b:{c:{x:3,y:2,m:5},d:{x:1,y:4,n:6}}})
@@ -267,6 +266,7 @@ a:{x:1,y:2}
   it('json-basic', () => {
     let k = Jsonic.make().use(Json)
     expect(k('{"a":1}')).equal({a:1})
+    expect(k('{"a":1}',{})).equal({a:1})
     expect(k('{"a":1}',{json:[(k,v)=>'a'===k?2:v]})).equal({a:2})
     expect(()=>k('{a:1}')).throws(JsonicError, /jsonic\/json/)
   })
@@ -413,6 +413,7 @@ aa\tbb
   })
 
 
+  /*
   it('multifile-basic', () => {
     let k = Jsonic.make().use(Multifile,{basepath:__dirname})
 
@@ -481,7 +482,7 @@ aa\tbb
     expect(d).equal(dx)
     
   })
-
+  */
 
   it('legacy-stringify-basic', () => {
     let k = Jsonic.make().use(LegacyStringify)

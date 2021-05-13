@@ -34,7 +34,8 @@ let Dynamic: Plugin = function dynamic(jsonic: Jsonic) {
 
     // Special case: `$$`
     rs.def.ao = (rule: Rule) => {
-      if (rule.open[0] && rule.open[1] &&
+      // if (rule.open[0] && rule.open[1] &&
+      if (rule.open[1] &&
         T$ === rule.open[0].tin &&
         T$ === rule.open[1].tin) {
         rule.open[1].use = rule
@@ -43,7 +44,8 @@ let Dynamic: Plugin = function dynamic(jsonic: Jsonic) {
 
     let bc = rs.def.bc
     rs.def.bc = (rule: Rule, _ctx: Context) => {
-      if (rule.open[0] && rule.open[1]) {
+      //if (rule.open[0] && rule.open[1]) {
+      if (rule.open[1]) {
         if (T$ === rule.open[0].tin && T$ !== rule.open[1].tin) {
 
           let expr = (rule.open[0].use ? '$' : '') + rule.open[1].val
