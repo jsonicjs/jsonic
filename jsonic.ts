@@ -579,6 +579,100 @@ class JsonicError extends SyntaxError {
 }
 
 
+
+abstract class MatcherNG {
+  token: any = undefined
+}
+
+class TokenMatcherNG extends MatcherNG {
+  token: { [src: string]: { tin: Tin, val?: any } } = {}
+  constructor(token: any) {
+    super()
+    this.token = token
+  }
+
+}
+
+
+class LexerNG {
+  token_src: string[] = []
+  token_re: RegExp = new RegExp('')
+  token_tm: { [src: string]: { tin: Tin, val?: any } } = {}
+
+  add(m: MatcherNG) {
+    if (m.token) {
+      // TODO: escapes, unique check
+      this.token_src.push(...Object.keys(m.token))
+      this.token_re = new RegExp('^(' + this.token_src.join('|') + ')')
+      Object.assign(this.token_tm, m.token)
+    }
+  }
+
+  start(
+    ctx: Context
+  ): Lex {
+
+    const config = ctx.cnfg
+
+    const tpin = (name: string): Tin => tokenize(name, config)
+
+    let ZZ = tpin('#ZZ')
+
+
+    let token: Token = {
+      tin: ZZ,
+      loc: 0,
+      row: 0,
+      col: 0,
+      len: 0,
+      val: undefined,
+      src: undefined,
+    }
+
+
+    // Main indexes.
+    let sI = 0 // Source text index.
+    let rI = 0 // Source row index.
+    let cI = 0 // Source column index.
+
+
+    let src = ctx.src()
+
+    let token_re = this.token_re
+    let token_tm = this.token_tm
+
+    // Lex next Token.
+    let lex: Lex = (function lex(rule: Rule): Token {
+      token.len = 0
+      token.val = undefined
+      token.src = undefined
+      token.row = rI
+      token.use = undefined
+
+      let srcfwd = src.substring(sI)
+      let tsrc
+
+      if (tsrc = srcfwd.match(token_re)) {
+        let tm = token_tm[tsrc[0]]
+        token.tin = tm.tin
+        token.val = tm.val
+
+        return token
+      }
+
+
+      return token
+
+    } as Lex)
+
+    lex.src = src
+
+    return lex
+  }
+}
+
+
+
 type LexMatcherState = {
   sI: number,
   rI: number,
@@ -766,6 +860,8 @@ class Lexer {
             return token
           }
 
+
+          // FIXED-REGEXP
           // Space chars.
           //if (options.space.lex && config.s.SP[c0]) {
           if (options.space.lex && config.m.SP[c0]) {
@@ -786,6 +882,8 @@ class Lexer {
           }
 
 
+          // FIXED-REGEXP
+          // CHAR-COUNTER
           // Newline chars.
           //if (options.line.lex && config.s.LN[c0]) {
           if (options.line.lex && config.m.LN[c0]) {
@@ -809,7 +907,9 @@ class Lexer {
             return token
           }
 
-
+          // FIXED-REGEXP
+          // MATCHER-FUNC
+          // ABANDON
           // Number chars.
           if (options.number.lex && config.m.NR[c0]) {
             let num_match = src.substring(sI).match((config.re.nm as RegExp))
@@ -840,6 +940,7 @@ class Lexer {
           }
 
 
+          // FIXED-REGEXP
           // Single char tokens.
           if (null != config.sm[c0]) {
             token.tin = config.sm[c0]
@@ -852,7 +953,10 @@ class Lexer {
             return token
           }
 
-
+          // FIXED-REGEXP
+          // CHANGE-STATE
+          // LEX-STATE?
+          // TWO MATCHERS?
           // Block chars.
           if (options.block.lex && config.cs.bs[c0]) {
             let marker = src.substring(sI, sI + config.bmx)
@@ -869,6 +973,9 @@ class Lexer {
           }
 
 
+          // FIXED-REGEXP
+          // MATCHER-FUNC
+          // LEX-STATE?
           // String chars.
           //if (options.string.lex && config.s.ST[c0]) {
           if (options.string.lex && config.m.ST[c0]) {
@@ -1006,6 +1113,8 @@ class Lexer {
           }
 
 
+          // FIXED-REGEXP
+          // THEN SAME AS BML
           // Comment chars.
           if (options.comment.lex && config.cs.cs[c0]) {
 
@@ -1041,7 +1150,7 @@ class Lexer {
             continue next_char
           }
 
-
+          // FIXED-REGEXP
           // Literal values.
           if (options.value.lex && config.vs[c0]) {
             pI = sI
@@ -1090,6 +1199,8 @@ class Lexer {
 
           pI = sI
 
+          // FIXED-REGEXP
+          // UNTIL-MATCH
           let m = src.substring(sI).match((config.re.te as RegExp))
           if (m) {
             let txlen = m[0].length
@@ -1117,6 +1228,9 @@ class Lexer {
           }
 
           pI = sI
+
+          // FIXED-REGEXP
+          // UNTIL-MATCH
           while (pI < srclen && !enders[src[pI]]) pI++, cI++;
 
           token.val += src.substring(sI, pI)
@@ -1137,6 +1251,10 @@ class Lexer {
           if (matchers(rule)) {
             return token
           }
+
+          // FIXED-REGEXP
+          // UNTIL-MATCH
+          // STATE DEPTH?
 
           pI = sI
 
@@ -1554,7 +1672,14 @@ class RuleSpec {
     if (alt.n) {
       for (let cn in alt.n) {
         rule.n[cn] =
-          0 === alt.n[cn] ? 0 : (null == rule.n[cn] ? 0 : rule.n[cn]) + alt.n[cn]
+          // 0 reverts counter to 0.
+          0 === alt.n[cn] ? 0 :
+            // First seen, set to 0.
+            (null == rule.n[cn] ? 0 :
+              // Increment counter.
+              rule.n[cn]) + alt.n[cn]
+
+        // Disallow negative counters.
         rule.n[cn] = 0 < rule.n[cn] ? rule.n[cn] : 0
       }
     }
@@ -1621,6 +1746,8 @@ class RuleSpec {
       rule.name + '~' + rule.id,
       RuleState[rule.state],
       'w=' + why,
+      'n:' + entries(rule.n).map(n => n[0] + '=' + n[1]).join(';'),
+      'u:' + entries(rule.use).map(u => u[0] + '=' + u[1]).join(';'),
       F(rule.node)
     )
 
@@ -1730,15 +1857,15 @@ class RuleSpec {
       altI < alts.length &&
         (alt as any).s ?
         '[' + (alt as any).s.map((pin: Tin) => t[pin]).join(' ') + ']' : '[]',
-      ctx.tC,
+      'tc=' + ctx.tC,
       'p=' + (out.p || MT),
       'r=' + (out.r || MT),
       'b=' + (out.b || MT),
       out.m.map((tkn: Token) => t[tkn.tin]).join(' '),
       ctx.F(out.m.map((tkn: Token) => tkn.src)),
       'c:' + ((alt && alt.c) ? cond : MT),
-      'n:' + entries(rule.n).join(';'),
-      'u:' + entries(rule.use).join(';'),
+      'n:' + entries(rule.n).map(n => n[0] + '=' + n[1]).join(';'),
+      'u:' + entries(rule.use).map(u => u[0] + '=' + u[1]).join(';'),
       out)
 
     return out
@@ -1778,6 +1905,8 @@ class Parser {
     let AA = t.AA
     let ZZ = t.ZZ
 
+    let VAL = [TX, NR, ST, VL]
+
     let finish: AltError = (_rule: Rule, ctx: Context) => {
       if (!this.options.rule.finish) {
         // TODO: needs own error code
@@ -1789,7 +1918,24 @@ class Parser {
     let rules: any = {
       val: {
         open: [
+          { s: [OB], p: S.map, b: 1 },
 
+          { s: [OS], p: S.list, b: 1 },
+
+          { s: [VAL, CL], p: S.map, b: 2, n: { im: 1 } },
+
+          { s: [VAL] },
+
+          // Implicit ends `{a:}` -> {"a":null}, `[a:]` -> [{"a":null}]
+          { s: [[CB, CS]], b: 1 },
+
+          { s: [CA], d: 0, p: S.list, b: 1 },
+
+          // Value is null.
+          { s: [CA], b: 1, g: S.imp_list },
+
+
+          /*
           // Implicit map. Reset implicit map depth counter.
           { s: [OB, CA], p: S.map, n: { im: 0 }, g: S.imp_map },
 
@@ -1803,6 +1949,8 @@ class Parser {
           // Value is null.
           { s: [CA], b: 1, g: S.imp_list },
 
+
+          // FIX: move to close of pair?
           // Implicit map - operates at any depth. Increment counter.
           // NOTE: `n.im` counts depth of implicit maps
           { s: [[TX, NR, ST, VL], CL], p: S.map, b: 2, n: { im: 1 }, g: S.imp_map },
@@ -1823,9 +1971,46 @@ class Parser {
             b: 1,
             g: S.imp_null
           },
+          */
         ],
 
         close: [
+          {
+            s: [CA], d: 0, r: S.elem,
+            a: (rule: Rule) => rule.node = [rule.node],
+            g: S.imp_list
+          },
+
+          // top level "a b"
+          {
+            c: (_rule: Rule, ctx: Context, _alt: Alt) => {
+              return (TX === ctx.t0.tin ||
+                NR === ctx.t0.tin ||
+                ST === ctx.t0.tin ||
+                VL === ctx.t0.tin
+              ) && 0 === ctx.rs.length
+            },
+            r: S.elem,
+            a: (rule: Rule) => rule.node = [rule.node],
+            g: S.imp_list
+          },
+
+
+          { b: 1 },
+
+          /* BAD
+          { s: [[CA, CL, CB, CS, ZZ]], b: 1 },
+
+          {
+            r: S.elem, b: 1,
+            a: (r: Rule) => {
+              r.node = Array.isArray(r.node) ? r.node : [r.node]
+            }
+          },
+          */
+
+
+          /*
           // Implicit list works only at top level
 
           {
@@ -1849,10 +2034,11 @@ class Parser {
             a: (rule: Rule) => rule.node = [rule.node],
             g: S.imp_list
           },
-
+          
 
           // Close value, and map or list, but perhaps there are more elem?
           { s: [AA], b: 1 },
+          */
         ],
         bc: (rule: Rule) => {
           // NOTE: val can be undefined when there is no value at all
@@ -1870,10 +2056,19 @@ class Parser {
           return { node: {} }
         },
         open: [
+          { s: [OB, CB] },
+
+          { s: [OB], p: S.pair, n: { im: 0 } },
+
+          { s: [VAL, CL], p: S.pair, b: 2 },
+
+          /*
           { s: [CB] }, // empty
           { p: S.pair } // no tokens, pass node
+          */
         ],
-        close: []
+        close: [
+        ]
       },
 
       list: {
@@ -1881,21 +2076,51 @@ class Parser {
           return { node: [] }
         },
         open: [
+          { s: [OS, CS] },
+
+          { s: [OS], p: S.elem },
+
+          { s: [CA], p: S.elem, b: 1 },
+
+          /*
           { s: [CS] }, // empty
           { p: S.elem } // no tokens, pass node
+          */
         ],
-        close: []
+        close: [
+        ]
       },
 
 
       // sets key:val on node
       pair: {
         open: [
-          // TODO: rule.use.key=true
+          { s: [VAL, CL], p: S.val, u: { key: true } },
+
+          /*
           { s: [[TX, NR, ST, VL], CL], p: S.val, u: { key: true } },
           { s: [CB], b: 1 }, // empty
+          */
         ],
         close: [
+          { s: [CB], c: { n: { im: 0 } } },
+
+          { s: [CA, CB], c: { n: { im: 0 } } },
+
+          { s: [CA], c: { n: { im: 0 } }, r: S.pair },
+
+          { s: [VAL], c: { n: { im: 0 } }, r: S.pair, b: 1 },
+
+          { s: [[CB, CA, ...VAL]], b: 1 },
+
+          // Close implicit single prop map inside list
+          {
+            s: [CS],
+            b: 1
+          },
+
+
+          /*
           { s: [CB] },
 
           { s: [CA], c: { n: { im: 1 } }, r: S.pair },
@@ -1917,20 +2142,28 @@ class Parser {
           },
 
           { s: [ZZ], e: finish, g: S.end },
+          */
         ],
-        bc: (rule: Rule, ctx: Context) => {
-          if (rule.use.key) {
-            let key_token = rule.open[0]
+        bc: (r: Rule, ctx: Context) => {
+
+          // If top level implicit map, correct `im` count.
+          // rs=val,map => len 2
+          if (2 === ctx.rs.length) {
+            r.n.im = 0
+          }
+
+          if (r.use.key) {
+            let key_token = r.open[0]
             let key = ST === key_token.tin ? key_token.val : key_token.src
-            let val = rule.child.node
-            let prev = rule.node[key]
+            let val = r.child.node
+            let prev = r.node[key]
 
             // Convert undefined to null when there was no pair value
             // Otherwise leave it alone (eg. dynamic plugin sets undefined)
             if (undefined === val && CL === ctx.v1.tin) {
               val = null
             }
-            rule.node[key] = null == prev ? val :
+            r.node[key] = null == prev ? val :
               (ctx.opts.map.merge ? ctx.opts.map.merge(prev, val) :
                 (ctx.opts.map.extend ? deep(prev, val) : val))
           }
@@ -1941,6 +2174,15 @@ class Parser {
       // push onto node
       elem: {
         open: [
+          // b:2 as close consumes 1 CA
+          { s: [CA, CA], b: 2, a: (r: Rule) => r.node.push(null), g: S.nUll, },
+          { s: [CA], a: (r: Rule) => r.node.push(null), g: S.nUll, },
+
+          { p: S.val },
+
+
+
+          /*
           { s: [OB], p: S.map, n: { im: 0 } },
           { s: [OS], p: S.list },
 
@@ -1949,8 +2191,18 @@ class Parser {
           { s: [CA], g: S.nUll, a: (r: Rule) => r.node.push(null) },
 
           { p: S.val, n: { im: 1 } },
+          */
         ],
         close: [
+          { s: [CA, CS] },
+
+          { s: [CA], r: S.elem },
+
+          { s: [[...VAL, OB, OS]], r: S.elem, b: 1 },
+
+          { s: [CS] },
+
+          /*
           // Ignore trailing comma
           { s: [CA, CS] },
 
@@ -1967,6 +2219,7 @@ class Parser {
           { s: [[TX, NR, ST, VL]], r: S.elem, b: 1 },
 
           { s: [ZZ], e: finish, g: S.end },
+          */
         ],
         bc: (rule: Rule) => {
           if (undefined !== rule.child.node) {
@@ -2099,7 +2352,7 @@ class Parser {
     while (NONE !== rule && rI < maxr) {
       ctx.log &&
         ctx.log(S.rule, rule.name + '~' + rule.id, RuleState[rule.state],
-          ctx.rs.length, ctx.tC, '[' + tn(ctx.t0.tin) + ' ' + tn(ctx.t1.tin) + ']',
+          'rs=' + ctx.rs.length, 'tc=' + ctx.tC, '[' + tn(ctx.t0.tin) + ' ' + tn(ctx.t1.tin) + ']',
           '[' + ctx.F(ctx.t0.src) + ' ' + ctx.F(ctx.t1.src) + ']', rule, ctx)
 
       ctx.rule = rule
@@ -2942,6 +3195,7 @@ export {
   JsonicError,
   Tin,
   Lexer,
+  LexerNG,
   Parser,
   Rule,
   RuleSpec,

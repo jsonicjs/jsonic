@@ -1,7 +1,7 @@
 "use strict";
 /* Copyright (c) 2013-2021 Richard Rodger, MIT License */
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.make = exports.util = exports.Alt = exports.RuleSpec = exports.Rule = exports.Parser = exports.Lexer = exports.JsonicError = exports.Jsonic = void 0;
+exports.make = exports.util = exports.Alt = exports.RuleSpec = exports.Rule = exports.Parser = exports.LexerNG = exports.Lexer = exports.JsonicError = exports.Jsonic = void 0;
 const MT = ''; // Empty ("MT"!) string.
 const keys = Object.keys;
 const entries = Object.entries;
@@ -237,6 +237,74 @@ class JsonicError extends SyntaxError {
     }
 }
 exports.JsonicError = JsonicError;
+class MatcherNG {
+    constructor() {
+        this.token = undefined;
+    }
+}
+class TokenMatcherNG extends MatcherNG {
+    constructor(token) {
+        super();
+        this.token = {};
+        this.token = token;
+    }
+}
+class LexerNG {
+    constructor() {
+        this.token_src = [];
+        this.token_re = new RegExp('');
+        this.token_tm = {};
+    }
+    add(m) {
+        if (m.token) {
+            // TODO: escapes, unique check
+            this.token_src.push(...Object.keys(m.token));
+            this.token_re = new RegExp('^(' + this.token_src.join('|') + ')');
+            Object.assign(this.token_tm, m.token);
+        }
+    }
+    start(ctx) {
+        const config = ctx.cnfg;
+        const tpin = (name) => tokenize(name, config);
+        let ZZ = tpin('#ZZ');
+        let token = {
+            tin: ZZ,
+            loc: 0,
+            row: 0,
+            col: 0,
+            len: 0,
+            val: undefined,
+            src: undefined,
+        };
+        // Main indexes.
+        let sI = 0; // Source text index.
+        let rI = 0; // Source row index.
+        let cI = 0; // Source column index.
+        let src = ctx.src();
+        let token_re = this.token_re;
+        let token_tm = this.token_tm;
+        // Lex next Token.
+        let lex = function lex(rule) {
+            token.len = 0;
+            token.val = undefined;
+            token.src = undefined;
+            token.row = rI;
+            token.use = undefined;
+            let srcfwd = src.substring(sI);
+            let tsrc;
+            if (tsrc = srcfwd.match(token_re)) {
+                let tm = token_tm[tsrc[0]];
+                token.tin = tm.tin;
+                token.val = tm.val;
+                return token;
+            }
+            return token;
+        };
+        lex.src = src;
+        return lex;
+    }
+}
+exports.LexerNG = LexerNG;
 class Lexer {
     constructor(config) {
         this.match = {};
@@ -360,6 +428,7 @@ class Lexer {
                     if (matchers(rule)) {
                         return token;
                     }
+                    // FIXED-REGEXP
                     // Space chars.
                     //if (options.space.lex && config.s.SP[c0]) {
                     if (options.space.lex && config.m.SP[c0]) {
@@ -375,6 +444,8 @@ class Lexer {
                         lexlog && lexlog(token);
                         return token;
                     }
+                    // FIXED-REGEXP
+                    // CHAR-COUNTER
                     // Newline chars.
                     //if (options.line.lex && config.s.LN[c0]) {
                     if (options.line.lex && config.m.LN[c0]) {
@@ -393,6 +464,9 @@ class Lexer {
                         lexlog && lexlog(token);
                         return token;
                     }
+                    // FIXED-REGEXP
+                    // MATCHER-FUNC
+                    // ABANDON
                     // Number chars.
                     if (options.number.lex && config.m.NR[c0]) {
                         let num_match = src.substring(sI).match(config.re.nm);
@@ -416,6 +490,7 @@ class Lexer {
                             }
                         }
                     }
+                    // FIXED-REGEXP
                     // Single char tokens.
                     if (null != config.sm[c0]) {
                         token.tin = config.sm[c0];
@@ -426,6 +501,10 @@ class Lexer {
                         lexlog && lexlog(token);
                         return token;
                     }
+                    // FIXED-REGEXP
+                    // CHANGE-STATE
+                    // LEX-STATE?
+                    // TWO MATCHERS?
                     // Block chars.
                     if (options.block.lex && config.cs.bs[c0]) {
                         let marker = src.substring(sI, sI + config.bmx);
@@ -438,6 +517,9 @@ class Lexer {
                             }
                         }
                     }
+                    // FIXED-REGEXP
+                    // MATCHER-FUNC
+                    // LEX-STATE?
                     // String chars.
                     //if (options.string.lex && config.s.ST[c0]) {
                     if (options.string.lex && config.m.ST[c0]) {
@@ -544,6 +626,8 @@ class Lexer {
                         lexlog && lexlog(token);
                         return token;
                     }
+                    // FIXED-REGEXP
+                    // THEN SAME AS BML
                     // Comment chars.
                     if (options.comment.lex && config.cs.cs[c0]) {
                         // Check for comment markers as single comment char could be
@@ -571,6 +655,7 @@ class Lexer {
                         enders = config.m.LN;
                         continue next_char;
                     }
+                    // FIXED-REGEXP
                     // Literal values.
                     if (options.value.lex && config.vs[c0]) {
                         pI = sI;
@@ -608,6 +693,8 @@ class Lexer {
                         return token;
                     }
                     pI = sI;
+                    // FIXED-REGEXP
+                    // UNTIL-MATCH
                     let m = src.substring(sI).match(config.re.te);
                     if (m) {
                         let txlen = m[0].length;
@@ -629,6 +716,8 @@ class Lexer {
                         return token;
                     }
                     pI = sI;
+                    // FIXED-REGEXP
+                    // UNTIL-MATCH
                     while (pI < srclen && !enders[src[pI]])
                         pI++, cI++;
                     token.val += src.substring(sI, pI);
@@ -644,6 +733,9 @@ class Lexer {
                     if (matchers(rule)) {
                         return token;
                     }
+                    // FIXED-REGEXP
+                    // UNTIL-MATCH
+                    // STATE DEPTH?
                     pI = sI;
                     // Balance open and close markers (eg. if options.balance.comment=true).
                     let depth = 1;
@@ -909,7 +1001,13 @@ class RuleSpec {
         if (alt.n) {
             for (let cn in alt.n) {
                 rule.n[cn] =
-                    0 === alt.n[cn] ? 0 : (null == rule.n[cn] ? 0 : rule.n[cn]) + alt.n[cn];
+                    // 0 reverts counter to 0.
+                    0 === alt.n[cn] ? 0 :
+                        // First seen, set to 0.
+                        (null == rule.n[cn] ? 0 :
+                            // Increment counter.
+                            rule.n[cn]) + alt.n[cn];
+                // Disallow negative counters.
                 rule.n[cn] = 0 < rule.n[cn] ? rule.n[cn] : 0;
             }
         }
@@ -962,7 +1060,7 @@ class RuleSpec {
             }
         }
         next.why = why;
-        ctx.log && ctx.log(S.node, rule.name + '~' + rule.id, RuleState[rule.state], 'w=' + why, F(rule.node));
+        ctx.log && ctx.log(S.node, rule.name + '~' + rule.id, RuleState[rule.state], 'w=' + why, 'n:' + entries(rule.n).map(n => n[0] + '=' + n[1]).join(';'), 'u:' + entries(rule.use).map(u => u[0] + '=' + u[1]).join(';'), F(rule.node));
         // Lex next tokens (up to backtrack).
         let mI = 0;
         let rewind = alt.m.length - (alt.b || 0);
@@ -1042,7 +1140,7 @@ class RuleSpec {
         }
         ctx.log && ctx.log(S.parse, rule.name + '~' + rule.id, RuleState[rule.state], altI < alts.length ? 'alt=' + altI : 'no-alt', altI < alts.length &&
             alt.s ?
-            '[' + alt.s.map((pin) => t[pin]).join(' ') + ']' : '[]', ctx.tC, 'p=' + (out.p || MT), 'r=' + (out.r || MT), 'b=' + (out.b || MT), out.m.map((tkn) => t[tkn.tin]).join(' '), ctx.F(out.m.map((tkn) => tkn.src)), 'c:' + ((alt && alt.c) ? cond : MT), 'n:' + entries(rule.n).join(';'), 'u:' + entries(rule.use).join(';'), out);
+            '[' + alt.s.map((pin) => t[pin]).join(' ') + ']' : '[]', 'tc=' + ctx.tC, 'p=' + (out.p || MT), 'r=' + (out.r || MT), 'b=' + (out.b || MT), out.m.map((tkn) => t[tkn.tin]).join(' '), ctx.F(out.m.map((tkn) => tkn.src)), 'c:' + ((alt && alt.c) ? cond : MT), 'n:' + entries(rule.n).map(n => n[0] + '=' + n[1]).join(';'), 'u:' + entries(rule.use).map(u => u[0] + '=' + u[1]).join(';'), out);
         return out;
     }
 }
@@ -1067,6 +1165,7 @@ class Parser {
         let VL = t.VL;
         let AA = t.AA;
         let ZZ = t.ZZ;
+        let VAL = [TX, NR, ST, VL];
         let finish = (_rule, ctx) => {
             if (!this.options.rule.finish) {
                 // TODO: needs own error code
@@ -1077,43 +1176,60 @@ class Parser {
         let rules = {
             val: {
                 open: [
+                    { s: [OB], p: S.map, b: 1 },
+                    { s: [OS], p: S.list, b: 1 },
+                    { s: [VAL, CL], p: S.map, b: 2, n: { im: 1 } },
+                    { s: [VAL] },
+                    // Implicit ends `{a:}` -> {"a":null}, `[a:]` -> [{"a":null}]
+                    { s: [[CB, CS]], b: 1 },
+                    { s: [CA], d: 0, p: S.list, b: 1 },
+                    // Value is null.
+                    { s: [CA], b: 1, g: S.imp_list },
+                    /*
                     // Implicit map. Reset implicit map depth counter.
                     { s: [OB, CA], p: S.map, n: { im: 0 }, g: S.imp_map },
+          
                     // Standard JSON.
                     { s: [OB], p: S.map, n: { im: 0 } },
                     { s: [OS], p: S.list },
+          
                     // Implicit list at top level
                     { s: [CA], d: 0, p: S.list, b: 1, g: S.imp_list },
+          
                     // Value is null.
                     { s: [CA], b: 1, g: S.imp_list },
+          
+          
+                    // FIX: move to close of pair?
                     // Implicit map - operates at any depth. Increment counter.
                     // NOTE: `n.im` counts depth of implicit maps
                     { s: [[TX, NR, ST, VL], CL], p: S.map, b: 2, n: { im: 1 }, g: S.imp_map },
+          
                     // Standard JSON (apart from TX).
                     { s: [[TX, NR, ST, VL]] },
+          
                     // Implicit end `{a:}` -> {"a":null}
                     {
-                        s: [CB],
-                        b: 1,
-                        g: S.imp_null
+                      s: [CB],
+                      b: 1,
+                      g: S.imp_null
                     },
+          
                     // Implicit end `[a:]` -> [{"a":null}]
                     {
-                        s: [CS],
-                        b: 1,
-                        g: S.imp_null
+                      s: [CS],
+                      b: 1,
+                      g: S.imp_null
                     },
+                    */
                 ],
                 close: [
-                    // Implicit list works only at top level
                     {
                         s: [CA], d: 0, r: S.elem,
                         a: (rule) => rule.node = [rule.node],
                         g: S.imp_list
                     },
-                    // TODO: merge with above - cond outputs `out` for match
-                    // and thus can specify m to move lex forward
-                    // Handle space separated elements (no CA)
+                    // top level "a b"
                     {
                         c: (_rule, ctx, _alt) => {
                             return (TX === ctx.t0.tin ||
@@ -1125,8 +1241,46 @@ class Parser {
                         a: (rule) => rule.node = [rule.node],
                         g: S.imp_list
                     },
+                    { b: 1 },
+                    /* BAD
+                    { s: [[CA, CL, CB, CS, ZZ]], b: 1 },
+          
+                    {
+                      r: S.elem, b: 1,
+                      a: (r: Rule) => {
+                        r.node = Array.isArray(r.node) ? r.node : [r.node]
+                      }
+                    },
+                    */
+                    /*
+                    // Implicit list works only at top level
+          
+                    {
+                      s: [CA], d: 0, r: S.elem,
+                      a: (rule: Rule) => rule.node = [rule.node],
+                      g: S.imp_list
+                    },
+          
+                    // TODO: merge with above - cond outputs `out` for match
+                    // and thus can specify m to move lex forward
+                    // Handle space separated elements (no CA)
+                    {
+                      c: (_rule: Rule, ctx: Context, _alt: Alt) => {
+                        return (TX === ctx.t0.tin ||
+                          NR === ctx.t0.tin ||
+                          ST === ctx.t0.tin ||
+                          VL === ctx.t0.tin
+                        ) && 0 === ctx.rs.length
+                      },
+                      r: S.elem,
+                      a: (rule: Rule) => rule.node = [rule.node],
+                      g: S.imp_list
+                    },
+                    
+          
                     // Close value, and map or list, but perhaps there are more elem?
                     { s: [AA], b: 1 },
+                    */
                 ],
                 bc: (rule) => {
                     // NOTE: val can be undefined when there is no value at all
@@ -1142,8 +1296,13 @@ class Parser {
                     return { node: {} };
                 },
                 open: [
-                    { s: [CB] },
+                    { s: [OB, CB] },
+                    { s: [OB], p: S.pair, n: { im: 0 } },
+                    { s: [VAL, CL], p: S.pair, b: 2 },
+                    /*
+                    { s: [CB] }, // empty
                     { p: S.pair } // no tokens, pass node
+                    */
                 ],
                 close: []
             },
@@ -1152,47 +1311,77 @@ class Parser {
                     return { node: [] };
                 },
                 open: [
-                    { s: [CS] },
+                    { s: [OS, CS] },
+                    { s: [OS], p: S.elem },
+                    { s: [CA], p: S.elem, b: 1 },
+                    /*
+                    { s: [CS] }, // empty
                     { p: S.elem } // no tokens, pass node
+                    */
                 ],
                 close: []
             },
             // sets key:val on node
             pair: {
                 open: [
-                    // TODO: rule.use.key=true
+                    { s: [VAL, CL], p: S.val, u: { key: true } },
+                    /*
                     { s: [[TX, NR, ST, VL], CL], p: S.val, u: { key: true } },
                     { s: [CB], b: 1 }, // empty
+                    */
                 ],
                 close: [
-                    { s: [CB] },
-                    { s: [CA], c: { n: { im: 1 } }, r: S.pair },
-                    // Walk back up the implicit pairs until we reach im=1
-                    { s: [CA], b: 1 },
-                    // Who needs commas anyway?
-                    // NOTE: only proceed if im<=1 to prevent greedy pairs.
-                    { s: [[TX, NR, ST, VL], CL], c: { n: { im: 1 } }, r: S.pair, b: 2 },
-                    // Walk back up the implicit pairs until we reach im=1
-                    { s: [[TX, NR, ST, VL], CL], b: 2 },
+                    { s: [CB], c: { n: { im: 0 } } },
+                    { s: [CA, CB], c: { n: { im: 0 } } },
+                    { s: [CA], c: { n: { im: 0 } }, r: S.pair },
+                    { s: [VAL], c: { n: { im: 0 } }, r: S.pair, b: 1 },
+                    { s: [[CB, CA, ...VAL]], b: 1 },
                     // Close implicit single prop map inside list
                     {
                         s: [CS],
                         b: 1
                     },
+                    /*
+                    { s: [CB] },
+          
+                    { s: [CA], c: { n: { im: 1 } }, r: S.pair },
+          
+                    // Walk back up the implicit pairs until we reach im=1
+                    { s: [CA], b: 1 },
+          
+                    // Who needs commas anyway?
+                    // NOTE: only proceed if im<=1 to prevent greedy pairs.
+                    { s: [[TX, NR, ST, VL], CL], c: { n: { im: 1 } }, r: S.pair, b: 2 },
+          
+                    // Walk back up the implicit pairs until we reach im=1
+                    { s: [[TX, NR, ST, VL], CL], b: 2 },
+          
+                    // Close implicit single prop map inside list
+                    {
+                      s: [CS],
+                      b: 1
+                    },
+          
                     { s: [ZZ], e: finish, g: S.end },
+                    */
                 ],
-                bc: (rule, ctx) => {
-                    if (rule.use.key) {
-                        let key_token = rule.open[0];
+                bc: (r, ctx) => {
+                    // If top level implicit map, correct `im` count.
+                    // rs=val,map => len 2
+                    if (2 === ctx.rs.length) {
+                        r.n.im = 0;
+                    }
+                    if (r.use.key) {
+                        let key_token = r.open[0];
                         let key = ST === key_token.tin ? key_token.val : key_token.src;
-                        let val = rule.child.node;
-                        let prev = rule.node[key];
+                        let val = r.child.node;
+                        let prev = r.node[key];
                         // Convert undefined to null when there was no pair value
                         // Otherwise leave it alone (eg. dynamic plugin sets undefined)
                         if (undefined === val && CL === ctx.v1.tin) {
                             val = null;
                         }
-                        rule.node[key] = null == prev ? val :
+                        r.node[key] = null == prev ? val :
                             (ctx.opts.map.merge ? ctx.opts.map.merge(prev, val) :
                                 (ctx.opts.map.extend ? deep(prev, val) : val));
                     }
@@ -1201,25 +1390,44 @@ class Parser {
             // push onto node
             elem: {
                 open: [
+                    // b:2 as close consumes 1 CA
+                    { s: [CA, CA], b: 2, a: (r) => r.node.push(null), g: S.nUll, },
+                    { s: [CA], a: (r) => r.node.push(null), g: S.nUll, },
+                    { p: S.val },
+                    /*
                     { s: [OB], p: S.map, n: { im: 0 } },
                     { s: [OS], p: S.list },
+          
                     // Insert null for initial comma
-                    { s: [CA, CA], b: 2, g: S.nUll, a: (r) => r.node.push(null) },
-                    { s: [CA], g: S.nUll, a: (r) => r.node.push(null) },
+                    { s: [CA, CA], b: 2, g: S.nUll, a: (r: Rule) => r.node.push(null) },
+                    { s: [CA], g: S.nUll, a: (r: Rule) => r.node.push(null) },
+          
                     { p: S.val, n: { im: 1 } },
+                    */
                 ],
                 close: [
+                    { s: [CA, CS] },
+                    { s: [CA], r: S.elem },
+                    { s: [[...VAL, OB, OS]], r: S.elem, b: 1 },
+                    { s: [CS] },
+                    /*
                     // Ignore trailing comma
                     { s: [CA, CS] },
+          
                     // Next element
                     { s: [CA], r: S.elem },
+          
                     // End list
                     { s: [CS] },
+          
                     { s: [OB], p: S.map, n: { im: 0 } },
                     { s: [OS], p: S.list, },
+          
                     // Who needs commas anyway?
                     { s: [[TX, NR, ST, VL]], r: S.elem, b: 1 },
+          
                     { s: [ZZ], e: finish, g: S.end },
+                    */
                 ],
                 bc: (rule) => {
                     if (undefined !== rule.child.node) {
@@ -1319,7 +1527,7 @@ class Parser {
         // occurrences until there's none left.
         while (NONE !== rule && rI < maxr) {
             ctx.log &&
-                ctx.log(S.rule, rule.name + '~' + rule.id, RuleState[rule.state], ctx.rs.length, ctx.tC, '[' + tn(ctx.t0.tin) + ' ' + tn(ctx.t1.tin) + ']', '[' + ctx.F(ctx.t0.src) + ' ' + ctx.F(ctx.t1.src) + ']', rule, ctx);
+                ctx.log(S.rule, rule.name + '~' + rule.id, RuleState[rule.state], 'rs=' + ctx.rs.length, 'tc=' + ctx.tC, '[' + tn(ctx.t0.tin) + ' ' + tn(ctx.t1.tin) + ']', '[' + ctx.F(ctx.t0.src) + ' ' + ctx.F(ctx.t1.src) + ']', rule, ctx);
             ctx.rule = rule;
             rule = rule.process(ctx);
             ctx.log &&
@@ -1904,6 +2112,6 @@ Jsonic.make = make;
 exports.default = Jsonic;
 // Build process uncomments this to enable more natural Node.js requires.
 /* $lab:coverage:off$ */
-;('undefined' != typeof(module) && (module.exports = exports.Jsonic));
+//-NODE-MODULE-FIX;('undefined' != typeof(module) && (module.exports = exports.Jsonic));
 /* $lab:coverage:on$ */
 //# sourceMappingURL=jsonic.js.map

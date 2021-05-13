@@ -333,6 +333,7 @@ describe('feature', function () {
     expect(j('{a:null,b:null}')).equal({a:null,b:null})
 
     expect(j('[a:]')).equal([{a:null}])
+    expect(j('[a:,]')).equal([{a:null}])
     expect(j('[a:,b:]')).equal([{a:null},{b:null}])
     expect(j('[a:,b:c:]')).equal([{a:null},{b:{c:null}}])
 
@@ -472,23 +473,6 @@ describe('feature', function () {
     }
   })
 
-  /*
-  it('hoover-text', () => {
-    expect(j('a b')).equals('a b')
-    expect(j('a: b c')).equals({a:'b c'})
-    expect(j('{a: {b: c d}}')).equals({a:{b:'c d'}})
-    expect(j(' x , y z ')).equal(['x', 'y z'])
-    expect(j('a: x , b: y z ')).equal({a:'x', b:'y z'})
-
-    let k = j.make({text:{hoover:false}})
-    expect(k('a b')).equals(['a','b'])
-    expect(()=>k('a: b c')).throws('JsonicError',/unexpected/)
-    expect(()=>k('{a: {b: c d}}')).throws('JsonicError',/unexpected/)
-    expect(k(' x , y z ')).equal(['x', 'y', 'z'])
-    expect(()=>k('a: x , b: y z ')).throws('JsonicError',/unexpected/)
-  })
-  */
-
   it('optional-comma', () => {
     expect(j('[1,]')).equals([1])
     expect(j('[,1]')).equals([null,1])
@@ -586,15 +570,22 @@ describe('feature', function () {
   it('implicit-map', () => {
     expect(j('a:1')).equals({a:1})
     expect(j('a:1,b:2')).equals({a:1,b:2})
+
     expect(j('a:b:1')).equals({a:{b:1}})
+    expect(j('a:b:1,a:c:2')).equals({a:{b:1,c:2}})
+    expect(j('a:b:1,a:c:2,a:d:3')).equals({a:{b:1,c:2,d:3}})
+
+    expect(j('{a:b:1}')).equals({a:{b:1}})
+    expect(j('{a:b:1,a:c:2}')).equals({a:{b:1,c:2}})
+    
     expect(j('a:b:c:1')).equals({a:{b:{c:1}}})
     expect(j('a:b:1,d:2')).equals({a:{b:1},d:2})
     expect(j('a:b:c:1,d:2')).equals({a:{b:{c:1}},d:2})
     expect(j('{a:b:1}')).equals({a:{b:1}})
     expect(j('a:{b:c:1}')).equals({a:{b:{c:1}}})
 
-    expect(Jsonic('{a:,b:')).equals({a:null,b:null})
-    expect(Jsonic('a:,b:')).equals({a:null,b:null})
+    expect(j('{a:,b:')).equals({a:null,b:null})
+    expect(j('a:,b:')).equals({a:null,b:null})
   })
 
   
