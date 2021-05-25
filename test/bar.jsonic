@@ -1,1 +1,15 @@
-qaz:2
+
+main: app: web: parts: {
+  head: {
+    logo: 'logo.png'
+  }
+  side: {
+    order: 'order' 
+  }
+
+  main: view: 'pqs-view-assets'
+  
+  foot: {
+    active: false
+  }
+}
