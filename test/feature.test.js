@@ -659,6 +659,17 @@ describe('feature', function () {
 
     expect(j('[a:b:c:1\nd:e]')).equals([{a:{b:{c:1}}},{d:'e'}])
 
+    expect(j('a:b:{x:1},a:b:{y:2}'))
+      .equals({a: { b: { x: 1, y: 2 } }})
+    expect(j('a:b:{x:1},a:b:{y:2},a:b:{z:3}'))
+      .equals({a: { b: { x: 1, y: 2, z: 3 } }})
+
+    expect(j('a:b:c:{x:1},a:b:c:{y:2}'))
+      .equals({a: { b: { c: { x: 1, y: 2 }}}})
+    expect(j('a:b:c:{x:1},a:b:c:{y:2},a:b:c:{z:3}'))
+      .equals({a: { b: { c: { x: 1, y: 2, z: 3 }}}})
+
+    
   })
 
 
