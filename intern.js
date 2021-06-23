@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.tokenize = exports.regexp = exports.mesc = exports.keys = exports.entries = exports.defprop = exports.deep = exports.assign = exports.S = exports.MT = void 0;
+exports.tokenize = exports.regexp = exports.mesc = exports.keys = exports.entries = exports.defprop = exports.deep = exports.assign = exports.Token = exports.S = exports.MT = void 0;
 const MT = ''; // Empty ("MT"!) string.
 exports.MT = MT;
 const keys = Object.keys;
@@ -49,6 +49,23 @@ const S = {
     make: 'make',
 };
 exports.S = S;
+// TODO: rename loc to sI, row to rI, col to cI
+// Tokens from the lexer.
+class Token {
+    constructor(tin, val, src, // TODO: string
+    loc, row, col, use, why) {
+        this.tin = tin;
+        this.src = src;
+        this.val = val;
+        this.loc = loc;
+        this.row = row;
+        this.col = col;
+        this.use = use;
+        this.why = why;
+        this.len = src.length;
+    }
+}
+exports.Token = Token;
 // Uniquely resolve or assign token pin number
 function tokenize(ref, config, jsonic) {
     let tokenmap = config.t;

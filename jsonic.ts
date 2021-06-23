@@ -1115,7 +1115,7 @@ class Parser {
     makelog(ctx)
 
     let tn = (pin: Tin): string => tokenize(pin, this.config)
-    let lex: Lex =
+    let lex =
       badlex(lexer.start(ctx), tokenize('#BD', this.config), ctx)
     let startspec = this.rsm[this.options.rule.start]
 
@@ -1458,7 +1458,7 @@ function makelog(ctx: Context) {
 
 function badlex(lex: Lex, BD: Tin, ctx: Context) {
   let wrap: any = (rule: Rule) => {
-    let token = lex(rule)
+    let token = lex.next(rule)
 
     if (BD === token.tin) {
       let details: any = {}

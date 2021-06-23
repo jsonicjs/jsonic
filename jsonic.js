@@ -1,7 +1,7 @@
 "use strict";
 /* Copyright (c) 2013-2021 Richard Rodger, MIT License */
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.make = exports.util = exports.Alt = exports.RuleSpec = exports.Rule = exports.Parser = exports.Lexer = exports.JsonicError = exports.Jsonic = void 0;
+exports.make = exports.util = exports.Alt = exports.Token = exports.RuleSpec = exports.Rule = exports.Parser = exports.Lexer = exports.JsonicError = exports.Jsonic = void 0;
 // TODO: row numbers need to start at 1 as editors start line numbers at 1
 // TODO: test custom alt error: eg.  { e: (r: Rule) => r.close[0] } ??? bug: r.close empty!
 // TODO: multipe merges, also with dynamic
@@ -29,6 +29,7 @@ exports.make = exports.util = exports.Alt = exports.RuleSpec = exports.Rule = ex
 // * '#' prefix: parse token
 // * '@' prefix: lex state
 const intern_1 = require("./intern");
+Object.defineProperty(exports, "Token", { enumerable: true, get: function () { return intern_1.Token; } });
 const lexer_1 = require("./lexer");
 Object.defineProperty(exports, "Lexer", { enumerable: true, get: function () { return lexer_1.Lexer; } });
 function make_default_options() {
@@ -978,7 +979,7 @@ function makelog(ctx) {
 }
 function badlex(lex, BD, ctx) {
     let wrap = (rule) => {
-        let token = lex(rule);
+        let token = lex.next(rule);
         if (BD === token.tin) {
             let details = {};
             if (null != token.use) {

@@ -1,4 +1,7 @@
 
+import type { Rule } from './jsonic'
+
+
 import {
   Config,
   Context,
@@ -15,37 +18,13 @@ import {
 } from './intern'
 
 
-/*
-
-type Config = {
-  tkn: { [name: string]: boolean }
-}
-
-type Context = {
-  src: () => string
-}
-
-
-class Token {
-  tin: string
-  sI: number = -1
-  src: string = ''
-
-  constructor(
-    tin: string,
-    pI: number,
-    src: string
-  ) {
-    this.tin = tin
-    this.sI = pI
-    this.src = src
-  }
-}
 
 
 class Point {
   len: number = -1
   sI: number = 0
+  rI: number = 1
+  cI: number = 1
   token: Token[] = []
   end: Token | undefined = undefined
 
@@ -56,7 +35,7 @@ class Point {
 
 
 abstract class Matcher {
-  abstract match(lex: Lex): Token | undefined
+  abstract match(lex: Lex, rule: Rule): Token | undefined
 }
 
 
@@ -76,14 +55,20 @@ class TextTokenMatcher extends Matcher {
         let txtlen = txtsrc.length
         if (0 < txtlen) {
           out = new Token(
-            'txt',
-            pnt.sI,
+            lex.t('#TX'),
             txtsrc,
+            txtsrc,
+
+            // TODO: just pnt
+            pnt.sI,
+            pnt.rI,
+            pnt.cI,
           )
           pnt.sI += txtlen
         }
       }
 
+      /*
       if (null != tknsrc) {
         let tknlen = tknsrc.length
         if (0 < tknlen) {
@@ -106,6 +91,7 @@ class TextTokenMatcher extends Matcher {
           }
         }
       }
+      */
 
       return out
     }
@@ -131,15 +117,19 @@ class SpaceMatcher extends Matcher {
       let spcsrc = src.substring(pnt.sI, pI)
       pnt.sI += spcsrc.length
       return new Token(
-        'spc',
+        lex.t('#SP'),
+        spcsrc,
+        spcsrc,
         pnt.sI,
-        spcsrc
+        pnt.rI,
+        pnt.cI,
       )
     }
   }
 }
 
 
+/*
 class NumberMatcher extends Matcher {
   numchar: { [char: string]: boolean } = {
     '1': true,
@@ -167,7 +157,7 @@ class NumberMatcher extends Matcher {
     }
   }
 }
-
+*/
 
 
 
@@ -175,8 +165,19 @@ class NumberMatcher extends Matcher {
 class Lexer {
   cfg: Config
 
+  end: Token
+
   constructor(cfg: Config) {
     this.cfg = cfg
+
+    this.end = new Token(
+      tokenize('#ZZ', cfg),
+      '',
+      '',
+      -1,
+      -1,
+      -1
+    )
   }
 
   start(ctx: Context): Lex {
@@ -206,15 +207,15 @@ class Lex {
     this.cfg = cfg
     this.pnt = new Point(src.length)
 
-    // TODO: via config?
+    // TODO: move to Lexer
     this.mat = [
-      new NumberMatcher(),
+      //new NumberMatcher(),
       new TextTokenMatcher(),
       new SpaceMatcher(),
     ]
   }
 
-  next(): Token {
+  next(rule: Rule): Token {
     let pnt = this.pnt
 
     if (pnt.end) {
@@ -227,40 +228,51 @@ class Lex {
 
 
     if (pnt.len <= pnt.sI) {
-      pnt.end = new Token('end', -1, '')
+      pnt.end = new Token(
+        this.t('#ZZ'),
+        '',
+        '',
+        pnt.sI,
+        pnt.rI,
+        pnt.cI,
+      )
+
       return pnt.end
     }
 
     let tkn: Token | undefined
     for (let m of this.mat) {
-      if (tkn = m.match(this)) {
+      if (tkn = m.match(this, rule)) {
         return tkn
       }
     }
 
-    tkn = new Token('bad', pnt.sI, this.src[pnt.sI])
+    tkn = new Token(
+      this.t('#BD'),
+      this.src[pnt.sI],
+      this.src[pnt.sI],
+      pnt.sI,
+      pnt.rI,
+      pnt.cI,
+      undefined,
+      'bad'
+    )
 
     return tkn
+  }
+
+  t(n: string): Tin {
+    return tokenize(n, this.cfg)
   }
 }
 
 
-export {
-  Lexer,
-}
 
-
-*/
-
-
-
-
-import type { Rule } from './jsonic'
 
 
 
 // The lexing function returns the next token.
-type Lex = ((rule: Rule) => Token) & { src: string }
+// type Lex = ((rule: Rule) => Token) & { src: string }
 
 
 
@@ -287,6 +299,7 @@ type LexMatcherResult = undefined | {
 }
 
 
+/*
 class Lexer {
   end: Token
   match: LexMatcherListMap = {}
@@ -1058,7 +1071,7 @@ class Lexer {
   }
 }
 
-
+*/
 
 
 

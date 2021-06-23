@@ -67,18 +67,40 @@ type TinMap = { [char: string]: Tin }
 // Map character to code value.
 type CharCodeMap = { [char: string]: number }
 
-
+// TODO: rename loc to sI, row to rI, col to cI
 // Tokens from the lexer.
-type Token = {
-  tin: any,  // Token kind.
-  loc: number,   // Location of token index in source text.
-  len: number,   // Length of Token source text.
-  row: number,   // Row location of token in source text.
-  col: number,   // Column location of token in source text.
-  val: any,      // Value of Token if literal (eg. number).
-  src: any,      // Source text of Token.
-  why?: string,  // Error code.
-  use?: any,     // Custom meta data from plugins goes here.
+class Token {
+  tin: Tin      // Token kind.
+  val: any      // Value of Token if literal (eg. number).
+  src: any      // Source text of Token.
+  loc: number   // Location of token index in source text.
+  row: number   // Row location of token in source text.
+  col: number   // Column location of token in source text.
+  use?: any     // Custom meta data from plugins goes here.
+  why?: string  // Error code.
+  len: number   // Length of Token source text.
+
+  constructor(
+    tin: Tin,
+    val: any,
+    src: any,  // TODO: string
+    loc: number,
+    row: number,
+    col: number,
+    use?: any,
+    why?: string,
+  ) {
+    this.tin = tin
+    this.src = src
+    this.val = val
+    this.loc = loc
+    this.row = row
+    this.col = col
+    this.use = use
+    this.why = why
+
+    this.len = src.length
+  }
 }
 
 

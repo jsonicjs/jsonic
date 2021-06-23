@@ -1,8 +1,34 @@
-import { Config, Context, Tin, Token } from './intern';
 import type { Rule } from './jsonic';
-declare type Lex = ((rule: Rule) => Token) & {
-    src: string;
-};
+import { Config, Context, Tin, Token } from './intern';
+declare class Point {
+    len: number;
+    sI: number;
+    rI: number;
+    cI: number;
+    token: Token[];
+    end: Token | undefined;
+    constructor(len: number);
+}
+declare abstract class Matcher {
+    abstract match(lex: Lex, rule: Rule): Token | undefined;
+}
+declare class Lexer {
+    cfg: Config;
+    end: Token;
+    constructor(cfg: Config);
+    start(ctx: Context): Lex;
+    clone(config: Config): Lexer;
+}
+declare class Lex {
+    src: String;
+    ctx: Context;
+    cfg: Config;
+    pnt: Point;
+    mat: Matcher[];
+    constructor(src: String, ctx: Context, cfg: Config);
+    next(rule: Rule): Token;
+    t(n: string): Tin;
+}
 declare type LexMatcherState = {
     sI: number;
     rI: number;
@@ -24,13 +50,4 @@ declare type LexMatcherResult = undefined | {
     state?: number;
     state_param?: any;
 };
-declare class Lexer {
-    end: Token;
-    match: LexMatcherListMap;
-    constructor(config: Config);
-    start(ctx: Context): Lex;
-    bad(ctx: Context, log: ((...rest: any) => undefined) | undefined, why: string, token: Token, sI: number, pI: number, rI: number, cI: number, val?: any, src?: any, use?: any): Token;
-    lex(state?: Tin, matcher?: LexMatcher): LexMatcherListMap | LexMatcher[];
-    clone(config: Config): Lexer;
-}
 export { Lex, Lexer, LexMatcher, LexMatcherListMap, LexMatcherResult, LexMatcherState, };

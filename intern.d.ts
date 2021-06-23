@@ -62,17 +62,19 @@ declare type TinMap = {
 declare type CharCodeMap = {
     [char: string]: number;
 };
-declare type Token = {
-    tin: any;
-    loc: number;
-    len: number;
-    row: number;
-    col: number;
+declare class Token {
+    tin: Tin;
     val: any;
     src: any;
-    why?: string;
+    loc: number;
+    row: number;
+    col: number;
     use?: any;
-};
+    why?: string;
+    len: number;
+    constructor(tin: Tin, val: any, src: any, // TODO: string
+    loc: number, row: number, col: number, use?: any, why?: string);
+}
 declare type Meta = KV;
 declare type Options = {
     tag: string;
