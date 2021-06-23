@@ -1809,11 +1809,12 @@ function errdesc(code, details, token, rule, ctx) {
 }
 // Idempotent normalization of options.
 function configure(config, options) {
-    let token_names = keys(options.token);
+    let t = options.token;
+    let token_names = keys(t);
     // Index of tokens by name.
     token_names.forEach(tn => tokenize(tn, config));
     let single_char_token_names = token_names
-        .filter(tn => null != options.token[tn].c);
+        .filter(tn => null != t[tn].c && 1 === t[tn].c.length);
     config.sm = single_char_token_names
         .reduce((a, tn) => (a[options.token[tn].c] =
         config.t[tn], a), {});

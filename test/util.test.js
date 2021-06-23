@@ -27,6 +27,7 @@ const {
   tokenize,
   errdesc,
   trimstk,
+  configure,
   TIME,
   } = util
 
@@ -35,6 +36,53 @@ const I = Util.inspect
 
 
 describe('util', () => {
+
+  it('configure', () => {
+    let c = {}
+    let o0 = {
+      token: {},
+      value: {
+        src: {}
+      },
+      string: {
+        escape: {}
+      },
+      comment: {},
+      number: {},
+      space: {},
+      line: {},
+      block: {
+        marker: {}
+      },
+      config: {
+        modify: {}
+      },
+      debug: {
+        print: {}
+      },
+    }
+
+    configure(c,o0)
+    //console.log(c)
+    expect(c.sm).equal({})
+    
+    c = {t:{},tI:0}
+    let o1 = deep({token:{'#Ta':{c:'a'}}},o0)
+    configure(c,o1)
+    //console.log(c)
+    expect(c.sm).equal({a: 0})
+
+    c = {t:{},tI:0}
+    let o2 = deep({token:{'#Ta':{c:'ab'}}},o0)
+    configure(c,o2)
+    //console.log(c)
+    expect(c.sm).equal({})
+
+    TODO: 1 < token.length
+    
+  })
+
+
 
   it('token-gen', () => {
     let s = 0

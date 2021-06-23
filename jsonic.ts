@@ -1,5 +1,6 @@
 /* Copyright (c) 2013-2021 Richard Rodger, MIT License */
 
+// TODO: row numbers need to start at 1 as editors start line numbers at 1
 // TODO: test custom alt error: eg.  { e: (r: Rule) => r.close[0] } ??? bug: r.close empty!
 // TODO: multipe merges, also with dynamic
 // TODO: FIX: jsonic script direct invocation in package.json not working
@@ -2872,13 +2873,14 @@ function errdesc(
 
 // Idempotent normalization of options.
 function configure(config: Config, options: Options) {
-  let token_names = keys(options.token)
+  let t = options.token
+  let token_names = keys(t)
 
   // Index of tokens by name.
   token_names.forEach(tn => tokenize(tn, config))
 
   let single_char_token_names = token_names
-    .filter(tn => null != (options.token[tn] as any).c)
+    .filter(tn => null != (t[tn] as any).c && 1 === (t[tn] as any).c.length)
 
   config.sm = single_char_token_names
     .reduce((a, tn) => (a[(options.token[tn] as any).c] =
