@@ -1,3 +1,5 @@
+import { Config, Context, KV, Meta, Options, Tin, Token, deep, tokenize, regexp, mesc, CharCodeMap } from './intern';
+import { Lex, Lexer, LexMatcher, LexMatcherListMap, LexMatcherResult, LexMatcherState } from './lexer';
 declare type JsonicParse = (src: any, meta?: any, parent_ctx?: any) => any;
 declare type JsonicAPI = {
     parse: JsonicParse;
@@ -19,179 +21,7 @@ JsonicAPI & // A utility with API methods.
 {
     [prop: string]: any;
 };
-declare type KV = {
-    [k: string]: any;
-};
-declare type Tin = number;
-declare type Options = {
-    tag: string;
-    line: {
-        lex: boolean;
-        row: string;
-        sep: string;
-    };
-    comment: {
-        lex: boolean;
-        balance: boolean;
-        marker: {
-            [start_marker: string]: // Start marker (eg. `/*`).
-            string | // End marker (eg. `*/`).
-            boolean;
-        };
-    };
-    space: {
-        lex: boolean;
-    };
-    number: {
-        lex: boolean;
-        hex: boolean;
-        oct: boolean;
-        bin: boolean;
-        digital: string;
-        sep: string;
-    };
-    block: {
-        lex: boolean;
-        marker: {
-            [start_marker: string]: string;
-        };
-    };
-    string: {
-        lex: boolean;
-        escape: {
-            [char: string]: string;
-        };
-        multiline: string;
-        escapedouble: boolean;
-    };
-    text: {
-        lex: boolean;
-    };
-    map: {
-        extend: boolean;
-        merge?: (prev: any, curr: any) => any;
-    };
-    value: {
-        lex: boolean;
-        src: KV;
-    };
-    plugin: KV;
-    debug: {
-        get_console: () => any;
-        maxlen: number;
-        print: {
-            config: boolean;
-        };
-    };
-    error: {
-        [code: string]: string;
-    };
-    hint: any;
-    token: {
-        [name: string]: // Token name.
-        {
-            c: string;
-        } | // Single char token (eg. OB=`{`).
-        {
-            s: string;
-        } | string | // Multi-char token (eg. SP=` \t`).
-        true;
-    };
-    rule: {
-        start: string;
-        finish: boolean;
-        maxmul: number;
-    };
-    config: {
-        modify: {
-            [plugin_name: string]: (config: Config, options: Options) => void;
-        };
-    };
-    parser: {
-        start?: (lexer: Lexer, src: string, jsonic: Jsonic, meta?: any, parent_ctx?: any) => any;
-    };
-};
 declare type Plugin = (jsonic: Jsonic) => void | Jsonic;
-declare type Meta = KV;
-declare type Token = {
-    tin: any;
-    loc: number;
-    len: number;
-    row: number;
-    col: number;
-    val: any;
-    src: any;
-    why?: string;
-    use?: any;
-};
-declare type Context = {
-    uI: number;
-    opts: Options;
-    cnfg: Config;
-    meta: Meta;
-    src: () => string;
-    root: () => any;
-    plgn: () => Plugin[];
-    rule: Rule;
-    xs: Tin;
-    v2: Token;
-    v1: Token;
-    t0: Token;
-    t1: Token;
-    tC: number;
-    rs: Rule[];
-    rsm: {
-        [name: string]: RuleSpec;
-    };
-    next: () => Token;
-    log?: (...rest: any) => undefined;
-    F: (s: any) => string;
-    use: KV;
-};
-declare type Lex = ((rule: Rule) => Token) & {
-    src: string;
-};
-declare type TinMap = {
-    [char: string]: Tin;
-};
-declare type CharCodeMap = {
-    [char: string]: number;
-};
-declare type Config = {
-    tI: number;
-    t: any;
-    m: {
-        [token_name: string]: TinMap;
-    };
-    cs: {
-        [charset_name: string]: CharCodeMap;
-    };
-    sm: {
-        [char: string]: Tin;
-    };
-    ts: {
-        [tokenset_name: string]: Tin[];
-    };
-    vs: {
-        [start_char: string]: boolean;
-    };
-    vm: KV;
-    esc: {
-        [name: string]: string;
-    };
-    cm: {
-        [start_marker: string]: string | boolean;
-    };
-    cmk: string[];
-    cmx: number;
-    bmk: string[];
-    bmx: number;
-    sc: string;
-    d: KV;
-    re: {
-        [name: string]: RegExp | null;
-    };
-};
 declare class JsonicError extends SyntaxError {
     constructor(code: string, details: KV, token: Token, rule: Rule, ctx: Context);
     toJSON(): this & {
@@ -200,36 +30,6 @@ declare class JsonicError extends SyntaxError {
         message: string;
         stack: string | undefined;
     };
-}
-declare type LexMatcherState = {
-    sI: number;
-    rI: number;
-    cI: number;
-    src: string;
-    token: Token;
-    ctx: Context;
-    rule: Rule;
-    bad: any;
-};
-declare type LexMatcher = (lms: LexMatcherState) => LexMatcherResult;
-declare type LexMatcherListMap = {
-    [state: number]: LexMatcher[];
-};
-declare type LexMatcherResult = undefined | {
-    sI: number;
-    rI: number;
-    cI: number;
-    state?: number;
-    state_param?: any;
-};
-declare class Lexer {
-    end: Token;
-    match: LexMatcherListMap;
-    constructor(config: Config);
-    start(ctx: Context): Lex;
-    bad(ctx: Context, log: ((...rest: any) => undefined) | undefined, why: string, token: Token, sI: number, pI: number, rI: number, cI: number, val?: any, src?: any, use?: any): Token;
-    lex(state?: Tin, matcher?: LexMatcher): LexMatcherListMap | LexMatcher[];
-    clone(config: Config): Lexer;
 }
 declare enum RuleState {
     open = 0,
@@ -334,8 +134,6 @@ declare let util: {
 };
 declare function make(param_options?: KV, parent?: Jsonic): Jsonic;
 declare function srcfmt(config: Config): (s: any, _?: any) => string;
-declare function tokenize<R extends string | Tin, T extends string | Tin>(ref: R, config: Config, jsonic?: Jsonic): T;
-declare function deep(base?: any, ...rest: any): any;
 declare function clone(class_instance: any): any;
 declare function charset(...parts: (string | object | boolean)[]): CharCodeMap;
 declare function longest(strs: string[]): number;
@@ -343,10 +141,6 @@ declare function marr(a: string[], b: string[]): boolean;
 declare function trimstk(err: Error): void;
 declare function makelog(ctx: Context): ((...rest: any) => undefined) | undefined;
 declare function badlex(lex: Lex, BD: Tin, ctx: Context): any;
-declare function mesc(s: string, _?: any): any;
-declare function regexp(flags: string, ...parts: (string | (String & {
-    esc?: boolean;
-}))[]): RegExp;
 declare function ender(endchars: CharCodeMap, endmarks: KV, singles?: KV): RegExp;
 declare function errinject(s: string, code: string, details: KV, token: Token, rule: Rule, ctx: Context): string;
 declare function extract(src: string, errtxt: string, token: Token): string;

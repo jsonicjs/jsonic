@@ -78,7 +78,7 @@ describe('util', () => {
     //console.log(c)
     expect(c.sm).equal({})
 
-    TODO: 1 < token.length
+    // TODO: 1 < token.length
     
   })
 

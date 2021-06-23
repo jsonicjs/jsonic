@@ -2,48 +2,35 @@
 /* Copyright (c) 2013-2021 Richard Rodger, MIT License */
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.make = exports.util = exports.Alt = exports.RuleSpec = exports.Rule = exports.Parser = exports.Lexer = exports.JsonicError = exports.Jsonic = void 0;
-const MT = ''; // Empty ("MT"!) string.
-const keys = Object.keys;
-const entries = Object.entries;
-const assign = Object.assign;
-const defprop = Object.defineProperty;
-// A bit pedantic, but let's be strict about strings.
-// Also improves minification a little.
-const S = {
-    object: 'object',
-    string: 'string',
-    function: 'function',
-    unexpected: 'unexpected',
-    map: 'map',
-    list: 'list',
-    elem: 'elem',
-    pair: 'pair',
-    val: 'val',
-    node: 'node',
-    no_re_flags: MT,
-    unprintable: 'unprintable',
-    invalid_ascii: 'invalid_ascii',
-    invalid_unicode: 'invalid_unicode',
-    invalid_lex_state: 'invalid_lex_state',
-    unterminated: 'unterminated',
-    lex: 'lex',
-    parse: 'parse',
-    block_indent_: 'block_indent_',
-    error: 'error',
-    none: 'none',
-    END_OF_SOURCE: 'END_OF_SOURCE',
-    imp_map: 'imp,map',
-    imp_list: 'imp,list',
-    imp_null: 'imp,null',
-    end: 'end',
-    open: 'open',
-    close: 'close',
-    rule: 'rule',
-    stack: 'stack',
-    nUll: 'null',
-    name: 'name',
-    make: 'make',
-};
+// TODO: row numbers need to start at 1 as editors start line numbers at 1
+// TODO: test custom alt error: eg.  { e: (r: Rule) => r.close[0] } ??? bug: r.close empty!
+// TODO: multipe merges, also with dynamic
+// TODO: FIX: jsonic script direct invocation in package.json not working
+// TODO: norm alt should be called as needed to handle new dynamic alts
+// TODO: quotes are value enders - x:a"a" is an err! not 'a"a"'
+// TODO: tag should appear in error
+// TODO: remove console colors in browser?
+// post release: 
+// TODO: test use of constructed regexps - perf?
+// TODO: complete rule tagging groups g:imp etc.
+// TODO: plugin for path expr: a.b:1 -> {a:{b:1}}
+// TODO: data file to diff exhaust changes
+// TODO: cli - less ambiguous merging at top level
+// TODO: internal errors - e.g. adding a null rulespec
+// TODO: replace parse_alt loop with lookups
+// TODO: extend lexer to handle multi-char tokens (e.g `->`)
+// TODO: lex matcher should be able to explicitly disable rest of state logic
+// TODO: option to control comma null insertion
+// TODO: {,} should fail ({,,...} does).
+// TODO: import of plugins convenience: import { Foo, Bar } from 'jsonic/plugin'
+// # Conventions
+//
+// ## Token names
+// * '#' prefix: parse token
+// * '@' prefix: lex state
+const intern_1 = require("./intern");
+const lexer_1 = require("./lexer");
+Object.defineProperty(exports, "Lexer", { enumerable: true, get: function () { return lexer_1.Lexer; } });
 function make_default_options() {
     let options = {
         // Default tag - set your own! 
@@ -199,7 +186,7 @@ function make_default_options() {
         // Parser rule options.
         rule: {
             // Name of the starting rule.
-            start: S.val,
+            start: intern_1.S.val,
             // Automatically close remaining structures at EOF.
             finish: true,
             // Multiplier to increase the maximum number of rule occurences.
@@ -220,10 +207,10 @@ function make_default_options() {
 // Jsonic errors with nice formatting.
 class JsonicError extends SyntaxError {
     constructor(code, details, token, rule, ctx) {
-        details = deep({}, details);
+        details = intern_1.deep({}, details);
         let desc = errdesc(code, details, token, rule, ctx);
         super(desc.message);
-        assign(this, desc);
+        intern_1.assign(this, desc);
         trimstk(this);
     }
     toJSON() {
@@ -237,580 +224,6 @@ class JsonicError extends SyntaxError {
     }
 }
 exports.JsonicError = JsonicError;
-class Lexer {
-    constructor(config) {
-        this.match = {};
-        // The token indexer is also used to generate lex state indexes.
-        // Lex state names have the prefix `@L`
-        tokenize('@LTP', config); // TOP
-        tokenize('@LTX', config); // TEXT
-        tokenize('@LCS', config); // CONSUME
-        tokenize('@LML', config); // MULTILINE
-        // End token instance (returned once end-of-source is reached).
-        this.end = {
-            tin: tokenize('#ZZ', config),
-            loc: 0,
-            len: 0,
-            row: 0,
-            col: 0,
-            val: undefined,
-            src: undefined,
-        };
-    }
-    // Create the lexing function, which will then return the next token on each call.
-    // NOTE: lexing is context-free with n-token lookahead (n=2). There is no
-    // deterministic relation between the current rule and the current lex.
-    start(ctx) {
-        // Convenience vars
-        const options = ctx.opts;
-        const config = ctx.cnfg;
-        let tpin = (name) => tokenize(name, config);
-        let tn = (pin) => tokenize(pin, config);
-        let F = ctx.F;
-        let LTP = tpin('@LTP');
-        let LTX = tpin('@LTX');
-        let LCS = tpin('@LCS');
-        let LML = tpin('@LML');
-        let ZZ = tpin('#ZZ');
-        let SP = tpin('#SP');
-        let CM = tpin('#CM');
-        let NR = tpin('#NR');
-        let ST = tpin('#ST');
-        let TX = tpin('#TX');
-        let VL = tpin('#VL');
-        let LN = tpin('#LN');
-        // NOTE: always returns this object instance!
-        // Yes, this is deliberate. The parser clones tokens as needed.
-        let token = {
-            tin: ZZ,
-            loc: 0,
-            row: 0,
-            col: 0,
-            len: 0,
-            val: undefined,
-            src: undefined,
-        };
-        // Main indexes.
-        let sI = 0; // Source text index.
-        let rI = 0; // Source row index.
-        let cI = 0; // Source column index.
-        // Lex state.
-        let state = LTP; // Starting state.
-        let state_param = null; // Parameters for the new state.
-        // This is not a streaming lexer, sorry.
-        let src = ctx.src();
-        let srclen = src.length;
-        // Shortcut logging function for the lexer.
-        // If undefined, don't log.
-        // TS2722 impedes this definition unless Context is
-        // refined to (Context & { log: any })
-        let lexlog = (null != ctx.log) ?
-            ((...rest) => ctx
-                .log(S.lex, // Log entry prefix.
-            tn(token.tin), // Name of token from tin (token identification numer).
-            F(token.src), // Format token src for log.
-            sI, // Current source index.
-            rI + ':' + cI, // Row and column.
-            tn(state), // Name of lex state.
-            { ...token }, // Copy of the token.
-            ...rest) // Context-specific additional entries.
-            ) : undefined;
-        // Convenience function to return a bad token.
-        let bad = (code, cpI, badsrc, use) => {
-            return this.bad(ctx, lexlog, code, token, sI, cpI, rI, cI, badsrc, badsrc, use);
-        };
-        // Check for custom matchers on current lex state, and call the first
-        // (if any) that returns a match.
-        // NOTE: deliberately grabs local state (token,sI,rI,cI,...)
-        let matchers = (rule) => {
-            let matchers = this.match[state];
-            if (null != matchers) {
-                // token.loc = sI // TODO: move to top of while for all rules?
-                for (let matcher of matchers) {
-                    let match = matcher({ sI, rI, cI, src, token, ctx, rule, bad });
-                    // Adjust lex location if there was a match.
-                    if (match) {
-                        sI = match.sI ? match.sI : sI;
-                        rI = match.rI ? match.rI : rI;
-                        cI = match.cI ? match.cI : cI;
-                        state = null == match.state ? state : match.state;
-                        state_param = null == match.state_param ? state_param : match.state_param;
-                        lexlog && lexlog(token, matcher);
-                        return token;
-                    }
-                }
-            }
-        };
-        // Lex next Token.
-        let lex = function lex(rule) {
-            token.len = 0;
-            token.val = undefined;
-            token.src = undefined;
-            token.row = rI;
-            token.use = undefined;
-            let enders = {};
-            let pI = 0; // Current lex position (only update sI at end of rule).
-            let s = []; // Parsed string chars and substrings.
-            next_char: while (sI < srclen) {
-                let c0 = src[sI];
-                token.loc = sI;
-                token.col = cI;
-                ctx.xs = state;
-                if (LTP === state) {
-                    if (matchers(rule)) {
-                        return token;
-                    }
-                    // FIXED-REGEXP
-                    // Space chars.
-                    //if (options.space.lex && config.s.SP[c0]) {
-                    if (options.space.lex && config.m.SP[c0]) {
-                        token.tin = SP;
-                        cI++;
-                        pI = sI + 1;
-                        while (config.m.SP[src[pI]])
-                            cI++, pI++;
-                        token.len = pI - sI;
-                        token.val = src.substring(sI, pI);
-                        token.src = token.val;
-                        sI = pI;
-                        lexlog && lexlog(token);
-                        return token;
-                    }
-                    // FIXED-REGEXP
-                    // CHAR-COUNTER
-                    // Newline chars.
-                    //if (options.line.lex && config.s.LN[c0]) {
-                    if (options.line.lex && config.m.LN[c0]) {
-                        token.tin = LN;
-                        pI = sI;
-                        cI = 0;
-                        while (config.m.LN[src[pI]]) {
-                            // Count rows.
-                            rI += (options.line.row === src[pI] ? 1 : 0);
-                            pI++;
-                        }
-                        token.len = pI - sI;
-                        token.val = src.substring(sI, pI);
-                        token.src = token.val;
-                        sI = pI;
-                        lexlog && lexlog(token);
-                        return token;
-                    }
-                    // FIXED-REGEXP
-                    // MATCHER-FUNC
-                    // ABANDON
-                    // Number chars.
-                    if (options.number.lex && config.m.NR[c0]) {
-                        let num_match = src.substring(sI).match(config.re.nm);
-                        if (null != num_match) {
-                            let numstr = num_match[0];
-                            pI = sI + numstr.length;
-                            // Numbers must end with a value ender char, otherwise
-                            // it must just be text with prefixed digits: '1a' -> "1a"
-                            if (null == src[pI] || config.cs.vend[src[pI]]) {
-                                let numval = +(config.re.ns ? numstr.replace(config.re.ns, '') : numstr);
-                                if (!isNaN(numval)) {
-                                    token.tin = NR;
-                                    token.src = numstr;
-                                    token.val = numval;
-                                    token.len = numstr.length;
-                                    sI += token.len;
-                                    cI += token.len;
-                                    lexlog && lexlog(token);
-                                    return token;
-                                }
-                            }
-                        }
-                    }
-                    // FIXED-REGEXP
-                    // Single char tokens.
-                    if (null != config.sm[c0]) {
-                        token.tin = config.sm[c0];
-                        token.len = 1;
-                        token.src = c0;
-                        sI++;
-                        cI++;
-                        lexlog && lexlog(token);
-                        return token;
-                    }
-                    // FIXED-REGEXP
-                    // CHANGE-STATE
-                    // LEX-STATE?
-                    // TWO MATCHERS?
-                    // Block chars.
-                    if (options.block.lex && config.cs.bs[c0]) {
-                        let marker = src.substring(sI, sI + config.bmx);
-                        for (let bm of config.bmk) {
-                            if (marker.startsWith(bm)) {
-                                token.tin = ST;
-                                state = LML;
-                                state_param = [bm, options.block.marker[bm], null, true];
-                                continue next_char;
-                            }
-                        }
-                    }
-                    // FIXED-REGEXP
-                    // MATCHER-FUNC
-                    // LEX-STATE?
-                    // String chars.
-                    //if (options.string.lex && config.s.ST[c0]) {
-                    if (options.string.lex && config.m.ST[c0]) {
-                        token.tin = ST;
-                        cI++;
-                        let multiline = config.cs.mln[c0];
-                        s = [];
-                        let cs = MT;
-                        for (pI = sI + 1; pI < srclen; pI++) {
-                            cI++;
-                            cs = src[pI];
-                            // Quote char.
-                            if (c0 === cs) {
-                                if (options.string.escapedouble && c0 === src[pI + 1]) {
-                                    s.push(src[pI]);
-                                    pI++;
-                                }
-                                else {
-                                    pI++;
-                                    break; // String finished.
-                                }
-                            }
-                            // Escape char. 
-                            else if ('\\' === cs) {
-                                pI++;
-                                cI++;
-                                let es = config.esc[src[pI]];
-                                if (null != es) {
-                                    s.push(es);
-                                }
-                                // ASCII escape \x**
-                                else if ('x' === src[pI]) {
-                                    pI++;
-                                    let cc = parseInt(src.substring(pI, pI + 2), 16);
-                                    if (isNaN(cc)) {
-                                        sI = pI - 2;
-                                        cI -= 2;
-                                        return bad(S.invalid_ascii, pI + 2, src.substring(pI - 2, pI + 2));
-                                    }
-                                    let us = String.fromCharCode(cc);
-                                    s.push(us);
-                                    pI += 1; // Loop increments pI.
-                                    cI += 2;
-                                }
-                                // Unicode escape \u**** and \u{*****}.
-                                else if ('u' === src[pI]) {
-                                    pI++;
-                                    let ux = '{' === src[pI] ? (pI++, 1) : 0;
-                                    let ulen = ux ? 6 : 4;
-                                    let cc = parseInt(src.substring(pI, pI + ulen), 16);
-                                    if (isNaN(cc)) {
-                                        sI = pI - 2 - ux;
-                                        cI -= 2;
-                                        return bad(S.invalid_unicode, pI + ulen + 1, src.substring(pI - 2 - ux, pI + ulen + ux));
-                                    }
-                                    let us = String.fromCodePoint(cc);
-                                    s.push(us);
-                                    pI += (ulen - 1) + ux; // Loop increments pI.
-                                    cI += ulen + ux;
-                                }
-                                else {
-                                    s.push(src[pI]);
-                                }
-                            }
-                            // Body part of string.
-                            else {
-                                let bI = pI;
-                                let qc = c0.charCodeAt(0);
-                                let esc = '\\'.charCodeAt(0);
-                                let cc = src.charCodeAt(pI);
-                                while (pI < srclen && 32 <= cc && qc !== cc && esc !== cc) {
-                                    cc = src.charCodeAt(++pI);
-                                    cI++;
-                                }
-                                cI--;
-                                cs = src[pI];
-                                if (cc < 32) {
-                                    if (multiline && config.m.LN[cs]) {
-                                        //if (multiline && config.s.LN[cs]) {
-                                        if (cs === options.line.row) {
-                                            rI++;
-                                            cI = 0;
-                                        }
-                                        s.push(src.substring(bI, pI + 1));
-                                    }
-                                    else {
-                                        return bad(S.unprintable, pI, 'char-code=' + src[pI].charCodeAt(0));
-                                    }
-                                }
-                                else {
-                                    s.push(src.substring(bI, pI));
-                                    // Handle qc, esc, END-OF-SOURCE at top of loop
-                                    pI--;
-                                }
-                            }
-                        }
-                        if (c0 !== cs) {
-                            return bad(S.unterminated, pI, s.join(MT));
-                        }
-                        token.val = s.join(MT);
-                        token.src = src.substring(sI, pI);
-                        token.len = pI - sI;
-                        sI = pI;
-                        lexlog && lexlog(token);
-                        return token;
-                    }
-                    // FIXED-REGEXP
-                    // THEN SAME AS BML
-                    // Comment chars.
-                    if (options.comment.lex && config.cs.cs[c0]) {
-                        // Check for comment markers as single comment char could be
-                        // a comment marker prefix (eg. # and ###, / and //, /*).
-                        let marker = src.substring(sI, sI + config.cmx);
-                        for (let cm of config.cmk) {
-                            if (marker.startsWith(cm)) {
-                                // Multi-line comment.
-                                if (true !== config.cm[cm]) {
-                                    token.tin = CM;
-                                    //token.loc = sI
-                                    //token.col = cI
-                                    token.val = MT; // intialize for LCS.
-                                    state = LML;
-                                    state_param = [cm, config.cm[cm], options.comment.balance];
-                                    continue next_char;
-                                }
-                                break;
-                            }
-                        }
-                        // It's a single line comment.
-                        token.tin = CM;
-                        token.val = MT; // intialize for LCS.
-                        state = LCS;
-                        enders = config.m.LN;
-                        continue next_char;
-                    }
-                    // FIXED-REGEXP
-                    // Literal values.
-                    if (options.value.lex && config.vs[c0]) {
-                        pI = sI;
-                        do {
-                            pI++;
-                        } while (null != src[pI] && !config.cs.vend[src[pI]]);
-                        let txt = src.substring(sI, pI);
-                        // A keyword literal value? (eg. true, false, null)
-                        let val = config.vm[txt];
-                        val = S.function === typeof (val) ?
-                            val({ sI, rI, cI, src, token, ctx, rule, bad }) : val;
-                        if (undefined !== val) {
-                            token.tin = VL;
-                            token.val = val;
-                            token.src = txt;
-                            token.len = pI - sI;
-                            cI += token.len;
-                            sI = pI;
-                            lexlog && lexlog(token);
-                            return token;
-                        }
-                    }
-                    // Text values.
-                    // No explicit token recognized. That means a text value
-                    // (everything up to a value_ender char (eg. newline)) NOTE:
-                    // default section. Cases above bail to here if lookaheads
-                    // fail to match (eg. NR).
-                    if (options.text.lex) {
-                        state = LTX;
-                        continue next_char;
-                    }
-                }
-                else if (LTX === state) {
-                    if (matchers(rule)) {
-                        return token;
-                    }
-                    pI = sI;
-                    // FIXED-REGEXP
-                    // UNTIL-MATCH
-                    let m = src.substring(sI).match(config.re.te);
-                    if (m) {
-                        let txlen = m[0].length;
-                        pI += txlen;
-                        cI += txlen;
-                    }
-                    token.len = pI - sI;
-                    token.tin = TX;
-                    token.val = src.substring(sI, pI);
-                    token.src = token.val;
-                    sI = pI;
-                    state = LTP;
-                    lexlog && lexlog(token);
-                    return token;
-                }
-                // Lexer State: CONSUME => all chars up to first ender
-                else if (LCS === state) {
-                    if (matchers(rule)) {
-                        return token;
-                    }
-                    pI = sI;
-                    // FIXED-REGEXP
-                    // UNTIL-MATCH
-                    while (pI < srclen && !enders[src[pI]])
-                        pI++, cI++;
-                    token.val += src.substring(sI, pI);
-                    token.src = token.val;
-                    token.len = token.val.length;
-                    sI = pI;
-                    state = LTP;
-                    lexlog && lexlog(token);
-                    return token;
-                }
-                // Lexer State: MULTILINE => all chars up to last close marker, or end
-                else if (LML === state) {
-                    if (matchers(rule)) {
-                        return token;
-                    }
-                    // FIXED-REGEXP
-                    // UNTIL-MATCH
-                    // STATE DEPTH?
-                    pI = sI;
-                    // Balance open and close markers (eg. if options.balance.comment=true).
-                    let depth = 1;
-                    let open = state_param[0];
-                    let close = state_param[1];
-                    let balance = state_param[2];
-                    let has_indent = !!state_param[3];
-                    let indent_str = MT;
-                    let indent_len = 0;
-                    let openlen = open.length;
-                    let closelen = close.length;
-                    if (has_indent) {
-                        let uI = sI - 1;
-                        while (-1 < uI && config.m.SP[src[uI]])
-                            uI--;
-                        indent_len = sI - uI - 1;
-                        if (0 < indent_len) {
-                            indent_str = keys(config.m.SP)[0].repeat(indent_len);
-                        }
-                    }
-                    // Assume starts with open string
-                    pI += open.length;
-                    while (pI < srclen && 0 < depth) {
-                        // Close first so that open === close case works
-                        if (close[0] === src[pI] &&
-                            close === src.substring(pI, pI + closelen)) {
-                            pI += closelen;
-                            cI += closelen;
-                            depth--;
-                        }
-                        else if (balance && open[0] === src[pI] &&
-                            open === src.substring(pI, pI + openlen)) {
-                            pI += openlen;
-                            cI += closelen;
-                            depth++;
-                        }
-                        else {
-                            // Count rows.
-                            if (options.line.row === src[pI]) {
-                                rI++;
-                                cI = 0;
-                            }
-                            else {
-                                cI++;
-                            }
-                            pI++;
-                        }
-                    }
-                    token.val = src.substring(sI, pI);
-                    token.src = token.val;
-                    token.len = token.val.length;
-                    // Assume indent means block
-                    if (has_indent) {
-                        token.val =
-                            token.val.substring(openlen, token.val.length - closelen);
-                        // Remove spurious space at start
-                        if (null == config.re.block_prefix) {
-                            config.re.block_prefix = regexp(S.no_re_flags, '^[', 
-                            // TODO: need config val here?
-                            mesc(options.token['#SP']), ']*(', options.line.sep, ')');
-                        }
-                        token.val =
-                            token.val.replace(config.re.block_prefix, MT);
-                        // Remove spurious space at end
-                        if (null == config.re.block_suffix) {
-                            config.re.block_suffix = regexp(S.no_re_flags, options.line.sep, '[', 
-                            // TODO: need config val here?
-                            mesc(options.token['#SP']), ']*$');
-                        }
-                        token.val =
-                            token.val.replace(config.re.block_suffix, MT);
-                        // Remove indent
-                        let block_indent_RE = config.re[S.block_indent_ + indent_str] =
-                            config.re[S.block_indent_ + indent_str] || regexp('g', '^(', mesc(indent_str), ')|((', options.line.sep, ')', mesc(indent_str), ')');
-                        token.val =
-                            token.val.replace(block_indent_RE, '$3');
-                    }
-                    sI = pI;
-                    state = LTP;
-                    lexlog && lexlog(token);
-                    return token;
-                }
-                else {
-                    return bad(S.invalid_lex_state, sI, src[sI], { state: state });
-                }
-                // Some token must match.
-                return bad(S.unexpected, sI, src[sI]);
-            }
-            // Keeps returning ZZ past end of input.
-            token.tin = ZZ;
-            token.loc = srclen;
-            token.col = cI;
-            lexlog && lexlog(token);
-            return token;
-        };
-        lex.src = src;
-        return lex;
-    }
-    // Describe state when lexing goes wrong using the signal token "#BD" (bad token!).
-    bad(ctx, log, why, token, sI, pI, rI, cI, val, src, use) {
-        token.why = why;
-        token.tin = tokenize('#BD', ctx.cnfg);
-        token.loc = sI;
-        token.row = rI;
-        token.col = cI;
-        token.len = pI - sI;
-        token.val = val;
-        token.src = src;
-        token.use = use;
-        log && log(tokenize(token.tin, ctx.cnfg), ctx.F(token.src), sI, rI + ':' + cI, { ...token }, S.error, why);
-        return token;
-    }
-    // Register a custom lexing matcher to be attempted first for given lex state.
-    // See _plugin_ folder for examples.
-    lex(state, matcher) {
-        // If no state, return all the matchers.
-        if (null == state) {
-            return this.match;
-        }
-        // Else return the list of matchers for the state.
-        let matchers = this.match[state];
-        // Else add a new matcher and possible a new state.
-        if (null != matcher) {
-            if (null == matchers) {
-                matchers = this.match[state] = [];
-            }
-            matchers.push(matcher);
-        }
-        // Explicitly remove all matchers for state
-        else if (null === matcher) {
-            matchers = this.match[state];
-            delete this.match[state];
-        }
-        return matchers;
-    }
-    // Clone the Lexer, and in particular the registered matchers.
-    clone(config) {
-        let lexer = new Lexer(config);
-        deep(lexer.match, this.match);
-        return lexer;
-    }
-}
-exports.Lexer = Lexer;
 /* $lab:coverage:off$ */
 var RuleState;
 (function (RuleState) {
@@ -841,13 +254,13 @@ class Rule {
     }
 }
 exports.Rule = Rule;
-const NONE = { name: S.none, state: 0 };
+const NONE = { name: intern_1.S.none, state: 0 };
 // Parse match alternate (built from current tokens and AltSpec).
 class Alt {
     constructor() {
         this.m = []; // Matched tokens (not tins!).
-        this.p = MT; // Push rule (by name).
-        this.r = MT; // Replace rule (by name).
+        this.p = intern_1.MT; // Push rule (by name).
+        this.r = intern_1.MT; // Replace rule (by name).
         this.b = 0; // Move token position backward.
     }
 }
@@ -875,7 +288,7 @@ class RuleSpec {
                 };
             }
             // Ensure groups are a string[]
-            if (S.string === typeof (alt.g)) {
+            if (intern_1.S.string === typeof (alt.g)) {
                 alt.g = alt.g.split(/\s*,\s*/);
             }
         }
@@ -886,7 +299,7 @@ class RuleSpec {
         }
     }
     process(rule, ctx, state) {
-        let why = MT;
+        let why = intern_1.MT;
         let F = ctx.F;
         let is_open = state === RuleState.open;
         let next = is_open ? rule : NONE;
@@ -903,7 +316,7 @@ class RuleSpec {
             if (bout) {
                 if (bout.err) {
                     throw new JsonicError(bout.err, {
-                        ...bout, state: is_open ? S.open : S.close
+                        ...bout, state: is_open ? intern_1.S.open : intern_1.S.close
                     }, ctx.t0, rule, ctx);
                 }
                 rule.node = bout.node || rule.node;
@@ -927,7 +340,7 @@ class RuleSpec {
         }
         // Unconditional error.
         if (alt.e) {
-            throw new JsonicError(S.unexpected, { ...alt.e.use, state: is_open ? S.open : S.close }, alt.e, rule, ctx);
+            throw new JsonicError(intern_1.S.unexpected, { ...alt.e.use, state: is_open ? intern_1.S.open : intern_1.S.close }, alt.e, rule, ctx);
         }
         // Update counters.
         if (alt.n) {
@@ -985,14 +398,14 @@ class RuleSpec {
                 if (aout.err) {
                     ctx.t0.why = why;
                     throw new JsonicError(aout.err, {
-                        ...aout, state: is_open ? S.open : S.close
+                        ...aout, state: is_open ? intern_1.S.open : intern_1.S.close
                     }, ctx.t0, rule, ctx);
                 }
                 next = aout.next || next;
             }
         }
         next.why = why;
-        ctx.log && ctx.log(S.node, rule.name + '~' + rule.id, RuleState[rule.state], 'w=' + why, 'n:' + entries(rule.n).map(n => n[0] + '=' + n[1]).join(';'), 'u:' + entries(rule.use).map(u => u[0] + '=' + u[1]).join(';'), F(rule.node));
+        ctx.log && ctx.log(intern_1.S.node, rule.name + '~' + rule.id, RuleState[rule.state], 'w=' + why, 'n:' + intern_1.entries(rule.n).map(n => n[0] + '=' + n[1]).join(';'), 'u:' + intern_1.entries(rule.use).map(u => u[0] + '=' + u[1]).join(';'), F(rule.node));
         // Lex next tokens (up to backtrack).
         let mI = 0;
         let rewind = alt.m.length - (alt.b || 0);
@@ -1011,8 +424,8 @@ class RuleSpec {
         let out = PALT;
         out.m = []; // Match 0, 1, or 2 tokens in order .
         out.b = 0; // Backtrack n tokens.
-        out.p = MT; // Push named rule onto stack. 
-        out.r = MT; // Replace current rule with named rule.
+        out.p = intern_1.MT; // Push named rule onto stack. 
+        out.r = intern_1.MT; // Replace current rule with named rule.
         out.n = undefined; // Increment named counters.
         out.h = undefined; // Custom handler function.
         out.a = undefined; // Rule action.
@@ -1070,9 +483,9 @@ class RuleSpec {
             out.a = alt.a ? alt.a : out.a;
             out.u = alt.u ? alt.u : out.u;
         }
-        ctx.log && ctx.log(S.parse, rule.name + '~' + rule.id, RuleState[rule.state], altI < alts.length ? 'alt=' + altI : 'no-alt', altI < alts.length &&
+        ctx.log && ctx.log(intern_1.S.parse, rule.name + '~' + rule.id, RuleState[rule.state], altI < alts.length ? 'alt=' + altI : 'no-alt', altI < alts.length &&
             alt.s ?
-            '[' + alt.s.map((pin) => t[pin]).join(' ') + ']' : '[]', 'tc=' + ctx.tC, 'p=' + (out.p || MT), 'r=' + (out.r || MT), 'b=' + (out.b || MT), out.m.map((tkn) => t[tkn.tin]).join(' '), ctx.F(out.m.map((tkn) => tkn.src)), 'c:' + ((alt && alt.c) ? cond : MT), 'n:' + entries(rule.n).map(n => n[0] + '=' + n[1]).join(';'), 'u:' + entries(rule.use).map(u => u[0] + '=' + u[1]).join(';'), out);
+            '[' + alt.s.map((pin) => t[pin]).join(' ') + ']' : '[]', 'tc=' + ctx.tC, 'p=' + (out.p || intern_1.MT), 'r=' + (out.r || intern_1.MT), 'b=' + (out.b || intern_1.MT), out.m.map((tkn) => t[tkn.tin]).join(' '), ctx.F(out.m.map((tkn) => tkn.src)), 'c:' + ((alt && alt.c) ? cond : intern_1.MT), 'n:' + intern_1.entries(rule.n).map(n => n[0] + '=' + n[1]).join(';'), 'u:' + intern_1.entries(rule.use).map(u => u[0] + '=' + u[1]).join(';'), out);
         return out;
     }
 }
@@ -1100,7 +513,7 @@ class Parser {
         let finish = (_rule, ctx) => {
             if (!this.options.rule.finish) {
                 // TODO: needs own error code
-                ctx.t0.src = S.END_OF_SOURCE;
+                ctx.t0.src = intern_1.S.END_OF_SOURCE;
                 return ctx.t0;
             }
         };
@@ -1108,26 +521,26 @@ class Parser {
             val: {
                 open: [
                     // A map: { ...
-                    { s: [OB], p: S.map, b: 1 },
+                    { s: [OB], p: intern_1.S.map, b: 1 },
                     // A list: [ ...
-                    { s: [OS], p: S.list, b: 1 },
+                    { s: [OS], p: intern_1.S.list, b: 1 },
                     // A pair key: a: ...
-                    { s: [VAL, CL], p: S.map, b: 2, n: { im: 1 } },
+                    { s: [VAL, CL], p: intern_1.S.map, b: 2, n: { im: 1 } },
                     // A plain value: x "x" 1 true.
                     { s: [VAL] },
                     // Implicit ends `{a:}` -> {"a":null}, `[a:]` -> [{"a":null}]
                     { s: [[CB, CS]], b: 1 },
                     // Implicit list at top level: a,b.
-                    { s: [CA], d: 0, p: S.list, b: 1 },
+                    { s: [CA], d: 0, p: intern_1.S.list, b: 1 },
                     // Value is null when empty before commas.
-                    { s: [CA], b: 1, g: S.imp_list },
+                    { s: [CA], b: 1, g: intern_1.S.imp_list },
                 ],
                 close: [
                     // Implicit list only allowed at top level: 1,2.
                     {
-                        s: [CA], d: 0, r: S.elem,
+                        s: [CA], d: 0, r: intern_1.S.elem,
                         a: (rule) => rule.node = [rule.node],
-                        g: S.imp_list
+                        g: intern_1.S.imp_list
                     },
                     // TODO: find a cleaner way to handle this edge case.
                     // Allow top level "a b".
@@ -1138,9 +551,9 @@ class Parser {
                                 ST === ctx.t0.tin ||
                                 VL === ctx.t0.tin) && 0 === ctx.rs.length;
                         },
-                        r: S.elem,
+                        r: intern_1.S.elem,
                         a: (rule) => rule.node = [rule.node],
-                        g: S.imp_list
+                        g: intern_1.S.imp_list
                     },
                     // Close value, map, or list, but perhaps there are more elem?
                     { b: 1 },
@@ -1164,9 +577,9 @@ class Parser {
                     { s: [OB, CB] },
                     // Start matching map key-value pairs: a:1.
                     // OB `{` resets implicit map counter.
-                    { s: [OB], p: S.pair, n: { im: 0 } },
+                    { s: [OB], p: intern_1.S.pair, n: { im: 0 } },
                     // Pair from implicit map.
-                    { s: [VAL, CL], p: S.pair, b: 2 },
+                    { s: [VAL, CL], p: intern_1.S.pair, b: 2 },
                 ],
                 close: []
             },
@@ -1179,11 +592,11 @@ class Parser {
                     // An empty list: [].
                     { s: [OS, CS] },
                     // Start matching list elements: 1,2.
-                    { s: [OS], p: S.elem },
+                    { s: [OS], p: intern_1.S.elem },
                     // Initial comma [, will insert null as [null,
-                    { s: [CA], p: S.elem, b: 1 },
+                    { s: [CA], p: intern_1.S.elem, b: 1 },
                     // Another element.
-                    { p: S.elem },
+                    { p: intern_1.S.elem },
                 ],
                 close: []
             },
@@ -1191,7 +604,7 @@ class Parser {
             pair: {
                 open: [
                     // Match key-colon start of pair.
-                    { s: [VAL, CL], p: S.val, u: { key: true } },
+                    { s: [VAL, CL], p: intern_1.S.val, u: { key: true } },
                     // Ignore initial comma: {,a:1.
                     { s: [CA] },
                 ],
@@ -1202,15 +615,15 @@ class Parser {
                     // Ignore trailing comma at end of map.
                     { s: [CA, CB], c: { n: { im: 0 } } },
                     // Comma means a new pair at same level (unless implicit a:b:1,c:2).
-                    { s: [CA], c: { n: { im: 0 } }, r: S.pair },
+                    { s: [CA], c: { n: { im: 0 } }, r: intern_1.S.pair },
                     // Who needs commas anyway?
-                    { s: [VAL], c: { n: { im: 0 } }, r: S.pair, b: 1 },
+                    { s: [VAL], c: { n: { im: 0 } }, r: intern_1.S.pair, b: 1 },
                     // End of implicit path a:b:1,.
                     { s: [[CB, CA, ...VAL]], b: 1 },
                     // Close implicit single prop map inside list: [a:1,]
                     { s: [CS], b: 1 },
                     // Fail if auto-close option is false.
-                    { s: [ZZ], e: finish, g: S.end },
+                    { s: [ZZ], e: finish, g: intern_1.S.end },
                 ],
                 bc: (r, ctx) => {
                     // If top level implicit map, correct `im` count.
@@ -1230,7 +643,7 @@ class Parser {
                         }
                         r.node[key] = null == prev ? val :
                             (ctx.opts.map.merge ? ctx.opts.map.merge(prev, val) :
-                                (ctx.opts.map.extend ? deep(prev, val) : val));
+                                (ctx.opts.map.extend ? intern_1.deep(prev, val) : val));
                     }
                 },
             },
@@ -1239,22 +652,22 @@ class Parser {
                 open: [
                     // Empty commas insert null elements.
                     // Note that close consumes a comma, so b:2 works.
-                    { s: [CA, CA], b: 2, a: (r) => r.node.push(null), g: S.nUll, },
-                    { s: [CA], a: (r) => r.node.push(null), g: S.nUll, },
+                    { s: [CA, CA], b: 2, a: (r) => r.node.push(null), g: intern_1.S.nUll, },
+                    { s: [CA], a: (r) => r.node.push(null), g: intern_1.S.nUll, },
                     // Anything else must a list element value.
-                    { p: S.val },
+                    { p: intern_1.S.val },
                 ],
                 close: [
                     // Ignore trailing comma.
                     { s: [CA, CS] },
                     // Next element.
-                    { s: [CA], r: S.elem },
+                    { s: [CA], r: intern_1.S.elem },
                     // Who needs commas anyway?
-                    { s: [[...VAL, OB, OS]], r: S.elem, b: 1 },
+                    { s: [[...VAL, OB, OS]], r: intern_1.S.elem, b: 1 },
                     // End of list.
                     { s: [CS] },
                     // Fail if auto-close option is false.
-                    { s: [ZZ], e: finish, g: S.end },
+                    { s: [ZZ], e: finish, g: intern_1.S.end },
                 ],
                 bc: (rule) => {
                     if (undefined !== rule.child.node) {
@@ -1264,7 +677,7 @@ class Parser {
             }
         };
         // TODO: just create the RuleSpec directly
-        this.rsm = keys(rules).reduce((rsm, rn) => {
+        this.rsm = intern_1.keys(rules).reduce((rsm, rn) => {
             rsm[rn] = new RuleSpec(rules[rn]);
             rsm[rn].name = rn;
             return rsm;
@@ -1313,10 +726,10 @@ class Parser {
             F: srcfmt(this.config),
             use: {}
         };
-        ctx = deep(ctx, parent_ctx);
+        ctx = intern_1.deep(ctx, parent_ctx);
         makelog(ctx);
-        let tn = (pin) => tokenize(pin, this.config);
-        let lex = badlex(lexer.start(ctx), tokenize('#BD', this.config), ctx);
+        let tn = (pin) => intern_1.tokenize(pin, this.config);
+        let lex = badlex(lexer.start(ctx), intern_1.tokenize('#BD', this.config), ctx);
         let startspec = this.rsm[this.options.rule.start];
         // The starting rule is always 'val'
         if (null == startspec) {
@@ -1328,7 +741,7 @@ class Parser {
         // rule open and close, and for each rule on each char to be
         // virtual (like map, list), and double for safety margin (allows
         // lots of backtracking), and apply a multipler options as a get-out-of-jail.
-        let maxr = 2 * keys(this.rsm).length * lex.src.length *
+        let maxr = 2 * intern_1.keys(this.rsm).length * lex.src.length *
             2 * this.options.rule.maxmul;
         // Lex next token.
         function next() {
@@ -1352,16 +765,16 @@ class Parser {
         // occurrences until there's none left.
         while (NONE !== rule && rI < maxr) {
             ctx.log &&
-                ctx.log(S.rule, rule.name + '~' + rule.id, RuleState[rule.state], 'rs=' + ctx.rs.length, 'tc=' + ctx.tC, '[' + tn(ctx.t0.tin) + ' ' + tn(ctx.t1.tin) + ']', '[' + ctx.F(ctx.t0.src) + ' ' + ctx.F(ctx.t1.src) + ']', rule, ctx);
+                ctx.log(intern_1.S.rule, rule.name + '~' + rule.id, RuleState[rule.state], 'rs=' + ctx.rs.length, 'tc=' + ctx.tC, '[' + tn(ctx.t0.tin) + ' ' + tn(ctx.t1.tin) + ']', '[' + ctx.F(ctx.t0.src) + ' ' + ctx.F(ctx.t1.src) + ']', rule, ctx);
             ctx.rule = rule;
             rule = rule.process(ctx);
             ctx.log &&
-                ctx.log(S.stack, ctx.rs.length, ctx.rs.map((r) => r.name + '~' + r.id).join('/'), rule, ctx);
+                ctx.log(intern_1.S.stack, ctx.rs.length, ctx.rs.map((r) => r.name + '~' + r.id).join('/'), rule, ctx);
             rI++;
         }
         // TODO: option to allow trailing content
-        if (tokenize('#ZZ', this.config) !== ctx.t0.tin) {
-            throw new JsonicError(S.unexpected, {}, ctx.t0, NONE, ctx);
+        if (intern_1.tokenize('#ZZ', this.config) !== ctx.t0.tin) {
+            throw new JsonicError(intern_1.S.unexpected, {}, ctx.t0, NONE, ctx);
         }
         // NOTE: by returning root, we get implicit closing of maps and lists.
         return root.node;
@@ -1376,9 +789,9 @@ class Parser {
 }
 exports.Parser = Parser;
 let util = {
-    tokenize,
+    tokenize: intern_1.tokenize,
     srcfmt,
-    deep,
+    deep: intern_1.deep,
     clone,
     charset,
     longest,
@@ -1391,8 +804,8 @@ let util = {
     errdesc,
     configure,
     parserwrap,
-    regexp,
-    mesc,
+    regexp: intern_1.regexp,
+    mesc: intern_1.mesc,
     ender,
 };
 exports.util = util;
@@ -1402,10 +815,10 @@ function make(param_options, parent) {
     let config;
     let plugins;
     // Merge options.
-    let merged_options = deep({}, parent ? { ...parent.options } : make_default_options(), param_options ? param_options : {});
+    let merged_options = intern_1.deep({}, parent ? { ...parent.options } : make_default_options(), param_options ? param_options : {});
     // Create primary parsing function
     let jsonic = function Jsonic(src, meta, parent_ctx) {
-        if (S.string === typeof (src)) {
+        if (intern_1.S.string === typeof (src)) {
             let internal = jsonic.internal();
             let parser = options.parser.start ?
                 parserwrap(options.parser) : internal.parser;
@@ -1416,21 +829,21 @@ function make(param_options, parent) {
     // This lets you access options as direct properties,
     // and set them as a funtion call.
     let options = (change_options) => {
-        if (null != change_options && S.object === typeof (change_options)) {
-            configure(config, deep(merged_options, change_options));
+        if (null != change_options && intern_1.S.object === typeof (change_options)) {
+            configure(config, intern_1.deep(merged_options, change_options));
             for (let k in merged_options) {
                 jsonic.options[k] = merged_options[k];
             }
-            assign(jsonic.token, config.t);
+            intern_1.assign(jsonic.token, config.t);
         }
         return { ...jsonic.options };
     };
     // Define the API
     let api = {
         token: function token(ref) {
-            return tokenize(ref, config, jsonic);
+            return intern_1.tokenize(ref, config, jsonic);
         },
-        options: deep(options, merged_options),
+        options: intern_1.deep(options, merged_options),
         parse: jsonic,
         // TODO: how to handle null plugin?
         use: function use(plugin, plugin_options) {
@@ -1457,7 +870,7 @@ function make(param_options, parent) {
         },
     };
     // Has to be done indirectly as we are in a fuction named `make`.
-    defprop(api.make, S.name, { value: S.make });
+    intern_1.defprop(api.make, intern_1.S.name, { value: intern_1.S.make });
     // Transfer parent properties (preserves plugin decorations, etc).
     if (parent) {
         for (let k in parent) {
@@ -1465,9 +878,9 @@ function make(param_options, parent) {
         }
         jsonic.parent = parent;
         let parent_internal = parent.internal();
-        config = deep({}, parent_internal.config);
+        config = intern_1.deep({}, parent_internal.config);
         configure(config, merged_options);
-        assign(jsonic.token, config.t);
+        intern_1.assign(jsonic.token, config.t);
         plugins = [...parent_internal.plugins];
         lexer = parent_internal.lexer.clone(config);
         parser = parent_internal.parser.clone(merged_options, config);
@@ -1479,16 +892,16 @@ function make(param_options, parent) {
         };
         configure(config, merged_options);
         plugins = [];
-        lexer = new Lexer(config);
+        lexer = new lexer_1.Lexer(config);
         parser = new Parser(merged_options, config);
         parser.init();
     }
     // Add API methods to the core utility function.
-    assign(jsonic, api);
+    intern_1.assign(jsonic, api);
     // As with options, provide direct access to tokens.
-    assign(jsonic.token, config.t);
+    intern_1.assign(jsonic.token, config.t);
     // Hide internals where you can still find them.
-    defprop(jsonic, 'internal', {
+    intern_1.defprop(jsonic, 'internal', {
         value: function internal() {
             return {
                 lexer,
@@ -1503,67 +916,20 @@ function make(param_options, parent) {
 exports.make = make;
 // Utility functions
 function srcfmt(config) {
-    return (s, _) => null == s ? MT : (_ = JSON.stringify(s),
+    return (s, _) => null == s ? intern_1.MT : (_ = JSON.stringify(s),
         _.substring(0, config.d.maxlen) +
-            (config.d.maxlen < _.length ? '...' : MT));
-}
-// Uniquely resolve or assign token pin number
-function tokenize(ref, config, jsonic) {
-    let tokenmap = config.t;
-    let token = tokenmap[ref];
-    if (null == token && S.string === typeof (ref)) {
-        token = config.tI++;
-        tokenmap[token] = ref;
-        tokenmap[ref] = token;
-        tokenmap[ref.substring(1)] = token;
-        if (null != jsonic) {
-            assign(jsonic.token, config.t);
-        }
-    }
-    return token;
-}
-// Deep override for plain data. Retains base object and array.
-// Array merge by `over` index, `over` wins non-matching types, expect:
-// `undefined` always loses, `over` plain objects inject into functions,
-// and `over` functions always win. Over always copied.
-function deep(base, ...rest) {
-    let base_isf = S.function === typeof (base);
-    let base_iso = null != base &&
-        (S.object === typeof (base) || base_isf);
-    for (let over of rest) {
-        let over_isf = S.function === typeof (over);
-        let over_iso = null != over &&
-            (S.object === typeof (over) || over_isf);
-        if (base_iso &&
-            over_iso &&
-            !over_isf &&
-            (Array.isArray(base) === Array.isArray(over))) {
-            for (let k in over) {
-                base[k] = deep(base[k], over[k]);
-            }
-        }
-        else {
-            base = undefined === over ? base :
-                over_isf ? over :
-                    (over_iso ?
-                        deep(Array.isArray(over) ? [] : {}, over) : over);
-            base_isf = S.function === typeof (base);
-            base_iso = null != base &&
-                (S.object === typeof (base) || base_isf);
-        }
-    }
-    return base;
+            (config.d.maxlen < _.length ? '...' : intern_1.MT));
 }
 function clone(class_instance) {
-    return deep(Object.create(Object.getPrototypeOf(class_instance)), class_instance);
+    return intern_1.deep(Object.create(Object.getPrototypeOf(class_instance)), class_instance);
 }
 // Lookup map for a set of chars.
 function charset(...parts) {
     return parts
         .filter(p => false !== p)
-        .map((p) => 'object' === typeof (p) ? keys(p).join(MT) : p)
-        .join(MT)
-        .split(MT)
+        .map((p) => 'object' === typeof (p) ? intern_1.keys(p).join(intern_1.MT) : p)
+        .join(intern_1.MT)
+        .split(intern_1.MT)
         .reduce((a, c) => (a[c] = c.charCodeAt(0), a), {});
 }
 function longest(strs) {
@@ -1597,8 +963,8 @@ function makelog(ctx) {
         ctx.log = (...rest) => {
             if (exclude_objects) {
                 let logstr = rest
-                    .filter((item) => S.object != typeof (item))
-                    .map((item) => S.function == typeof (item) ? item.name : item)
+                    .filter((item) => intern_1.S.object != typeof (item))
+                    .map((item) => intern_1.S.function == typeof (item) ? item.name : item)
                     .join('\t');
                 ctx.opts.debug.get_console().log(logstr);
             }
@@ -1618,29 +984,18 @@ function badlex(lex, BD, ctx) {
             if (null != token.use) {
                 details.use = token.use;
             }
-            throw new JsonicError(token.why || S.unexpected, details, token, rule, ctx);
+            throw new JsonicError(token.why || intern_1.S.unexpected, details, token, rule, ctx);
         }
         return token;
     };
     wrap.src = lex.src;
     return wrap;
 }
-// Mark a string for escaping by `util.regexp`.
-function mesc(s, _) {
-    return (_ = new String(s), _.esc = true, _);
-}
-// Construct a RegExp. Use mesc to mark string for escaping.
-// NOTE: flags first allows concatenated parts to be rest.
-function regexp(flags, ...parts) {
-    return new RegExp(parts.map(p => p.esc ?
-        p.replace(/[-\\|\]{}()[^$+*?.!=]/g, '\\$&')
-        : p).join(MT), flags);
-}
 function ender(endchars, endmarks, singles) {
-    let allendchars = keys(keys(endmarks)
+    let allendchars = intern_1.keys(intern_1.keys(endmarks)
         .reduce((a, em) => (a[em[0]] = 1, a), { ...endchars }))
         .join('');
-    let endmarkprefixes = entries(keys(endmarks)
+    let endmarkprefixes = intern_1.entries(intern_1.keys(endmarks)
         .filter(cm => 1 < cm.length && // only for long marks
         // Not needed if first char is already an endchar,
         // otherwise edge case where first char won't match as ender,
@@ -1649,17 +1004,17 @@ function ender(endchars, endmarks, singles) {
         .reduce((a, s) => ((a[s[0]] = (a[s[0]]) || []).push(s.substring(1)), a), {}))
         .reduce((a, cme) => (a.push([
         cme[0],
-        cme[1].map((cms) => regexp('', mesc(cms)).source).join('|')
+        cme[1].map((cms) => intern_1.regexp('', intern_1.mesc(cms)).source).join('|')
     ]), a), [])
         .map((cmp) => [
         '|(',
-        mesc(cmp[0]),
+        intern_1.mesc(cmp[0]),
         '(?!(',
         cmp[1],
         //')).)'
         ')))'
     ]).flat(1);
-    return regexp(S.no_re_flags, '^(([^', mesc(allendchars), ']+)', ...endmarkprefixes, ')+');
+    return intern_1.regexp(intern_1.S.no_re_flags, '^(([^', intern_1.mesc(allendchars), ']+)', ...endmarkprefixes, ')+');
 }
 function errinject(s, code, details, token, rule, ctx) {
     return s.replace(/\$([\w_]+)/g, (_m, name) => {
@@ -1677,13 +1032,13 @@ function extract(src, errtxt, token) {
     let loc = 0 < token.loc ? token.loc : 0;
     let row = 0 < token.row ? token.row : 0;
     let col = 0 < token.col ? token.col : 0;
-    let tsrc = null == token.src ? MT : token.src;
+    let tsrc = null == token.src ? intern_1.MT : token.src;
     let behind = src.substring(Math.max(0, loc - 333), loc).split('\n');
     let ahead = src.substring(loc, loc + 333).split('\n');
-    let pad = 2 + (MT + (row + 2)).length;
+    let pad = 2 + (intern_1.MT + (row + 2)).length;
     let rI = row < 2 ? 0 : row - 2;
-    let ln = (s) => '\x1b[34m' + (MT + (rI++)).padStart(pad, ' ') +
-        ' | \x1b[0m' + (null == s ? MT : s);
+    let ln = (s) => '\x1b[34m' + (intern_1.MT + (rI++)).padStart(pad, ' ') +
+        ' | \x1b[0m' + (null == s ? intern_1.MT : s);
     let blen = behind.length;
     let lines = [
         2 < blen ? ln(behind[blen - 3]) : null,
@@ -1711,12 +1066,12 @@ function parserwrap(parser) {
                     let loc = 0;
                     let row = 0;
                     let col = 0;
-                    let tsrc = MT;
+                    let tsrc = intern_1.MT;
                     let errloc = ex.message.match(/^Unexpected token (.) .*position\s+(\d+)/i);
                     if (errloc) {
                         tsrc = errloc[1];
                         loc = parseInt(errloc[2]);
-                        row = src.substring(0, loc).replace(/[^\n]/g, MT).length;
+                        row = src.substring(0, loc).replace(/[^\n]/g, intern_1.MT).length;
                         let cI = loc - 1;
                         while (-1 < cI && '\n' !== src.charAt(cI))
                             cI--;
@@ -1770,7 +1125,7 @@ function errdesc(code, details, token, rule, ctx) {
     let options = ctx.opts;
     let meta = ctx.meta;
     let errtxt = errinject((options.error[code] || options.error.unknown), code, details, token, rule, ctx);
-    if (S.function === typeof (options.hint)) {
+    if (intern_1.S.function === typeof (options.hint)) {
         // Only expand the hints on demand. Allow for plugin-defined hints.
         options.hint = { ...options.hint(), ...options.hint };
     }
@@ -1810,20 +1165,20 @@ function errdesc(code, details, token, rule, ctx) {
 // Idempotent normalization of options.
 function configure(config, options) {
     let t = options.token;
-    let token_names = keys(t);
+    let token_names = intern_1.keys(t);
     // Index of tokens by name.
-    token_names.forEach(tn => tokenize(tn, config));
+    token_names.forEach(tn => intern_1.tokenize(tn, config));
     let single_char_token_names = token_names
         .filter(tn => null != t[tn].c && 1 === t[tn].c.length);
     config.sm = single_char_token_names
         .reduce((a, tn) => (a[options.token[tn].c] =
         config.t[tn], a), {});
     let multi_char_token_names = token_names
-        .filter(tn => S.string === typeof options.token[tn]);
+        .filter(tn => intern_1.S.string === typeof options.token[tn]);
     config.m = multi_char_token_names
         .reduce((a, tn) => (a[tn.substring(1)] =
         options.token[tn]
-            .split(MT)
+            .split(intern_1.MT)
             .reduce((pm, c) => (pm[c] = config.t[tn], pm), {}),
         a), {});
     let tokenset_names = token_names
@@ -1835,12 +1190,12 @@ function configure(config, options) {
             .reduce((a, tn) => (a[config.t[tn]] = tn, a), {}),
         a), {});
     config.vm = options.value.src;
-    config.vs = keys(options.value.src)
+    config.vs = intern_1.keys(options.value.src)
         .reduce((a, s) => (a[s[0]] = true, a), {});
     // Lookup maps for sets of characters.
     config.cs = {};
     // Lookup table for escape chars, indexed by denotating char (e.g. n for \n).
-    config.esc = keys(options.string.escape)
+    config.esc = intern_1.keys(options.string.escape)
         .reduce((a, ed) => (a[ed] = options.string.escape[ed], a), {});
     // comment start markers
     config.cs.cs = {};
@@ -1848,7 +1203,7 @@ function configure(config, options) {
     config.cmk = [];
     if (options.comment.lex) {
         config.cm = options.comment.marker;
-        let comment_markers = keys(config.cm);
+        let comment_markers = intern_1.keys(config.cm);
         comment_markers.forEach(k => {
             // Single char comment marker (eg. `#`)
             if (1 === k.length) {
@@ -1862,7 +1217,7 @@ function configure(config, options) {
         });
         config.cmx = longest(comment_markers);
     }
-    config.sc = keys(config.sm).join(MT);
+    config.sc = intern_1.keys(config.sm).join(intern_1.MT);
     // All the characters that can appear in a number.
     config.cs.dig = charset(options.number.digital);
     // Multiline quotes
@@ -1874,7 +1229,7 @@ function configure(config, options) {
     config.cs.bs = {};
     config.bmk = [];
     // TODO: change to block.markers as per comments, then config.bm
-    let block_markers = keys(options.block.marker);
+    let block_markers = intern_1.keys(options.block.marker);
     block_markers.forEach(k => {
         config.cs.bs[k[0]] = k.charCodeAt(0);
         config.bmk.push(k);
@@ -1906,7 +1261,7 @@ function configure(config, options) {
     // Debug options
     config.d = options.debug;
     // Apply any config modifiers (probably from plugins).
-    keys(options.config.modify)
+    intern_1.keys(options.config.modify)
         .forEach((modifer) => options.config.modify[modifer](config, options));
     // Debug the config - useful for plugin authors.
     if (options.debug.print.config) {
@@ -1928,7 +1283,7 @@ delete top.token;
 // Provide deconstruction export names
 Jsonic.Jsonic = Jsonic;
 Jsonic.JsonicError = JsonicError;
-Jsonic.Lexer = Lexer;
+Jsonic.Lexer = lexer_1.Lexer;
 Jsonic.Parser = Parser;
 Jsonic.Rule = Rule;
 Jsonic.RuleSpec = RuleSpec;
