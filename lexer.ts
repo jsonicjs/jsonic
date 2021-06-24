@@ -44,7 +44,9 @@ class TextTokenMatcher extends Matcher {
     let pnt = lex.pnt
     let srcfwd = lex.src.substring(pnt.sI)
 
-    let m = srcfwd.match(/^([^ ]*?)(false|true|null|=>|=|,|[ ]|$)/)
+    //let m = srcfwd.match(/^([^ ]*?)(false|true|null|=>|=|,|[ ]|$)/)
+    let m = srcfwd.match((lex.cfg.re.txfs as RegExp))
+    console.log('M', m)
     if (m) {
       let txtsrc = m[1]
       let tknsrc = m[2]
@@ -54,32 +56,57 @@ class TextTokenMatcher extends Matcher {
       if (null != txtsrc) {
         let txtlen = txtsrc.length
         if (0 < txtlen) {
-          out = new Token(
-            lex.t('#TX'),
-            txtsrc,
-            txtsrc,
 
-            // TODO: just pnt
-            pnt.sI,
-            pnt.rI,
-            pnt.cI,
-          )
+          // TODO: change struct to allow for undefined
+          let val = lex.cfg.vm[txtsrc]
+          if (undefined !== val) {
+            out = new Token(
+              lex.t('#VL'),
+              val,
+              txtsrc,
+
+              // TODO: just pnt
+              pnt.sI,
+              pnt.rI,
+              pnt.cI,
+            )
+          }
+          else {
+            out = new Token(
+              lex.t('#TX'),
+              txtsrc,
+              txtsrc,
+
+              // TODO: just pnt
+              pnt.sI,
+              pnt.rI,
+              pnt.cI,
+            )
+          }
           pnt.sI += txtlen
         }
       }
 
-      /*
       if (null != tknsrc) {
         let tknlen = tknsrc.length
         if (0 < tknlen) {
+          let tkn: Token | undefined = undefined
 
-          if (lex.cfg.tkn[tknsrc]) {
-            // TODO: lookup if actual token
-            let tkn = new Token(
-              'tkn',
+          let tin = lex.cfg.sm[tknsrc]
+          if (null != tin) {
+            tkn = new Token(
+              tin,
+              undefined,
+              txtsrc,
+
+              // TODO: just pnt
               pnt.sI,
-              tknsrc
+              pnt.rI,
+              pnt.cI,
             )
+          }
+
+          if (null != tkn) {
             pnt.sI += tknsrc.length
 
             if (null == out) {
@@ -91,7 +118,6 @@ class TextTokenMatcher extends Matcher {
           }
         }
       }
-      */
 
       return out
     }
@@ -127,6 +153,9 @@ class SpaceMatcher extends Matcher {
     }
   }
 }
+
+
+
 
 
 /*

@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.clone = exports.srcfmt = exports.trimstk = exports.tokenize = exports.regexp = exports.mesc = exports.makelog = exports.keys = exports.extract = exports.errinject = exports.errdesc = exports.entries = exports.defprop = exports.deep = exports.badlex = exports.assign = exports.Token = exports.S = exports.RuleState = exports.MT = exports.JsonicError = void 0;
+exports.charset = exports.clone = exports.srcfmt = exports.trimstk = exports.tokenize = exports.escre = exports.regexp = exports.mesc = exports.makelog = exports.keys = exports.extract = exports.errinject = exports.errdesc = exports.entries = exports.defprop = exports.deep = exports.badlex = exports.assign = exports.Token = exports.S = exports.RuleState = exports.MT = exports.JsonicError = void 0;
 /* $lab:coverage:off$ */
 var RuleState;
 (function (RuleState) {
@@ -119,10 +119,19 @@ exports.mesc = mesc;
 // NOTE: flags first allows concatenated parts to be rest.
 function regexp(flags, ...parts) {
     return new RegExp(parts.map(p => p.esc ?
-        p.replace(/[-\\|\]{}()[^$+*?.!=]/g, '\\$&')
+        //p.replace(/[-\\|\]{}()[^$+*?.!=]/g, '\\$&')
+        escre(p.toString())
         : p).join(MT), flags);
 }
 exports.regexp = regexp;
+function escre(s) {
+    return s
+        .replace(/[-\\|\]{}()[^$+*?.!=]/g, '\\$&')
+        .replace(/\t/g, '\\t')
+        .replace(/\r/g, '\\r')
+        .replace(/\n/g, '\\n');
+}
+exports.escre = escre;
 // Deep override for plain data. Retains base object and array.
 // Array merge by `over` index, `over` wins non-matching types, expect:
 // `undefined` always loses, `over` plain objects inject into functions,
@@ -306,4 +315,14 @@ function clone(class_instance) {
     return deep(Object.create(Object.getPrototypeOf(class_instance)), class_instance);
 }
 exports.clone = clone;
+// Lookup map for a set of chars.
+function charset(...parts) {
+    return parts
+        .filter(p => false !== p)
+        .map((p) => 'object' === typeof (p) ? keys(p).join(MT) : p)
+        .join(MT)
+        .split(MT)
+        .reduce((a, c) => (a[c] = c.charCodeAt(0), a), {});
+}
+exports.charset = charset;
 //# sourceMappingURL=intern.js.map

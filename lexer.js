@@ -19,7 +19,9 @@ class TextTokenMatcher extends Matcher {
     match(lex) {
         let pnt = lex.pnt;
         let srcfwd = lex.src.substring(pnt.sI);
-        let m = srcfwd.match(/^([^ ]*?)(false|true|null|=>|=|,|[ ]|$)/);
+        //let m = srcfwd.match(/^([^ ]*?)(false|true|null|=>|=|,|[ ]|$)/)
+        let m = srcfwd.match(lex.cfg.re.txfs);
+        console.log('M', m);
         if (m) {
             let txtsrc = m[1];
             let tknsrc = m[2];
@@ -27,36 +29,42 @@ class TextTokenMatcher extends Matcher {
             if (null != txtsrc) {
                 let txtlen = txtsrc.length;
                 if (0 < txtlen) {
-                    out = new intern_1.Token(lex.t('#TX'), txtsrc, txtsrc, 
-                    // TODO: just pnt
-                    pnt.sI, pnt.rI, pnt.cI);
+                    // TODO: change struct to allow for undefined
+                    let val = lex.cfg.vm[txtsrc];
+                    if (undefined !== val) {
+                        out = new intern_1.Token(lex.t('#VL'), val, txtsrc, 
+                        // TODO: just pnt
+                        pnt.sI, pnt.rI, pnt.cI);
+                    }
+                    else {
+                        out = new intern_1.Token(lex.t('#TX'), txtsrc, txtsrc, 
+                        // TODO: just pnt
+                        pnt.sI, pnt.rI, pnt.cI);
+                    }
                     pnt.sI += txtlen;
                 }
             }
-            /*
             if (null != tknsrc) {
-              let tknlen = tknsrc.length
-              if (0 < tknlen) {
-      
-                if (lex.cfg.tkn[tknsrc]) {
-                  // TODO: lookup if actual token
-                  let tkn = new Token(
-                    'tkn',
-                    pnt.sI,
-                    tknsrc
-                  )
-                  pnt.sI += tknsrc.length
-      
-                  if (null == out) {
-                    out = tkn
-                  }
-                  else {
-                    pnt.token.push(tkn)
-                  }
+                let tknlen = tknsrc.length;
+                if (0 < tknlen) {
+                    let tkn = undefined;
+                    let tin = lex.cfg.sm[tknsrc];
+                    if (null != tin) {
+                        tkn = new intern_1.Token(tin, undefined, txtsrc, 
+                        // TODO: just pnt
+                        pnt.sI, pnt.rI, pnt.cI);
+                    }
+                    if (null != tkn) {
+                        pnt.sI += tknsrc.length;
+                        if (null == out) {
+                            out = tkn;
+                        }
+                        else {
+                            pnt.token.push(tkn);
+                        }
+                    }
                 }
-              }
             }
-            */
             return out;
         }
     }

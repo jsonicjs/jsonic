@@ -1,4 +1,4 @@
-import { CharCodeMap, Config, Context, JsonicError, KV, Meta, Options, Tin, Token, badlex, deep, errdesc, errinject, extract, makelog, mesc, regexp, tokenize, trimstk, srcfmt, clone } from './intern';
+import { CharCodeMap, Config, Context, JsonicError, KV, Meta, Options, Tin, Token, badlex, deep, errdesc, errinject, extract, makelog, mesc, regexp, tokenize, trimstk, srcfmt, clone, charset } from './intern';
 import { Lexer, LexMatcher, LexMatcherListMap, LexMatcherResult, LexMatcherState } from './lexer';
 import { Parser, Rule, RuleDefiner, RuleSpec, RuleSpecMap, Alt, AltCond, AltHandler, AltAction } from './parser';
 declare type JsonicParse = (src: any, meta?: any, parent_ctx?: any) => any;
@@ -44,14 +44,13 @@ declare let util: {
     ender: typeof ender;
 };
 declare function make(param_options?: KV, parent?: Jsonic): Jsonic;
-declare function charset(...parts: (string | object | boolean)[]): CharCodeMap;
 declare function longest(strs: string[]): number;
 declare function marr(a: string[], b: string[]): boolean;
 declare function ender(endchars: CharCodeMap, endmarks: KV, singles?: KV): RegExp;
 declare function parserwrap(parser: any): {
     start: (lexer: Lexer, src: string, jsonic: Jsonic, meta?: any, parent_ctx?: any) => any;
 };
-declare function configure(config: Config, options: Options): void;
+declare function configure(cfg: Config, opts: Options): void;
 declare let Jsonic: Jsonic;
 export { Jsonic, Plugin, JsonicError, Tin, Lexer, Parser, Rule, RuleSpec, RuleSpecMap, Token, Context, Meta, LexMatcher, LexMatcherListMap, LexMatcherResult, LexMatcherState, Alt, AltCond, AltHandler, AltAction, util, make, };
 export default Jsonic;

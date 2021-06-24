@@ -259,6 +259,8 @@ type Options = {
 // Internal configuration derived from options.
 // See build_config.
 type Config = {
+  fs: string[] // Fixed strings (tokens, values, etc)
+
   tI: number // Token identifier index.
   t: any // Token index map.
   m: { [token_name: string]: TinMap }         // Mutually exclusive character sets.
@@ -343,8 +345,18 @@ function regexp(
 ): RegExp {
   return new RegExp(
     parts.map(p => (p as any).esc ?
-      p.replace(/[-\\|\]{}()[^$+*?.!=]/g, '\\$&')
+      //p.replace(/[-\\|\]{}()[^$+*?.!=]/g, '\\$&')
+      escre(p.toString())
       : p).join(MT), flags)
+}
+
+
+function escre(s: string) {
+  return s
+    .replace(/[-\\|\]{}()[^$+*?.!=]/g, '\\$&')
+    .replace(/\t/g, '\\t')
+    .replace(/\r/g, '\\r')
+    .replace(/\n/g, '\\n')
 }
 
 
@@ -588,6 +600,17 @@ function clone(class_instance: any) {
 }
 
 
+// Lookup map for a set of chars.
+function charset(...parts: (string | object | boolean)[]): CharCodeMap {
+  return parts
+    .filter(p => false !== p)
+    .map((p: any) => 'object' === typeof (p) ? keys(p).join(MT) : p)
+    .join(MT)
+    .split(MT)
+    .reduce((a: any, c: string) => (a[c] = c.charCodeAt(0), a), {})
+}
+
+
 
 export {
   CharCodeMap,
@@ -615,8 +638,10 @@ export {
   makelog,
   mesc,
   regexp,
+  escre,
   tokenize,
   trimstk,
   srcfmt,
   clone,
+  charset,
 }

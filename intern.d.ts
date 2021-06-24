@@ -181,6 +181,7 @@ declare type Options = {
     };
 };
 declare type Config = {
+    fs: string[];
     tI: number;
     t: any;
     m: {
@@ -244,6 +245,7 @@ declare function mesc(s: string, _?: any): any;
 declare function regexp(flags: string, ...parts: (string | (String & {
     esc?: boolean;
 }))[]): RegExp;
+declare function escre(s: string): string;
 declare function deep(base?: any, ...rest: any): any;
 declare function errinject(s: string, code: string, details: KV, token: Token, rule: Rule, ctx: Context): string;
 declare function trimstk(err: Error): void;
@@ -253,4 +255,5 @@ declare function badlex(lex: Lex, BD: Tin, ctx: Context): any;
 declare function makelog(ctx: Context): ((...rest: any) => undefined) | undefined;
 declare function srcfmt(config: Config): (s: any, _?: any) => string;
 declare function clone(class_instance: any): any;
-export { CharCodeMap, Config, Context, JsonicError, KV, MT, Meta, Options, RuleState, S, Tin, TinMap, Token, assign, badlex, deep, defprop, entries, errdesc, errinject, extract, keys, makelog, mesc, regexp, tokenize, trimstk, srcfmt, clone, };
+declare function charset(...parts: (string | object | boolean)[]): CharCodeMap;
+export { CharCodeMap, Config, Context, JsonicError, KV, MT, Meta, Options, RuleState, S, Tin, TinMap, Token, assign, badlex, deep, defprop, entries, errdesc, errinject, extract, keys, makelog, mesc, regexp, escre, tokenize, trimstk, srcfmt, clone, charset, };
