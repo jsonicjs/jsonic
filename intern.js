@@ -253,8 +253,8 @@ function errdesc(code, details, token, rule, ctx) {
 exports.errdesc = errdesc;
 function badlex(lex, BD, ctx) {
     let wrap = (rule) => {
-        // let token = lex.next(rule)
-        let token = lex(rule);
+        let token = lex.next(rule);
+        // let token = lex(rule)
         if (BD === token.tin) {
             let details = {};
             if (null != token.use) {

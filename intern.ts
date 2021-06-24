@@ -517,8 +517,8 @@ function errdesc(
 
 function badlex(lex: Lex, BD: Tin, ctx: Context) {
   let wrap: any = (rule: Rule) => {
-    // let token = lex.next(rule)
-    let token = lex(rule)
+    let token = lex.next(rule)
+    // let token = lex(rule)
 
     if (BD === token.tin) {
       let details: any = {}

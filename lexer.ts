@@ -19,7 +19,262 @@ import {
 
 
 
-type Lex = ((rule: Rule) => Token) & { src: string }
+
+class Point {
+  len: number = -1
+  sI: number = 0
+  rI: number = 1
+  cI: number = 1
+  token: Token[] = []
+  end: Token | undefined = undefined
+
+  constructor(len: number) {
+    this.len = len
+  }
+}
+
+
+abstract class Matcher {
+  abstract match(lex: Lex, rule: Rule): Token | undefined
+}
+
+
+class TextTokenMatcher extends Matcher {
+  match(lex: Lex) {
+    let pnt = lex.pnt
+    let srcfwd = lex.src.substring(pnt.sI)
+
+    let m = srcfwd.match(/^([^ ]*?)(false|true|null|=>|=|,|[ ]|$)/)
+    if (m) {
+      let txtsrc = m[1]
+      let tknsrc = m[2]
+
+      let out: Token | undefined = undefined
+
+      if (null != txtsrc) {
+        let txtlen = txtsrc.length
+        if (0 < txtlen) {
+          out = new Token(
+            lex.t('#TX'),
+            txtsrc,
+            txtsrc,
+
+            // TODO: just pnt
+            pnt.sI,
+            pnt.rI,
+            pnt.cI,
+          )
+          pnt.sI += txtlen
+        }
+      }
+
+      /*
+      if (null != tknsrc) {
+        let tknlen = tknsrc.length
+        if (0 < tknlen) {
+
+          if (lex.cfg.tkn[tknsrc]) {
+            // TODO: lookup if actual token
+            let tkn = new Token(
+              'tkn',
+              pnt.sI,
+              tknsrc
+            )
+            pnt.sI += tknsrc.length
+
+            if (null == out) {
+              out = tkn
+            }
+            else {
+              pnt.token.push(tkn)
+            }
+          }
+        }
+      }
+      */
+
+      return out
+    }
+  }
+}
+
+
+class SpaceMatcher extends Matcher {
+  space: { [char: string]: boolean } = {
+    ' ': true,
+  }
+
+  match(lex: Lex) {
+    let pnt = lex.pnt
+    let pI = pnt.sI
+    let src = lex.src
+
+    while (this.space[src[pI]]) {
+      pI++
+    }
+
+    if (pnt.sI < pI) {
+      let spcsrc = src.substring(pnt.sI, pI)
+      pnt.sI += spcsrc.length
+      return new Token(
+        lex.t('#SP'),
+        spcsrc,
+        spcsrc,
+        pnt.sI,
+        pnt.rI,
+        pnt.cI,
+      )
+    }
+  }
+}
+
+
+/*
+class NumberMatcher extends Matcher {
+  numchar: { [char: string]: boolean } = {
+    '1': true,
+    '2': true,
+  }
+
+  match(lex: Lex) {
+    let pnt = lex.pnt
+    let pI = pnt.sI
+    let src = lex.src
+
+    while (this.numchar[src[pI]]) {
+      pI++
+    }
+
+    // TODO: value ender
+    if (pnt.sI < pI) {
+      let numsrc = src.substring(pnt.sI, pI)
+      pnt.sI += numsrc.length
+      return new Token(
+        'num',
+        pnt.sI,
+        numsrc
+      )
+    }
+  }
+}
+*/
+
+
+
+
+class Lexer {
+  cfg: Config
+
+  end: Token
+
+  constructor(cfg: Config) {
+    this.cfg = cfg
+
+    this.end = new Token(
+      tokenize('#ZZ', cfg),
+      '',
+      '',
+      -1,
+      -1,
+      -1
+    )
+  }
+
+  start(ctx: Context): Lex {
+    return new Lex(ctx.src(), ctx, this.cfg)
+  }
+
+  // Clone the Lexer, and in particular the registered matchers.
+  clone(config: Config) {
+    let lexer = new Lexer(config)
+    // deep(lexer.match, this.match)
+    return lexer
+  }
+
+}
+
+
+class Lex {
+  src: String
+  ctx: Context
+  cfg: Config
+  pnt: Point
+  mat: Matcher[]
+
+  constructor(src: String, ctx: Context, cfg: Config) {
+    this.src = src
+    this.ctx = ctx
+    this.cfg = cfg
+    this.pnt = new Point(src.length)
+
+    // TODO: move to Lexer
+    this.mat = [
+      //new NumberMatcher(),
+      new TextTokenMatcher(),
+      new SpaceMatcher(),
+    ]
+  }
+
+  next(rule: Rule): Token {
+    let pnt = this.pnt
+
+    if (pnt.end) {
+      return pnt.end
+    }
+
+    if (0 < pnt.token.length) {
+      return (pnt.token.shift() as Token)
+    }
+
+
+    if (pnt.len <= pnt.sI) {
+      pnt.end = new Token(
+        this.t('#ZZ'),
+        '',
+        '',
+        pnt.sI,
+        pnt.rI,
+        pnt.cI,
+      )
+
+      return pnt.end
+    }
+
+    let tkn: Token | undefined
+    for (let m of this.mat) {
+      if (tkn = m.match(this, rule)) {
+        return tkn
+      }
+    }
+
+    tkn = new Token(
+      this.t('#BD'),
+      this.src[pnt.sI],
+      this.src[pnt.sI],
+      pnt.sI,
+      pnt.rI,
+      pnt.cI,
+      undefined,
+      'bad'
+    )
+
+    return tkn
+  }
+
+  t(n: string): Tin {
+    return tokenize(n, this.cfg)
+  }
+}
+
+
+
+
+
+
+// The lexing function returns the next token.
+// type Lex = ((rule: Rule) => Token) & { src: string }
+
+
 
 type LexMatcherState = {
   sI: number,
@@ -44,6 +299,7 @@ type LexMatcherResult = undefined | {
 }
 
 
+/*
 class Lexer {
   end: Token
   match: LexMatcherListMap = {}
@@ -814,6 +1070,8 @@ class Lexer {
     return lexer
   }
 }
+
+*/
 
 
 
