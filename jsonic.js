@@ -29,9 +29,15 @@ exports.make = exports.util = exports.Alt = exports.Token = exports.RuleSpec = e
 // * '#' prefix: parse token
 // * '@' prefix: lex state
 const intern_1 = require("./intern");
+Object.defineProperty(exports, "JsonicError", { enumerable: true, get: function () { return intern_1.JsonicError; } });
 Object.defineProperty(exports, "Token", { enumerable: true, get: function () { return intern_1.Token; } });
 const lexer_1 = require("./lexer");
 Object.defineProperty(exports, "Lexer", { enumerable: true, get: function () { return lexer_1.Lexer; } });
+const parser_1 = require("./parser");
+Object.defineProperty(exports, "Parser", { enumerable: true, get: function () { return parser_1.Parser; } });
+Object.defineProperty(exports, "Rule", { enumerable: true, get: function () { return parser_1.Rule; } });
+Object.defineProperty(exports, "RuleSpec", { enumerable: true, get: function () { return parser_1.RuleSpec; } });
+Object.defineProperty(exports, "Alt", { enumerable: true, get: function () { return parser_1.Alt; } });
 function make_default_options() {
     let options = {
         // Default tag - set your own! 
@@ -205,604 +211,20 @@ function make_default_options() {
     };
     return options;
 }
-// Jsonic errors with nice formatting.
-class JsonicError extends SyntaxError {
-    constructor(code, details, token, rule, ctx) {
-        details = intern_1.deep({}, details);
-        let desc = errdesc(code, details, token, rule, ctx);
-        super(desc.message);
-        intern_1.assign(this, desc);
-        trimstk(this);
-    }
-    toJSON() {
-        return {
-            ...this,
-            __error: true,
-            name: this.name,
-            message: this.message,
-            stack: this.stack,
-        };
-    }
-}
-exports.JsonicError = JsonicError;
-/* $lab:coverage:off$ */
-var RuleState;
-(function (RuleState) {
-    RuleState[RuleState["open"] = 0] = "open";
-    RuleState[RuleState["close"] = 1] = "close";
-})(RuleState || (RuleState = {}));
-/* $lab:coverage:on$ */
-class Rule {
-    constructor(spec, ctx, node) {
-        this.id = ctx.uI++;
-        this.name = spec.name;
-        this.spec = spec;
-        this.node = node;
-        this.state = RuleState.open;
-        this.child = NONE;
-        this.open = [];
-        this.close = [];
-        this.n = {};
-        this.use = {};
-        this.bo = false === spec.bo ? false : true;
-        this.ao = false === spec.ao ? false : true;
-        this.bc = false === spec.bc ? false : true;
-        this.ac = false === spec.ac ? false : true;
-    }
-    process(ctx) {
-        let rule = this.spec.process(this, ctx, this.state);
-        return rule;
-    }
-}
-exports.Rule = Rule;
-const NONE = { name: intern_1.S.none, state: 0 };
-// Parse match alternate (built from current tokens and AltSpec).
-class Alt {
-    constructor() {
-        this.m = []; // Matched tokens (not tins!).
-        this.p = intern_1.MT; // Push rule (by name).
-        this.r = intern_1.MT; // Replace rule (by name).
-        this.b = 0; // Move token position backward.
-    }
-}
-exports.Alt = Alt;
-const PALT = new Alt(); // As with lexing, only one alt object is created.
-const EMPTY_ALT = new Alt();
-class RuleSpec {
-    constructor(def) {
-        this.name = '-';
-        this.bo = true;
-        this.ao = true;
-        this.bc = true;
-        this.ac = true;
-        this.def = def || {};
-        function norm_alt(alt) {
-            // Convert counter abbrev condition into an actual function.
-            let counters = null != alt.c && alt.c.n;
-            if (counters) {
-                alt.c = (rule) => {
-                    let pass = true;
-                    for (let cn in counters) {
-                        pass = pass && (null == rule.n[cn] || (rule.n[cn] <= counters[cn]));
-                    }
-                    return pass;
-                };
-            }
-            // Ensure groups are a string[]
-            if (intern_1.S.string === typeof (alt.g)) {
-                alt.g = alt.g.split(/\s*,\s*/);
-            }
-        }
-        this.def.open = this.def.open || [];
-        this.def.close = this.def.close || [];
-        for (let alt of [...this.def.open, ...this.def.close]) {
-            norm_alt(alt);
-        }
-    }
-    process(rule, ctx, state) {
-        let why = intern_1.MT;
-        let F = ctx.F;
-        let is_open = state === RuleState.open;
-        let next = is_open ? rule : NONE;
-        let def = this.def;
-        // Match alternates for current state.
-        let alts = (is_open ? def.open : def.close);
-        // Handle "before" call.
-        let before = is_open ?
-            (rule.bo && def.bo) :
-            (rule.bc && def.bc);
-        let bout;
-        if (before) {
-            bout = before.call(this, rule, ctx);
-            if (bout) {
-                if (bout.err) {
-                    throw new JsonicError(bout.err, {
-                        ...bout, state: is_open ? intern_1.S.open : intern_1.S.close
-                    }, ctx.t0, rule, ctx);
-                }
-                rule.node = bout.node || rule.node;
-            }
-        }
-        // Attempt to match one of the alts.
-        let alt = (bout && bout.alt) ? { ...EMPTY_ALT, ...bout.alt } :
-            0 < alts.length ? this.parse_alts(alts, rule, ctx) :
-                EMPTY_ALT;
-        // Custom alt handler.
-        if (alt.h) {
-            alt = alt.h(rule, ctx, alt, next) || alt;
-            why += 'H';
-        }
-        // Expose match to handlers.
-        if (is_open) {
-            rule.open = alt.m;
-        }
-        else {
-            rule.close = alt.m;
-        }
-        // Unconditional error.
-        if (alt.e) {
-            throw new JsonicError(intern_1.S.unexpected, { ...alt.e.use, state: is_open ? intern_1.S.open : intern_1.S.close }, alt.e, rule, ctx);
-        }
-        // Update counters.
-        if (alt.n) {
-            for (let cn in alt.n) {
-                rule.n[cn] =
-                    // 0 reverts counter to 0.
-                    0 === alt.n[cn] ? 0 :
-                        // First seen, set to 0.
-                        (null == rule.n[cn] ? 0 :
-                            // Increment counter.
-                            rule.n[cn]) + alt.n[cn];
-                // Disallow negative counters.
-                rule.n[cn] = 0 < rule.n[cn] ? rule.n[cn] : 0;
-            }
-        }
-        // Set custom properties
-        if (alt.u) {
-            rule.use = Object.assign(rule.use, alt.u);
-        }
-        // Action call.
-        if (alt.a) {
-            why += 'A';
-            alt.a.call(this, rule, ctx, alt, next);
-        }
-        // Push a new rule onto the stack...
-        if (alt.p) {
-            ctx.rs.push(rule);
-            next = rule.child = new Rule(ctx.rsm[alt.p], ctx, rule.node);
-            next.parent = rule;
-            next.n = { ...rule.n };
-            why += 'U';
-        }
-        // ...or replace with a new rule.
-        else if (alt.r) {
-            next = new Rule(ctx.rsm[alt.r], ctx, rule.node);
-            next.parent = rule.parent;
-            next.prev = rule;
-            next.n = { ...rule.n };
-            why += 'R';
-        }
-        // Pop closed rule off stack.
-        else {
-            if (!is_open) {
-                next = ctx.rs.pop() || NONE;
-            }
-            why += 'Z';
-        }
-        // Handle "after" call.
-        let after = is_open ?
-            (rule.ao && def.ao) :
-            (rule.ac && def.ac);
-        if (after) {
-            let aout = after.call(this, rule, ctx, alt, next);
-            if (aout) {
-                if (aout.err) {
-                    ctx.t0.why = why;
-                    throw new JsonicError(aout.err, {
-                        ...aout, state: is_open ? intern_1.S.open : intern_1.S.close
-                    }, ctx.t0, rule, ctx);
-                }
-                next = aout.next || next;
-            }
-        }
-        next.why = why;
-        ctx.log && ctx.log(intern_1.S.node, rule.name + '~' + rule.id, RuleState[rule.state], 'w=' + why, 'n:' + intern_1.entries(rule.n).map(n => n[0] + '=' + n[1]).join(';'), 'u:' + intern_1.entries(rule.use).map(u => u[0] + '=' + u[1]).join(';'), F(rule.node));
-        // Lex next tokens (up to backtrack).
-        let mI = 0;
-        let rewind = alt.m.length - (alt.b || 0);
-        while (mI++ < rewind) {
-            ctx.next();
-        }
-        // Must be last as state is for next process call.
-        if (RuleState.open === rule.state) {
-            rule.state = RuleState.close;
-        }
-        return next;
-    }
-    // First match wins.
-    // NOTE: input AltSpecs are used to build the Alt output.
-    parse_alts(alts, rule, ctx) {
-        let out = PALT;
-        out.m = []; // Match 0, 1, or 2 tokens in order .
-        out.b = 0; // Backtrack n tokens.
-        out.p = intern_1.MT; // Push named rule onto stack. 
-        out.r = intern_1.MT; // Replace current rule with named rule.
-        out.n = undefined; // Increment named counters.
-        out.h = undefined; // Custom handler function.
-        out.a = undefined; // Rule action.
-        out.u = undefined; // Custom rule properties.
-        out.e = undefined; // Error token.
-        let alt;
-        let altI = 0;
-        let t = ctx.cnfg.t;
-        let cond;
-        // TODO: replace with lookup map
-        let len = alts.length;
-        for (altI = 0; altI < len; altI++) {
-            cond = false;
-            alt = alts[altI];
-            // No tokens to match.
-            if (null == alt.s || 0 === alt.s.length) {
-                cond = true;
-            }
-            // Match 1 or 2 tokens in sequence.
-            else if (alt.s[0] === ctx.t0.tin ||
-                alt.s[0] === t.AA ||
-                (Array.isArray(alt.s[0]) && alt.s[0].includes(ctx.t0.tin))) {
-                if (1 === alt.s.length) {
-                    out.m = [ctx.t0];
-                    cond = true;
-                }
-                else if (alt.s[1] === ctx.t1.tin ||
-                    alt.s[1] === t.AA ||
-                    (Array.isArray(alt.s[1]) && alt.s[1].includes(ctx.t1.tin))) {
-                    out.m = [ctx.t0, ctx.t1];
-                    cond = true;
-                }
-            }
-            // Optional custom condition
-            cond = cond && (alt.c ? alt.c(rule, ctx, out) : true);
-            // Depth.
-            cond = cond && (null == alt.d ? true : alt.d === ctx.rs.length);
-            if (cond) {
-                break;
-            }
-            else {
-                alt = null;
-            }
-        }
-        if (null == alt && t.ZZ !== ctx.t0.tin) {
-            out.e = ctx.t0;
-        }
-        if (null != alt) {
-            out.e = alt.e && alt.e(rule, ctx, out) || undefined;
-            out.b = alt.b ? alt.b : out.b;
-            out.p = alt.p ? alt.p : out.p;
-            out.r = alt.r ? alt.r : out.r;
-            out.n = alt.n ? alt.n : out.n;
-            out.h = alt.h ? alt.h : out.h;
-            out.a = alt.a ? alt.a : out.a;
-            out.u = alt.u ? alt.u : out.u;
-        }
-        ctx.log && ctx.log(intern_1.S.parse, rule.name + '~' + rule.id, RuleState[rule.state], altI < alts.length ? 'alt=' + altI : 'no-alt', altI < alts.length &&
-            alt.s ?
-            '[' + alt.s.map((pin) => t[pin]).join(' ') + ']' : '[]', 'tc=' + ctx.tC, 'p=' + (out.p || intern_1.MT), 'r=' + (out.r || intern_1.MT), 'b=' + (out.b || intern_1.MT), out.m.map((tkn) => t[tkn.tin]).join(' '), ctx.F(out.m.map((tkn) => tkn.src)), 'c:' + ((alt && alt.c) ? cond : intern_1.MT), 'n:' + intern_1.entries(rule.n).map(n => n[0] + '=' + n[1]).join(';'), 'u:' + intern_1.entries(rule.use).map(u => u[0] + '=' + u[1]).join(';'), out);
-        return out;
-    }
-}
-exports.RuleSpec = RuleSpec;
-class Parser {
-    constructor(options, config) {
-        this.rsm = {};
-        this.options = options;
-        this.config = config;
-    }
-    init() {
-        let t = this.config.t;
-        let OB = t.OB;
-        let CB = t.CB;
-        let OS = t.OS;
-        let CS = t.CS;
-        let CL = t.CL;
-        let CA = t.CA;
-        let TX = t.TX;
-        let NR = t.NR;
-        let ST = t.ST;
-        let VL = t.VL;
-        let ZZ = t.ZZ;
-        let VAL = [TX, NR, ST, VL];
-        let finish = (_rule, ctx) => {
-            if (!this.options.rule.finish) {
-                // TODO: needs own error code
-                ctx.t0.src = intern_1.S.END_OF_SOURCE;
-                return ctx.t0;
-            }
-        };
-        let rules = {
-            val: {
-                open: [
-                    // A map: { ...
-                    { s: [OB], p: intern_1.S.map, b: 1 },
-                    // A list: [ ...
-                    { s: [OS], p: intern_1.S.list, b: 1 },
-                    // A pair key: a: ...
-                    { s: [VAL, CL], p: intern_1.S.map, b: 2, n: { im: 1 } },
-                    // A plain value: x "x" 1 true.
-                    { s: [VAL] },
-                    // Implicit ends `{a:}` -> {"a":null}, `[a:]` -> [{"a":null}]
-                    { s: [[CB, CS]], b: 1 },
-                    // Implicit list at top level: a,b.
-                    { s: [CA], d: 0, p: intern_1.S.list, b: 1 },
-                    // Value is null when empty before commas.
-                    { s: [CA], b: 1, g: intern_1.S.imp_list },
-                ],
-                close: [
-                    // Implicit list only allowed at top level: 1,2.
-                    {
-                        s: [CA], d: 0, r: intern_1.S.elem,
-                        a: (rule) => rule.node = [rule.node],
-                        g: intern_1.S.imp_list
-                    },
-                    // TODO: find a cleaner way to handle this edge case.
-                    // Allow top level "a b".
-                    {
-                        c: (_rule, ctx, _alt) => {
-                            return (TX === ctx.t0.tin ||
-                                NR === ctx.t0.tin ||
-                                ST === ctx.t0.tin ||
-                                VL === ctx.t0.tin) && 0 === ctx.rs.length;
-                        },
-                        r: intern_1.S.elem,
-                        a: (rule) => rule.node = [rule.node],
-                        g: intern_1.S.imp_list
-                    },
-                    // Close value, map, or list, but perhaps there are more elem?
-                    { b: 1 },
-                ],
-                bc: (rule) => {
-                    // NOTE: val can be undefined when there is no value at all
-                    // (eg. empty string, thus no matched opening token)
-                    rule.node =
-                        undefined === rule.child.node ?
-                            (null == rule.open[0] ? undefined : rule.open[0].val) :
-                            rule.child.node;
-                },
-            },
-            map: {
-                bo: () => {
-                    // Create a new empty map.
-                    return { node: {} };
-                },
-                open: [
-                    // An empty map: {}.
-                    { s: [OB, CB] },
-                    // Start matching map key-value pairs: a:1.
-                    // OB `{` resets implicit map counter.
-                    { s: [OB], p: intern_1.S.pair, n: { im: 0 } },
-                    // Pair from implicit map.
-                    { s: [VAL, CL], p: intern_1.S.pair, b: 2 },
-                ],
-                close: []
-            },
-            list: {
-                bo: () => {
-                    // Create a new empty list.
-                    return { node: [] };
-                },
-                open: [
-                    // An empty list: [].
-                    { s: [OS, CS] },
-                    // Start matching list elements: 1,2.
-                    { s: [OS], p: intern_1.S.elem },
-                    // Initial comma [, will insert null as [null,
-                    { s: [CA], p: intern_1.S.elem, b: 1 },
-                    // Another element.
-                    { p: intern_1.S.elem },
-                ],
-                close: []
-            },
-            // sets key:val on node
-            pair: {
-                open: [
-                    // Match key-colon start of pair.
-                    { s: [VAL, CL], p: intern_1.S.val, u: { key: true } },
-                    // Ignore initial comma: {,a:1.
-                    { s: [CA] },
-                ],
-                close: [
-                    // End of map, reset implicit depth counter so that
-                    // a:b:c:1,d:2 -> {a:{b:{c:1}},d:2}
-                    { s: [CB], c: { n: { im: 0 } } },
-                    // Ignore trailing comma at end of map.
-                    { s: [CA, CB], c: { n: { im: 0 } } },
-                    // Comma means a new pair at same level (unless implicit a:b:1,c:2).
-                    { s: [CA], c: { n: { im: 0 } }, r: intern_1.S.pair },
-                    // Who needs commas anyway?
-                    { s: [VAL], c: { n: { im: 0 } }, r: intern_1.S.pair, b: 1 },
-                    // End of implicit path a:b:1,.
-                    { s: [[CB, CA, ...VAL]], b: 1 },
-                    // Close implicit single prop map inside list: [a:1,]
-                    { s: [CS], b: 1 },
-                    // Fail if auto-close option is false.
-                    { s: [ZZ], e: finish, g: intern_1.S.end },
-                ],
-                bc: (r, ctx) => {
-                    // If top level implicit map, correct `im` count.
-                    // rs=val,map => len 2; a:b:1 should be im=1, not 2 as with {a:b:.
-                    if (2 === ctx.rs.length) {
-                        r.n.im = 0;
-                    }
-                    if (r.use.key) {
-                        let key_token = r.open[0];
-                        let key = ST === key_token.tin ? key_token.val : key_token.src;
-                        let val = r.child.node;
-                        let prev = r.node[key];
-                        // Convert undefined to null when there was no pair value
-                        // Otherwise leave it alone (eg. dynamic plugin sets undefined)
-                        if (undefined === val && CL === ctx.v1.tin) {
-                            val = null;
-                        }
-                        r.node[key] = null == prev ? val :
-                            (ctx.opts.map.merge ? ctx.opts.map.merge(prev, val) :
-                                (ctx.opts.map.extend ? intern_1.deep(prev, val) : val));
-                    }
-                },
-            },
-            // push onto node
-            elem: {
-                open: [
-                    // Empty commas insert null elements.
-                    // Note that close consumes a comma, so b:2 works.
-                    { s: [CA, CA], b: 2, a: (r) => r.node.push(null), g: intern_1.S.nUll, },
-                    { s: [CA], a: (r) => r.node.push(null), g: intern_1.S.nUll, },
-                    // Anything else must a list element value.
-                    { p: intern_1.S.val },
-                ],
-                close: [
-                    // Ignore trailing comma.
-                    { s: [CA, CS] },
-                    // Next element.
-                    { s: [CA], r: intern_1.S.elem },
-                    // Who needs commas anyway?
-                    { s: [[...VAL, OB, OS]], r: intern_1.S.elem, b: 1 },
-                    // End of list.
-                    { s: [CS] },
-                    // Fail if auto-close option is false.
-                    { s: [ZZ], e: finish, g: intern_1.S.end },
-                ],
-                bc: (rule) => {
-                    if (undefined !== rule.child.node) {
-                        rule.node.push(rule.child.node);
-                    }
-                },
-            }
-        };
-        // TODO: just create the RuleSpec directly
-        this.rsm = intern_1.keys(rules).reduce((rsm, rn) => {
-            rsm[rn] = new RuleSpec(rules[rn]);
-            rsm[rn].name = rn;
-            return rsm;
-        }, {});
-    }
-    // Multi-functional get/set for rules.
-    rule(name, define) {
-        // If no name, get all the rules.
-        if (null == name) {
-            return this.rsm;
-        }
-        // Else get a rule by name.
-        let rs = this.rsm[name];
-        // Else delete a specific rule by name.
-        if (null === define) {
-            delete this.rsm[name];
-        }
-        // Else add or redefine a rule by name.
-        else if (undefined !== define) {
-            rs = this.rsm[name] = (define(this.rsm[name], this.rsm) || this.rsm[name]);
-            rs.name = name;
-        }
-        return rs;
-    }
-    start(lexer, src, jsonic, meta, parent_ctx) {
-        let root;
-        let ctx = {
-            uI: 1,
-            opts: this.options,
-            cnfg: this.config,
-            meta: meta || {},
-            src: () => src,
-            root: () => root.node,
-            plgn: () => jsonic.internal().plugins,
-            rule: NONE,
-            xs: -1,
-            v2: lexer.end,
-            v1: lexer.end,
-            t0: lexer.end,
-            t1: lexer.end,
-            tC: -2,
-            next,
-            rs: [],
-            rsm: this.rsm,
-            log: (meta && meta.log) || undefined,
-            F: srcfmt(this.config),
-            use: {}
-        };
-        ctx = intern_1.deep(ctx, parent_ctx);
-        makelog(ctx);
-        let tn = (pin) => intern_1.tokenize(pin, this.config);
-        let lex = badlex(lexer.start(ctx), intern_1.tokenize('#BD', this.config), ctx);
-        let startspec = this.rsm[this.options.rule.start];
-        // The starting rule is always 'val'
-        if (null == startspec) {
-            return undefined;
-        }
-        let rule = new Rule(startspec, ctx);
-        root = rule;
-        // Maximum rule iterations (prevents infinite loops). Allow for
-        // rule open and close, and for each rule on each char to be
-        // virtual (like map, list), and double for safety margin (allows
-        // lots of backtracking), and apply a multipler options as a get-out-of-jail.
-        let maxr = 2 * intern_1.keys(this.rsm).length * lex.src.length *
-            2 * this.options.rule.maxmul;
-        // Lex next token.
-        function next() {
-            ctx.v2 = ctx.v1;
-            ctx.v1 = ctx.t0;
-            ctx.t0 = ctx.t1;
-            let t1;
-            do {
-                t1 = lex(rule);
-                ctx.tC++;
-            } while (ctx.cnfg.ts.IGNORE[t1.tin]);
-            ctx.t1 = { ...t1 };
-            return ctx.t0;
-        }
-        // Look two tokens ahead
-        next();
-        next();
-        // Process rules on tokens
-        let rI = 0;
-        // This loop is the heart of the engine. Keep processing rule
-        // occurrences until there's none left.
-        while (NONE !== rule && rI < maxr) {
-            ctx.log &&
-                ctx.log(intern_1.S.rule, rule.name + '~' + rule.id, RuleState[rule.state], 'rs=' + ctx.rs.length, 'tc=' + ctx.tC, '[' + tn(ctx.t0.tin) + ' ' + tn(ctx.t1.tin) + ']', '[' + ctx.F(ctx.t0.src) + ' ' + ctx.F(ctx.t1.src) + ']', rule, ctx);
-            ctx.rule = rule;
-            rule = rule.process(ctx);
-            ctx.log &&
-                ctx.log(intern_1.S.stack, ctx.rs.length, ctx.rs.map((r) => r.name + '~' + r.id).join('/'), rule, ctx);
-            rI++;
-        }
-        // TODO: option to allow trailing content
-        if (intern_1.tokenize('#ZZ', this.config) !== ctx.t0.tin) {
-            throw new JsonicError(intern_1.S.unexpected, {}, ctx.t0, NONE, ctx);
-        }
-        // NOTE: by returning root, we get implicit closing of maps and lists.
-        return root.node;
-    }
-    clone(options, config) {
-        let parser = new Parser(options, config);
-        parser.rsm = Object
-            .keys(this.rsm)
-            .reduce((a, rn) => (a[rn] = clone(this.rsm[rn]), a), {});
-        return parser;
-    }
-}
-exports.Parser = Parser;
 let util = {
     tokenize: intern_1.tokenize,
-    srcfmt,
+    srcfmt: intern_1.srcfmt,
     deep: intern_1.deep,
-    clone,
+    clone: intern_1.clone,
     charset,
     longest,
     marr,
-    trimstk,
-    makelog,
-    badlex,
-    extract,
-    errinject,
-    errdesc,
+    trimstk: intern_1.trimstk,
+    makelog: intern_1.makelog,
+    badlex: intern_1.badlex,
+    extract: intern_1.extract,
+    errinject: intern_1.errinject,
+    errdesc: intern_1.errdesc,
     configure,
     parserwrap,
     regexp: intern_1.regexp,
@@ -894,7 +316,7 @@ function make(param_options, parent) {
         configure(config, merged_options);
         plugins = [];
         lexer = new lexer_1.Lexer(config);
-        parser = new Parser(merged_options, config);
+        parser = new parser_1.Parser(merged_options, config);
         parser.init();
     }
     // Add API methods to the core utility function.
@@ -916,14 +338,6 @@ function make(param_options, parent) {
 }
 exports.make = make;
 // Utility functions
-function srcfmt(config) {
-    return (s, _) => null == s ? intern_1.MT : (_ = JSON.stringify(s),
-        _.substring(0, config.d.maxlen) +
-            (config.d.maxlen < _.length ? '...' : intern_1.MT));
-}
-function clone(class_instance) {
-    return intern_1.deep(Object.create(Object.getPrototypeOf(class_instance)), class_instance);
-}
 // Lookup map for a set of chars.
 function charset(...parts) {
     return parts
@@ -939,58 +353,6 @@ function longest(strs) {
 // True if arrays match.
 function marr(a, b) {
     return (a.length === b.length && a.reduce((a, s, i) => (a && s === b[i]), true));
-}
-// Remove Jsonic internal lines as spurious for caller.
-function trimstk(err) {
-    if (err.stack) {
-        err.stack =
-            err.stack.split('\n')
-                .filter(s => !s.includes('jsonic/jsonic'))
-                .map(s => s.replace(/    at /, 'at '))
-                .join('\n');
-    }
-}
-// Special debug logging to console (use Jsonic('...', {log:N})).
-// log:N -> console.dir to depth N
-// log:-1 -> console.dir to depth 1, omitting objects (good summary!)
-function makelog(ctx) {
-    if ('number' === typeof ctx.log) {
-        let exclude_objects = false;
-        let logdepth = ctx.log;
-        if (-1 === logdepth) {
-            logdepth = 1;
-            exclude_objects = true;
-        }
-        ctx.log = (...rest) => {
-            if (exclude_objects) {
-                let logstr = rest
-                    .filter((item) => intern_1.S.object != typeof (item))
-                    .map((item) => intern_1.S.function == typeof (item) ? item.name : item)
-                    .join('\t');
-                ctx.opts.debug.get_console().log(logstr);
-            }
-            else {
-                ctx.opts.debug.get_console().dir(rest, { depth: logdepth });
-            }
-            return undefined;
-        };
-    }
-    return ctx.log;
-}
-function badlex(lex, BD, ctx) {
-    let wrap = (rule) => {
-        let token = lex.next(rule);
-        if (BD === token.tin) {
-            let details = {};
-            if (null != token.use) {
-                details.use = token.use;
-            }
-            throw new JsonicError(token.why || intern_1.S.unexpected, details, token, rule, ctx);
-        }
-        return token;
-    };
-    wrap.src = lex.src;
-    return wrap;
 }
 function ender(endchars, endmarks, singles) {
     let allendchars = intern_1.keys(intern_1.keys(endmarks)
@@ -1016,45 +378,6 @@ function ender(endchars, endmarks, singles) {
         ')))'
     ]).flat(1);
     return intern_1.regexp(intern_1.S.no_re_flags, '^(([^', intern_1.mesc(allendchars), ']+)', ...endmarkprefixes, ')+');
-}
-function errinject(s, code, details, token, rule, ctx) {
-    return s.replace(/\$([\w_]+)/g, (_m, name) => {
-        return JSON.stringify('code' === name ? code : (details[name] ||
-            (ctx.meta ? ctx.meta[name] : undefined) ||
-            token[name] ||
-            rule[name] ||
-            ctx[name] ||
-            ctx.opts[name] ||
-            ctx.cnfg[name] ||
-            '$' + name));
-    });
-}
-function extract(src, errtxt, token) {
-    let loc = 0 < token.loc ? token.loc : 0;
-    let row = 0 < token.row ? token.row : 0;
-    let col = 0 < token.col ? token.col : 0;
-    let tsrc = null == token.src ? intern_1.MT : token.src;
-    let behind = src.substring(Math.max(0, loc - 333), loc).split('\n');
-    let ahead = src.substring(loc, loc + 333).split('\n');
-    let pad = 2 + (intern_1.MT + (row + 2)).length;
-    let rI = row < 2 ? 0 : row - 2;
-    let ln = (s) => '\x1b[34m' + (intern_1.MT + (rI++)).padStart(pad, ' ') +
-        ' | \x1b[0m' + (null == s ? intern_1.MT : s);
-    let blen = behind.length;
-    let lines = [
-        2 < blen ? ln(behind[blen - 3]) : null,
-        1 < blen ? ln(behind[blen - 2]) : null,
-        ln(behind[blen - 1] + ahead[0]),
-        (' '.repeat(pad)) + '   ' +
-            ' '.repeat(col) +
-            '\x1b[31m' + '^'.repeat(tsrc.length || 1) +
-            ' ' + errtxt + '\x1b[0m',
-        ln(ahead[1]),
-        ln(ahead[2]),
-    ]
-        .filter((line) => null != line)
-        .join('\n');
-    return lines;
 }
 function parserwrap(parser) {
     return {
@@ -1087,7 +410,7 @@ function parserwrap(parser) {
                         val: undefined,
                         src: tsrc,
                     };
-                    throw new JsonicError(ex.code || 'json', ex.details || {
+                    throw new intern_1.JsonicError(ex.code || 'json', ex.details || {
                         msg: ex.message
                     }, token, {}, ex.ctx || {
                         uI: -1,
@@ -1098,7 +421,7 @@ function parserwrap(parser) {
                         src: () => src,
                         root: () => undefined,
                         plgn: () => jsonic.internal().plugins,
-                        rule: NONE,
+                        rule: parser_1.NONE,
                         xs: -1,
                         v2: token,
                         v1: token,
@@ -1110,7 +433,7 @@ function parserwrap(parser) {
                         rsm: {},
                         n: {},
                         log: meta ? meta.log : undefined,
-                        F: srcfmt(jsonic.internal().config),
+                        F: intern_1.srcfmt(jsonic.internal().config),
                         use: {},
                     });
                 }
@@ -1120,48 +443,6 @@ function parserwrap(parser) {
             }
         }
     };
-}
-function errdesc(code, details, token, rule, ctx) {
-    token = { ...token };
-    let options = ctx.opts;
-    let meta = ctx.meta;
-    let errtxt = errinject((options.error[code] || options.error.unknown), code, details, token, rule, ctx);
-    if (intern_1.S.function === typeof (options.hint)) {
-        // Only expand the hints on demand. Allow for plugin-defined hints.
-        options.hint = { ...options.hint(), ...options.hint };
-    }
-    let message = [
-        ('\x1b[31m[jsonic/' + code + ']:\x1b[0m ' + errtxt),
-        '  \x1b[34m-->\x1b[0m ' + (meta && meta.fileName || '<no-file>') +
-            ':' + token.row + ':' + token.col,
-        extract(ctx.src(), errtxt, token),
-        errinject((options.hint[code] || options.hint.unknown)
-            .replace(/^([^ ])/, ' $1')
-            .split('\n')
-            .map((s, i) => (0 === i ? ' ' : '  ') + s).join('\n'), code, details, token, rule, ctx),
-        '  \x1b[2mhttps://jsonic.richardrodger.com\x1b[0m',
-        '  \x1b[2m--internal: rule=' + rule.name + '~' + RuleState[rule.state] +
-            '; token=' + ctx.cnfg.t[token.tin] +
-            (null == token.why ? '' : ('~' + token.why)) +
-            '; plugins=' + ctx.plgn().map((p) => p.name).join(',') + '--\x1b[0m\n'
-    ].join('\n');
-    let desc = {
-        internal: {
-            token,
-            ctx,
-        }
-    };
-    desc = {
-        ...Object.create(desc),
-        message,
-        code,
-        details,
-        meta,
-        fileName: meta ? meta.fileName : undefined,
-        lineNumber: token.row,
-        columnNumber: token.col,
-    };
-    return desc;
 }
 // Idempotent normalization of options.
 function configure(config, options) {
@@ -1283,12 +564,12 @@ delete top.lex;
 delete top.token;
 // Provide deconstruction export names
 Jsonic.Jsonic = Jsonic;
-Jsonic.JsonicError = JsonicError;
+Jsonic.JsonicError = intern_1.JsonicError;
 Jsonic.Lexer = lexer_1.Lexer;
-Jsonic.Parser = Parser;
-Jsonic.Rule = Rule;
-Jsonic.RuleSpec = RuleSpec;
-Jsonic.Alt = Alt;
+Jsonic.Parser = parser_1.Parser;
+Jsonic.Rule = parser_1.Rule;
+Jsonic.RuleSpec = parser_1.RuleSpec;
+Jsonic.Alt = parser_1.Alt;
 Jsonic.util = util;
 Jsonic.make = make;
 exports.default = Jsonic;

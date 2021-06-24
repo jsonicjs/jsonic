@@ -1,4 +1,9 @@
-import type { Rule, RuleSpec } from './jsonic';
+import type { Rule, RuleSpec } from './parser';
+import type { Lex } from './lexer';
+declare enum RuleState {
+    open = 0,
+    close = 1
+}
 declare const MT = "";
 declare const keys: {
     (o: object): string[];
@@ -52,6 +57,15 @@ declare const S: {
     name: string;
     make: string;
 };
+declare class JsonicError extends SyntaxError {
+    constructor(code: string, details: KV, token: Token, rule: Rule, ctx: Context);
+    toJSON(): this & {
+        __error: boolean;
+        name: string;
+        message: string;
+        stack: string | undefined;
+    };
+}
 declare type KV = {
     [k: string]: any;
 };
@@ -231,4 +245,12 @@ declare function regexp(flags: string, ...parts: (string | (String & {
     esc?: boolean;
 }))[]): RegExp;
 declare function deep(base?: any, ...rest: any): any;
-export { Config, Context, KV, MT, Meta, Options, S, Tin, TinMap, Token, CharCodeMap, assign, deep, defprop, entries, keys, mesc, regexp, tokenize, };
+declare function errinject(s: string, code: string, details: KV, token: Token, rule: Rule, ctx: Context): string;
+declare function trimstk(err: Error): void;
+declare function extract(src: string, errtxt: string, token: Token): string;
+declare function errdesc(code: string, details: KV, token: Token, rule: Rule, ctx: Context): KV;
+declare function badlex(lex: Lex, BD: Tin, ctx: Context): any;
+declare function makelog(ctx: Context): ((...rest: any) => undefined) | undefined;
+declare function srcfmt(config: Config): (s: any, _?: any) => string;
+declare function clone(class_instance: any): any;
+export { CharCodeMap, Config, Context, JsonicError, KV, MT, Meta, Options, RuleState, S, Tin, TinMap, Token, assign, badlex, deep, defprop, entries, errdesc, errinject, extract, keys, makelog, mesc, regexp, tokenize, trimstk, srcfmt, clone, };

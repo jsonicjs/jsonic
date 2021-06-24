@@ -1,6 +1,26 @@
 
 
-import type { Rule, RuleSpec } from './jsonic'
+import type {
+  Rule,
+  RuleSpec,
+} from './parser'
+
+import type {
+  Lex,
+} from './lexer'
+
+
+
+
+/* $lab:coverage:off$ */
+enum RuleState {
+  open,
+  close,
+}
+/* $lab:coverage:on$ */
+
+
+
 
 
 const MT = '' // Empty ("MT"!) string.
@@ -49,6 +69,34 @@ const S = {
   nUll: 'null',
   name: 'name',
   make: 'make',
+}
+
+
+// Jsonic errors with nice formatting.
+class JsonicError extends SyntaxError {
+  constructor(
+    code: string,
+    details: KV,
+    token: Token,
+    rule: Rule,
+    ctx: Context,
+  ) {
+    details = deep({}, details)
+    let desc = errdesc(code, details, token, rule, ctx)
+    super(desc.message)
+    assign(this, desc)
+    trimstk(this)
+  }
+
+  toJSON() {
+    return {
+      ...this,
+      __error: true,
+      name: this.name,
+      message: this.message,
+      stack: this.stack,
+    }
+  }
 }
 
 
@@ -336,24 +384,239 @@ function deep(base?: any, ...rest: any): any {
 }
 
 
+function errinject(
+  s: string,
+  code: string,
+  details: KV,
+  token: Token,
+  rule: Rule,
+  ctx: Context
+) {
+  return s.replace(/\$([\w_]+)/g, (_m: any, name: string) => {
+    return JSON.stringify(
+      'code' === name ? code : (
+        details[name] ||
+        (ctx.meta ? ctx.meta[name] : undefined) ||
+        (token as KV)[name] ||
+        (rule as KV)[name] ||
+        (ctx as KV)[name] ||
+        (ctx.opts as any)[name] ||
+        (ctx.cnfg as any)[name] ||
+        '$' + name
+      )
+    )
+  })
+}
+
+
+// Remove Jsonic internal lines as spurious for caller.
+function trimstk(err: Error) {
+  if (err.stack) {
+    err.stack =
+      err.stack.split('\n')
+        .filter(s => !s.includes('jsonic/jsonic'))
+        .map(s => s.replace(/    at /, 'at '))
+        .join('\n')
+  }
+}
+
+
+function extract(src: string, errtxt: string, token: Token) {
+  let loc = 0 < token.loc ? token.loc : 0
+  let row = 0 < token.row ? token.row : 0
+  let col = 0 < token.col ? token.col : 0
+  let tsrc = null == token.src ? MT : token.src
+  let behind = src.substring(Math.max(0, loc - 333), loc).split('\n')
+  let ahead = src.substring(loc, loc + 333).split('\n')
+
+  let pad = 2 + (MT + (row + 2)).length
+  let rI = row < 2 ? 0 : row - 2
+  let ln = (s: string) => '\x1b[34m' + (MT + (rI++)).padStart(pad, ' ') +
+    ' | \x1b[0m' + (null == s ? MT : s)
+
+  let blen = behind.length
+
+  let lines = [
+    2 < blen ? ln(behind[blen - 3]) : null,
+    1 < blen ? ln(behind[blen - 2]) : null,
+    ln(behind[blen - 1] + ahead[0]),
+    (' '.repeat(pad)) + '   ' +
+    ' '.repeat(col) +
+    '\x1b[31m' + '^'.repeat(tsrc.length || 1) +
+    ' ' + errtxt + '\x1b[0m',
+    ln(ahead[1]),
+    ln(ahead[2]),
+  ]
+    .filter((line: any) => null != line)
+    .join('\n')
+
+  return lines
+}
+
+
+function errdesc(
+  code: string,
+  details: KV,
+  token: Token,
+  rule: Rule,
+  ctx: Context,
+): KV {
+  token = { ...token }
+  let options = ctx.opts
+  let meta = ctx.meta
+  let errtxt = errinject(
+    (options.error[code] || options.error.unknown),
+    code, details, token, rule, ctx
+  )
+
+  if (S.function === typeof (options.hint)) {
+    // Only expand the hints on demand. Allow for plugin-defined hints.
+    options.hint = { ...options.hint(), ...options.hint }
+  }
+
+  let message = [
+    ('\x1b[31m[jsonic/' + code + ']:\x1b[0m ' + errtxt),
+    '  \x1b[34m-->\x1b[0m ' + (meta && meta.fileName || '<no-file>') +
+    ':' + token.row + ':' + token.col,
+    extract(ctx.src(), errtxt, token),
+    errinject(
+      (options.hint[code] || options.hint.unknown)
+        .replace(/^([^ ])/, ' $1')
+        .split('\n')
+        .map((s: string, i: number) => (0 === i ? ' ' : '  ') + s).join('\n'),
+      code, details, token, rule, ctx
+    ),
+    '  \x1b[2mhttps://jsonic.richardrodger.com\x1b[0m',
+    '  \x1b[2m--internal: rule=' + rule.name + '~' + RuleState[rule.state] +
+    '; token=' + ctx.cnfg.t[token.tin] +
+    (null == token.why ? '' : ('~' + token.why)) +
+    '; plugins=' + ctx.plgn().map((p: any) => p.name).join(',') + '--\x1b[0m\n'
+  ].join('\n')
+
+  let desc: any = {
+    internal: {
+      token,
+      ctx,
+    }
+  }
+
+  desc = {
+    ...Object.create(desc),
+    message,
+    code,
+    details,
+    meta,
+    fileName: meta ? meta.fileName : undefined,
+    lineNumber: token.row,
+    columnNumber: token.col,
+  }
+
+  return desc
+}
+
+
+function badlex(lex: Lex, BD: Tin, ctx: Context) {
+  let wrap: any = (rule: Rule) => {
+    // let token = lex.next(rule)
+    let token = lex(rule)
+
+    if (BD === token.tin) {
+      let details: any = {}
+      if (null != token.use) {
+        details.use = token.use
+      }
+      throw new JsonicError(
+        token.why || S.unexpected,
+        details,
+        token,
+        rule,
+        ctx,
+      )
+    }
+
+    return token
+  }
+  wrap.src = lex.src
+  return wrap
+}
+
+
+
+// Special debug logging to console (use Jsonic('...', {log:N})).
+// log:N -> console.dir to depth N
+// log:-1 -> console.dir to depth 1, omitting objects (good summary!)
+function makelog(ctx: Context) {
+  if ('number' === typeof ctx.log) {
+    let exclude_objects = false
+    let logdepth = (ctx.log as number)
+    if (-1 === logdepth) {
+      logdepth = 1
+      exclude_objects = true
+    }
+    ctx.log = (...rest: any) => {
+      if (exclude_objects) {
+        let logstr = rest
+          .filter((item: any) => S.object != typeof (item))
+          .map((item: any) => S.function == typeof (item) ? item.name : item)
+          .join('\t')
+        ctx.opts.debug.get_console().log(logstr)
+      }
+      else {
+        ctx.opts.debug.get_console().dir(rest, { depth: logdepth })
+      }
+      return undefined
+    }
+  }
+  return ctx.log
+}
+
+
+function srcfmt(config: Config) {
+  return (s: any, _?: any) =>
+    null == s ? MT : (_ = JSON.stringify(s),
+      _.substring(0, config.d.maxlen) +
+      (config.d.maxlen < _.length ? '...' : MT))
+}
+
+
+
+
+
+function clone(class_instance: any) {
+  return deep(Object.create(Object.getPrototypeOf(class_instance)),
+    class_instance)
+}
+
+
+
 export {
+  CharCodeMap,
   Config,
   Context,
+  JsonicError,
   KV,
   MT,
   Meta,
   Options,
+  RuleState,
   S,
   Tin,
   TinMap,
   Token,
-  CharCodeMap,
   assign,
+  badlex,
   deep,
   defprop,
   entries,
+  errdesc,
+  errinject,
+  extract,
   keys,
+  makelog,
   mesc,
   regexp,
   tokenize,
+  trimstk,
+  srcfmt,
+  clone,
 }
