@@ -714,6 +714,26 @@ function parserwrap(parser: any) {
 
 // Idempotent normalization of options.
 function configure(cfg: Config, opts: Options) {
+  tokenize('#SP', cfg)
+  cfg.sp = {
+    a: true,
+    c: {
+      ' ': 32,
+      '\t': 9,
+    }
+  }
+
+  tokenize('#LN', cfg)
+  cfg.ln = {
+    a: true,
+    c: {
+      '\r': 13,
+      '\n': 10,
+    },
+    r: '\n',
+  }
+
+
   let t = opts.token
   let token_names = keys(t)
 
@@ -731,7 +751,7 @@ function configure(cfg: Config, opts: Options) {
   // TODO: comments, etc
   // fixstrs = fixstrs.concat(keys(opts.value.src))
 
-  console.log('FIXSTRS', fixstrs)
+  // console.log('FIXSTRS', fixstrs)
 
   // Sort by length descending
   cfg.fs = fixstrs.sort((a: string, b: string) => b.length - a.length)
@@ -849,12 +869,21 @@ function configure(cfg: Config, opts: Options) {
   cfg.re = {
     txfs: regexp(
       '',
-      '^([^',
+      /*
+            '^([^',
+            escre(keys(charset(
+              opts.space.lex && cfg.m.SP,
+              opts.line.lex && cfg.m.LN,
+            )).join('')),
+            ']*?)(',
+      */
+      '^(.*?)(',
+      '[',
       escre(keys(charset(
         opts.space.lex && cfg.m.SP,
         opts.line.lex && cfg.m.LN,
       )).join('')),
-      ']*?)(',
+      ']|',
       cfg.fs.map(fs => escre(fs)).join('|'),
       // spaces
       '|$)', // EOF case
@@ -895,7 +924,7 @@ function configure(cfg: Config, opts: Options) {
     )
   }
 
-  console.log('cfg.re.txfs', cfg.re.txfs)
+  // console.log('cfg.re.txfs', cfg.re.txfs)
 
   // Debug options
   cfg.d = opts.debug

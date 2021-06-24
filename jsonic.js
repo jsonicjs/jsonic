@@ -1,7 +1,7 @@
 "use strict";
 /* Copyright (c) 2013-2021 Richard Rodger, MIT License */
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.make = exports.util = exports.Alt = exports.Token = exports.RuleSpec = exports.Rule = exports.Parser = exports.Lexer = exports.JsonicError = exports.Jsonic = void 0;
+exports.make = exports.util = exports.Alt = exports.RuleSpec = exports.Rule = exports.Parser = exports.Lexer = exports.JsonicError = exports.Jsonic = void 0;
 // TODO: row numbers need to start at 1 as editors start line numbers at 1
 // TODO: test custom alt error: eg.  { e: (r: Rule) => r.close[0] } ??? bug: r.close empty!
 // TODO: multipe merges, also with dynamic
@@ -30,7 +30,6 @@ exports.make = exports.util = exports.Alt = exports.Token = exports.RuleSpec = e
 // * '@' prefix: lex state
 const intern_1 = require("./intern");
 Object.defineProperty(exports, "JsonicError", { enumerable: true, get: function () { return intern_1.JsonicError; } });
-Object.defineProperty(exports, "Token", { enumerable: true, get: function () { return intern_1.Token; } });
 const lexer_1 = require("./lexer");
 Object.defineProperty(exports, "Lexer", { enumerable: true, get: function () { return lexer_1.Lexer; } });
 const parser_1 = require("./parser");
@@ -437,6 +436,23 @@ function parserwrap(parser) {
 }
 // Idempotent normalization of options.
 function configure(cfg, opts) {
+    intern_1.tokenize('#SP', cfg);
+    cfg.sp = {
+        a: true,
+        c: {
+            ' ': 32,
+            '\t': 9,
+        }
+    };
+    intern_1.tokenize('#LN', cfg);
+    cfg.ln = {
+        a: true,
+        c: {
+            '\r': 13,
+            '\n': 10,
+        },
+        r: '\n',
+    };
     let t = opts.token;
     let token_names = intern_1.keys(t);
     // Index of tokens by name.
@@ -449,7 +465,7 @@ function configure(cfg, opts) {
         .reduce((a, s) => (a[s[0]] = true, a), {});
     // TODO: comments, etc
     // fixstrs = fixstrs.concat(keys(opts.value.src))
-    console.log('FIXSTRS', fixstrs);
+    // console.log('FIXSTRS', fixstrs)
     // Sort by length descending
     cfg.fs = fixstrs.sort((a, b) => b.length - a.length);
     let single_char_token_names = token_names
@@ -523,7 +539,16 @@ function configure(cfg, opts) {
         new RegExp(opts.number.sep, 'g') : null;
     // RegExp cache
     cfg.re = {
-        txfs: intern_1.regexp('', '^([^', intern_1.escre(intern_1.keys(intern_1.charset(opts.space.lex && cfg.m.SP, opts.line.lex && cfg.m.LN)).join('')), ']*?)(', cfg.fs.map(fs => intern_1.escre(fs)).join('|'), 
+        txfs: intern_1.regexp('', 
+        /*
+              '^([^',
+              escre(keys(charset(
+                opts.space.lex && cfg.m.SP,
+                opts.line.lex && cfg.m.LN,
+              )).join('')),
+              ']*?)(',
+        */
+        '^(.*?)(', '[', intern_1.escre(intern_1.keys(intern_1.charset(opts.space.lex && cfg.m.SP, opts.line.lex && cfg.m.LN)).join('')), ']|', cfg.fs.map(fs => intern_1.escre(fs)).join('|'), 
         // spaces
         '|$)'),
         ns: re_ns,
@@ -545,7 +570,7 @@ function configure(cfg, opts) {
             .filter(s => s.replace(/_/g, null == re_ns ? '' : opts.number.sep))
             .join(''))
     };
-    console.log('cfg.re.txfs', cfg.re.txfs);
+    // console.log('cfg.re.txfs', cfg.re.txfs)
     // Debug options
     cfg.d = opts.debug;
     // Apply any config modifiers (probably from plugins).

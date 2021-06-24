@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.charset = exports.clone = exports.srcfmt = exports.trimstk = exports.tokenize = exports.escre = exports.regexp = exports.mesc = exports.makelog = exports.keys = exports.extract = exports.errinject = exports.errdesc = exports.entries = exports.defprop = exports.deep = exports.badlex = exports.assign = exports.Token = exports.S = exports.RuleState = exports.MT = exports.JsonicError = void 0;
+exports.charset = exports.clone = exports.srcfmt = exports.trimstk = exports.tokenize = exports.escre = exports.regexp = exports.mesc = exports.makelog = exports.keys = exports.extract = exports.errinject = exports.errdesc = exports.entries = exports.defprop = exports.deep = exports.badlex = exports.assign = exports.S = exports.RuleState = exports.MT = exports.JsonicError = void 0;
 /* $lab:coverage:off$ */
 var RuleState;
 (function (RuleState) {
@@ -77,23 +77,6 @@ class JsonicError extends SyntaxError {
     }
 }
 exports.JsonicError = JsonicError;
-// TODO: rename loc to sI, row to rI, col to cI
-// Tokens from the lexer.
-class Token {
-    constructor(tin, val, src, // TODO: string
-    loc, row, col, use, why) {
-        this.tin = tin;
-        this.src = src;
-        this.val = val;
-        this.loc = loc;
-        this.row = row;
-        this.col = col;
-        this.use = use;
-        this.why = why;
-        this.len = src.length;
-    }
-}
-exports.Token = Token;
 // Uniquely resolve or assign token pin number
 function tokenize(ref, config, jsonic) {
     let tokenmap = config.t;

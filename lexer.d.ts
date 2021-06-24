@@ -1,5 +1,5 @@
 import type { Rule } from './jsonic';
-import { Config, Context, Tin, Token } from './intern';
+import { Config, Context, Tin } from './intern';
 declare class Point {
     len: number;
     sI: number;
@@ -9,9 +9,20 @@ declare class Point {
     end: Token | undefined;
     constructor(len: number);
 }
-declare abstract class Matcher {
-    abstract match(lex: Lex, rule: Rule): Token | undefined;
+declare class Token {
+    tin: Tin;
+    val: any;
+    src: any;
+    loc: number;
+    row: number;
+    col: number;
+    use?: any;
+    why?: string;
+    len: number;
+    constructor(tin: Tin, val: any, src: any, // TODO: string
+    pnt: Point, use?: any, why?: string);
 }
+declare type Matcher = (lex: Lex, rule: Rule) => Token | undefined;
 declare class Lexer {
     cfg: Config;
     end: Token;
@@ -50,4 +61,4 @@ declare type LexMatcherResult = undefined | {
     state?: number;
     state_param?: any;
 };
-export { Lex, Lexer, LexMatcher, LexMatcherListMap, LexMatcherResult, LexMatcherState, };
+export { Token, Lex, Lexer, LexMatcher, LexMatcherListMap, LexMatcherResult, LexMatcherState, };

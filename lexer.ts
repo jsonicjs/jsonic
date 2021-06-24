@@ -5,15 +5,7 @@ import type { Rule } from './jsonic'
 import {
   Config,
   Context,
-  MT,
-  S,
   Tin,
-  TinMap,
-  Token,
-  deep,
-  keys,
-  mesc,
-  regexp,
   tokenize,
 } from './intern'
 
@@ -34,125 +26,168 @@ class Point {
 }
 
 
-abstract class Matcher {
-  abstract match(lex: Lex, rule: Rule): Token | undefined
+// TODO: rename loc to sI, row to rI, col to cI
+// Tokens from the lexer.
+class Token {
+  tin: Tin      // Token kind.
+  val: any      // Value of Token if literal (eg. number).
+  src: any      // Source text of Token.
+  loc: number   // Location of token index in source text.
+  row: number   // Row location of token in source text.
+  col: number   // Column location of token in source text.
+  use?: any     // Custom meta data from plugins goes here.
+  why?: string  // Error code.
+  len: number   // Length of Token source text.
+
+  constructor(
+    tin: Tin,
+    val: any,
+    src: any,  // TODO: string
+    pnt: Point,
+    use?: any,
+    why?: string,
+  ) {
+    this.tin = tin
+    this.src = src
+    this.val = val
+    this.loc = pnt.sI
+    this.row = pnt.rI
+    this.col = pnt.cI
+    this.use = use
+    this.why = why
+
+    this.len = src.length
+  }
 }
 
 
-class TextTokenMatcher extends Matcher {
-  match(lex: Lex) {
-    let pnt = lex.pnt
-    let srcfwd = lex.src.substring(pnt.sI)
 
-    //let m = srcfwd.match(/^([^ ]*?)(false|true|null|=>|=|,|[ ]|$)/)
-    let m = srcfwd.match((lex.cfg.re.txfs as RegExp))
-    console.log('M', m)
-    if (m) {
-      let txtsrc = m[1]
-      let tknsrc = m[2]
+type Matcher = (lex: Lex, rule: Rule) => Token | undefined
 
-      let out: Token | undefined = undefined
 
-      if (null != txtsrc) {
-        let txtlen = txtsrc.length
-        if (0 < txtlen) {
+const TextTokenMatcher: Matcher = (lex: Lex) => {
+  let pnt = lex.pnt
+  let fwd = lex.src.substring(pnt.sI)
 
-          // TODO: change struct to allow for undefined
-          let val = lex.cfg.vm[txtsrc]
-          if (undefined !== val) {
-            out = new Token(
-              lex.t('#VL'),
-              val,
-              txtsrc,
+  let m = fwd.match((lex.cfg.re.txfs as RegExp))
+  if (m) {
+    let txtsrc = m[1]
+    let tknsrc = m[2]
 
-              // TODO: just pnt
-              pnt.sI,
-              pnt.rI,
-              pnt.cI,
-            )
+    let out: Token | undefined = undefined
+
+    if (null != txtsrc) {
+      let txtlen = txtsrc.length
+      if (0 < txtlen) {
+
+        // TODO: change struct to allow for undefined
+        let val = lex.cfg.vm[txtsrc]
+        if (undefined !== val) {
+          out = new Token(
+            lex.t('#VL'),
+            val,
+            txtsrc,
+            pnt,
+          )
+        }
+        else {
+          out = new Token(
+            lex.t('#TX'),
+            txtsrc,
+            txtsrc,
+            pnt,
+          )
+        }
+        pnt.sI += txtlen
+      }
+    }
+
+    if (null != tknsrc) {
+      let tknlen = tknsrc.length
+      if (0 < tknlen) {
+        let tkn: Token | undefined = undefined
+
+        let tin = lex.cfg.sm[tknsrc]
+        if (null != tin) {
+          tkn = new Token(
+            tin,
+            undefined,
+            txtsrc,
+            pnt,
+          )
+        }
+
+        if (null != tkn) {
+          pnt.sI += tknsrc.length
+
+          if (null == out) {
+            out = tkn
           }
           else {
-            out = new Token(
-              lex.t('#TX'),
-              txtsrc,
-              txtsrc,
-
-              // TODO: just pnt
-              pnt.sI,
-              pnt.rI,
-              pnt.cI,
-            )
-          }
-          pnt.sI += txtlen
-        }
-      }
-
-      if (null != tknsrc) {
-        let tknlen = tknsrc.length
-        if (0 < tknlen) {
-          let tkn: Token | undefined = undefined
-
-          let tin = lex.cfg.sm[tknsrc]
-          if (null != tin) {
-            tkn = new Token(
-              tin,
-              undefined,
-              txtsrc,
-
-              // TODO: just pnt
-              pnt.sI,
-              pnt.rI,
-              pnt.cI,
-            )
-          }
-
-          if (null != tkn) {
-            pnt.sI += tknsrc.length
-
-            if (null == out) {
-              out = tkn
-            }
-            else {
-              pnt.token.push(tkn)
-            }
+            pnt.token.push(tkn)
           }
         }
       }
-
-      return out
     }
+
+    return out
   }
 }
 
 
-class SpaceMatcher extends Matcher {
-  space: { [char: string]: boolean } = {
-    ' ': true,
+
+const SpaceMatcher = (lex: Lex) => {
+  let { c } = lex.cfg.sp
+  let { pnt, src } = lex
+  let { sI, cI } = pnt
+  let SP = lex.t('#SP')
+
+  while (c[src[sI]]) {
+    sI++
+    cI++
   }
 
-  match(lex: Lex) {
-    let pnt = lex.pnt
-    let pI = pnt.sI
-    let src = lex.src
-
-    while (this.space[src[pI]]) {
-      pI++
-    }
-
-    if (pnt.sI < pI) {
-      let spcsrc = src.substring(pnt.sI, pI)
-      pnt.sI += spcsrc.length
-      return new Token(
-        lex.t('#SP'),
-        spcsrc,
-        spcsrc,
-        pnt.sI,
-        pnt.rI,
-        pnt.cI,
-      )
-    }
+  if (pnt.sI < sI) {
+    let msrc = src.substring(pnt.sI, sI)
+    const tkn = new Token(
+      SP,
+      undefined,
+      msrc,
+      pnt,
+    )
+    pnt.sI += msrc.length
+    pnt.cI = cI
+    return tkn
   }
 }
+
+
+const LineMatcher = (lex: Lex) => {
+  let { c, r } = lex.cfg.ln
+  let { pnt, src } = lex
+  let { sI, rI } = pnt
+  let LN = lex.t('#LN')
+
+  while (c[src[sI]]) {
+    sI++
+    rI += (r === src[sI] ? 1 : 0)
+  }
+
+  if (pnt.sI < sI) {
+    let msrc = src.substring(pnt.sI, sI)
+    const tkn = new Token(
+      LN,
+      undefined,
+      msrc,
+      pnt,
+    )
+    pnt.sI += msrc.length
+    pnt.rI = rI
+    pnt.cI = 1
+    return tkn
+  }
+}
+
 
 
 
@@ -201,11 +236,9 @@ class Lexer {
 
     this.end = new Token(
       tokenize('#ZZ', cfg),
+      undefined,
       '',
-      '',
-      -1,
-      -1,
-      -1
+      new Point(-1)
     )
   }
 
@@ -238,9 +271,9 @@ class Lex {
 
     // TODO: move to Lexer
     this.mat = [
-      //new NumberMatcher(),
-      new TextTokenMatcher(),
-      new SpaceMatcher(),
+      TextTokenMatcher,
+      SpaceMatcher,
+      LineMatcher,
     ]
   }
 
@@ -259,30 +292,26 @@ class Lex {
     if (pnt.len <= pnt.sI) {
       pnt.end = new Token(
         this.t('#ZZ'),
+        undefined,
         '',
-        '',
-        pnt.sI,
-        pnt.rI,
-        pnt.cI,
+        pnt,
       )
 
       return pnt.end
     }
 
     let tkn: Token | undefined
-    for (let m of this.mat) {
-      if (tkn = m.match(this, rule)) {
+    for (let mat of this.mat) {
+      if (tkn = mat(this, rule)) {
         return tkn
       }
     }
 
     tkn = new Token(
       this.t('#BD'),
+      undefined,
       this.src[pnt.sI],
-      this.src[pnt.sI],
-      pnt.sI,
-      pnt.rI,
-      pnt.cI,
+      pnt,
       undefined,
       'bad'
     )
@@ -1105,8 +1134,8 @@ class Lexer {
 
 
 
-
 export {
+  Token,
   Lex,
   Lexer,
   LexMatcher,

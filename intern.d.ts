@@ -1,5 +1,5 @@
 import type { Rule, RuleSpec } from './parser';
-import type { Lex } from './lexer';
+import type { Lex, Token } from './lexer';
 declare enum RuleState {
     open = 0,
     close = 1
@@ -76,19 +76,6 @@ declare type TinMap = {
 declare type CharCodeMap = {
     [char: string]: number;
 };
-declare class Token {
-    tin: Tin;
-    val: any;
-    src: any;
-    loc: number;
-    row: number;
-    col: number;
-    use?: any;
-    why?: string;
-    len: number;
-    constructor(tin: Tin, val: any, src: any, // TODO: string
-    loc: number, row: number, col: number, use?: any, why?: string);
-}
 declare type Meta = KV;
 declare type Options = {
     tag: string;
@@ -181,6 +168,15 @@ declare type Options = {
     };
 };
 declare type Config = {
+    sp: {
+        a: boolean;
+        c: CharCodeMap;
+    };
+    ln: {
+        a: boolean;
+        c: CharCodeMap;
+        r: string;
+    };
     fs: string[];
     tI: number;
     t: any;

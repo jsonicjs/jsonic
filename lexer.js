@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.Lexer = exports.Lex = void 0;
+exports.Lexer = exports.Lex = exports.Token = void 0;
 const intern_1 = require("./intern");
 class Point {
     constructor(len) {
@@ -13,83 +13,102 @@ class Point {
         this.len = len;
     }
 }
-class Matcher {
+// TODO: rename loc to sI, row to rI, col to cI
+// Tokens from the lexer.
+class Token {
+    constructor(tin, val, src, // TODO: string
+    pnt, use, why) {
+        this.tin = tin;
+        this.src = src;
+        this.val = val;
+        this.loc = pnt.sI;
+        this.row = pnt.rI;
+        this.col = pnt.cI;
+        this.use = use;
+        this.why = why;
+        this.len = src.length;
+    }
 }
-class TextTokenMatcher extends Matcher {
-    match(lex) {
-        let pnt = lex.pnt;
-        let srcfwd = lex.src.substring(pnt.sI);
-        //let m = srcfwd.match(/^([^ ]*?)(false|true|null|=>|=|,|[ ]|$)/)
-        let m = srcfwd.match(lex.cfg.re.txfs);
-        console.log('M', m);
-        if (m) {
-            let txtsrc = m[1];
-            let tknsrc = m[2];
-            let out = undefined;
-            if (null != txtsrc) {
-                let txtlen = txtsrc.length;
-                if (0 < txtlen) {
-                    // TODO: change struct to allow for undefined
-                    let val = lex.cfg.vm[txtsrc];
-                    if (undefined !== val) {
-                        out = new intern_1.Token(lex.t('#VL'), val, txtsrc, 
-                        // TODO: just pnt
-                        pnt.sI, pnt.rI, pnt.cI);
+exports.Token = Token;
+const TextTokenMatcher = (lex) => {
+    let pnt = lex.pnt;
+    let fwd = lex.src.substring(pnt.sI);
+    let m = fwd.match(lex.cfg.re.txfs);
+    if (m) {
+        let txtsrc = m[1];
+        let tknsrc = m[2];
+        let out = undefined;
+        if (null != txtsrc) {
+            let txtlen = txtsrc.length;
+            if (0 < txtlen) {
+                // TODO: change struct to allow for undefined
+                let val = lex.cfg.vm[txtsrc];
+                if (undefined !== val) {
+                    out = new Token(lex.t('#VL'), val, txtsrc, pnt);
+                }
+                else {
+                    out = new Token(lex.t('#TX'), txtsrc, txtsrc, pnt);
+                }
+                pnt.sI += txtlen;
+            }
+        }
+        if (null != tknsrc) {
+            let tknlen = tknsrc.length;
+            if (0 < tknlen) {
+                let tkn = undefined;
+                let tin = lex.cfg.sm[tknsrc];
+                if (null != tin) {
+                    tkn = new Token(tin, undefined, txtsrc, pnt);
+                }
+                if (null != tkn) {
+                    pnt.sI += tknsrc.length;
+                    if (null == out) {
+                        out = tkn;
                     }
                     else {
-                        out = new intern_1.Token(lex.t('#TX'), txtsrc, txtsrc, 
-                        // TODO: just pnt
-                        pnt.sI, pnt.rI, pnt.cI);
-                    }
-                    pnt.sI += txtlen;
-                }
-            }
-            if (null != tknsrc) {
-                let tknlen = tknsrc.length;
-                if (0 < tknlen) {
-                    let tkn = undefined;
-                    let tin = lex.cfg.sm[tknsrc];
-                    if (null != tin) {
-                        tkn = new intern_1.Token(tin, undefined, txtsrc, 
-                        // TODO: just pnt
-                        pnt.sI, pnt.rI, pnt.cI);
-                    }
-                    if (null != tkn) {
-                        pnt.sI += tknsrc.length;
-                        if (null == out) {
-                            out = tkn;
-                        }
-                        else {
-                            pnt.token.push(tkn);
-                        }
+                        pnt.token.push(tkn);
                     }
                 }
             }
-            return out;
         }
+        return out;
     }
-}
-class SpaceMatcher extends Matcher {
-    constructor() {
-        super(...arguments);
-        this.space = {
-            ' ': true,
-        };
+};
+const SpaceMatcher = (lex) => {
+    let { c } = lex.cfg.sp;
+    let { pnt, src } = lex;
+    let { sI, cI } = pnt;
+    let SP = lex.t('#SP');
+    while (c[src[sI]]) {
+        sI++;
+        cI++;
     }
-    match(lex) {
-        let pnt = lex.pnt;
-        let pI = pnt.sI;
-        let src = lex.src;
-        while (this.space[src[pI]]) {
-            pI++;
-        }
-        if (pnt.sI < pI) {
-            let spcsrc = src.substring(pnt.sI, pI);
-            pnt.sI += spcsrc.length;
-            return new intern_1.Token(lex.t('#SP'), spcsrc, spcsrc, pnt.sI, pnt.rI, pnt.cI);
-        }
+    if (pnt.sI < sI) {
+        let msrc = src.substring(pnt.sI, sI);
+        const tkn = new Token(SP, undefined, msrc, pnt);
+        pnt.sI += msrc.length;
+        pnt.cI = cI;
+        return tkn;
     }
-}
+};
+const LineMatcher = (lex) => {
+    let { c, r } = lex.cfg.ln;
+    let { pnt, src } = lex;
+    let { sI, rI } = pnt;
+    let LN = lex.t('#LN');
+    while (c[src[sI]]) {
+        sI++;
+        rI += (r === src[sI] ? 1 : 0);
+    }
+    if (pnt.sI < sI) {
+        let msrc = src.substring(pnt.sI, sI);
+        const tkn = new Token(LN, undefined, msrc, pnt);
+        pnt.sI += msrc.length;
+        pnt.rI = rI;
+        pnt.cI = 1;
+        return tkn;
+    }
+};
 /*
 class NumberMatcher extends Matcher {
   numchar: { [char: string]: boolean } = {
@@ -122,7 +141,7 @@ class NumberMatcher extends Matcher {
 class Lexer {
     constructor(cfg) {
         this.cfg = cfg;
-        this.end = new intern_1.Token(intern_1.tokenize('#ZZ', cfg), '', '', -1, -1, -1);
+        this.end = new Token(intern_1.tokenize('#ZZ', cfg), undefined, '', new Point(-1));
     }
     start(ctx) {
         return new Lex(ctx.src(), ctx, this.cfg);
@@ -143,9 +162,9 @@ class Lex {
         this.pnt = new Point(src.length);
         // TODO: move to Lexer
         this.mat = [
-            //new NumberMatcher(),
-            new TextTokenMatcher(),
-            new SpaceMatcher(),
+            TextTokenMatcher,
+            SpaceMatcher,
+            LineMatcher,
         ];
     }
     next(rule) {
@@ -157,16 +176,16 @@ class Lex {
             return pnt.token.shift();
         }
         if (pnt.len <= pnt.sI) {
-            pnt.end = new intern_1.Token(this.t('#ZZ'), '', '', pnt.sI, pnt.rI, pnt.cI);
+            pnt.end = new Token(this.t('#ZZ'), undefined, '', pnt);
             return pnt.end;
         }
         let tkn;
-        for (let m of this.mat) {
-            if (tkn = m.match(this, rule)) {
+        for (let mat of this.mat) {
+            if (tkn = mat(this, rule)) {
                 return tkn;
             }
         }
-        tkn = new intern_1.Token(this.t('#BD'), this.src[pnt.sI], this.src[pnt.sI], pnt.sI, pnt.rI, pnt.cI, undefined, 'bad');
+        tkn = new Token(this.t('#BD'), undefined, this.src[pnt.sI], pnt, undefined, 'bad');
         return tkn;
     }
     t(n) {
