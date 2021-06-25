@@ -30,38 +30,40 @@ class Token {
     }
 }
 exports.Token = Token;
-const TextTokenMatcher = (lex) => {
+// Match text, checking for literal values, optionally followed by a fixed token.
+// Text strings are terminated by end markers.
+const match_VL_TX_em = (lex) => {
     let pnt = lex.pnt;
     let fwd = lex.src.substring(pnt.sI);
-    let m = fwd.match(lex.cfg.re.txfs);
+    let vm = lex.cfg.VL.m;
+    let m = fwd.match(lex.cfg.re.TXem);
     if (m) {
-        let txtsrc = m[1];
-        let tknsrc = m[2];
+        let msrc = m[1];
+        let tsrc = m[2];
         let out = undefined;
-        if (null != txtsrc) {
-            let txtlen = txtsrc.length;
+        if (null != msrc) {
+            let txtlen = msrc.length;
             if (0 < txtlen) {
-                // TODO: change struct to allow for undefined
-                let val = lex.cfg.vm[txtsrc];
-                if (undefined !== val) {
-                    out = new Token(lex.t('#VL'), val, txtsrc, pnt);
+                let vs = vm[msrc];
+                if (undefined !== vs) {
+                    out = new Token(lex.t('#VL'), vs.v, msrc, pnt);
                 }
                 else {
-                    out = new Token(lex.t('#TX'), txtsrc, txtsrc, pnt);
+                    out = new Token(lex.t('#TX'), msrc, msrc, pnt);
                 }
                 pnt.sI += txtlen;
             }
         }
-        if (null != tknsrc) {
-            let tknlen = tknsrc.length;
+        if (null != tsrc) {
+            let tknlen = tsrc.length;
             if (0 < tknlen) {
                 let tkn = undefined;
-                let tin = lex.cfg.sm[tknsrc];
+                let tin = lex.cfg.tm[tsrc];
                 if (null != tin) {
-                    tkn = new Token(tin, undefined, txtsrc, pnt);
+                    tkn = new Token(tin, undefined, msrc, pnt);
                 }
                 if (null != tkn) {
-                    pnt.sI += tknsrc.length;
+                    pnt.sI += tsrc.length;
                     if (null == out) {
                         out = tkn;
                     }
@@ -74,8 +76,56 @@ const TextTokenMatcher = (lex) => {
         return out;
     }
 };
-const SpaceMatcher = (lex) => {
-    let { c } = lex.cfg.sp;
+const match_VL_NR_em = (lex) => {
+    let pnt = lex.pnt;
+    let fwd = lex.src.substring(pnt.sI);
+    let vm = lex.cfg.VL.m;
+    let m = fwd.match(lex.cfg.re.NRem);
+    if (m) {
+        let msrc = m[1];
+        let tsrc = m[2];
+        let out = undefined;
+        if (null != msrc) {
+            let mlen = msrc.length;
+            if (0 < mlen) {
+                let vs = vm[msrc];
+                if (undefined !== vs) {
+                    out = new Token(lex.t('#VL'), vs.v, msrc, pnt);
+                }
+                else {
+                    let num = +(msrc);
+                    if (!isNaN(num)) {
+                        out = new Token(lex.t('#NR'), num, msrc, pnt);
+                    }
+                    pnt.sI += mlen;
+                }
+            }
+        }
+        if (null != tsrc) {
+            let tknlen = tsrc.length;
+            if (0 < tknlen) {
+                let tkn = undefined;
+                let tin = lex.cfg.tm[tsrc];
+                if (null != tin) {
+                    tkn = new Token(tin, undefined, msrc, pnt);
+                }
+                if (null != tkn) {
+                    pnt.sI += tsrc.length;
+                    if (null == out) {
+                        out = tkn;
+                    }
+                    else {
+                        pnt.token.push(tkn);
+                    }
+                }
+            }
+        }
+        return out;
+    }
+};
+// Space matcher.
+const match_SP = (lex) => {
+    let { c } = lex.cfg.SP;
     let { pnt, src } = lex;
     let { sI, cI } = pnt;
     let SP = lex.t('#SP');
@@ -91,8 +141,9 @@ const SpaceMatcher = (lex) => {
         return tkn;
     }
 };
-const LineMatcher = (lex) => {
-    let { c, r } = lex.cfg.ln;
+// Line ending matcher.
+const match_LN = (lex) => {
+    let { c, r } = lex.cfg.LN;
     let { pnt, src } = lex;
     let { sI, rI } = pnt;
     let LN = lex.t('#LN');
@@ -109,35 +160,6 @@ const LineMatcher = (lex) => {
         return tkn;
     }
 };
-/*
-class NumberMatcher extends Matcher {
-  numchar: { [char: string]: boolean } = {
-    '1': true,
-    '2': true,
-  }
-
-  match(lex: Lex) {
-    let pnt = lex.pnt
-    let pI = pnt.sI
-    let src = lex.src
-
-    while (this.numchar[src[pI]]) {
-      pI++
-    }
-
-    // TODO: value ender
-    if (pnt.sI < pI) {
-      let numsrc = src.substring(pnt.sI, pI)
-      pnt.sI += numsrc.length
-      return new Token(
-        'num',
-        pnt.sI,
-        numsrc
-      )
-    }
-  }
-}
-*/
 class Lexer {
     constructor(cfg) {
         this.cfg = cfg;
@@ -162,9 +184,10 @@ class Lex {
         this.pnt = new Point(src.length);
         // TODO: move to Lexer
         this.mat = [
-            TextTokenMatcher,
-            SpaceMatcher,
-            LineMatcher,
+            match_SP,
+            match_LN,
+            match_VL_NR_em,
+            match_VL_TX_em,
         ];
     }
     next(rule) {

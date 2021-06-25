@@ -1,5 +1,6 @@
 /* Copyright (c) 2013-2021 Richard Rodger, MIT License */
 
+// TODO: if token recognized, error needs to be about token, not characters
 // TODO: row numbers need to start at 1 as editors start line numbers at 1
 // TODO: test custom alt error: eg.  { e: (r: Rule) => r.close[0] } ??? bug: r.close empty!
 // TODO: multipe merges, also with dynamic
@@ -463,8 +464,12 @@ function make(param_options?: KV, parent?: Jsonic): Jsonic {
 
   // Define the API
   let api: JsonicAPI = {
-    token: (function token<A extends string | Tin, B extends string | Tin>(ref: A)
-      : A extends string ? B : string {
+
+    // TODO: not any, instead & { [token_name:string]: Tin }
+    token: (function token<
+      R extends string | Tin,
+      T extends (R extends Tin ? string : Tin)
+    >(ref: R): T {
       return tokenize(ref, config, jsonic)
     } as any),
 
@@ -679,7 +684,7 @@ function parserwrap(parser: any) {
             ex.ctx || {
               uI: -1,
               opts: jsonic.options,
-              cnfg: ({ t: {} } as Config),
+              cfg: ({ t: {} } as Config),
               token: token,
               meta,
               src: () => src,
@@ -713,9 +718,15 @@ function parserwrap(parser: any) {
 
 
 // Idempotent normalization of options.
+// See Config type for commentary.
 function configure(cfg: Config, opts: Options) {
-  tokenize('#SP', cfg)
-  cfg.sp = {
+  const t = (tn: string) => tokenize(tn, cfg)
+
+  // Standard tokens.
+  t('#SP')
+  t('#LN')
+
+  cfg.SP = {
     a: true,
     c: {
       ' ': 32,
@@ -723,8 +734,7 @@ function configure(cfg: Config, opts: Options) {
     }
   }
 
-  tokenize('#LN', cfg)
-  cfg.ln = {
+  cfg.LN = {
     a: true,
     c: {
       '\r': 13,
@@ -733,18 +743,115 @@ function configure(cfg: Config, opts: Options) {
     r: '\n',
   }
 
+  cfg.VL = {
+    a: true,
+    m: {
+      'true': { v: true },
+      'false': { v: false },
+      'null': { v: null },
 
-  let t = opts.token
-  let token_names = keys(t)
+      // TODO: just testing, move to plugin
+      'undefined': { v: undefined },
+      'NaN': { v: NaN },
+      'Infinity': { v: Infinity },
+      '+Infinity': { v: +Infinity },
+      '-Infinity': { v: -Infinity },
+    }
+  }
+
+
+  cfg.tm = {
+    '{': t('#OB'),
+    '}': t('#CB'),
+    '[': t('#OS'),
+    ']': t('#CS'),
+    ':': t('#CL'),
+    ',': t('#CM'),
+
+    // TODO:move to test
+    '=': t('#EQ'),
+    '=>': t('#DA'),
+    '===': t('#ES'),
+  }
+
+  // Fixed token strings
+  cfg.fs = [
+    '{',
+    '}',
+    '[',
+    ']',
+    ':',
+    ',',
+
+    '=',
+    '=>',
+    '===',
+  ].sort((a: string, b: string) => b.length - a.length)
+
+  // End-marker RE part
+  let em_re = [
+    '([',
+    escre(keys(charset(
+      cfg.SP.a && cfg.SP.c,
+      cfg.LN.a && cfg.LN.c,
+    )).join('')),
+    ']|',
+    cfg.fs.map(fs => escre(fs)).join('|'),
+    // TODO: spaces
+    '|$)', // EOF case
+  ]
+
+  cfg.re = {
+
+    // Text to end-marker.
+    TXem: regexp(
+      '',
+      '^(.*?)',
+      ...em_re
+    ),
+
+    // TODO: use cfg props
+    // Number to end-marker.
+    NRem: regexp(
+      '',
+      [
+        '^[-+]?(0(',
+        [
+          opts.number.hex ? 'x[0-9a-fA-F_]+' : null,
+          opts.number.oct ? 'o[0-7_]+' : null,
+          opts.number.bin ? 'b[01_]+' : null,
+        ].filter(s => null != s).join('|'),
+        ')|[0-9]+([0-9_]*[0-9])?)',
+        '(\\.[0-9]+([0-9_]*[0-9])?)?',
+        '([eE][-+]?[0-9]+([0-9_]*[0-9])?)?',
+      ]
+        //.filter(s =>
+        //  s.replace(/_/g, null == re_ns ? '' : opts.number.sep))
+        .join(''),
+      ...em_re
+    ),
+
+  }
+
+
+
+
+  console.log('CONFIG')
+  console.dir(cfg, { depth: null })
+
+  /////////
+
+
+  let ot = opts.token
+  let token_names = keys(ot)
 
   // Index of tokens by name.
   token_names.forEach(tn => tokenize(tn, cfg))
 
-  let fixstrs = token_names
-    .filter(tn => null != (t[tn] as any).c)
-    .map(tn => (t[tn] as any).c)
+  //let fixstrs = token_names
+  //  .filter(tn => null != (t[tn] as any).c)
+  //  .map(tn => (t[tn] as any).c)
 
-  cfg.vm = opts.value.src
   cfg.vs = keys(opts.value.src)
     .reduce((a: any, s: string) => (a[s[0]] = true, a), {})
 
@@ -754,10 +861,10 @@ function configure(cfg: Config, opts: Options) {
   // console.log('FIXSTRS', fixstrs)
 
   // Sort by length descending
-  cfg.fs = fixstrs.sort((a: string, b: string) => b.length - a.length)
+  //cfg.fs = fixstrs.sort((a: string, b: string) => b.length - a.length)
 
   let single_char_token_names = token_names
-    .filter(tn => null != (t[tn] as any).c && 1 === (t[tn] as any).c.length)
+    .filter(tn => null != (ot[tn] as any).c && 1 === (ot[tn] as any).c.length)
 
   cfg.sm = single_char_token_names
     .reduce((a, tn) => (a[(opts.token[tn] as any).c] =
@@ -866,29 +973,7 @@ function configure(cfg: Config, opts: Options) {
     new RegExp(opts.number.sep, 'g') : null
 
   // RegExp cache
-  cfg.re = {
-    txfs: regexp(
-      '',
-      /*
-            '^([^',
-            escre(keys(charset(
-              opts.space.lex && cfg.m.SP,
-              opts.line.lex && cfg.m.LN,
-            )).join('')),
-            ']*?)(',
-      */
-      '^(.*?)(',
-      '[',
-      escre(keys(charset(
-        opts.space.lex && cfg.m.SP,
-        opts.line.lex && cfg.m.LN,
-      )).join('')),
-      ']|',
-      cfg.fs.map(fs => escre(fs)).join('|'),
-      // spaces
-      '|$)', // EOF case
-    ),
-
+  cfg.re = Object.assign(cfg.re, {
     ns: re_ns,
 
     te: ender(
@@ -922,7 +1007,7 @@ function configure(cfg: Config, opts: Options) {
           s.replace(/_/g, null == re_ns ? '' : opts.number.sep))
         .join('')
     )
-  }
+  })
 
   // console.log('cfg.re.txfs', cfg.re.txfs)
 

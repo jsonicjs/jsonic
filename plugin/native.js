@@ -18,7 +18,7 @@ let Native = function native(jsonic) {
     jsonic.lex(jsonic.token.LTP, function native(lms) {
         let { sI, rI, cI, src, token, ctx } = lms;
         let out;
-        let config = ctx.cnfg;
+        let config = ctx.cfg;
         let search = src.substring(sI, sI + 24);
         if (search.startsWith('undefined')) {
             out = {

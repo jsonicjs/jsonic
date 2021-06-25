@@ -348,7 +348,7 @@ class RuleSpec {
 
     let alt
     let altI = 0
-    let t = ctx.cnfg.t
+    let t = ctx.cfg.t
     let cond
 
     // TODO: replace with lookup map
@@ -724,7 +724,7 @@ class Parser {
     let ctx: Context = {
       uI: 1,
       opts: this.options,
-      cnfg: this.config,
+      cfg: this.config,
       meta: meta || {},
       src: () => src, // Avoid printing src
       root: () => root.node,
@@ -779,7 +779,7 @@ class Parser {
       do {
         t1 = lex(rule)
         ctx.tC++
-      } while (ctx.cnfg.ts.IGNORE[t1.tin])
+      } while (ctx.cfg.ts.IGNORE[t1.tin])
 
       ctx.t1 = { ...t1 }
 

@@ -168,14 +168,25 @@ declare type Options = {
     };
 };
 declare type Config = {
-    sp: {
+    SP: {
         a: boolean;
         c: CharCodeMap;
     };
-    ln: {
+    LN: {
         a: boolean;
         c: CharCodeMap;
         r: string;
+    };
+    VL: {
+        a: boolean;
+        m: {
+            [literal: string]: {
+                v: any;
+            };
+        };
+    };
+    tm: {
+        [token: string]: Tin;
     };
     fs: string[];
     tI: number;
@@ -215,7 +226,7 @@ declare type Config = {
 declare type Context = {
     uI: number;
     opts: Options;
-    cnfg: Config;
+    cfg: Config;
     meta: Meta;
     src: () => string;
     root: () => any;
@@ -236,7 +247,7 @@ declare type Context = {
     F: (s: any) => string;
     use: KV;
 };
-declare function tokenize<R extends string | Tin, T extends string | Tin>(ref: R, config: Config, jsonic?: any): T;
+declare function tokenize<R extends string | Tin, T extends (R extends Tin ? string : Tin)>(ref: R, config: Config, jsonic?: any): T;
 declare function mesc(s: string, _?: any): any;
 declare function regexp(flags: string, ...parts: (string | (String & {
     esc?: boolean;

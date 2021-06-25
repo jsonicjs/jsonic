@@ -2,6 +2,7 @@
 /* Copyright (c) 2013-2021 Richard Rodger, MIT License */
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.make = exports.util = exports.Alt = exports.RuleSpec = exports.Rule = exports.Parser = exports.Lexer = exports.JsonicError = exports.Jsonic = void 0;
+// TODO: if token recognized, error needs to be about token, not characters
 // TODO: row numbers need to start at 1 as editors start line numbers at 1
 // TODO: test custom alt error: eg.  { e: (r: Rule) => r.close[0] } ??? bug: r.close empty!
 // TODO: multipe merges, also with dynamic
@@ -262,6 +263,7 @@ function make(param_options, parent) {
     };
     // Define the API
     let api = {
+        // TODO: not any, instead & { [token_name:string]: Tin }
         token: function token(ref) {
             return intern_1.tokenize(ref, config, jsonic);
         },
@@ -405,7 +407,7 @@ function parserwrap(parser) {
                     }, token, {}, ex.ctx || {
                         uI: -1,
                         opts: jsonic.options,
-                        cnfg: { t: {} },
+                        cfg: { t: {} },
                         token: token,
                         meta,
                         src: () => src,
@@ -435,17 +437,20 @@ function parserwrap(parser) {
     };
 }
 // Idempotent normalization of options.
+// See Config type for commentary.
 function configure(cfg, opts) {
-    intern_1.tokenize('#SP', cfg);
-    cfg.sp = {
+    const t = (tn) => intern_1.tokenize(tn, cfg);
+    // Standard tokens.
+    t('#SP');
+    t('#LN');
+    cfg.SP = {
         a: true,
         c: {
             ' ': 32,
             '\t': 9,
         }
     };
-    intern_1.tokenize('#LN', cfg);
-    cfg.ln = {
+    cfg.LN = {
         a: true,
         c: {
             '\r': 13,
@@ -453,23 +458,92 @@ function configure(cfg, opts) {
         },
         r: '\n',
     };
-    let t = opts.token;
-    let token_names = intern_1.keys(t);
+    cfg.VL = {
+        a: true,
+        m: {
+            'true': { v: true },
+            'false': { v: false },
+            'null': { v: null },
+            // TODO: just testing, move to plugin
+            'undefined': { v: undefined },
+            'NaN': { v: NaN },
+            'Infinity': { v: Infinity },
+            '+Infinity': { v: +Infinity },
+            '-Infinity': { v: -Infinity },
+        }
+    };
+    cfg.tm = {
+        '{': t('#OB'),
+        '}': t('#CB'),
+        '[': t('#OS'),
+        ']': t('#CS'),
+        ':': t('#CL'),
+        ',': t('#CM'),
+        // TODO:move to test
+        '=': t('#EQ'),
+        '=>': t('#DA'),
+        '===': t('#ES'),
+    };
+    // Fixed token strings
+    cfg.fs = [
+        '{',
+        '}',
+        '[',
+        ']',
+        ':',
+        ',',
+        '=',
+        '=>',
+        '===',
+    ].sort((a, b) => b.length - a.length);
+    // End-marker RE part
+    let em_re = [
+        '([',
+        intern_1.escre(intern_1.keys(intern_1.charset(cfg.SP.a && cfg.SP.c, cfg.LN.a && cfg.LN.c)).join('')),
+        ']|',
+        cfg.fs.map(fs => intern_1.escre(fs)).join('|'),
+        // TODO: spaces
+        '|$)', // EOF case
+    ];
+    cfg.re = {
+        // Text to end-marker.
+        TXem: intern_1.regexp('', '^(.*?)', ...em_re),
+        // TODO: use cfg props
+        // Number to end-marker.
+        NRem: intern_1.regexp('', [
+            '^[-+]?(0(',
+            [
+                opts.number.hex ? 'x[0-9a-fA-F_]+' : null,
+                opts.number.oct ? 'o[0-7_]+' : null,
+                opts.number.bin ? 'b[01_]+' : null,
+            ].filter(s => null != s).join('|'),
+            ')|[0-9]+([0-9_]*[0-9])?)',
+            '(\\.[0-9]+([0-9_]*[0-9])?)?',
+            '([eE][-+]?[0-9]+([0-9_]*[0-9])?)?',
+        ]
+            //.filter(s =>
+            //  s.replace(/_/g, null == re_ns ? '' : opts.number.sep))
+            .join(''), ...em_re),
+    };
+    console.log('CONFIG');
+    console.dir(cfg, { depth: null });
+    /////////
+    let ot = opts.token;
+    let token_names = intern_1.keys(ot);
     // Index of tokens by name.
     token_names.forEach(tn => intern_1.tokenize(tn, cfg));
-    let fixstrs = token_names
-        .filter(tn => null != t[tn].c)
-        .map(tn => t[tn].c);
-    cfg.vm = opts.value.src;
+    //let fixstrs = token_names
+    //  .filter(tn => null != (t[tn] as any).c)
+    //  .map(tn => (t[tn] as any).c)
     cfg.vs = intern_1.keys(opts.value.src)
         .reduce((a, s) => (a[s[0]] = true, a), {});
     // TODO: comments, etc
     // fixstrs = fixstrs.concat(keys(opts.value.src))
     // console.log('FIXSTRS', fixstrs)
     // Sort by length descending
-    cfg.fs = fixstrs.sort((a, b) => b.length - a.length);
+    //cfg.fs = fixstrs.sort((a: string, b: string) => b.length - a.length)
     let single_char_token_names = token_names
-        .filter(tn => null != t[tn].c && 1 === t[tn].c.length);
+        .filter(tn => null != ot[tn].c && 1 === ot[tn].c.length);
     cfg.sm = single_char_token_names
         .reduce((a, tn) => (a[opts.token[tn].c] =
         cfg.t[tn], a), {});
@@ -538,19 +612,7 @@ function configure(cfg, opts) {
     let re_ns = null != opts.number.sep ?
         new RegExp(opts.number.sep, 'g') : null;
     // RegExp cache
-    cfg.re = {
-        txfs: intern_1.regexp('', 
-        /*
-              '^([^',
-              escre(keys(charset(
-                opts.space.lex && cfg.m.SP,
-                opts.line.lex && cfg.m.LN,
-              )).join('')),
-              ']*?)(',
-        */
-        '^(.*?)(', '[', intern_1.escre(intern_1.keys(intern_1.charset(opts.space.lex && cfg.m.SP, opts.line.lex && cfg.m.LN)).join('')), ']|', cfg.fs.map(fs => intern_1.escre(fs)).join('|'), 
-        // spaces
-        '|$)'),
+    cfg.re = Object.assign(cfg.re, {
         ns: re_ns,
         te: ender(intern_1.charset(opts.space.lex && cfg.m.SP, opts.line.lex && cfg.m.LN, cfg.sc, opts.comment.lex && cfg.cs.cs, opts.block.lex && cfg.cs.bs), {
             ...(opts.comment.lex ? cfg.cm : {}),
@@ -569,7 +631,7 @@ function configure(cfg, opts) {
         ]
             .filter(s => s.replace(/_/g, null == re_ns ? '' : opts.number.sep))
             .join(''))
-    };
+    });
     // console.log('cfg.re.txfs', cfg.re.txfs)
     // Debug options
     cfg.d = opts.debug;

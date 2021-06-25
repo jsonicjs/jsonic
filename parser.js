@@ -210,7 +210,7 @@ class RuleSpec {
         out.e = undefined; // Error token.
         let alt;
         let altI = 0;
-        let t = ctx.cnfg.t;
+        let t = ctx.cfg.t;
         let cond;
         // TODO: replace with lookup map
         let len = alts.length;
@@ -484,7 +484,7 @@ class Parser {
         let ctx = {
             uI: 1,
             opts: this.options,
-            cnfg: this.config,
+            cfg: this.config,
             meta: meta || {},
             src: () => src,
             root: () => root.node,
@@ -529,7 +529,7 @@ class Parser {
             do {
                 t1 = lex(rule);
                 ctx.tC++;
-            } while (ctx.cnfg.ts.IGNORE[t1.tin]);
+            } while (ctx.cfg.ts.IGNORE[t1.tin]);
             ctx.t1 = { ...t1 };
             return ctx.t0;
         }

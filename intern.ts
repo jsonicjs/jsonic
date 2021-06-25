@@ -226,20 +226,31 @@ type Options = {
 type Config = {
 
   // Space characters.
-  sp: {
+  SP: {
     a: boolean
     c: CharCodeMap
   }
 
   // Line end characters.
-  ln: {
+  LN: {
     a: boolean
     c: CharCodeMap
     r: string // Row counter.
   }
 
+  // Literal values
+  VL: {
+    a: boolean
+    m: { [literal: string]: { v: any } }
+  }
+
+  // Token map
+  tm: { [token: string]: Tin }
+
 
   fs: string[] // Fixed strings (tokens, values, etc)
+
+
 
   tI: number // Token identifier index.
   t: any // Token index map.
@@ -265,7 +276,7 @@ type Config = {
 type Context = {
   uI: number           // Rule index.
   opts: Options        // Jsonic instance options.
-  cnfg: Config         // Jsonic instance config.
+  cfg: Config         // Jsonic instance config.
   meta: Meta           // Parse meta parameters.
   src: () => string,   // source text to parse.
   root: () => any,     // Root node.
@@ -287,8 +298,12 @@ type Context = {
 
 
 
-// Uniquely resolve or assign token pin number
-function tokenize<R extends string | Tin, T extends string | Tin>(
+// Uniquely resolve or assign token by name (string) or identification number (Tin),
+// returning the associated Tin (for the name) or name (for the Tin).
+function tokenize<
+  R extends string | Tin,
+  T extends (R extends Tin ? string : Tin)
+>(
   ref: R,
   config: Config,
   jsonic?: any):
@@ -393,7 +408,7 @@ function errinject(
         (rule as KV)[name] ||
         (ctx as KV)[name] ||
         (ctx.opts as any)[name] ||
-        (ctx.cnfg as any)[name] ||
+        (ctx.cfg as any)[name] ||
         '$' + name
       )
     )
@@ -480,7 +495,7 @@ function errdesc(
     ),
     '  \x1b[2mhttps://jsonic.richardrodger.com\x1b[0m',
     '  \x1b[2m--internal: rule=' + rule.name + '~' + RuleState[rule.state] +
-    '; token=' + ctx.cnfg.t[token.tin] +
+    '; token=' + ctx.cfg.t[token.tin] +
     (null == token.why ? '' : ('~' + token.why)) +
     '; plugins=' + ctx.plgn().map((p: any) => p.name).join(',') + '--\x1b[0m\n'
   ].join('\n')

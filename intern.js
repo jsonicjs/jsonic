@@ -77,7 +77,8 @@ class JsonicError extends SyntaxError {
     }
 }
 exports.JsonicError = JsonicError;
-// Uniquely resolve or assign token pin number
+// Uniquely resolve or assign token by name (string) or identification number (Tin),
+// returning the associated Tin (for the name) or name (for the Tin).
 function tokenize(ref, config, jsonic) {
     let tokenmap = config.t;
     let token = tokenmap[ref];
@@ -156,7 +157,7 @@ function errinject(s, code, details, token, rule, ctx) {
             rule[name] ||
             ctx[name] ||
             ctx.opts[name] ||
-            ctx.cnfg[name] ||
+            ctx.cfg[name] ||
             '$' + name));
     });
 }
@@ -220,7 +221,7 @@ function errdesc(code, details, token, rule, ctx) {
             .map((s, i) => (0 === i ? ' ' : '  ') + s).join('\n'), code, details, token, rule, ctx),
         '  \x1b[2mhttps://jsonic.richardrodger.com\x1b[0m',
         '  \x1b[2m--internal: rule=' + rule.name + '~' + RuleState[rule.state] +
-            '; token=' + ctx.cnfg.t[token.tin] +
+            '; token=' + ctx.cfg.t[token.tin] +
             (null == token.why ? '' : ('~' + token.why)) +
             '; plugins=' + ctx.plgn().map((p) => p.name).join(',') + '--\x1b[0m\n'
     ].join('\n');
