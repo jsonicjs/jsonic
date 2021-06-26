@@ -107,37 +107,14 @@ const match_VL_TX_em: Matcher = (lex: Lex) => {
       }
     }
 
-    if (null != tsrc) {
-      let tknlen = tsrc.length
-      if (0 < tknlen) {
-        let tkn: Token | undefined = undefined
-
-        let tin = lex.cfg.tm[tsrc]
-        if (null != tin) {
-          tkn = new Token(
-            tin,
-            undefined,
-            msrc,
-            pnt,
-          )
-        }
-
-        if (null != tkn) {
-          pnt.sI += tsrc.length
-
-          if (null == out) {
-            out = tkn
-          }
-          else {
-            pnt.token.push(tkn)
-          }
-        }
-      }
-    }
+    out = submatch_fixed(lex, out, tsrc)
 
     return out
   }
 }
+
+
+
 
 
 const match_VL_NR_em: Matcher = (lex: Lex) => {
@@ -180,33 +157,7 @@ const match_VL_NR_em: Matcher = (lex: Lex) => {
       }
     }
 
-    if (null != tsrc) {
-      let tknlen = tsrc.length
-      if (0 < tknlen) {
-        let tkn: Token | undefined = undefined
-
-        let tin = lex.cfg.tm[tsrc]
-        if (null != tin) {
-          tkn = new Token(
-            tin,
-            undefined,
-            msrc,
-            pnt,
-          )
-        }
-
-        if (null != tkn) {
-          pnt.sI += tsrc.length
-
-          if (null == out) {
-            out = tkn
-          }
-          else {
-            pnt.token.push(tkn)
-          }
-        }
-      }
-    }
+    out = submatch_fixed(lex, out, tsrc)
 
     return out
   }
@@ -265,6 +216,46 @@ const match_LN = (lex: Lex) => {
     pnt.cI = 1
     return tkn
   }
+}
+
+
+function submatch_fixed(
+  lex: Lex,
+  first: Token | undefined,
+  tsrc: string | undefined,
+
+): Token | undefined {
+  let pnt = lex.pnt
+  let out = first
+
+  if (null != tsrc) {
+    let tknlen = tsrc.length
+    if (0 < tknlen) {
+      let tkn: Token | undefined = undefined
+
+      let tin = lex.cfg.tm[tsrc]
+      if (null != tin) {
+        tkn = new Token(
+          tin,
+          undefined,
+          tsrc,
+          pnt,
+        )
+      }
+
+      if (null != tkn) {
+        pnt.sI += tkn.src.length
+
+        if (null == first) {
+          out = tkn
+        }
+        else {
+          pnt.token.push(tkn)
+        }
+      }
+    }
+  }
+  return out
 }
 
 

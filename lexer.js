@@ -54,25 +54,7 @@ const match_VL_TX_em = (lex) => {
                 pnt.sI += txtlen;
             }
         }
-        if (null != tsrc) {
-            let tknlen = tsrc.length;
-            if (0 < tknlen) {
-                let tkn = undefined;
-                let tin = lex.cfg.tm[tsrc];
-                if (null != tin) {
-                    tkn = new Token(tin, undefined, msrc, pnt);
-                }
-                if (null != tkn) {
-                    pnt.sI += tsrc.length;
-                    if (null == out) {
-                        out = tkn;
-                    }
-                    else {
-                        pnt.token.push(tkn);
-                    }
-                }
-            }
-        }
+        out = submatch_fixed(lex, out, tsrc);
         return out;
     }
 };
@@ -101,25 +83,7 @@ const match_VL_NR_em = (lex) => {
                 }
             }
         }
-        if (null != tsrc) {
-            let tknlen = tsrc.length;
-            if (0 < tknlen) {
-                let tkn = undefined;
-                let tin = lex.cfg.tm[tsrc];
-                if (null != tin) {
-                    tkn = new Token(tin, undefined, msrc, pnt);
-                }
-                if (null != tkn) {
-                    pnt.sI += tsrc.length;
-                    if (null == out) {
-                        out = tkn;
-                    }
-                    else {
-                        pnt.token.push(tkn);
-                    }
-                }
-            }
-        }
+        out = submatch_fixed(lex, out, tsrc);
         return out;
     }
 };
@@ -160,6 +124,30 @@ const match_LN = (lex) => {
         return tkn;
     }
 };
+function submatch_fixed(lex, first, tsrc) {
+    let pnt = lex.pnt;
+    let out = first;
+    if (null != tsrc) {
+        let tknlen = tsrc.length;
+        if (0 < tknlen) {
+            let tkn = undefined;
+            let tin = lex.cfg.tm[tsrc];
+            if (null != tin) {
+                tkn = new Token(tin, undefined, tsrc, pnt);
+            }
+            if (null != tkn) {
+                pnt.sI += tkn.src.length;
+                if (null == first) {
+                    out = tkn;
+                }
+                else {
+                    pnt.token.push(tkn);
+                }
+            }
+        }
+    }
+    return out;
+}
 class Lexer {
     constructor(cfg) {
         this.cfg = cfg;
