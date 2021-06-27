@@ -102,10 +102,12 @@ type Matcher = (lex: Lex, rule: Rule) => Token | undefined
 
 // Match text, checking for literal values, optionally followed by a fixed token.
 // Text strings are terminated by end markers.
-const match_VL_TX_em: Matcher = (lex: Lex) => {
+const matchTextEndingWithFixed: Matcher = (lex: Lex) => {
+  if (!lex.cfg.text.active) return undefined
+
   let pnt = lex.pnt
   let fwd = lex.src.substring(pnt.sI)
-  let vm = lex.cfg.VL.m
+  let vm = lex.cfg.value.m
 
   let m = fwd.match((lex.cfg.re.TXem as RegExp))
   if (m) {
@@ -118,8 +120,8 @@ const match_VL_TX_em: Matcher = (lex: Lex) => {
       let mlen = msrc.length
       if (0 < mlen) {
 
-        let vs = vm[msrc]
-        if (undefined !== vs) {
+        let vs = undefined
+        if (lex.cfg.value.active && undefined !== (vs = vm[msrc])) {
           // TODO: get name from cfg  
           out = lex.token('#VL', vs.v, msrc, pnt)
         }
@@ -130,7 +132,7 @@ const match_VL_TX_em: Matcher = (lex: Lex) => {
       }
     }
 
-    out = submatch_fixed(lex, out, tsrc)
+    out = subMatchFixed(lex, out, tsrc)
 
     return out
   }
@@ -140,10 +142,12 @@ const match_VL_TX_em: Matcher = (lex: Lex) => {
 
 
 
-const match_VL_NR_em: Matcher = (lex: Lex) => {
+const matchNumberEndingWithFixed: Matcher = (lex: Lex) => {
+  if (!lex.cfg.number.active) return undefined
+
   let pnt = lex.pnt
   let fwd = lex.src.substring(pnt.sI)
-  let vm = lex.cfg.VL.m
+  let vm = lex.cfg.value.m
 
   let m = fwd.match((lex.cfg.re.NRem as RegExp))
   if (m) {
@@ -156,8 +160,8 @@ const match_VL_NR_em: Matcher = (lex: Lex) => {
       let mlen = msrc.length
       if (0 < mlen) {
 
-        let vs = vm[msrc]
-        if (undefined !== vs) {
+        let vs = undefined
+        if (lex.cfg.value.active && undefined !== (vs = vm[msrc])) {
           out = lex.token('#VL', vs.v, msrc, pnt)
         }
         else {
@@ -170,18 +174,21 @@ const match_VL_NR_em: Matcher = (lex: Lex) => {
       }
     }
 
-    out = submatch_fixed(lex, out, tsrc)
+    out = subMatchFixed(lex, out, tsrc)
 
     return out
   }
 }
 
 
+// TODO: complete
 // String matcher.
-const match_ST = (lex: Lex) => {
-  let { c, e, b, d } = lex.cfg.ST
+const matchString = (lex: Lex) => {
+  if (!lex.cfg.string.active) return undefined
+
+  let { c, e, b, d } = lex.cfg.string
   let { pnt, src } = lex
-  let { sI, cI } = pnt
+  let { sI, rI, cI } = pnt
   let srclen = src.length
 
   if (c[src[sI]]) {
@@ -277,10 +284,18 @@ const match_ST = (lex: Lex) => {
         }
         cI--
 
+        // TODO: confirm this works; Must end with quote
+        // TODO: maybe rename back to cs as confusing
         q = src[sI]
 
         if (cc < 32) {
-          throw new Error('ST-c')
+          if (lex.cfg.string.multiline[q]) {
+            rI++
+            cI = 0
+          }
+          else {
+            throw new Error('ST-c')
+          }
         }
         else {
           s.push(src.substring(bI, sI))
@@ -302,7 +317,7 @@ const match_ST = (lex: Lex) => {
     )
 
     pnt.sI = sI
-    //pnt.rI = rI
+    pnt.rI = rI
     pnt.cI = cI
     return tkn
   }
@@ -310,8 +325,10 @@ const match_ST = (lex: Lex) => {
 
 
 // Line ending matcher.
-const match_LN = (lex: Lex) => {
-  let { c, r } = lex.cfg.LN
+const matchLineEnding = (lex: Lex) => {
+  if (!lex.cfg.line.active) return undefined
+
+  let { c, r } = lex.cfg.line
   let { pnt, src } = lex
   let { sI, rI } = pnt
 
@@ -338,6 +355,8 @@ const match_LN = (lex: Lex) => {
 
 // Space matcher.
 const matchSpace = (lex: Lex) => {
+  if (!lex.cfg.space.active) return undefined
+
   let { charMap, tokenName } = lex.cfg.space
   let { pnt, src } = lex
   let { sI, cI } = pnt
@@ -362,7 +381,7 @@ const matchSpace = (lex: Lex) => {
 }
 
 
-function submatch_fixed(
+function subMatchFixed(
   lex: Lex,
   first: Token | undefined,
   tsrc: string | undefined,
@@ -371,7 +390,7 @@ function submatch_fixed(
   let pnt = lex.pnt
   let out = first
 
-  if (null != tsrc) {
+  if (lex.cfg.fixed.active && null != tsrc) {
     let tknlen = tsrc.length
     if (0 < tknlen) {
       let tkn: Token | undefined = undefined
@@ -450,11 +469,12 @@ class Lex {
 
     // TODO: move to Lexer
     this.mat = [
+      // matchFixed
       matchSpace,
-      match_LN,
-      match_ST,
-      match_VL_NR_em,
-      match_VL_TX_em,
+      matchLineEnding,
+      matchString,
+      matchNumberEndingWithFixed,
+      matchTextEndingWithFixed,
     ]
   }
 

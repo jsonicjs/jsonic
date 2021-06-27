@@ -737,6 +737,10 @@ function configure(cfg: Config, opts: Options) {
   t('#SP')
   t('#LN')
 
+  cfg.fixed = {
+    active: true
+  }
+
   cfg.space = {
     active: true,
     tokenName: '#SP',
@@ -746,8 +750,8 @@ function configure(cfg: Config, opts: Options) {
     }
   }
 
-  cfg.LN = {
-    a: true,
+  cfg.line = {
+    active: true,
     c: {
       '\r': 13,
       '\n': 10,
@@ -755,8 +759,17 @@ function configure(cfg: Config, opts: Options) {
     r: '\n',
   }
 
-  cfg.VL = {
-    a: true,
+
+  cfg.text = {
+    active: true
+  }
+
+  cfg.number = {
+    active: true
+  }
+
+  cfg.value = {
+    active: true,
     m: {
       'true': { v: true },
       'false': { v: false },
@@ -771,8 +784,8 @@ function configure(cfg: Config, opts: Options) {
     }
   }
 
-  cfg.ST = {
-    a: true,
+  cfg.string = {
+    active: true,
     c: {
       '\'': 39,
       '"': 34,
@@ -787,6 +800,9 @@ function configure(cfg: Config, opts: Options) {
     },
     b: '\\'.charCodeAt(0),
     d: false,
+    multiline: {
+      '`': 96,
+    }
   }
 
 
@@ -823,7 +839,7 @@ function configure(cfg: Config, opts: Options) {
     '([',
     escre(keys(charset(
       cfg.space.active && cfg.space.charMap,
-      cfg.LN.a && cfg.LN.c,
+      cfg.line.active && cfg.line.c,
     )).join('')),
     ']|',
     cfg.fs.map(fs => escre(fs)).join('|'),

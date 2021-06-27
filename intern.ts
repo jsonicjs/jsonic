@@ -224,6 +224,11 @@ type Options = {
 // See build_config.
 type Config = {
 
+  // Fixed tokens (punctuation, operators, keywords, etc.)
+  fixed: {
+    active: boolean
+  }
+
   // Space characters.
   space: {
     active: boolean
@@ -232,25 +237,35 @@ type Config = {
   }
 
   // Line end characters.
-  LN: {
-    a: boolean
+  line: {
+    active: boolean
     c: CharMap
     r: string // Row counter.
   }
 
   // String quote characters.
-  ST: {
-    a: boolean
+  string: {
+    active: boolean
     c: CharMap,
     e: KV,     // TODO: Escape char map.
     b: number, // TODO: Backslash character code.
     d: boolean,
+    multiline: CharMap,
   }
 
+  // Unquoted text
+  text: {
+    active: boolean
+  }
+
+  // Numbers
+  number: {
+    active: boolean
+  }
 
   // Literal values
-  VL: {
-    a: boolean
+  value: {
+    active: boolean
     m: { [literal: string]: { v: any } }
   }
 

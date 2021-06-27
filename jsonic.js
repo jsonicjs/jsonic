@@ -448,6 +448,9 @@ function configure(cfg, opts) {
     // Standard tokens.
     t('#SP');
     t('#LN');
+    cfg.fixed = {
+        active: true
+    };
     cfg.space = {
         active: true,
         tokenName: '#SP',
@@ -456,16 +459,22 @@ function configure(cfg, opts) {
             '\t': 9,
         }
     };
-    cfg.LN = {
-        a: true,
+    cfg.line = {
+        active: true,
         c: {
             '\r': 13,
             '\n': 10,
         },
         r: '\n',
     };
-    cfg.VL = {
-        a: true,
+    cfg.text = {
+        active: true
+    };
+    cfg.number = {
+        active: true
+    };
+    cfg.value = {
+        active: true,
         m: {
             'true': { v: true },
             'false': { v: false },
@@ -478,8 +487,8 @@ function configure(cfg, opts) {
             '-Infinity': { v: -Infinity },
         }
     };
-    cfg.ST = {
-        a: true,
+    cfg.string = {
+        active: true,
         c: {
             '\'': 39,
             '"': 34,
@@ -494,6 +503,9 @@ function configure(cfg, opts) {
         },
         b: '\\'.charCodeAt(0),
         d: false,
+        multiline: {
+            '`': 96,
+        }
     };
     cfg.tm = {
         '{': t('#OB'),
@@ -522,7 +534,7 @@ function configure(cfg, opts) {
     // End-marker RE part
     let em_re = [
         '([',
-        intern_1.escre(intern_1.keys(intern_1.charset(cfg.space.active && cfg.space.charMap, cfg.LN.a && cfg.LN.c)).join('')),
+        intern_1.escre(intern_1.keys(intern_1.charset(cfg.space.active && cfg.space.charMap, cfg.line.active && cfg.line.c)).join('')),
         ']|',
         cfg.fs.map(fs => intern_1.escre(fs)).join('|'),
         // TODO: spaces

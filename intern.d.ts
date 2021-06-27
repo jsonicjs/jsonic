@@ -168,25 +168,35 @@ declare type Options = {
     };
 };
 declare type Config = {
+    fixed: {
+        active: boolean;
+    };
     space: {
         active: boolean;
         tokenName: string;
         charMap: CharMap;
     };
-    LN: {
-        a: boolean;
+    line: {
+        active: boolean;
         c: CharMap;
         r: string;
     };
-    ST: {
-        a: boolean;
+    string: {
+        active: boolean;
         c: CharMap;
         e: KV;
         b: number;
         d: boolean;
+        multiline: CharMap;
     };
-    VL: {
-        a: boolean;
+    text: {
+        active: boolean;
+    };
+    number: {
+        active: boolean;
+    };
+    value: {
+        active: boolean;
         m: {
             [literal: string]: {
                 v: any;
