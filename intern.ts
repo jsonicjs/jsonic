@@ -238,6 +238,15 @@ type Config = {
     r: string // Row counter.
   }
 
+  // String quote characters.
+  ST: {
+    a: boolean
+    c: CharCodeMap,
+    e: KV,     // TODO: Escape char map.
+    b: number, // TODO: Backslash character code.
+  }
+
+
   // Literal values
   VL: {
     a: boolean

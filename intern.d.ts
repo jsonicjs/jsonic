@@ -177,6 +177,12 @@ declare type Config = {
         c: CharCodeMap;
         r: string;
     };
+    ST: {
+        a: boolean;
+        c: CharCodeMap;
+        e: KV;
+        b: number;
+    };
     VL: {
         a: boolean;
         m: {

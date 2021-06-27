@@ -87,20 +87,98 @@ const match_VL_NR_em = (lex) => {
         return out;
     }
 };
-// Space matcher.
-const match_SP = (lex) => {
-    let { c } = lex.cfg.SP;
+// String matcher.
+const match_ST = (lex) => {
+    let { c, e, b } = lex.cfg.ST;
     let { pnt, src } = lex;
     let { sI, cI } = pnt;
-    let SP = lex.t('#SP');
-    while (c[src[sI]]) {
+    let ST = lex.t('#ST');
+    let srclen = src.length;
+    if (c[src[sI]]) {
+        let q = src[sI]; // Quote character
         sI++;
         cI++;
-    }
-    if (pnt.sI < sI) {
-        let msrc = src.substring(pnt.sI, sI);
-        const tkn = new Token(SP, undefined, msrc, pnt);
-        pnt.sI += msrc.length;
+        let s = [];
+        for (sI; sI < srclen; sI++) {
+            cI++;
+            // Quote char.
+            if (src[sI] === q) {
+                sI++;
+                break; // String finished.
+            }
+            // Escape char. 
+            else if ('\\' === q) {
+                sI++;
+                cI++;
+                let es = e[src[sI]];
+                if (null != es) {
+                    s.push(es);
+                }
+                // ASCII escape \x**
+                else if ('x' === src[sI]) {
+                    sI++;
+                    let cc = parseInt(src.substring(sI, sI + 2), 16);
+                    if (isNaN(cc)) {
+                        sI = sI - 2;
+                        cI -= 2;
+                        throw new Error('ST-x');
+                        // return bad(S.invalid_ascii, sI + 2, src.substring(sI - 2, sI + 2))
+                    }
+                    let us = String.fromCharCode(cc);
+                    s.push(us);
+                    sI += 1; // Loop increments sI.
+                    cI += 2;
+                }
+                // Unicode escape \u**** and \u{*****}.
+                else if ('u' === src[sI]) {
+                    sI++;
+                    let ux = '{' === src[sI] ? (sI++, 1) : 0;
+                    let ulen = ux ? 6 : 4;
+                    let cc = parseInt(src.substring(sI, sI + ulen), 16);
+                    if (isNaN(cc)) {
+                        sI = sI - 2 - ux;
+                        cI -= 2;
+                        throw new Error('ST-u');
+                        //return bad(S.invalid_unicode, sI + ulen + 1,
+                        //  src.substring(sI - 2 - ux, sI + ulen + ux))
+                    }
+                    let us = String.fromCodePoint(cc);
+                    s.push(us);
+                    sI += (ulen - 1) + ux; // Loop increments sI.
+                    cI += ulen + ux;
+                }
+                else {
+                    s.push(src[sI]);
+                }
+            }
+            // Body part of string.
+            else {
+                let bI = sI;
+                // TODO: move to cfgx
+                let qc = q.charCodeAt(0);
+                let cc = src.charCodeAt(sI);
+                while (sI < srclen && 32 <= cc && qc !== cc && b !== cc) {
+                    cc = src.charCodeAt(++sI);
+                    cI++;
+                }
+                cI--;
+                q = src[sI];
+                if (cc < 32) {
+                    throw new Error('ST-c');
+                }
+                else {
+                    s.push(src.substring(bI, sI));
+                    sI--;
+                }
+            }
+        }
+        if (src[sI - 1] !== q) {
+            console.log(pnt, sI, q, s, src.substring(pnt.sI));
+            throw new Error('ST-s');
+        }
+        const tkn = new Token(ST, s.join(intern_1.MT), src.substring(pnt.sI, sI), pnt);
+        pnt.sI = sI;
+        //pnt.rI = rI
         pnt.cI = cI;
         return tkn;
     }
@@ -121,6 +199,24 @@ const match_LN = (lex) => {
         pnt.sI += msrc.length;
         pnt.rI = rI;
         pnt.cI = 1;
+        return tkn;
+    }
+};
+// Space matcher.
+const match_SP = (lex) => {
+    let { c } = lex.cfg.SP;
+    let { pnt, src } = lex;
+    let { sI, cI } = pnt;
+    let SP = lex.t('#SP');
+    while (c[src[sI]]) {
+        sI++;
+        cI++;
+    }
+    if (pnt.sI < sI) {
+        let msrc = src.substring(pnt.sI, sI);
+        const tkn = new Token(SP, undefined, msrc, pnt);
+        pnt.sI += msrc.length;
+        pnt.cI = cI;
         return tkn;
     }
 };
@@ -174,6 +270,7 @@ class Lex {
         this.mat = [
             match_SP,
             match_LN,
+            match_ST,
             match_VL_NR_em,
             match_VL_TX_em,
         ];

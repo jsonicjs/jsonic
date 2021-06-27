@@ -472,6 +472,22 @@ function configure(cfg, opts) {
             '-Infinity': { v: -Infinity },
         }
     };
+    cfg.ST = {
+        a: true,
+        c: {
+            '\'': 39,
+            '"': 34,
+            '`': 96,
+        },
+        e: {
+            b: '\b',
+            f: '\f',
+            n: '\n',
+            r: '\r',
+            t: '\t',
+        },
+        b: '\\'.charCodeAt(0),
+    };
     cfg.tm = {
         '{': t('#OB'),
         '}': t('#CB'),
