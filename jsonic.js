@@ -1,7 +1,8 @@
 "use strict";
 /* Copyright (c) 2013-2021 Richard Rodger, MIT License */
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.make = exports.util = exports.Alt = exports.RuleSpec = exports.Rule = exports.Parser = exports.Lexer = exports.JsonicError = exports.Jsonic = void 0;
+exports.make = exports.util = exports.Alt = exports.Token = exports.RuleSpec = exports.Rule = exports.Parser = exports.Lexer = exports.JsonicError = exports.Jsonic = void 0;
+// TODO: rename tokens to be user friendly
 // TODO: if token recognized, error needs to be about token, not characters
 // TODO: row numbers need to start at 1 as editors start line numbers at 1
 // TODO: test custom alt error: eg.  { e: (r: Rule) => r.close[0] } ??? bug: r.close empty!
@@ -32,6 +33,7 @@ exports.make = exports.util = exports.Alt = exports.RuleSpec = exports.Rule = ex
 const intern_1 = require("./intern");
 Object.defineProperty(exports, "JsonicError", { enumerable: true, get: function () { return intern_1.JsonicError; } });
 const lexer_1 = require("./lexer");
+Object.defineProperty(exports, "Token", { enumerable: true, get: function () { return lexer_1.Token; } });
 Object.defineProperty(exports, "Lexer", { enumerable: true, get: function () { return lexer_1.Lexer; } });
 const parser_1 = require("./parser");
 Object.defineProperty(exports, "Parser", { enumerable: true, get: function () { return parser_1.Parser; } });
@@ -393,15 +395,18 @@ function parserwrap(parser) {
                             cI--;
                         col = Math.max(src.substring(cI, loc).length, 0);
                     }
+                    /*
                     let token = ex.token || {
-                        tin: jsonic.token.UK,
-                        loc: loc,
-                        len: tsrc.length,
-                        row: ex.lineNumber || row,
-                        col: ex.columnNumber || col,
-                        val: undefined,
-                        src: tsrc,
-                    };
+                      tin: jsonic.token.UK,
+                      sI: loc,
+                      len: tsrc.length,
+                      rI: ex.lineNumber || row,
+                      cI: ex.columnNumber || col,
+                      val: undefined,
+                      src: tsrc,
+                    } as Token
+                    */
+                    let token = ex.token || new lexer_1.Token('#UK', intern_1.tokenize('#UK', jsonic.config), undefined, tsrc, new lexer_1.Point(tsrc.length, loc, ex.lineNumber || row, ex.columnNumber || col));
                     throw new intern_1.JsonicError(ex.code || 'json', ex.details || {
                         msg: ex.message
                     }, token, {}, ex.ctx || {
@@ -443,9 +448,10 @@ function configure(cfg, opts) {
     // Standard tokens.
     t('#SP');
     t('#LN');
-    cfg.SP = {
-        a: true,
-        c: {
+    cfg.space = {
+        active: true,
+        tokenName: '#SP',
+        charMap: {
             ' ': 32,
             '\t': 9,
         }
@@ -487,6 +493,7 @@ function configure(cfg, opts) {
             t: '\t',
         },
         b: '\\'.charCodeAt(0),
+        d: false,
     };
     cfg.tm = {
         '{': t('#OB'),
@@ -515,7 +522,7 @@ function configure(cfg, opts) {
     // End-marker RE part
     let em_re = [
         '([',
-        intern_1.escre(intern_1.keys(intern_1.charset(cfg.SP.a && cfg.SP.c, cfg.LN.a && cfg.LN.c)).join('')),
+        intern_1.escre(intern_1.keys(intern_1.charset(cfg.space.active && cfg.space.charMap, cfg.LN.a && cfg.LN.c)).join('')),
         ']|',
         cfg.fs.map(fs => intern_1.escre(fs)).join('|'),
         // TODO: spaces

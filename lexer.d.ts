@@ -1,3 +1,4 @@
+declare const inspect: unique symbol;
 import type { Rule } from './jsonic';
 import { Config, Context, Tin } from './intern';
 declare class Point {
@@ -7,20 +8,25 @@ declare class Point {
     cI: number;
     token: Token[];
     end: Token | undefined;
-    constructor(len: number);
+    constructor(len: number, sI?: number, rI?: number, cI?: number);
+    toString(): string;
+    [inspect](): string;
 }
 declare class Token {
+    name: string;
     tin: Tin;
     val: any;
-    src: any;
-    loc: number;
-    row: number;
-    col: number;
+    src: string;
+    sI: number;
+    rI: number;
+    cI: number;
     use?: any;
     why?: string;
     len: number;
-    constructor(tin: Tin, val: any, src: any, // TODO: string
+    constructor(name: string, tin: Tin, val: any, src: any, // TODO: string
     pnt: Point, use?: any, why?: string);
+    toString(): string;
+    [inspect](): string;
 }
 declare type Matcher = (lex: Lex, rule: Rule) => Token | undefined;
 declare class Lexer {
@@ -37,8 +43,9 @@ declare class Lex {
     pnt: Point;
     mat: Matcher[];
     constructor(src: String, ctx: Context, cfg: Config);
+    token(ref: Tin | string, val: any, src: string, pnt: Point, use?: any, why?: string): Token;
     next(rule: Rule): Token;
-    t(n: string): Tin;
+    tokenize<R extends string | Tin, T extends (R extends Tin ? string : Tin)>(ref: R): T;
 }
 declare type LexMatcherState = {
     sI: number;
@@ -61,4 +68,4 @@ declare type LexMatcherResult = undefined | {
     state?: number;
     state_param?: any;
 };
-export { Token, Lex, Lexer, LexMatcher, LexMatcherListMap, LexMatcherResult, LexMatcherState, };
+export { Point, Token, Lex, Lexer, LexMatcher, LexMatcherListMap, LexMatcherResult, LexMatcherState, };

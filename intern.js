@@ -79,16 +79,16 @@ class JsonicError extends SyntaxError {
 exports.JsonicError = JsonicError;
 // Uniquely resolve or assign token by name (string) or identification number (Tin),
 // returning the associated Tin (for the name) or name (for the Tin).
-function tokenize(ref, config, jsonic) {
-    let tokenmap = config.t;
+function tokenize(ref, cfg, jsonic) {
+    let tokenmap = cfg.t;
     let token = tokenmap[ref];
     if (null == token && S.string === typeof (ref)) {
-        token = config.tI++;
+        token = cfg.tI++;
         tokenmap[token] = ref;
         tokenmap[ref] = token;
         tokenmap[ref.substring(1)] = token;
         if (null != jsonic) {
-            assign(jsonic.token, config.t);
+            assign(jsonic.token, cfg.t);
         }
     }
     return token;
@@ -174,9 +174,9 @@ function trimstk(err) {
 }
 exports.trimstk = trimstk;
 function extract(src, errtxt, token) {
-    let loc = 0 < token.loc ? token.loc : 0;
-    let row = 0 < token.row ? token.row : 0;
-    let col = 0 < token.col ? token.col : 0;
+    let loc = 0 < token.sI ? token.sI : 0;
+    let row = 0 < token.rI ? token.rI : 0;
+    let col = 0 < token.cI ? token.cI : 0;
     let tsrc = null == token.src ? MT : token.src;
     let behind = src.substring(Math.max(0, loc - 333), loc).split('\n');
     let ahead = src.substring(loc, loc + 333).split('\n');
@@ -202,7 +202,7 @@ function extract(src, errtxt, token) {
 }
 exports.extract = extract;
 function errdesc(code, details, token, rule, ctx) {
-    token = { ...token };
+    // token = { ...token }
     let options = ctx.opts;
     let meta = ctx.meta;
     let errtxt = errinject((options.error[code] || options.error.unknown), code, details, token, rule, ctx);
@@ -213,7 +213,7 @@ function errdesc(code, details, token, rule, ctx) {
     let message = [
         ('\x1b[31m[jsonic/' + code + ']:\x1b[0m ' + errtxt),
         '  \x1b[34m-->\x1b[0m ' + (meta && meta.fileName || '<no-file>') +
-            ':' + token.row + ':' + token.col,
+            ':' + token.rI + ':' + token.cI,
         extract(ctx.src(), errtxt, token),
         errinject((options.hint[code] || options.hint.unknown)
             .replace(/^([^ ])/, ' $1')
@@ -238,8 +238,8 @@ function errdesc(code, details, token, rule, ctx) {
         details,
         meta,
         fileName: meta ? meta.fileName : undefined,
-        lineNumber: token.row,
-        columnNumber: token.col,
+        lineNumber: token.rI,
+        columnNumber: token.cI,
     };
     return desc;
 }

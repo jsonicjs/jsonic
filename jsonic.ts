@@ -1,5 +1,6 @@
 /* Copyright (c) 2013-2021 Richard Rodger, MIT License */
 
+// TODO: rename tokens to be user friendly
 // TODO: if token recognized, error needs to be about token, not characters
 // TODO: row numbers need to start at 1 as editors start line numbers at 1
 // TODO: test custom alt error: eg.  { e: (r: Rule) => r.close[0] } ??? bug: r.close empty!
@@ -34,7 +35,7 @@
 
 
 import {
-  CharCodeMap,
+  CharMap,
   Config,
   Context,
   JsonicError,
@@ -45,7 +46,6 @@ import {
   S,
   Tin,
   TinMap,
-  Token,
   assign,
   badlex,
   deep,
@@ -68,6 +68,8 @@ import {
 
 
 import {
+  Point,
+  Token,
   Lexer,
   LexMatcher,
   LexMatcherListMap,
@@ -82,7 +84,6 @@ import {
   RuleDefiner,
   RuleSpec,
   RuleSpecMap,
-  AltError,
   Alt,
   AltCond,
   AltHandler,
@@ -593,7 +594,7 @@ function marr(a: string[], b: string[]) {
 
 
 
-function ender(endchars: CharCodeMap, endmarks: KV, singles?: KV) {
+function ender(endchars: CharMap, endmarks: KV, singles?: KV) {
   let allendchars =
     keys(
       keys(endmarks)
@@ -664,15 +665,25 @@ function parserwrap(parser: any) {
             col = Math.max(src.substring(cI, loc).length, 0)
           }
 
+          /*
           let token = ex.token || {
             tin: jsonic.token.UK,
-            loc: loc,
+            sI: loc,
             len: tsrc.length,
-            row: ex.lineNumber || row,
-            col: ex.columnNumber || col,
+            rI: ex.lineNumber || row,
+            cI: ex.columnNumber || col,
             val: undefined,
             src: tsrc,
           } as Token
+          */
+
+          let token = ex.token || new Token(
+            '#UK',
+            tokenize('#UK', jsonic.config),
+            undefined,
+            tsrc,
+            new Point(tsrc.length, loc, ex.lineNumber || row, ex.columnNumber || col)
+          )
 
           throw new JsonicError(
             ex.code || 'json',
@@ -726,9 +737,10 @@ function configure(cfg: Config, opts: Options) {
   t('#SP')
   t('#LN')
 
-  cfg.SP = {
-    a: true,
-    c: {
+  cfg.space = {
+    active: true,
+    tokenName: '#SP',
+    charMap: {
       ' ': 32,
       '\t': 9,
     }
@@ -774,6 +786,7 @@ function configure(cfg: Config, opts: Options) {
       t: '\t',
     },
     b: '\\'.charCodeAt(0),
+    d: false,
   }
 
 
@@ -809,7 +822,7 @@ function configure(cfg: Config, opts: Options) {
   let em_re = [
     '([',
     escre(keys(charset(
-      cfg.SP.a && cfg.SP.c,
+      cfg.space.active && cfg.space.charMap,
       cfg.LN.a && cfg.LN.c,
     )).join('')),
     ']|',

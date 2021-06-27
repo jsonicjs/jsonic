@@ -73,7 +73,7 @@ declare type Tin = number;
 declare type TinMap = {
     [char: string]: Tin;
 };
-declare type CharCodeMap = {
+declare type CharMap = {
     [char: string]: number;
 };
 declare type Meta = KV;
@@ -168,20 +168,22 @@ declare type Options = {
     };
 };
 declare type Config = {
-    SP: {
-        a: boolean;
-        c: CharCodeMap;
+    space: {
+        active: boolean;
+        tokenName: string;
+        charMap: CharMap;
     };
     LN: {
         a: boolean;
-        c: CharCodeMap;
+        c: CharMap;
         r: string;
     };
     ST: {
         a: boolean;
-        c: CharCodeMap;
+        c: CharMap;
         e: KV;
         b: number;
+        d: boolean;
     };
     VL: {
         a: boolean;
@@ -201,7 +203,7 @@ declare type Config = {
         [token_name: string]: TinMap;
     };
     cs: {
-        [charset_name: string]: CharCodeMap;
+        [charset_name: string]: CharMap;
     };
     sm: {
         [char: string]: Tin;
@@ -253,7 +255,7 @@ declare type Context = {
     F: (s: any) => string;
     use: KV;
 };
-declare function tokenize<R extends string | Tin, T extends (R extends Tin ? string : Tin)>(ref: R, config: Config, jsonic?: any): T;
+declare function tokenize<R extends string | Tin, T extends (R extends Tin ? string : Tin)>(ref: R, cfg: Config, jsonic?: any): T;
 declare function mesc(s: string, _?: any): any;
 declare function regexp(flags: string, ...parts: (string | (String & {
     esc?: boolean;
@@ -268,5 +270,5 @@ declare function badlex(lex: Lex, BD: Tin, ctx: Context): any;
 declare function makelog(ctx: Context): ((...rest: any) => undefined) | undefined;
 declare function srcfmt(config: Config): (s: any, _?: any) => string;
 declare function clone(class_instance: any): any;
-declare function charset(...parts: (string | object | boolean)[]): CharCodeMap;
-export { CharCodeMap, Config, Context, JsonicError, KV, MT, Meta, Options, RuleState, S, Tin, TinMap, Token, assign, badlex, deep, defprop, entries, errdesc, errinject, extract, keys, makelog, mesc, regexp, escre, tokenize, trimstk, srcfmt, clone, charset, };
+declare function charset(...parts: (string | object | boolean)[]): CharMap;
+export { CharMap, Config, Context, JsonicError, KV, MT, Meta, Options, RuleState, S, Tin, TinMap, Token, assign, badlex, deep, defprop, entries, errdesc, errinject, extract, keys, makelog, mesc, regexp, escre, tokenize, trimstk, srcfmt, clone, charset, };

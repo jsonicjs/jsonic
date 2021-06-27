@@ -22,7 +22,6 @@ enum RuleState {
 
 
 
-
 const MT = '' // Empty ("MT"!) string.
 
 
@@ -113,7 +112,7 @@ type TinMap = { [char: string]: Tin }
 
 
 // Map character to code value.
-type CharCodeMap = { [char: string]: number }
+type CharMap = { [char: string]: number }
 
 
 
@@ -226,24 +225,26 @@ type Options = {
 type Config = {
 
   // Space characters.
-  SP: {
-    a: boolean
-    c: CharCodeMap
+  space: {
+    active: boolean
+    tokenName: string
+    charMap: CharMap
   }
 
   // Line end characters.
   LN: {
     a: boolean
-    c: CharCodeMap
+    c: CharMap
     r: string // Row counter.
   }
 
   // String quote characters.
   ST: {
     a: boolean
-    c: CharCodeMap,
+    c: CharMap,
     e: KV,     // TODO: Escape char map.
     b: number, // TODO: Backslash character code.
+    d: boolean,
   }
 
 
@@ -264,7 +265,7 @@ type Config = {
   tI: number // Token identifier index.
   t: any // Token index map.
   m: { [token_name: string]: TinMap }         // Mutually exclusive character sets.
-  cs: { [charset_name: string]: CharCodeMap } // Character set.
+  cs: { [charset_name: string]: CharMap } // Character set.
   sm: { [char: string]: Tin }                 // Single character token index.
   ts: { [tokenset_name: string]: Tin[] }      // Named token sets.
   vs: { [start_char: string]: boolean }       // Literal value start characters.
@@ -314,20 +315,20 @@ function tokenize<
   T extends (R extends Tin ? string : Tin)
 >(
   ref: R,
-  config: Config,
+  cfg: Config,
   jsonic?: any):
   T {
-  let tokenmap: any = config.t
+  let tokenmap: any = cfg.t
   let token: string | Tin = tokenmap[ref]
 
   if (null == token && S.string === typeof (ref)) {
-    token = config.tI++
+    token = cfg.tI++
     tokenmap[token] = ref
     tokenmap[ref] = token
     tokenmap[(ref as string).substring(1)] = token
 
     if (null != jsonic) {
-      assign(jsonic.token, config.t)
+      assign(jsonic.token, cfg.t)
     }
   }
 
@@ -438,9 +439,9 @@ function trimstk(err: Error) {
 
 
 function extract(src: string, errtxt: string, token: Token) {
-  let loc = 0 < token.loc ? token.loc : 0
-  let row = 0 < token.row ? token.row : 0
-  let col = 0 < token.col ? token.col : 0
+  let loc = 0 < token.sI ? token.sI : 0
+  let row = 0 < token.rI ? token.rI : 0
+  let col = 0 < token.cI ? token.cI : 0
   let tsrc = null == token.src ? MT : token.src
   let behind = src.substring(Math.max(0, loc - 333), loc).split('\n')
   let ahead = src.substring(loc, loc + 333).split('\n')
@@ -477,7 +478,7 @@ function errdesc(
   rule: Rule,
   ctx: Context,
 ): KV {
-  token = { ...token }
+  // token = { ...token }
   let options = ctx.opts
   let meta = ctx.meta
   let errtxt = errinject(
@@ -493,7 +494,7 @@ function errdesc(
   let message = [
     ('\x1b[31m[jsonic/' + code + ']:\x1b[0m ' + errtxt),
     '  \x1b[34m-->\x1b[0m ' + (meta && meta.fileName || '<no-file>') +
-    ':' + token.row + ':' + token.col,
+    ':' + token.rI + ':' + token.cI,
     extract(ctx.src(), errtxt, token),
     errinject(
       (options.hint[code] || options.hint.unknown)
@@ -523,8 +524,8 @@ function errdesc(
     details,
     meta,
     fileName: meta ? meta.fileName : undefined,
-    lineNumber: token.row,
-    columnNumber: token.col,
+    lineNumber: token.rI,
+    columnNumber: token.cI,
   }
 
   return desc
@@ -605,7 +606,7 @@ function clone(class_instance: any) {
 
 
 // Lookup map for a set of chars.
-function charset(...parts: (string | object | boolean)[]): CharCodeMap {
+function charset(...parts: (string | object | boolean)[]): CharMap {
   return parts
     .filter(p => false !== p)
     .map((p: any) => 'object' === typeof (p) ? keys(p).join(MT) : p)
@@ -617,7 +618,7 @@ function charset(...parts: (string | object | boolean)[]): CharCodeMap {
 
 
 export {
-  CharCodeMap,
+  CharMap,
   Config,
   Context,
   JsonicError,

@@ -1,4 +1,6 @@
 
+const inspect = Symbol.for('nodejs.util.inspect.custom')
+
 import type { Rule } from './jsonic'
 
 
@@ -12,7 +14,6 @@ import {
 
 
 
-
 class Point {
   len: number = -1
   sI: number = 0
@@ -21,8 +22,19 @@ class Point {
   token: Token[] = []
   end: Token | undefined = undefined
 
-  constructor(len: number) {
+  constructor(len: number, sI?: number, rI?: number, cI?: number) {
     this.len = len
+    if (null != sI) { this.sI = sI }
+    if (null != rI) { this.rI = rI }
+    if (null != cI) { this.cI = cI }
+  }
+
+  toString() {
+    return 'Point[' + [this.sI, this.rI, this.cI] + ';' + this.token + ']'
+  }
+
+  [inspect]() {
+    return this.toString()
   }
 }
 
@@ -30,17 +42,19 @@ class Point {
 // TODO: rename loc to sI, row to rI, col to cI
 // Tokens from the lexer.
 class Token {
-  tin: Tin      // Token kind.
+  name: string  // Token name.
+  tin: Tin      // Token identification number.
   val: any      // Value of Token if literal (eg. number).
-  src: any      // Source text of Token.
-  loc: number   // Location of token index in source text.
-  row: number   // Row location of token in source text.
-  col: number   // Column location of token in source text.
+  src: string   // Source text of Token.
+  sI: number    // Location of token index in source text.
+  rI: number    // Row location of token in source text.
+  cI: number    // Column location of token in source text.
   use?: any     // Custom meta data from plugins goes here.
   why?: string  // Error code.
   len: number   // Length of Token source text.
 
   constructor(
+    name: string,
     tin: Tin,
     val: any,
     src: any,  // TODO: string
@@ -48,17 +62,34 @@ class Token {
     use?: any,
     why?: string,
   ) {
+    this.name = name
     this.tin = tin
     this.src = src
     this.val = val
-    this.loc = pnt.sI
-    this.row = pnt.rI
-    this.col = pnt.cI
+    this.sI = pnt.sI
+    this.rI = pnt.rI
+    this.cI = pnt.cI
     this.use = use
     this.why = why
 
     this.len = src.length
   }
+
+  toString() {
+    return 'Token[' +
+      this.name + '=' + this.tin + ';' +
+      ('' + this.src).substring(0, 5) + '=' + ('' + this.val).substring(0, 5) + ';' +
+      [this.sI, this.rI, this.cI] +
+      (null == this.use ? '' : ';' +
+        ('' + JSON.stringify(this.use).replace(/"/g, '')).substring(0, 22)) +
+      (null == this.why ? '' : ';' + ('' + this.why).substring(0, 22)) +
+      ']'
+  }
+
+  [inspect]() {
+    return this.toString()
+  }
+
 }
 
 
@@ -84,27 +115,18 @@ const match_VL_TX_em: Matcher = (lex: Lex) => {
     let out: Token | undefined = undefined
 
     if (null != msrc) {
-      let txtlen = msrc.length
-      if (0 < txtlen) {
+      let mlen = msrc.length
+      if (0 < mlen) {
 
         let vs = vm[msrc]
         if (undefined !== vs) {
-          out = new Token(
-            lex.t('#VL'),
-            vs.v,
-            msrc,
-            pnt,
-          )
+          // TODO: get name from cfg  
+          out = lex.token('#VL', vs.v, msrc, pnt)
         }
         else {
-          out = new Token(
-            lex.t('#TX'),
-            msrc,
-            msrc,
-            pnt,
-          )
+          out = lex.token('#TX', msrc, msrc, pnt)
         }
-        pnt.sI += txtlen
+        pnt.sI += mlen
       }
     }
 
@@ -136,22 +158,12 @@ const match_VL_NR_em: Matcher = (lex: Lex) => {
 
         let vs = vm[msrc]
         if (undefined !== vs) {
-          out = new Token(
-            lex.t('#VL'),
-            vs.v,
-            msrc,
-            pnt,
-          )
+          out = lex.token('#VL', vs.v, msrc, pnt)
         }
         else {
           let num = +(msrc)
           if (!isNaN(num)) {
-            out = new Token(
-              lex.t('#NR'),
-              num,
-              msrc,
-              pnt,
-            )
+            out = lex.token('#NR', num, msrc, pnt)
           }
           pnt.sI += mlen
         }
@@ -167,10 +179,9 @@ const match_VL_NR_em: Matcher = (lex: Lex) => {
 
 // String matcher.
 const match_ST = (lex: Lex) => {
-  let { c, e, b } = lex.cfg.ST
+  let { c, e, b, d } = lex.cfg.ST
   let { pnt, src } = lex
   let { sI, cI } = pnt
-  let ST = lex.t('#ST')
   let srclen = src.length
 
   if (c[src[sI]]) {
@@ -186,8 +197,14 @@ const match_ST = (lex: Lex) => {
 
       // Quote char.
       if (src[sI] === q) {
-        sI++
-        break // String finished.
+        if (d && q === src[sI + 1]) {
+          s.push(src[sI])
+          sI++
+        }
+        else {
+          sI++
+          break // String finished.
+        }
       }
 
       // Escape char. 
@@ -277,8 +294,8 @@ const match_ST = (lex: Lex) => {
       throw new Error('ST-s')
     }
 
-    const tkn = new Token(
-      ST,
+    const tkn = lex.token(
+      '#ST',
       s.join(MT),
       src.substring(pnt.sI, sI),
       pnt,
@@ -297,7 +314,6 @@ const match_LN = (lex: Lex) => {
   let { c, r } = lex.cfg.LN
   let { pnt, src } = lex
   let { sI, rI } = pnt
-  let LN = lex.t('#LN')
 
   while (c[src[sI]]) {
     sI++
@@ -306,8 +322,8 @@ const match_LN = (lex: Lex) => {
 
   if (pnt.sI < sI) {
     let msrc = src.substring(pnt.sI, sI)
-    const tkn = new Token(
-      LN,
+    const tkn = lex.token(
+      '#LN',
       undefined,
       msrc,
       pnt,
@@ -321,21 +337,20 @@ const match_LN = (lex: Lex) => {
 
 
 // Space matcher.
-const match_SP = (lex: Lex) => {
-  let { c } = lex.cfg.SP
+const matchSpace = (lex: Lex) => {
+  let { charMap, tokenName } = lex.cfg.space
   let { pnt, src } = lex
   let { sI, cI } = pnt
-  let SP = lex.t('#SP')
 
-  while (c[src[sI]]) {
+  while (charMap[src[sI]]) {
     sI++
     cI++
   }
 
   if (pnt.sI < sI) {
     let msrc = src.substring(pnt.sI, sI)
-    const tkn = new Token(
-      SP,
+    const tkn = lex.token(
+      tokenName,
       undefined,
       msrc,
       pnt,
@@ -363,7 +378,7 @@ function submatch_fixed(
 
       let tin = lex.cfg.tm[tsrc]
       if (null != tin) {
-        tkn = new Token(
+        tkn = lex.token(
           tin,
           undefined,
           tsrc,
@@ -391,13 +406,13 @@ function submatch_fixed(
 
 class Lexer {
   cfg: Config
-
   end: Token
 
   constructor(cfg: Config) {
     this.cfg = cfg
 
     this.end = new Token(
+      '#ZZ',
       tokenize('#ZZ', cfg),
       undefined,
       '',
@@ -426,6 +441,7 @@ class Lex {
   pnt: Point
   mat: Matcher[]
 
+
   constructor(src: String, ctx: Context, cfg: Config) {
     this.src = src
     this.ctx = ctx
@@ -434,13 +450,45 @@ class Lex {
 
     // TODO: move to Lexer
     this.mat = [
-      match_SP,
+      matchSpace,
       match_LN,
       match_ST,
       match_VL_NR_em,
       match_VL_TX_em,
     ]
   }
+
+
+  token(
+    ref: Tin | string,
+    val: any,
+    src: string,
+    pnt: Point,
+    use?: any,
+    why?: string,
+  ): Token {
+    let tin: Tin
+    let name: string
+    if ('string' === typeof (ref)) {
+      name = ref
+      tin = tokenize(name, this.cfg)
+    }
+    else {
+      tin = ref
+      name = tokenize(ref, this.cfg)
+    }
+
+    return new Token(
+      name,
+      tin,
+      val,
+      src,
+      pnt,
+      use,
+      why,
+    )
+  }
+
 
   next(rule: Rule): Token {
     let pnt = this.pnt
@@ -455,8 +503,8 @@ class Lex {
 
 
     if (pnt.len <= pnt.sI) {
-      pnt.end = new Token(
-        this.t('#ZZ'),
+      pnt.end = this.token(
+        '#ZZ',
         undefined,
         '',
         pnt,
@@ -472,8 +520,8 @@ class Lex {
       }
     }
 
-    tkn = new Token(
-      this.t('#BD'),
+    tkn = this.token(
+      '#BD',
       undefined,
       this.src[pnt.sI],
       pnt,
@@ -484,8 +532,12 @@ class Lex {
     return tkn
   }
 
-  t(n: string): Tin {
-    return tokenize(n, this.cfg)
+  tokenize<
+    R extends string | Tin,
+    T extends (R extends Tin ? string : Tin)
+  >(ref: R):
+    T {
+    return tokenize(ref, this.cfg)
   }
 }
 
@@ -1298,8 +1350,8 @@ class Lexer {
 
 
 
-
 export {
+  Point,
   Token,
   Lex,
   Lexer,

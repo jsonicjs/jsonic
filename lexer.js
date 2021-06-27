@@ -1,9 +1,10 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.Lexer = exports.Lex = exports.Token = void 0;
+exports.Lexer = exports.Lex = exports.Token = exports.Point = void 0;
+const inspect = Symbol.for('nodejs.util.inspect.custom');
 const intern_1 = require("./intern");
 class Point {
-    constructor(len) {
+    constructor(len, sI, rI, cI) {
         this.len = -1;
         this.sI = 0;
         this.rI = 1;
@@ -11,22 +12,52 @@ class Point {
         this.token = [];
         this.end = undefined;
         this.len = len;
+        if (null != sI) {
+            this.sI = sI;
+        }
+        if (null != rI) {
+            this.rI = rI;
+        }
+        if (null != cI) {
+            this.cI = cI;
+        }
+    }
+    toString() {
+        return 'Point[' + [this.sI, this.rI, this.cI] + ';' + this.token + ']';
+    }
+    [inspect]() {
+        return this.toString();
     }
 }
+exports.Point = Point;
 // TODO: rename loc to sI, row to rI, col to cI
 // Tokens from the lexer.
 class Token {
-    constructor(tin, val, src, // TODO: string
+    constructor(name, tin, val, src, // TODO: string
     pnt, use, why) {
+        this.name = name;
         this.tin = tin;
         this.src = src;
         this.val = val;
-        this.loc = pnt.sI;
-        this.row = pnt.rI;
-        this.col = pnt.cI;
+        this.sI = pnt.sI;
+        this.rI = pnt.rI;
+        this.cI = pnt.cI;
         this.use = use;
         this.why = why;
         this.len = src.length;
+    }
+    toString() {
+        return 'Token[' +
+            this.name + '=' + this.tin + ';' +
+            ('' + this.src).substring(0, 5) + '=' + ('' + this.val).substring(0, 5) + ';' +
+            [this.sI, this.rI, this.cI] +
+            (null == this.use ? '' : ';' +
+                ('' + JSON.stringify(this.use).replace(/"/g, '')).substring(0, 22)) +
+            (null == this.why ? '' : ';' + ('' + this.why).substring(0, 22)) +
+            ']';
+    }
+    [inspect]() {
+        return this.toString();
     }
 }
 exports.Token = Token;
@@ -42,16 +73,17 @@ const match_VL_TX_em = (lex) => {
         let tsrc = m[2];
         let out = undefined;
         if (null != msrc) {
-            let txtlen = msrc.length;
-            if (0 < txtlen) {
+            let mlen = msrc.length;
+            if (0 < mlen) {
                 let vs = vm[msrc];
                 if (undefined !== vs) {
-                    out = new Token(lex.t('#VL'), vs.v, msrc, pnt);
+                    // TODO: get name from cfg  
+                    out = lex.token('#VL', vs.v, msrc, pnt);
                 }
                 else {
-                    out = new Token(lex.t('#TX'), msrc, msrc, pnt);
+                    out = lex.token('#TX', msrc, msrc, pnt);
                 }
-                pnt.sI += txtlen;
+                pnt.sI += mlen;
             }
         }
         out = submatch_fixed(lex, out, tsrc);
@@ -72,12 +104,12 @@ const match_VL_NR_em = (lex) => {
             if (0 < mlen) {
                 let vs = vm[msrc];
                 if (undefined !== vs) {
-                    out = new Token(lex.t('#VL'), vs.v, msrc, pnt);
+                    out = lex.token('#VL', vs.v, msrc, pnt);
                 }
                 else {
                     let num = +(msrc);
                     if (!isNaN(num)) {
-                        out = new Token(lex.t('#NR'), num, msrc, pnt);
+                        out = lex.token('#NR', num, msrc, pnt);
                     }
                     pnt.sI += mlen;
                 }
@@ -89,10 +121,9 @@ const match_VL_NR_em = (lex) => {
 };
 // String matcher.
 const match_ST = (lex) => {
-    let { c, e, b } = lex.cfg.ST;
+    let { c, e, b, d } = lex.cfg.ST;
     let { pnt, src } = lex;
     let { sI, cI } = pnt;
-    let ST = lex.t('#ST');
     let srclen = src.length;
     if (c[src[sI]]) {
         let q = src[sI]; // Quote character
@@ -103,8 +134,14 @@ const match_ST = (lex) => {
             cI++;
             // Quote char.
             if (src[sI] === q) {
-                sI++;
-                break; // String finished.
+                if (d && q === src[sI + 1]) {
+                    s.push(src[sI]);
+                    sI++;
+                }
+                else {
+                    sI++;
+                    break; // String finished.
+                }
             }
             // Escape char. 
             else if ('\\' === q) {
@@ -176,7 +213,7 @@ const match_ST = (lex) => {
             console.log(pnt, sI, q, s, src.substring(pnt.sI));
             throw new Error('ST-s');
         }
-        const tkn = new Token(ST, s.join(intern_1.MT), src.substring(pnt.sI, sI), pnt);
+        const tkn = lex.token('#ST', s.join(intern_1.MT), src.substring(pnt.sI, sI), pnt);
         pnt.sI = sI;
         //pnt.rI = rI
         pnt.cI = cI;
@@ -188,14 +225,13 @@ const match_LN = (lex) => {
     let { c, r } = lex.cfg.LN;
     let { pnt, src } = lex;
     let { sI, rI } = pnt;
-    let LN = lex.t('#LN');
     while (c[src[sI]]) {
         sI++;
         rI += (r === src[sI] ? 1 : 0);
     }
     if (pnt.sI < sI) {
         let msrc = src.substring(pnt.sI, sI);
-        const tkn = new Token(LN, undefined, msrc, pnt);
+        const tkn = lex.token('#LN', undefined, msrc, pnt);
         pnt.sI += msrc.length;
         pnt.rI = rI;
         pnt.cI = 1;
@@ -203,18 +239,17 @@ const match_LN = (lex) => {
     }
 };
 // Space matcher.
-const match_SP = (lex) => {
-    let { c } = lex.cfg.SP;
+const matchSpace = (lex) => {
+    let { charMap, tokenName } = lex.cfg.space;
     let { pnt, src } = lex;
     let { sI, cI } = pnt;
-    let SP = lex.t('#SP');
-    while (c[src[sI]]) {
+    while (charMap[src[sI]]) {
         sI++;
         cI++;
     }
     if (pnt.sI < sI) {
         let msrc = src.substring(pnt.sI, sI);
-        const tkn = new Token(SP, undefined, msrc, pnt);
+        const tkn = lex.token(tokenName, undefined, msrc, pnt);
         pnt.sI += msrc.length;
         pnt.cI = cI;
         return tkn;
@@ -229,7 +264,7 @@ function submatch_fixed(lex, first, tsrc) {
             let tkn = undefined;
             let tin = lex.cfg.tm[tsrc];
             if (null != tin) {
-                tkn = new Token(tin, undefined, tsrc, pnt);
+                tkn = lex.token(tin, undefined, tsrc, pnt);
             }
             if (null != tkn) {
                 pnt.sI += tkn.src.length;
@@ -247,7 +282,7 @@ function submatch_fixed(lex, first, tsrc) {
 class Lexer {
     constructor(cfg) {
         this.cfg = cfg;
-        this.end = new Token(intern_1.tokenize('#ZZ', cfg), undefined, '', new Point(-1));
+        this.end = new Token('#ZZ', intern_1.tokenize('#ZZ', cfg), undefined, '', new Point(-1));
     }
     start(ctx) {
         return new Lex(ctx.src(), ctx, this.cfg);
@@ -268,12 +303,25 @@ class Lex {
         this.pnt = new Point(src.length);
         // TODO: move to Lexer
         this.mat = [
-            match_SP,
+            matchSpace,
             match_LN,
             match_ST,
             match_VL_NR_em,
             match_VL_TX_em,
         ];
+    }
+    token(ref, val, src, pnt, use, why) {
+        let tin;
+        let name;
+        if ('string' === typeof (ref)) {
+            name = ref;
+            tin = intern_1.tokenize(name, this.cfg);
+        }
+        else {
+            tin = ref;
+            name = intern_1.tokenize(ref, this.cfg);
+        }
+        return new Token(name, tin, val, src, pnt, use, why);
     }
     next(rule) {
         let pnt = this.pnt;
@@ -284,7 +332,7 @@ class Lex {
             return pnt.token.shift();
         }
         if (pnt.len <= pnt.sI) {
-            pnt.end = new Token(this.t('#ZZ'), undefined, '', pnt);
+            pnt.end = this.token('#ZZ', undefined, '', pnt);
             return pnt.end;
         }
         let tkn;
@@ -293,11 +341,11 @@ class Lex {
                 return tkn;
             }
         }
-        tkn = new Token(this.t('#BD'), undefined, this.src[pnt.sI], pnt, undefined, 'bad');
+        tkn = this.token('#BD', undefined, this.src[pnt.sI], pnt, undefined, 'bad');
         return tkn;
     }
-    t(n) {
-        return intern_1.tokenize(n, this.cfg);
+    tokenize(ref) {
+        return intern_1.tokenize(ref, this.cfg);
     }
 }
 exports.Lex = Lex;

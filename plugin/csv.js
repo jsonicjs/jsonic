@@ -83,7 +83,7 @@ fields per row are expected.`,
                                 fsrc: ctx.v1.src,
                                 index: i,
                                 len: fields.length,
-                                row: ctx.v1.row,
+                                row: ctx.v1.rI,
                             };
                             return out;
                         }
