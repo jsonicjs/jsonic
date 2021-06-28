@@ -239,18 +239,19 @@ type Config = {
   // Line end characters.
   line: {
     active: boolean
-    c: CharMap
-    r: string // Row counter.
+    charMap: CharMap
+    rowCharMap: CharMap // Row counting characters.
   }
 
   // String quote characters.
   string: {
     active: boolean
-    c: CharMap,
-    e: KV,     // TODO: Escape char map.
-    b: number, // TODO: Backslash character code.
-    d: boolean,
-    multiline: CharMap,
+    quoteMap: CharMap,
+    escMap: KV,
+    escChar: string,
+    escCharCode: number,
+    doubleEsc: boolean,
+    multiLine: CharMap,
   }
 
   // Unquoted text

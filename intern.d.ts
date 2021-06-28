@@ -178,16 +178,17 @@ declare type Config = {
     };
     line: {
         active: boolean;
-        c: CharMap;
-        r: string;
+        charMap: CharMap;
+        rowCharMap: CharMap;
     };
     string: {
         active: boolean;
-        c: CharMap;
-        e: KV;
-        b: number;
-        d: boolean;
-        multiline: CharMap;
+        quoteMap: CharMap;
+        escMap: KV;
+        escChar: string;
+        escCharCode: number;
+        doubleEsc: boolean;
+        multiLine: CharMap;
     };
     text: {
         active: boolean;

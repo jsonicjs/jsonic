@@ -128,20 +128,22 @@ const matchNumberEndingWithFixed = (lex) => {
 const matchString = (lex) => {
     if (!lex.cfg.string.active)
         return undefined;
-    let { c, e, b, d } = lex.cfg.string;
+    let { quoteMap, escMap, escChar, escCharCode, doubleEsc, multiLine } = lex.cfg.string;
     let { pnt, src } = lex;
     let { sI, rI, cI } = pnt;
     let srclen = src.length;
-    if (c[src[sI]]) {
-        let q = src[sI]; // Quote character
+    if (quoteMap[src[sI]]) {
+        const q = src[sI]; // Quote character
+        const isMultiLine = multiLine[q];
         sI++;
         cI++;
         let s = [];
         for (sI; sI < srclen; sI++) {
             cI++;
+            let c = src[sI];
             // Quote char.
-            if (src[sI] === q) {
-                if (d && q === src[sI + 1]) {
+            if (q === c) {
+                if (doubleEsc && q === src[sI + 1]) {
                     s.push(src[sI]);
                     sI++;
                 }
@@ -151,10 +153,10 @@ const matchString = (lex) => {
                 }
             }
             // Escape char. 
-            else if ('\\' === q) {
+            else if (escChar === c) {
                 sI++;
                 cI++;
-                let es = e[src[sI]];
+                let es = escMap[src[sI]];
                 if (null != es) {
                     s.push(es);
                 }
@@ -165,8 +167,9 @@ const matchString = (lex) => {
                     if (isNaN(cc)) {
                         sI = sI - 2;
                         cI -= 2;
-                        throw new Error('ST-x');
-                        // return bad(S.invalid_ascii, sI + 2, src.substring(sI - 2, sI + 2))
+                        //throw new Error('ST-x')
+                        // return badx(S.invalid_ascii, sI + 2, src.substring(sI - 2, sI + 2))
+                        return lex.bad(intern_1.S.invalid_ascii, sI - 2, sI + 2);
                     }
                     let us = String.fromCharCode(cc);
                     s.push(us);
@@ -182,9 +185,10 @@ const matchString = (lex) => {
                     if (isNaN(cc)) {
                         sI = sI - 2 - ux;
                         cI -= 2;
-                        throw new Error('ST-u');
-                        //return bad(S.invalid_unicode, sI + ulen + 1,
+                        // throw new Error('ST-u')
+                        //return badx(S.invalid_unicode, sI + ulen + 1,
                         //  src.substring(sI - 2 - ux, sI + ulen + ux))
+                        return lex.bad(intern_1.S.invalid_unicode, sI - 2 - ux, sI + ulen + ux);
                     }
                     let us = String.fromCodePoint(cc);
                     s.push(us);
@@ -201,21 +205,24 @@ const matchString = (lex) => {
                 // TODO: move to cfgx
                 let qc = q.charCodeAt(0);
                 let cc = src.charCodeAt(sI);
-                while (sI < srclen && 32 <= cc && qc !== cc && b !== cc) {
+                while (sI < srclen && 32 <= cc && qc !== cc && escCharCode !== cc) {
                     cc = src.charCodeAt(++sI);
                     cI++;
                 }
                 cI--;
                 // TODO: confirm this works; Must end with quote
                 // TODO: maybe rename back to cs as confusing
-                q = src[sI];
+                //q = src[sI]
                 if (cc < 32) {
-                    if (lex.cfg.string.multiline[q]) {
-                        rI++;
+                    if (isMultiLine && lex.cfg.line.charMap[src[sI]]) {
+                        if (lex.cfg.line.rowCharMap[src[sI]]) {
+                            rI++;
+                        }
                         cI = 0;
+                        s.push(src.substring(bI, sI + 1));
                     }
                     else {
-                        throw new Error('ST-c');
+                        return lex.bad(intern_1.S.unprintable, sI, sI + 1);
                     }
                 }
                 else {
@@ -225,8 +232,9 @@ const matchString = (lex) => {
             }
         }
         if (src[sI - 1] !== q) {
-            console.log(pnt, sI, q, s, src.substring(pnt.sI));
-            throw new Error('ST-s');
+            return lex.bad(intern_1.S.unterminated, sI - 1, sI);
+            //console.log(pnt, sI, q, s, src.substring(pnt.sI))
+            //throw new Error('ST-s')
         }
         const tkn = lex.token('#ST', s.join(intern_1.MT), src.substring(pnt.sI, sI), pnt);
         pnt.sI = sI;
@@ -239,12 +247,12 @@ const matchString = (lex) => {
 const matchLineEnding = (lex) => {
     if (!lex.cfg.line.active)
         return undefined;
-    let { c, r } = lex.cfg.line;
+    let { charMap, rowCharMap } = lex.cfg.line;
     let { pnt, src } = lex;
     let { sI, rI } = pnt;
-    while (c[src[sI]]) {
+    while (charMap[src[sI]]) {
         sI++;
-        rI += (r === src[sI] ? 1 : 0);
+        rI += (rowCharMap[src[sI]] ? 1 : 0);
     }
     if (pnt.sI < sI) {
         let msrc = src.substring(pnt.sI, sI);
@@ -341,7 +349,7 @@ class Lex {
             tin = ref;
             name = intern_1.tokenize(ref, this.cfg);
         }
-        return new Token(name, tin, val, src, pnt, use, why);
+        return new Token(name, tin, val, src, pnt || this.pnt, use, why);
     }
     next(rule) {
         let pnt = this.pnt;
@@ -366,6 +374,11 @@ class Lex {
     }
     tokenize(ref) {
         return intern_1.tokenize(ref, this.cfg);
+    }
+    bad(why, pstart, pend) {
+        return this.token('#BD', undefined, 0 <= pstart && pstart <= pend ?
+            this.src.substring(pstart, pend) :
+            this.src[this.pnt.sI], undefined, undefined, why);
     }
 }
 exports.Lex = Lex;

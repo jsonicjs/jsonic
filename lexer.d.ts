@@ -43,9 +43,10 @@ declare class Lex {
     pnt: Point;
     mat: Matcher[];
     constructor(src: String, ctx: Context, cfg: Config);
-    token(ref: Tin | string, val: any, src: string, pnt: Point, use?: any, why?: string): Token;
+    token(ref: Tin | string, val: any, src: string, pnt?: Point, use?: any, why?: string): Token;
     next(rule: Rule): Token;
     tokenize<R extends string | Tin, T extends (R extends Tin ? string : Tin)>(ref: R): T;
+    bad(why: string, pstart: number, pend: number): Token;
 }
 declare type LexMatcherState = {
     sI: number;

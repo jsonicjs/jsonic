@@ -461,11 +461,13 @@ function configure(cfg, opts) {
     };
     cfg.line = {
         active: true,
-        c: {
+        charMap: {
             '\r': 13,
             '\n': 10,
         },
-        r: '\n',
+        rowCharMap: {
+            '\n': 13,
+        },
     };
     cfg.text = {
         active: true
@@ -489,21 +491,22 @@ function configure(cfg, opts) {
     };
     cfg.string = {
         active: true,
-        c: {
+        quoteMap: {
             '\'': 39,
             '"': 34,
             '`': 96,
         },
-        e: {
+        escMap: {
             b: '\b',
             f: '\f',
             n: '\n',
             r: '\r',
             t: '\t',
         },
-        b: '\\'.charCodeAt(0),
-        d: false,
-        multiline: {
+        escChar: '\\',
+        escCharCode: '\\'.charCodeAt(0),
+        doubleEsc: false,
+        multiLine: {
             '`': 96,
         }
     };
@@ -534,7 +537,7 @@ function configure(cfg, opts) {
     // End-marker RE part
     let em_re = [
         '([',
-        intern_1.escre(intern_1.keys(intern_1.charset(cfg.space.active && cfg.space.charMap, cfg.line.active && cfg.line.c)).join('')),
+        intern_1.escre(intern_1.keys(intern_1.charset(cfg.space.active && cfg.space.charMap, cfg.line.active && cfg.line.charMap)).join('')),
         ']|',
         cfg.fs.map(fs => intern_1.escre(fs)).join('|'),
         // TODO: spaces
@@ -560,8 +563,8 @@ function configure(cfg, opts) {
             //  s.replace(/_/g, null == re_ns ? '' : opts.number.sep))
             .join(''), ...em_re),
     };
-    console.log('CONFIG');
-    console.dir(cfg, { depth: null });
+    //console.log('CONFIG')
+    //console.dir(cfg, { depth: null })
     /////////
     let ot = opts.token;
     let token_names = intern_1.keys(ot);

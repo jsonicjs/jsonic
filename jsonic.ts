@@ -752,11 +752,13 @@ function configure(cfg: Config, opts: Options) {
 
   cfg.line = {
     active: true,
-    c: {
+    charMap: {
       '\r': 13,
       '\n': 10,
     },
-    r: '\n',
+    rowCharMap: {
+      '\n': 13,
+    },
   }
 
 
@@ -786,21 +788,22 @@ function configure(cfg: Config, opts: Options) {
 
   cfg.string = {
     active: true,
-    c: {
+    quoteMap: {
       '\'': 39,
       '"': 34,
       '`': 96,
     },
-    e: {
+    escMap: {
       b: '\b',
       f: '\f',
       n: '\n',
       r: '\r',
       t: '\t',
     },
-    b: '\\'.charCodeAt(0),
-    d: false,
-    multiline: {
+    escChar: '\\',
+    escCharCode: '\\'.charCodeAt(0),
+    doubleEsc: false,
+    multiLine: {
       '`': 96,
     }
   }
@@ -839,7 +842,7 @@ function configure(cfg: Config, opts: Options) {
     '([',
     escre(keys(charset(
       cfg.space.active && cfg.space.charMap,
-      cfg.line.active && cfg.line.c,
+      cfg.line.active && cfg.line.charMap,
     )).join('')),
     ']|',
     cfg.fs.map(fs => escre(fs)).join('|'),
@@ -882,8 +885,8 @@ function configure(cfg: Config, opts: Options) {
 
 
 
-  console.log('CONFIG')
-  console.dir(cfg, { depth: null })
+  //console.log('CONFIG')
+  //console.dir(cfg, { depth: null })
 
   /////////
 
