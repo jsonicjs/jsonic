@@ -537,12 +537,13 @@ function make(param_options?: KV, parent?: Jsonic): Jsonic {
   }
   else {
     // TODO: Move to configure
-    config = ({
-      tI: 1, // Start at 1 to avoid spurious false value for first token
-      t: {}
-    } as Config)
+    // config = ({
+    //   tI: 1, // Start at 1 to avoid spurious false value for first token
+    //   t: {}
+    // } as Config)
 
-    configure(config, merged_options)
+    // config = ({} as Config)
+    config = configure(undefined, merged_options)
 
     plugins = []
 
@@ -731,13 +732,29 @@ function parserwrap(parser: any) {
 
 // Idempotent normalization of options.
 // See Config type for commentary.
-function configure(cfg: Config, opts: Options) {
+function configure(incfg: Config | undefined, opts: Options): Config {
+
+  const cfg = incfg || ({
+    tI: 1, // Start at 1 to avoid spurious false value for first token
+    t: {}
+  } as Config)
+
   const t = (tn: string) => tokenize(tn, cfg)
 
   // Standard tokens.
-  let SP = t('#SP')
-  let LN = t('#LN')
-  let CM = t('#CM')
+  let SP = t('#SP') // SPACE
+  let LN = t('#LN') // LINE
+  let CM = t('#CM') // COMMENT
+
+  t('#NR') // NUMBER
+  t('#ST') // STRING
+  t('#TX') // TEXT
+  t('#VL') // VALUE
+
+  t('#BD') // BAD
+  t('#ZZ') // END
+  t('#UK') // UNKNOWN
+  t('#AA') // ANY
 
 
   cfg.tokenSet = {
@@ -935,11 +952,11 @@ function configure(cfg: Config, opts: Options) {
 
 
 
-  let ot = opts.token
-  let token_names = keys(ot)
+  //let ot = opts.token
+  //let token_names = keys(ot)
 
-  // Index of tokens by name.
-  token_names.forEach(tn => tokenize(tn, cfg))
+  // // Index of tokens by name.
+  // token_names.forEach(tn => tokenize(tn, cfg))
 
   //let fixstrs = token_names
   //  .filter(tn => null != (t[tn] as any).c)
@@ -1119,6 +1136,9 @@ function configure(cfg: Config, opts: Options) {
   if (opts.debug.print.config) {
     opts.debug.get_console().dir(cfg, { depth: null })
   }
+
+
+  return cfg
 }
 
 

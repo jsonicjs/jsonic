@@ -50,7 +50,7 @@ declare function ender(endchars: CharMap, endmarks: KV, singles?: KV): RegExp;
 declare function parserwrap(parser: any): {
     start: (lexer: Lexer, src: string, jsonic: Jsonic, meta?: any, parent_ctx?: any) => any;
 };
-declare function configure(cfg: Config, opts: Options): void;
+declare function configure(incfg: Config | undefined, opts: Options): Config;
 declare let Jsonic: Jsonic;
 export { Jsonic, Plugin, JsonicError, Tin, Lexer, Parser, Rule, RuleSpec, RuleSpecMap, Token, Context, Meta, LexMatcher, LexMatcherListMap, LexMatcherResult, LexMatcherState, Alt, AltCond, AltHandler, AltAction, util, make, };
 export default Jsonic;
