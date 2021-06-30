@@ -22,6 +22,15 @@ enum RuleState {
 
 
 
+// Map character to Token index.
+type TinMap = { [char: string]: Tin }
+
+
+
+
+
+
+
 const MT = '' // Empty ("MT"!) string.
 
 
@@ -107,13 +116,12 @@ type KV = { [k: string]: any }
 type Tin = number
 
 
-// Map character to Token index.
-type TinMap = { [char: string]: Tin }
+// Map token string to Token index.
+type TokenMap = { [token: string]: Tin }
 
 
 // Map character to code value.
 type CharMap = { [char: string]: number }
-
 
 
 // Meta parameters for a given parse run.
@@ -227,6 +235,7 @@ type Config = {
   // Fixed tokens (punctuation, operators, keywords, etc.)
   fixed: {
     active: boolean
+    token: TokenMap
   }
 
   // Space characters.

@@ -4,6 +4,9 @@ declare enum RuleState {
     open = 0,
     close = 1
 }
+declare type TinMap = {
+    [char: string]: Tin;
+};
 declare const MT = "";
 declare const keys: {
     (o: object): string[];
@@ -70,8 +73,8 @@ declare type KV = {
     [k: string]: any;
 };
 declare type Tin = number;
-declare type TinMap = {
-    [char: string]: Tin;
+declare type TokenMap = {
+    [token: string]: Tin;
 };
 declare type CharMap = {
     [char: string]: number;
@@ -170,6 +173,7 @@ declare type Options = {
 declare type Config = {
     fixed: {
         active: boolean;
+        token: TokenMap;
     };
     space: {
         active: boolean;

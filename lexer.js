@@ -75,7 +75,7 @@ const matchFixed = (lex) => {
         let tknlen = tsrc.length;
         if (0 < tknlen) {
             let tkn = undefined;
-            let tin = lex.cfg.tm[tsrc];
+            let tin = lex.cfg.fixed.token[tsrc];
             if (null != tin) {
                 tkn = lex.token(tin, undefined, tsrc, pnt);
                 pnt.sI += tsrc.length;
@@ -329,7 +329,7 @@ function subMatchFixed(lex, first, tsrc) {
         let tknlen = tsrc.length;
         if (0 < tknlen) {
             let tkn = undefined;
-            let tin = lex.cfg.tm[tsrc];
+            let tin = lex.cfg.fixed.token[tsrc];
             if (null != tin) {
                 tkn = lex.token(tin, undefined, tsrc, pnt);
             }

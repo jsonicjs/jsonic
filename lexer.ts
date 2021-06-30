@@ -121,7 +121,7 @@ const matchFixed: Matcher = (lex: Lex) => {
     if (0 < tknlen) {
       let tkn: Token | undefined = undefined
 
-      let tin = lex.cfg.tm[tsrc]
+      let tin = lex.cfg.fixed.token[tsrc]
       if (null != tin) {
         tkn = lex.token(
           tin,
@@ -479,7 +479,7 @@ function subMatchFixed(
     if (0 < tknlen) {
       let tkn: Token | undefined = undefined
 
-      let tin = lex.cfg.tm[tsrc]
+      let tin = lex.cfg.fixed.token[tsrc]
       if (null != tin) {
         tkn = lex.token(
           tin,

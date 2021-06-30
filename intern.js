@@ -8,7 +8,6 @@ var RuleState;
     RuleState[RuleState["close"] = 1] = "close";
 })(RuleState || (RuleState = {}));
 exports.RuleState = RuleState;
-/* $lab:coverage:on$ */
 const MT = ''; // Empty ("MT"!) string.
 exports.MT = MT;
 const keys = Object.keys;

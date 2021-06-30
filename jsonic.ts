@@ -729,7 +729,6 @@ function parserwrap(parser: any) {
 }
 
 
-
 // Idempotent normalization of options.
 // See Config type for commentary.
 function configure(cfg: Config, opts: Options) {
@@ -741,7 +740,19 @@ function configure(cfg: Config, opts: Options) {
 
   cfg.fixed = {
     // TODO: rename to lex in all
-    active: true
+    active: true,
+    token: {
+      '{': t('#OB'),
+      '}': t('#CB'),
+      '[': t('#OS'),
+      ']': t('#CS'),
+      ':': t('#CL'),
+      ',': t('#CM'),
+      // TODO:move to test
+      //'=': t('#EQ'),
+      //'=>': t('#DA'),
+      //'===': t('#ES'),
+    }
   }
 
   cfg.space = {
@@ -820,6 +831,7 @@ function configure(cfg: Config, opts: Options) {
     ],
   }
 
+  /*
   cfg.tm = {
     '{': t('#OB'),
     '}': t('#CB'),
@@ -833,6 +845,7 @@ function configure(cfg: Config, opts: Options) {
     '=>': t('#DA'),
     '===': t('#ES'),
   }
+  */
 
   // Fixed token strings
   cfg.fs = [

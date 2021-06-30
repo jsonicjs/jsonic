@@ -452,7 +452,19 @@ function configure(cfg, opts) {
     t('#LN');
     cfg.fixed = {
         // TODO: rename to lex in all
-        active: true
+        active: true,
+        token: {
+            '{': t('#OB'),
+            '}': t('#CB'),
+            '[': t('#OS'),
+            ']': t('#CS'),
+            ':': t('#CL'),
+            ',': t('#CM'),
+            // TODO:move to test
+            //'=': t('#EQ'),
+            //'=>': t('#DA'),
+            //'===': t('#ES'),
+        }
     };
     cfg.space = {
         active: true,
@@ -521,18 +533,21 @@ function configure(cfg, opts) {
             { line: false, start: '/*', end: '*/', active: true, eof: false },
         ],
     };
+    /*
     cfg.tm = {
-        '{': t('#OB'),
-        '}': t('#CB'),
-        '[': t('#OS'),
-        ']': t('#CS'),
-        ':': t('#CL'),
-        ',': t('#CM'),
-        // TODO:move to test
-        '=': t('#EQ'),
-        '=>': t('#DA'),
-        '===': t('#ES'),
-    };
+      '{': t('#OB'),
+      '}': t('#CB'),
+      '[': t('#OS'),
+      ']': t('#CS'),
+      ':': t('#CL'),
+      ',': t('#CM'),
+  
+      // TODO:move to test
+      '=': t('#EQ'),
+      '=>': t('#DA'),
+      '===': t('#ES'),
+    }
+    */
     // Fixed token strings
     cfg.fs = [
         '{',
