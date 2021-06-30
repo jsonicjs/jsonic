@@ -270,6 +270,19 @@ type Config = {
     m: { [literal: string]: { v: any } }
   }
 
+
+  comment: {
+    active: boolean
+    marker: {
+      line: boolean
+      start: string
+      end: string
+      active: boolean
+      eof: boolean // EOF also ends comment
+    }[]
+  }
+
+
   // Token map
   tm: { [token: string]: Tin }
 

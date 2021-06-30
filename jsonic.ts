@@ -740,6 +740,7 @@ function configure(cfg: Config, opts: Options) {
   t('#LN')
 
   cfg.fixed = {
+    // TODO: rename to lex in all
     active: true
   }
 
@@ -810,6 +811,14 @@ function configure(cfg: Config, opts: Options) {
     }
   }
 
+  cfg.comment = {
+    active: true,
+    marker: [
+      { line: true, start: '#', end: '\n', active: true, eof: true },
+      { line: true, start: '//', end: '\n', active: true, eof: true },
+      { line: false, start: '/*', end: '*/', active: true, eof: false },
+    ],
+  }
 
   cfg.tm = {
     '{': t('#OB'),
@@ -844,6 +853,9 @@ function configure(cfg: Config, opts: Options) {
 
   let fixed_re = cfg.fs.map(fs => escre(fs)).join('|')
 
+  let comments = cfg.comment.active && cfg.comment.marker.filter(c => c.active)
+  // console.log('COMMENTS', comments)
+
   // End-marker RE part
   let em_re = [
     '([',
@@ -854,6 +866,11 @@ function configure(cfg: Config, opts: Options) {
     ']|',
     fixed_re,
     // TODO: spaces
+
+    comments ?
+      ('|' + comments.reduce((a: string[], c: any) =>
+        (a.push(escre(c.start)), a), []).join('|')) : '',
+
     '|$)', // EOF case
   ]
 
@@ -894,13 +911,24 @@ function configure(cfg: Config, opts: Options) {
       fixed_re,
       ')'
     ),
+
+
+    commentLine: regexp(
+      null,
+
+      comments ?
+        comments.reduce((a: string[], c: any) =>
+        (a.push('^(' + escre(c.start) +
+          '.*?(' + escre(c.end) +
+          (c.eof ? '|$' : '') + ')' + ')'), a), []).join('|') : '',
+    ),
   }
 
 
 
 
-  //console.log('CONFIG')
-  //console.dir(cfg, { depth: null })
+  // console.log('CONFIG')
+  // console.dir(cfg, { depth: null })
 
   /////////
 

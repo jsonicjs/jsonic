@@ -84,6 +84,23 @@ const matchFixed = (lex) => {
         }
     }
 };
+const matchComment = (lex) => {
+    if (!lex.cfg.comment.active)
+        return undefined;
+    let pnt = lex.pnt;
+    let fwd = lex.src.substring(pnt.sI);
+    let m = fwd.match(lex.cfg.re.commentLine);
+    if (m) {
+        let msrc = m[1];
+        let mlen = msrc.length;
+        if (0 < mlen) {
+            let tkn = undefined;
+            tkn = lex.token('#CM', undefined, msrc, pnt);
+            pnt.sI += msrc.length;
+            return tkn;
+        }
+    }
+};
 // Match text, checking for literal values, optionally followed by a fixed token.
 // Text strings are terminated by end markers.
 const matchTextEndingWithFixed = (lex) => {
@@ -357,6 +374,7 @@ class Lex {
             matchSpace,
             matchLineEnding,
             matchString,
+            matchComment,
             matchNumberEndingWithFixed,
             matchTextEndingWithFixed,
         ];
@@ -373,7 +391,7 @@ class Lex {
             name = intern_1.tokenize(ref, this.cfg);
         }
         let tkn = new Token(name, tin, val, src, pnt || this.pnt, use, why);
-        console.log(tkn);
+        // console.log(tkn)
         return tkn;
     }
     next(rule) {

@@ -139,6 +139,34 @@ const matchFixed: Matcher = (lex: Lex) => {
 }
 
 
+const matchComment: Matcher = (lex: Lex) => {
+  if (!lex.cfg.comment.active) return undefined
+
+  let pnt = lex.pnt
+  let fwd = lex.src.substring(pnt.sI)
+
+  let m = fwd.match((lex.cfg.re.commentLine as RegExp))
+  if (m) {
+    let msrc = m[1]
+    let mlen = msrc.length
+    if (0 < mlen) {
+      let tkn: Token | undefined = undefined
+
+      tkn = lex.token(
+        '#CM',
+        undefined,
+        msrc,
+        pnt,
+      )
+
+      pnt.sI += msrc.length
+
+      return tkn
+    }
+  }
+}
+
+
 // Match text, checking for literal values, optionally followed by a fixed token.
 // Text strings are terminated by end markers.
 const matchTextEndingWithFixed: Matcher = (lex: Lex) => {
@@ -529,6 +557,7 @@ class Lex {
       matchSpace,
       matchLineEnding,
       matchString,
+      matchComment,
       matchNumberEndingWithFixed,
       matchTextEndingWithFixed,
     ]
@@ -564,7 +593,7 @@ class Lex {
       why,
     )
 
-    console.log(tkn)
+    // console.log(tkn)
 
     return tkn
   }

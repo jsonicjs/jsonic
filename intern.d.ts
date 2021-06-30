@@ -204,6 +204,16 @@ declare type Config = {
             };
         };
     };
+    comment: {
+        active: boolean;
+        marker: {
+            line: boolean;
+            start: string;
+            end: string;
+            active: boolean;
+            eof: boolean;
+        }[];
+    };
     tm: {
         [token: string]: Tin;
     };

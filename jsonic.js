@@ -451,6 +451,7 @@ function configure(cfg, opts) {
     t('#SP');
     t('#LN');
     cfg.fixed = {
+        // TODO: rename to lex in all
         active: true
     };
     cfg.space = {
@@ -512,6 +513,14 @@ function configure(cfg, opts) {
             '`': 96,
         }
     };
+    cfg.comment = {
+        active: true,
+        marker: [
+            { line: true, start: '#', end: '\n', active: true, eof: true },
+            { line: true, start: '//', end: '\n', active: true, eof: true },
+            { line: false, start: '/*', end: '*/', active: true, eof: false },
+        ],
+    };
     cfg.tm = {
         '{': t('#OB'),
         '}': t('#CB'),
@@ -538,6 +547,8 @@ function configure(cfg, opts) {
         '===',
     ].sort((a, b) => b.length - a.length);
     let fixed_re = cfg.fs.map(fs => intern_1.escre(fs)).join('|');
+    let comments = cfg.comment.active && cfg.comment.marker.filter(c => c.active);
+    // console.log('COMMENTS', comments)
     // End-marker RE part
     let em_re = [
         '([',
@@ -545,6 +556,8 @@ function configure(cfg, opts) {
         ']|',
         fixed_re,
         // TODO: spaces
+        comments ?
+            ('|' + comments.reduce((a, c) => (a.push(intern_1.escre(c.start)), a), []).join('|')) : '',
         '|$)', // EOF case
     ];
     // TODO: friendlier names
@@ -568,9 +581,13 @@ function configure(cfg, opts) {
             //  s.replace(/_/g, null == re_ns ? '' : opts.number.sep))
             .join(''), ...em_re),
         fixed: intern_1.regexp(null, '^(', fixed_re, ')'),
+        commentLine: intern_1.regexp(null, comments ?
+            comments.reduce((a, c) => (a.push('^(' + intern_1.escre(c.start) +
+                '.*?(' + intern_1.escre(c.end) +
+                (c.eof ? '|$' : '') + ')' + ')'), a), []).join('|') : ''),
     };
-    //console.log('CONFIG')
-    //console.dir(cfg, { depth: null })
+    // console.log('CONFIG')
+    // console.dir(cfg, { depth: null })
     /////////
     let ot = opts.token;
     let token_names = intern_1.keys(ot);
