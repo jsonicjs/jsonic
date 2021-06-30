@@ -45,6 +45,8 @@ class Token {
         this.use = use;
         this.why = why;
         this.len = src.length;
+        // console.log(this)
+        // console.trace()
     }
     toString() {
         return 'Token[' +
@@ -109,7 +111,7 @@ const matchTextEndingWithFixed = (lex) => {
     let pnt = lex.pnt;
     let fwd = lex.src.substring(pnt.sI);
     let vm = lex.cfg.value.m;
-    let m = fwd.match(lex.cfg.re.TXem);
+    let m = fwd.match(lex.cfg.re.textEnder);
     if (m) {
         let msrc = m[1];
         let tsrc = m[2];
@@ -138,7 +140,7 @@ const matchNumberEndingWithFixed = (lex) => {
     let pnt = lex.pnt;
     let fwd = lex.src.substring(pnt.sI);
     let vm = lex.cfg.value.m;
-    let m = fwd.match(lex.cfg.re.NRem);
+    let m = fwd.match(lex.cfg.re.numberEnder);
     if (m) {
         let msrc = m[1];
         let tsrc = m[2];

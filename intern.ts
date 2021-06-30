@@ -291,6 +291,36 @@ type Config = {
     }[]
   }
 
+  re: {
+    ender: RegExp
+    textEnder: RegExp
+    numberEnder: RegExp
+    fixed: RegExp
+    commentLine: RegExp
+  }
+
+
+  debug: {
+    get_console: () => any
+    maxlen: number
+    print: {
+      config: boolean
+    }
+  }
+
+  tokenSet: {
+    ignore: {
+      [name: number]: boolean
+    }
+  }
+
+
+  tI: number // Token identifier index.
+  t: any // Token index map.
+
+
+  ///////////
+
 
   // Token map
   tm: { [token: string]: Tin }
@@ -300,8 +330,6 @@ type Config = {
 
 
 
-  tI: number // Token identifier index.
-  t: any // Token index map.
   m: { [token_name: string]: TinMap }         // Mutually exclusive character sets.
   cs: { [charset_name: string]: CharMap } // Character set.
   sm: { [char: string]: Tin }                 // Single character token index.
@@ -315,10 +343,10 @@ type Config = {
   bmk: string[]                               // Block start markers.
   bmx: number                                 // Block start markers max length.
   sc: string                                  // Token start characters.
-  d: KV,                                      // Debug options.
+  //d: KV,                                      // Debug options.
 
   // TOD: maybe list them?
-  re: { [name: string]: RegExp | null }       // RegExp map.
+  // re: { [name: string]: RegExp | null }       // RegExp map.
 }
 
 
@@ -545,7 +573,8 @@ function errdesc(
     ),
     '  \x1b[2mhttps://jsonic.richardrodger.com\x1b[0m',
     '  \x1b[2m--internal: rule=' + rule.name + '~' + RuleState[rule.state] +
-    '; token=' + ctx.cfg.t[token.tin] +
+    //'; token=' + ctx.cfg.t[token.tin] +
+    '; token=' + tokenize(token.tin, ctx.cfg) +
     (null == token.why ? '' : ('~' + token.why)) +
     '; plugins=' + ctx.plgn().map((p: any) => p.name).join(',') + '--\x1b[0m\n'
   ].join('\n')
@@ -631,8 +660,8 @@ function makelog(ctx: Context) {
 function srcfmt(config: Config) {
   return (s: any, _?: any) =>
     null == s ? MT : (_ = JSON.stringify(s),
-      _.substring(0, config.d.maxlen) +
-      (config.d.maxlen < _.length ? '...' : MT))
+      _.substring(0, config.debug.maxlen) +
+      (config.debug.maxlen < _.length ? '...' : MT))
 }
 
 

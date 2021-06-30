@@ -220,7 +220,8 @@ function errdesc(code, details, token, rule, ctx) {
             .map((s, i) => (0 === i ? ' ' : '  ') + s).join('\n'), code, details, token, rule, ctx),
         '  \x1b[2mhttps://jsonic.richardrodger.com\x1b[0m',
         '  \x1b[2m--internal: rule=' + rule.name + '~' + RuleState[rule.state] +
-            '; token=' + ctx.cfg.t[token.tin] +
+            //'; token=' + ctx.cfg.t[token.tin] +
+            '; token=' + tokenize(token.tin, ctx.cfg) +
             (null == token.why ? '' : ('~' + token.why)) +
             '; plugins=' + ctx.plgn().map((p) => p.name).join(',') + '--\x1b[0m\n'
     ].join('\n');
@@ -290,8 +291,8 @@ function makelog(ctx) {
 exports.makelog = makelog;
 function srcfmt(config) {
     return (s, _) => null == s ? MT : (_ = JSON.stringify(s),
-        _.substring(0, config.d.maxlen) +
-            (config.d.maxlen < _.length ? '...' : MT));
+        _.substring(0, config.debug.maxlen) +
+            (config.debug.maxlen < _.length ? '...' : MT));
 }
 exports.srcfmt = srcfmt;
 function snip(s, len = 5) {

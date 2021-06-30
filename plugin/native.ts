@@ -67,7 +67,11 @@ let Native: Plugin = function native(jsonic: Jsonic) {
 
       while (pI < srclen &&
         (('/' === src[pI] && '\\' === src[pI - 1]) ||
-          !config.cs.vend[src[pI]])) {
+
+          // TODO: check this still works!
+          //!config.cs.vend[src[pI]])
+          !src.substring(pI).match(ctx.cfg.re.ender)
+        )) {
         pI++
         cD++
       }

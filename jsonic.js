@@ -448,8 +448,16 @@ function parserwrap(parser) {
 function configure(cfg, opts) {
     const t = (tn) => intern_1.tokenize(tn, cfg);
     // Standard tokens.
-    t('#SP');
-    t('#LN');
+    let SP = t('#SP');
+    let LN = t('#LN');
+    let CM = t('#CM');
+    cfg.tokenSet = {
+        ignore: {
+            [SP]: true,
+            [LN]: true,
+            [CM]: true,
+        }
+    };
     cfg.fixed = {
         // TODO: rename to lex in all
         active: true,
@@ -459,7 +467,7 @@ function configure(cfg, opts) {
             '[': t('#OS'),
             ']': t('#CS'),
             ':': t('#CL'),
-            ',': t('#CM'),
+            ',': t('#CA'),
             // TODO:move to test
             //'=': t('#EQ'),
             //'=>': t('#DA'),
@@ -533,43 +541,16 @@ function configure(cfg, opts) {
             { line: false, start: '/*', end: '*/', active: true, eof: false },
         ],
     };
-    /*
-    cfg.tm = {
-      '{': t('#OB'),
-      '}': t('#CB'),
-      '[': t('#OS'),
-      ']': t('#CS'),
-      ':': t('#CL'),
-      ',': t('#CM'),
-  
-      // TODO:move to test
-      '=': t('#EQ'),
-      '=>': t('#DA'),
-      '===': t('#ES'),
-    }
-    */
-    // Fixed token strings
-    cfg.fs = [
-        '{',
-        '}',
-        '[',
-        ']',
-        ':',
-        ',',
-        // TODO: TEST!
-        '=',
-        '=>',
-        '===',
-    ].sort((a, b) => b.length - a.length);
-    let fixed_re = cfg.fs.map(fs => intern_1.escre(fs)).join('|');
+    let fixedSorted = Object.keys(cfg.fixed.token)
+        .sort((a, b) => b.length - a.length);
+    let fixedRE = fixedSorted.map(fixed => intern_1.escre(fixed)).join('|');
     let comments = cfg.comment.active && cfg.comment.marker.filter(c => c.active);
-    // console.log('COMMENTS', comments)
     // End-marker RE part
-    let em_re = [
+    let enderRE = [
         '([',
         intern_1.escre(intern_1.keys(intern_1.charset(cfg.space.active && cfg.space.charMap, cfg.line.active && cfg.line.charMap)).join('')),
         ']|',
-        fixed_re,
+        fixedRE,
         // TODO: spaces
         comments ?
             ('|' + comments.reduce((a, c) => (a.push(intern_1.escre(c.start)), a), []).join('|')) : '',
@@ -577,11 +558,12 @@ function configure(cfg, opts) {
     ];
     // TODO: friendlier names
     cfg.re = {
+        ender: intern_1.regexp(null, ...enderRE),
         // Text to end-marker.
-        TXem: intern_1.regexp(null, '^(.*?)', ...em_re),
+        textEnder: intern_1.regexp(null, '^(.*?)', ...enderRE),
         // TODO: use cfg props
         // Number to end-marker.
-        NRem: intern_1.regexp(null, [
+        numberEnder: intern_1.regexp(null, [
             '^[-+]?(0(',
             [
                 opts.number.hex ? 'x[0-9a-fA-F_]+' : null,
@@ -594,12 +576,19 @@ function configure(cfg, opts) {
         ]
             //.filter(s =>
             //  s.replace(/_/g, null == re_ns ? '' : opts.number.sep))
-            .join(''), ...em_re),
-        fixed: intern_1.regexp(null, '^(', fixed_re, ')'),
+            .join(''), ...enderRE),
+        fixed: intern_1.regexp(null, '^(', fixedRE, ')'),
         commentLine: intern_1.regexp(null, comments ?
             comments.reduce((a, c) => (a.push('^(' + intern_1.escre(c.start) +
                 '.*?(' + intern_1.escre(c.end) +
                 (c.eof ? '|$' : '') + ')' + ')'), a), []).join('|') : ''),
+    };
+    cfg.debug = {
+        get_console: opts.debug.get_console,
+        maxlen: opts.debug.maxlen,
+        print: {
+            config: opts.debug.print.config
+        },
     };
     // console.log('CONFIG')
     // console.dir(cfg, { depth: null })
@@ -710,7 +699,7 @@ function configure(cfg, opts) {
     });
     // console.log('cfg.re.txfs', cfg.re.txfs)
     // Debug options
-    cfg.d = opts.debug;
+    //cfg.d = opts.debug
     // Apply any config modifiers (probably from plugins).
     intern_1.keys(opts.config.modify)
         .forEach((modifer) => opts.config.modify[modifer](cfg, opts));

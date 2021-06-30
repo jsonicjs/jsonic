@@ -218,12 +218,31 @@ declare type Config = {
             eof: boolean;
         }[];
     };
+    re: {
+        ender: RegExp;
+        textEnder: RegExp;
+        numberEnder: RegExp;
+        fixed: RegExp;
+        commentLine: RegExp;
+    };
+    debug: {
+        get_console: () => any;
+        maxlen: number;
+        print: {
+            config: boolean;
+        };
+    };
+    tokenSet: {
+        ignore: {
+            [name: number]: boolean;
+        };
+    };
+    tI: number;
+    t: any;
     tm: {
         [token: string]: Tin;
     };
     fs: string[];
-    tI: number;
-    t: any;
     m: {
         [token_name: string]: TinMap;
     };
@@ -251,10 +270,6 @@ declare type Config = {
     bmk: string[];
     bmx: number;
     sc: string;
-    d: KV;
-    re: {
-        [name: string]: RegExp | null;
-    };
 };
 declare type Context = {
     uI: number;

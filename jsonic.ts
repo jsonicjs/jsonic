@@ -735,8 +735,19 @@ function configure(cfg: Config, opts: Options) {
   const t = (tn: string) => tokenize(tn, cfg)
 
   // Standard tokens.
-  t('#SP')
-  t('#LN')
+  let SP = t('#SP')
+  let LN = t('#LN')
+  let CM = t('#CM')
+
+
+  cfg.tokenSet = {
+    ignore: {
+      [SP]: true,
+      [LN]: true,
+      [CM]: true,
+    }
+  }
+
 
   cfg.fixed = {
     // TODO: rename to lex in all
@@ -747,7 +758,7 @@ function configure(cfg: Config, opts: Options) {
       '[': t('#OS'),
       ']': t('#CS'),
       ':': t('#CL'),
-      ',': t('#CM'),
+      ',': t('#CA'),
       // TODO:move to test
       //'=': t('#EQ'),
       //'=>': t('#DA'),
@@ -831,53 +842,22 @@ function configure(cfg: Config, opts: Options) {
     ],
   }
 
-  /*
-  cfg.tm = {
-    '{': t('#OB'),
-    '}': t('#CB'),
-    '[': t('#OS'),
-    ']': t('#CS'),
-    ':': t('#CL'),
-    ',': t('#CM'),
+  let fixedSorted = Object.keys(cfg.fixed.token)
+    .sort((a: string, b: string) => b.length - a.length)
 
-    // TODO:move to test
-    '=': t('#EQ'),
-    '=>': t('#DA'),
-    '===': t('#ES'),
-  }
-  */
-
-  // Fixed token strings
-  cfg.fs = [
-    '{',
-    '}',
-    '[',
-    ']',
-    ':',
-    ',',
-
-    // TODO: TEST!
-    '=',
-    '=>',
-    '===',
-  ].sort((a: string, b: string) => b.length - a.length)
-
-
-
-  let fixed_re = cfg.fs.map(fs => escre(fs)).join('|')
+  let fixedRE = fixedSorted.map(fixed => escre(fixed)).join('|')
 
   let comments = cfg.comment.active && cfg.comment.marker.filter(c => c.active)
-  // console.log('COMMENTS', comments)
 
   // End-marker RE part
-  let em_re = [
+  let enderRE = [
     '([',
     escre(keys(charset(
       cfg.space.active && cfg.space.charMap,
       cfg.line.active && cfg.line.charMap,
     )).join('')),
     ']|',
-    fixed_re,
+    fixedRE,
     // TODO: spaces
 
     comments ?
@@ -889,17 +869,18 @@ function configure(cfg: Config, opts: Options) {
 
   // TODO: friendlier names
   cfg.re = {
+    ender: regexp(null, ...enderRE),
 
     // Text to end-marker.
-    TXem: regexp(
+    textEnder: regexp(
       null,
       '^(.*?)',
-      ...em_re
+      ...enderRE
     ),
 
     // TODO: use cfg props
     // Number to end-marker.
-    NRem: regexp(
+    numberEnder: regexp(
       null,
       [
         '^[-+]?(0(',
@@ -915,13 +896,13 @@ function configure(cfg: Config, opts: Options) {
         //.filter(s =>
         //  s.replace(/_/g, null == re_ns ? '' : opts.number.sep))
         .join(''),
-      ...em_re
+      ...enderRE
     ),
 
     fixed: regexp(
       null,
       '^(',
-      fixed_re,
+      fixedRE,
       ')'
     ),
 
@@ -938,12 +919,20 @@ function configure(cfg: Config, opts: Options) {
   }
 
 
+  cfg.debug = {
+    get_console: opts.debug.get_console,
+    maxlen: opts.debug.maxlen,
+    print: {
+      config: opts.debug.print.config
+    },
+  }
 
 
   // console.log('CONFIG')
   // console.dir(cfg, { depth: null })
 
   /////////
+
 
 
   let ot = opts.token
@@ -1116,7 +1105,8 @@ function configure(cfg: Config, opts: Options) {
   // console.log('cfg.re.txfs', cfg.re.txfs)
 
   // Debug options
-  cfg.d = opts.debug
+  //cfg.d = opts.debug
+
 
 
   // Apply any config modifiers (probably from plugins).

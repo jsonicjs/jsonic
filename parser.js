@@ -520,6 +520,8 @@ class Parser {
         // lots of backtracking), and apply a multipler options as a get-out-of-jail.
         let maxr = 2 * intern_1.keys(this.rsm).length * lex.src.length *
             2 * this.options.rule.maxmul;
+        let ignore = ctx.cfg.tokenSet.ignore;
+        // console.log('IGNORE', ignore)
         // Lex next token.
         function next() {
             ctx.v2 = ctx.v1;
@@ -529,7 +531,8 @@ class Parser {
             do {
                 t1 = lex(rule);
                 ctx.tC++;
-            } while (ctx.cfg.ts.IGNORE[t1.tin]);
+                //} while (ctx.cfg.ts.IGNORE[t1.tin])
+            } while (ignore[t1.tin]);
             ctx.t1 = { ...t1 };
             return ctx.t0;
         }
