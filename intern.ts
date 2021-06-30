@@ -323,26 +323,26 @@ type Config = {
 
 
   // Token map
-  tm: { [token: string]: Tin }
+  // tm: { [token: string]: Tin }
 
 
-  fs: string[] // Fixed strings (tokens, values, etc)
+  // fs: string[] // Fixed strings (tokens, values, etc)
 
 
 
-  m: { [token_name: string]: TinMap }         // Mutually exclusive character sets.
-  cs: { [charset_name: string]: CharMap } // Character set.
-  sm: { [char: string]: Tin }                 // Single character token index.
-  ts: { [tokenset_name: string]: Tin[] }      // Named token sets.
-  vs: { [start_char: string]: boolean }       // Literal value start characters.
-  vm: KV,                                     // Map value source to actual value.
-  esc: { [name: string]: string }             // String escape characters.
-  cm: { [start_marker: string]: string | boolean } // Comment start markers.
-  cmk: string[]                               // Comment start markers.
-  cmx: number                                 // Comment start markers max length.
-  bmk: string[]                               // Block start markers.
-  bmx: number                                 // Block start markers max length.
-  sc: string                                  // Token start characters.
+  // m: { [token_name: string]: TinMap }         // Mutually exclusive character sets.
+  // cs: { [charset_name: string]: CharMap } // Character set.
+  // sm: { [char: string]: Tin }                 // Single character token index.
+  // ts: { [tokenset_name: string]: Tin[] }      // Named token sets.
+  // vs: { [start_char: string]: boolean }       // Literal value start characters.
+  // vm: KV,                                     // Map value source to actual value.
+  // esc: { [name: string]: string }             // String escape characters.
+  // cm: { [start_marker: string]: string | boolean } // Comment start markers.
+  // cmk: string[]                               // Comment start markers.
+  // cmx: number                                 // Comment start markers max length.
+  // bmk: string[]                               // Block start markers.
+  // bmx: number                                 // Block start markers max length.
+  // sc: string                                  // Token start characters.
   //d: KV,                                      // Debug options.
 
   // TOD: maybe list them?

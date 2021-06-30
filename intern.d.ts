@@ -239,37 +239,6 @@ declare type Config = {
     };
     tI: number;
     t: any;
-    tm: {
-        [token: string]: Tin;
-    };
-    fs: string[];
-    m: {
-        [token_name: string]: TinMap;
-    };
-    cs: {
-        [charset_name: string]: CharMap;
-    };
-    sm: {
-        [char: string]: Tin;
-    };
-    ts: {
-        [tokenset_name: string]: Tin[];
-    };
-    vs: {
-        [start_char: string]: boolean;
-    };
-    vm: KV;
-    esc: {
-        [name: string]: string;
-    };
-    cm: {
-        [start_marker: string]: string | boolean;
-    };
-    cmk: string[];
-    cmx: number;
-    bmk: string[];
-    bmx: number;
-    sc: string;
 };
 declare type Context = {
     uI: number;

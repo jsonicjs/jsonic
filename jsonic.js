@@ -600,103 +600,125 @@ function configure(cfg, opts) {
     //let fixstrs = token_names
     //  .filter(tn => null != (t[tn] as any).c)
     //  .map(tn => (t[tn] as any).c)
-    cfg.vs = intern_1.keys(opts.value.src)
-        .reduce((a, s) => (a[s[0]] = true, a), {});
+    // cfg.vs = keys(opts.value.src)
+    //   .reduce((a: any, s: string) => (a[s[0]] = true, a), {})
     // TODO: comments, etc
     // fixstrs = fixstrs.concat(keys(opts.value.src))
     // console.log('FIXSTRS', fixstrs)
     // Sort by length descending
     //cfg.fs = fixstrs.sort((a: string, b: string) => b.length - a.length)
-    let single_char_token_names = token_names
-        .filter(tn => null != ot[tn].c && 1 === ot[tn].c.length);
-    cfg.sm = single_char_token_names
-        .reduce((a, tn) => (a[opts.token[tn].c] =
-        cfg.t[tn], a), {});
-    let multi_char_token_names = token_names
-        .filter(tn => intern_1.S.string === typeof opts.token[tn]);
-    cfg.m = multi_char_token_names
-        .reduce((a, tn) => (a[tn.substring(1)] =
-        opts.token[tn]
-            .split(intern_1.MT)
-            .reduce((pm, c) => (pm[c] = cfg.t[tn], pm), {}),
-        a), {});
-    let tokenset_names = token_names
-        .filter(tn => null != opts.token[tn].s);
+    // let single_char_token_names = token_names
+    //   .filter(tn => null != (ot[tn] as any).c && 1 === (ot[tn] as any).c.length)
+    // cfg.sm = single_char_token_names
+    //   .reduce((a, tn) => (a[(opts.token[tn] as any).c] =
+    //     (cfg.t as any)[tn], a), ({} as any))
+    // let multi_char_token_names = token_names
+    //   .filter(tn => S.string === typeof opts.token[tn])
+    // cfg.m = multi_char_token_names
+    //   .reduce((a: any, tn) =>
+    //   (a[tn.substring(1)] =
+    //     (opts.token[tn] as string)
+    //       .split(MT)
+    //       .reduce((pm, c) => (pm[c] = cfg.t[tn], pm), ({} as TinMap)),
+    //     a), {})
+    // let tokenset_names = token_names
+    //   .filter(tn => null != (opts.token[tn] as any).s)
     // Char code arrays for lookup by char code.
-    cfg.ts = tokenset_names
-        .reduce((a, tsn) => (a[tsn.substring(1)] =
-        opts.token[tsn].s.split(',')
-            .reduce((a, tn) => (a[cfg.t[tn]] = tn, a), {}),
-        a), {});
+    // cfg.ts = tokenset_names
+    //   .reduce((a: any, tsn) =>
+    //   (a[tsn.substring(1)] =
+    //     (opts.token[tsn] as any).s.split(',')
+    //       .reduce((a: any, tn: string) => (a[cfg.t[tn]] = tn, a), {}),
+    //     a), {})
     // config.vm = options.value.src
     // config.vs = keys(options.value.src)
     //  .reduce((a: any, s: string) => (a[s[0]] = true, a), {})
     // Lookup maps for sets of characters.
-    cfg.cs = {};
+    // cfg.cs = {}
     // Lookup table for escape chars, indexed by denotating char (e.g. n for \n).
-    cfg.esc = intern_1.keys(opts.string.escape)
-        .reduce((a, ed) => (a[ed] = opts.string.escape[ed], a), {});
+    // cfg.esc = keys(opts.string.escape)
+    //   .reduce((a: any, ed: string) =>
+    //     (a[ed] = opts.string.escape[ed], a), {})
     // comment start markers
-    cfg.cs.cs = {};
+    // cfg.cs.cs = {}
     // comment markers
-    cfg.cmk = [];
-    if (opts.comment.lex) {
-        cfg.cm = opts.comment.marker;
-        let comment_markers = intern_1.keys(cfg.cm);
-        comment_markers.forEach(k => {
-            // Single char comment marker (eg. `#`)
-            if (1 === k.length) {
-                cfg.cs.cs[k] = k.charCodeAt(0);
-            }
-            // String comment marker (eg. `//`)
-            else {
-                cfg.cs.cs[k[0]] = k.charCodeAt(0);
-                cfg.cmk.push(k);
-            }
-        });
-        cfg.cmx = longest(comment_markers);
-    }
-    cfg.sc = intern_1.keys(cfg.sm).join(intern_1.MT);
+    // cfg.cmk = []
+    // if (opts.comment.lex) {
+    //   cfg.cm = opts.comment.marker
+    //   let comment_markers = keys(cfg.cm)
+    //   comment_markers.forEach(k => {
+    //     // Single char comment marker (eg. `#`)
+    //     if (1 === k.length) {
+    //       cfg.cs.cs[k] = k.charCodeAt(0)
+    //     }
+    //     // String comment marker (eg. `//`)
+    //     else {
+    //       cfg.cs.cs[k[0]] = k.charCodeAt(0)
+    //       cfg.cmk.push(k)
+    //     }
+    //   })
+    //   cfg.cmx = longest(comment_markers)
+    // }
+    // cfg.sc = keys(cfg.sm).join(MT)
     // All the characters that can appear in a number.
-    cfg.cs.dig = intern_1.charset(opts.number.digital);
-    // Multiline quotes
-    cfg.cs.mln = intern_1.charset(opts.string.multiline);
+    // cfg.cs.dig = charset(opts.number.digital)
+    // // Multiline quotes
+    // cfg.cs.mln = charset(opts.string.multiline)
     // Enders are char sets that end lexing for a given token.
     // Value enders...end values!
-    cfg.cs.vend = intern_1.charset(opts.space.lex && cfg.m.SP, opts.line.lex && cfg.m.LN, cfg.sc, opts.comment.lex && cfg.cs.cs, opts.block.lex && cfg.cs.bs);
+    // cfg.cs.vend = charset(
+    //   opts.space.lex && cfg.m.SP,
+    //   opts.line.lex && cfg.m.LN,
+    //   cfg.sc,
+    //   opts.comment.lex && cfg.cs.cs,
+    //   opts.block.lex && cfg.cs.bs,
+    // )
     // block start markers
-    cfg.cs.bs = {};
-    cfg.bmk = [];
+    // cfg.cs.bs = {}
+    // cfg.bmk = []
     // TODO: change to block.markers as per comments, then config.bm
-    let block_markers = intern_1.keys(opts.block.marker);
-    block_markers.forEach(k => {
-        cfg.cs.bs[k[0]] = k.charCodeAt(0);
-        cfg.bmk.push(k);
-    });
-    cfg.bmx = longest(block_markers);
-    let re_ns = null != opts.number.sep ?
-        new RegExp(opts.number.sep, 'g') : null;
+    // let block_markers = keys(opts.block.marker)
+    // block_markers.forEach(k => {
+    // cfg.cs.bs[k[0]] = k.charCodeAt(0)
+    // cfg.bmk.push(k)
+    // })
+    // cfg.bmx = longest(block_markers)
+    //let re_ns = null != opts.number.sep ?
+    //  new RegExp(opts.number.sep, 'g') : null
     // RegExp cache
-    cfg.re = Object.assign(cfg.re, {
-        ns: re_ns,
-        te: ender(intern_1.charset(opts.space.lex && cfg.m.SP, opts.line.lex && cfg.m.LN, cfg.sc, opts.comment.lex && cfg.cs.cs, opts.block.lex && cfg.cs.bs), {
-            ...(opts.comment.lex ? cfg.cm : {}),
-            ...(opts.block.lex ? opts.block.marker : {}),
-        }, cfg.sm),
-        nm: new RegExp([
-            '^[-+]?(0(',
-            [
-                opts.number.hex ? 'x[0-9a-fA-F_]+' : null,
-                opts.number.oct ? 'o[0-7_]+' : null,
-                opts.number.bin ? 'b[01_]+' : null,
-            ].filter(s => null != s).join('|'),
-            ')|[0-9]+([0-9_]*[0-9])?)',
-            '(\\.[0-9]+([0-9_]*[0-9])?)?',
-            '([eE][-+]?[0-9]+([0-9_]*[0-9])?)?',
-        ]
-            .filter(s => s.replace(/_/g, null == re_ns ? '' : opts.number.sep))
-            .join(''))
-    });
+    // cfg.re = Object.assign(cfg.re, {
+    //   //ns: re_ns,
+    //   // te: ender(
+    //   //   charset(
+    //   //     opts.space.lex && cfg.m.SP,
+    //   //     opts.line.lex && cfg.m.LN,
+    //   //     cfg.sc,
+    //   //     opts.comment.lex && cfg.cs.cs,
+    //   //     opts.block.lex && cfg.cs.bs
+    //   //   ),
+    //   //   {
+    //   //     ...(opts.comment.lex ? cfg.cm : {}),
+    //   //     ...(opts.block.lex ? opts.block.marker : {}),
+    //   //   },
+    //   //   cfg.sm
+    //   // ),
+    //   nm: new RegExp(
+    //     [
+    //       '^[-+]?(0(',
+    //       [
+    //         opts.number.hex ? 'x[0-9a-fA-F_]+' : null,
+    //         opts.number.oct ? 'o[0-7_]+' : null,
+    //         opts.number.bin ? 'b[01_]+' : null,
+    //       ].filter(s => null != s).join('|'),
+    //       ')|[0-9]+([0-9_]*[0-9])?)',
+    //       '(\\.[0-9]+([0-9_]*[0-9])?)?',
+    //       '([eE][-+]?[0-9]+([0-9_]*[0-9])?)?',
+    //     ]
+    //       .filter(s =>
+    //         s.replace(/_/g, null == re_ns ? '' : opts.number.sep))
+    //       .join('')
+    //   )
+    // })
     // console.log('cfg.re.txfs', cfg.re.txfs)
     // Debug options
     //cfg.d = opts.debug
