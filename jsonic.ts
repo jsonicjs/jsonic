@@ -792,11 +792,11 @@ function configure(cfg: Config, opts: Options) {
       'null': { v: null },
 
       // TODO: just testing, move to plugin
-      'undefined': { v: undefined },
-      'NaN': { v: NaN },
-      'Infinity': { v: Infinity },
-      '+Infinity': { v: +Infinity },
-      '-Infinity': { v: -Infinity },
+      // 'undefined': { v: undefined },
+      // 'NaN': { v: NaN },
+      // 'Infinity': { v: Infinity },
+      // '+Infinity': { v: +Infinity },
+      // '-Infinity': { v: -Infinity },
     }
   }
 
