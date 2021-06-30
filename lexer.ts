@@ -11,6 +11,7 @@ import {
   Context,
   Tin,
   tokenize,
+  snip,
 } from './intern'
 
 
@@ -78,12 +79,20 @@ class Token {
 
   toString() {
     return 'Token[' +
-      this.name + '=' + this.tin + ';' +
-      ('' + this.src).substring(0, 5) + '=' + ('' + this.val).substring(0, 5) + ';' +
+      this.name + '=' + this.tin + ' ' +
+
+      snip(this.src) +
+
+      // TODO: make configurable?
+      (undefined === this.val || '#ST' === this.name || '#TX' === this.name ? '' :
+        '=' + snip(this.val)) + ' ' +
+
       [this.sI, this.rI, this.cI] +
-      (null == this.use ? '' : ';' +
-        ('' + JSON.stringify(this.use).replace(/"/g, '')).substring(0, 22)) +
-      (null == this.why ? '' : ';' + ('' + this.why).substring(0, 22)) +
+
+      (null == this.use ? '' : ' ' +
+        snip(('' + JSON.stringify(this.use).replace(/"/g, '')), 22)) +
+
+      (null == this.why ? '' : ' ' + snip('' + this.why), 22) +
       ']'
   }
 
@@ -99,6 +108,35 @@ type Matcher = (lex: Lex, rule: Rule) => Token | undefined
 
 
 
+const matchFixed: Matcher = (lex: Lex) => {
+  if (!lex.cfg.fixed.active) return undefined
+
+  let pnt = lex.pnt
+  let fwd = lex.src.substring(pnt.sI)
+
+  let m = fwd.match((lex.cfg.re.fixed as RegExp))
+  if (m) {
+    let tsrc = m[1]
+    let tknlen = tsrc.length
+    if (0 < tknlen) {
+      let tkn: Token | undefined = undefined
+
+      let tin = lex.cfg.tm[tsrc]
+      if (null != tin) {
+        tkn = lex.token(
+          tin,
+          undefined,
+          tsrc,
+          pnt,
+        )
+
+        pnt.sI += tsrc.length
+      }
+
+      return tkn
+    }
+  }
+}
 
 
 // Match text, checking for literal values, optionally followed by a fixed token.
@@ -487,7 +525,7 @@ class Lex {
 
     // TODO: move to Lexer
     this.mat = [
-      // matchFixed
+      matchFixed,
       matchSpace,
       matchLineEnding,
       matchString,
@@ -516,7 +554,7 @@ class Lex {
       name = tokenize(ref, this.cfg)
     }
 
-    return new Token(
+    let tkn = new Token(
       name,
       tin,
       val,
@@ -525,6 +563,10 @@ class Lex {
       use,
       why,
     )
+
+    console.log(tkn)
+
+    return tkn
   }
 
 

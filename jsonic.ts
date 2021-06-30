@@ -1,5 +1,6 @@
 /* Copyright (c) 2013-2021 Richard Rodger, MIT License */
 
+// TODO: [,,,] syntax should match JS!
 // TODO: rename tokens to be user friendly
 // TODO: if token recognized, error needs to be about token, not characters
 // TODO: row numbers need to start at 1 as editors start line numbers at 1
@@ -535,8 +536,9 @@ function make(param_options?: KV, parent?: Jsonic): Jsonic {
     parser = parent_internal.parser.clone(merged_options, config)
   }
   else {
+    // TODO: Move to configure
     config = ({
-      tI: 1,
+      tI: 1, // Start at 1 to avoid spurious false value for first token
       t: {}
     } as Config)
 
@@ -832,10 +834,15 @@ function configure(cfg: Config, opts: Options) {
     ':',
     ',',
 
+    // TODO: TEST!
     '=',
     '=>',
     '===',
   ].sort((a: string, b: string) => b.length - a.length)
+
+
+
+  let fixed_re = cfg.fs.map(fs => escre(fs)).join('|')
 
   // End-marker RE part
   let em_re = [
@@ -845,16 +852,17 @@ function configure(cfg: Config, opts: Options) {
       cfg.line.active && cfg.line.charMap,
     )).join('')),
     ']|',
-    cfg.fs.map(fs => escre(fs)).join('|'),
+    fixed_re,
     // TODO: spaces
     '|$)', // EOF case
   ]
 
+  // TODO: friendlier names
   cfg.re = {
 
     // Text to end-marker.
     TXem: regexp(
-      '',
+      null,
       '^(.*?)',
       ...em_re
     ),
@@ -862,7 +870,7 @@ function configure(cfg: Config, opts: Options) {
     // TODO: use cfg props
     // Number to end-marker.
     NRem: regexp(
-      '',
+      null,
       [
         '^[-+]?(0(',
         [
@@ -880,6 +888,12 @@ function configure(cfg: Config, opts: Options) {
       ...em_re
     ),
 
+    fixed: regexp(
+      null,
+      '^(',
+      fixed_re,
+      ')'
+    ),
   }
 
 

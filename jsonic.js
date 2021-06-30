@@ -2,6 +2,7 @@
 /* Copyright (c) 2013-2021 Richard Rodger, MIT License */
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.make = exports.util = exports.Alt = exports.Token = exports.RuleSpec = exports.Rule = exports.Parser = exports.Lexer = exports.JsonicError = exports.Jsonic = void 0;
+// TODO: [,,,] syntax should match JS!
 // TODO: rename tokens to be user friendly
 // TODO: if token recognized, error needs to be about token, not characters
 // TODO: row numbers need to start at 1 as editors start line numbers at 1
@@ -312,6 +313,7 @@ function make(param_options, parent) {
         parser = parent_internal.parser.clone(merged_options, config);
     }
     else {
+        // TODO: Move to configure
         config = {
             tI: 1,
             t: {}
@@ -530,25 +532,28 @@ function configure(cfg, opts) {
         ']',
         ':',
         ',',
+        // TODO: TEST!
         '=',
         '=>',
         '===',
     ].sort((a, b) => b.length - a.length);
+    let fixed_re = cfg.fs.map(fs => intern_1.escre(fs)).join('|');
     // End-marker RE part
     let em_re = [
         '([',
         intern_1.escre(intern_1.keys(intern_1.charset(cfg.space.active && cfg.space.charMap, cfg.line.active && cfg.line.charMap)).join('')),
         ']|',
-        cfg.fs.map(fs => intern_1.escre(fs)).join('|'),
+        fixed_re,
         // TODO: spaces
         '|$)', // EOF case
     ];
+    // TODO: friendlier names
     cfg.re = {
         // Text to end-marker.
-        TXem: intern_1.regexp('', '^(.*?)', ...em_re),
+        TXem: intern_1.regexp(null, '^(.*?)', ...em_re),
         // TODO: use cfg props
         // Number to end-marker.
-        NRem: intern_1.regexp('', [
+        NRem: intern_1.regexp(null, [
             '^[-+]?(0(',
             [
                 opts.number.hex ? 'x[0-9a-fA-F_]+' : null,
@@ -562,6 +567,7 @@ function configure(cfg, opts) {
             //.filter(s =>
             //  s.replace(/_/g, null == re_ns ? '' : opts.number.sep))
             .join(''), ...em_re),
+        fixed: intern_1.regexp(null, '^(', fixed_re, ')'),
     };
     //console.log('CONFIG')
     //console.dir(cfg, { depth: null })

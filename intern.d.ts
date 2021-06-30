@@ -268,7 +268,7 @@ declare type Context = {
 };
 declare function tokenize<R extends string | Tin, T extends (R extends Tin ? string : Tin)>(ref: R, cfg: Config, jsonic?: any): T;
 declare function mesc(s: string, _?: any): any;
-declare function regexp(flags: string, ...parts: (string | (String & {
+declare function regexp(flags: string | null, ...parts: (string | (String & {
     esc?: boolean;
 }))[]): RegExp;
 declare function escre(s: string): string;
@@ -280,6 +280,7 @@ declare function errdesc(code: string, details: KV, token: Token, rule: Rule, ct
 declare function badlex(lex: Lex, BD: Tin, ctx: Context): any;
 declare function makelog(ctx: Context): ((...rest: any) => undefined) | undefined;
 declare function srcfmt(config: Config): (s: any, _?: any) => string;
+declare function snip(s: any, len?: number): string;
 declare function clone(class_instance: any): any;
 declare function charset(...parts: (string | object | boolean)[]): CharMap;
-export { CharMap, Config, Context, JsonicError, KV, MT, Meta, Options, RuleState, S, Tin, TinMap, Token, assign, badlex, deep, defprop, entries, errdesc, errinject, extract, keys, makelog, mesc, regexp, escre, tokenize, trimstk, srcfmt, clone, charset, };
+export { CharMap, Config, Context, JsonicError, KV, MT, Meta, Options, RuleState, S, Tin, TinMap, Token, assign, badlex, deep, defprop, entries, errdesc, errinject, extract, keys, makelog, mesc, regexp, escre, tokenize, trimstk, srcfmt, clone, charset, snip, };

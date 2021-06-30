@@ -48,12 +48,15 @@ class Token {
     }
     toString() {
         return 'Token[' +
-            this.name + '=' + this.tin + ';' +
-            ('' + this.src).substring(0, 5) + '=' + ('' + this.val).substring(0, 5) + ';' +
+            this.name + '=' + this.tin + ' ' +
+            intern_1.snip(this.src) +
+            // TODO: make configurable?
+            (undefined === this.val || '#ST' === this.name || '#TX' === this.name ? '' :
+                '=' + intern_1.snip(this.val)) + ' ' +
             [this.sI, this.rI, this.cI] +
-            (null == this.use ? '' : ';' +
-                ('' + JSON.stringify(this.use).replace(/"/g, '')).substring(0, 22)) +
-            (null == this.why ? '' : ';' + ('' + this.why).substring(0, 22)) +
+            (null == this.use ? '' : ' ' +
+                intern_1.snip(('' + JSON.stringify(this.use).replace(/"/g, '')), 22)) +
+            (null == this.why ? '' : ' ' + intern_1.snip('' + this.why), 22) +
             ']';
     }
     [inspect]() {
@@ -61,6 +64,26 @@ class Token {
     }
 }
 exports.Token = Token;
+const matchFixed = (lex) => {
+    if (!lex.cfg.fixed.active)
+        return undefined;
+    let pnt = lex.pnt;
+    let fwd = lex.src.substring(pnt.sI);
+    let m = fwd.match(lex.cfg.re.fixed);
+    if (m) {
+        let tsrc = m[1];
+        let tknlen = tsrc.length;
+        if (0 < tknlen) {
+            let tkn = undefined;
+            let tin = lex.cfg.tm[tsrc];
+            if (null != tin) {
+                tkn = lex.token(tin, undefined, tsrc, pnt);
+                pnt.sI += tsrc.length;
+            }
+            return tkn;
+        }
+    }
+};
 // Match text, checking for literal values, optionally followed by a fixed token.
 // Text strings are terminated by end markers.
 const matchTextEndingWithFixed = (lex) => {
@@ -330,7 +353,7 @@ class Lex {
         this.pnt = new Point(src.length);
         // TODO: move to Lexer
         this.mat = [
-            // matchFixed
+            matchFixed,
             matchSpace,
             matchLineEnding,
             matchString,
@@ -349,7 +372,9 @@ class Lex {
             tin = ref;
             name = intern_1.tokenize(ref, this.cfg);
         }
-        return new Token(name, tin, val, src, pnt || this.pnt, use, why);
+        let tkn = new Token(name, tin, val, src, pnt || this.pnt, use, why);
+        console.log(tkn);
+        return tkn;
     }
     next(rule) {
         let pnt = this.pnt;

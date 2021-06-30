@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.charset = exports.clone = exports.srcfmt = exports.trimstk = exports.tokenize = exports.escre = exports.regexp = exports.mesc = exports.makelog = exports.keys = exports.extract = exports.errinject = exports.errdesc = exports.entries = exports.defprop = exports.deep = exports.badlex = exports.assign = exports.S = exports.RuleState = exports.MT = exports.JsonicError = void 0;
+exports.snip = exports.charset = exports.clone = exports.srcfmt = exports.trimstk = exports.tokenize = exports.escre = exports.regexp = exports.mesc = exports.makelog = exports.keys = exports.extract = exports.errinject = exports.errdesc = exports.entries = exports.defprop = exports.deep = exports.badlex = exports.assign = exports.S = exports.RuleState = exports.MT = exports.JsonicError = void 0;
 /* $lab:coverage:off$ */
 var RuleState;
 (function (RuleState) {
@@ -105,7 +105,7 @@ function regexp(flags, ...parts) {
     return new RegExp(parts.map(p => p.esc ?
         //p.replace(/[-\\|\]{}()[^$+*?.!=]/g, '\\$&')
         escre(p.toString())
-        : p).join(MT), flags);
+        : p).join(MT), null == flags ? '' : flags);
 }
 exports.regexp = regexp;
 function escre(s) {
@@ -295,6 +295,10 @@ function srcfmt(config) {
             (config.d.maxlen < _.length ? '...' : MT));
 }
 exports.srcfmt = srcfmt;
+function snip(s, len = 5) {
+    return undefined === s ? '' : ('' + s).substring(0, len).replace(/[\r\n\t]/g, '.');
+}
+exports.snip = snip;
 function clone(class_instance) {
     return deep(Object.create(Object.getPrototypeOf(class_instance)), class_instance);
 }

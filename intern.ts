@@ -294,6 +294,8 @@ type Config = {
   bmx: number                                 // Block start markers max length.
   sc: string                                  // Token start characters.
   d: KV,                                      // Debug options.
+
+  // TOD: maybe list them?
   re: { [name: string]: RegExp | null }       // RegExp map.
 }
 
@@ -361,14 +363,14 @@ function mesc(s: string, _?: any) {
 // Construct a RegExp. Use mesc to mark string for escaping.
 // NOTE: flags first allows concatenated parts to be rest.
 function regexp(
-  flags: string,
+  flags: string | null,
   ...parts: (string | (String & { esc?: boolean }))[]
 ): RegExp {
   return new RegExp(
     parts.map(p => (p as any).esc ?
       //p.replace(/[-\\|\]{}()[^$+*?.!=]/g, '\\$&')
       escre(p.toString())
-      : p).join(MT), flags)
+      : p).join(MT), null == flags ? '' : flags)
 }
 
 
@@ -612,6 +614,9 @@ function srcfmt(config: Config) {
 }
 
 
+function snip(s: any, len: number = 5) {
+  return undefined === s ? '' : ('' + s).substring(0, len).replace(/[\r\n\t]/g, '.')
+}
 
 
 
@@ -665,4 +670,5 @@ export {
   srcfmt,
   clone,
   charset,
+  snip,
 }
