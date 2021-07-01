@@ -23,8 +23,7 @@ declare class Token {
     use?: any;
     why?: string;
     len: number;
-    constructor(name: string, tin: Tin, val: any, src: any, // TODO: string
-    pnt: Point, use?: any, why?: string);
+    constructor(name: string, tin: Tin, val: any, src: string, pnt: Point, use?: any, why?: string);
     toString(): string;
     [inspect](): string;
 }

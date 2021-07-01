@@ -23,7 +23,8 @@ class Point {
         }
     }
     toString() {
-        return 'Point[' + [this.sI, this.rI, this.cI] + ';' + this.token + ']';
+        return 'Point[' + [this.sI, this.rI, this.cI] +
+            (0 < this.token.length ? (' ' + this.token) : '') + ']';
     }
     [inspect]() {
         return this.toString();
@@ -33,8 +34,7 @@ exports.Point = Point;
 // TODO: rename loc to sI, row to rI, col to cI
 // Tokens from the lexer.
 class Token {
-    constructor(name, tin, val, src, // TODO: string
-    pnt, use, why) {
+    constructor(name, tin, val, src, pnt, use, why) {
         this.name = name;
         this.tin = tin;
         this.src = src;
@@ -44,7 +44,7 @@ class Token {
         this.cI = pnt.cI;
         this.use = use;
         this.why = why;
-        this.len = src.length;
+        this.len = null == src ? 0 : src.length;
         // console.log(this)
         // console.trace()
     }
@@ -52,13 +52,12 @@ class Token {
         return 'Token[' +
             this.name + '=' + this.tin + ' ' +
             intern_1.snip(this.src) +
-            // TODO: make configurable?
             (undefined === this.val || '#ST' === this.name || '#TX' === this.name ? '' :
                 '=' + intern_1.snip(this.val)) + ' ' +
             [this.sI, this.rI, this.cI] +
             (null == this.use ? '' : ' ' +
                 intern_1.snip(('' + JSON.stringify(this.use).replace(/"/g, '')), 22)) +
-            (null == this.why ? '' : ' ' + intern_1.snip('' + this.why), 22) +
+            (null == this.why ? '' : ' ' + intern_1.snip('' + this.why, 22)) +
             ']';
     }
     [inspect]() {
@@ -73,14 +72,15 @@ const matchFixed = (lex) => {
     let fwd = lex.src.substring(pnt.sI);
     let m = fwd.match(lex.cfg.re.fixed);
     if (m) {
-        let tsrc = m[1];
-        let tknlen = tsrc.length;
-        if (0 < tknlen) {
+        let msrc = m[1];
+        let mlen = msrc.length;
+        if (0 < mlen) {
             let tkn = undefined;
-            let tin = lex.cfg.fixed.token[tsrc];
+            let tin = lex.cfg.fixed.token[msrc];
             if (null != tin) {
-                tkn = lex.token(tin, undefined, tsrc, pnt);
-                pnt.sI += tsrc.length;
+                tkn = lex.token(tin, undefined, msrc, pnt);
+                pnt.sI += mlen;
+                pnt.cI += mlen;
             }
             return tkn;
         }
@@ -98,7 +98,8 @@ const matchComment = (lex) => {
         if (0 < mlen) {
             let tkn = undefined;
             tkn = lex.token('#CM', undefined, msrc, pnt);
-            pnt.sI += msrc.length;
+            pnt.sI += mlen;
+            pnt.cI += mlen;
             return tkn;
         }
     }
@@ -128,6 +129,7 @@ const matchTextEndingWithFixed = (lex) => {
                     out = lex.token('#TX', msrc, msrc, pnt);
                 }
                 pnt.sI += mlen;
+                pnt.cI += mlen;
             }
         }
         out = subMatchFixed(lex, out, tsrc);
@@ -137,13 +139,15 @@ const matchTextEndingWithFixed = (lex) => {
 const matchNumberEndingWithFixed = (lex) => {
     if (!lex.cfg.number.lex)
         return undefined;
+    let cfgnum = lex.cfg.number;
+    let cfgre = lex.cfg.re;
     let pnt = lex.pnt;
     let fwd = lex.src.substring(pnt.sI);
     let vm = lex.cfg.value.m;
-    let m = fwd.match(lex.cfg.re.numberEnder);
+    let m = fwd.match(cfgre.numberEnder);
     if (m) {
         let msrc = m[1];
-        let tsrc = m[2];
+        let tsrc = m[9]; // NOTE: count parens in numberEnder!
         let out = undefined;
         if (null != msrc) {
             let mlen = msrc.length;
@@ -153,11 +157,14 @@ const matchNumberEndingWithFixed = (lex) => {
                     out = lex.token('#VL', vs.v, msrc, pnt);
                 }
                 else {
-                    let num = +(msrc);
+                    let nstr = cfgnum.sep ? msrc.replace(cfgre.numberSep, '') : msrc;
+                    let num = +(nstr);
                     if (!isNaN(num)) {
                         out = lex.token('#NR', num, msrc, pnt);
+                        pnt.sI += mlen;
+                        pnt.cI += mlen;
                     }
-                    pnt.sI += mlen;
+                    // console.log('PNT-z', pnt, out)
                 }
             }
         }
@@ -256,8 +263,8 @@ const matchString = (lex) => {
                 // TODO: maybe rename back to cs as confusing
                 //q = src[sI]
                 if (cc < 32) {
-                    if (isMultiLine && lex.cfg.line.charMap[src[sI]]) {
-                        if (lex.cfg.line.rowCharMap[src[sI]]) {
+                    if (isMultiLine && lex.cfg.line.chars[src[sI]]) {
+                        if (lex.cfg.line.rowChars[src[sI]]) {
                             rI++;
                         }
                         cI = 0;
@@ -275,8 +282,6 @@ const matchString = (lex) => {
         }
         if (src[sI - 1] !== q) {
             return lex.bad(intern_1.S.unterminated, sI - 1, sI);
-            //console.log(pnt, sI, q, s, src.substring(pnt.sI))
-            //throw new Error('ST-s')
         }
         const tkn = lex.token('#ST', s.join(intern_1.MT), src.substring(pnt.sI, sI), pnt);
         pnt.sI = sI;
@@ -289,12 +294,12 @@ const matchString = (lex) => {
 const matchLineEnding = (lex) => {
     if (!lex.cfg.line.lex)
         return undefined;
-    let { charMap, rowCharMap } = lex.cfg.line;
+    let { chars, rowChars } = lex.cfg.line;
     let { pnt, src } = lex;
     let { sI, rI } = pnt;
-    while (charMap[src[sI]]) {
+    while (chars[src[sI]]) {
         sI++;
-        rI += (rowCharMap[src[sI]] ? 1 : 0);
+        rI += (rowChars[src[sI]] ? 1 : 0);
     }
     if (pnt.sI < sI) {
         let msrc = src.substring(pnt.sI, sI);
@@ -309,16 +314,16 @@ const matchLineEnding = (lex) => {
 const matchSpace = (lex) => {
     if (!lex.cfg.space.lex)
         return undefined;
-    let { charMap, tokenName } = lex.cfg.space;
+    let { chars } = lex.cfg.space;
     let { pnt, src } = lex;
     let { sI, cI } = pnt;
-    while (charMap[src[sI]]) {
+    while (chars[src[sI]]) {
         sI++;
         cI++;
     }
     if (pnt.sI < sI) {
         let msrc = src.substring(pnt.sI, sI);
-        const tkn = lex.token(tokenName, undefined, msrc, pnt);
+        const tkn = lex.token('#SP', undefined, msrc, pnt);
         pnt.sI += msrc.length;
         pnt.cI = cI;
         return tkn;
@@ -393,7 +398,6 @@ class Lex {
             name = intern_1.tokenize(ref, this.cfg);
         }
         let tkn = new Token(name, tin, val, src, pnt || this.pnt, use, why);
-        // console.log(tkn)
         return tkn;
     }
     next(rule) {
@@ -414,7 +418,7 @@ class Lex {
                 return tkn;
             }
         }
-        tkn = this.token('#BD', undefined, this.src[pnt.sI], pnt, undefined, 'bad');
+        tkn = this.token('#BD', undefined, this.src[pnt.sI], pnt, undefined, 'bad-none');
         return tkn;
     }
     tokenize(ref) {

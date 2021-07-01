@@ -63,14 +63,41 @@ function make_default_options() {
         tokenSet: {
             ignore: ['#SP', '#LN', '#CM']
         },
+        // Recognize space characters in the lexer.
+        space: {
+            // Recognize space in the Lexer.
+            lex: true,
+            // Space characters.
+            chars: ' \t',
+        },
         // Line lexing.
         line: {
             // Recognize lines in the Lexer.
             lex: true,
+            // Line characters.
+            chars: '\r\n',
             // Increments row (aka line) counter.
-            row: '\n',
-            // Line separator regexp (as string)
-            sep: '\r*\n',
+            rowChars: '\n',
+        },
+        // Text formats.
+        text: {
+            // Recognize text (non-quoted strings) in the Lexer.
+            lex: true,
+        },
+        // Control number formats.
+        number: {
+            // Recognize numbers in the Lexer.
+            lex: true,
+            // Recognize hex numbers (eg. 10 === 0x0a).
+            hex: true,
+            // Recognize octal numbers (eg. 10 === 0o12).
+            oct: true,
+            // Recognize ninary numbers (eg. 10 === 0b1010).
+            bin: true,
+            // All possible number chars. |+-|0|xob|0-9a-fA-F|.e|+-|0-9a-fA-F|
+            // digital: '-1023456789._xoeEaAbBcCdDfF+',
+            // Allow embedded separator. `null` to disable.
+            sep: '_',
         },
         // Comment markers.
         // <mark-char>: true -> single line comments
@@ -87,35 +114,19 @@ function make_default_options() {
                 '/*': '*/',
             },
         },
-        // Recognize space characters in the lexer.
-        space: {
-            // Recognize space in the Lexer.
-            lex: true
-        },
-        // Control number formats.
-        number: {
-            // Recognize numbers in the Lexer.
-            lex: true,
-            // Recognize hex numbers (eg. 10 === 0x0a).
-            hex: true,
-            // Recognize octal numbers (eg. 10 === 0o12).
-            oct: true,
-            // Recognize ninary numbers (eg. 10 === 0b1010).
-            bin: true,
-            // All possible number chars. |+-|0|xob|0-9a-fA-F|.e|+-|0-9a-fA-F|
-            digital: '-1023456789._xoeEaAbBcCdDfF+',
-            // Allow embedded separator. `null` to disable.
-            sep: '_',
-        },
-        // Multiline blocks.
-        block: {
-            // Recognize blocks in the Lexer.
-            lex: true,
-            // Block markers
-            marker: {
+        /*
+            // Multiline blocks.
+            block: {
+        
+              // Recognize blocks in the Lexer.
+              lex: true,
+        
+              // Block markers
+              marker: {
                 '\'\'\'': '\'\'\''
+              },
             },
-        },
+        */
         // String formats.
         string: {
             // Recognize strings in the Lexer.
@@ -133,11 +144,6 @@ function make_default_options() {
             multiline: '`',
             // CSV-style double quote escape.
             escapedouble: false,
-        },
-        // Text formats.
-        text: {
-            // Recognize text (non-quoted strings) in the Lexer.
-            lex: true,
         },
         // Object formats.
         map: {

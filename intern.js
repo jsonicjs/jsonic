@@ -94,7 +94,7 @@ function configure(incfg, opts) {
         t: {}
     };
     const t = (tn) => tokenize(tn, cfg);
-    // Standard tokens.
+    // Standard tokens. These names cannot be changed.
     t('#BD'); // BAD
     t('#ZZ'); // END
     t('#UK'); // UNKNOWN
@@ -107,35 +107,30 @@ function configure(incfg, opts) {
     t('#TX'); // TEXT
     t('#VL'); // VALUE
     cfg.fixed = {
-        lex: opts.fixed.lex,
+        lex: !!opts.fixed.lex,
         token: map(opts.fixed.token, ([name, src]) => [src, t(name)])
     };
     cfg.tokenSet = {
         ignore: Object.fromEntries(opts.tokenSet.ignore.map(tn => [t(tn), true]))
     };
     cfg.space = {
-        lex: true,
-        tokenName: '#SP',
-        charMap: {
-            ' ': 32,
-            '\t': 9,
-        }
+        lex: !!opts.space.lex,
+        chars: charset(opts.space.chars)
     };
     cfg.line = {
-        lex: true,
-        charMap: {
-            '\r': 13,
-            '\n': 10,
-        },
-        rowCharMap: {
-            '\n': 13,
-        },
+        lex: !!opts.line.lex,
+        chars: charset(opts.line.chars),
+        rowChars: charset(opts.line.rowChars),
     };
     cfg.text = {
-        lex: true
+        lex: !!opts.text.lex,
     };
     cfg.number = {
-        lex: true
+        lex: !!opts.number.lex,
+        hex: !!opts.number.hex,
+        oct: !!opts.number.oct,
+        bin: !!opts.number.bin,
+        sep: null != opts.number.sep && '' !== opts.number.sep,
     };
     cfg.value = {
         lex: true,
@@ -187,7 +182,7 @@ function configure(incfg, opts) {
     // End-marker RE part
     let enderRE = [
         '([',
-        escre(keys(charset(cfg.space.lex && cfg.space.charMap, cfg.line.lex && cfg.line.charMap)).join('')),
+        escre(keys(charset(cfg.space.lex && cfg.space.chars, cfg.line.lex && cfg.line.chars)).join('')),
         ']|',
         fixedRE,
         // TODO: spaces
@@ -203,19 +198,19 @@ function configure(incfg, opts) {
         // TODO: use cfg props
         // Number to end-marker.
         numberEnder: regexp(null, [
-            '^[-+]?(0(',
+            '^([-+]?(0(',
             [
-                opts.number.hex ? 'x[0-9a-fA-F_]+' : null,
-                opts.number.oct ? 'o[0-7_]+' : null,
-                opts.number.bin ? 'b[01_]+' : null,
+                cfg.number.hex ? 'x[0-9a-fA-F_]+' : null,
+                cfg.number.oct ? 'o[0-7_]+' : null,
+                cfg.number.bin ? 'b[01_]+' : null,
             ].filter(s => null != s).join('|'),
             ')|[0-9]+([0-9_]*[0-9])?)',
             '(\\.[0-9]+([0-9_]*[0-9])?)?',
             '([eE][-+]?[0-9]+([0-9_]*[0-9])?)?',
         ]
-            //.filter(s =>
-            //  s.replace(/_/g, null == re_ns ? '' : opts.number.sep))
-            .join(''), ...enderRE),
+            .join('')
+            .replace(/_/g, cfg.number.sep ? escre(opts.number.sep) : ''), ')', ...enderRE),
+        numberSep: regexp('g', escre(null == opts.number.sep ? '' : opts.number.sep)),
         fixed: regexp(null, '^(', fixedRE, ')'),
         commentLine: regexp(null, comments ?
             comments.reduce((a, c) => (a.push('^(' + escre(c.start) +

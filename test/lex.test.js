@@ -44,7 +44,8 @@ function alleq(ta) {
 
 
 function lexstart(src) {
-  return lexer.start({src:()=>src, cnfg:config, opts:j.options})
+  let lex = lexer.start({src:()=>src, cfg:config, opts:j.options})
+  return lex.next.bind(lex)
 }
 
 describe('lex', function () {
@@ -236,31 +237,26 @@ describe('lex', function () {
 
 
   it('number', () => {
-    let lex0 = lexstart('123')
-    expect(lex0())
-      .equal({
-        tin: t.NR, loc: 0, len: 3, row: 0, col: 0, val: 123, src: '123',
-        use: undefined 
-      })
-    
-    alleq([
-      '0', ['#NR;0;1;0x0;0','#ZZ;1;0;0x1'],
-      '-0', ['#NR;0;2;0x0;0','#ZZ;2;0;0x2'],
-      '1.2', ['#NR;0;3;0x0;1.2','#ZZ;3;0;0x3'],
-      '-1.2', ['#NR;0;4;0x0;-1.2','#ZZ;4;0;0x4'],
-      '0xA', ['#NR;0;3;0x0;10','#ZZ;3;0;0x3'],
-      '1e2', ['#NR;0;3;0x0;100','#ZZ;3;0;0x3'],
-      '-1.5E2', ['#NR;0;6;0x0;-150','#ZZ;6;0;0x6'],
-      '0x', ['#TX;0;2;0x0;0x','#ZZ;2;0;0x2'],
-      '-0xA', ['#TX;0;4;0x0;-0xA','#ZZ;4;0;0x4'],
-      '01', ['#NR;0;2;0x0;1','#ZZ;2;0;0x2'],
-      '1x', ['#TX;0;2;0x0;1x','#ZZ;2;0;0x2'],
-      '12x', ['#TX;0;3;0x0;12x','#ZZ;3;0;0x3'],
-      '1%', ['#TX;0;2;0x0;1%','#ZZ;2;0;0x2'],
-      '12%', ['#TX;0;3;0x0;12%','#ZZ;3;0;0x3'],
-      '123%', ['#TX;0;4;0x0;123%','#ZZ;4;0;0x4'],
-      '1_0_0', ['#NR;0;5;0x0;100','#ZZ;5;0;0x5'],
+    let lex0 = lexstart('321')
+    expect(''+lex0()).equal('Token[#NR=8 321=321 0,1,1]')
 
+    alleq([
+      '0', ['#NR;0;1;1x1;0','#ZZ;1;0;1x2'],
+      '-0', ['#NR;0;2;1x1;0','#ZZ;2;0;1x3'],
+      '1.2', ['#NR;0;3;1x1;1.2','#ZZ;3;0;1x4'],
+      '-1.2', ['#NR;0;4;1x1;-1.2','#ZZ;4;0;1x5'],
+      '0xA', ['#NR;0;3;1x1;10','#ZZ;3;0;1x4'],
+      '1e2', ['#NR;0;3;1x1;100','#ZZ;3;0;1x4'],
+      '-1.5E2', ['#NR;0;6;1x1;-150','#ZZ;6;0;1x7'],
+      '0x', ['#TX;0;2;1x1;0x','#ZZ;2;0;1x3'],
+      '-0xA', ['#TX;0;4;1x1;-0xA','#ZZ;4;0;1x5'],
+      '01', ['#NR;0;2;1x1;1','#ZZ;2;0;1x3'],
+      '1x', ['#TX;0;2;1x1;1x','#ZZ;2;0;1x3'],
+      '12x', ['#TX;0;3;1x1;12x','#ZZ;3;0;1x4'],
+      '1%', ['#TX;0;2;1x1;1%','#ZZ;2;0;1x3'],
+      '12%', ['#TX;0;3;1x1;12%','#ZZ;3;0;1x4'],
+      '123%', ['#TX;0;4;1x1;123%','#ZZ;4;0;1x5'],
+      '1_0_0', ['#NR;0;5;1x1;100','#ZZ;5;0;1x6'],
     ])
   })
 
@@ -513,7 +509,9 @@ function st(tkn) {
   let out = []
   
   function m(s,v,t) {
-    return [s.substring(0,3),t.loc,t.len,t.row+'x'+t.col,v?(''+t.val):null]
+    return [s.substring(0,3),
+            t.sI,t.len,t.rI+'x'+t.cI,
+            v?(''+t.val):null]
   }
 
   switch(tkn.tin) {

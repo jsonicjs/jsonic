@@ -262,8 +262,14 @@ describe('feature', function () {
     expect(j('0o20')).equals(16)
     expect(j('0b10000')).equals(16)
 
-    let js = j.make({ number: { sep: null} })
-    expect(js('1_0')).equals('1_0')
+    let js0 = j.make({ number: { sep: null } })
+    expect(js0('1_0')).equals('1_0')
+    expect(j('1_0')).equals(10)
+
+    let js1 = j.make({ number: { sep: ' ' } })
+    expect(js1('1 0')).equals(10)
+    expect(js1('a:1 0')).equals({a:10})
+    expect(js1('a:1 0, b : 2 000 ')).equals({a:10,b:2000})
     expect(j('1_0')).equals(10)
   })
 

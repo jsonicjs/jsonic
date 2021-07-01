@@ -32,7 +32,8 @@ class Point {
   }
 
   toString() {
-    return 'Point[' + [this.sI, this.rI, this.cI] + ';' + this.token + ']'
+    return 'Point[' + [this.sI, this.rI, this.cI] +
+      (0 < this.token.length ? (' ' + this.token) : '') + ']'
   }
 
   [inspect]() {
@@ -59,7 +60,7 @@ class Token {
     name: string,
     tin: Tin,
     val: any,
-    src: any,  // TODO: string
+    src: string,
     pnt: Point,
     use?: any,
     why?: string,
@@ -74,7 +75,7 @@ class Token {
     this.use = use
     this.why = why
 
-    this.len = src.length
+    this.len = null == src ? 0 : src.length
 
     // console.log(this)
     // console.trace()
@@ -86,7 +87,6 @@ class Token {
 
       snip(this.src) +
 
-      // TODO: make configurable?
       (undefined === this.val || '#ST' === this.name || '#TX' === this.name ? '' :
         '=' + snip(this.val)) + ' ' +
 
@@ -95,7 +95,7 @@ class Token {
       (null == this.use ? '' : ' ' +
         snip(('' + JSON.stringify(this.use).replace(/"/g, '')), 22)) +
 
-      (null == this.why ? '' : ' ' + snip('' + this.why), 22) +
+      (null == this.why ? '' : ' ' + snip('' + this.why, 22)) +
       ']'
   }
 
@@ -119,21 +119,22 @@ const matchFixed: LexMatcher = (lex: Lex) => {
 
   let m = fwd.match((lex.cfg.re.fixed as RegExp))
   if (m) {
-    let tsrc = m[1]
-    let tknlen = tsrc.length
-    if (0 < tknlen) {
+    let msrc = m[1]
+    let mlen = msrc.length
+    if (0 < mlen) {
       let tkn: Token | undefined = undefined
 
-      let tin = lex.cfg.fixed.token[tsrc]
+      let tin = lex.cfg.fixed.token[msrc]
       if (null != tin) {
         tkn = lex.token(
           tin,
           undefined,
-          tsrc,
+          msrc,
           pnt,
         )
 
-        pnt.sI += tsrc.length
+        pnt.sI += mlen
+        pnt.cI += mlen
       }
 
       return tkn
@@ -162,7 +163,8 @@ const matchComment: LexMatcher = (lex: Lex) => {
         pnt,
       )
 
-      pnt.sI += msrc.length
+      pnt.sI += mlen
+      pnt.cI += mlen
 
       return tkn
     }
@@ -199,6 +201,7 @@ const matchTextEndingWithFixed: LexMatcher = (lex: Lex) => {
           out = lex.token('#TX', msrc, msrc, pnt)
         }
         pnt.sI += mlen
+        pnt.cI += mlen
       }
     }
 
@@ -215,14 +218,16 @@ const matchTextEndingWithFixed: LexMatcher = (lex: Lex) => {
 const matchNumberEndingWithFixed: LexMatcher = (lex: Lex) => {
   if (!lex.cfg.number.lex) return undefined
 
+  let cfgnum = lex.cfg.number
+  let cfgre = lex.cfg.re
   let pnt = lex.pnt
   let fwd = lex.src.substring(pnt.sI)
   let vm = lex.cfg.value.m
 
-  let m = fwd.match((lex.cfg.re.numberEnder as RegExp))
+  let m = fwd.match((cfgre.numberEnder as RegExp))
   if (m) {
     let msrc = m[1]
-    let tsrc = m[2]
+    let tsrc = m[9] // NOTE: count parens in numberEnder!
 
     let out: Token | undefined = undefined
 
@@ -235,11 +240,16 @@ const matchNumberEndingWithFixed: LexMatcher = (lex: Lex) => {
           out = lex.token('#VL', vs.v, msrc, pnt)
         }
         else {
-          let num = +(msrc)
+          let nstr = cfgnum.sep ? msrc.replace(cfgre.numberSep, '') : msrc
+          let num = +(nstr)
+
           if (!isNaN(num)) {
             out = lex.token('#NR', num, msrc, pnt)
+            pnt.sI += mlen
+            pnt.cI += mlen
           }
-          pnt.sI += mlen
+
+          // console.log('PNT-z', pnt, out)
         }
       }
     }
@@ -371,8 +381,8 @@ const matchString = (lex: Lex) => {
         //q = src[sI]
 
         if (cc < 32) {
-          if (isMultiLine && lex.cfg.line.charMap[src[sI]]) {
-            if (lex.cfg.line.rowCharMap[src[sI]]) {
+          if (isMultiLine && lex.cfg.line.chars[src[sI]]) {
+            if (lex.cfg.line.rowChars[src[sI]]) {
               rI++
             }
 
@@ -392,8 +402,6 @@ const matchString = (lex: Lex) => {
 
     if (src[sI - 1] !== q) {
       return lex.bad(S.unterminated, sI - 1, sI)
-      //console.log(pnt, sI, q, s, src.substring(pnt.sI))
-      //throw new Error('ST-s')
     }
 
     const tkn = lex.token(
@@ -415,13 +423,13 @@ const matchString = (lex: Lex) => {
 const matchLineEnding = (lex: Lex) => {
   if (!lex.cfg.line.lex) return undefined
 
-  let { charMap, rowCharMap } = lex.cfg.line
+  let { chars, rowChars } = lex.cfg.line
   let { pnt, src } = lex
   let { sI, rI } = pnt
 
-  while (charMap[src[sI]]) {
+  while (chars[src[sI]]) {
     sI++
-    rI += (rowCharMap[src[sI]] ? 1 : 0)
+    rI += (rowChars[src[sI]] ? 1 : 0)
   }
 
   if (pnt.sI < sI) {
@@ -444,11 +452,11 @@ const matchLineEnding = (lex: Lex) => {
 const matchSpace = (lex: Lex) => {
   if (!lex.cfg.space.lex) return undefined
 
-  let { charMap, tokenName } = lex.cfg.space
+  let { chars } = lex.cfg.space
   let { pnt, src } = lex
   let { sI, cI } = pnt
 
-  while (charMap[src[sI]]) {
+  while (chars[src[sI]]) {
     sI++
     cI++
   }
@@ -456,7 +464,7 @@ const matchSpace = (lex: Lex) => {
   if (pnt.sI < sI) {
     let msrc = src.substring(pnt.sI, sI)
     const tkn = lex.token(
-      tokenName,
+      '#SP',
       undefined,
       msrc,
       pnt,
@@ -597,8 +605,6 @@ class Lex {
       why,
     )
 
-    // console.log(tkn)
-
     return tkn
   }
 
@@ -639,7 +645,7 @@ class Lex {
       this.src[pnt.sI],
       pnt,
       undefined,
-      'bad'
+      'bad-none'
     )
 
     return tkn

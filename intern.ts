@@ -122,7 +122,7 @@ type TokenMap = { [token: string]: Tin }
 
 
 // Map character to code value.
-type CharMap = { [char: string]: number }
+type Chars = { [char: string]: number }
 
 // Map string to string value.
 type StrMap = { [name: string]: string }
@@ -143,11 +143,25 @@ type Options = {
   tokenSet: {
     ignore: string[]
   }
+  space: {
+    lex: boolean
+    chars: string
+  }
   line: {
     lex: boolean
-    row: string
-    sep: string
+    chars: string
+    rowChars: string
   },
+  text: {
+    lex: boolean
+  }
+  number: {
+    lex: boolean
+    hex: boolean
+    oct: boolean
+    bin: boolean
+    sep?: string
+  }
   comment: {
     lex: boolean
     balance: boolean
@@ -158,18 +172,9 @@ type Options = {
       string | // End marker (eg. `*/`).
       boolean // No end marker (eg. `#`).
     }
-  },
-  space: {
-    lex: boolean
   }
-  number: {
-    lex: boolean
-    hex: boolean
-    oct: boolean
-    bin: boolean
-    digital: string
-    sep: string
-  }
+  /*
+    // TODO: move to plugin
   block: {
     lex: boolean
 
@@ -179,14 +184,12 @@ type Options = {
       string  // End marker (eg. `'''`).
     }
   }
+  */
   string: {
     lex: boolean
     escape: { [char: string]: string }
     multiline: string
     escapedouble: boolean
-  }
-  text: {
-    lex: boolean
   }
   map: {
     extend: boolean
@@ -250,7 +253,6 @@ type Config = {
     token: TokenMap
   }
 
-
   // Token sets.
   tokenSet: {
 
@@ -260,30 +262,17 @@ type Config = {
     }
   }
 
-
   // Space characters.
   space: {
     lex: boolean
-    tokenName: string
-    charMap: CharMap
+    chars: Chars
   }
 
   // Line end characters.
   line: {
     lex: boolean
-    charMap: CharMap
-    rowCharMap: CharMap // Row counting characters.
-  }
-
-  // String quote characters.
-  string: {
-    lex: boolean
-    quoteMap: CharMap,
-    escMap: KV,
-    escChar: string,
-    escCharCode: number,
-    doubleEsc: boolean,
-    multiLine: CharMap,
+    chars: Chars
+    rowChars: Chars // Row counting characters.
   }
 
   // Unquoted text
@@ -294,6 +283,21 @@ type Config = {
   // Numbers
   number: {
     lex: boolean
+    hex: boolean
+    oct: boolean
+    bin: boolean
+    sep: boolean
+  }
+
+  // String quote characters.
+  string: {
+    lex: boolean
+    quoteMap: Chars,
+    escMap: KV,
+    escChar: string,
+    escCharCode: number,
+    doubleEsc: boolean,
+    multiLine: Chars,
   }
 
   // Literal values
@@ -317,6 +321,7 @@ type Config = {
     ender: RegExp
     textEnder: RegExp
     numberEnder: RegExp
+    numberSep: RegExp
     fixed: RegExp
     commentLine: RegExp
   }
@@ -373,7 +378,7 @@ function configure(incfg: Config | undefined, opts: Options): Config {
 
   const t = (tn: string) => tokenize(tn, cfg)
 
-  // Standard tokens.
+  // Standard tokens. These names cannot be changed.
   t('#BD') // BAD
   t('#ZZ') // END
   t('#UK') // UNKNOWN
@@ -386,45 +391,37 @@ function configure(incfg: Config | undefined, opts: Options): Config {
   t('#TX') // TEXT
   t('#VL') // VALUE
 
-
   cfg.fixed = {
-    lex: opts.fixed.lex,
+    lex: !!opts.fixed.lex,
     token: map(opts.fixed.token, ([name, src]: [string, string]) => [src, t(name)])
   }
-
 
   cfg.tokenSet = {
     ignore: Object.fromEntries(opts.tokenSet.ignore.map(tn => [t(tn), true]))
   }
 
-
   cfg.space = {
-    lex: true,
-    tokenName: '#SP',
-    charMap: {
-      ' ': 32,
-      '\t': 9,
-    }
+    lex: !!opts.space.lex,
+    chars: charset(opts.space.chars)
   }
 
   cfg.line = {
-    lex: true,
-    charMap: {
-      '\r': 13,
-      '\n': 10,
-    },
-    rowCharMap: {
-      '\n': 13,
-    },
+    lex: !!opts.line.lex,
+    chars: charset(opts.line.chars),
+    rowChars: charset(opts.line.rowChars),
   }
 
 
   cfg.text = {
-    lex: true
+    lex: !!opts.text.lex,
   }
 
   cfg.number = {
-    lex: true
+    lex: !!opts.number.lex,
+    hex: !!opts.number.hex,
+    oct: !!opts.number.oct,
+    bin: !!opts.number.bin,
+    sep: null != opts.number.sep && '' !== opts.number.sep,
   }
 
   cfg.value = {
@@ -485,8 +482,8 @@ function configure(incfg: Config | undefined, opts: Options): Config {
   let enderRE = [
     '([',
     escre(keys(charset(
-      cfg.space.lex && cfg.space.charMap,
-      cfg.line.lex && cfg.line.charMap,
+      cfg.space.lex && cfg.space.chars,
+      cfg.line.lex && cfg.line.chars,
     )).join('')),
     ']|',
     fixedRE,
@@ -515,21 +512,23 @@ function configure(incfg: Config | undefined, opts: Options): Config {
     numberEnder: regexp(
       null,
       [
-        '^[-+]?(0(',
+        '^([-+]?(0(',
         [
-          opts.number.hex ? 'x[0-9a-fA-F_]+' : null,
-          opts.number.oct ? 'o[0-7_]+' : null,
-          opts.number.bin ? 'b[01_]+' : null,
+          cfg.number.hex ? 'x[0-9a-fA-F_]+' : null,
+          cfg.number.oct ? 'o[0-7_]+' : null,
+          cfg.number.bin ? 'b[01_]+' : null,
         ].filter(s => null != s).join('|'),
         ')|[0-9]+([0-9_]*[0-9])?)',
         '(\\.[0-9]+([0-9_]*[0-9])?)?',
         '([eE][-+]?[0-9]+([0-9_]*[0-9])?)?',
       ]
-        //.filter(s =>
-        //  s.replace(/_/g, null == re_ns ? '' : opts.number.sep))
-        .join(''),
+        .join('')
+        .replace(/_/g, cfg.number.sep ? escre((opts.number.sep as string)) : ''),
+      ')',
       ...enderRE
     ),
+
+    numberSep: regexp('g', escre(null == opts.number.sep ? '' : opts.number.sep)),
 
     fixed: regexp(
       null,
@@ -1061,7 +1060,7 @@ function clone(class_instance: any) {
 
 
 // Lookup map for a set of chars.
-function charset(...parts: (string | object | boolean)[]): CharMap {
+function charset(...parts: (string | object | boolean)[]): Chars {
   return parts
     .filter(p => false !== p)
     .map((p: any) => 'object' === typeof (p) ? keys(p).join(MT) : p)
@@ -1129,7 +1128,7 @@ function ender(endchars: CharMap, endmarks: KV, singles?: KV) {
 
 
 export {
-  CharMap,
+  Chars,
   Config,
   Context,
   JsonicError,

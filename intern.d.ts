@@ -73,7 +73,7 @@ declare type Tin = number;
 declare type TokenMap = {
     [token: string]: Tin;
 };
-declare type CharMap = {
+declare type Chars = {
     [char: string]: number;
 };
 declare type StrMap = {
@@ -89,10 +89,24 @@ declare type Options = {
     tokenSet: {
         ignore: string[];
     };
+    space: {
+        lex: boolean;
+        chars: string;
+    };
     line: {
         lex: boolean;
-        row: string;
-        sep: string;
+        chars: string;
+        rowChars: string;
+    };
+    text: {
+        lex: boolean;
+    };
+    number: {
+        lex: boolean;
+        hex: boolean;
+        oct: boolean;
+        bin: boolean;
+        sep?: string;
     };
     comment: {
         lex: boolean;
@@ -103,23 +117,6 @@ declare type Options = {
             boolean;
         };
     };
-    space: {
-        lex: boolean;
-    };
-    number: {
-        lex: boolean;
-        hex: boolean;
-        oct: boolean;
-        bin: boolean;
-        digital: string;
-        sep: string;
-    };
-    block: {
-        lex: boolean;
-        marker: {
-            [start_marker: string]: string;
-        };
-    };
     string: {
         lex: boolean;
         escape: {
@@ -127,9 +124,6 @@ declare type Options = {
         };
         multiline: string;
         escapedouble: boolean;
-    };
-    text: {
-        lex: boolean;
     };
     map: {
         extend: boolean;
@@ -189,28 +183,31 @@ declare type Config = {
     };
     space: {
         lex: boolean;
-        tokenName: string;
-        charMap: CharMap;
+        chars: Chars;
     };
     line: {
         lex: boolean;
-        charMap: CharMap;
-        rowCharMap: CharMap;
-    };
-    string: {
-        lex: boolean;
-        quoteMap: CharMap;
-        escMap: KV;
-        escChar: string;
-        escCharCode: number;
-        doubleEsc: boolean;
-        multiLine: CharMap;
+        chars: Chars;
+        rowChars: Chars;
     };
     text: {
         lex: boolean;
     };
     number: {
         lex: boolean;
+        hex: boolean;
+        oct: boolean;
+        bin: boolean;
+        sep: boolean;
+    };
+    string: {
+        lex: boolean;
+        quoteMap: Chars;
+        escMap: KV;
+        escChar: string;
+        escCharCode: number;
+        doubleEsc: boolean;
+        multiLine: Chars;
     };
     value: {
         lex: boolean;
@@ -234,6 +231,7 @@ declare type Config = {
         ender: RegExp;
         textEnder: RegExp;
         numberEnder: RegExp;
+        numberSep: RegExp;
         fixed: RegExp;
         commentLine: RegExp;
     };
@@ -288,5 +286,5 @@ declare function makelog(ctx: Context): ((...rest: any) => undefined) | undefine
 declare function srcfmt(config: Config): (s: any, _?: any) => string;
 declare function snip(s: any, len?: number): string;
 declare function clone(class_instance: any): any;
-declare function charset(...parts: (string | object | boolean)[]): CharMap;
-export { CharMap, Config, Context, JsonicError, KV, MT, Meta, Options, RuleState, S, Tin, Token, assign, badlex, deep, defprop, entries, errdesc, errinject, extract, keys, makelog, mesc, regexp, escre, tokenize, trimstk, srcfmt, clone, charset, snip, configure, };
+declare function charset(...parts: (string | object | boolean)[]): Chars;
+export { Chars, Config, Context, JsonicError, KV, MT, Meta, Options, RuleState, S, Tin, Token, assign, badlex, deep, defprop, entries, errdesc, errinject, extract, keys, makelog, mesc, regexp, escre, tokenize, trimstk, srcfmt, clone, charset, snip, configure, };
