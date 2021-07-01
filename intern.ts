@@ -31,6 +31,15 @@ const entries = Object.entries
 const assign = Object.assign
 const defprop = Object.defineProperty
 
+const map = (o: any, f: any) => {
+  return Object
+    .entries(o)
+    .reduce((o: any, e: any) => {
+      let me = f(e)
+      o[me[0]] = me[1]
+      return o
+    }, {})
+}
 
 
 // A bit pedantic, but let's be strict about strings.
@@ -115,6 +124,10 @@ type TokenMap = { [token: string]: Tin }
 // Map character to code value.
 type CharMap = { [char: string]: number }
 
+// Map string to string value.
+type StrMap = { [name: string]: string }
+
+
 
 // Meta parameters for a given parse run.
 type Meta = KV
@@ -123,6 +136,10 @@ type Meta = KV
 // Parsing options. See defaults for commentary.
 type Options = {
   tag: string
+  fixed: {
+    lex: boolean
+    token: StrMap
+  }
   line: {
     lex: boolean
     row: string
@@ -395,6 +412,13 @@ function configure(incfg: Config | undefined, opts: Options): Config {
   t('#AA') // ANY
 
 
+  cfg.fixed = {
+    lex: opts.fixed.lex,
+    token: map(opts.fixed.token, ([name, src]: [string, string]) => [src, t(name)])
+  }
+
+
+
   cfg.tokenSet = {
     ignore: {
       [SP]: true,
@@ -404,22 +428,6 @@ function configure(incfg: Config | undefined, opts: Options): Config {
   }
 
 
-  cfg.fixed = {
-    // TODO: rename to lex in all
-    lex: true,
-    token: {
-      '{': t('#OB'),
-      '}': t('#CB'),
-      '[': t('#OS'),
-      ']': t('#CS'),
-      ':': t('#CL'),
-      ',': t('#CA'),
-      // TODO:move to test
-      //'=': t('#EQ'),
-      //'=>': t('#DA'),
-      //'===': t('#ES'),
-    }
-  }
 
   cfg.space = {
     lex: true,
@@ -1098,27 +1106,27 @@ function charset(...parts: (string | object | boolean)[]): CharMap {
 function longest(strs: string[]) {
   return strs.reduce((a, s) => a < s.length ? s.length : a, 0)
 }
-
-
+ 
+ 
 // True if arrays match.
 function marr(a: string[], b: string[]) {
   return (a.length === b.length && a.reduce((a, s, i) => (a && s === b[i]), true))
 }
-
-
+ 
+ 
 function ender(endchars: CharMap, endmarks: KV, singles?: KV) {
   let allendchars =
     keys(
       keys(endmarks)
         .reduce((a: any, em: string) => (a[em[0]] = 1, a), { ...endchars }))
       .join('')
-
+ 
   let endmarkprefixes =
     entries(
       keys(endmarks)
         .filter(cm =>
           1 < cm.length && // only for long marks
-
+ 
           // Not needed if first char is already an endchar,
           // otherwise edge case where first char won't match as ender,
           // see test custom-parser-mixed-token
@@ -1138,7 +1146,7 @@ function ender(endchars: CharMap, endmarks: KV, singles?: KV) {
         //')).)'
         ')))'
       ]).flat(1)
-
+ 
   return regexp(
     S.no_re_flags,
     '^(([^',

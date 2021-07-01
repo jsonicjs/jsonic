@@ -76,9 +76,16 @@ declare type TokenMap = {
 declare type CharMap = {
     [char: string]: number;
 };
+declare type StrMap = {
+    [name: string]: string;
+};
 declare type Meta = KV;
 declare type Options = {
     tag: string;
+    fixed: {
+        lex: boolean;
+        token: StrMap;
+    };
     line: {
         lex: boolean;
         row: string;

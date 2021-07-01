@@ -45,6 +45,20 @@ function make_default_options() {
     let options = {
         // Default tag - set your own! 
         tag: '-',
+        // Fixed token lexing.
+        fixed: {
+            // Recognize fixed tokens in the Lexer.
+            lex: true,
+            // Token names.
+            token: {
+                '#OB': '{',
+                '#CB': '}',
+                '#OS': '[',
+                '#CS': ']',
+                '#CL': ':',
+                '#CA': ',',
+            }
+        },
         // Line lexing.
         line: {
             // Recognize lines in the Lexer.

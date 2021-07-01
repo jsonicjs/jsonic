@@ -19,6 +19,15 @@ const assign = Object.assign;
 exports.assign = assign;
 const defprop = Object.defineProperty;
 exports.defprop = defprop;
+const map = (o, f) => {
+    return Object
+        .entries(o)
+        .reduce((o, e) => {
+        let me = f(e);
+        o[me[0]] = me[1];
+        return o;
+    }, {});
+};
 // A bit pedantic, but let's be strict about strings.
 // Also improves minification a little.
 const S = {
@@ -97,27 +106,15 @@ function configure(incfg, opts) {
     t('#ZZ'); // END
     t('#UK'); // UNKNOWN
     t('#AA'); // ANY
+    cfg.fixed = {
+        lex: opts.fixed.lex,
+        token: map(opts.fixed.token, ([name, src]) => [src, t(name)])
+    };
     cfg.tokenSet = {
         ignore: {
             [SP]: true,
             [LN]: true,
             [CM]: true,
-        }
-    };
-    cfg.fixed = {
-        // TODO: rename to lex in all
-        lex: true,
-        token: {
-            '{': t('#OB'),
-            '}': t('#CB'),
-            '[': t('#OS'),
-            ']': t('#CS'),
-            ':': t('#CL'),
-            ',': t('#CA'),
-            // TODO:move to test
-            //'=': t('#EQ'),
-            //'=>': t('#DA'),
-            //'===': t('#ES'),
         }
     };
     cfg.space = {
