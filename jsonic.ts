@@ -69,9 +69,6 @@ import {
   Token,
   Lexer,
   LexMatcher,
-  LexMatcherListMap,
-  LexMatcherResult,
-  LexMatcherState,
 } from './lexer'
 
 
@@ -112,8 +109,9 @@ type JsonicAPI = {
   // Get and set parser rules.
   rule: (name?: string, define?: RuleDefiner) => RuleSpec | RuleSpecMap
 
-  // Get and set custom lex matchers.
-  lex: (state?: Tin, match?: LexMatcher) => LexMatcherListMap | LexMatcher[]
+  // Add. modify, and list lex matchers.
+  lex: (match: LexMatcher | undefined,
+    modify: (mat: LexMatcher[]) => void) => LexMatcher[]
 
   // Token get and set for plugins. Reference by either name or Tin.
   token:
@@ -162,6 +160,11 @@ function make_default_options(): Options {
         '#CL': ':',
         '#CA': ',',
       }
+    },
+
+    // Token sets.
+    tokenSet: {
+      ignore: ['#SP', '#LN', '#CM']
     },
 
 
@@ -493,10 +496,17 @@ function make(param_options?: KV, parent?: Jsonic): Jsonic {
       return jsonic.internal().parser.rule(name, define)
     },
 
-    lex: function lex(state?: Tin, match?: LexMatcher):
-      LexMatcherListMap | LexMatcher[] {
+    lex: (
+      match: LexMatcher | undefined,
+      modify: (mat: LexMatcher[]) => void) => {
       let lexer = jsonic.internal().lexer
-      return lexer.lex(state, match)
+      if (null != match) {
+        lexer.mat.unshift(match)
+      }
+      if (null != modify) {
+        modify(lexer.mat)
+      }
+      return lexer.mat
     },
 
     make: function(options?: Options) {
@@ -716,10 +726,6 @@ export {
   Token,
   Context,
   Meta,
-  LexMatcher,
-  LexMatcherListMap,
-  LexMatcherResult,
-  LexMatcherState,
   Alt,
   AltCond,
   AltHandler,

@@ -95,27 +95,23 @@ function configure(incfg, opts) {
     };
     const t = (tn) => tokenize(tn, cfg);
     // Standard tokens.
-    let SP = t('#SP'); // SPACE
-    let LN = t('#LN'); // LINE
-    let CM = t('#CM'); // COMMENT
-    t('#NR'); // NUMBER
-    t('#ST'); // STRING
-    t('#TX'); // TEXT
-    t('#VL'); // VALUE
     t('#BD'); // BAD
     t('#ZZ'); // END
     t('#UK'); // UNKNOWN
     t('#AA'); // ANY
+    t('#SP'); // SPACE
+    t('#LN'); // LINE
+    t('#CM'); // COMMENT
+    t('#NR'); // NUMBER
+    t('#ST'); // STRING
+    t('#TX'); // TEXT
+    t('#VL'); // VALUE
     cfg.fixed = {
         lex: opts.fixed.lex,
         token: map(opts.fixed.token, ([name, src]) => [src, t(name)])
     };
     cfg.tokenSet = {
-        ignore: {
-            [SP]: true,
-            [LN]: true,
-            [CM]: true,
-        }
+        ignore: Object.fromEntries(opts.tokenSet.ignore.map(tn => [t(tn), true]))
     };
     cfg.space = {
         lex: true,

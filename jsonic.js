@@ -59,6 +59,10 @@ function make_default_options() {
                 '#CA': ',',
             }
         },
+        // Token sets.
+        tokenSet: {
+            ignore: ['#SP', '#LN', '#CM']
+        },
         // Line lexing.
         line: {
             // Recognize lines in the Lexer.
@@ -292,9 +296,15 @@ function make(param_options, parent) {
         rule: function rule(name, define) {
             return jsonic.internal().parser.rule(name, define);
         },
-        lex: function lex(state, match) {
+        lex: (match, modify) => {
             let lexer = jsonic.internal().lexer;
-            return lexer.lex(state, match);
+            if (null != match) {
+                lexer.mat.unshift(match);
+            }
+            if (null != modify) {
+                modify(lexer.mat);
+            }
+            return lexer.mat;
         },
         make: function (options) {
             return make(options, jsonic);

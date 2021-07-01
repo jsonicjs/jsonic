@@ -28,10 +28,11 @@ declare class Token {
     toString(): string;
     [inspect](): string;
 }
-declare type Matcher = (lex: Lex, rule: Rule) => Token | undefined;
+declare type LexMatcher = (lex: Lex, rule: Rule) => Token | undefined;
 declare class Lexer {
     cfg: Config;
     end: Token;
+    mat: LexMatcher[];
     constructor(cfg: Config);
     start(ctx: Context): Lex;
     clone(config: Config): Lexer;
@@ -41,32 +42,11 @@ declare class Lex {
     ctx: Context;
     cfg: Config;
     pnt: Point;
-    mat: Matcher[];
-    constructor(src: String, ctx: Context, cfg: Config);
+    mat: LexMatcher[];
+    constructor(src: String, mat: LexMatcher[], ctx: Context, cfg: Config);
     token(ref: Tin | string, val: any, src: string, pnt?: Point, use?: any, why?: string): Token;
     next(rule: Rule): Token;
     tokenize<R extends string | Tin, T extends (R extends Tin ? string : Tin)>(ref: R): T;
     bad(why: string, pstart: number, pend: number): Token;
 }
-declare type LexMatcherState = {
-    sI: number;
-    rI: number;
-    cI: number;
-    src: string;
-    token: Token;
-    ctx: Context;
-    rule: Rule;
-    bad: any;
-};
-declare type LexMatcher = (lms: LexMatcherState) => LexMatcherResult;
-declare type LexMatcherListMap = {
-    [state: number]: LexMatcher[];
-};
-declare type LexMatcherResult = undefined | {
-    sI: number;
-    rI: number;
-    cI: number;
-    state?: number;
-    state_param?: any;
-};
-export { Point, Token, Lex, Lexer, LexMatcher, LexMatcherListMap, LexMatcherResult, LexMatcherState, };
+export { Point, Token, Lex, LexMatcher, Lexer, };

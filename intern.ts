@@ -140,6 +140,9 @@ type Options = {
     lex: boolean
     token: StrMap
   }
+  tokenSet: {
+    ignore: string[]
+  }
   line: {
     lex: boolean
     row: string
@@ -238,8 +241,7 @@ type Options = {
 
 
 
-// Internal configuration derived from options.
-// See build_config.
+// Internal configuration built from options by `configure`.
 type Config = {
 
   // Fixed tokens (punctuation, operators, keywords, etc.)
@@ -247,6 +249,17 @@ type Config = {
     lex: boolean
     token: TokenMap
   }
+
+
+  // Token sets.
+  tokenSet: {
+
+    // Tokens ignored by rules.
+    ignore: {
+      [name: number]: boolean
+    }
+  }
+
 
   // Space characters.
   space: {
@@ -317,45 +330,9 @@ type Config = {
     }
   }
 
-  tokenSet: {
-    ignore: {
-      [name: number]: boolean
-    }
-  }
-
 
   tI: number // Token identifier index.
   t: any // Token index map.
-
-
-  ///////////
-
-
-  // Token map
-  // tm: { [token: string]: Tin }
-
-
-  // fs: string[] // Fixed strings (tokens, values, etc)
-
-
-
-  // m: { [token_name: string]: TinMap }         // Mutually exclusive character sets.
-  // cs: { [charset_name: string]: CharMap } // Character set.
-  // sm: { [char: string]: Tin }                 // Single character token index.
-  // ts: { [tokenset_name: string]: Tin[] }      // Named token sets.
-  // vs: { [start_char: string]: boolean }       // Literal value start characters.
-  // vm: KV,                                     // Map value source to actual value.
-  // esc: { [name: string]: string }             // String escape characters.
-  // cm: { [start_marker: string]: string | boolean } // Comment start markers.
-  // cmk: string[]                               // Comment start markers.
-  // cmx: number                                 // Comment start markers max length.
-  // bmk: string[]                               // Block start markers.
-  // bmx: number                                 // Block start markers max length.
-  // sc: string                                  // Token start characters.
-  //d: KV,                                      // Debug options.
-
-  // TOD: maybe list them?
-  // re: { [name: string]: RegExp | null }       // RegExp map.
 }
 
 
@@ -397,19 +374,17 @@ function configure(incfg: Config | undefined, opts: Options): Config {
   const t = (tn: string) => tokenize(tn, cfg)
 
   // Standard tokens.
-  let SP = t('#SP') // SPACE
-  let LN = t('#LN') // LINE
-  let CM = t('#CM') // COMMENT
-
-  t('#NR') // NUMBER
-  t('#ST') // STRING
-  t('#TX') // TEXT
-  t('#VL') // VALUE
-
   t('#BD') // BAD
   t('#ZZ') // END
   t('#UK') // UNKNOWN
   t('#AA') // ANY
+  t('#SP') // SPACE
+  t('#LN') // LINE
+  t('#CM') // COMMENT
+  t('#NR') // NUMBER
+  t('#ST') // STRING
+  t('#TX') // TEXT
+  t('#VL') // VALUE
 
 
   cfg.fixed = {
@@ -418,15 +393,9 @@ function configure(incfg: Config | undefined, opts: Options): Config {
   }
 
 
-
   cfg.tokenSet = {
-    ignore: {
-      [SP]: true,
-      [LN]: true,
-      [CM]: true,
-    }
+    ignore: Object.fromEntries(opts.tokenSet.ignore.map(tn => [t(tn), true]))
   }
-
 
 
   cfg.space = {

@@ -86,6 +86,9 @@ declare type Options = {
         lex: boolean;
         token: StrMap;
     };
+    tokenSet: {
+        ignore: string[];
+    };
     line: {
         lex: boolean;
         row: string;
@@ -179,6 +182,11 @@ declare type Config = {
         lex: boolean;
         token: TokenMap;
     };
+    tokenSet: {
+        ignore: {
+            [name: number]: boolean;
+        };
+    };
     space: {
         lex: boolean;
         tokenName: string;
@@ -234,11 +242,6 @@ declare type Config = {
         maxlen: number;
         print: {
             config: boolean;
-        };
-    };
-    tokenSet: {
-        ignore: {
-            [name: number]: boolean;
         };
     };
     tI: number;

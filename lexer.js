@@ -352,9 +352,18 @@ class Lexer {
     constructor(cfg) {
         this.cfg = cfg;
         this.end = new Token('#ZZ', intern_1.tokenize('#ZZ', cfg), undefined, '', new Point(-1));
+        this.mat = [
+            matchFixed,
+            matchSpace,
+            matchLineEnding,
+            matchString,
+            matchComment,
+            matchNumberEndingWithFixed,
+            matchTextEndingWithFixed,
+        ];
     }
     start(ctx) {
-        return new Lex(ctx.src(), ctx, this.cfg);
+        return new Lex(ctx.src(), this.mat, ctx, this.cfg);
     }
     // Clone the Lexer, and in particular the registered matchers.
     clone(config) {
@@ -365,21 +374,12 @@ class Lexer {
 }
 exports.Lexer = Lexer;
 class Lex {
-    constructor(src, ctx, cfg) {
+    constructor(src, mat, ctx, cfg) {
         this.src = src;
         this.ctx = ctx;
         this.cfg = cfg;
         this.pnt = new Point(src.length);
-        // TODO: move to Lexer
-        this.mat = [
-            matchFixed,
-            matchSpace,
-            matchLineEnding,
-            matchString,
-            matchComment,
-            matchNumberEndingWithFixed,
-            matchTextEndingWithFixed,
-        ];
+        this.mat = mat;
     }
     token(ref, val, src, pnt, use, why) {
         let tin;
