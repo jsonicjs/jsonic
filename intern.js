@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.snip = exports.charset = exports.clone = exports.srcfmt = exports.trimstk = exports.tokenize = exports.escre = exports.regexp = exports.mesc = exports.makelog = exports.keys = exports.extract = exports.errinject = exports.errdesc = exports.entries = exports.defprop = exports.deep = exports.badlex = exports.assign = exports.S = exports.RuleState = exports.MT = exports.JsonicError = void 0;
+exports.configure = exports.snip = exports.charset = exports.clone = exports.srcfmt = exports.trimstk = exports.tokenize = exports.escre = exports.regexp = exports.mesc = exports.makelog = exports.keys = exports.extract = exports.errinject = exports.errdesc = exports.entries = exports.defprop = exports.deep = exports.badlex = exports.assign = exports.S = exports.RuleState = exports.MT = exports.JsonicError = void 0;
 /* $lab:coverage:off$ */
 var RuleState;
 (function (RuleState) {
@@ -8,6 +8,7 @@ var RuleState;
     RuleState[RuleState["close"] = 1] = "close";
 })(RuleState || (RuleState = {}));
 exports.RuleState = RuleState;
+/* $lab:coverage:on$ */
 const MT = ''; // Empty ("MT"!) string.
 exports.MT = MT;
 const keys = Object.keys;
@@ -76,6 +77,307 @@ class JsonicError extends SyntaxError {
     }
 }
 exports.JsonicError = JsonicError;
+// Idempotent normalization of options.
+// See Config type for commentary.
+function configure(incfg, opts) {
+    const cfg = incfg || {
+        tI: 1,
+        t: {}
+    };
+    const t = (tn) => tokenize(tn, cfg);
+    // Standard tokens.
+    let SP = t('#SP'); // SPACE
+    let LN = t('#LN'); // LINE
+    let CM = t('#CM'); // COMMENT
+    t('#NR'); // NUMBER
+    t('#ST'); // STRING
+    t('#TX'); // TEXT
+    t('#VL'); // VALUE
+    t('#BD'); // BAD
+    t('#ZZ'); // END
+    t('#UK'); // UNKNOWN
+    t('#AA'); // ANY
+    cfg.tokenSet = {
+        ignore: {
+            [SP]: true,
+            [LN]: true,
+            [CM]: true,
+        }
+    };
+    cfg.fixed = {
+        // TODO: rename to lex in all
+        lex: true,
+        token: {
+            '{': t('#OB'),
+            '}': t('#CB'),
+            '[': t('#OS'),
+            ']': t('#CS'),
+            ':': t('#CL'),
+            ',': t('#CA'),
+            // TODO:move to test
+            //'=': t('#EQ'),
+            //'=>': t('#DA'),
+            //'===': t('#ES'),
+        }
+    };
+    cfg.space = {
+        lex: true,
+        tokenName: '#SP',
+        charMap: {
+            ' ': 32,
+            '\t': 9,
+        }
+    };
+    cfg.line = {
+        lex: true,
+        charMap: {
+            '\r': 13,
+            '\n': 10,
+        },
+        rowCharMap: {
+            '\n': 13,
+        },
+    };
+    cfg.text = {
+        lex: true
+    };
+    cfg.number = {
+        lex: true
+    };
+    cfg.value = {
+        lex: true,
+        m: {
+            'true': { v: true },
+            'false': { v: false },
+            'null': { v: null },
+            // TODO: just testing, move to plugin
+            // 'undefined': { v: undefined },
+            // 'NaN': { v: NaN },
+            // 'Infinity': { v: Infinity },
+            // '+Infinity': { v: +Infinity },
+            // '-Infinity': { v: -Infinity },
+        }
+    };
+    cfg.string = {
+        lex: true,
+        quoteMap: {
+            '\'': 39,
+            '"': 34,
+            '`': 96,
+        },
+        escMap: {
+            b: '\b',
+            f: '\f',
+            n: '\n',
+            r: '\r',
+            t: '\t',
+        },
+        escChar: '\\',
+        escCharCode: '\\'.charCodeAt(0),
+        doubleEsc: false,
+        multiLine: {
+            '`': 96,
+        }
+    };
+    cfg.comment = {
+        lex: true,
+        marker: [
+            { line: true, start: '#', end: '\n', active: true, eof: true },
+            { line: true, start: '//', end: '\n', active: true, eof: true },
+            { line: false, start: '/*', end: '*/', active: true, eof: false },
+        ],
+    };
+    let fixedSorted = Object.keys(cfg.fixed.token)
+        .sort((a, b) => b.length - a.length);
+    let fixedRE = fixedSorted.map(fixed => escre(fixed)).join('|');
+    let comments = cfg.comment.lex && cfg.comment.marker.filter(c => c.active);
+    // End-marker RE part
+    let enderRE = [
+        '([',
+        escre(keys(charset(cfg.space.lex && cfg.space.charMap, cfg.line.lex && cfg.line.charMap)).join('')),
+        ']|',
+        fixedRE,
+        // TODO: spaces
+        comments ?
+            ('|' + comments.reduce((a, c) => (a.push(escre(c.start)), a), []).join('|')) : '',
+        '|$)', // EOF case
+    ];
+    // TODO: friendlier names
+    cfg.re = {
+        ender: regexp(null, ...enderRE),
+        // Text to end-marker.
+        textEnder: regexp(null, '^(.*?)', ...enderRE),
+        // TODO: use cfg props
+        // Number to end-marker.
+        numberEnder: regexp(null, [
+            '^[-+]?(0(',
+            [
+                opts.number.hex ? 'x[0-9a-fA-F_]+' : null,
+                opts.number.oct ? 'o[0-7_]+' : null,
+                opts.number.bin ? 'b[01_]+' : null,
+            ].filter(s => null != s).join('|'),
+            ')|[0-9]+([0-9_]*[0-9])?)',
+            '(\\.[0-9]+([0-9_]*[0-9])?)?',
+            '([eE][-+]?[0-9]+([0-9_]*[0-9])?)?',
+        ]
+            //.filter(s =>
+            //  s.replace(/_/g, null == re_ns ? '' : opts.number.sep))
+            .join(''), ...enderRE),
+        fixed: regexp(null, '^(', fixedRE, ')'),
+        commentLine: regexp(null, comments ?
+            comments.reduce((a, c) => (a.push('^(' + escre(c.start) +
+                '.*?(' + escre(c.end) +
+                (c.eof ? '|$' : '') + ')' + ')'), a), []).join('|') : ''),
+    };
+    cfg.debug = {
+        get_console: opts.debug.get_console,
+        maxlen: opts.debug.maxlen,
+        print: {
+            config: opts.debug.print.config
+        },
+    };
+    // console.log('CONFIG')
+    // console.dir(cfg, { depth: null })
+    /////////
+    //let ot = opts.token
+    //let token_names = keys(ot)
+    // // Index of tokens by name.
+    // token_names.forEach(tn => tokenize(tn, cfg))
+    //let fixstrs = token_names
+    //  .filter(tn => null != (t[tn] as any).c)
+    //  .map(tn => (t[tn] as any).c)
+    // cfg.vs = keys(opts.value.src)
+    //   .reduce((a: any, s: string) => (a[s[0]] = true, a), {})
+    // TODO: comments, etc
+    // fixstrs = fixstrs.concat(keys(opts.value.src))
+    // console.log('FIXSTRS', fixstrs)
+    // Sort by length descending
+    //cfg.fs = fixstrs.sort((a: string, b: string) => b.length - a.length)
+    // let single_char_token_names = token_names
+    //   .filter(tn => null != (ot[tn] as any).c && 1 === (ot[tn] as any).c.length)
+    // cfg.sm = single_char_token_names
+    //   .reduce((a, tn) => (a[(opts.token[tn] as any).c] =
+    //     (cfg.t as any)[tn], a), ({} as any))
+    // let multi_char_token_names = token_names
+    //   .filter(tn => S.string === typeof opts.token[tn])
+    // cfg.m = multi_char_token_names
+    //   .reduce((a: any, tn) =>
+    //   (a[tn.substring(1)] =
+    //     (opts.token[tn] as string)
+    //       .split(MT)
+    //       .reduce((pm, c) => (pm[c] = cfg.t[tn], pm), ({} as TinMap)),
+    //     a), {})
+    // let tokenset_names = token_names
+    //   .filter(tn => null != (opts.token[tn] as any).s)
+    // Char code arrays for lookup by char code.
+    // cfg.ts = tokenset_names
+    //   .reduce((a: any, tsn) =>
+    //   (a[tsn.substring(1)] =
+    //     (opts.token[tsn] as any).s.split(',')
+    //       .reduce((a: any, tn: string) => (a[cfg.t[tn]] = tn, a), {}),
+    //     a), {})
+    // config.vm = options.value.src
+    // config.vs = keys(options.value.src)
+    //  .reduce((a: any, s: string) => (a[s[0]] = true, a), {})
+    // Lookup maps for sets of characters.
+    // cfg.cs = {}
+    // Lookup table for escape chars, indexed by denotating char (e.g. n for \n).
+    // cfg.esc = keys(opts.string.escape)
+    //   .reduce((a: any, ed: string) =>
+    //     (a[ed] = opts.string.escape[ed], a), {})
+    // comment start markers
+    // cfg.cs.cs = {}
+    // comment markers
+    // cfg.cmk = []
+    // if (opts.comment.lex) {
+    //   cfg.cm = opts.comment.marker
+    //   let comment_markers = keys(cfg.cm)
+    //   comment_markers.forEach(k => {
+    //     // Single char comment marker (eg. `#`)
+    //     if (1 === k.length) {
+    //       cfg.cs.cs[k] = k.charCodeAt(0)
+    //     }
+    //     // String comment marker (eg. `//`)
+    //     else {
+    //       cfg.cs.cs[k[0]] = k.charCodeAt(0)
+    //       cfg.cmk.push(k)
+    //     }
+    //   })
+    //   cfg.cmx = longest(comment_markers)
+    // }
+    // cfg.sc = keys(cfg.sm).join(MT)
+    // All the characters that can appear in a number.
+    // cfg.cs.dig = charset(opts.number.digital)
+    // // Multiline quotes
+    // cfg.cs.mln = charset(opts.string.multiline)
+    // Enders are char sets that end lexing for a given token.
+    // Value enders...end values!
+    // cfg.cs.vend = charset(
+    //   opts.space.lex && cfg.m.SP,
+    //   opts.line.lex && cfg.m.LN,
+    //   cfg.sc,
+    //   opts.comment.lex && cfg.cs.cs,
+    //   opts.block.lex && cfg.cs.bs,
+    // )
+    // block start markers
+    // cfg.cs.bs = {}
+    // cfg.bmk = []
+    // TODO: change to block.markers as per comments, then config.bm
+    // let block_markers = keys(opts.block.marker)
+    // block_markers.forEach(k => {
+    // cfg.cs.bs[k[0]] = k.charCodeAt(0)
+    // cfg.bmk.push(k)
+    // })
+    // cfg.bmx = longest(block_markers)
+    //let re_ns = null != opts.number.sep ?
+    //  new RegExp(opts.number.sep, 'g') : null
+    // RegExp cache
+    // cfg.re = Object.assign(cfg.re, {
+    //   //ns: re_ns,
+    //   // te: ender(
+    //   //   charset(
+    //   //     opts.space.lex && cfg.m.SP,
+    //   //     opts.line.lex && cfg.m.LN,
+    //   //     cfg.sc,
+    //   //     opts.comment.lex && cfg.cs.cs,
+    //   //     opts.block.lex && cfg.cs.bs
+    //   //   ),
+    //   //   {
+    //   //     ...(opts.comment.lex ? cfg.cm : {}),
+    //   //     ...(opts.block.lex ? opts.block.marker : {}),
+    //   //   },
+    //   //   cfg.sm
+    //   // ),
+    //   nm: new RegExp(
+    //     [
+    //       '^[-+]?(0(',
+    //       [
+    //         opts.number.hex ? 'x[0-9a-fA-F_]+' : null,
+    //         opts.number.oct ? 'o[0-7_]+' : null,
+    //         opts.number.bin ? 'b[01_]+' : null,
+    //       ].filter(s => null != s).join('|'),
+    //       ')|[0-9]+([0-9_]*[0-9])?)',
+    //       '(\\.[0-9]+([0-9_]*[0-9])?)?',
+    //       '([eE][-+]?[0-9]+([0-9_]*[0-9])?)?',
+    //     ]
+    //       .filter(s =>
+    //         s.replace(/_/g, null == re_ns ? '' : opts.number.sep))
+    //       .join('')
+    //   )
+    // })
+    // console.log('cfg.re.txfs', cfg.re.txfs)
+    // Debug options
+    //cfg.d = opts.debug
+    // Apply any config modifiers (probably from plugins).
+    keys(opts.config.modify)
+        .forEach((modifer) => opts.config.modify[modifer](cfg, opts));
+    // Debug the config - useful for plugin authors.
+    if (opts.debug.print.config) {
+        opts.debug.get_console().dir(cfg, { depth: null });
+    }
+    return cfg;
+}
+exports.configure = configure;
 // Uniquely resolve or assign token by name (string) or identification number (Tin),
 // returning the associated Tin (for the name) or name (for the Tin).
 function tokenize(ref, cfg, jsonic) {

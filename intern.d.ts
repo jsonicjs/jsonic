@@ -4,9 +4,6 @@ declare enum RuleState {
     open = 0,
     close = 1
 }
-declare type TinMap = {
-    [char: string]: Tin;
-};
 declare const MT = "";
 declare const keys: {
     (o: object): string[];
@@ -172,21 +169,21 @@ declare type Options = {
 };
 declare type Config = {
     fixed: {
-        active: boolean;
+        lex: boolean;
         token: TokenMap;
     };
     space: {
-        active: boolean;
+        lex: boolean;
         tokenName: string;
         charMap: CharMap;
     };
     line: {
-        active: boolean;
+        lex: boolean;
         charMap: CharMap;
         rowCharMap: CharMap;
     };
     string: {
-        active: boolean;
+        lex: boolean;
         quoteMap: CharMap;
         escMap: KV;
         escChar: string;
@@ -195,13 +192,13 @@ declare type Config = {
         multiLine: CharMap;
     };
     text: {
-        active: boolean;
+        lex: boolean;
     };
     number: {
-        active: boolean;
+        lex: boolean;
     };
     value: {
-        active: boolean;
+        lex: boolean;
         m: {
             [literal: string]: {
                 v: any;
@@ -209,7 +206,7 @@ declare type Config = {
         };
     };
     comment: {
-        active: boolean;
+        lex: boolean;
         marker: {
             line: boolean;
             start: string;
@@ -264,6 +261,7 @@ declare type Context = {
     F: (s: any) => string;
     use: KV;
 };
+declare function configure(incfg: Config | undefined, opts: Options): Config;
 declare function tokenize<R extends string | Tin, T extends (R extends Tin ? string : Tin)>(ref: R, cfg: Config, jsonic?: any): T;
 declare function mesc(s: string, _?: any): any;
 declare function regexp(flags: string | null, ...parts: (string | (String & {
@@ -281,4 +279,4 @@ declare function srcfmt(config: Config): (s: any, _?: any) => string;
 declare function snip(s: any, len?: number): string;
 declare function clone(class_instance: any): any;
 declare function charset(...parts: (string | object | boolean)[]): CharMap;
-export { CharMap, Config, Context, JsonicError, KV, MT, Meta, Options, RuleState, S, Tin, TinMap, Token, assign, badlex, deep, defprop, entries, errdesc, errinject, extract, keys, makelog, mesc, regexp, escre, tokenize, trimstk, srcfmt, clone, charset, snip, };
+export { CharMap, Config, Context, JsonicError, KV, MT, Meta, Options, RuleState, S, Tin, Token, assign, badlex, deep, defprop, entries, errdesc, errinject, extract, keys, makelog, mesc, regexp, escre, tokenize, trimstk, srcfmt, clone, charset, snip, configure, };

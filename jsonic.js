@@ -220,19 +220,16 @@ let util = {
     deep: intern_1.deep,
     clone: intern_1.clone,
     charset: intern_1.charset,
-    longest,
-    marr,
     trimstk: intern_1.trimstk,
     makelog: intern_1.makelog,
     badlex: intern_1.badlex,
     extract: intern_1.extract,
     errinject: intern_1.errinject,
     errdesc: intern_1.errdesc,
-    configure,
+    configure: intern_1.configure,
     parserwrap,
     regexp: intern_1.regexp,
     mesc: intern_1.mesc,
-    ender,
 };
 exports.util = util;
 function make(param_options, parent) {
@@ -256,7 +253,7 @@ function make(param_options, parent) {
     // and set them as a funtion call.
     let options = (change_options) => {
         if (null != change_options && intern_1.S.object === typeof (change_options)) {
-            configure(config, intern_1.deep(merged_options, change_options));
+            intern_1.configure(config, intern_1.deep(merged_options, change_options));
             for (let k in merged_options) {
                 jsonic.options[k] = merged_options[k];
             }
@@ -306,7 +303,7 @@ function make(param_options, parent) {
         jsonic.parent = parent;
         let parent_internal = parent.internal();
         config = intern_1.deep({}, parent_internal.config);
-        configure(config, merged_options);
+        intern_1.configure(config, merged_options);
         intern_1.assign(jsonic.token, config.t);
         plugins = [...parent_internal.plugins];
         lexer = parent_internal.lexer.clone(config);
@@ -319,7 +316,7 @@ function make(param_options, parent) {
         //   t: {}
         // } as Config)
         // config = ({} as Config)
-        config = configure(undefined, merged_options);
+        config = intern_1.configure(undefined, merged_options);
         plugins = [];
         lexer = new lexer_1.Lexer(config);
         parser = new parser_1.Parser(merged_options, config);
@@ -343,39 +340,6 @@ function make(param_options, parent) {
     return jsonic;
 }
 exports.make = make;
-// Utility functions
-function longest(strs) {
-    return strs.reduce((a, s) => a < s.length ? s.length : a, 0);
-}
-// True if arrays match.
-function marr(a, b) {
-    return (a.length === b.length && a.reduce((a, s, i) => (a && s === b[i]), true));
-}
-function ender(endchars, endmarks, singles) {
-    let allendchars = intern_1.keys(intern_1.keys(endmarks)
-        .reduce((a, em) => (a[em[0]] = 1, a), { ...endchars }))
-        .join('');
-    let endmarkprefixes = intern_1.entries(intern_1.keys(endmarks)
-        .filter(cm => 1 < cm.length && // only for long marks
-        // Not needed if first char is already an endchar,
-        // otherwise edge case where first char won't match as ender,
-        // see test custom-parser-mixed-token
-        (!singles || !singles[cm[0]]))
-        .reduce((a, s) => ((a[s[0]] = (a[s[0]]) || []).push(s.substring(1)), a), {}))
-        .reduce((a, cme) => (a.push([
-        cme[0],
-        cme[1].map((cms) => intern_1.regexp('', intern_1.mesc(cms)).source).join('|')
-    ]), a), [])
-        .map((cmp) => [
-        '|(',
-        intern_1.mesc(cmp[0]),
-        '(?!(',
-        cmp[1],
-        //')).)'
-        ')))'
-    ]).flat(1);
-    return intern_1.regexp(intern_1.S.no_re_flags, '^(([^', intern_1.mesc(allendchars), ']+)', ...endmarkprefixes, ')+');
-}
 function parserwrap(parser) {
     return {
         start: function (lexer, src, jsonic, meta, parent_ctx) {
@@ -443,306 +407,6 @@ function parserwrap(parser) {
             }
         }
     };
-}
-// Idempotent normalization of options.
-// See Config type for commentary.
-function configure(incfg, opts) {
-    const cfg = incfg || {
-        tI: 1,
-        t: {}
-    };
-    const t = (tn) => intern_1.tokenize(tn, cfg);
-    // Standard tokens.
-    let SP = t('#SP'); // SPACE
-    let LN = t('#LN'); // LINE
-    let CM = t('#CM'); // COMMENT
-    t('#NR'); // NUMBER
-    t('#ST'); // STRING
-    t('#TX'); // TEXT
-    t('#VL'); // VALUE
-    t('#BD'); // BAD
-    t('#ZZ'); // END
-    t('#UK'); // UNKNOWN
-    t('#AA'); // ANY
-    cfg.tokenSet = {
-        ignore: {
-            [SP]: true,
-            [LN]: true,
-            [CM]: true,
-        }
-    };
-    cfg.fixed = {
-        // TODO: rename to lex in all
-        active: true,
-        token: {
-            '{': t('#OB'),
-            '}': t('#CB'),
-            '[': t('#OS'),
-            ']': t('#CS'),
-            ':': t('#CL'),
-            ',': t('#CA'),
-            // TODO:move to test
-            //'=': t('#EQ'),
-            //'=>': t('#DA'),
-            //'===': t('#ES'),
-        }
-    };
-    cfg.space = {
-        active: true,
-        tokenName: '#SP',
-        charMap: {
-            ' ': 32,
-            '\t': 9,
-        }
-    };
-    cfg.line = {
-        active: true,
-        charMap: {
-            '\r': 13,
-            '\n': 10,
-        },
-        rowCharMap: {
-            '\n': 13,
-        },
-    };
-    cfg.text = {
-        active: true
-    };
-    cfg.number = {
-        active: true
-    };
-    cfg.value = {
-        active: true,
-        m: {
-            'true': { v: true },
-            'false': { v: false },
-            'null': { v: null },
-            // TODO: just testing, move to plugin
-            // 'undefined': { v: undefined },
-            // 'NaN': { v: NaN },
-            // 'Infinity': { v: Infinity },
-            // '+Infinity': { v: +Infinity },
-            // '-Infinity': { v: -Infinity },
-        }
-    };
-    cfg.string = {
-        active: true,
-        quoteMap: {
-            '\'': 39,
-            '"': 34,
-            '`': 96,
-        },
-        escMap: {
-            b: '\b',
-            f: '\f',
-            n: '\n',
-            r: '\r',
-            t: '\t',
-        },
-        escChar: '\\',
-        escCharCode: '\\'.charCodeAt(0),
-        doubleEsc: false,
-        multiLine: {
-            '`': 96,
-        }
-    };
-    cfg.comment = {
-        active: true,
-        marker: [
-            { line: true, start: '#', end: '\n', active: true, eof: true },
-            { line: true, start: '//', end: '\n', active: true, eof: true },
-            { line: false, start: '/*', end: '*/', active: true, eof: false },
-        ],
-    };
-    let fixedSorted = Object.keys(cfg.fixed.token)
-        .sort((a, b) => b.length - a.length);
-    let fixedRE = fixedSorted.map(fixed => intern_1.escre(fixed)).join('|');
-    let comments = cfg.comment.active && cfg.comment.marker.filter(c => c.active);
-    // End-marker RE part
-    let enderRE = [
-        '([',
-        intern_1.escre(intern_1.keys(intern_1.charset(cfg.space.active && cfg.space.charMap, cfg.line.active && cfg.line.charMap)).join('')),
-        ']|',
-        fixedRE,
-        // TODO: spaces
-        comments ?
-            ('|' + comments.reduce((a, c) => (a.push(intern_1.escre(c.start)), a), []).join('|')) : '',
-        '|$)', // EOF case
-    ];
-    // TODO: friendlier names
-    cfg.re = {
-        ender: intern_1.regexp(null, ...enderRE),
-        // Text to end-marker.
-        textEnder: intern_1.regexp(null, '^(.*?)', ...enderRE),
-        // TODO: use cfg props
-        // Number to end-marker.
-        numberEnder: intern_1.regexp(null, [
-            '^[-+]?(0(',
-            [
-                opts.number.hex ? 'x[0-9a-fA-F_]+' : null,
-                opts.number.oct ? 'o[0-7_]+' : null,
-                opts.number.bin ? 'b[01_]+' : null,
-            ].filter(s => null != s).join('|'),
-            ')|[0-9]+([0-9_]*[0-9])?)',
-            '(\\.[0-9]+([0-9_]*[0-9])?)?',
-            '([eE][-+]?[0-9]+([0-9_]*[0-9])?)?',
-        ]
-            //.filter(s =>
-            //  s.replace(/_/g, null == re_ns ? '' : opts.number.sep))
-            .join(''), ...enderRE),
-        fixed: intern_1.regexp(null, '^(', fixedRE, ')'),
-        commentLine: intern_1.regexp(null, comments ?
-            comments.reduce((a, c) => (a.push('^(' + intern_1.escre(c.start) +
-                '.*?(' + intern_1.escre(c.end) +
-                (c.eof ? '|$' : '') + ')' + ')'), a), []).join('|') : ''),
-    };
-    cfg.debug = {
-        get_console: opts.debug.get_console,
-        maxlen: opts.debug.maxlen,
-        print: {
-            config: opts.debug.print.config
-        },
-    };
-    // console.log('CONFIG')
-    // console.dir(cfg, { depth: null })
-    /////////
-    //let ot = opts.token
-    //let token_names = keys(ot)
-    // // Index of tokens by name.
-    // token_names.forEach(tn => tokenize(tn, cfg))
-    //let fixstrs = token_names
-    //  .filter(tn => null != (t[tn] as any).c)
-    //  .map(tn => (t[tn] as any).c)
-    // cfg.vs = keys(opts.value.src)
-    //   .reduce((a: any, s: string) => (a[s[0]] = true, a), {})
-    // TODO: comments, etc
-    // fixstrs = fixstrs.concat(keys(opts.value.src))
-    // console.log('FIXSTRS', fixstrs)
-    // Sort by length descending
-    //cfg.fs = fixstrs.sort((a: string, b: string) => b.length - a.length)
-    // let single_char_token_names = token_names
-    //   .filter(tn => null != (ot[tn] as any).c && 1 === (ot[tn] as any).c.length)
-    // cfg.sm = single_char_token_names
-    //   .reduce((a, tn) => (a[(opts.token[tn] as any).c] =
-    //     (cfg.t as any)[tn], a), ({} as any))
-    // let multi_char_token_names = token_names
-    //   .filter(tn => S.string === typeof opts.token[tn])
-    // cfg.m = multi_char_token_names
-    //   .reduce((a: any, tn) =>
-    //   (a[tn.substring(1)] =
-    //     (opts.token[tn] as string)
-    //       .split(MT)
-    //       .reduce((pm, c) => (pm[c] = cfg.t[tn], pm), ({} as TinMap)),
-    //     a), {})
-    // let tokenset_names = token_names
-    //   .filter(tn => null != (opts.token[tn] as any).s)
-    // Char code arrays for lookup by char code.
-    // cfg.ts = tokenset_names
-    //   .reduce((a: any, tsn) =>
-    //   (a[tsn.substring(1)] =
-    //     (opts.token[tsn] as any).s.split(',')
-    //       .reduce((a: any, tn: string) => (a[cfg.t[tn]] = tn, a), {}),
-    //     a), {})
-    // config.vm = options.value.src
-    // config.vs = keys(options.value.src)
-    //  .reduce((a: any, s: string) => (a[s[0]] = true, a), {})
-    // Lookup maps for sets of characters.
-    // cfg.cs = {}
-    // Lookup table for escape chars, indexed by denotating char (e.g. n for \n).
-    // cfg.esc = keys(opts.string.escape)
-    //   .reduce((a: any, ed: string) =>
-    //     (a[ed] = opts.string.escape[ed], a), {})
-    // comment start markers
-    // cfg.cs.cs = {}
-    // comment markers
-    // cfg.cmk = []
-    // if (opts.comment.lex) {
-    //   cfg.cm = opts.comment.marker
-    //   let comment_markers = keys(cfg.cm)
-    //   comment_markers.forEach(k => {
-    //     // Single char comment marker (eg. `#`)
-    //     if (1 === k.length) {
-    //       cfg.cs.cs[k] = k.charCodeAt(0)
-    //     }
-    //     // String comment marker (eg. `//`)
-    //     else {
-    //       cfg.cs.cs[k[0]] = k.charCodeAt(0)
-    //       cfg.cmk.push(k)
-    //     }
-    //   })
-    //   cfg.cmx = longest(comment_markers)
-    // }
-    // cfg.sc = keys(cfg.sm).join(MT)
-    // All the characters that can appear in a number.
-    // cfg.cs.dig = charset(opts.number.digital)
-    // // Multiline quotes
-    // cfg.cs.mln = charset(opts.string.multiline)
-    // Enders are char sets that end lexing for a given token.
-    // Value enders...end values!
-    // cfg.cs.vend = charset(
-    //   opts.space.lex && cfg.m.SP,
-    //   opts.line.lex && cfg.m.LN,
-    //   cfg.sc,
-    //   opts.comment.lex && cfg.cs.cs,
-    //   opts.block.lex && cfg.cs.bs,
-    // )
-    // block start markers
-    // cfg.cs.bs = {}
-    // cfg.bmk = []
-    // TODO: change to block.markers as per comments, then config.bm
-    // let block_markers = keys(opts.block.marker)
-    // block_markers.forEach(k => {
-    // cfg.cs.bs[k[0]] = k.charCodeAt(0)
-    // cfg.bmk.push(k)
-    // })
-    // cfg.bmx = longest(block_markers)
-    //let re_ns = null != opts.number.sep ?
-    //  new RegExp(opts.number.sep, 'g') : null
-    // RegExp cache
-    // cfg.re = Object.assign(cfg.re, {
-    //   //ns: re_ns,
-    //   // te: ender(
-    //   //   charset(
-    //   //     opts.space.lex && cfg.m.SP,
-    //   //     opts.line.lex && cfg.m.LN,
-    //   //     cfg.sc,
-    //   //     opts.comment.lex && cfg.cs.cs,
-    //   //     opts.block.lex && cfg.cs.bs
-    //   //   ),
-    //   //   {
-    //   //     ...(opts.comment.lex ? cfg.cm : {}),
-    //   //     ...(opts.block.lex ? opts.block.marker : {}),
-    //   //   },
-    //   //   cfg.sm
-    //   // ),
-    //   nm: new RegExp(
-    //     [
-    //       '^[-+]?(0(',
-    //       [
-    //         opts.number.hex ? 'x[0-9a-fA-F_]+' : null,
-    //         opts.number.oct ? 'o[0-7_]+' : null,
-    //         opts.number.bin ? 'b[01_]+' : null,
-    //       ].filter(s => null != s).join('|'),
-    //       ')|[0-9]+([0-9_]*[0-9])?)',
-    //       '(\\.[0-9]+([0-9_]*[0-9])?)?',
-    //       '([eE][-+]?[0-9]+([0-9_]*[0-9])?)?',
-    //     ]
-    //       .filter(s =>
-    //         s.replace(/_/g, null == re_ns ? '' : opts.number.sep))
-    //       .join('')
-    //   )
-    // })
-    // console.log('cfg.re.txfs', cfg.re.txfs)
-    // Debug options
-    //cfg.d = opts.debug
-    // Apply any config modifiers (probably from plugins).
-    intern_1.keys(opts.config.modify)
-        .forEach((modifer) => opts.config.modify[modifer](cfg, opts));
-    // Debug the config - useful for plugin authors.
-    if (opts.debug.print.config) {
-        opts.debug.get_console().dir(cfg, { depth: null });
-    }
-    return cfg;
 }
 // Generate hint text lookup.
 // NOTE: generated and inserted by hint.js

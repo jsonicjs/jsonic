@@ -15,12 +15,15 @@ const it = lab.it
 const expect = Code.expect
 
 const { Jsonic, Lexer, Parser, JsonicError, make } = require('..')
+
+/*
 const { Json } = require('../plugin/json')
 const { Csv } = require('../plugin/csv')
 const { Dynamic } = require('../plugin/dynamic')
 const { Native } = require('../plugin/native')
 const { LegacyStringify } = require('../plugin/legacy-stringify')
 const { Hoover } = require('../plugin/hoover')
+*/
 
 const I = Util.inspect
 
@@ -182,7 +185,7 @@ describe('plugin', function () {
   })
 
   
-
+/*
   it('dynamic-basic', () => {
     let d = (x)=>JSON.parse(JSON.stringify(x))
     let k = Jsonic.make().use(Dynamic)
@@ -411,7 +414,7 @@ aa\tbb
     
 
   })
-
+*/
 
   /*
   it('multifile-basic', () => {
@@ -484,6 +487,7 @@ aa\tbb
   })
   */
 
+  /*
   it('legacy-stringify-basic', () => {
     let k = Jsonic.make().use(LegacyStringify)
     expect(k.stringify({a:1})).equal('{a:1}')
@@ -660,7 +664,7 @@ aa\tbb
     expect( k.stringify([1]) ).equal('[1]')
     expect( k.stringify([1,undefined,null]) ).equal('[1,null,null]')
   })
-
+*/
 
   it('custom-parser-error', ()=>{
     let j = Jsonic.make().use(function foo(jsonic) {
@@ -701,7 +705,7 @@ aa\tbb
 
 
 
-  // TODO: implement hoover
+/*
   it('hoover', () => {
     let j = Jsonic.make().use(Hoover)
     expect(Jsonic('a b')).equals(['a','b'])
@@ -754,6 +758,8 @@ aa\tbb
     }).use(Hoover)
     expect(j1('a:x y')).equal({a:'x y'})
   })
+*/
+
 })
 
 

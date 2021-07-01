@@ -67,7 +67,7 @@ class Token {
 }
 exports.Token = Token;
 const matchFixed = (lex) => {
-    if (!lex.cfg.fixed.active)
+    if (!lex.cfg.fixed.lex)
         return undefined;
     let pnt = lex.pnt;
     let fwd = lex.src.substring(pnt.sI);
@@ -87,7 +87,7 @@ const matchFixed = (lex) => {
     }
 };
 const matchComment = (lex) => {
-    if (!lex.cfg.comment.active)
+    if (!lex.cfg.comment.lex)
         return undefined;
     let pnt = lex.pnt;
     let fwd = lex.src.substring(pnt.sI);
@@ -106,7 +106,7 @@ const matchComment = (lex) => {
 // Match text, checking for literal values, optionally followed by a fixed token.
 // Text strings are terminated by end markers.
 const matchTextEndingWithFixed = (lex) => {
-    if (!lex.cfg.text.active)
+    if (!lex.cfg.text.lex)
         return undefined;
     let pnt = lex.pnt;
     let fwd = lex.src.substring(pnt.sI);
@@ -120,7 +120,7 @@ const matchTextEndingWithFixed = (lex) => {
             let mlen = msrc.length;
             if (0 < mlen) {
                 let vs = undefined;
-                if (lex.cfg.value.active && undefined !== (vs = vm[msrc])) {
+                if (lex.cfg.value.lex && undefined !== (vs = vm[msrc])) {
                     // TODO: get name from cfg  
                     out = lex.token('#VL', vs.v, msrc, pnt);
                 }
@@ -135,7 +135,7 @@ const matchTextEndingWithFixed = (lex) => {
     }
 };
 const matchNumberEndingWithFixed = (lex) => {
-    if (!lex.cfg.number.active)
+    if (!lex.cfg.number.lex)
         return undefined;
     let pnt = lex.pnt;
     let fwd = lex.src.substring(pnt.sI);
@@ -149,7 +149,7 @@ const matchNumberEndingWithFixed = (lex) => {
             let mlen = msrc.length;
             if (0 < mlen) {
                 let vs = undefined;
-                if (lex.cfg.value.active && undefined !== (vs = vm[msrc])) {
+                if (lex.cfg.value.lex && undefined !== (vs = vm[msrc])) {
                     out = lex.token('#VL', vs.v, msrc, pnt);
                 }
                 else {
@@ -168,7 +168,7 @@ const matchNumberEndingWithFixed = (lex) => {
 // TODO: complete
 // String matcher.
 const matchString = (lex) => {
-    if (!lex.cfg.string.active)
+    if (!lex.cfg.string.lex)
         return undefined;
     let { quoteMap, escMap, escChar, escCharCode, doubleEsc, multiLine } = lex.cfg.string;
     let { pnt, src } = lex;
@@ -287,7 +287,7 @@ const matchString = (lex) => {
 };
 // Line ending matcher.
 const matchLineEnding = (lex) => {
-    if (!lex.cfg.line.active)
+    if (!lex.cfg.line.lex)
         return undefined;
     let { charMap, rowCharMap } = lex.cfg.line;
     let { pnt, src } = lex;
@@ -307,7 +307,7 @@ const matchLineEnding = (lex) => {
 };
 // Space matcher.
 const matchSpace = (lex) => {
-    if (!lex.cfg.space.active)
+    if (!lex.cfg.space.lex)
         return undefined;
     let { charMap, tokenName } = lex.cfg.space;
     let { pnt, src } = lex;
@@ -327,7 +327,7 @@ const matchSpace = (lex) => {
 function subMatchFixed(lex, first, tsrc) {
     let pnt = lex.pnt;
     let out = first;
-    if (lex.cfg.fixed.active && null != tsrc) {
+    if (lex.cfg.fixed.lex && null != tsrc) {
         let tknlen = tsrc.length;
         if (0 < tknlen) {
             let tkn = undefined;

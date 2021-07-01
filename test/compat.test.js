@@ -12,7 +12,7 @@ const it = lab.it
 const expect = Code.expect
 
 const { Jsonic } = require('..')
-const { Csv } = require('../plugin/csv')
+// const { Csv } = require('../plugin/csv')
 
 
 function testlog(...rest) {
@@ -21,6 +21,7 @@ function testlog(...rest) {
 
 describe('compat', function () {
 
+  /*
   it('csv-with-json', () => {
     let j = Jsonic.make().use(Csv)
 
@@ -37,4 +38,6 @@ describe('compat', function () {
     expect(k('a,b\n{x:1},#2')).equals([ { a: '{x:1}', b: '#2' } ])
     
   })
+  */
+  
 })
