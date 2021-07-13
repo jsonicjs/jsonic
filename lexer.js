@@ -93,13 +93,27 @@ const matchComment = (lex) => {
     let fwd = lex.src.substring(pnt.sI);
     let m = fwd.match(lex.cfg.re.commentLine);
     if (m) {
-        let msrc = m[1];
+        let msrc = m.slice(1).find(sm => null != sm) || '';
         let mlen = msrc.length;
         if (0 < mlen) {
             let tkn = undefined;
             tkn = lex.token('#CM', undefined, msrc, pnt);
             pnt.sI += mlen;
             pnt.cI += mlen;
+            return tkn;
+        }
+    }
+    // multline comment
+    m = fwd.match(lex.cfg.re.commentBlock);
+    if (m) {
+        let msrc = m.slice(1).find(sm => null != sm) || '';
+        let mlen = msrc.length;
+        if (0 < mlen) {
+            let tkn = undefined;
+            tkn = lex.token('#CM', undefined, msrc, pnt);
+            pnt.sI += mlen;
+            pnt.rI += (msrc.match(lex.cfg.re.rowChars) || []).length;
+            pnt.cI += 1 + (((msrc.match(lex.cfg.re.columns) || [])[1]) || intern_1.MT).length;
             return tkn;
         }
     }

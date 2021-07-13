@@ -212,10 +212,22 @@ function configure(incfg, opts) {
             .replace(/_/g, cfg.number.sep ? escre(opts.number.sep) : ''), ')', ...enderRE),
         numberSep: regexp('g', escre(null == opts.number.sep ? '' : opts.number.sep)),
         fixed: regexp(null, '^(', fixedRE, ')'),
+        // TODO: build lazily inside lexer matcher
         commentLine: regexp(null, comments ?
-            comments.reduce((a, c) => (a.push('^(' + escre(c.start) +
+            comments
+                .filter(c => c.line)
+                .reduce((a, c) => (a.push('^(' + escre(c.start) +
+                '.*(' + escre(c.end) +
+                (c.eof ? '|$' : '') + ')' + ')'), a), []).join('|') : ''),
+        commentBlock: regexp('s', comments ?
+            comments
+                .filter(c => !c.line)
+                .reduce((a, c) => (a.push('^(' + escre(c.start) +
                 '.*?(' + escre(c.end) +
                 (c.eof ? '|$' : '') + ')' + ')'), a), []).join('|') : ''),
+        // TODO: prebuild these using a property on matcher?
+        rowChars: regexp(null, escre(opts.line.rowChars)),
+        columns: regexp(null, escre(opts.line.chars), '(.*)$'),
     };
     cfg.debug = {
         get_console: opts.debug.get_console,

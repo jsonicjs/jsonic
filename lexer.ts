@@ -151,7 +151,7 @@ const matchComment: LexMatcher = (lex: Lex) => {
 
   let m = fwd.match((lex.cfg.re.commentLine as RegExp))
   if (m) {
-    let msrc = m[1]
+    let msrc = m.slice(1).find(sm => null != sm) || ''
     let mlen = msrc.length
     if (0 < mlen) {
       let tkn: Token | undefined = undefined
@@ -169,6 +169,30 @@ const matchComment: LexMatcher = (lex: Lex) => {
       return tkn
     }
   }
+
+  // multline comment
+  m = fwd.match((lex.cfg.re.commentBlock as RegExp))
+  if (m) {
+    let msrc = m.slice(1).find(sm => null != sm) || ''
+    let mlen = msrc.length
+    if (0 < mlen) {
+      let tkn: Token | undefined = undefined
+
+      tkn = lex.token(
+        '#CM',
+        undefined,
+        msrc,
+        pnt,
+      )
+
+      pnt.sI += mlen
+      pnt.rI += (msrc.match(lex.cfg.re.rowChars) || []).length
+      pnt.cI += 1 + (((msrc.match(lex.cfg.re.columns) || [])[1]) || MT).length
+
+      return tkn
+    }
+  }
+
 }
 
 

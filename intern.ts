@@ -164,7 +164,7 @@ type Options = {
   }
   comment: {
     lex: boolean
-    balance: boolean
+    // balance: boolean
 
     // NOTE: comment.marker uses value structure to define comment kind.
     marker: {
@@ -324,6 +324,9 @@ type Config = {
     numberSep: RegExp
     fixed: RegExp
     commentLine: RegExp
+    commentBlock: RegExp
+    rowChars: RegExp
+    columns: RegExp
   }
 
 
@@ -538,15 +541,35 @@ function configure(incfg: Config | undefined, opts: Options): Config {
     ),
 
 
+    // TODO: build lazily inside lexer matcher
     commentLine: regexp(
       null,
-
       comments ?
-        comments.reduce((a: string[], c: any) =>
-        (a.push('^(' + escre(c.start) +
-          '.*?(' + escre(c.end) +
-          (c.eof ? '|$' : '') + ')' + ')'), a), []).join('|') : '',
+        comments
+          .filter(c => c.line)
+          .reduce((a: string[], c: any) =>
+          (a.push('^(' + escre(c.start) +
+            '.*(' + escre(c.end) +
+            (c.eof ? '|$' : '') + ')' + ')'), a), []).join('|') : '',
     ),
+
+    commentBlock: regexp(
+      's',
+      comments ?
+        comments
+          .filter(c => !c.line)
+          .reduce((a: string[], c: any) =>
+          (a.push('^(' + escre(c.start) +
+            '.*?(' + escre(c.end) +
+            (c.eof ? '|$' : '') + ')' + ')'), a), []).join('|') : '',
+    ),
+
+
+    // TODO: prebuild these using a property on matcher?
+    rowChars: regexp(null, escre(opts.line.rowChars)),
+
+    columns: regexp(null, escre(opts.line.chars), '(.*)$'),
+
   }
 
 

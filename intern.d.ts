@@ -110,7 +110,6 @@ declare type Options = {
     };
     comment: {
         lex: boolean;
-        balance: boolean;
         marker: {
             [start_marker: string]: // Start marker (eg. `/*`).
             string | // End marker (eg. `*/`).
@@ -234,6 +233,9 @@ declare type Config = {
         numberSep: RegExp;
         fixed: RegExp;
         commentLine: RegExp;
+        commentBlock: RegExp;
+        rowChars: RegExp;
+        columns: RegExp;
     };
     debug: {
         get_console: () => any;

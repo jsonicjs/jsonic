@@ -5,7 +5,7 @@ exports.make = exports.util = exports.Alt = exports.Token = exports.RuleSpec = e
 // TODO: [,,,] syntax should match JS!
 // TODO: rename tokens to be user friendly
 // TODO: if token recognized, error needs to be about token, not characters
-// TODO: row numbers need to start at 1 as editors start line numbers at 1
+// TODO: row numbers need to start at 1 as editors start line numbers at 1, cols too - fix error msg
 // TODO: test custom alt error: eg.  { e: (r: Rule) => r.close[0] } ??? bug: r.close empty!
 // TODO: multipe merges, also with dynamic
 // TODO: FIX: jsonic script direct invocation in package.json not working
@@ -105,8 +105,9 @@ function make_default_options() {
         comment: {
             // Recognize comments in the Lexer.
             lex: true,
+            // TODO: plugin
             // Balance multiline comments.
-            balance: true,
+            // balance: true,
             // Comment markers.
             marker: {
                 '#': true,
