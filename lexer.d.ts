@@ -27,7 +27,11 @@ declare class Token {
     toString(): string;
     [inspect](): string;
 }
-declare type LexMatcher = (lex: Lex, rule: Rule) => Token | undefined;
+declare abstract class LexMatcher {
+    cfg: Config;
+    constructor(cfg: Config);
+    abstract match(lex: Lex, rule: Rule): Token | undefined;
+}
 declare class Lexer {
     cfg: Config;
     end: Token;

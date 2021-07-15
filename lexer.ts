@@ -107,27 +107,77 @@ class Token {
 
 
 
-type LexMatcher = (lex: Lex, rule: Rule) => Token | undefined
+// type LexMatcher = (lex: Lex, rule: Rule) => Token | undefined
+
+
+abstract class LexMatcher {
+  cfg: Config
+  constructor(cfg: Config) {
+    this.cfg = cfg
+  }
+  abstract match(lex: Lex, rule: Rule): Token | undefined
+}
 
 
 
-const matchFixed: LexMatcher = (lex: Lex) => {
-  if (!lex.cfg.fixed.lex) return undefined
+class FixedMatcher extends LexMatcher {
+  constructor(cfg: Config) {
+    super(cfg)
+  }
 
-  let pnt = lex.pnt
-  let fwd = lex.src.substring(pnt.sI)
+  match(lex: Lex) {
+    if (!lex.cfg.fixed.lex) return undefined
 
-  let m = fwd.match((lex.cfg.re.fixed as RegExp))
-  if (m) {
-    let msrc = m[1]
-    let mlen = msrc.length
-    if (0 < mlen) {
-      let tkn: Token | undefined = undefined
+    let pnt = lex.pnt
+    let fwd = lex.src.substring(pnt.sI)
 
-      let tin = lex.cfg.fixed.token[msrc]
-      if (null != tin) {
+    let m = fwd.match((lex.cfg.re.fixed as RegExp))
+    if (m) {
+      let msrc = m[1]
+      let mlen = msrc.length
+      if (0 < mlen) {
+        let tkn: Token | undefined = undefined
+
+        let tin = lex.cfg.fixed.token[msrc]
+        if (null != tin) {
+          tkn = lex.token(
+            tin,
+            undefined,
+            msrc,
+            pnt,
+          )
+
+          pnt.sI += mlen
+          pnt.cI += mlen
+        }
+
+        return tkn
+      }
+    }
+  }
+}
+
+
+class CommentMatcher extends LexMatcher {
+  constructor(cfg: Config) {
+    super(cfg)
+  }
+
+  match(lex: Lex) {
+    if (!lex.cfg.comment.lex) return undefined
+
+    let pnt = lex.pnt
+    let fwd = lex.src.substring(pnt.sI)
+
+    let m = fwd.match((lex.cfg.re.commentLine as RegExp))
+    if (m) {
+      let msrc = m.slice(1).find(sm => null != sm) || ''
+      let mlen = msrc.length
+      if (0 < mlen) {
+        let tkn: Token | undefined = undefined
+
         tkn = lex.token(
-          tin,
+          '#CM',
           undefined,
           msrc,
           pnt,
@@ -135,367 +185,363 @@ const matchFixed: LexMatcher = (lex: Lex) => {
 
         pnt.sI += mlen
         pnt.cI += mlen
+
+        return tkn
       }
-
-      return tkn
     }
-  }
-}
 
+    // multline comment
+    m = fwd.match((lex.cfg.re.commentBlock as RegExp))
+    if (m) {
+      let msrc = m.slice(1).find(sm => null != sm) || ''
+      let mlen = msrc.length
+      if (0 < mlen) {
+        let tkn: Token | undefined = undefined
 
-const matchComment: LexMatcher = (lex: Lex) => {
-  if (!lex.cfg.comment.lex) return undefined
+        tkn = lex.token(
+          '#CM',
+          undefined,
+          msrc,
+          pnt,
+        )
 
-  let pnt = lex.pnt
-  let fwd = lex.src.substring(pnt.sI)
+        pnt.sI += mlen
+        pnt.rI += (msrc.match(lex.cfg.re.rowChars) || []).length
+        pnt.cI += 1 + (((msrc.match(lex.cfg.re.columns) || [])[1]) || MT).length
 
-  let m = fwd.match((lex.cfg.re.commentLine as RegExp))
-  if (m) {
-    let msrc = m.slice(1).find(sm => null != sm) || ''
-    let mlen = msrc.length
-    if (0 < mlen) {
-      let tkn: Token | undefined = undefined
-
-      tkn = lex.token(
-        '#CM',
-        undefined,
-        msrc,
-        pnt,
-      )
-
-      pnt.sI += mlen
-      pnt.cI += mlen
-
-      return tkn
+        return tkn
+      }
     }
+
   }
-
-  // multline comment
-  m = fwd.match((lex.cfg.re.commentBlock as RegExp))
-  if (m) {
-    let msrc = m.slice(1).find(sm => null != sm) || ''
-    let mlen = msrc.length
-    if (0 < mlen) {
-      let tkn: Token | undefined = undefined
-
-      tkn = lex.token(
-        '#CM',
-        undefined,
-        msrc,
-        pnt,
-      )
-
-      pnt.sI += mlen
-      pnt.rI += (msrc.match(lex.cfg.re.rowChars) || []).length
-      pnt.cI += 1 + (((msrc.match(lex.cfg.re.columns) || [])[1]) || MT).length
-
-      return tkn
-    }
-  }
-
 }
 
 
 // Match text, checking for literal values, optionally followed by a fixed token.
 // Text strings are terminated by end markers.
-const matchTextEndingWithFixed: LexMatcher = (lex: Lex) => {
-  if (!lex.cfg.text.lex) return undefined
-
-  let pnt = lex.pnt
-  let fwd = lex.src.substring(pnt.sI)
-  let vm = lex.cfg.value.m
-
-  let m = fwd.match((lex.cfg.re.textEnder as RegExp))
-  if (m) {
-    let msrc = m[1]
-    let tsrc = m[2]
-
-    let out: Token | undefined = undefined
-
-    if (null != msrc) {
-      let mlen = msrc.length
-      if (0 < mlen) {
-
-        let vs = undefined
-        if (lex.cfg.value.lex && undefined !== (vs = vm[msrc])) {
-          // TODO: get name from cfg  
-          out = lex.token('#VL', vs.v, msrc, pnt)
-        }
-        else {
-          out = lex.token('#TX', msrc, msrc, pnt)
-        }
-        pnt.sI += mlen
-        pnt.cI += mlen
-      }
-    }
-
-    out = subMatchFixed(lex, out, tsrc)
-
-    return out
+class TextMatcher extends LexMatcher {
+  constructor(cfg: Config) {
+    super(cfg)
   }
-}
 
+  match(lex: Lex) {
+    if (!lex.cfg.text.lex) return undefined
 
+    let pnt = lex.pnt
+    let fwd = lex.src.substring(pnt.sI)
+    let vm = lex.cfg.value.m
 
+    let m = fwd.match((lex.cfg.re.textEnder as RegExp))
+    if (m) {
+      let msrc = m[1]
+      let tsrc = m[2]
 
+      let out: Token | undefined = undefined
 
-const matchNumberEndingWithFixed: LexMatcher = (lex: Lex) => {
-  if (!lex.cfg.number.lex) return undefined
+      if (null != msrc) {
+        let mlen = msrc.length
+        if (0 < mlen) {
 
-  let cfgnum = lex.cfg.number
-  let cfgre = lex.cfg.re
-  let pnt = lex.pnt
-  let fwd = lex.src.substring(pnt.sI)
-  let vm = lex.cfg.value.m
-
-  let m = fwd.match((cfgre.numberEnder as RegExp))
-  if (m) {
-    let msrc = m[1]
-    let tsrc = m[9] // NOTE: count parens in numberEnder!
-
-    let out: Token | undefined = undefined
-
-    if (null != msrc) {
-      let mlen = msrc.length
-      if (0 < mlen) {
-
-        let vs = undefined
-        if (lex.cfg.value.lex && undefined !== (vs = vm[msrc])) {
-          out = lex.token('#VL', vs.v, msrc, pnt)
-        }
-        else {
-          let nstr = cfgnum.sep ? msrc.replace(cfgre.numberSep, '') : msrc
-          let num = +(nstr)
-
-          if (!isNaN(num)) {
-            out = lex.token('#NR', num, msrc, pnt)
-            pnt.sI += mlen
-            pnt.cI += mlen
-          }
-
-          // console.log('PNT-z', pnt, out)
-        }
-      }
-    }
-
-    out = subMatchFixed(lex, out, tsrc)
-
-    return out
-  }
-}
-
-
-// TODO: complete
-// String matcher.
-const matchString = (lex: Lex) => {
-  if (!lex.cfg.string.lex) return undefined
-
-  let {
-    quoteMap,
-    escMap,
-    escChar,
-    escCharCode,
-    doubleEsc,
-    multiLine
-  } = lex.cfg.string
-  let { pnt, src } = lex
-  let { sI, rI, cI } = pnt
-  let srclen = src.length
-
-  if (quoteMap[src[sI]]) {
-    const q = src[sI] // Quote character
-    const isMultiLine = multiLine[q]
-    sI++
-    cI++
-
-    let s: string[] = []
-
-
-    for (sI; sI < srclen; sI++) {
-      cI++
-      let c = src[sI]
-
-      // Quote char.
-      if (q === c) {
-        if (doubleEsc && q === src[sI + 1]) {
-          s.push(src[sI])
-          sI++
-        }
-        else {
-          sI++
-          break // String finished.
-        }
-      }
-
-      // Escape char. 
-      else if (escChar === c) {
-        sI++
-        cI++
-
-        let es = escMap[src[sI]]
-
-        if (null != es) {
-          s.push(es)
-        }
-
-        // ASCII escape \x**
-        else if ('x' === src[sI]) {
-          sI++
-          let cc = parseInt(src.substring(sI, sI + 2), 16)
-
-          if (isNaN(cc)) {
-            sI = sI - 2
-            cI -= 2
-            //throw new Error('ST-x')
-            // return badx(S.invalid_ascii, sI + 2, src.substring(sI - 2, sI + 2))
-            return lex.bad(S.invalid_ascii, sI - 2, sI + 2)
-          }
-
-          let us = String.fromCharCode(cc)
-
-          s.push(us)
-          sI += 1 // Loop increments sI.
-          cI += 2
-        }
-
-        // Unicode escape \u**** and \u{*****}.
-        else if ('u' === src[sI]) {
-          sI++
-          let ux = '{' === src[sI] ? (sI++, 1) : 0
-          let ulen = ux ? 6 : 4
-
-          let cc = parseInt(src.substring(sI, sI + ulen), 16)
-
-          if (isNaN(cc)) {
-            sI = sI - 2 - ux
-            cI -= 2
-            // throw new Error('ST-u')
-            //return badx(S.invalid_unicode, sI + ulen + 1,
-            //  src.substring(sI - 2 - ux, sI + ulen + ux))
-            return lex.bad(S.invalid_unicode, sI - 2 - ux, sI + ulen + ux)
-          }
-
-          let us = String.fromCodePoint(cc)
-
-          s.push(us)
-          sI += (ulen - 1) + ux // Loop increments sI.
-          cI += ulen + ux
-        }
-        else {
-          s.push(src[sI])
-        }
-      }
-
-      // Body part of string.
-      else {
-        let bI = sI
-
-        // TODO: move to cfgx
-        let qc = q.charCodeAt(0)
-        let cc = src.charCodeAt(sI)
-
-        while (sI < srclen && 32 <= cc && qc !== cc && escCharCode !== cc) {
-          cc = src.charCodeAt(++sI)
-          cI++
-        }
-        cI--
-
-        // TODO: confirm this works; Must end with quote
-        // TODO: maybe rename back to cs as confusing
-        //q = src[sI]
-
-        if (cc < 32) {
-          if (isMultiLine && lex.cfg.line.chars[src[sI]]) {
-            if (lex.cfg.line.rowChars[src[sI]]) {
-              rI++
-            }
-
-            cI = 0
-            s.push(src.substring(bI, sI + 1))
+          let vs = undefined
+          if (lex.cfg.value.lex && undefined !== (vs = vm[msrc])) {
+            // TODO: get name from cfg  
+            out = lex.token('#VL', vs.v, msrc, pnt)
           }
           else {
-            return lex.bad(S.unprintable, sI, sI + 1)
+            out = lex.token('#TX', msrc, msrc, pnt)
           }
-        }
-        else {
-          s.push(src.substring(bI, sI))
-          sI--
+          pnt.sI += mlen
+          pnt.cI += mlen
         }
       }
+
+      out = subMatchFixed(lex, out, tsrc)
+
+      return out
     }
+  }
+}
 
-    if (src[sI - 1] !== q) {
-      return lex.bad(S.unterminated, sI - 1, sI)
+
+class NumberMatcher extends LexMatcher {
+  constructor(cfg: Config) {
+    super(cfg)
+  }
+
+  match(lex: Lex) {
+    if (!lex.cfg.number.lex) return undefined
+
+    let cfgnum = lex.cfg.number
+    let cfgre = lex.cfg.re
+    let pnt = lex.pnt
+    let fwd = lex.src.substring(pnt.sI)
+    let vm = lex.cfg.value.m
+
+    let m = fwd.match((cfgre.numberEnder as RegExp))
+    if (m) {
+      let msrc = m[1]
+      let tsrc = m[9] // NOTE: count parens in numberEnder!
+
+      let out: Token | undefined = undefined
+
+      if (null != msrc) {
+        let mlen = msrc.length
+        if (0 < mlen) {
+
+          let vs = undefined
+          if (lex.cfg.value.lex && undefined !== (vs = vm[msrc])) {
+            out = lex.token('#VL', vs.v, msrc, pnt)
+          }
+          else {
+            let nstr = cfgnum.sep ? msrc.replace(cfgre.numberSep, '') : msrc
+            let num = +(nstr)
+
+            if (!isNaN(num)) {
+              out = lex.token('#NR', num, msrc, pnt)
+              pnt.sI += mlen
+              pnt.cI += mlen
+            }
+
+            // console.log('PNT-z', pnt, out)
+          }
+        }
+      }
+
+      out = subMatchFixed(lex, out, tsrc)
+
+      return out
     }
+  }
+}
 
-    const tkn = lex.token(
-      '#ST',
-      s.join(MT),
-      src.substring(pnt.sI, sI),
-      pnt,
-    )
 
-    pnt.sI = sI
-    pnt.rI = rI
-    pnt.cI = cI
-    return tkn
+class StringMatcher extends LexMatcher {
+  constructor(cfg: Config) {
+    super(cfg)
+  }
+
+  match(lex: Lex) {
+    if (!lex.cfg.string.lex) return undefined
+
+    let {
+      quoteMap,
+      escMap,
+      escChar,
+      escCharCode,
+      doubleEsc,
+      multiLine
+    } = lex.cfg.string
+    let { pnt, src } = lex
+    let { sI, rI, cI } = pnt
+    let srclen = src.length
+
+    if (quoteMap[src[sI]]) {
+      const q = src[sI] // Quote character
+      const isMultiLine = multiLine[q]
+      sI++
+      cI++
+
+      let s: string[] = []
+
+
+      for (sI; sI < srclen; sI++) {
+        cI++
+        let c = src[sI]
+
+        // Quote char.
+        if (q === c) {
+          if (doubleEsc && q === src[sI + 1]) {
+            s.push(src[sI])
+            sI++
+          }
+          else {
+            sI++
+            break // String finished.
+          }
+        }
+
+        // Escape char. 
+        else if (escChar === c) {
+          sI++
+          cI++
+
+          let es = escMap[src[sI]]
+
+          if (null != es) {
+            s.push(es)
+          }
+
+          // ASCII escape \x**
+          else if ('x' === src[sI]) {
+            sI++
+            let cc = parseInt(src.substring(sI, sI + 2), 16)
+
+            if (isNaN(cc)) {
+              sI = sI - 2
+              cI -= 2
+              //throw new Error('ST-x')
+              // return badx(S.invalid_ascii, sI + 2, src.substring(sI - 2, sI + 2))
+              return lex.bad(S.invalid_ascii, sI - 2, sI + 2)
+            }
+
+            let us = String.fromCharCode(cc)
+
+            s.push(us)
+            sI += 1 // Loop increments sI.
+            cI += 2
+          }
+
+          // Unicode escape \u**** and \u{*****}.
+          else if ('u' === src[sI]) {
+            sI++
+            let ux = '{' === src[sI] ? (sI++, 1) : 0
+            let ulen = ux ? 6 : 4
+
+            let cc = parseInt(src.substring(sI, sI + ulen), 16)
+
+            if (isNaN(cc)) {
+              sI = sI - 2 - ux
+              cI -= 2
+              // throw new Error('ST-u')
+              //return badx(S.invalid_unicode, sI + ulen + 1,
+              //  src.substring(sI - 2 - ux, sI + ulen + ux))
+              return lex.bad(S.invalid_unicode, sI - 2 - ux, sI + ulen + ux)
+            }
+
+            let us = String.fromCodePoint(cc)
+
+            s.push(us)
+            sI += (ulen - 1) + ux // Loop increments sI.
+            cI += ulen + ux
+          }
+          else {
+            s.push(src[sI])
+          }
+        }
+
+        // Body part of string.
+        else {
+          let bI = sI
+
+          // TODO: move to cfgx
+          let qc = q.charCodeAt(0)
+          let cc = src.charCodeAt(sI)
+
+          while (sI < srclen && 32 <= cc && qc !== cc && escCharCode !== cc) {
+            cc = src.charCodeAt(++sI)
+            cI++
+          }
+          cI--
+
+          // TODO: confirm this works; Must end with quote
+          // TODO: maybe rename back to cs as confusing
+          //q = src[sI]
+
+          if (cc < 32) {
+            if (isMultiLine && lex.cfg.line.chars[src[sI]]) {
+              if (lex.cfg.line.rowChars[src[sI]]) {
+                rI++
+              }
+
+              cI = 0
+              s.push(src.substring(bI, sI + 1))
+            }
+            else {
+              return lex.bad(S.unprintable, sI, sI + 1)
+            }
+          }
+          else {
+            s.push(src.substring(bI, sI))
+            sI--
+          }
+        }
+      }
+
+      if (src[sI - 1] !== q) {
+        return lex.bad(S.unterminated, sI - 1, sI)
+      }
+
+      const tkn = lex.token(
+        '#ST',
+        s.join(MT),
+        src.substring(pnt.sI, sI),
+        pnt,
+      )
+
+      pnt.sI = sI
+      pnt.rI = rI
+      pnt.cI = cI
+      return tkn
+    }
   }
 }
 
 
 // Line ending matcher.
-const matchLineEnding = (lex: Lex) => {
-  if (!lex.cfg.line.lex) return undefined
-
-  let { chars, rowChars } = lex.cfg.line
-  let { pnt, src } = lex
-  let { sI, rI } = pnt
-
-  while (chars[src[sI]]) {
-    sI++
-    rI += (rowChars[src[sI]] ? 1 : 0)
+class LineMatcher extends LexMatcher {
+  constructor(cfg: Config) {
+    super(cfg)
   }
 
-  if (pnt.sI < sI) {
-    let msrc = src.substring(pnt.sI, sI)
-    const tkn = lex.token(
-      '#LN',
-      undefined,
-      msrc,
-      pnt,
-    )
-    pnt.sI += msrc.length
-    pnt.rI = rI
-    pnt.cI = 1
-    return tkn
+  match(lex: Lex) {
+    if (!lex.cfg.line.lex) return undefined
+
+    let { chars, rowChars } = lex.cfg.line
+    let { pnt, src } = lex
+    let { sI, rI } = pnt
+
+    while (chars[src[sI]]) {
+      sI++
+      rI += (rowChars[src[sI]] ? 1 : 0)
+    }
+
+    if (pnt.sI < sI) {
+      let msrc = src.substring(pnt.sI, sI)
+      const tkn = lex.token(
+        '#LN',
+        undefined,
+        msrc,
+        pnt,
+      )
+      pnt.sI += msrc.length
+      pnt.rI = rI
+      pnt.cI = 1
+      return tkn
+    }
   }
 }
 
 
 // Space matcher.
-const matchSpace = (lex: Lex) => {
-  if (!lex.cfg.space.lex) return undefined
-
-  let { chars } = lex.cfg.space
-  let { pnt, src } = lex
-  let { sI, cI } = pnt
-
-  while (chars[src[sI]]) {
-    sI++
-    cI++
+class SpaceMatcher extends LexMatcher {
+  constructor(cfg: Config) {
+    super(cfg)
   }
 
-  if (pnt.sI < sI) {
-    let msrc = src.substring(pnt.sI, sI)
-    const tkn = lex.token(
-      '#SP',
-      undefined,
-      msrc,
-      pnt,
-    )
-    pnt.sI += msrc.length
-    pnt.cI = cI
-    return tkn
+  match(lex: Lex) {
+    if (!lex.cfg.space.lex) return undefined
+
+    let { chars } = lex.cfg.space
+    let { pnt, src } = lex
+    let { sI, cI } = pnt
+
+    while (chars[src[sI]]) {
+      sI++
+      cI++
+    }
+
+    if (pnt.sI < sI) {
+      let msrc = src.substring(pnt.sI, sI)
+      const tkn = lex.token(
+        '#SP',
+        undefined,
+        msrc,
+        pnt,
+      )
+      pnt.sI += msrc.length
+      pnt.cI = cI
+      return tkn
+    }
   }
 }
 
@@ -540,8 +586,6 @@ function subMatchFixed(
 }
 
 
-
-
 class Lexer {
   cfg: Config
   end: Token
@@ -559,13 +603,13 @@ class Lexer {
     )
 
     this.mat = [
-      matchFixed,
-      matchSpace,
-      matchLineEnding,
-      matchString,
-      matchComment,
-      matchNumberEndingWithFixed,
-      matchTextEndingWithFixed,
+      new FixedMatcher(cfg),
+      new SpaceMatcher(cfg),
+      new LineMatcher(cfg),
+      new StringMatcher(cfg),
+      new CommentMatcher(cfg),
+      new NumberMatcher(cfg),
+      new TextMatcher(cfg),
     ]
   }
 
@@ -658,7 +702,7 @@ class Lex {
 
     let tkn: Token | undefined
     for (let mat of this.mat) {
-      if (tkn = mat(this, rule)) {
+      if (tkn = mat.match(this, rule)) {
         return tkn
       }
     }
