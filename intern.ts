@@ -287,6 +287,7 @@ type Config = {
     oct: boolean
     bin: boolean
     sep: boolean
+    sepChar?: string
   }
 
   // String quote characters.
@@ -317,7 +318,9 @@ type Config = {
     }[]
   }
 
-  re: {
+  rePart: any,
+
+  re: any, /*{
     ender: RegExp
     textEnder: RegExp
     numberEnder: RegExp
@@ -327,7 +330,7 @@ type Config = {
     commentBlock: RegExp
     rowChars: RegExp
     columns: RegExp
-  }
+  }*/
 
 
   debug: {
@@ -425,6 +428,7 @@ function configure(incfg: Config | undefined, opts: Options): Config {
     oct: !!opts.number.oct,
     bin: !!opts.number.bin,
     sep: null != opts.number.sep && '' !== opts.number.sep,
+    sepChar: opts.number.sep,
   }
 
   cfg.value = {
@@ -465,6 +469,7 @@ function configure(incfg: Config | undefined, opts: Options): Config {
     }
   }
 
+  // TODO: needs to come from options
   cfg.comment = {
     lex: true,
     marker: [
@@ -479,6 +484,7 @@ function configure(incfg: Config | undefined, opts: Options): Config {
 
   let fixedRE = fixedSorted.map(fixed => escre(fixed)).join('|')
 
+  // TODO: just use cfg.comment, filtered from options
   let comments = cfg.comment.lex && cfg.comment.marker.filter(c => c.active)
 
   // End-marker RE part
@@ -499,71 +505,15 @@ function configure(incfg: Config | undefined, opts: Options): Config {
     '|$)', // EOF case
   ]
 
+  cfg.rePart = {
+    fixed: fixedRE,
+    ender: enderRE,
+  }
+
+
   // TODO: friendlier names
   cfg.re = {
     ender: regexp(null, ...enderRE),
-
-    // Text to end-marker.
-    textEnder: regexp(
-      null,
-      '^(.*?)',
-      ...enderRE
-    ),
-
-    // TODO: use cfg props
-    // Number to end-marker.
-    numberEnder: regexp(
-      null,
-      [
-        '^([-+]?(0(',
-        [
-          cfg.number.hex ? 'x[0-9a-fA-F_]+' : null,
-          cfg.number.oct ? 'o[0-7_]+' : null,
-          cfg.number.bin ? 'b[01_]+' : null,
-        ].filter(s => null != s).join('|'),
-        ')|[0-9]+([0-9_]*[0-9])?)',
-        '(\\.[0-9]+([0-9_]*[0-9])?)?',
-        '([eE][-+]?[0-9]+([0-9_]*[0-9])?)?',
-      ]
-        .join('')
-        .replace(/_/g, cfg.number.sep ? escre((opts.number.sep as string)) : ''),
-      ')',
-      ...enderRE
-    ),
-
-    numberSep: regexp('g', escre(null == opts.number.sep ? '' : opts.number.sep)),
-
-    fixed: regexp(
-      null,
-      '^(',
-      fixedRE,
-      ')'
-    ),
-
-
-    // TODO: build lazily inside lexer matcher
-    commentLine: regexp(
-      null,
-      comments ?
-        comments
-          .filter(c => c.line)
-          .reduce((a: string[], c: any) =>
-          (a.push('^(' + escre(c.start) +
-            '.*(' + escre(c.end) +
-            (c.eof ? '|$' : '') + ')' + ')'), a), []).join('|') : '',
-    ),
-
-    commentBlock: regexp(
-      's',
-      comments ?
-        comments
-          .filter(c => !c.line)
-          .reduce((a: string[], c: any) =>
-          (a.push('^(' + escre(c.start) +
-            '.*?(' + escre(c.end) +
-            (c.eof ? '|$' : '') + ')' + ')'), a), []).join('|') : '',
-    ),
-
 
     // TODO: prebuild these using a property on matcher?
     rowChars: regexp(null, escre(opts.line.rowChars)),
@@ -580,187 +530,6 @@ function configure(incfg: Config | undefined, opts: Options): Config {
       config: opts.debug.print.config
     },
   }
-
-
-  // console.log('CONFIG')
-  // console.dir(cfg, { depth: null })
-
-  /////////
-
-
-
-  //let ot = opts.token
-  //let token_names = keys(ot)
-
-  // // Index of tokens by name.
-  // token_names.forEach(tn => tokenize(tn, cfg))
-
-  //let fixstrs = token_names
-  //  .filter(tn => null != (t[tn] as any).c)
-  //  .map(tn => (t[tn] as any).c)
-
-  // cfg.vs = keys(opts.value.src)
-  //   .reduce((a: any, s: string) => (a[s[0]] = true, a), {})
-
-  // TODO: comments, etc
-  // fixstrs = fixstrs.concat(keys(opts.value.src))
-
-  // console.log('FIXSTRS', fixstrs)
-
-  // Sort by length descending
-  //cfg.fs = fixstrs.sort((a: string, b: string) => b.length - a.length)
-
-  // let single_char_token_names = token_names
-  //   .filter(tn => null != (ot[tn] as any).c && 1 === (ot[tn] as any).c.length)
-
-  // cfg.sm = single_char_token_names
-  //   .reduce((a, tn) => (a[(opts.token[tn] as any).c] =
-  //     (cfg.t as any)[tn], a), ({} as any))
-
-  // let multi_char_token_names = token_names
-  //   .filter(tn => S.string === typeof opts.token[tn])
-
-  // cfg.m = multi_char_token_names
-  //   .reduce((a: any, tn) =>
-  //   (a[tn.substring(1)] =
-  //     (opts.token[tn] as string)
-  //       .split(MT)
-  //       .reduce((pm, c) => (pm[c] = cfg.t[tn], pm), ({} as TinMap)),
-  //     a), {})
-
-  // let tokenset_names = token_names
-  //   .filter(tn => null != (opts.token[tn] as any).s)
-
-  // Char code arrays for lookup by char code.
-  // cfg.ts = tokenset_names
-  //   .reduce((a: any, tsn) =>
-  //   (a[tsn.substring(1)] =
-  //     (opts.token[tsn] as any).s.split(',')
-  //       .reduce((a: any, tn: string) => (a[cfg.t[tn]] = tn, a), {}),
-  //     a), {})
-
-
-  // config.vm = options.value.src
-  // config.vs = keys(options.value.src)
-  //  .reduce((a: any, s: string) => (a[s[0]] = true, a), {})
-
-
-  // Lookup maps for sets of characters.
-  // cfg.cs = {}
-
-  // Lookup table for escape chars, indexed by denotating char (e.g. n for \n).
-  // cfg.esc = keys(opts.string.escape)
-  //   .reduce((a: any, ed: string) =>
-  //     (a[ed] = opts.string.escape[ed], a), {})
-
-  // comment start markers
-  // cfg.cs.cs = {}
-
-  // comment markers
-  // cfg.cmk = []
-
-  // if (opts.comment.lex) {
-  //   cfg.cm = opts.comment.marker
-
-  //   let comment_markers = keys(cfg.cm)
-
-  //   comment_markers.forEach(k => {
-
-  //     // Single char comment marker (eg. `#`)
-  //     if (1 === k.length) {
-  //       cfg.cs.cs[k] = k.charCodeAt(0)
-  //     }
-
-  //     // String comment marker (eg. `//`)
-  //     else {
-  //       cfg.cs.cs[k[0]] = k.charCodeAt(0)
-  //       cfg.cmk.push(k)
-  //     }
-  //   })
-
-  //   cfg.cmx = longest(comment_markers)
-  // }
-
-  // cfg.sc = keys(cfg.sm).join(MT)
-
-
-  // All the characters that can appear in a number.
-  // cfg.cs.dig = charset(opts.number.digital)
-
-  // // Multiline quotes
-  // cfg.cs.mln = charset(opts.string.multiline)
-
-  // Enders are char sets that end lexing for a given token.
-  // Value enders...end values!
-  // cfg.cs.vend = charset(
-  //   opts.space.lex && cfg.m.SP,
-  //   opts.line.lex && cfg.m.LN,
-  //   cfg.sc,
-  //   opts.comment.lex && cfg.cs.cs,
-  //   opts.block.lex && cfg.cs.bs,
-  // )
-
-  // block start markers
-  // cfg.cs.bs = {}
-
-  // cfg.bmk = []
-
-  // TODO: change to block.markers as per comments, then config.bm
-  // let block_markers = keys(opts.block.marker)
-
-  // block_markers.forEach(k => {
-  // cfg.cs.bs[k[0]] = k.charCodeAt(0)
-  // cfg.bmk.push(k)
-  // })
-
-  // cfg.bmx = longest(block_markers)
-
-
-  //let re_ns = null != opts.number.sep ?
-  //  new RegExp(opts.number.sep, 'g') : null
-
-  // RegExp cache
-  // cfg.re = Object.assign(cfg.re, {
-  //   //ns: re_ns,
-
-  //   // te: ender(
-  //   //   charset(
-  //   //     opts.space.lex && cfg.m.SP,
-  //   //     opts.line.lex && cfg.m.LN,
-  //   //     cfg.sc,
-  //   //     opts.comment.lex && cfg.cs.cs,
-  //   //     opts.block.lex && cfg.cs.bs
-  //   //   ),
-  //   //   {
-  //   //     ...(opts.comment.lex ? cfg.cm : {}),
-  //   //     ...(opts.block.lex ? opts.block.marker : {}),
-  //   //   },
-  //   //   cfg.sm
-  //   // ),
-
-  //   nm: new RegExp(
-  //     [
-  //       '^[-+]?(0(',
-  //       [
-  //         opts.number.hex ? 'x[0-9a-fA-F_]+' : null,
-  //         opts.number.oct ? 'o[0-7_]+' : null,
-  //         opts.number.bin ? 'b[01_]+' : null,
-  //       ].filter(s => null != s).join('|'),
-  //       ')|[0-9]+([0-9_]*[0-9])?)',
-  //       '(\\.[0-9]+([0-9_]*[0-9])?)?',
-  //       '([eE][-+]?[0-9]+([0-9_]*[0-9])?)?',
-  //     ]
-  //       .filter(s =>
-  //         s.replace(/_/g, null == re_ns ? '' : opts.number.sep))
-  //       .join('')
-  //   )
-  // })
-
-  // console.log('cfg.re.txfs', cfg.re.txfs)
-
-  // Debug options
-  //cfg.d = opts.debug
-
 
 
   // Apply any config modifiers (probably from plugins).
@@ -913,15 +682,15 @@ function trimstk(err: Error) {
 
 function extract(src: string, errtxt: string, token: Token) {
   let loc = 0 < token.sI ? token.sI : 0
-  let row = 0 < token.rI ? token.rI : 0
-  let col = 0 < token.cI ? token.cI : 0
+  let row = 0 < token.rI ? token.rI : 1
+  let col = 0 < token.cI ? token.cI : 1
   let tsrc = null == token.src ? MT : token.src
   let behind = src.substring(Math.max(0, loc - 333), loc).split('\n')
   let ahead = src.substring(loc, loc + 333).split('\n')
 
   let pad = 2 + (MT + (row + 2)).length
-  let rI = row < 2 ? 0 : row - 2
-  let ln = (s: string) => '\x1b[34m' + (MT + (rI++)).padStart(pad, ' ') +
+  let rc = row < 2 ? 1 : row - 2
+  let ln = (s: string) => '\x1b[34m' + (MT + (rc++)).padStart(pad, ' ') +
     ' | \x1b[0m' + (null == s ? MT : s)
 
   let blen = behind.length
@@ -931,7 +700,7 @@ function extract(src: string, errtxt: string, token: Token) {
     1 < blen ? ln(behind[blen - 2]) : null,
     ln(behind[blen - 1] + ahead[0]),
     (' '.repeat(pad)) + '   ' +
-    ' '.repeat(col) +
+    ' '.repeat(col - 1) +
     '\x1b[31m' + '^'.repeat(tsrc.length || 1) +
     ' ' + errtxt + '\x1b[0m',
     ln(ahead[1]),

@@ -198,6 +198,7 @@ declare type Config = {
         oct: boolean;
         bin: boolean;
         sep: boolean;
+        sepChar?: string;
     };
     string: {
         lex: boolean;
@@ -226,17 +227,8 @@ declare type Config = {
             eof: boolean;
         }[];
     };
-    re: {
-        ender: RegExp;
-        textEnder: RegExp;
-        numberEnder: RegExp;
-        numberSep: RegExp;
-        fixed: RegExp;
-        commentLine: RegExp;
-        commentBlock: RegExp;
-        rowChars: RegExp;
-        columns: RegExp;
-    };
+    rePart: any;
+    re: any;
     debug: {
         get_console: () => any;
         maxlen: number;

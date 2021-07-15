@@ -81,7 +81,8 @@ class FixedMatcher extends LexMatcher {
             return undefined;
         let pnt = lex.pnt;
         let fwd = lex.src.substring(pnt.sI);
-        let m = fwd.match(lex.cfg.re.fixed);
+        this.fixed = this.fixed || intern_1.regexp(null, '^(', this.cfg.rePart.fixed, ')');
+        let m = fwd.match(this.fixed);
         if (m) {
             let msrc = m[1];
             let mlen = msrc.length;
@@ -101,13 +102,21 @@ class FixedMatcher extends LexMatcher {
 class CommentMatcher extends LexMatcher {
     constructor(cfg) {
         super(cfg);
+        this.comments = cfg.comment.lex ? cfg.comment.marker.filter(c => c.active) : [];
     }
     match(lex) {
-        if (!lex.cfg.comment.lex)
+        let comment = this.cfg.comment;
+        if (!comment.lex)
             return undefined;
         let pnt = lex.pnt;
         let fwd = lex.src.substring(pnt.sI);
-        let m = fwd.match(lex.cfg.re.commentLine);
+        // Single line comment.
+        this.commentLine = this.commentLine || intern_1.regexp(null, this.comments
+            .filter(c => c.line)
+            .reduce((a, c) => (a.push('^(' + intern_1.escre(c.start) +
+            '.*(' + intern_1.escre(c.end) +
+            (c.eof ? '|$' : '') + ')' + ')'), a), []).join('|'));
+        let m = fwd.match(this.commentLine);
         if (m) {
             let msrc = m.slice(1).find(sm => null != sm) || '';
             let mlen = msrc.length;
@@ -119,8 +128,13 @@ class CommentMatcher extends LexMatcher {
                 return tkn;
             }
         }
-        // multline comment
-        m = fwd.match(lex.cfg.re.commentBlock);
+        // Multiline comment.
+        this.commentBlock = this.commentBlock || intern_1.regexp('s', this.comments
+            .filter(c => !c.line)
+            .reduce((a, c) => (a.push('^(' + intern_1.escre(c.start) +
+            '.*?(' + intern_1.escre(c.end) +
+            (c.eof ? '|$' : '') + ')' + ')'), a), []).join('|'));
+        m = fwd.match(this.commentBlock);
         if (m) {
             let msrc = m.slice(1).find(sm => null != sm) || '';
             let mlen = msrc.length;
@@ -147,7 +161,8 @@ class TextMatcher extends LexMatcher {
         let pnt = lex.pnt;
         let fwd = lex.src.substring(pnt.sI);
         let vm = lex.cfg.value.m;
-        let m = fwd.match(lex.cfg.re.textEnder);
+        this.ender = this.ender || intern_1.regexp(null, '^(.*?)', ...this.cfg.rePart.ender);
+        let m = fwd.match(this.ender);
         if (m) {
             let msrc = m[1];
             let tsrc = m[2];
@@ -179,12 +194,26 @@ class NumberMatcher extends LexMatcher {
     match(lex) {
         if (!lex.cfg.number.lex)
             return undefined;
-        let cfgnum = lex.cfg.number;
+        let cfgnum = this.cfg.number;
         let cfgre = lex.cfg.re;
         let pnt = lex.pnt;
         let fwd = lex.src.substring(pnt.sI);
         let vm = lex.cfg.value.m;
-        let m = fwd.match(cfgre.numberEnder);
+        this.ender = this.ender || intern_1.regexp(null, [
+            '^([-+]?(0(',
+            [
+                cfgnum.hex ? 'x[0-9a-fA-F_]+' : null,
+                cfgnum.oct ? 'o[0-7_]+' : null,
+                cfgnum.bin ? 'b[01_]+' : null,
+            ].filter(s => null != s).join('|'),
+            ')|[0-9]+([0-9_]*[0-9])?)',
+            '(\\.[0-9]+([0-9_]*[0-9])?)?',
+            '([eE][-+]?[0-9]+([0-9_]*[0-9])?)?',
+        ]
+            .join('')
+            .replace(/_/g, cfgnum.sep ? intern_1.escre(cfgnum.sepChar) : ''), ')', ...this.cfg.rePart.ender);
+        this.numberSep = this.numberSep || (cfgnum.sep ? intern_1.regexp('g', intern_1.escre(cfgnum.sepChar)) : undefined);
+        let m = fwd.match(this.ender);
         if (m) {
             let msrc = m[1];
             let tsrc = m[9]; // NOTE: count parens in numberEnder!
@@ -197,7 +226,7 @@ class NumberMatcher extends LexMatcher {
                         out = lex.token('#VL', vs.v, msrc, pnt);
                     }
                     else {
-                        let nstr = cfgnum.sep ? msrc.replace(cfgre.numberSep, '') : msrc;
+                        let nstr = this.numberSep ? msrc.replace(this.numberSep, '') : msrc;
                         let num = +(nstr);
                         if (!isNaN(num)) {
                             out = lex.token('#NR', num, msrc, pnt);
@@ -323,7 +352,7 @@ class StringMatcher extends LexMatcher {
                     }
                 }
             }
-            if (src[sI - 1] !== q) {
+            if (src[sI - 1] !== q || pnt.sI === sI - 1) {
                 return lex.bad(intern_1.S.unterminated, sI - 1, sI);
             }
             const tkn = lex.token('#ST', s.join(intern_1.MT), src.substring(pnt.sI, sI), pnt);
@@ -469,6 +498,7 @@ class Lex {
         let tkn;
         for (let mat of this.mat) {
             if (tkn = mat.match(this, rule)) {
+                // console.log('MATCH', mat.constructor)
                 return tkn;
             }
         }

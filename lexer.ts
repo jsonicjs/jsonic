@@ -12,6 +12,8 @@ import {
   Tin,
   tokenize,
   snip,
+  regexp,
+  escre,
 } from './intern'
 
 
@@ -121,6 +123,8 @@ abstract class LexMatcher {
 
 
 class FixedMatcher extends LexMatcher {
+  fixed?: RegExp
+
   constructor(cfg: Config) {
     super(cfg)
   }
@@ -131,7 +135,14 @@ class FixedMatcher extends LexMatcher {
     let pnt = lex.pnt
     let fwd = lex.src.substring(pnt.sI)
 
-    let m = fwd.match((lex.cfg.re.fixed as RegExp))
+    this.fixed = this.fixed || regexp(
+      null,
+      '^(',
+      this.cfg.rePart.fixed,
+      ')'
+    )
+
+    let m = fwd.match((this.fixed as RegExp))
     if (m) {
       let msrc = m[1]
       let mlen = msrc.length
@@ -159,17 +170,35 @@ class FixedMatcher extends LexMatcher {
 
 
 class CommentMatcher extends LexMatcher {
+  comments: any[]
+  commentLine?: RegExp
+  commentBlock?: RegExp
+
   constructor(cfg: Config) {
     super(cfg)
+    this.comments = cfg.comment.lex ? cfg.comment.marker.filter(c => c.active) : []
   }
 
   match(lex: Lex) {
-    if (!lex.cfg.comment.lex) return undefined
+    let comment = this.cfg.comment
+    if (!comment.lex) return undefined
 
     let pnt = lex.pnt
     let fwd = lex.src.substring(pnt.sI)
 
-    let m = fwd.match((lex.cfg.re.commentLine as RegExp))
+    // Single line comment.
+
+    this.commentLine = this.commentLine || regexp(
+      null,
+      this.comments
+        .filter(c => c.line)
+        .reduce((a: string[], c: any) =>
+        (a.push('^(' + escre(c.start) +
+          '.*(' + escre(c.end) +
+          (c.eof ? '|$' : '') + ')' + ')'), a), []).join('|'),
+    )
+
+    let m = fwd.match((this.commentLine as RegExp))
     if (m) {
       let msrc = m.slice(1).find(sm => null != sm) || ''
       let mlen = msrc.length
@@ -190,8 +219,19 @@ class CommentMatcher extends LexMatcher {
       }
     }
 
-    // multline comment
-    m = fwd.match((lex.cfg.re.commentBlock as RegExp))
+    // Multiline comment.
+
+    this.commentBlock = this.commentBlock || regexp(
+      's',
+      this.comments
+        .filter(c => !c.line)
+        .reduce((a: string[], c: any) =>
+        (a.push('^(' + escre(c.start) +
+          '.*?(' + escre(c.end) +
+          (c.eof ? '|$' : '') + ')' + ')'), a), []).join('|'),
+    )
+
+    m = fwd.match((this.commentBlock as RegExp))
     if (m) {
       let msrc = m.slice(1).find(sm => null != sm) || ''
       let mlen = msrc.length
@@ -212,7 +252,6 @@ class CommentMatcher extends LexMatcher {
         return tkn
       }
     }
-
   }
 }
 
@@ -220,6 +259,8 @@ class CommentMatcher extends LexMatcher {
 // Match text, checking for literal values, optionally followed by a fixed token.
 // Text strings are terminated by end markers.
 class TextMatcher extends LexMatcher {
+  ender?: RegExp
+
   constructor(cfg: Config) {
     super(cfg)
   }
@@ -231,7 +272,13 @@ class TextMatcher extends LexMatcher {
     let fwd = lex.src.substring(pnt.sI)
     let vm = lex.cfg.value.m
 
-    let m = fwd.match((lex.cfg.re.textEnder as RegExp))
+    this.ender = this.ender || regexp(
+      null,
+      '^(.*?)',
+      ...this.cfg.rePart.ender
+    )
+
+    let m = fwd.match((this.ender as RegExp))
     if (m) {
       let msrc = m[1]
       let tsrc = m[2]
@@ -264,6 +311,9 @@ class TextMatcher extends LexMatcher {
 
 
 class NumberMatcher extends LexMatcher {
+  ender?: RegExp
+  numberSep?: RegExp
+
   constructor(cfg: Config) {
     super(cfg)
   }
@@ -271,13 +321,36 @@ class NumberMatcher extends LexMatcher {
   match(lex: Lex) {
     if (!lex.cfg.number.lex) return undefined
 
-    let cfgnum = lex.cfg.number
+    let cfgnum = this.cfg.number
     let cfgre = lex.cfg.re
     let pnt = lex.pnt
     let fwd = lex.src.substring(pnt.sI)
     let vm = lex.cfg.value.m
 
-    let m = fwd.match((cfgre.numberEnder as RegExp))
+
+    this.ender = this.ender || regexp(
+      null,
+      [
+        '^([-+]?(0(',
+        [
+          cfgnum.hex ? 'x[0-9a-fA-F_]+' : null,
+          cfgnum.oct ? 'o[0-7_]+' : null,
+          cfgnum.bin ? 'b[01_]+' : null,
+        ].filter(s => null != s).join('|'),
+        ')|[0-9]+([0-9_]*[0-9])?)',
+        '(\\.[0-9]+([0-9_]*[0-9])?)?',
+        '([eE][-+]?[0-9]+([0-9_]*[0-9])?)?',
+      ]
+        .join('')
+        .replace(/_/g, cfgnum.sep ? escre((cfgnum.sepChar as string)) : ''),
+      ')',
+      ...this.cfg.rePart.ender
+    )
+
+    this.numberSep = this.numberSep || (cfgnum.sep ? regexp(
+      'g', escre((cfgnum.sepChar as string))) : undefined)
+
+    let m = fwd.match((this.ender as RegExp))
     if (m) {
       let msrc = m[1]
       let tsrc = m[9] // NOTE: count parens in numberEnder!
@@ -293,7 +366,7 @@ class NumberMatcher extends LexMatcher {
             out = lex.token('#VL', vs.v, msrc, pnt)
           }
           else {
-            let nstr = cfgnum.sep ? msrc.replace(cfgre.numberSep, '') : msrc
+            let nstr = this.numberSep ? msrc.replace(this.numberSep, '') : msrc
             let num = +(nstr)
 
             if (!isNaN(num)) {
@@ -457,7 +530,7 @@ class StringMatcher extends LexMatcher {
         }
       }
 
-      if (src[sI - 1] !== q) {
+      if (src[sI - 1] !== q || pnt.sI === sI - 1) {
         return lex.bad(S.unterminated, sI - 1, sI)
       }
 
@@ -703,6 +776,7 @@ class Lex {
     let tkn: Token | undefined
     for (let mat of this.mat) {
       if (tkn = mat.match(this, rule)) {
+        // console.log('MATCH', mat.constructor)
         return tkn
       }
     }
