@@ -151,43 +151,13 @@ function configure(incfg, opts) {
         }
     };
     cfg.string = lexer_1.StringMatcher.buildConfig(opts);
-    /*
-    cfg.string = {
-      lex: true,
-      quoteMap: {
-        '\'': 39,
-        '"': 34,
-        '`': 96,
-      },
-      escMap: {
-        b: '\b',
-        f: '\f',
-        n: '\n',
-        r: '\r',
-        t: '\t',
-      },
-      escChar: '\\',
-      escCharCode: '\\'.charCodeAt(0),
-      doubleEsc: false,
-      multiLine: {
-        '`': 96,
-      }
-    }
-    */
     // TODO: needs to come from options
-    cfg.comment = {
-        lex: true,
-        marker: [
-            { line: true, start: '#', end: '\n', active: true, eof: true },
-            { line: true, start: '//', end: '\n', active: true, eof: true },
-            { line: false, start: '/*', end: '*/', active: true, eof: false },
-        ],
-    };
+    cfg.comment = lexer_1.CommentMatcher.buildConfig(opts);
     let fixedSorted = Object.keys(cfg.fixed.token)
         .sort((a, b) => b.length - a.length);
     let fixedRE = fixedSorted.map(fixed => escre(fixed)).join('|');
     // TODO: just use cfg.comment, filtered from options
-    let comments = cfg.comment.lex && cfg.comment.marker.filter(c => c.active);
+    let comments = cfg.comment.lex && cfg.comment.marker.filter(cm => cm.lex);
     // End-marker RE part
     let enderRE = [
         '([',

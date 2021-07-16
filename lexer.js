@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.StringMatcher = exports.Lexer = exports.LexMatcher = exports.Lex = exports.Token = exports.Point = void 0;
+exports.CommentMatcher = exports.StringMatcher = exports.Lexer = exports.LexMatcher = exports.Lex = exports.Token = exports.Point = void 0;
 const inspect = Symbol.for('nodejs.util.inspect.custom');
 const intern_1 = require("./intern");
 class Point {
@@ -101,7 +101,10 @@ class FixedMatcher extends LexMatcher {
 class CommentMatcher extends LexMatcher {
     constructor(cfg) {
         super(cfg);
-        this.comments = cfg.comment.lex ? cfg.comment.marker.filter(c => c.active) : [];
+        this.lineComments =
+            cfg.comment.lex ? cfg.comment.marker.filter(c => c.lex && c.line) : [];
+        this.blockComments =
+            cfg.comment.lex ? cfg.comment.marker.filter(c => c.lex && !c.line) : [];
     }
     match(lex) {
         let comment = this.cfg.comment;
@@ -109,65 +112,31 @@ class CommentMatcher extends LexMatcher {
             return undefined;
         let pnt = lex.pnt;
         let fwd = lex.src.substring(pnt.sI);
+        let rI = pnt.rI;
+        let cI = pnt.cI;
         // Single line comment.
-        this.commentLine = this.commentLine || intern_1.regexp(null, this.comments
-            .filter(c => c.line)
-            .reduce((a, c) => (a.push('^(' + intern_1.escre(c.start) +
-            '.*(' + intern_1.escre(c.end) +
-            (c.eof ? '|$' : '') + ')' + ')'), a), []).join('|'));
-        let m = fwd.match(this.commentLine);
-        if (m) {
-            let msrc = m.slice(1).find(sm => null != sm) || '';
-            let mlen = msrc.length;
-            if (0 < mlen) {
-                let tkn = undefined;
-                tkn = lex.token('#CM', undefined, msrc, pnt);
-                pnt.sI += mlen;
-                pnt.cI += mlen;
+        for (let mc of this.lineComments) {
+            if (fwd.startsWith(mc.start)) {
+                let fwdlen = fwd.length;
+                let fI = mc.start.length;
+                cI += mc.start.length;
+                while (fI < fwdlen && !lex.cfg.line.chars[fwd[fI]]) {
+                    cI++;
+                    fI++;
+                }
+                let csrc = fwd.substring(0, fI);
+                let tkn = lex.token('#CM', undefined, csrc, pnt);
+                pnt.sI += csrc.length;
+                pnt.cI = cI;
                 return tkn;
             }
         }
         // Multiline comment.
-        /*
-        this.commentBlock = this.commentBlock || regexp(
-          's',
-          this.comments
-            .filter(c => !c.line)
-            .reduce((a: string[], c: any) =>
-            (a.push('^(' + escre(c.start) +
-              '.*?(' + escre(c.end) +
-              (c.eof ? '|$' : '') + ')' + ')'), a), []).join('|'),
-        )
-    
-        m = fwd.match((this.commentBlock as RegExp))
-        if (m) {
-          let msrc = m.slice(1).find(sm => null != sm) || ''
-          let mlen = msrc.length
-          if (0 < mlen) {
-            let tkn: Token | undefined = undefined
-    
-            tkn = lex.token(
-              '#CM',
-              undefined,
-              msrc,
-              pnt,
-            )
-    
-            pnt.sI += mlen
-            pnt.rI += (msrc.match(lex.cfg.re.rowChars) || []).length
-            pnt.cI = 1 + (((msrc.match(lex.cfg.re.columns) || [])[1]) || MT).length
-    
-            return tkn
-          }
-        }
-        */
-        let rI = pnt.rI;
-        let cI = pnt.cI;
-        let multiLineComments = this.comments.filter(c => !c.line);
-        for (let mc of multiLineComments) {
+        for (let mc of this.blockComments) {
             if (fwd.startsWith(mc.start)) {
                 let fwdlen = fwd.length;
                 let fI = mc.start.length;
+                cI += mc.start.length;
                 while (fI < fwdlen && !fwd.substring(fI).startsWith(mc.end)) {
                     if (lex.cfg.line.rowChars[fwd[fI]]) {
                         rI++;
@@ -191,7 +160,20 @@ class CommentMatcher extends LexMatcher {
             }
         }
     }
+    static buildConfig(opts) {
+        let oc = opts.comment;
+        return {
+            lex: !!oc.lex,
+            marker: oc.marker.map(om => ({
+                start: om.start,
+                end: om.end,
+                line: !!om.line,
+                lex: !!om.lex,
+            }))
+        };
+    }
 }
+exports.CommentMatcher = CommentMatcher;
 // Match text, checking for literal values, optionally followed by a fixed token.
 // Text strings are terminated by end markers.
 class TextMatcher extends LexMatcher {

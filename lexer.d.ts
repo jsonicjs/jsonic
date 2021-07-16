@@ -32,6 +32,21 @@ declare abstract class LexMatcher {
     constructor(cfg: Config);
     abstract match(lex: Lex, rule: Rule): Token | undefined;
 }
+declare class CommentMatcher extends LexMatcher {
+    lineComments: any[];
+    blockComments: any[];
+    constructor(cfg: Config);
+    match(lex: Lex): Token | undefined;
+    static buildConfig(opts: Options): {
+        lex: boolean;
+        marker: {
+            start: string;
+            end: string | undefined;
+            line: boolean;
+            lex: boolean;
+        }[];
+    };
+}
 declare class StringMatcher extends LexMatcher {
     constructor(cfg: Config);
     match(lex: Lex): Token | undefined;
@@ -66,4 +81,4 @@ declare class Lex {
     tokenize<R extends string | Tin, T extends (R extends Tin ? string : Tin)>(ref: R): T;
     bad(why: string, pstart: number, pend: number): Token;
 }
-export { Point, Token, Lex, LexMatcher, Lexer, StringMatcher, };
+export { Point, Token, Lex, LexMatcher, Lexer, StringMatcher, CommentMatcher, };

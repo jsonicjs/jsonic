@@ -109,11 +109,11 @@ function make_default_options() {
             // Balance multiline comments.
             // balance: true,
             // Comment markers.
-            marker: {
-                '#': true,
-                '//': true,
-                '/*': '*/',
-            },
+            marker: [
+                { line: true, start: '#', lex: true },
+                { line: true, start: '//', lex: true },
+                { line: false, start: '/' + '*', end: '*' + '/', lex: true },
+            ],
         },
         /* TODO: PLUGIN
             // Multiline blocks.

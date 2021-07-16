@@ -11,7 +11,8 @@ import type {
 } from './lexer'
 
 import {
-  StringMatcher
+  StringMatcher,
+  CommentMatcher
 } from './lexer'
 
 
@@ -170,12 +171,12 @@ type Options = {
     lex: boolean
     // balance: boolean
 
-    // NOTE: comment.marker uses value structure to define comment kind.
     marker: {
-      [start_marker: string]: // Start marker (eg. `/*`).
-      string | // End marker (eg. `*/`).
-      boolean // No end marker (eg. `#`).
-    }
+      line: boolean
+      start: string
+      end?: string
+      lex: boolean
+    }[]
   }
   string: {
     lex: boolean
@@ -317,26 +318,14 @@ type Config = {
     marker: {
       line: boolean
       start: string
-      end: string
-      active: boolean
-      eof: boolean // EOF also ends comment
+      end?: string
+      lex: boolean
     }[]
   }
 
   rePart: any,
 
-  re: any, /*{
-    ender: RegExp
-    textEnder: RegExp
-    numberEnder: RegExp
-    numberSep: RegExp
-    fixed: RegExp
-    commentLine: RegExp
-    commentBlock: RegExp
-    rowChars: RegExp
-    columns: RegExp
-  }*/
-
+  re: any,
 
   debug: {
     get_console: () => any
@@ -454,39 +443,8 @@ function configure(incfg: Config | undefined, opts: Options): Config {
 
   cfg.string = StringMatcher.buildConfig(opts)
 
-  /*
-  cfg.string = {
-    lex: true,
-    quoteMap: {
-      '\'': 39,
-      '"': 34,
-      '`': 96,
-    },
-    escMap: {
-      b: '\b',
-      f: '\f',
-      n: '\n',
-      r: '\r',
-      t: '\t',
-    },
-    escChar: '\\',
-    escCharCode: '\\'.charCodeAt(0),
-    doubleEsc: false,
-    multiLine: {
-      '`': 96,
-    }
-  }
-  */
-
   // TODO: needs to come from options
-  cfg.comment = {
-    lex: true,
-    marker: [
-      { line: true, start: '#', end: '\n', active: true, eof: true },
-      { line: true, start: '//', end: '\n', active: true, eof: true },
-      { line: false, start: '/*', end: '*/', active: true, eof: false },
-    ],
-  }
+  cfg.comment = CommentMatcher.buildConfig(opts)
 
   let fixedSorted = Object.keys(cfg.fixed.token)
     .sort((a: string, b: string) => b.length - a.length)
@@ -494,7 +452,7 @@ function configure(incfg: Config | undefined, opts: Options): Config {
   let fixedRE = fixedSorted.map(fixed => escre(fixed)).join('|')
 
   // TODO: just use cfg.comment, filtered from options
-  let comments = cfg.comment.lex && cfg.comment.marker.filter(c => c.active)
+  let comments = cfg.comment.lex && cfg.comment.marker.filter(cm => cm.lex)
 
   // End-marker RE part
   let enderRE = [

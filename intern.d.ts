@@ -112,10 +112,11 @@ declare type Options = {
     comment: {
         lex: boolean;
         marker: {
-            [start_marker: string]: // Start marker (eg. `/*`).
-            string | // End marker (eg. `*/`).
-            boolean;
-        };
+            line: boolean;
+            start: string;
+            end?: string;
+            lex: boolean;
+        }[];
     };
     string: {
         lex: boolean;
@@ -223,9 +224,8 @@ declare type Config = {
         marker: {
             line: boolean;
             start: string;
-            end: string;
-            active: boolean;
-            eof: boolean;
+            end?: string;
+            lex: boolean;
         }[];
     };
     rePart: any;

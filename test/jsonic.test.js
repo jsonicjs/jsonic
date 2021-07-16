@@ -428,7 +428,7 @@ describe('jsonic', function () {
   it('process-comment', () => {
     expect(j('a:q\nb:w #X\nc:r \n\nd:t\n\n#')).equal({a:'q',b:'w',c:'r',d:'t'})
 
-    let jm = j.make({comment: false})
+    let jm = j.make({comment: { lex: false }})
     expect(jm('a:q\nb:w#X\nc:r \n\nd:t')).equal({a: 'q', b: 'w#X', c: 'r', d: 't'})
   })
   

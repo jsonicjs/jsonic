@@ -171,13 +171,15 @@ class FixedMatcher extends LexMatcher {
 
 // TODO: better error msgs for unterminated comments
 class CommentMatcher extends LexMatcher {
-  comments: any[]
-  commentLine?: RegExp
-  commentBlock?: RegExp
+  lineComments: any[]
+  blockComments: any[]
 
   constructor(cfg: Config) {
     super(cfg)
-    this.comments = cfg.comment.lex ? cfg.comment.marker.filter(c => c.active) : []
+    this.lineComments =
+      cfg.comment.lex ? cfg.comment.marker.filter(c => c.lex && c.line) : []
+    this.blockComments =
+      cfg.comment.lex ? cfg.comment.marker.filter(c => c.lex && !c.line) : []
   }
 
   match(lex: Lex) {
@@ -187,82 +189,44 @@ class CommentMatcher extends LexMatcher {
     let pnt = lex.pnt
     let fwd = lex.src.substring(pnt.sI)
 
-    // Single line comment.
-
-    this.commentLine = this.commentLine || regexp(
-      null,
-      this.comments
-        .filter(c => c.line)
-        .reduce((a: string[], c: any) =>
-        (a.push('^(' + escre(c.start) +
-          '.*(' + escre(c.end) +
-          (c.eof ? '|$' : '') + ')' + ')'), a), []).join('|'),
-    )
-
-    let m = fwd.match((this.commentLine as RegExp))
-    if (m) {
-      let msrc = m.slice(1).find(sm => null != sm) || ''
-      let mlen = msrc.length
-      if (0 < mlen) {
-        let tkn: Token | undefined = undefined
-
-        tkn = lex.token(
-          '#CM',
-          undefined,
-          msrc,
-          pnt,
-        )
-
-        pnt.sI += mlen
-        pnt.cI += mlen
-
-        return tkn
-      }
-    }
-
-    // Multiline comment.
-
-    /*
-    this.commentBlock = this.commentBlock || regexp(
-      's',
-      this.comments
-        .filter(c => !c.line)
-        .reduce((a: string[], c: any) =>
-        (a.push('^(' + escre(c.start) +
-          '.*?(' + escre(c.end) +
-          (c.eof ? '|$' : '') + ')' + ')'), a), []).join('|'),
-    )
-
-    m = fwd.match((this.commentBlock as RegExp))
-    if (m) {
-      let msrc = m.slice(1).find(sm => null != sm) || ''
-      let mlen = msrc.length
-      if (0 < mlen) {
-        let tkn: Token | undefined = undefined
-
-        tkn = lex.token(
-          '#CM',
-          undefined,
-          msrc,
-          pnt,
-        )
-
-        pnt.sI += mlen
-        pnt.rI += (msrc.match(lex.cfg.re.rowChars) || []).length
-        pnt.cI = 1 + (((msrc.match(lex.cfg.re.columns) || [])[1]) || MT).length
-
-        return tkn
-      }
-    }
-    */
-
     let rI = pnt.rI
     let cI = pnt.cI
-    let multiLineComments = this.comments.filter(c => !c.line)
-    for (let mc of multiLineComments) {
+
+    // Single line comment.
+
+    for (let mc of this.lineComments) {
       if (fwd.startsWith(mc.start)) {
         let fwdlen = fwd.length
         let fI = mc.start.length
+        cI += mc.start.length
+        while (fI < fwdlen && !lex.cfg.line.chars[fwd[fI]]) {
+          cI++
+          fI++
+        }
+
+        let csrc = fwd.substring(0, fI)
+        let tkn = lex.token(
+          '#CM',
+          undefined,
+          csrc,
+          pnt,
+        )
+
+        pnt.sI += csrc.length
+        pnt.cI = cI
+
+        return tkn
+      }
+    }
+
+
+    // Multiline comment.
+
+    for (let mc of this.blockComments) {
+      if (fwd.startsWith(mc.start)) {
+        let fwdlen = fwd.length
+        let fI = mc.start.length
+        cI += mc.start.length
         while (fI < fwdlen && !fwd.substring(fI).startsWith(mc.end)) {
           if (lex.cfg.line.rowChars[fwd[fI]]) {
             rI++
@@ -295,6 +259,19 @@ class CommentMatcher extends LexMatcher {
             pnt.sI, pnt.sI + (9 * mc.start.length))
         }
       }
+    }
+  }
+
+  static buildConfig(opts: Options) {
+    let oc = opts.comment
+    return {
+      lex: !!oc.lex,
+      marker: oc.marker.map(om => ({
+        start: om.start,
+        end: om.end,
+        line: !!om.line,
+        lex: !!om.lex,
+      }))
     }
   }
 }
@@ -874,6 +851,7 @@ export {
   LexMatcher,
   Lexer,
   StringMatcher,
+  CommentMatcher,
 }
 
 
