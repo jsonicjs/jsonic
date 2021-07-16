@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.Lexer = exports.LexMatcher = exports.Lex = exports.Token = exports.Point = void 0;
+exports.StringMatcher = exports.Lexer = exports.LexMatcher = exports.Lex = exports.Token = exports.Point = void 0;
 const inspect = Symbol.for('nodejs.util.inspect.custom');
 const intern_1 = require("./intern");
 class Point {
@@ -45,8 +45,6 @@ class Token {
         this.use = use;
         this.why = why;
         this.len = null == src ? 0 : src.length;
-        // console.log(this)
-        // console.trace()
     }
     toString() {
         return 'Token[' +
@@ -99,6 +97,7 @@ class FixedMatcher extends LexMatcher {
         }
     }
 }
+// TODO: better error msgs for unterminated comments
 class CommentMatcher extends LexMatcher {
     constructor(cfg) {
         super(cfg);
@@ -129,22 +128,66 @@ class CommentMatcher extends LexMatcher {
             }
         }
         // Multiline comment.
-        this.commentBlock = this.commentBlock || intern_1.regexp('s', this.comments
+        /*
+        this.commentBlock = this.commentBlock || regexp(
+          's',
+          this.comments
             .filter(c => !c.line)
-            .reduce((a, c) => (a.push('^(' + intern_1.escre(c.start) +
-            '.*?(' + intern_1.escre(c.end) +
-            (c.eof ? '|$' : '') + ')' + ')'), a), []).join('|'));
-        m = fwd.match(this.commentBlock);
+            .reduce((a: string[], c: any) =>
+            (a.push('^(' + escre(c.start) +
+              '.*?(' + escre(c.end) +
+              (c.eof ? '|$' : '') + ')' + ')'), a), []).join('|'),
+        )
+    
+        m = fwd.match((this.commentBlock as RegExp))
         if (m) {
-            let msrc = m.slice(1).find(sm => null != sm) || '';
-            let mlen = msrc.length;
-            if (0 < mlen) {
-                let tkn = undefined;
-                tkn = lex.token('#CM', undefined, msrc, pnt);
-                pnt.sI += mlen;
-                pnt.rI += (msrc.match(lex.cfg.re.rowChars) || []).length;
-                pnt.cI += 1 + (((msrc.match(lex.cfg.re.columns) || [])[1]) || intern_1.MT).length;
-                return tkn;
+          let msrc = m.slice(1).find(sm => null != sm) || ''
+          let mlen = msrc.length
+          if (0 < mlen) {
+            let tkn: Token | undefined = undefined
+    
+            tkn = lex.token(
+              '#CM',
+              undefined,
+              msrc,
+              pnt,
+            )
+    
+            pnt.sI += mlen
+            pnt.rI += (msrc.match(lex.cfg.re.rowChars) || []).length
+            pnt.cI = 1 + (((msrc.match(lex.cfg.re.columns) || [])[1]) || MT).length
+    
+            return tkn
+          }
+        }
+        */
+        let rI = pnt.rI;
+        let cI = pnt.cI;
+        let multiLineComments = this.comments.filter(c => !c.line);
+        for (let mc of multiLineComments) {
+            if (fwd.startsWith(mc.start)) {
+                let fwdlen = fwd.length;
+                let fI = mc.start.length;
+                while (fI < fwdlen && !fwd.substring(fI).startsWith(mc.end)) {
+                    if (lex.cfg.line.rowChars[fwd[fI]]) {
+                        rI++;
+                        cI = 0;
+                    }
+                    cI++;
+                    fI++;
+                }
+                if (fwd.substring(fI).startsWith(mc.end)) {
+                    cI += mc.end.length;
+                    let csrc = fwd.substring(0, fI + mc.end.length);
+                    let tkn = lex.token('#CM', undefined, csrc, pnt);
+                    pnt.sI += csrc.length;
+                    pnt.rI = rI;
+                    pnt.cI = cI;
+                    return tkn;
+                }
+                else {
+                    return lex.bad(intern_1.S.unterminated_comment, pnt.sI, pnt.sI + (9 * mc.start.length));
+                }
             }
         }
     }
@@ -195,7 +238,6 @@ class NumberMatcher extends LexMatcher {
         if (!lex.cfg.number.lex)
             return undefined;
         let cfgnum = this.cfg.number;
-        let cfgre = lex.cfg.re;
         let pnt = lex.pnt;
         let fwd = lex.src.substring(pnt.sI);
         let vm = lex.cfg.value.m;
@@ -233,7 +275,6 @@ class NumberMatcher extends LexMatcher {
                             pnt.sI += mlen;
                             pnt.cI += mlen;
                         }
-                        // console.log('PNT-z', pnt, out)
                     }
                 }
             }
@@ -249,29 +290,33 @@ class StringMatcher extends LexMatcher {
     match(lex) {
         if (!lex.cfg.string.lex)
             return undefined;
-        let { quoteMap, escMap, escChar, escCharCode, doubleEsc, multiLine } = lex.cfg.string;
+        let { quoteMap, escMap, escChar, escCharCode, multiChars } = lex.cfg.string;
         let { pnt, src } = lex;
         let { sI, rI, cI } = pnt;
         let srclen = src.length;
         if (quoteMap[src[sI]]) {
             const q = src[sI]; // Quote character
-            const isMultiLine = multiLine[q];
-            sI++;
-            cI++;
+            const qI = sI;
+            const qrI = rI;
+            const isMultiLine = multiChars[q];
+            //pnt.sI = ++sI
+            //pnt.cI = ++cI
+            ++sI;
+            ++cI;
             let s = [];
             for (sI; sI < srclen; sI++) {
                 cI++;
                 let c = src[sI];
                 // Quote char.
                 if (q === c) {
-                    if (doubleEsc && q === src[sI + 1]) {
-                        s.push(src[sI]);
-                        sI++;
-                    }
-                    else {
-                        sI++;
-                        break; // String finished.
-                    }
+                    // TODO: PLUGIN csv
+                    // if (doubleEsc && q === src[sI + 1]) {
+                    //   s.push(src[sI])
+                    //   sI++
+                    // }
+                    // else {
+                    sI++;
+                    break; // String finished.
                 }
                 // Escape char. 
                 else if (escChar === c) {
@@ -288,8 +333,6 @@ class StringMatcher extends LexMatcher {
                         if (isNaN(cc)) {
                             sI = sI - 2;
                             cI -= 2;
-                            //throw new Error('ST-x')
-                            // return badx(S.invalid_ascii, sI + 2, src.substring(sI - 2, sI + 2))
                             return lex.bad(intern_1.S.invalid_ascii, sI - 2, sI + 2);
                         }
                         let us = String.fromCharCode(cc);
@@ -306,9 +349,6 @@ class StringMatcher extends LexMatcher {
                         if (isNaN(cc)) {
                             sI = sI - 2 - ux;
                             cI -= 2;
-                            // throw new Error('ST-u')
-                            //return badx(S.invalid_unicode, sI + ulen + 1,
-                            //  src.substring(sI - 2 - ux, sI + ulen + ux))
                             return lex.bad(intern_1.S.invalid_unicode, sI - 2 - ux, sI + ulen + ux);
                         }
                         let us = String.fromCodePoint(cc);
@@ -331,15 +371,12 @@ class StringMatcher extends LexMatcher {
                         cI++;
                     }
                     cI--;
-                    // TODO: confirm this works; Must end with quote
-                    // TODO: maybe rename back to cs as confusing
-                    //q = src[sI]
                     if (cc < 32) {
                         if (isMultiLine && lex.cfg.line.chars[src[sI]]) {
                             if (lex.cfg.line.rowChars[src[sI]]) {
-                                rI++;
+                                pnt.rI = ++rI;
                             }
-                            cI = 0;
+                            cI = 1;
                             s.push(src.substring(bI, sI + 1));
                         }
                         else {
@@ -353,7 +390,8 @@ class StringMatcher extends LexMatcher {
                 }
             }
             if (src[sI - 1] !== q || pnt.sI === sI - 1) {
-                return lex.bad(intern_1.S.unterminated, sI - 1, sI);
+                pnt.rI = qrI;
+                return lex.bad(intern_1.S.unterminated_string, qI, sI);
             }
             const tkn = lex.token('#ST', s.join(intern_1.MT), src.substring(pnt.sI, sI), pnt);
             pnt.sI = sI;
@@ -362,7 +400,19 @@ class StringMatcher extends LexMatcher {
             return tkn;
         }
     }
+    static buildConfig(opts) {
+        let os = opts.string;
+        return {
+            lex: !!os.lex,
+            quoteMap: intern_1.charset(os.chars),
+            multiChars: intern_1.charset(os.multiChars),
+            escMap: { ...os.escape },
+            escChar: os.escapeChar,
+            escCharCode: os.escapeChar.charCodeAt(0),
+        };
+    }
 }
+exports.StringMatcher = StringMatcher;
 // Line ending matcher.
 class LineMatcher extends LexMatcher {
     constructor(cfg) {
@@ -375,8 +425,8 @@ class LineMatcher extends LexMatcher {
         let { pnt, src } = lex;
         let { sI, rI } = pnt;
         while (chars[src[sI]]) {
-            sI++;
             rI += (rowChars[src[sI]] ? 1 : 0);
+            sI++;
         }
         if (pnt.sI < sI) {
             let msrc = src.substring(pnt.sI, sI);
@@ -425,6 +475,7 @@ function subMatchFixed(lex, first, tsrc) {
             }
             if (null != tkn) {
                 pnt.sI += tkn.src.length;
+                pnt.cI += tkn.src.length;
                 if (null == first) {
                     out = tkn;
                 }
@@ -498,11 +549,10 @@ class Lex {
         let tkn;
         for (let mat of this.mat) {
             if (tkn = mat.match(this, rule)) {
-                // console.log('MATCH', mat.constructor)
                 return tkn;
             }
         }
-        tkn = this.token('#BD', undefined, this.src[pnt.sI], pnt, undefined, 'bad-none');
+        tkn = this.token('#BD', undefined, this.src[pnt.sI], pnt, undefined, 'unexpected');
         return tkn;
     }
     tokenize(ref) {

@@ -38,7 +38,8 @@ declare const S: {
     invalid_ascii: string;
     invalid_unicode: string;
     invalid_lex_state: string;
-    unterminated: string;
+    unterminated_string: string;
+    unterminated_comment: string;
     lex: string;
     parse: string;
     block_indent_: string;
@@ -118,11 +119,12 @@ declare type Options = {
     };
     string: {
         lex: boolean;
+        chars: string;
+        multiChars: string;
+        escapeChar: string;
         escape: {
             [char: string]: string;
         };
-        multiline: string;
-        escapedouble: boolean;
     };
     map: {
         extend: boolean;
@@ -206,8 +208,7 @@ declare type Config = {
         escMap: KV;
         escChar: string;
         escCharCode: number;
-        doubleEsc: boolean;
-        multiLine: Chars;
+        multiChars: Chars;
     };
     value: {
         lex: boolean;

@@ -14,6 +14,8 @@ import {
   snip,
   regexp,
   escre,
+  Options,
+  charset,
 } from './intern'
 
 
@@ -78,9 +80,6 @@ class Token {
     this.why = why
 
     this.len = null == src ? 0 : src.length
-
-    // console.log(this)
-    // console.trace()
   }
 
   toString() {
@@ -169,6 +168,8 @@ class FixedMatcher extends LexMatcher {
 }
 
 
+
+// TODO: better error msgs for unterminated comments
 class CommentMatcher extends LexMatcher {
   comments: any[]
   commentLine?: RegExp
@@ -221,6 +222,7 @@ class CommentMatcher extends LexMatcher {
 
     // Multiline comment.
 
+    /*
     this.commentBlock = this.commentBlock || regexp(
       's',
       this.comments
@@ -247,9 +249,51 @@ class CommentMatcher extends LexMatcher {
 
         pnt.sI += mlen
         pnt.rI += (msrc.match(lex.cfg.re.rowChars) || []).length
-        pnt.cI += 1 + (((msrc.match(lex.cfg.re.columns) || [])[1]) || MT).length
+        pnt.cI = 1 + (((msrc.match(lex.cfg.re.columns) || [])[1]) || MT).length
 
         return tkn
+      }
+    }
+    */
+
+    let rI = pnt.rI
+    let cI = pnt.cI
+    let multiLineComments = this.comments.filter(c => !c.line)
+    for (let mc of multiLineComments) {
+      if (fwd.startsWith(mc.start)) {
+        let fwdlen = fwd.length
+        let fI = mc.start.length
+        while (fI < fwdlen && !fwd.substring(fI).startsWith(mc.end)) {
+          if (lex.cfg.line.rowChars[fwd[fI]]) {
+            rI++
+            cI = 0
+          }
+
+          cI++
+          fI++
+        }
+
+        if (fwd.substring(fI).startsWith(mc.end)) {
+          cI += mc.end.length
+          let csrc = fwd.substring(0, fI + mc.end.length)
+          let tkn = lex.token(
+            '#CM',
+            undefined,
+            csrc,
+            pnt,
+          )
+
+          pnt.sI += csrc.length
+          pnt.rI = rI
+          pnt.cI = cI
+
+          return tkn
+
+        }
+        else {
+          return lex.bad(S.unterminated_comment,
+            pnt.sI, pnt.sI + (9 * mc.start.length))
+        }
       }
     }
   }
@@ -322,7 +366,6 @@ class NumberMatcher extends LexMatcher {
     if (!lex.cfg.number.lex) return undefined
 
     let cfgnum = this.cfg.number
-    let cfgre = lex.cfg.re
     let pnt = lex.pnt
     let fwd = lex.src.substring(pnt.sI)
     let vm = lex.cfg.value.m
@@ -374,8 +417,6 @@ class NumberMatcher extends LexMatcher {
               pnt.sI += mlen
               pnt.cI += mlen
             }
-
-            // console.log('PNT-z', pnt, out)
           }
         }
       }
@@ -401,8 +442,7 @@ class StringMatcher extends LexMatcher {
       escMap,
       escChar,
       escCharCode,
-      doubleEsc,
-      multiLine
+      multiChars
     } = lex.cfg.string
     let { pnt, src } = lex
     let { sI, rI, cI } = pnt
@@ -410,12 +450,15 @@ class StringMatcher extends LexMatcher {
 
     if (quoteMap[src[sI]]) {
       const q = src[sI] // Quote character
-      const isMultiLine = multiLine[q]
-      sI++
-      cI++
+      const qI = sI
+      const qrI = rI
+      const isMultiLine = multiChars[q]
+      //pnt.sI = ++sI
+      //pnt.cI = ++cI
+      ++sI
+      ++cI
 
       let s: string[] = []
-
 
       for (sI; sI < srclen; sI++) {
         cI++
@@ -423,14 +466,17 @@ class StringMatcher extends LexMatcher {
 
         // Quote char.
         if (q === c) {
-          if (doubleEsc && q === src[sI + 1]) {
-            s.push(src[sI])
-            sI++
-          }
-          else {
-            sI++
-            break // String finished.
-          }
+
+          // TODO: PLUGIN csv
+          // if (doubleEsc && q === src[sI + 1]) {
+          //   s.push(src[sI])
+          //   sI++
+          // }
+          // else {
+
+          sI++
+          break // String finished.
+
         }
 
         // Escape char. 
@@ -452,8 +498,6 @@ class StringMatcher extends LexMatcher {
             if (isNaN(cc)) {
               sI = sI - 2
               cI -= 2
-              //throw new Error('ST-x')
-              // return badx(S.invalid_ascii, sI + 2, src.substring(sI - 2, sI + 2))
               return lex.bad(S.invalid_ascii, sI - 2, sI + 2)
             }
 
@@ -475,9 +519,6 @@ class StringMatcher extends LexMatcher {
             if (isNaN(cc)) {
               sI = sI - 2 - ux
               cI -= 2
-              // throw new Error('ST-u')
-              //return badx(S.invalid_unicode, sI + ulen + 1,
-              //  src.substring(sI - 2 - ux, sI + ulen + ux))
               return lex.bad(S.invalid_unicode, sI - 2 - ux, sI + ulen + ux)
             }
 
@@ -506,17 +547,13 @@ class StringMatcher extends LexMatcher {
           }
           cI--
 
-          // TODO: confirm this works; Must end with quote
-          // TODO: maybe rename back to cs as confusing
-          //q = src[sI]
-
           if (cc < 32) {
             if (isMultiLine && lex.cfg.line.chars[src[sI]]) {
               if (lex.cfg.line.rowChars[src[sI]]) {
-                rI++
+                pnt.rI = ++rI
               }
 
-              cI = 0
+              cI = 1
               s.push(src.substring(bI, sI + 1))
             }
             else {
@@ -531,7 +568,8 @@ class StringMatcher extends LexMatcher {
       }
 
       if (src[sI - 1] !== q || pnt.sI === sI - 1) {
-        return lex.bad(S.unterminated, sI - 1, sI)
+        pnt.rI = qrI
+        return lex.bad(S.unterminated_string, qI, sI)
       }
 
       const tkn = lex.token(
@@ -545,6 +583,18 @@ class StringMatcher extends LexMatcher {
       pnt.rI = rI
       pnt.cI = cI
       return tkn
+    }
+  }
+
+  static buildConfig(opts: Options) {
+    let os = opts.string
+    return {
+      lex: !!os.lex,
+      quoteMap: charset(os.chars),
+      multiChars: charset(os.multiChars),
+      escMap: { ...os.escape },
+      escChar: os.escapeChar,
+      escCharCode: os.escapeChar.charCodeAt(0),
     }
   }
 }
@@ -564,8 +614,8 @@ class LineMatcher extends LexMatcher {
     let { sI, rI } = pnt
 
     while (chars[src[sI]]) {
-      sI++
       rI += (rowChars[src[sI]] ? 1 : 0)
+      sI++
     }
 
     if (pnt.sI < sI) {
@@ -579,6 +629,7 @@ class LineMatcher extends LexMatcher {
       pnt.sI += msrc.length
       pnt.rI = rI
       pnt.cI = 1
+
       return tkn
     }
   }
@@ -645,6 +696,7 @@ function subMatchFixed(
 
       if (null != tkn) {
         pnt.sI += tkn.src.length
+        pnt.cI += tkn.src.length
 
         if (null == first) {
           out = tkn
@@ -776,7 +828,6 @@ class Lex {
     let tkn: Token | undefined
     for (let mat of this.mat) {
       if (tkn = mat.match(this, rule)) {
-        // console.log('MATCH', mat.constructor)
         return tkn
       }
     }
@@ -787,7 +838,7 @@ class Lex {
       this.src[pnt.sI],
       pnt,
       undefined,
-      'bad-none'
+      'unexpected'
     )
 
     return tkn
@@ -822,6 +873,7 @@ export {
   Lex,
   LexMatcher,
   Lexer,
+  StringMatcher,
 }
 
 

@@ -10,15 +10,18 @@ import type {
   Token,
 } from './lexer'
 
+import {
+  StringMatcher
+} from './lexer'
 
 
+// TODO: refactor
 /* $lab:coverage:off$ */
 enum RuleState {
   open,
   close,
 }
 /* $lab:coverage:on$ */
-
 
 
 
@@ -60,7 +63,8 @@ const S = {
   invalid_ascii: 'invalid_ascii',
   invalid_unicode: 'invalid_unicode',
   invalid_lex_state: 'invalid_lex_state',
-  unterminated: 'unterminated',
+  unterminated_string: 'unterminated_string',
+  unterminated_comment: 'unterminated_comment',
   lex: 'lex',
   parse: 'parse',
   block_indent_: 'block_indent_',
@@ -173,23 +177,12 @@ type Options = {
       boolean // No end marker (eg. `#`).
     }
   }
-  /*
-    // TODO: move to plugin
-  block: {
-    lex: boolean
-
-    // NOTE: block.marker definition uses value structure to define start and end.
-    marker: {
-      [start_marker: string]: // Start marker (eg. `'''`).
-      string  // End marker (eg. `'''`).
-    }
-  }
-  */
   string: {
     lex: boolean
+    chars: string
+    multiChars: string
+    escapeChar: string
     escape: { [char: string]: string }
-    multiline: string
-    escapedouble: boolean
   }
   map: {
     extend: boolean
@@ -240,6 +233,19 @@ type Options = {
       parent_ctx?: any
     ) => any
   }
+  /*
+    // TODO: move to plugin
+  block: {
+    lex: boolean
+
+    // NOTE: block.marker definition uses value structure to define start and end.
+    marker: {
+      [start_marker: string]: // Start marker (eg. `'''`).
+      string  // End marker (eg. `'''`).
+    }
+  }
+  */
+
 }
 
 
@@ -297,8 +303,7 @@ type Config = {
     escMap: KV,
     escChar: string,
     escCharCode: number,
-    doubleEsc: boolean,
-    multiLine: Chars,
+    multiChars: Chars,
   }
 
   // Literal values
@@ -447,6 +452,9 @@ function configure(incfg: Config | undefined, opts: Options): Config {
     }
   }
 
+  cfg.string = StringMatcher.buildConfig(opts)
+
+  /*
   cfg.string = {
     lex: true,
     quoteMap: {
@@ -468,6 +476,7 @@ function configure(incfg: Config | undefined, opts: Options): Config {
       '`': 96,
     }
   }
+  */
 
   // TODO: needs to come from options
   cfg.comment = {
@@ -518,7 +527,7 @@ function configure(incfg: Config | undefined, opts: Options): Config {
     // TODO: prebuild these using a property on matcher?
     rowChars: regexp(null, escre(opts.line.rowChars)),
 
-    columns: regexp(null, escre(opts.line.chars), '(.*)$'),
+    columns: regexp(null, '[' + escre(opts.line.chars) + ']', '(.*)$'),
 
   }
 
@@ -689,7 +698,7 @@ function extract(src: string, errtxt: string, token: Token) {
   let ahead = src.substring(loc, loc + 333).split('\n')
 
   let pad = 2 + (MT + (row + 2)).length
-  let rc = row < 2 ? 1 : row - 2
+  let rc = row < 3 ? 1 : row - 2
   let ln = (s: string) => '\x1b[34m' + (MT + (rc++)).padStart(pad, ' ') +
     ' | \x1b[0m' + (null == s ? MT : s)
 

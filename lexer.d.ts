@@ -1,6 +1,6 @@
 declare const inspect: unique symbol;
 import type { Rule } from './jsonic';
-import { Config, Context, Tin } from './intern';
+import { Config, Context, Tin, Options } from './intern';
 declare class Point {
     len: number;
     sI: number;
@@ -32,6 +32,20 @@ declare abstract class LexMatcher {
     constructor(cfg: Config);
     abstract match(lex: Lex, rule: Rule): Token | undefined;
 }
+declare class StringMatcher extends LexMatcher {
+    constructor(cfg: Config);
+    match(lex: Lex): Token | undefined;
+    static buildConfig(opts: Options): {
+        lex: boolean;
+        quoteMap: import("./intern").Chars;
+        multiChars: import("./intern").Chars;
+        escMap: {
+            [x: string]: string;
+        };
+        escChar: string;
+        escCharCode: number;
+    };
+}
 declare class Lexer {
     cfg: Config;
     end: Token;
@@ -52,4 +66,4 @@ declare class Lex {
     tokenize<R extends string | Tin, T extends (R extends Tin ? string : Tin)>(ref: R): T;
     bad(why: string, pstart: number, pend: number): Token;
 }
-export { Point, Token, Lex, LexMatcher, Lexer, };
+export { Point, Token, Lex, LexMatcher, Lexer, StringMatcher, };

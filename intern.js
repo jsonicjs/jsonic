@@ -1,6 +1,8 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.configure = exports.snip = exports.charset = exports.clone = exports.srcfmt = exports.trimstk = exports.tokenize = exports.escre = exports.regexp = exports.mesc = exports.makelog = exports.keys = exports.extract = exports.errinject = exports.errdesc = exports.entries = exports.defprop = exports.deep = exports.badlex = exports.assign = exports.S = exports.RuleState = exports.MT = exports.JsonicError = void 0;
+const lexer_1 = require("./lexer");
+// TODO: refactor
 /* $lab:coverage:off$ */
 var RuleState;
 (function (RuleState) {
@@ -46,7 +48,8 @@ const S = {
     invalid_ascii: 'invalid_ascii',
     invalid_unicode: 'invalid_unicode',
     invalid_lex_state: 'invalid_lex_state',
-    unterminated: 'unterminated',
+    unterminated_string: 'unterminated_string',
+    unterminated_comment: 'unterminated_comment',
     lex: 'lex',
     parse: 'parse',
     block_indent_: 'block_indent_',
@@ -147,27 +150,30 @@ function configure(incfg, opts) {
             // '-Infinity': { v: -Infinity },
         }
     };
+    cfg.string = lexer_1.StringMatcher.buildConfig(opts);
+    /*
     cfg.string = {
-        lex: true,
-        quoteMap: {
-            '\'': 39,
-            '"': 34,
-            '`': 96,
-        },
-        escMap: {
-            b: '\b',
-            f: '\f',
-            n: '\n',
-            r: '\r',
-            t: '\t',
-        },
-        escChar: '\\',
-        escCharCode: '\\'.charCodeAt(0),
-        doubleEsc: false,
-        multiLine: {
-            '`': 96,
-        }
-    };
+      lex: true,
+      quoteMap: {
+        '\'': 39,
+        '"': 34,
+        '`': 96,
+      },
+      escMap: {
+        b: '\b',
+        f: '\f',
+        n: '\n',
+        r: '\r',
+        t: '\t',
+      },
+      escChar: '\\',
+      escCharCode: '\\'.charCodeAt(0),
+      doubleEsc: false,
+      multiLine: {
+        '`': 96,
+      }
+    }
+    */
     // TODO: needs to come from options
     cfg.comment = {
         lex: true,
@@ -202,7 +208,7 @@ function configure(incfg, opts) {
         ender: regexp(null, ...enderRE),
         // TODO: prebuild these using a property on matcher?
         rowChars: regexp(null, escre(opts.line.rowChars)),
-        columns: regexp(null, escre(opts.line.chars), '(.*)$'),
+        columns: regexp(null, '[' + escre(opts.line.chars) + ']', '(.*)$'),
     };
     cfg.debug = {
         get_console: opts.debug.get_console,
@@ -325,7 +331,7 @@ function extract(src, errtxt, token) {
     let behind = src.substring(Math.max(0, loc - 333), loc).split('\n');
     let ahead = src.substring(loc, loc + 333).split('\n');
     let pad = 2 + (MT + (row + 2)).length;
-    let rc = row < 2 ? 1 : row - 2;
+    let rc = row < 3 ? 1 : row - 2;
     let ln = (s) => '\x1b[34m' + (MT + (rc++)).padStart(pad, ' ') +
         ' | \x1b[0m' + (null == s ? MT : s);
     let blen = behind.length;

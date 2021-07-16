@@ -46,9 +46,11 @@ below 32). The character $src is unprintable. You may need to remove
 these characters from your source data. Also check that it has not
 become corrupted.`,
 
-  unterminated:
-  ` String values cannot be missing their final quote character, which
-should match their initial quote character.`
+  unterminated_string:
+  ` This string has no end quote.`,
+
+  unterminated_comment:
+  ` This comment is never closed.`,
 }
 
 

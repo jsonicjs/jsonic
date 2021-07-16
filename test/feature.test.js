@@ -118,47 +118,50 @@ describe('feature', function () {
     expect(j('b:2\n/*a:1*/')).equals({b:2})
     expect(j('b:2,\n/*\na:1,\n*/\nc:3')).equals({b:2,c:3})
 
-    // Balanced multiline comments!
-    expect(j('/*/*/*a:1*/*/*/b:2')).equals({b:2})
-    expect(j('b:2,/*a:1,/*c:3,*/*/d:4')).equals({b:2,d:4})
-    expect(j('\nb:2\n/*\na:1\n/*\nc:3\n*/\n*/\n,d:4')).equals({b:2,d:4})
+    expect(()=>j('/*')).throws(JsonicError,/unterminated_comment].*:1:1/s)
+    expect(()=>j('\n/*')).throws(JsonicError,/unterminated_comment].*:2:1/s)
+    expect(()=>j('a/*')).throws(JsonicError,/unterminated_comment].*:1:2/s)
+    expect(()=>j('\na/*')).throws(JsonicError,/unterminated_comment].*:2:2/s)
 
-    // Implicit close
-    expect(j('b:2\n/*a:1')).equals({b:2})
-    expect(j('b:2\n/*/*/*a:1')).equals({b:2})
+    expect(()=>j('a:1/*\n\n*/{')).throws(JsonicError,/unexpected].*:3:3/s)
 
-    // Correct row and column count
-    try {
-      j('a:1/*\n\n*/{')
-    }
-    catch(e) {
-      expect(e.lineNumber).equal(2)
-      expect(e.columnNumber).equal(2)
-    }
-  })
-
-
-  it('balanced-multi-comment', () => {
-    // Active by default
-    expect(j('/*/*/*a:1*/*/*/b:2')).equals({b:2})
-    expect(j('/*/*/*a:1*/*/b:2')).equals(undefined)
-    expect(j('/*/*/*a/b*/*/*/b:2')).equals({b:2})
 
     
-    let nobal = Jsonic.make({comment:{balance:false}})
-    expect(nobal.options.comment.balance).false()
+    // Balanced multiline comments!
+    // TODO: PLUGIN
+    // expect(j('/*/*/*a:1*/*/*/b:2')).equals({b:2})
+    // expect(j('b:2,/*a:1,/*c:3,*/*/d:4')).equals({b:2,d:4})
+    // expect(j('\nb:2\n/*\na:1\n/*\nc:3\n*/\n*/\n,d:4')).equals({b:2,d:4})
 
-    // NOTE: comment markers inside text are active!
-    expect(nobal('/*/*/*a:1*/*/*/,b:2')).equal({ '*a': '1*', b: 2 })
-
-
-    // Custom multiline comments
-    let coffee = Jsonic.make({comment:{marker:{'###':'###'}}})
-    expect(coffee('\n###a:1\nb:2\n###\nc:3')).equals({c:3})
-
-    // NOTE: no balancing if open === close
-    expect(coffee('\n###a:1\n###b:2\n###\nc:3\n###\nd:4')).equals({b:2,d:4})
+    // Implicit close
+    // TODO: OPTION
+    // expect(j('b:2\n/*a:1')).equals({b:2})
+    // expect(j('b:2\n/*/*/*a:1')).equals({b:2})
   })
+
+
+  // TODO: PLUGIN
+  // it('balanced-multi-comment', () => {
+  //   // Active by default
+  //   expect(j('/*/*/*a:1*/*/*/b:2')).equals({b:2})
+  //   expect(j('/*/*/*a:1*/*/b:2')).equals(undefined)
+  //   expect(j('/*/*/*a/b*/*/*/b:2')).equals({b:2})
+
+    
+  //   let nobal = Jsonic.make({comment:{balance:false}})
+  //   expect(nobal.options.comment.balance).false()
+
+  //   // NOTE: comment markers inside text are active!
+  //   expect(nobal('/*/*/*a:1*/*/*/,b:2')).equal({ '*a': '1*', b: 2 })
+
+
+  //   // Custom multiline comments
+  //   let coffee = Jsonic.make({comment:{marker:{'###':'###'}}})
+  //   expect(coffee('\n###a:1\nb:2\n###\nc:3')).equals({c:3})
+
+  //   // NOTE: no balancing if open === close
+  //   expect(coffee('\n###a:1\n###b:2\n###\nc:3\n###\nd:4')).equals({b:2,d:4})
+  // })
 
 
   it('number', () => {
@@ -381,11 +384,12 @@ describe('feature', function () {
     expect(j('[a\\n]')).equals(['a\\n'])
     expect(j('[\\s+]')).equals(['\\s+'])
 
-    // Force text re to fail (also tests infinite loop protection).
-    let j0 = j.make()
-    j0.internal().config.re.te =
-      new RegExp(j0.internal().config.re.te.source.replace('#','#a'))
-    expect(()=>j0('a')).throws('JsonicError', /unexpected/)
+    // TODO: REVIEW
+    // // Force text re to fail (also tests infinite loop protection).
+    // let j0 = j.make()
+    // j0.internal().config.re.te =
+    //   new RegExp(j0.internal().config.re.te.source.replace('#','#a'))
+    // expect(()=>j0('a')).throws('JsonicError', /unexpected/)
   })
 
   
@@ -417,16 +421,61 @@ describe('feature', function () {
     expect(j('"\\x61"')).equals('a')
 
     expect(j('`\n`')).equals('\n')
-    expect(()=>j('"\n"')).throws(JsonicError,/unprintable/)
+    expect(()=>j('"\n"')).throws(JsonicError,/unprintable]/)
 
-    expect(()=>j('`\x1a`')).throws(JsonicError,/unprintable/)
-    expect(()=>j('"\x1a"')).throws(JsonicError,/unprintable/)
-
+    expect(()=>j('`\x1a`')).throws(JsonicError,/unprintable]/)
+    expect(()=>j('"\x1a"')).throws(JsonicError,/unprintable]/)
     
-    let k = j.make({string:{escapedouble:true}})
-    expect(k('"a""b"')).equals('a"b')
-    expect(k('`a``b`')).equals('a`b')
-    expect(k('\'a\'\'b\'')).equals('a\'b')
+    expect(()=>j('"x')).throws(JsonicError,/unterminated_string].*:1:1/s)
+    expect(()=>j(' "x')).throws(JsonicError,/unterminated_string].*:1:2/s)
+    expect(()=>j('  "x')).throws(JsonicError,/unterminated_string].*:1:3/s)
+    expect(()=>j('a:"x')).throws(JsonicError,/unterminated_string].*:1:3/s)
+    expect(()=>j('aa:"x')).throws(JsonicError,/unterminated_string].*:1:4/s)
+    expect(()=>j('aaa:"x')).throws(JsonicError,/unterminated_string].*:1:5/s)
+    expect(()=>j(' a:"x')).throws(JsonicError,/unterminated_string].*:1:4/s)
+    expect(()=>j(' a :"x')).throws(JsonicError,/unterminated_string].*:1:5/s)
+
+    expect(()=>j('\'x')).throws(JsonicError,/unterminated_string].*:1:1/s)
+    expect(()=>j(' \'x')).throws(JsonicError,/unterminated_string].*:1:2/s)
+    expect(()=>j('  \'x')).throws(JsonicError,/unterminated_string].*:1:3/s)
+    expect(()=>j('a:\'x')).throws(JsonicError,/unterminated_string].*:1:3/s)
+    expect(()=>j('aa:\'x')).throws(JsonicError,/unterminated_string].*:1:4/s)
+    expect(()=>j('aaa:\'x')).throws(JsonicError,/unterminated_string].*:1:5/s)
+    expect(()=>j(' a:\'x')).throws(JsonicError,/unterminated_string].*:1:4/s)
+    expect(()=>j(' a :\'x')).throws(JsonicError,/unterminated_string].*:1:5/s)
+
+    expect(()=>j('`x')).throws(JsonicError,/unterminated_string].*:1:1/s)
+    expect(()=>j(' `x')).throws(JsonicError,/unterminated_string].*:1:2/s)
+    expect(()=>j('  `x')).throws(JsonicError,/unterminated_string].*:1:3/s)
+    expect(()=>j('a:`x')).throws(JsonicError,/unterminated_string].*:1:3/s)
+    expect(()=>j('aa:`x')).throws(JsonicError,/unterminated_string].*:1:4/s)
+    expect(()=>j('aaa:`x')).throws(JsonicError,/unterminated_string].*:1:5/s)
+    expect(()=>j(' a:`x')).throws(JsonicError,/unterminated_string].*:1:4/s)
+    expect(()=>j(' a :`x')).throws(JsonicError,/unterminated_string].*:1:5/s)
+
+    expect(()=>j('`\nx')).throws(JsonicError,/unterminated_string].*:1:1/s)
+    expect(()=>j(' `\nx')).throws(JsonicError,/unterminated_string].*:1:2/s)
+    expect(()=>j('  `\nx')).throws(JsonicError,/unterminated_string].*:1:3/s)
+    expect(()=>j('a:`\nx')).throws(JsonicError,/unterminated_string].*:1:3/s)
+    expect(()=>j('aa:`\nx')).throws(JsonicError,/unterminated_string].*:1:4/s)
+    expect(()=>j('aaa:`\nx')).throws(JsonicError,/unterminated_string].*:1:5/s)
+    expect(()=>j(' a:`\nx')).throws(JsonicError,/unterminated_string].*:1:4/s)
+    expect(()=>j(' a :`\nx')).throws(JsonicError,/unterminated_string].*:1:5/s)
+
+    expect(()=>j('\n\n"x')).throws(JsonicError,/unterminated_string].*:3:1/s)
+    expect(()=>j('\n\n "x')).throws(JsonicError,/unterminated_string].*:3:2/s)
+    expect(()=>j('\n\n  "x')).throws(JsonicError,/unterminated_string].*:3:3/s)
+    expect(()=>j('\n\na:"x')).throws(JsonicError,/unterminated_string].*:3:3/s)
+    expect(()=>j('\n\naa:"x')).throws(JsonicError,/unterminated_string].*:3:4/s)
+    expect(()=>j('\n\naaa:"x')).throws(JsonicError,/unterminated_string].*:3:5/s)
+    expect(()=>j('\n\n a:"x')).throws(JsonicError,/unterminated_string].*:3:4/s)
+    expect(()=>j('\n\n a :"x')).throws(JsonicError,/unterminated_string].*:3:5/s)
+    
+    // TODO: PLUGIN csv
+    // let k = j.make({string:{escapedouble:true}})
+    // expect(k('"a""b"')).equals('a"b')
+    // expect(k('`a``b`')).equals('a`b')
+    // expect(k('\'a\'\'b\'')).equals('a\'b')
   })
   
 
@@ -439,44 +488,56 @@ describe('feature', function () {
     expect(j('`a\nc\nb`')).equals('a\nc\nb')
     expect(j('`a\r\n\r\nb`')).equals('a\r\n\r\nb')
 
+    expect(()=>j('`\n')).throws(JsonicError,/unterminated_string.*:1:1/s)
+    expect(()=>j(' `\n')).throws(JsonicError,/unterminated_string.*:1:2/s)
+    expect(()=>j('\n `\n')).throws(JsonicError,/unterminated_string.*:2:2/s)
 
-    expect(j("'''a\nb'''")).equals('a\nb')
-    expect(j("'''\na\nb'''")).equals('a\nb')
-    expect(j("'''\na\nb\n'''")).equals('a\nb')
-    expect(j("\n'''\na\nb\n'''\n")).equals('a\nb')
-    expect(j(" '''\na\nb\n''' ")).equals('a\nb')
+    expect(()=>j('`a``b')).throws(JsonicError,/unterminated_string.*:1:4/s)
+    expect(()=>j('\n`a``b')).throws(JsonicError,/unterminated_string.*:2:4/s)
+    expect(()=>j('\n`a`\n`b')).throws(JsonicError,/unterminated_string.*:3:1/s)
+    expect(()=>j('\n`\na`\n`b')).throws(JsonicError,/unterminated_string.*:4:1/s)
+    expect(()=>j('\n`\na`\n`\nb')).throws(JsonicError,/unterminated_string.*:4:1/s)
 
-    expect(j("''' a\nb\n'''")).equals(' a\nb')
-    expect(j(" '''a\n b\n'''")).equals('a\nb')
-    expect(j(" ''' \na\n b\n'''")).equals('a\nb')
-    expect(j(" ''' \na\n  b\n'''")).equals('a\n b')
-    expect(j(" ''' \na\nb\n'''")).equals('a\nb')
-    expect(j(" ''' a\n b\n'''")).equals('a\nb')
-    expect(j(" ''' a\nb\n'''")).equals('a\nb')
-    
-    expect(j(`{
-  md:
-    '''
-    First line.
-    Second line.
-      This line is indented by two spaces.
-    '''
-}`)).equals({
-  md: "First line.\nSecond line.\n  This line is indented by two spaces.",
-})
+    expect(()=>j('`a` `b')).throws(JsonicError,/unterminated_string.*:1:5/s)
+    expect(()=>j('`a`\n `b')).throws(JsonicError,/unterminated_string.*:2:2/s)
+
+    expect(()=>j('`a\n` `b')).throws(JsonicError,/unterminated_string.*:2:3/s)
+    expect(()=>j('`a\n`,`b')).throws(JsonicError,/unterminated_string.*:2:3/s)
+    expect(()=>j('[`a\n` `b')).throws(JsonicError,/unterminated_string.*:2:3/s)
+    expect(()=>j('[`a\n`,`b')).throws(JsonicError,/unterminated_string.*:2:3/s)
+    expect(()=>j('1\n `b')).throws(JsonicError,/unterminated_string.*:2:2/s)
+    expect(()=>j('[1\n,`b')).throws(JsonicError,/unterminated_string.*:2:2/s)
 
     
-    expect(j("'''\na\nb\n'''")).equals('a\nb')
-    expect(j("'''a\nb'''")).equals('a\nb')
+    // TODO: PLUGIN
+    // expect(j("'''a\nb'''")).equals('a\nb')
+    // expect(j("'''\na\nb'''")).equals('a\nb')
+    // expect(j("'''\na\nb\n'''")).equals('a\nb')
+    // expect(j("\n'''\na\nb\n'''\n")).equals('a\nb')
+    // expect(j(" '''\na\nb\n''' ")).equals('a\nb')
 
-    try {
-      j('[`a\n`,`b')
-      Code.fail()
-    }
-    catch(e) {
-      expect(e.lineNumber).equal(1)
-      expect(e.columnNumber).equal(4)
-    }
+    // expect(j("''' a\nb\n'''")).equals(' a\nb')
+    // expect(j(" '''a\n b\n'''")).equals('a\nb')
+    // expect(j(" ''' \na\n b\n'''")).equals('a\nb')
+    // expect(j(" ''' \na\n  b\n'''")).equals('a\n b')
+    // expect(j(" ''' \na\nb\n'''")).equals('a\nb')
+    // expect(j(" ''' a\n b\n'''")).equals('a\nb')
+    // expect(j(" ''' a\nb\n'''")).equals('a\nb')
+    
+    //     expect(j(`{
+    //   md:
+    //     '''
+    //     First line.
+    //     Second line.
+    //       This line is indented by two spaces.
+    //     '''
+    // }`)).equals({
+    //   md: "First line.\nSecond line.\n  This line is indented by two spaces.",
+    // })
+
+    // expect(j("'''\na\nb\n'''")).equals('a\nb')
+    // expect(j("'''a\nb'''")).equals('a\nb')
+
   })
 
   it('optional-comma', () => {
