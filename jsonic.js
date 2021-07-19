@@ -1,7 +1,7 @@
 "use strict";
 /* Copyright (c) 2013-2021 Richard Rodger, MIT License */
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.make = exports.util = exports.Alt = exports.Token = exports.RuleSpec = exports.Rule = exports.Parser = exports.JsonicError = exports.Jsonic = void 0;
+exports.make = exports.util = exports.Alt = exports.Token = exports.RuleSpec = exports.Rule = exports.Parser = exports.Lex = exports.JsonicError = exports.Jsonic = void 0;
 // TODO: [,,,] syntax should match JS!
 // TODO: rename tokens to be user friendly
 // TODO: if token recognized, error needs to be about token, not characters
@@ -35,6 +35,7 @@ const intern_1 = require("./intern");
 Object.defineProperty(exports, "JsonicError", { enumerable: true, get: function () { return intern_1.JsonicError; } });
 const lexer_1 = require("./lexer");
 Object.defineProperty(exports, "Token", { enumerable: true, get: function () { return lexer_1.Token; } });
+Object.defineProperty(exports, "Lex", { enumerable: true, get: function () { return lexer_1.Lex; } });
 const parser_1 = require("./parser");
 Object.defineProperty(exports, "Parser", { enumerable: true, get: function () { return parser_1.Parser; } });
 Object.defineProperty(exports, "Rule", { enumerable: true, get: function () { return parser_1.Rule; } });
@@ -289,15 +290,26 @@ function make(param_options, parent) {
         rule: function rule(name, define) {
             return jsonic.internal().parser.rule(name, define);
         },
-        lex: (match, modify) => {
-            let lexer = jsonic.internal().lexer;
-            if (null != match) {
-                lexer.mat.unshift(match);
-            }
-            if (null != modify) {
-                modify(lexer.mat);
-            }
-            return lexer.mat;
+        /*
+        lex: (
+          match: LexMatcher | undefined,
+          modify: (mat: LexMatcher[]) => void) => {
+          let lexer = jsonic.internal().lexer
+          if (null != match) {
+            lexer.mat.unshift(match)
+          }
+          if (null != modify) {
+            modify(lexer.mat)
+          }
+          return lexer.mat
+        },
+        */
+        lex: (matchmaker) => {
+            let match = merged_options.lex.match;
+            match.unshift(matchmaker);
+            jsonic.options({
+                lex: { match }
+            });
         },
         make: function (options) {
             return make(options, jsonic);

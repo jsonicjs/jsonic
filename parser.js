@@ -513,10 +513,8 @@ class Parser {
         ctx = intern_1.deep(ctx, parent_ctx);
         intern_1.makelog(ctx);
         let tn = (pin) => intern_1.tokenize(pin, this.config);
-        //let lex = badlex(lexer.start(ctx), tokenize('#BD', this.config), ctx)
-        let lex = intern_1.badlex(new lexer_1.Lex(ctx.src(), this.config.lex.match, ctx, this.config), intern_1.tokenize('#BD', this.config), ctx);
+        let lex = intern_1.badlex(new lexer_1.Lex(ctx), intern_1.tokenize('#BD', this.config), ctx);
         let startspec = this.rsm[this.options.rule.start];
-        // The starting rule is always 'val'
         if (null == startspec) {
             return undefined;
         }

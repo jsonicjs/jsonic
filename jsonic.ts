@@ -68,7 +68,8 @@ import {
 import {
   Point,
   Token,
-  LexMatcher,
+  Lex,
+  MakeLexMatcher,
   makeFixedMatcher,
   makeSpaceMatcher,
   makeLineMatcher,
@@ -117,8 +118,9 @@ type JsonicAPI = {
   rule: (name?: string, define?: RuleDefiner) => RuleSpec | RuleSpecMap
 
   // Add. modify, and list lex matchers.
-  lex: (match: LexMatcher | undefined,
-    modify: (mat: LexMatcher[]) => void) => LexMatcher[]
+  //lex: (match: LexMatcher | undefined,
+  //  modify: (mat: LexMatcher[]) => void) => LexMatcher[]
+  lex: (matchmaker: MakeLexMatcher) => void
 
   // Token get and set for plugins. Reference by either name or Tin.
   token:
@@ -490,6 +492,7 @@ function make(param_options?: KV, parent?: Jsonic): Jsonic {
       return jsonic.internal().parser.rule(name, define)
     },
 
+    /*
     lex: (
       match: LexMatcher | undefined,
       modify: (mat: LexMatcher[]) => void) => {
@@ -501,6 +504,15 @@ function make(param_options?: KV, parent?: Jsonic): Jsonic {
         modify(lexer.mat)
       }
       return lexer.mat
+    },
+    */
+
+    lex: (matchmaker: MakeLexMatcher) => {
+      let match = merged_options.lex.match
+      match.unshift(matchmaker)
+      jsonic.options({
+        lex: { match }
+      })
     },
 
     make: function(options?: Options) {
@@ -687,6 +699,7 @@ export {
   Plugin,
   JsonicError,
   Tin,
+  Lex,
   Parser,
   Rule,
   RuleSpec,

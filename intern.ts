@@ -447,6 +447,11 @@ function configure(incfg: Config | undefined, opts: Options): Config {
 
   let fixedRE = fixedSorted.map(fixed => escre(fixed)).join('|')
 
+  let commentStartRE = opts.comment.lex ? opts.comment.marker
+    .filter(c => c.lex)
+    .map(c => '|' + escre(c.start)).join('')
+    : ''
+
   // End-marker RE part
   let enderRE = [
     '([',
@@ -456,7 +461,8 @@ function configure(incfg: Config | undefined, opts: Options): Config {
     )).join('')),
     ']|',
     fixedRE,
-    // TODO: spaces
+
+    commentStartRE,
 
     '|$)', // EOF case
   ]
@@ -464,6 +470,7 @@ function configure(incfg: Config | undefined, opts: Options): Config {
   cfg.rePart = {
     fixed: fixedRE,
     ender: enderRE,
+    commentStart: commentStartRE,
   }
 
 

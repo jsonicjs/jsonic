@@ -41,8 +41,7 @@ declare class Lex {
     ctx: Context;
     cfg: Config;
     pnt: Point;
-    mat: LexMatcher[];
-    constructor(src: String, mat: LexMatcher[], ctx: Context, cfg: Config);
+    constructor(ctx: Context);
     token(ref: Tin | string, val: any, src: string, pnt?: Point, use?: any, why?: string): Token;
     next(rule: Rule): Token;
     tokenize<R extends string | Tin, T extends (R extends Tin ? string : Tin)>(ref: R): T;

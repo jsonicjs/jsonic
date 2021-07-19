@@ -157,18 +157,23 @@ function configure(incfg, opts) {
     let fixedSorted = Object.keys(cfg.fixed.token)
         .sort((a, b) => b.length - a.length);
     let fixedRE = fixedSorted.map(fixed => escre(fixed)).join('|');
+    let commentStartRE = opts.comment.lex ? opts.comment.marker
+        .filter(c => c.lex)
+        .map(c => '|' + escre(c.start)).join('')
+        : '';
     // End-marker RE part
     let enderRE = [
         '([',
         escre(keys(charset(cfg.space.lex && cfg.space.chars, cfg.line.lex && cfg.line.chars)).join('')),
         ']|',
         fixedRE,
-        // TODO: spaces
+        commentStartRE,
         '|$)', // EOF case
     ];
     cfg.rePart = {
         fixed: fixedRE,
         ender: enderRE,
+        commentStart: commentStartRE,
     };
     // TODO: friendlier names
     cfg.re = {

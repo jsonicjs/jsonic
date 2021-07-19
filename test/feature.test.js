@@ -96,6 +96,8 @@ describe('feature', function () {
 
   
   it('single-comment-line', () => {
+    expect(j('a#b')).equals('a')
+    expect(j('a:1#b')).equals({a:1})
     expect(j('#a:1')).equals(undefined)
     expect(j('#a:1\nb:2')).equals({b:2})
     expect(j('b:2\n#a:1')).equals({b:2})

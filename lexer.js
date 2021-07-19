@@ -64,9 +64,8 @@ class Token {
 }
 exports.Token = Token;
 let makeFixedMatcher = (cfg, _opts) => {
-    let mark = Math.random();
     let fixed = intern_1.regexp(null, '^(', cfg.rePart.fixed, ')');
-    let f = function fixedMatcher(lex) {
+    return function fixedMatcher(lex) {
         let mcfg = cfg.fixed;
         if (!mcfg.lex)
             return undefined;
@@ -88,8 +87,6 @@ let makeFixedMatcher = (cfg, _opts) => {
             }
         }
     };
-    f.mark = mark;
-    return f;
 };
 exports.makeFixedMatcher = makeFixedMatcher;
 let makeCommentMatcher = (cfg, opts) => {
@@ -445,46 +442,12 @@ function subMatchFixed(lex, first, tsrc) {
     }
     return out;
 }
-/*
-class Lexer {
-  cfg: Config
-  end: Token
-  mat: LexMatcher[]
-  mark = Math.random()
-
-  constructor(cfg: Config) {
-    this.cfg = cfg
-
-    this.end = new Token(
-      '#ZZ',
-      tokenize('#ZZ', cfg),
-      undefined,
-      MT,
-      new Point(-1)
-    )
-
-    this.mat = cfg.lex.match
-  }
-
-  xstart(ctx: Context): Lex {
-    return new Lex(ctx.src(), this.mat, ctx, this.cfg)
-  }
-
-  // Clone the Lexer, and in particular the registered matchers.
-  clone(config: Config) {
-    let lexer = new Lexer(config)
-    return lexer
-  }
-
-}
-*/
 class Lex {
-    constructor(src, mat, ctx, cfg) {
-        this.src = src;
+    constructor(ctx) {
         this.ctx = ctx;
-        this.cfg = cfg;
-        this.pnt = new Point(src.length);
-        this.mat = mat;
+        this.src = ctx.src();
+        this.cfg = ctx.cfg;
+        this.pnt = new Point(this.src.length);
     }
     token(ref, val, src, pnt, use, why) {
         let tin;

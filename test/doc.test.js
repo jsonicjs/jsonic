@@ -153,12 +153,10 @@ describe('docs', function () {
 
     let ST = concat.token.ST
     concat.rule('val', (rulespec)=>{
-      rulespec.def.open.unshift({s:[ST,ST], h:(rule,ctx,alt)=>{
-        rule.node = ctx.t0.val + ctx.t1.val
-        // Disable bc value handling
-        rule.bc = false
-        return alt
-      }})
+      rulespec.def.open.unshift({
+        s:[ST,ST],
+        a:(rule,ctx)=>rule.node = ctx.t0.val + ctx.t1.val
+      })
     })
 
     expect(concat('"a" "b"', {xlog:-1})).equals('ab')
@@ -166,7 +164,7 @@ describe('docs', function () {
     expect(concat('{x:"a" "b",y:1}', {xlog:-1})).equals({x:'ab',y:1})
 
     concat.options({
-      token: { '#HH': {c:'%'} }
+      fixed: { token: { '#HH': '%' } }
     })
 
     let HH = concat.token.HH
@@ -187,21 +185,19 @@ describe('docs', function () {
 
   it('method-lex', () => {
     let tens = Jsonic.make()
-    let VL = tens.token.VL
-    let LTP = tens.token.LTP
-    tens.lex(LTP, function tens_matcher(state) {
-      let marks = state.src.substring(state.sI).match(/^%+/)
+
+    tens.lex((cfg, opts)=>(lex,rule)=>{
+      let pnt = lex.pnt
+      let marks = lex.src.substring(pnt.sI).match(/^%+/)
       if(marks) {
         let len = marks[0].length
-        state.token.tin = VL
-        state.token.val = 10 * len
-        return {
-          sI:state.sI+len,
-          cI:state.cI+len
-        }
+        let tkn = lex.token('#VL',10*marks[0].length,marks,lex.pnt)
+        pnt.sI+=len
+        pnt.cI+=len
+        return tkn
       }
     })
-
+    
     expect(tens('a:1,b:%%,c:[%%%%]')).equals({a:1,b:20,c:[40]})
   })
 

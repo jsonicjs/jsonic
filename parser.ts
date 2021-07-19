@@ -764,16 +764,9 @@ class Parser {
     makelog(ctx)
 
     let tn = (pin: Tin): string => tokenize(pin, this.config)
-    //let lex = badlex(lexer.start(ctx), tokenize('#BD', this.config), ctx)
-    let lex = badlex(new Lex(
-      ctx.src(),
-      this.config.lex.match,
-      ctx,
-      this.config
-    ), tokenize('#BD', this.config), ctx)
+    let lex = badlex(new Lex(ctx), tokenize('#BD', this.config), ctx)
     let startspec = this.rsm[this.options.rule.start]
 
-    // The starting rule is always 'val'
     if (null == startspec) {
       return undefined
     }

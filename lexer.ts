@@ -115,7 +115,6 @@ type LexMatcher = (lex: Lex, rule: Rule) => Token | undefined
 
 
 let makeFixedMatcher: MakeLexMatcher = (cfg: Config, _opts: Options) => {
-  let mark = Math.random()
   let fixed = regexp(
     null,
     '^(',
@@ -123,7 +122,7 @@ let makeFixedMatcher: MakeLexMatcher = (cfg: Config, _opts: Options) => {
     ')'
   )
 
-  let f = function fixedMatcher(lex: Lex) {
+  return function fixedMatcher(lex: Lex) {
     let mcfg = cfg.fixed
     if (!mcfg.lex) return undefined
 
@@ -154,9 +153,6 @@ let makeFixedMatcher: MakeLexMatcher = (cfg: Config, _opts: Options) => {
       }
     }
   }
-
-    ; (f as any).mark = mark
-  return f
 }
 
 
@@ -651,57 +647,18 @@ function subMatchFixed(
 }
 
 
-/*
-class Lexer {
-  cfg: Config
-  end: Token
-  mat: LexMatcher[]
-  mark = Math.random()
-
-  constructor(cfg: Config) {
-    this.cfg = cfg
-
-    this.end = new Token(
-      '#ZZ',
-      tokenize('#ZZ', cfg),
-      undefined,
-      MT,
-      new Point(-1)
-    )
-
-    this.mat = cfg.lex.match
-  }
-
-  xstart(ctx: Context): Lex {
-    return new Lex(ctx.src(), this.mat, ctx, this.cfg)
-  }
-
-  // Clone the Lexer, and in particular the registered matchers.
-  clone(config: Config) {
-    let lexer = new Lexer(config)
-    return lexer
-  }
-
-}
-*/
-
-
 class Lex {
   src: String
   ctx: Context
   cfg: Config
   pnt: Point
-  mat: LexMatcher[]
 
-
-  constructor(src: String, mat: LexMatcher[], ctx: Context, cfg: Config) {
-    this.src = src
+  constructor(ctx: Context) {
     this.ctx = ctx
-    this.cfg = cfg
-    this.pnt = new Point(src.length)
-    this.mat = mat
+    this.src = ctx.src()
+    this.cfg = ctx.cfg
+    this.pnt = new Point(this.src.length)
   }
-
 
   token(
     ref: Tin | string,
