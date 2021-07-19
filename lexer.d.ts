@@ -36,14 +36,6 @@ declare let makeNumberMatcher: MakeLexMatcher;
 declare let makeStringMatcher: MakeLexMatcher;
 declare let makeLineMatcher: MakeLexMatcher;
 declare let makeSpaceMatcher: MakeLexMatcher;
-declare class Lexer {
-    cfg: Config;
-    end: Token;
-    mat: LexMatcher[];
-    constructor(cfg: Config);
-    start(ctx: Context): Lex;
-    clone(config: Config): Lexer;
-}
 declare class Lex {
     src: String;
     ctx: Context;
@@ -56,4 +48,4 @@ declare class Lex {
     tokenize<R extends string | Tin, T extends (R extends Tin ? string : Tin)>(ref: R): T;
     bad(why: string, pstart: number, pend: number): Token;
 }
-export { Point, Token, Lex, LexMatcher, MakeLexMatcher, Lexer, makeFixedMatcher, makeSpaceMatcher, makeLineMatcher, makeStringMatcher, makeCommentMatcher, makeNumberMatcher, makeTextMatcher, };
+export { Point, Token, Lex, LexMatcher, MakeLexMatcher, makeFixedMatcher, makeSpaceMatcher, makeLineMatcher, makeStringMatcher, makeCommentMatcher, makeNumberMatcher, makeTextMatcher, };

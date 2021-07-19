@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.makeTextMatcher = exports.makeNumberMatcher = exports.makeCommentMatcher = exports.makeStringMatcher = exports.makeLineMatcher = exports.makeSpaceMatcher = exports.makeFixedMatcher = exports.Lexer = exports.Lex = exports.Token = exports.Point = void 0;
+exports.makeTextMatcher = exports.makeNumberMatcher = exports.makeCommentMatcher = exports.makeStringMatcher = exports.makeLineMatcher = exports.makeSpaceMatcher = exports.makeFixedMatcher = exports.Lex = exports.Token = exports.Point = void 0;
 const inspect = Symbol.for('nodejs.util.inspect.custom');
 const intern_1 = require("./intern");
 class Point {
@@ -64,8 +64,9 @@ class Token {
 }
 exports.Token = Token;
 let makeFixedMatcher = (cfg, _opts) => {
+    let mark = Math.random();
     let fixed = intern_1.regexp(null, '^(', cfg.rePart.fixed, ')');
-    return function fixedMatcher(lex) {
+    let f = function fixedMatcher(lex) {
         let mcfg = cfg.fixed;
         if (!mcfg.lex)
             return undefined;
@@ -87,6 +88,8 @@ let makeFixedMatcher = (cfg, _opts) => {
             }
         }
     };
+    f.mark = mark;
+    return f;
 };
 exports.makeFixedMatcher = makeFixedMatcher;
 let makeCommentMatcher = (cfg, opts) => {
@@ -442,23 +445,39 @@ function subMatchFixed(lex, first, tsrc) {
     }
     return out;
 }
+/*
 class Lexer {
-    constructor(cfg) {
-        this.cfg = cfg;
-        this.end = new Token('#ZZ', intern_1.tokenize('#ZZ', cfg), undefined, intern_1.MT, new Point(-1));
-        this.mat = cfg.lex.match;
-    }
-    start(ctx) {
-        return new Lex(ctx.src(), this.mat, ctx, this.cfg);
-    }
-    // Clone the Lexer, and in particular the registered matchers.
-    clone(config) {
-        let lexer = new Lexer(config);
-        // deep(lexer.match, this.match)
-        return lexer;
-    }
+  cfg: Config
+  end: Token
+  mat: LexMatcher[]
+  mark = Math.random()
+
+  constructor(cfg: Config) {
+    this.cfg = cfg
+
+    this.end = new Token(
+      '#ZZ',
+      tokenize('#ZZ', cfg),
+      undefined,
+      MT,
+      new Point(-1)
+    )
+
+    this.mat = cfg.lex.match
+  }
+
+  xstart(ctx: Context): Lex {
+    return new Lex(ctx.src(), this.mat, ctx, this.cfg)
+  }
+
+  // Clone the Lexer, and in particular the registered matchers.
+  clone(config: Config) {
+    let lexer = new Lexer(config)
+    return lexer
+  }
+
 }
-exports.Lexer = Lexer;
+*/
 class Lex {
     constructor(src, mat, ctx, cfg) {
         this.src = src;
@@ -495,7 +514,8 @@ class Lex {
             tkn = pnt.end;
         }
         else {
-            for (let mat of this.mat) {
+            //for (let mat of this.mat) {
+            for (let mat of this.cfg.lex.match) {
                 if (tkn = mat(this, rule)) {
                     break;
                 }

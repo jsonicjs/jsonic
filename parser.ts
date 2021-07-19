@@ -29,7 +29,8 @@ import {
 
 
 import {
-  Lexer,
+  Lex,
+  Point,
 } from './lexer'
 
 
@@ -718,13 +719,22 @@ class Parser {
 
 
   start(
-    lexer: Lexer,
     src: string,
     jsonic: Jsonic,
     meta?: any,
     parent_ctx?: any
   ): any {
     let root: Rule
+
+
+    let endtkn = new Token(
+      '#ZZ',
+      tokenize('#ZZ', this.config),
+      undefined,
+      MT,
+      new Point(-1)
+    )
+
 
     let ctx: Context = {
       uI: 1,
@@ -736,10 +746,10 @@ class Parser {
       plgn: () => jsonic.internal().plugins,
       rule: NONE,
       xs: -1,
-      v2: lexer.end,
-      v1: lexer.end,
-      t0: lexer.end,
-      t1: lexer.end,
+      v2: endtkn,
+      v1: endtkn,
+      t0: endtkn,
+      t1: endtkn,
       tC: -2,  // Prepare count for 2-token lookahead.
       next,
       rs: [],
@@ -754,8 +764,13 @@ class Parser {
     makelog(ctx)
 
     let tn = (pin: Tin): string => tokenize(pin, this.config)
-    let lex =
-      badlex(lexer.start(ctx), tokenize('#BD', this.config), ctx)
+    //let lex = badlex(lexer.start(ctx), tokenize('#BD', this.config), ctx)
+    let lex = badlex(new Lex(
+      ctx.src(),
+      this.config.lex.match,
+      ctx,
+      this.config
+    ), tokenize('#BD', this.config), ctx)
     let startspec = this.rsm[this.options.rule.start]
 
     // The starting rule is always 'val'

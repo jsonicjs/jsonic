@@ -1,6 +1,6 @@
 import type { Rule, RuleSpec } from './parser';
-import type { Lex, Token } from './lexer';
-import { LexMatcher, MakeLexMatcher } from './lexer';
+import type { Lex } from './lexer';
+import { Token, LexMatcher, MakeLexMatcher } from './lexer';
 declare enum RuleState {
     open = 0,
     close = 1

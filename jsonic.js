@@ -1,7 +1,7 @@
 "use strict";
 /* Copyright (c) 2013-2021 Richard Rodger, MIT License */
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.make = exports.util = exports.Alt = exports.Token = exports.RuleSpec = exports.Rule = exports.Parser = exports.Lexer = exports.JsonicError = exports.Jsonic = void 0;
+exports.make = exports.util = exports.Alt = exports.Token = exports.RuleSpec = exports.Rule = exports.Parser = exports.JsonicError = exports.Jsonic = void 0;
 // TODO: [,,,] syntax should match JS!
 // TODO: rename tokens to be user friendly
 // TODO: if token recognized, error needs to be about token, not characters
@@ -35,7 +35,6 @@ const intern_1 = require("./intern");
 Object.defineProperty(exports, "JsonicError", { enumerable: true, get: function () { return intern_1.JsonicError; } });
 const lexer_1 = require("./lexer");
 Object.defineProperty(exports, "Token", { enumerable: true, get: function () { return lexer_1.Token; } });
-Object.defineProperty(exports, "Lexer", { enumerable: true, get: function () { return lexer_1.Lexer; } });
 const parser_1 = require("./parser");
 Object.defineProperty(exports, "Parser", { enumerable: true, get: function () { return parser_1.Parser; } });
 Object.defineProperty(exports, "Rule", { enumerable: true, get: function () { return parser_1.Rule; } });
@@ -245,7 +244,6 @@ let util = {
 };
 exports.util = util;
 function make(param_options, parent) {
-    let lexer;
     let parser;
     let config;
     let plugins;
@@ -257,7 +255,8 @@ function make(param_options, parent) {
             let internal = jsonic.internal();
             let parser = options.parser.start ?
                 parserwrap(options.parser) : internal.parser;
-            return parser.start(internal.lexer, src, jsonic, meta, parent_ctx);
+            //return parser.start(internal.lexer, src, jsonic, meta, parent_ctx)
+            return parser.start(src, jsonic, meta, parent_ctx);
         }
         return src;
     };
@@ -324,13 +323,11 @@ function make(param_options, parent) {
         intern_1.configure(config, merged_options);
         intern_1.assign(jsonic.token, config.t);
         plugins = [...parent_internal.plugins];
-        lexer = parent_internal.lexer.clone(config);
         parser = parent_internal.parser.clone(merged_options, config);
     }
     else {
         config = intern_1.configure(undefined, merged_options);
         plugins = [];
-        lexer = new lexer_1.Lexer(config);
         parser = new parser_1.Parser(merged_options, config);
         parser.init();
     }
@@ -342,7 +339,6 @@ function make(param_options, parent) {
     intern_1.defprop(jsonic, 'internal', {
         value: function internal() {
             return {
-                lexer,
                 parser,
                 config,
                 plugins,
@@ -354,9 +350,9 @@ function make(param_options, parent) {
 exports.make = make;
 function parserwrap(parser) {
     return {
-        start: function (lexer, src, jsonic, meta, parent_ctx) {
+        start: function (src, jsonic, meta, parent_ctx) {
             try {
-                return parser.start(lexer, src, jsonic, meta, parent_ctx);
+                return parser.start(src, jsonic, meta, parent_ctx);
             }
             catch (ex) {
                 if ('SyntaxError' === ex.name) {
@@ -374,17 +370,6 @@ function parserwrap(parser) {
                             cI--;
                         col = Math.max(src.substring(cI, loc).length, 0);
                     }
-                    /*
-                    let token = ex.token || {
-                      tin: jsonic.token.UK,
-                      sI: loc,
-                      len: tsrc.length,
-                      rI: ex.lineNumber || row,
-                      cI: ex.columnNumber || col,
-                      val: undefined,
-                      src: tsrc,
-                    } as Token
-                    */
                     let token = ex.token || new lexer_1.Token('#UK', intern_1.tokenize('#UK', jsonic.config), undefined, tsrc, new lexer_1.Point(tsrc.length, loc, ex.lineNumber || row, ex.columnNumber || col));
                     throw new intern_1.JsonicError(ex.code || 'json', ex.details || {
                         msg: ex.message
@@ -435,7 +420,6 @@ delete top.token;
 // Provide deconstruction export names
 Jsonic.Jsonic = Jsonic;
 Jsonic.JsonicError = intern_1.JsonicError;
-Jsonic.Lexer = lexer_1.Lexer;
 Jsonic.Parser = parser_1.Parser;
 Jsonic.Rule = parser_1.Rule;
 Jsonic.RuleSpec = parser_1.RuleSpec;

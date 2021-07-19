@@ -16,7 +16,7 @@ import {
   escre,
   Options,
   charset,
-  map,
+  // map,
 } from './intern'
 
 
@@ -115,6 +115,7 @@ type LexMatcher = (lex: Lex, rule: Rule) => Token | undefined
 
 
 let makeFixedMatcher: MakeLexMatcher = (cfg: Config, _opts: Options) => {
+  let mark = Math.random()
   let fixed = regexp(
     null,
     '^(',
@@ -122,7 +123,7 @@ let makeFixedMatcher: MakeLexMatcher = (cfg: Config, _opts: Options) => {
     ')'
   )
 
-  return function fixedMatcher(lex: Lex) {
+  let f = function fixedMatcher(lex: Lex) {
     let mcfg = cfg.fixed
     if (!mcfg.lex) return undefined
 
@@ -153,6 +154,9 @@ let makeFixedMatcher: MakeLexMatcher = (cfg: Config, _opts: Options) => {
       }
     }
   }
+
+    ; (f as any).mark = mark
+  return f
 }
 
 
@@ -647,10 +651,12 @@ function subMatchFixed(
 }
 
 
+/*
 class Lexer {
   cfg: Config
   end: Token
   mat: LexMatcher[]
+  mark = Math.random()
 
   constructor(cfg: Config) {
     this.cfg = cfg
@@ -666,18 +672,18 @@ class Lexer {
     this.mat = cfg.lex.match
   }
 
-  start(ctx: Context): Lex {
+  xstart(ctx: Context): Lex {
     return new Lex(ctx.src(), this.mat, ctx, this.cfg)
   }
 
   // Clone the Lexer, and in particular the registered matchers.
   clone(config: Config) {
     let lexer = new Lexer(config)
-    // deep(lexer.match, this.match)
     return lexer
   }
 
 }
+*/
 
 
 class Lex {
@@ -755,7 +761,8 @@ class Lex {
 
     else {
 
-      for (let mat of this.mat) {
+      //for (let mat of this.mat) {
+      for (let mat of this.cfg.lex.match) {
         if (tkn = mat(this, rule)) {
           break
         }
@@ -815,7 +822,6 @@ export {
   Lex,
   LexMatcher,
   MakeLexMatcher,
-  Lexer,
   makeFixedMatcher,
   makeSpaceMatcher,
   makeLineMatcher,

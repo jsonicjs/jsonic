@@ -1,5 +1,5 @@
 import { Context, JsonicError, KV, Meta, Options, Tin, badlex, deep, errdesc, errinject, extract, makelog, mesc, regexp, tokenize, trimstk, srcfmt, clone, charset, configure } from './intern';
-import { Token, Lexer, LexMatcher } from './lexer';
+import { Token, LexMatcher } from './lexer';
 import { Parser, Rule, RuleDefiner, RuleSpec, RuleSpecMap, Alt, AltCond, AltHandler, AltAction } from './parser';
 declare type JsonicParse = (src: any, meta?: any, parent_ctx?: any) => any;
 declare type JsonicAPI = {
@@ -42,8 +42,8 @@ declare let util: {
 };
 declare function make(param_options?: KV, parent?: Jsonic): Jsonic;
 declare function parserwrap(parser: any): {
-    start: (lexer: Lexer, src: string, jsonic: Jsonic, meta?: any, parent_ctx?: any) => any;
+    start: (src: string, jsonic: Jsonic, meta?: any, parent_ctx?: any) => any;
 };
 declare let Jsonic: Jsonic;
-export { Jsonic, Plugin, JsonicError, Tin, Lexer, Parser, Rule, RuleSpec, RuleSpecMap, Token, Context, Meta, Alt, AltCond, AltHandler, AltAction, util, make, };
+export { Jsonic, Plugin, JsonicError, Tin, Parser, Rule, RuleSpec, RuleSpecMap, Token, Context, Meta, Alt, AltCond, AltHandler, AltAction, util, make, };
 export default Jsonic;

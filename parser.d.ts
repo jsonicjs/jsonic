@@ -1,5 +1,4 @@
 import { Config, Context, KV, Options, Token, RuleState } from './intern';
-import { Lexer } from './lexer';
 import type { Jsonic } from './jsonic';
 declare class Rule {
     id: number;
@@ -76,7 +75,7 @@ declare class Parser {
     constructor(options: Options, config: Config);
     init(): void;
     rule(name?: string, define?: RuleDefiner): RuleSpec | RuleSpecMap;
-    start(lexer: Lexer, src: string, jsonic: Jsonic, meta?: any, parent_ctx?: any): any;
+    start(src: string, jsonic: Jsonic, meta?: any, parent_ctx?: any): any;
     clone(options: Options, config: Config): Parser;
 }
 export { Parser, Rule, RuleDefiner, RuleSpec, RuleSpecMap, RuleState, AltError, Alt, AltCond, AltHandler, AltAction, NONE, };

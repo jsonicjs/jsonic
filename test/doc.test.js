@@ -104,9 +104,13 @@ describe('docs', function () {
 
   it('method-use', () => {
     let jsonic = Jsonic.make().use(function piper(jsonic) {
-      jsonic.options({token: {'#CA':{c:'|'}}})
+      jsonic.options({fixed:{token: {'#CA':'~'}}})
     })
-    let out = jsonic('a|b|c') // === ['a', 'b', 'c']
+
+    expect(jsonic.options.fixed.token['#CA']).equals('~')
+    expect(jsonic.internal().config.fixed.token['~']).equals(17)
+
+    let out = jsonic('a~b~c') // === ['a', 'b', 'c']
     expect(out).equals(['a', 'b', 'c'])
   })
 
@@ -114,7 +118,7 @@ describe('docs', function () {
   it('method-use-options', () => {
     function sepper(jsonic) {
       let sep = jsonic.options.plugin.sepper.sep
-      jsonic.options({token: {'#CA':{c:sep}}})
+      jsonic.options({fixed:{token: {'#CA':sep}}})
     }
     let jsonic = Jsonic.make().use(sepper, {sep:';'})
     let out = jsonic('a;b;c') // === ['a', 'b', 'c']

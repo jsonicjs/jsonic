@@ -7,10 +7,10 @@ import type {
 
 import type {
   Lex,
-  Token,
 } from './lexer'
 
 import {
+  Token,
   LexMatcher,
   MakeLexMatcher,
 } from './lexer'

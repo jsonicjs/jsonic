@@ -7,6 +7,7 @@ Object.defineProperty(exports, "RuleState", { enumerable: true, get: function ()
     // mesc,
     // CharCodeMap,
     intern_1.RuleState; } });
+const lexer_1 = require("./lexer");
 class Rule {
     constructor(spec, ctx, node) {
         this.id = ctx.uI++;
@@ -484,8 +485,9 @@ class Parser {
         }
         return rs;
     }
-    start(lexer, src, jsonic, meta, parent_ctx) {
+    start(src, jsonic, meta, parent_ctx) {
         let root;
+        let endtkn = new intern_1.Token('#ZZ', intern_1.tokenize('#ZZ', this.config), undefined, intern_1.MT, new lexer_1.Point(-1));
         let ctx = {
             uI: 1,
             opts: this.options,
@@ -496,10 +498,10 @@ class Parser {
             plgn: () => jsonic.internal().plugins,
             rule: NONE,
             xs: -1,
-            v2: lexer.end,
-            v1: lexer.end,
-            t0: lexer.end,
-            t1: lexer.end,
+            v2: endtkn,
+            v1: endtkn,
+            t0: endtkn,
+            t1: endtkn,
             tC: -2,
             next,
             rs: [],
@@ -511,7 +513,8 @@ class Parser {
         ctx = intern_1.deep(ctx, parent_ctx);
         intern_1.makelog(ctx);
         let tn = (pin) => intern_1.tokenize(pin, this.config);
-        let lex = intern_1.badlex(lexer.start(ctx), intern_1.tokenize('#BD', this.config), ctx);
+        //let lex = badlex(lexer.start(ctx), tokenize('#BD', this.config), ctx)
+        let lex = intern_1.badlex(new lexer_1.Lex(ctx.src(), this.config.lex.match, ctx, this.config), intern_1.tokenize('#BD', this.config), ctx);
         let startspec = this.rsm[this.options.rule.start];
         // The starting rule is always 'val'
         if (null == startspec) {

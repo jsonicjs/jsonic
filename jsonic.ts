@@ -1,5 +1,6 @@
 /* Copyright (c) 2013-2021 Richard Rodger, MIT License */
 
+
 // TODO: [,,,] syntax should match JS!
 // TODO: rename tokens to be user friendly
 // TODO: if token recognized, error needs to be about token, not characters
@@ -67,7 +68,6 @@ import {
 import {
   Point,
   Token,
-  Lexer,
   LexMatcher,
   makeFixedMatcher,
   makeSpaceMatcher,
@@ -421,7 +421,6 @@ let util = {
 
 
 function make(param_options?: KV, parent?: Jsonic): Jsonic {
-  let lexer: Lexer
   let parser: Parser
   let config: Config
   let plugins: Plugin[]
@@ -442,7 +441,8 @@ function make(param_options?: KV, parent?: Jsonic): Jsonic {
         let internal = jsonic.internal()
         let parser = options.parser.start ?
           parserwrap(options.parser) : internal.parser
-        return parser.start(internal.lexer, src, jsonic, meta, parent_ctx)
+        //return parser.start(internal.lexer, src, jsonic, meta, parent_ctx)
+        return parser.start(src, jsonic, meta, parent_ctx)
       }
 
       return src
@@ -538,7 +538,6 @@ function make(param_options?: KV, parent?: Jsonic): Jsonic {
 
     plugins = [...parent_internal.plugins]
 
-    lexer = parent_internal.lexer.clone(config)
     parser = parent_internal.parser.clone(merged_options, config)
   }
   else {
@@ -546,7 +545,6 @@ function make(param_options?: KV, parent?: Jsonic): Jsonic {
 
     plugins = []
 
-    lexer = new Lexer(config)
     parser = new Parser(merged_options, config)
     parser.init()
   }
@@ -564,7 +562,6 @@ function make(param_options?: KV, parent?: Jsonic): Jsonic {
   defprop(jsonic, 'internal', {
     value: function internal() {
       return {
-        lexer,
         parser,
         config,
         plugins,
@@ -580,14 +577,13 @@ function make(param_options?: KV, parent?: Jsonic): Jsonic {
 function parserwrap(parser: any) {
   return {
     start: function(
-      lexer: Lexer,
       src: string,
       jsonic: Jsonic,
       meta?: any,
       parent_ctx?: any
     ) {
       try {
-        return parser.start(lexer, src, jsonic, meta, parent_ctx)
+        return parser.start(src, jsonic, meta, parent_ctx)
       } catch (ex) {
         if ('SyntaxError' === ex.name) {
           let loc = 0
@@ -603,18 +599,6 @@ function parserwrap(parser: any) {
             while (-1 < cI && '\n' !== src.charAt(cI)) cI--;
             col = Math.max(src.substring(cI, loc).length, 0)
           }
-
-          /*
-          let token = ex.token || {
-            tin: jsonic.token.UK,
-            sI: loc,
-            len: tsrc.length,
-            rI: ex.lineNumber || row,
-            cI: ex.columnNumber || col,
-            val: undefined,
-            src: tsrc,
-          } as Token
-          */
 
           let token = ex.token || new Token(
             '#UK',
@@ -689,7 +673,6 @@ delete top.token
 // Provide deconstruction export names
 Jsonic.Jsonic = Jsonic
 Jsonic.JsonicError = JsonicError
-Jsonic.Lexer = Lexer
 Jsonic.Parser = Parser
 Jsonic.Rule = Rule
 Jsonic.RuleSpec = RuleSpec
@@ -704,8 +687,6 @@ export {
   Plugin,
   JsonicError,
   Tin,
-  Lexer,
-  // LexerNG,
   Parser,
   Rule,
   RuleSpec,
