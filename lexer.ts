@@ -16,6 +16,7 @@ import {
   escre,
   Options,
   charset,
+  map,
 } from './intern'
 
 
@@ -108,46 +109,34 @@ class Token {
 
 
 
-abstract class LexMatcher {
-  cfg: Config
-  opts: Options
-  constructor(cfg: Config, opts: Options) {
-    this.cfg = cfg
-    this.opts = opts
-  }
-  abstract match(lex: Lex, rule: Rule): Token | undefined
-}
+type MakeLexMatcher = (cfg: Config, opts: Options) => LexMatcher
+type LexMatcher = (lex: Lex, rule: Rule) => Token | undefined
 
 
 
-class FixedMatcher extends LexMatcher {
-  fixed?: RegExp
+let makeFixedMatcher: MakeLexMatcher = (cfg: Config, _opts: Options) => {
+  let fixed = regexp(
+    null,
+    '^(',
+    cfg.rePart.fixed,
+    ')'
+  )
 
-  constructor(cfg: Config, opts: Options) {
-    super(cfg, opts)
-  }
-
-  match(lex: Lex) {
-    if (!lex.cfg.fixed.lex) return undefined
+  return function fixedMatcher(lex: Lex) {
+    let mcfg = cfg.fixed
+    if (!mcfg.lex) return undefined
 
     let pnt = lex.pnt
     let fwd = lex.src.substring(pnt.sI)
 
-    this.fixed = this.fixed || regexp(
-      null,
-      '^(',
-      this.cfg.rePart.fixed,
-      ')'
-    )
-
-    let m = fwd.match((this.fixed as RegExp))
+    let m = fwd.match(fixed)
     if (m) {
       let msrc = m[1]
       let mlen = msrc.length
       if (0 < mlen) {
         let tkn: Token | undefined = undefined
 
-        let tin = lex.cfg.fixed.token[msrc]
+        let tin = mcfg.token[msrc]
         if (null != tin) {
           tkn = lex.token(
             tin,
@@ -168,34 +157,27 @@ class FixedMatcher extends LexMatcher {
 
 
 
-// TODO: better error msgs for unterminated comments
-class CommentMatcher extends LexMatcher {
-  lineComments: any[]
-  blockComments: any[]
+let makeCommentMatcher: MakeLexMatcher = (cfg: Config, opts: Options) => {
 
-  constructor(cfg: Config, opts: Options) {
-    super(cfg, opts)
-
-    let oc = opts.comment
-    cfg.comment = {
-      lex: !!oc.lex,
-      marker: oc.marker.map(om => ({
-        start: om.start,
-        end: om.end,
-        line: !!om.line,
-        lex: !!om.lex,
-      }))
-    }
-
-    this.lineComments =
-      cfg.comment.lex ? cfg.comment.marker.filter(c => c.lex && c.line) : []
-    this.blockComments =
-      cfg.comment.lex ? cfg.comment.marker.filter(c => c.lex && !c.line) : []
+  let oc = opts.comment
+  cfg.comment = {
+    lex: !!oc.lex,
+    marker: oc.marker.map(om => ({
+      start: om.start,
+      end: om.end,
+      line: !!om.line,
+      lex: !!om.lex,
+    }))
   }
 
-  match(lex: Lex) {
-    let comment = this.cfg.comment
-    if (!comment.lex) return undefined
+  let lineComments =
+    cfg.comment.lex ? cfg.comment.marker.filter(c => c.lex && c.line) : []
+  let blockComments =
+    cfg.comment.lex ? cfg.comment.marker.filter(c => c.lex && !c.line) : []
+
+  return function matchComment(lex: Lex) {
+    let mcfg = cfg.comment
+    if (!mcfg.lex) return undefined
 
     let pnt = lex.pnt
     let fwd = lex.src.substring(pnt.sI)
@@ -205,12 +187,12 @@ class CommentMatcher extends LexMatcher {
 
     // Single line comment.
 
-    for (let mc of this.lineComments) {
+    for (let mc of lineComments) {
       if (fwd.startsWith(mc.start)) {
         let fwdlen = fwd.length
         let fI = mc.start.length
         cI += mc.start.length
-        while (fI < fwdlen && !lex.cfg.line.chars[fwd[fI]]) {
+        while (fI < fwdlen && !cfg.line.chars[fwd[fI]]) {
           cI++
           fI++
         }
@@ -233,13 +215,14 @@ class CommentMatcher extends LexMatcher {
 
     // Multiline comment.
 
-    for (let mc of this.blockComments) {
+    for (let mc of blockComments) {
       if (fwd.startsWith(mc.start)) {
         let fwdlen = fwd.length
         let fI = mc.start.length
+        let end = mc.end as string
         cI += mc.start.length
-        while (fI < fwdlen && !fwd.substring(fI).startsWith(mc.end)) {
-          if (lex.cfg.line.rowChars[fwd[fI]]) {
+        while (fI < fwdlen && !fwd.substring(fI).startsWith(end)) {
+          if (cfg.line.rowChars[fwd[fI]]) {
             rI++
             cI = 0
           }
@@ -248,9 +231,9 @@ class CommentMatcher extends LexMatcher {
           fI++
         }
 
-        if (fwd.substring(fI).startsWith(mc.end)) {
-          cI += mc.end.length
-          let csrc = fwd.substring(0, fI + mc.end.length)
+        if (fwd.substring(fI).startsWith(end)) {
+          cI += end.length
+          let csrc = fwd.substring(0, fI + end.length)
           let tkn = lex.token(
             '#CM',
             undefined,
@@ -277,27 +260,23 @@ class CommentMatcher extends LexMatcher {
 
 // Match text, checking for literal values, optionally followed by a fixed token.
 // Text strings are terminated by end markers.
-class TextMatcher extends LexMatcher {
-  ender?: RegExp
+let makeTextMatcher: MakeLexMatcher = (cfg: Config, _opts: Options) => {
 
-  constructor(cfg: Config, opts: Options) {
-    super(cfg, opts)
-  }
+  let ender = regexp(
+    null,
+    '^(.*?)',
+    ...cfg.rePart.ender
+  )
 
-  match(lex: Lex) {
-    if (!lex.cfg.text.lex) return undefined
+  return function textMatcher(lex: Lex) {
+    let mcfg = cfg.text
+    if (!mcfg.lex) return undefined
 
     let pnt = lex.pnt
     let fwd = lex.src.substring(pnt.sI)
-    let vm = lex.cfg.value.m
+    let vm = cfg.value.m
 
-    this.ender = this.ender || regexp(
-      null,
-      '^(.*?)',
-      ...this.cfg.rePart.ender
-    )
-
-    let m = fwd.match((this.ender as RegExp))
+    let m = fwd.match(ender)
     if (m) {
       let msrc = m[1]
       let tsrc = m[2]
@@ -309,7 +288,7 @@ class TextMatcher extends LexMatcher {
         if (0 < mlen) {
 
           let vs = undefined
-          if (lex.cfg.value.lex && undefined !== (vs = vm[msrc])) {
+          if (cfg.value.lex && undefined !== (vs = vm[msrc])) {
             // TODO: get name from cfg  
             out = lex.token('#VL', vs.v, msrc, pnt)
           }
@@ -329,46 +308,41 @@ class TextMatcher extends LexMatcher {
 }
 
 
-class NumberMatcher extends LexMatcher {
-  ender?: RegExp
-  numberSep?: RegExp
+let makeNumberMatcher: MakeLexMatcher = (cfg: Config, _opts: Options) => {
+  let mcfg = cfg.number
 
-  constructor(cfg: Config, opts: Options) {
-    super(cfg, opts)
-  }
+  let ender = regexp(
+    null,
+    [
+      '^([-+]?(0(',
+      [
+        mcfg.hex ? 'x[0-9a-fA-F_]+' : null,
+        mcfg.oct ? 'o[0-7_]+' : null,
+        mcfg.bin ? 'b[01_]+' : null,
+      ].filter(s => null != s).join('|'),
+      ')|[0-9]+([0-9_]*[0-9])?)',
+      '(\\.[0-9]+([0-9_]*[0-9])?)?',
+      '([eE][-+]?[0-9]+([0-9_]*[0-9])?)?',
+    ]
+      .join('')
+      .replace(/_/g, mcfg.sep ? escre((mcfg.sepChar as string)) : ''),
+    ')',
+    ...cfg.rePart.ender
+  )
 
-  match(lex: Lex) {
-    if (!lex.cfg.number.lex) return undefined
+  let numberSep = (mcfg.sep ? regexp(
+    'g', escre((mcfg.sepChar as string))) : undefined)
 
-    let cfgnum = this.cfg.number
+
+  return function matchNumber(lex: Lex) {
+    mcfg = cfg.number
+    if (!mcfg.lex) return undefined
+
     let pnt = lex.pnt
     let fwd = lex.src.substring(pnt.sI)
-    let vm = lex.cfg.value.m
+    let vm = cfg.value.m
 
-
-    this.ender = this.ender || regexp(
-      null,
-      [
-        '^([-+]?(0(',
-        [
-          cfgnum.hex ? 'x[0-9a-fA-F_]+' : null,
-          cfgnum.oct ? 'o[0-7_]+' : null,
-          cfgnum.bin ? 'b[01_]+' : null,
-        ].filter(s => null != s).join('|'),
-        ')|[0-9]+([0-9_]*[0-9])?)',
-        '(\\.[0-9]+([0-9_]*[0-9])?)?',
-        '([eE][-+]?[0-9]+([0-9_]*[0-9])?)?',
-      ]
-        .join('')
-        .replace(/_/g, cfgnum.sep ? escre((cfgnum.sepChar as string)) : ''),
-      ')',
-      ...this.cfg.rePart.ender
-    )
-
-    this.numberSep = this.numberSep || (cfgnum.sep ? regexp(
-      'g', escre((cfgnum.sepChar as string))) : undefined)
-
-    let m = fwd.match((this.ender as RegExp))
+    let m = fwd.match(ender)
     if (m) {
       let msrc = m[1]
       let tsrc = m[9] // NOTE: count parens in numberEnder!
@@ -380,11 +354,11 @@ class NumberMatcher extends LexMatcher {
         if (0 < mlen) {
 
           let vs = undefined
-          if (lex.cfg.value.lex && undefined !== (vs = vm[msrc])) {
+          if (cfg.value.lex && undefined !== (vs = vm[msrc])) {
             out = lex.token('#VL', vs.v, msrc, pnt)
           }
           else {
-            let nstr = this.numberSep ? msrc.replace(this.numberSep, '') : msrc
+            let nstr = numberSep ? msrc.replace(numberSep, '') : msrc
             let num = +(nstr)
 
             if (!isNaN(num)) {
@@ -404,23 +378,21 @@ class NumberMatcher extends LexMatcher {
 }
 
 
-class StringMatcher extends LexMatcher {
-  constructor(cfg: Config, opts: Options) {
-    super(cfg, opts)
+let makeStringMatcher: MakeLexMatcher = (cfg: Config, opts: Options) => {
 
-    let os = opts.string
-    cfg.string = {
-      lex: !!os.lex,
-      quoteMap: charset(os.chars),
-      multiChars: charset(os.multiChars),
-      escMap: { ...os.escape },
-      escChar: os.escapeChar,
-      escCharCode: os.escapeChar.charCodeAt(0),
-    }
+  let os = opts.string
+  cfg.string = {
+    lex: !!os.lex,
+    quoteMap: charset(os.chars),
+    multiChars: charset(os.multiChars),
+    escMap: { ...os.escape },
+    escChar: os.escapeChar,
+    escCharCode: os.escapeChar.charCodeAt(0),
   }
 
-  match(lex: Lex) {
-    if (!lex.cfg.string.lex) return undefined
+  return function stringMatcher(lex: Lex) {
+    let mcfg = cfg.string
+    if (!mcfg.lex) return undefined
 
     let {
       quoteMap,
@@ -428,7 +400,8 @@ class StringMatcher extends LexMatcher {
       escChar,
       escCharCode,
       multiChars
-    } = lex.cfg.string
+    } = mcfg
+
     let { pnt, src } = lex
     let { sI, rI, cI } = pnt
     let srclen = src.length
@@ -438,8 +411,6 @@ class StringMatcher extends LexMatcher {
       const qI = sI
       const qrI = rI
       const isMultiLine = multiChars[q]
-      //pnt.sI = ++sI
-      //pnt.cI = ++cI
       ++sI
       ++cI
 
@@ -533,8 +504,8 @@ class StringMatcher extends LexMatcher {
           cI--
 
           if (cc < 32) {
-            if (isMultiLine && lex.cfg.line.chars[src[sI]]) {
-              if (lex.cfg.line.rowChars[src[sI]]) {
+            if (isMultiLine && cfg.line.chars[src[sI]]) {
+              if (cfg.line.rowChars[src[sI]]) {
                 pnt.rI = ++rI
               }
 
@@ -574,15 +545,11 @@ class StringMatcher extends LexMatcher {
 
 
 // Line ending matcher.
-class LineMatcher extends LexMatcher {
-  constructor(cfg: Config, opts: Options) {
-    super(cfg, opts)
-  }
+let makeLineMatcher: MakeLexMatcher = (cfg: Config, _opts: Options) => {
+  return function matchLine(lex: Lex) {
+    if (!cfg.line.lex) return undefined
 
-  match(lex: Lex) {
-    if (!lex.cfg.line.lex) return undefined
-
-    let { chars, rowChars } = lex.cfg.line
+    let { chars, rowChars } = cfg.line
     let { pnt, src } = lex
     let { sI, rI } = pnt
 
@@ -610,15 +577,11 @@ class LineMatcher extends LexMatcher {
 
 
 // Space matcher.
-class SpaceMatcher extends LexMatcher {
-  constructor(cfg: Config, opts: Options) {
-    super(cfg, opts)
-  }
+let makeSpaceMatcher: MakeLexMatcher = (cfg: Config, _opts: Options) => {
+  return function spaceMatcher(lex: Lex) {
+    if (!cfg.space.lex) return undefined
 
-  match(lex: Lex) {
-    if (!lex.cfg.space.lex) return undefined
-
-    let { chars } = lex.cfg.space
+    let { chars } = cfg.space
     let { pnt, src } = lex
     let { sI, cI } = pnt
 
@@ -701,18 +664,6 @@ class Lexer {
     )
 
     this.mat = cfg.lex.match
-
-    /*
-    this.mat = [
-      new FixedMatcher(cfg),
-      new SpaceMatcher(cfg),
-      new LineMatcher(cfg),
-      new StringMatcher(cfg),
-      new CommentMatcher(cfg),
-      new NumberMatcher(cfg),
-      new TextMatcher(cfg),
-    ]
-    */
   }
 
   start(ctx: Context): Lex {
@@ -805,7 +756,7 @@ class Lex {
     else {
 
       for (let mat of this.mat) {
-        if (tkn = mat.match(this, rule)) {
+        if (tkn = mat(this, rule)) {
           break
         }
       }
@@ -863,14 +814,15 @@ export {
   Token,
   Lex,
   LexMatcher,
+  MakeLexMatcher,
   Lexer,
-  FixedMatcher,
-  SpaceMatcher,
-  LineMatcher,
-  StringMatcher,
-  CommentMatcher,
-  NumberMatcher,
-  TextMatcher,
+  makeFixedMatcher,
+  makeSpaceMatcher,
+  makeLineMatcher,
+  makeStringMatcher,
+  makeCommentMatcher,
+  makeNumberMatcher,
+  makeTextMatcher,
 }
 
 

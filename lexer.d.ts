@@ -27,46 +27,15 @@ declare class Token {
     toString(): string;
     [inspect](): string;
 }
-declare abstract class LexMatcher {
-    cfg: Config;
-    opts: Options;
-    constructor(cfg: Config, opts: Options);
-    abstract match(lex: Lex, rule: Rule): Token | undefined;
-}
-declare class FixedMatcher extends LexMatcher {
-    fixed?: RegExp;
-    constructor(cfg: Config, opts: Options);
-    match(lex: Lex): Token | undefined;
-}
-declare class CommentMatcher extends LexMatcher {
-    lineComments: any[];
-    blockComments: any[];
-    constructor(cfg: Config, opts: Options);
-    match(lex: Lex): Token | undefined;
-}
-declare class TextMatcher extends LexMatcher {
-    ender?: RegExp;
-    constructor(cfg: Config, opts: Options);
-    match(lex: Lex): Token | undefined;
-}
-declare class NumberMatcher extends LexMatcher {
-    ender?: RegExp;
-    numberSep?: RegExp;
-    constructor(cfg: Config, opts: Options);
-    match(lex: Lex): Token | undefined;
-}
-declare class StringMatcher extends LexMatcher {
-    constructor(cfg: Config, opts: Options);
-    match(lex: Lex): Token | undefined;
-}
-declare class LineMatcher extends LexMatcher {
-    constructor(cfg: Config, opts: Options);
-    match(lex: Lex): Token | undefined;
-}
-declare class SpaceMatcher extends LexMatcher {
-    constructor(cfg: Config, opts: Options);
-    match(lex: Lex): Token | undefined;
-}
+declare type MakeLexMatcher = (cfg: Config, opts: Options) => LexMatcher;
+declare type LexMatcher = (lex: Lex, rule: Rule) => Token | undefined;
+declare let makeFixedMatcher: MakeLexMatcher;
+declare let makeCommentMatcher: MakeLexMatcher;
+declare let makeTextMatcher: MakeLexMatcher;
+declare let makeNumberMatcher: MakeLexMatcher;
+declare let makeStringMatcher: MakeLexMatcher;
+declare let makeLineMatcher: MakeLexMatcher;
+declare let makeSpaceMatcher: MakeLexMatcher;
 declare class Lexer {
     cfg: Config;
     end: Token;
@@ -87,4 +56,4 @@ declare class Lex {
     tokenize<R extends string | Tin, T extends (R extends Tin ? string : Tin)>(ref: R): T;
     bad(why: string, pstart: number, pend: number): Token;
 }
-export { Point, Token, Lex, LexMatcher, Lexer, FixedMatcher, SpaceMatcher, LineMatcher, StringMatcher, CommentMatcher, NumberMatcher, TextMatcher, };
+export { Point, Token, Lex, LexMatcher, MakeLexMatcher, Lexer, makeFixedMatcher, makeSpaceMatcher, makeLineMatcher, makeStringMatcher, makeCommentMatcher, makeNumberMatcher, makeTextMatcher, };

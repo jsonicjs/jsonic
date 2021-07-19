@@ -196,13 +196,13 @@ function make_default_options() {
         // Lexer 
         lex: {
             match: [
-                lexer_1.FixedMatcher,
-                lexer_1.SpaceMatcher,
-                lexer_1.LineMatcher,
-                lexer_1.StringMatcher,
-                lexer_1.CommentMatcher,
-                lexer_1.NumberMatcher,
-                lexer_1.TextMatcher,
+                lexer_1.makeFixedMatcher,
+                lexer_1.makeSpaceMatcher,
+                lexer_1.makeLineMatcher,
+                lexer_1.makeStringMatcher,
+                lexer_1.makeCommentMatcher,
+                lexer_1.makeNumberMatcher,
+                lexer_1.makeTextMatcher,
             ]
         },
         // Parser rule options.
@@ -328,12 +328,6 @@ function make(param_options, parent) {
         parser = parent_internal.parser.clone(merged_options, config);
     }
     else {
-        // TODO: Move to configure
-        // config = ({
-        //   tI: 1, // Start at 1 to avoid spurious false value for first token
-        //   t: {}
-        // } as Config)
-        // config = ({} as Config)
         config = intern_1.configure(undefined, merged_options);
         plugins = [];
         lexer = new lexer_1.Lexer(config);

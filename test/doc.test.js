@@ -66,7 +66,7 @@ describe('docs', function () {
     let out = no_numbers_please('1,2,3') // === ['1', '2', '3'] as before
     expect(out).equals(['1', '2', '3'])
     
-    let pipe_separated = no_numbers_please.make({token: {'#CA':{c:'|'}}})
+    let pipe_separated = no_numbers_please.make({fixed:{token:{'#CA':'|'}}})
     out = pipe_separated('1|2|3') // === ['1', '2', '3'], but:
     expect(out).equals(['1', '2', '3'])
     out = pipe_separated('1,2,3') // === '1,2,3' !!!
@@ -80,17 +80,19 @@ describe('docs', function () {
     let options = jsonic.options()
     expect(options.comment.lex).equals(true)
     expect(jsonic.options.comment.lex).equals(true)
-    
+
     let no_comment = Jsonic.make()
     no_comment.options({comment: {lex: false}})
+    expect(no_comment.options().comment.lex).equals(false)
+    expect(no_comment.options.comment.lex).equals(false)
 
-    // Returns {"a": 1, "#b": 2}
-    let out = no_comment(`
-  a: 1
-  #b: 2
-`)
-    expect(out).equals({"a": 1, "#b": 2})
-    
+     // Returns {"a": 1, "#b": 2}
+   let out = no_comment(`
+   a: 1
+   #b: 2
+ `)
+     expect(out).equals({"a": 1, "#b": 2})
+
     // Whereas this returns only {"a": 1} as # starts a one line comment
     out = Jsonic(`
   a: 1

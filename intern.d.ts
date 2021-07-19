@@ -1,6 +1,6 @@
 import type { Rule, RuleSpec } from './parser';
 import type { Lex, Token } from './lexer';
-import { LexMatcher } from './lexer';
+import { LexMatcher, MakeLexMatcher } from './lexer';
 declare enum RuleState {
     open = 0,
     close = 1
@@ -23,6 +23,7 @@ declare const assign: {
     (target: object, ...sources: any[]): any;
 };
 declare const defprop: (o: any, p: PropertyKey, attributes: PropertyDescriptor & ThisType<any>) => any;
+declare const map: (o: any, f: any) => any;
 declare const S: {
     object: string;
     string: string;
@@ -149,7 +150,7 @@ declare type Options = {
     };
     hint: any;
     lex: {
-        match: (typeof LexMatcher)[];
+        match: MakeLexMatcher[];
     };
     rule: {
         start: string;
@@ -279,4 +280,4 @@ declare function srcfmt(config: Config): (s: any, _?: any) => string;
 declare function snip(s: any, len?: number): string;
 declare function clone(class_instance: any): any;
 declare function charset(...parts: (string | object | boolean)[]): Chars;
-export { Chars, Config, Context, JsonicError, KV, MT, Meta, Options, RuleState, S, Tin, Token, assign, badlex, deep, defprop, entries, errdesc, errinject, extract, keys, makelog, mesc, regexp, escre, tokenize, trimstk, srcfmt, clone, charset, snip, configure, };
+export { Chars, Config, Context, JsonicError, KV, MT, Meta, Options, RuleState, S, Tin, Token, assign, badlex, deep, defprop, entries, errdesc, errinject, extract, keys, makelog, mesc, regexp, escre, tokenize, trimstk, srcfmt, clone, charset, snip, configure, map, };

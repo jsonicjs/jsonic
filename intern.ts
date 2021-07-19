@@ -12,9 +12,7 @@ import type {
 
 import {
   LexMatcher,
-
-  StringMatcher,
-  CommentMatcher
+  MakeLexMatcher,
 } from './lexer'
 
 
@@ -206,7 +204,7 @@ type Options = {
   error: { [code: string]: string }
   hint: any
   lex: {
-    match: (typeof LexMatcher)[]
+    match: MakeLexMatcher[]
   }
   rule: {
     start: string,
@@ -366,7 +364,6 @@ type Context = {
 // Idempotent normalization of options.
 // See Config type for commentary.
 function configure(incfg: Config | undefined, opts: Options): Config {
-
   const cfg = incfg || ({
     tI: 1, // Start at 1 to avoid spurious false value for first token
     t: {},
@@ -388,12 +385,16 @@ function configure(incfg: Config | undefined, opts: Options): Config {
   t('#TX') // TEXT
   t('#VL') // VALUE
 
-  cfg.lex.match = opts.lex.match.map((MatchClass: any) => new MatchClass(cfg, opts))
+
+
 
   cfg.fixed = {
     lex: !!opts.fixed.lex,
-    token: map(opts.fixed.token, ([name, src]: [string, string]) => [src, t(name)])
+    //token: map(opts.fixed.token, ([name, src]: [string, string]) => [src, t(name)])
+    token: map(opts.fixed.token,
+      ([name, src]: [string, string]) => [src, tokenize(name, cfg)])
   }
+
 
   cfg.tokenSet = {
     ignore: Object.fromEntries(opts.tokenSet.ignore.map(tn => [t(tn), true]))
@@ -446,9 +447,6 @@ function configure(incfg: Config | undefined, opts: Options): Config {
 
   let fixedRE = fixedSorted.map(fixed => escre(fixed)).join('|')
 
-  // TODO: just use cfg.comment, filtered from options
-  let comments = cfg.comment.lex && cfg.comment.marker.filter(cm => cm.lex)
-
   // End-marker RE part
   let enderRE = [
     '([',
@@ -459,10 +457,6 @@ function configure(incfg: Config | undefined, opts: Options): Config {
     ']|',
     fixedRE,
     // TODO: spaces
-
-    comments ?
-      ('|' + comments.reduce((a: string[], c: any) =>
-        (a.push(escre(c.start)), a), []).join('|')) : '',
 
     '|$)', // EOF case
   ]
@@ -483,6 +477,9 @@ function configure(incfg: Config | undefined, opts: Options): Config {
     columns: regexp(null, '[' + escre(opts.line.chars) + ']', '(.*)$'),
 
   }
+
+
+  cfg.lex.match = opts.lex.match.map((maker: any) => maker(cfg, opts))
 
 
   cfg.debug = {
@@ -857,4 +854,5 @@ export {
   charset,
   snip,
   configure,
+  map,
 }

@@ -69,13 +69,13 @@ import {
   Token,
   Lexer,
   LexMatcher,
-  FixedMatcher,
-  SpaceMatcher,
-  LineMatcher,
-  StringMatcher,
-  CommentMatcher,
-  NumberMatcher,
-  TextMatcher,
+  makeFixedMatcher,
+  makeSpaceMatcher,
+  makeLineMatcher,
+  makeStringMatcher,
+  makeCommentMatcher,
+  makeNumberMatcher,
+  makeTextMatcher,
 } from './lexer'
 
 
@@ -357,13 +357,13 @@ function make_default_options(): Options {
     // Lexer 
     lex: {
       match: [
-        FixedMatcher,
-        SpaceMatcher,
-        LineMatcher,
-        StringMatcher,
-        CommentMatcher,
-        NumberMatcher,
-        TextMatcher,
+        makeFixedMatcher,
+        makeSpaceMatcher,
+        makeLineMatcher,
+        makeStringMatcher,
+        makeCommentMatcher,
+        makeNumberMatcher,
+        makeTextMatcher,
       ]
     },
 
@@ -453,8 +453,7 @@ function make(param_options?: KV, parent?: Jsonic): Jsonic {
   // and set them as a funtion call.
   let options: any = (change_options?: KV) => {
     if (null != change_options && S.object === typeof (change_options)) {
-      configure(config,
-        deep(merged_options, change_options))
+      configure(config, deep(merged_options, change_options))
       for (let k in merged_options) {
         jsonic.options[k] = merged_options[k]
       }
@@ -543,13 +542,6 @@ function make(param_options?: KV, parent?: Jsonic): Jsonic {
     parser = parent_internal.parser.clone(merged_options, config)
   }
   else {
-    // TODO: Move to configure
-    // config = ({
-    //   tI: 1, // Start at 1 to avoid spurious false value for first token
-    //   t: {}
-    // } as Config)
-
-    // config = ({} as Config)
     config = configure(undefined, merged_options)
 
     plugins = []

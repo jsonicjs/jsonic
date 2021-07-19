@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.configure = exports.snip = exports.charset = exports.clone = exports.srcfmt = exports.trimstk = exports.tokenize = exports.escre = exports.regexp = exports.mesc = exports.makelog = exports.keys = exports.extract = exports.errinject = exports.errdesc = exports.entries = exports.defprop = exports.deep = exports.badlex = exports.assign = exports.S = exports.RuleState = exports.MT = exports.JsonicError = void 0;
+exports.map = exports.configure = exports.snip = exports.charset = exports.clone = exports.srcfmt = exports.trimstk = exports.tokenize = exports.escre = exports.regexp = exports.mesc = exports.makelog = exports.keys = exports.extract = exports.errinject = exports.errdesc = exports.entries = exports.defprop = exports.deep = exports.badlex = exports.assign = exports.S = exports.RuleState = exports.MT = exports.JsonicError = void 0;
 // TODO: refactor
 /* $lab:coverage:off$ */
 var RuleState;
@@ -29,6 +29,7 @@ const map = (o, f) => {
         return o;
     }, {});
 };
+exports.map = map;
 // A bit pedantic, but let's be strict about strings.
 // Also improves minification a little.
 const S = {
@@ -109,10 +110,10 @@ function configure(incfg, opts) {
     t('#ST'); // STRING
     t('#TX'); // TEXT
     t('#VL'); // VALUE
-    cfg.lex.match = opts.lex.match.map((MatchClass) => new MatchClass(cfg, opts));
     cfg.fixed = {
         lex: !!opts.fixed.lex,
-        token: map(opts.fixed.token, ([name, src]) => [src, t(name)])
+        //token: map(opts.fixed.token, ([name, src]: [string, string]) => [src, t(name)])
+        token: map(opts.fixed.token, ([name, src]) => [src, tokenize(name, cfg)])
     };
     cfg.tokenSet = {
         ignore: Object.fromEntries(opts.tokenSet.ignore.map(tn => [t(tn), true]))
@@ -154,8 +155,6 @@ function configure(incfg, opts) {
     let fixedSorted = Object.keys(cfg.fixed.token)
         .sort((a, b) => b.length - a.length);
     let fixedRE = fixedSorted.map(fixed => escre(fixed)).join('|');
-    // TODO: just use cfg.comment, filtered from options
-    let comments = cfg.comment.lex && cfg.comment.marker.filter(cm => cm.lex);
     // End-marker RE part
     let enderRE = [
         '([',
@@ -163,8 +162,6 @@ function configure(incfg, opts) {
         ']|',
         fixedRE,
         // TODO: spaces
-        comments ?
-            ('|' + comments.reduce((a, c) => (a.push(escre(c.start)), a), []).join('|')) : '',
         '|$)', // EOF case
     ];
     cfg.rePart = {
@@ -178,6 +175,7 @@ function configure(incfg, opts) {
         rowChars: regexp(null, escre(opts.line.rowChars)),
         columns: regexp(null, '[' + escre(opts.line.chars) + ']', '(.*)$'),
     };
+    cfg.lex.match = opts.lex.match.map((maker) => maker(cfg, opts));
     cfg.debug = {
         get_console: opts.debug.get_console,
         maxlen: opts.debug.maxlen,
