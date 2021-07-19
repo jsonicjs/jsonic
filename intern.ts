@@ -829,63 +829,6 @@ function charset(...parts: (string | object | boolean)[]): Chars {
 }
 
 
-/*
-function longest(strs: string[]) {
-  return strs.reduce((a, s) => a < s.length ? s.length : a, 0)
-}
- 
- 
-// True if arrays match.
-function marr(a: string[], b: string[]) {
-  return (a.length === b.length && a.reduce((a, s, i) => (a && s === b[i]), true))
-}
- 
- 
-function ender(endchars: CharMap, endmarks: KV, singles?: KV) {
-  let allendchars =
-    keys(
-      keys(endmarks)
-        .reduce((a: any, em: string) => (a[em[0]] = 1, a), { ...endchars }))
-      .join('')
- 
-  let endmarkprefixes =
-    entries(
-      keys(endmarks)
-        .filter(cm =>
-          1 < cm.length && // only for long marks
- 
-          // Not needed if first char is already an endchar,
-          // otherwise edge case where first char won't match as ender,
-          // see test custom-parser-mixed-token
-          (!singles || !singles[cm[0]])
-        )
-        .reduce((a: any, s: string) =>
-          ((a[s[0]] = (a[s[0]]) || []).push(s.substring(1)), a), {}))
-      .reduce((a: any, cme: any) => (a.push([
-        cme[0],
-        cme[1].map((cms: string) => regexp('', mesc(cms)).source).join('|')
-      ]), a), [])
-      .map((cmp: any) => [
-        '|(',
-        mesc(cmp[0]),
-        '(?!(',
-        cmp[1],
-        //')).)'
-        ')))'
-      ]).flat(1)
- 
-  return regexp(
-    S.no_re_flags,
-    '^(([^',
-    mesc(allendchars),
-    ']+)',
-    ...endmarkprefixes,
-    ')+'
-  )
-}
-*/
-
-
 export {
   Chars,
   Config,

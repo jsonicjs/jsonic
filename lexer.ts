@@ -108,9 +108,6 @@ class Token {
 
 
 
-// type LexMatcher = (lex: Lex, rule: Rule) => Token | undefined
-
-
 abstract class LexMatcher {
   cfg: Config
   constructor(cfg: Config) {
@@ -700,7 +697,7 @@ class Lexer {
       '#ZZ',
       tokenize('#ZZ', cfg),
       undefined,
-      '',
+      MT,
       new Point(-1)
     )
 
@@ -780,18 +777,18 @@ class Lex {
 
 
   next(rule: Rule): Token {
+    let tkn: Token | undefined
     let pnt = this.pnt
 
     if (pnt.end) {
-      return pnt.end
+      tkn = pnt.end
     }
 
-    if (0 < pnt.token.length) {
-      return (pnt.token.shift() as Token)
+    else if (0 < pnt.token.length) {
+      tkn = (pnt.token.shift() as Token)
     }
 
-
-    if (pnt.len <= pnt.sI) {
+    else if (pnt.len <= pnt.sI) {
       pnt.end = this.token(
         '#ZZ',
         undefined,
@@ -799,24 +796,38 @@ class Lex {
         pnt,
       )
 
-      return pnt.end
+      tkn = pnt.end
     }
 
-    let tkn: Token | undefined
-    for (let mat of this.mat) {
-      if (tkn = mat.match(this, rule)) {
-        return tkn
+    else {
+
+      for (let mat of this.mat) {
+        if (tkn = mat.match(this, rule)) {
+          break
+        }
       }
+
+      tkn = tkn || this.token(
+        '#BD',
+        undefined,
+        this.src[pnt.sI],
+        pnt,
+        undefined,
+        'unexpected'
+      )
     }
 
-    tkn = this.token(
-      '#BD',
-      undefined,
-      this.src[pnt.sI],
-      pnt,
-      undefined,
-      'unexpected'
-    )
+    if (this.ctx.log) {
+      this.ctx.log(
+        S.lex,         // Log entry prefix.
+        tokenize(tkn.tin, this.cfg), // Name of token from tin (token identification numer).
+        this.ctx.F(tkn.src),  // Format token src for log.
+        pnt.sI,            // Current source index.
+        pnt.rI + ':' + pnt.cI, // Row and column.
+        // { ...tkn },  // Copy of the token.
+        //...rest)       // Context-specific additional entries.
+      )
+    }
 
     return tkn
   }

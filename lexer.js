@@ -63,7 +63,6 @@ class Token {
     }
 }
 exports.Token = Token;
-// type LexMatcher = (lex: Lex, rule: Rule) => Token | undefined
 class LexMatcher {
     constructor(cfg) {
         this.cfg = cfg;
@@ -472,7 +471,7 @@ function subMatchFixed(lex, first, tsrc) {
 class Lexer {
     constructor(cfg) {
         this.cfg = cfg;
-        this.end = new Token('#ZZ', intern_1.tokenize('#ZZ', cfg), undefined, '', new Point(-1));
+        this.end = new Token('#ZZ', intern_1.tokenize('#ZZ', cfg), undefined, intern_1.MT, new Point(-1));
         this.mat = [
             new FixedMatcher(cfg),
             new SpaceMatcher(cfg),
@@ -517,24 +516,33 @@ class Lex {
         return tkn;
     }
     next(rule) {
+        let tkn;
         let pnt = this.pnt;
         if (pnt.end) {
-            return pnt.end;
+            tkn = pnt.end;
         }
-        if (0 < pnt.token.length) {
-            return pnt.token.shift();
+        else if (0 < pnt.token.length) {
+            tkn = pnt.token.shift();
         }
-        if (pnt.len <= pnt.sI) {
+        else if (pnt.len <= pnt.sI) {
             pnt.end = this.token('#ZZ', undefined, '', pnt);
-            return pnt.end;
+            tkn = pnt.end;
         }
-        let tkn;
-        for (let mat of this.mat) {
-            if (tkn = mat.match(this, rule)) {
-                return tkn;
+        else {
+            for (let mat of this.mat) {
+                if (tkn = mat.match(this, rule)) {
+                    break;
+                }
             }
+            tkn = tkn || this.token('#BD', undefined, this.src[pnt.sI], pnt, undefined, 'unexpected');
         }
-        tkn = this.token('#BD', undefined, this.src[pnt.sI], pnt, undefined, 'unexpected');
+        if (this.ctx.log) {
+            this.ctx.log(intern_1.S.lex, // Log entry prefix.
+            intern_1.tokenize(tkn.tin, this.cfg), // Name of token from tin (token identification numer).
+            this.ctx.F(tkn.src), // Format token src for log.
+            pnt.sI, // Current source index.
+            pnt.rI + ':' + pnt.cI);
+        }
         return tkn;
     }
     tokenize(ref) {

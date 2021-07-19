@@ -578,6 +578,49 @@ describe('jsonic', function () {
   })
 
 
+  it('custom-fixed-tokens', () => {
+    let j = Jsonic.make({
+      fixed: {
+        token: {
+          '#NOT': '~',
+          '#IMPLIES': '=>',
+          '#DEFINE': ':-',
+          '#MARK': '##',
+          '#TRIPLE': '///',
+        }
+      }
+    })
+
+    let NOT = j.token['#NOT']
+    let IMPLIES = j.token['#IMPLIES']
+    let DEFINE = j.token['#DEFINE']
+    let MARK = j.token['#MARK']
+    let TRIPLE = j.token['#TRIPLE']
+
+    j.rule('val', (rs)=>{
+      rs.def.open.unshift(
+        { s:[NOT], a:(r)=>r.node='<not>' },
+        { s:[IMPLIES], a:(r)=>r.node='<implies>' },
+        { s:[DEFINE], a:(r)=>r.node='<define>' },
+        { s:[MARK], a:(r)=>r.node='<mark>' },
+        { s:[TRIPLE], a:(r)=>r.node='<triple>' },
+      )
+    })
+    let out = j('a:~,b:1,c:~,d:=>,e::-,f:##,g:///,h:a,i:# foo')
+    expect(out).equal({
+      a: '<not>',
+      b: 1,
+      c: '<not>',
+      d: '<implies>',
+      e: '<define>',
+      f: '<mark>',
+      g: '<triple>',
+      h: 'a',
+      i: null // implicit null
+    })
+  })
+
+
   it('custom-parser-empty', () => {
     expect(Jsonic('a:1')).equals({a:1})
 

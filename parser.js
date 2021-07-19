@@ -335,13 +335,18 @@ class Parser {
                     // Close value, map, or list, but perhaps there are more elem?
                     { b: 1 },
                 ],
-                bc: (rule) => {
+                bo: (r) => {
+                    r.node = undefined;
+                },
+                bc: (r) => {
                     // NOTE: val can be undefined when there is no value at all
                     // (eg. empty string, thus no matched opening token)
-                    rule.node =
-                        undefined === rule.child.node ?
-                            (null == rule.open[0] ? undefined : rule.open[0].val) :
-                            rule.child.node;
+                    r.node =
+                        undefined === r.node ?
+                            undefined === r.child.node ?
+                                (null == r.open[0] ? undefined : r.open[0].val) :
+                                r.child.node :
+                            r.node;
                 },
             },
             map: {
@@ -521,7 +526,6 @@ class Parser {
         let maxr = 2 * intern_1.keys(this.rsm).length * lex.src.length *
             2 * this.options.rule.maxmul;
         let ignore = ctx.cfg.tokenSet.ignore;
-        // console.log('IGNORE', ignore)
         // Lex next token.
         function next() {
             ctx.v2 = ctx.v1;

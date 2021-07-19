@@ -17,12 +17,10 @@ const { util, Jsonic } = require('..')
 const {
   deep,
   errinject,
-  marr,
   srcfmt,
   badlex,
   regexp,
   mesc,
-  ender,
   makelog,
   tokenize,
   errdesc,
@@ -359,7 +357,7 @@ describe('util', () => {
 
 
   it('srcfmt', () => {
-    let F = srcfmt({d:{maxlen:4}})
+    let F = srcfmt({debug:{maxlen:4}})
     expect(F('a')).equals('"a"')
     expect(F('ab')).equals('"ab"')
     expect(F('abc')).equals('"abc...')
@@ -392,20 +390,6 @@ describe('util', () => {
   })
 
 
-  it('marr', () => {
-    expect(marr([],[])).true()
-    expect(marr(['a'],['a'])).true()
-    expect(marr(['a','b'],['a','b'])).true()
-    expect(marr(['a','b','c'],['a','b','c'])).true()
-
-    expect(marr(['a'],['a','b'])).false()
-    expect(marr(['b','a'],['a'])).false()
-    expect(marr(['a','c'],['a','b'])).false()
-    expect(marr(['d','c'],['a','b'])).false()
-    
-  })
-
-
   it('trimstk', () => {
     trimstk({})
   })
@@ -417,27 +401,6 @@ describe('util', () => {
     expect(regexp('',mesc('ab*'))).equal(/ab\*/)
   })
 
-
-  it('ender', () => {
-    let re0 = ender({a:1,b:1},{'cc':1,'dd':2,'de':3})
-    // console.log(re0)
-
-    expect('xyz'.match(re0)[0]).equal('xyz')
-    expect('xyza'.match(re0)[0]).equal('xyz')
-    expect('xyzb'.match(re0)[0]).equal('xyz')
-    expect('xyzaQ'.match(re0)[0]).equal('xyz')
-    expect('xyzbQ'.match(re0)[0]).equal('xyz')
-    expect('xyzc'.match(re0)[0]).equal('xyzc')
-    expect('xyzd'.match(re0)[0]).equal('xyzd')
-    expect('xyzcQ'.match(re0)[0]).equal('xyzcQ')
-    expect('xyzdQ'.match(re0)[0]).equal('xyzdQ')
-    expect('xyzcc'.match(re0)[0]).equal('xyz')
-    expect('xyzdd'.match(re0)[0]).equal('xyz')
-    expect('xyzde'.match(re0)[0]).equal('xyz')
-    expect('xyzccQ'.match(re0)[0]).equal('xyz')
-    expect('xyzddQ'.match(re0)[0]).equal('xyz')
-    expect('xyzdeQ'.match(re0)[0]).equal('xyz')
-  })
 
   
   it('makelog', () => {
@@ -503,12 +466,12 @@ describe('util', () => {
   'parse pair~3 open',
   'node pair~3 open',
   'lex #NR "1"',
-  'lex #ZZ ',
+  'lex #ZZ ""',
   'stack 3 val~1/map~2/pair~3',
   'rule val~4 open',
   'parse val~4 open',
   'node val~4 open',
-  'lex #ZZ ',
+  'lex #ZZ ""',
   'stack 3 val~1/map~2/pair~3',
   'rule val~4 close',
   'parse val~4 close',
@@ -517,7 +480,7 @@ describe('util', () => {
   'rule pair~3 close',
   'parse pair~3 close',
   'node pair~3 close',
-  'lex #ZZ ',
+  'lex #ZZ ""',
   'stack 1 val~1',
   'rule map~2 close',
   'node map~2 close',
@@ -540,7 +503,7 @@ describe('util', () => {
   'rule map~2 open',
   'parse map~2 open',
   'node map~2 open',
-  'lex #ZZ ',
+  'lex #ZZ ""',
   'stack 2 val~1/map~2',
   'rule pair~3 open',
   'parse pair~3 open'
@@ -549,9 +512,7 @@ describe('util', () => {
     log = []
     let d0 = j0(`
 "a", 0x10, 0o20, 0b10000, true, b,
-  '''
-   c
-  ''',
+' c',
   #...
   /*
    *
@@ -565,9 +526,9 @@ describe('util', () => {
       Code.fail()
     } catch(e) {
       // console.log(e)
-      expect(e.code).equal('unterminated')
+      expect(e.code).equal('unterminated_string')
       expect(log.map(x=>x[0]+' '+x[1]+' '+x[2])).equals([
-        'lex #BD ""'
+        'lex #BD "\\""'
       ])
     }
 

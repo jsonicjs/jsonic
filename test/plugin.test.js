@@ -48,6 +48,7 @@ describe('plugin', function () {
     // console.log('lex1')
     // console.dir(lex1)
 
+
     expect(lex0 === lex1).false()
     expect(lex0.end === lex1.end).false()
     expect(lex0.match === lex1.match).false()
