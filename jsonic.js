@@ -193,36 +193,17 @@ function make_default_options() {
         },
         // Error hints: {error-code: hint-text}. 
         hint: make_hint,
-        // Token definitions:
-        // { c: 'X' }: single character
-        // 'XY': multiple characters
-        // true: non-character tokens
-        // '#X,#Y': token set
-        token: {
-            // Single char tokens.
-            '#OB': { c: '{' },
-            '#CB': { c: '}' },
-            '#OS': { c: '[' },
-            '#CS': { c: ']' },
-            '#CL': { c: ':' },
-            '#CA': { c: ',' },
-            // Multi-char tokens (start chars).
-            '#SP': ' \t',
-            '#LN': '\n\r',
-            '#NR': '-0123456789+',
-            '#ST': '"\'`',
-            // General char tokens.
-            '#TX': true,
-            '#VL': true,
-            '#CM': true,
-            // Non-char tokens.
-            '#BD': true,
-            '#ZZ': true,
-            '#UK': true,
-            '#AA': true,
-            // Token sets
-            // NOTE: comma-sep strings to avoid deep array override logic
-            '#IGNORE': { s: '#SP,#LN,#CM' },
+        // Lexer 
+        lex: {
+            match: [
+                lexer_1.FixedMatcher,
+                lexer_1.SpaceMatcher,
+                lexer_1.LineMatcher,
+                lexer_1.StringMatcher,
+                lexer_1.CommentMatcher,
+                lexer_1.NumberMatcher,
+                lexer_1.TextMatcher,
+            ]
         },
         // Parser rule options.
         rule: {

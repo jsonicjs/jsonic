@@ -29,37 +29,43 @@ declare class Token {
 }
 declare abstract class LexMatcher {
     cfg: Config;
-    constructor(cfg: Config);
+    opts: Options;
+    constructor(cfg: Config, opts: Options);
     abstract match(lex: Lex, rule: Rule): Token | undefined;
+}
+declare class FixedMatcher extends LexMatcher {
+    fixed?: RegExp;
+    constructor(cfg: Config, opts: Options);
+    match(lex: Lex): Token | undefined;
 }
 declare class CommentMatcher extends LexMatcher {
     lineComments: any[];
     blockComments: any[];
-    constructor(cfg: Config);
+    constructor(cfg: Config, opts: Options);
     match(lex: Lex): Token | undefined;
-    static buildConfig(opts: Options): {
-        lex: boolean;
-        marker: {
-            start: string;
-            end: string | undefined;
-            line: boolean;
-            lex: boolean;
-        }[];
-    };
+}
+declare class TextMatcher extends LexMatcher {
+    ender?: RegExp;
+    constructor(cfg: Config, opts: Options);
+    match(lex: Lex): Token | undefined;
+}
+declare class NumberMatcher extends LexMatcher {
+    ender?: RegExp;
+    numberSep?: RegExp;
+    constructor(cfg: Config, opts: Options);
+    match(lex: Lex): Token | undefined;
 }
 declare class StringMatcher extends LexMatcher {
-    constructor(cfg: Config);
+    constructor(cfg: Config, opts: Options);
     match(lex: Lex): Token | undefined;
-    static buildConfig(opts: Options): {
-        lex: boolean;
-        quoteMap: import("./intern").Chars;
-        multiChars: import("./intern").Chars;
-        escMap: {
-            [x: string]: string;
-        };
-        escChar: string;
-        escCharCode: number;
-    };
+}
+declare class LineMatcher extends LexMatcher {
+    constructor(cfg: Config, opts: Options);
+    match(lex: Lex): Token | undefined;
+}
+declare class SpaceMatcher extends LexMatcher {
+    constructor(cfg: Config, opts: Options);
+    match(lex: Lex): Token | undefined;
 }
 declare class Lexer {
     cfg: Config;
@@ -81,4 +87,4 @@ declare class Lex {
     tokenize<R extends string | Tin, T extends (R extends Tin ? string : Tin)>(ref: R): T;
     bad(why: string, pstart: number, pend: number): Token;
 }
-export { Point, Token, Lex, LexMatcher, Lexer, StringMatcher, CommentMatcher, };
+export { Point, Token, Lex, LexMatcher, Lexer, FixedMatcher, SpaceMatcher, LineMatcher, StringMatcher, CommentMatcher, NumberMatcher, TextMatcher, };

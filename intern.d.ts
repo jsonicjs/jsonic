@@ -1,5 +1,6 @@
 import type { Rule, RuleSpec } from './parser';
 import type { Lex, Token } from './lexer';
+import { LexMatcher } from './lexer';
 declare enum RuleState {
     open = 0,
     close = 1
@@ -147,15 +148,8 @@ declare type Options = {
         [code: string]: string;
     };
     hint: any;
-    token: {
-        [name: string]: // Token name.
-        {
-            c: string;
-        } | // Single char token (eg. OB=`{`).
-        {
-            s: string;
-        } | string | // Multi-char token (eg. SP=` \t`).
-        true;
+    lex: {
+        match: (typeof LexMatcher)[];
     };
     rule: {
         start: string;
@@ -174,6 +168,9 @@ declare type Options = {
     };
 };
 declare type Config = {
+    lex: {
+        match: LexMatcher[];
+    };
     fixed: {
         lex: boolean;
         token: TokenMap;

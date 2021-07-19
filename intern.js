@@ -1,7 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.configure = exports.snip = exports.charset = exports.clone = exports.srcfmt = exports.trimstk = exports.tokenize = exports.escre = exports.regexp = exports.mesc = exports.makelog = exports.keys = exports.extract = exports.errinject = exports.errdesc = exports.entries = exports.defprop = exports.deep = exports.badlex = exports.assign = exports.S = exports.RuleState = exports.MT = exports.JsonicError = void 0;
-const lexer_1 = require("./lexer");
 // TODO: refactor
 /* $lab:coverage:off$ */
 var RuleState;
@@ -94,7 +93,8 @@ exports.JsonicError = JsonicError;
 function configure(incfg, opts) {
     const cfg = incfg || {
         tI: 1,
-        t: {}
+        t: {},
+        lex: {},
     };
     const t = (tn) => tokenize(tn, cfg);
     // Standard tokens. These names cannot be changed.
@@ -109,6 +109,7 @@ function configure(incfg, opts) {
     t('#ST'); // STRING
     t('#TX'); // TEXT
     t('#VL'); // VALUE
+    cfg.lex.match = opts.lex.match.map((MatchClass) => new MatchClass(cfg, opts));
     cfg.fixed = {
         lex: !!opts.fixed.lex,
         token: map(opts.fixed.token, ([name, src]) => [src, t(name)])
@@ -150,9 +151,6 @@ function configure(incfg, opts) {
             // '-Infinity': { v: -Infinity },
         }
     };
-    cfg.string = lexer_1.StringMatcher.buildConfig(opts);
-    // TODO: needs to come from options
-    cfg.comment = lexer_1.CommentMatcher.buildConfig(opts);
     let fixedSorted = Object.keys(cfg.fixed.token)
         .sort((a, b) => b.length - a.length);
     let fixedRE = fixedSorted.map(fixed => escre(fixed)).join('|');

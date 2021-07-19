@@ -69,6 +69,13 @@ import {
   Token,
   Lexer,
   LexMatcher,
+  FixedMatcher,
+  SpaceMatcher,
+  LineMatcher,
+  StringMatcher,
+  CommentMatcher,
+  NumberMatcher,
+  TextMatcher,
 } from './lexer'
 
 
@@ -347,41 +354,17 @@ function make_default_options(): Options {
     // Error hints: {error-code: hint-text}. 
     hint: make_hint,
 
-
-    // Token definitions:
-    // { c: 'X' }: single character
-    // 'XY': multiple characters
-    // true: non-character tokens
-    // '#X,#Y': token set
-    token: {
-      // Single char tokens.
-      '#OB': { c: '{' }, // OPEN BRACE
-      '#CB': { c: '}' }, // CLOSE BRACE
-      '#OS': { c: '[' }, // OPEN SQUARE
-      '#CS': { c: ']' }, // CLOSE SQUARE
-      '#CL': { c: ':' }, // COLON
-      '#CA': { c: ',' }, // COMMA
-
-      // Multi-char tokens (start chars).
-      '#SP': ' \t',          // SPACE - NOTE: first char is used for indents
-      '#LN': '\n\r',         // LINE
-      '#NR': '-0123456789+', // NUMBER
-      '#ST': '"\'`',         // STRING
-
-      // General char tokens.
-      '#TX': true, // TEXT
-      '#VL': true, // VALUE
-      '#CM': true, // COMMENT
-
-      // Non-char tokens.
-      '#BD': true, // BAD
-      '#ZZ': true, // END
-      '#UK': true, // UNKNOWN
-      '#AA': true, // ANY
-
-      // Token sets
-      // NOTE: comma-sep strings to avoid deep array override logic
-      '#IGNORE': { s: '#SP,#LN,#CM' },
+    // Lexer 
+    lex: {
+      match: [
+        FixedMatcher,
+        SpaceMatcher,
+        LineMatcher,
+        StringMatcher,
+        CommentMatcher,
+        NumberMatcher,
+        TextMatcher,
+      ]
     },
 
 

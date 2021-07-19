@@ -11,6 +11,8 @@ import type {
 } from './lexer'
 
 import {
+  LexMatcher,
+
   StringMatcher,
   CommentMatcher
 } from './lexer'
@@ -203,25 +205,15 @@ type Options = {
   }
   error: { [code: string]: string }
   hint: any
-
-  // NOTE: Token definition uses value structure to indicate token kind.
-  token: {
-    [name: string]:  // Token name.
-    { c: string } |  // Single char token (eg. OB=`{`).
-
-    // Token set, comma-sep string (eg. '#SP,#LN').
-    // NOTE: array not used as util.deep would merge, not override.
-    { s: string } |
-
-    string |         // Multi-char token (eg. SP=` \t`).
-    true             // Non-char token (eg. ZZ).
+  lex: {
+    match: (typeof LexMatcher)[]
   }
-
   rule: {
     start: string,
     finish: boolean,
     maxmul: number,
   },
+
   config: {
     modify: { [plugin_name: string]: (config: Config, options: Options) => void }
   },
@@ -253,6 +245,10 @@ type Options = {
 
 // Internal configuration built from options by `configure`.
 type Config = {
+
+  lex: {
+    match: LexMatcher[],
+  }
 
   // Fixed tokens (punctuation, operators, keywords, etc.)
   fixed: {
@@ -373,7 +369,8 @@ function configure(incfg: Config | undefined, opts: Options): Config {
 
   const cfg = incfg || ({
     tI: 1, // Start at 1 to avoid spurious false value for first token
-    t: {}
+    t: {},
+    lex: {},
   } as Config)
 
   const t = (tn: string) => tokenize(tn, cfg)
@@ -390,6 +387,8 @@ function configure(incfg: Config | undefined, opts: Options): Config {
   t('#ST') // STRING
   t('#TX') // TEXT
   t('#VL') // VALUE
+
+  cfg.lex.match = opts.lex.match.map((MatchClass: any) => new MatchClass(cfg, opts))
 
   cfg.fixed = {
     lex: !!opts.fixed.lex,
@@ -441,10 +440,6 @@ function configure(incfg: Config | undefined, opts: Options): Config {
     }
   }
 
-  cfg.string = StringMatcher.buildConfig(opts)
-
-  // TODO: needs to come from options
-  cfg.comment = CommentMatcher.buildConfig(opts)
 
   let fixedSorted = Object.keys(cfg.fixed.token)
     .sort((a: string, b: string) => b.length - a.length)

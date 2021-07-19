@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.CommentMatcher = exports.StringMatcher = exports.Lexer = exports.LexMatcher = exports.Lex = exports.Token = exports.Point = void 0;
+exports.TextMatcher = exports.NumberMatcher = exports.CommentMatcher = exports.StringMatcher = exports.LineMatcher = exports.SpaceMatcher = exports.FixedMatcher = exports.Lexer = exports.LexMatcher = exports.Lex = exports.Token = exports.Point = void 0;
 const inspect = Symbol.for('nodejs.util.inspect.custom');
 const intern_1 = require("./intern");
 class Point {
@@ -64,14 +64,15 @@ class Token {
 }
 exports.Token = Token;
 class LexMatcher {
-    constructor(cfg) {
+    constructor(cfg, opts) {
         this.cfg = cfg;
+        this.opts = opts;
     }
 }
 exports.LexMatcher = LexMatcher;
 class FixedMatcher extends LexMatcher {
-    constructor(cfg) {
-        super(cfg);
+    constructor(cfg, opts) {
+        super(cfg, opts);
     }
     match(lex) {
         if (!lex.cfg.fixed.lex)
@@ -96,10 +97,21 @@ class FixedMatcher extends LexMatcher {
         }
     }
 }
+exports.FixedMatcher = FixedMatcher;
 // TODO: better error msgs for unterminated comments
 class CommentMatcher extends LexMatcher {
-    constructor(cfg) {
-        super(cfg);
+    constructor(cfg, opts) {
+        super(cfg, opts);
+        let oc = opts.comment;
+        cfg.comment = {
+            lex: !!oc.lex,
+            marker: oc.marker.map(om => ({
+                start: om.start,
+                end: om.end,
+                line: !!om.line,
+                lex: !!om.lex,
+            }))
+        };
         this.lineComments =
             cfg.comment.lex ? cfg.comment.marker.filter(c => c.lex && c.line) : [];
         this.blockComments =
@@ -159,25 +171,13 @@ class CommentMatcher extends LexMatcher {
             }
         }
     }
-    static buildConfig(opts) {
-        let oc = opts.comment;
-        return {
-            lex: !!oc.lex,
-            marker: oc.marker.map(om => ({
-                start: om.start,
-                end: om.end,
-                line: !!om.line,
-                lex: !!om.lex,
-            }))
-        };
-    }
 }
 exports.CommentMatcher = CommentMatcher;
 // Match text, checking for literal values, optionally followed by a fixed token.
 // Text strings are terminated by end markers.
 class TextMatcher extends LexMatcher {
-    constructor(cfg) {
-        super(cfg);
+    constructor(cfg, opts) {
+        super(cfg, opts);
     }
     match(lex) {
         if (!lex.cfg.text.lex)
@@ -211,9 +211,10 @@ class TextMatcher extends LexMatcher {
         }
     }
 }
+exports.TextMatcher = TextMatcher;
 class NumberMatcher extends LexMatcher {
-    constructor(cfg) {
-        super(cfg);
+    constructor(cfg, opts) {
+        super(cfg, opts);
     }
     match(lex) {
         if (!lex.cfg.number.lex)
@@ -264,9 +265,19 @@ class NumberMatcher extends LexMatcher {
         }
     }
 }
+exports.NumberMatcher = NumberMatcher;
 class StringMatcher extends LexMatcher {
-    constructor(cfg) {
-        super(cfg);
+    constructor(cfg, opts) {
+        super(cfg, opts);
+        let os = opts.string;
+        cfg.string = {
+            lex: !!os.lex,
+            quoteMap: intern_1.charset(os.chars),
+            multiChars: intern_1.charset(os.multiChars),
+            escMap: { ...os.escape },
+            escChar: os.escapeChar,
+            escCharCode: os.escapeChar.charCodeAt(0),
+        };
     }
     match(lex) {
         if (!lex.cfg.string.lex)
@@ -381,23 +392,12 @@ class StringMatcher extends LexMatcher {
             return tkn;
         }
     }
-    static buildConfig(opts) {
-        let os = opts.string;
-        return {
-            lex: !!os.lex,
-            quoteMap: intern_1.charset(os.chars),
-            multiChars: intern_1.charset(os.multiChars),
-            escMap: { ...os.escape },
-            escChar: os.escapeChar,
-            escCharCode: os.escapeChar.charCodeAt(0),
-        };
-    }
 }
 exports.StringMatcher = StringMatcher;
 // Line ending matcher.
 class LineMatcher extends LexMatcher {
-    constructor(cfg) {
-        super(cfg);
+    constructor(cfg, opts) {
+        super(cfg, opts);
     }
     match(lex) {
         if (!lex.cfg.line.lex)
@@ -419,10 +419,11 @@ class LineMatcher extends LexMatcher {
         }
     }
 }
+exports.LineMatcher = LineMatcher;
 // Space matcher.
 class SpaceMatcher extends LexMatcher {
-    constructor(cfg) {
-        super(cfg);
+    constructor(cfg, opts) {
+        super(cfg, opts);
     }
     match(lex) {
         if (!lex.cfg.space.lex)
@@ -443,6 +444,7 @@ class SpaceMatcher extends LexMatcher {
         }
     }
 }
+exports.SpaceMatcher = SpaceMatcher;
 function subMatchFixed(lex, first, tsrc) {
     let pnt = lex.pnt;
     let out = first;
@@ -472,15 +474,18 @@ class Lexer {
     constructor(cfg) {
         this.cfg = cfg;
         this.end = new Token('#ZZ', intern_1.tokenize('#ZZ', cfg), undefined, intern_1.MT, new Point(-1));
+        this.mat = cfg.lex.match;
+        /*
         this.mat = [
-            new FixedMatcher(cfg),
-            new SpaceMatcher(cfg),
-            new LineMatcher(cfg),
-            new StringMatcher(cfg),
-            new CommentMatcher(cfg),
-            new NumberMatcher(cfg),
-            new TextMatcher(cfg),
-        ];
+          new FixedMatcher(cfg),
+          new SpaceMatcher(cfg),
+          new LineMatcher(cfg),
+          new StringMatcher(cfg),
+          new CommentMatcher(cfg),
+          new NumberMatcher(cfg),
+          new TextMatcher(cfg),
+        ]
+        */
     }
     start(ctx) {
         return new Lex(ctx.src(), this.mat, ctx, this.cfg);
