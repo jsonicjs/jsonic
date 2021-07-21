@@ -91,19 +91,17 @@ describe('lex', function () {
   
   it('space', () => {
     let lex0 = lexstart(' \t')
-    expect(lex0()).equals(
-      { tin: t.SP,
-        loc: 0, len: 2, row: 0, col: 0, val: ' \t', src: ' \t', use: undefined  })
+    expect(''+lex0()).equals('Token[#SP=5  . 0,1,1]')
 
     alleq([
-      ' ', ['#SP;0;1;1x1','#ZZ;1;0;1x1'],
-      '  ', ['#SP;0;2;1x1','#ZZ;2;0;1x2'],
-      ' \t', ['#SP;0;2;1x1','#ZZ;2;0;1x2'],
-      ' \t ', ['#SP;0;3;1x1','#ZZ;3;0;1x3'],
-      '\t \t', ['#SP;0;3;1x1','#ZZ;3;0;1x3'],
-      '\t ', ['#SP;0;2;1x1','#ZZ;2;0;1x2'],
-      '\t\t', ['#SP;0;2;1x1','#ZZ;2;0;1x2'],
-      '\t', ['#SP;0;1;1x1','#ZZ;1;0;1x1'],
+      ' ', ['#SP;0;1;1x1','#ZZ;1;0;1x2'],
+      '  ', ['#SP;0;2;1x1','#ZZ;2;0;1x3'],
+      ' \t', ['#SP;0;2;1x1','#ZZ;2;0;1x3'],
+      ' \t ', ['#SP;0;3;1x1','#ZZ;3;0;1x4'],
+      '\t \t', ['#SP;0;3;1x1','#ZZ;3;0;1x4'],
+      '\t ', ['#SP;0;2;1x1','#ZZ;2;0;1x3'],
+      '\t\t', ['#SP;0;2;1x1','#ZZ;2;0;1x3'],
+      '\t', ['#SP;0;1;1x1','#ZZ;1;0;1x2'],
 
     ])
   })
@@ -242,11 +240,9 @@ describe('lex', function () {
       '"\\\'"', ['#ST;0;4;1x1;\'','#ZZ;4;0;1x5'],
       '"\\\\"', ['#ST;0;4;1x1;\\','#ZZ;4;0;1x5'],
       '"\\u0040"', ['#ST;0;8;1x1;@','#ZZ;8;0;1x9'],
-
-      // FIX
-      '"\\uQQQQ"', ['#BD;1;7;1x1;\\uQQQQ~invalid_unicode'],
-      '"\\u{QQQQQQ}"', ['#BD;1;10;1x1;\\u{QQQQQQ}~invalid_unicode'],
-      '"\\xQQ"', ['#BD;1;4;1x1;\\xQQ~invalid_ascii'],
+      '"\\uQQQQ"', ['#BD;1;6;1x2;\\uQQQQ~invalid_unicode'],
+      '"\\u{QQQQQQ}"', ['#BD;1;10;1x2;\\u{QQQQQQ}~invalid_unicode'],
+      '"\\xQQ"', ['#BD;1;4;1x2;\\xQQ~invalid_ascii'],
       '"[{}]:,"', ['#ST;0;8;1x1;[{}]:,', '#ZZ;8;0;1x9'],
       '"a\\""', ['#ST;0;5;1x1;a"','#ZZ;5;0;1x6'],
       '"a\\"a"', ['#ST;0;6;1x1;a"a','#ZZ;6;0;1x7'],
@@ -262,15 +258,15 @@ describe('lex', function () {
       '\'ab\'', ['#ST;0;4;1x1;ab','#ZZ;4;0;1x5'],
       '\'abc\'', ['#ST;0;5;1x1;abc','#ZZ;5;0;1x6'],
       '\'a b\'', ['#ST;0;5;1x1;a b','#ZZ;5;0;1x6'],
-      ' \'a\'', ['#SP;0;1;1x1','#ST;1;3;1x1;a','#ZZ;4;0;1x5'],
-      '\'a\' ', ['#ST;0;3;1x1;a','#SP;3;1;1x3','#ZZ;4;0;1x5'],
-      ' \'a\' ', ['#SP;0;1;1x1','#ST;1;3;1x1;a','#SP;4;1;1x4','#ZZ;5;0;1x6'],
-      '\'', ['#BD;0;1;1x1;~unterminated_string'],
-      '\'a', ['#BD;0;2;1x2;a~unterminated_string'],
-      '\'ab', ['#BD;0;3;1x3;ab~unterminated_string'],
-      ' \'', ['#SP;0;1;1x1','#BD;1;1;1x2;~unterminated_string'],
-      ' \'a', ['#SP;0;1;1x1','#BD;1;2;1x3;a~unterminated_string'],
-      ' \'ab', ['#SP;0;1;1x1','#BD;1;3;1x4;ab~unterminated_string'],
+      ' \'a\'', ['#SP;0;1;1x1','#ST;1;3;1x2;a','#ZZ;4;0;1x5'],
+      '\'a\' ', ['#ST;0;3;1x1;a','#SP;3;1;1x4','#ZZ;4;0;1x5'],
+      ' \'a\' ', ['#SP;0;1;1x1','#ST;1;3;1x2;a','#SP;4;1;1x5','#ZZ;5;0;1x6'],
+      '\'', ['#BD;0;1;1x1;\'~unterminated_string'],
+      '\'a', ['#BD;0;2;1x1;\'a~unterminated_string'],
+      '\'ab', ['#BD;0;3;1x1;\'ab~unterminated_string'],
+      ' \'', ['#SP;0;1;1x1','#BD;1;1;1x2;\'~unterminated_string'],
+      ' \'a', ['#SP;0;1;1x1','#BD;1;2;1x2;\'a~unterminated_string'],
+      ' \'ab', ['#SP;0;1;1x1','#BD;1;3;1x2;\'ab~unterminated_string'],
       '\'a"b\'', ['#ST;0;5;1x1;a"b','#ZZ;5;0;1x6'],
       '\'"a"b\'', ['#ST;0;6;1x1;"a"b','#ZZ;6;0;1x7'],
       '\'"a"b"\'', ['#ST;0;7;1x1;"a"b"','#ZZ;7;0;1x8'],
@@ -283,9 +279,9 @@ describe('lex', function () {
       '\'\\"\'', ['#ST;0;4;1x1;"','#ZZ;4;0;1x5'],
       '\'\\\\\'', ['#ST;0;4;1x1;\\','#ZZ;4;0;1x5'],
       '\'\\u0040\'', ['#ST;0;8;1x1;@','#ZZ;8;0;1x9'],
-      '\'\\uQQQQ\'', ['#BD;1;7;1x1;\\uQQQQ~invalid_unicode'],
-      '\'\\u{QQQQQQ}\'', ['#BD;1;10;1x1;\\u{QQQQQQ}~invalid_unicode'],
-      '\'\\xQQ\'', ['#BD;1;4;1x1;\\xQQ~invalid_ascii'],
+      '\'\\uQQQQ\'', ['#BD;1;6;1x2;\\uQQQQ~invalid_unicode'],
+      '\'\\u{QQQQQQ}\'', ['#BD;1;10;1x2;\\u{QQQQQQ}~invalid_unicode'],
+      '\'\\xQQ\'', ['#BD;1;4;1x2;\\xQQ~invalid_ascii'],
       '\'[{}]:,\'', ['#ST;0;8;1x1;[{}]:,', '#ZZ;8;0;1x9'],
       '\'a\\\'\'', ['#ST;0;5;1x1;a\'','#ZZ;5;0;1x6'],
       '\'a\\\'a\'', ['#ST;0;6;1x1;a\'a','#ZZ;6;0;1x7'],
@@ -296,20 +292,20 @@ describe('lex', function () {
 
   it('text', () => {
     alleq([
-      'a-b', ['#TX;0;3;1x1;a-b','#ZZ;3;0;1x3'],
-      '$a_', ['#TX;0;3;1x1;$a_','#ZZ;3;0;1x3'],
-      '!%~', ['#TX;0;3;1x1;!%~','#ZZ;3;0;1x3'],
-      'a"b', ['#TX;0;3;1x1;a"b','#ZZ;3;0;1x3'],
-      'a\'b', ['#TX;0;3;1x1;a\'b','#ZZ;3;0;1x3'],
+      'a-b', ['#TX;0;3;1x1;a-b','#ZZ;3;0;1x4'],
+      '$a_', ['#TX;0;3;1x1;$a_','#ZZ;3;0;1x4'],
+      '!%~', ['#TX;0;3;1x1;!%~','#ZZ;3;0;1x4'],
+      'a"b', ['#TX;0;3;1x1;a"b','#ZZ;3;0;1x4'],
+      'a\'b', ['#TX;0;3;1x1;a\'b','#ZZ;3;0;1x4'],
       ' a b ', [
         '#SP;0;1;1x1',
-        '#TX;1;1;1x1;a',
-        '#SP;2;1;1x2',
-        '#TX;3;1;1x3;b',
-        '#SP;4;1;1x4',
-        '#ZZ;5;0;1x5'
+        '#TX;1;1;1x2;a',
+        '#SP;2;1;1x3',
+        '#TX;3;1;1x4;b',
+        '#SP;4;1;1x5',
+        '#ZZ;5;0;1x6'
       ],
-      'a:', ['#TX;0;1;1x1;a','#CL;1;1;1x1','#ZZ;2;0;1x2'],
+      'a:', ['#TX;0;1;1x1;a','#CL;1;1;1x2','#ZZ;2;0;1x3'],
     ])
   })
 
@@ -319,24 +315,25 @@ describe('lex', function () {
       '{a:1,\nb:2}', [
         '#OB;0;1;1x1',
 
-        '#TX;1;1;1x1;a',
-        '#CL;2;1;1x2',
-        '#NR;3;1;1x3;1',
+        '#TX;1;1;1x2;a',
+        '#CL;2;1;1x3',
+        '#NR;3;1;1x4;1',
 
-        '#CA;4;1;1x4',
-        '#LN;5;1;1x5',
+        '#CA;4;1;1x5',
+        '#LN;5;1;1x6',
 
-        '#TX;6;1;1x1;b',
-        '#CL;7;1;1x1',
-        '#NR;8;1;1x2;2',
+        '#TX;6;1;2x1;b',
+        '#CL;7;1;2x2',
+        '#NR;8;1;2x3;2',
 
-        '#CB;9;1;1x3',
-        '#ZZ;10;0;1x4'
+        '#CB;9;1;2x4',
+        '#ZZ;10;0;2x5'
       ],
     ])
   })
 
 
+  /*
   it('matchers', () => {
     // console.log(Jsonic('a:1',{log:-1}))
 
@@ -395,15 +392,10 @@ describe('lex', function () {
 
     expect(()=>m1('1234')).throws(JsonicError,/invalid_lex_state/)
   })
-
+  */
+  
 
   it('lex-flags', () => {
-    let no_line = Jsonic.make({line:{lex:false}})
-    expect(Jsonic('a:\n1')).equals({a:1})
-    expect(Jsonic('a,\n1')).equals(['a',1])
-    expect(no_line('a:\n1')).equals({a:'\n1'})
-    expect(no_line('a,\n1')).equals(['a','\n1'])
-
     let no_comment = Jsonic.make({comment:{lex:false}})
     expect(Jsonic('a:1#b')).equals({a:1})
     expect(Jsonic('a,1#b')).equals(['a',1])
@@ -425,11 +417,12 @@ describe('lex', function () {
     expect(no_number('a:1')).equals({a:'1'})
     expect(no_number('a,1')).equals(['a','1'])
 
-    let no_block = Jsonic.make({block:{lex:false}})
-    expect(Jsonic("a:'''1'''")).equals({a:'1'})
-    expect(Jsonic("a,'''1'''")).equals(['a','1'])
-    expect(()=>no_block("a:'''1'''")).throws('JsonicError', /unexpected/)
-    expect(no_block("a,'''1'''")).equals(['a', '', '1', ''])
+    // TODO: plugin
+    // let no_block = Jsonic.make({block:{lex:false}})
+    // expect(Jsonic("a:'''1'''")).equals({a:'1'})
+    // expect(Jsonic("a,'''1'''")).equals(['a','1'])
+    // expect(()=>no_block("a:'''1'''")).throws('JsonicError', /unexpected/)
+    // expect(no_block("a,'''1'''")).equals(['a', '', '1', ''])
 
     let no_string = Jsonic.make({string:{lex:false}})
     expect(Jsonic('a:1')).equals({a:1})
@@ -452,7 +445,13 @@ describe('lex', function () {
     expect(Jsonic('a,null')).equals(['a',null])
     expect(no_value('a:true')).equals({a:'true'})
     expect(no_value('a,null')).equals(['a','null'])
-
+    
+    // line becomes text if turned off
+    let no_line = Jsonic.make({line:{lex:false}})
+    expect(Jsonic('a:\n1')).equals({a:1})
+    expect(Jsonic('a,\n1')).equals(['a',1])
+    expect(no_line('a:\n1')).equals({a:'\n1'})
+    expect(no_line('a,\n1')).equals(['a','\n1'])
   })
 
 
@@ -467,7 +466,7 @@ describe('lex', function () {
       let marks = lex.src.substring(pnt.sI).match(/^%+/)
       if(marks) {
         let len = marks[0].length
-        let tkn = lex.token('#VL',10*marks[0].length,marks,lex.pnt)
+        let tkn = lex.token('#VL',10*len,marks,lex.pnt)
         pnt.sI+=len
         pnt.cI+=len
         return tkn

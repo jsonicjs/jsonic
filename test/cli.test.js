@@ -64,6 +64,9 @@ describe('cli', function () {
     jr([0,0,'a:1','b:[2]','c:{x:1}'],cn)
     expect(cn.d.log[0][0]).equals('{"a":1,"b":[2],"c":{"x":1}}')
 
+
+    // TODO: use a test plugin
+    /*
     cn = make_cn()
     jr([0,0,'-p','csv','a,b\n1,[2]\n'],cn)
     //console.log(cn.d.log)
@@ -80,7 +83,7 @@ describe('cli', function () {
         '-o','plugin.csv.strict=true',
         'a,b\n1,[2]\n'],cn)
     expect(cn.d.log[0][0]).equals('[{"a":"1","b":"[2]"}]')
-
+    */
     
     cn = make_cn()
     await jr([0,0,'-p','./test/angle.js','<a:1>'],cn)

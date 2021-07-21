@@ -31,34 +31,34 @@ const I = Util.inspect
 describe('plugin', function () {
 
 
-  it('clone-lexer', () => {
-    let config0 = {config:true,mark:0,tI:1,t:{}}
-    let lex0 = new Lexer(config0)
-    let match0 = function(){}
-    lex0.lex(config0.t['@LCS'], match0)
+  // it('clone-lexer', () => {
+  //   let config0 = {config:true,mark:0,tI:1,t:{}}
+  //   let lex0 = new Lexer(config0)
+  //   let match0 = function(){}
+  //   lex0.lex(config0.t['@LCS'], match0)
 
-    let config1 = {config:true,mark:1,tI:1,t:{}}
-    let lex1 = lex0.clone(config1)
-    let match1 = function(){}
-    lex1.lex(config0.t['@LML'], match1)
+  //   let config1 = {config:true,mark:1,tI:1,t:{}}
+  //   let lex1 = lex0.clone(config1)
+  //   let match1 = function(){}
+  //   lex1.lex(config0.t['@LML'], match1)
 
-    // console.log('lex0')
-    // console.dir(lex0)
+  //   // console.log('lex0')
+  //   // console.dir(lex0)
 
-    // console.log('lex1')
-    // console.dir(lex1)
+  //   // console.log('lex1')
+  //   // console.dir(lex1)
 
 
-    expect(lex0 === lex1).false()
-    expect(lex0.end === lex1.end).false()
-    expect(lex0.match === lex1.match).false()
-    expect(I(lex0.match))
-    //.equal("{ '1': [], '2': [], '3': [ [Function: match0] ], '4': [] }")
-    .equal("{ '3': [ [Function: match0] ] }")
-    expect(I(lex1.match))
-    //.equal("{\n  '1': [],\n  '2': [],\n  '3': [ [Function: match0] ],\n  '4': [ [Function: match1] ]\n}")
-    .equal("{ '3': [ [Function: match0] ], '4': [ [Function: match1] ] }")    
-  })
+  //   expect(lex0 === lex1).false()
+  //   expect(lex0.end === lex1.end).false()
+  //   expect(lex0.match === lex1.match).false()
+  //   expect(I(lex0.match))
+  //   //.equal("{ '1': [], '2': [], '3': [ [Function: match0] ], '4': [] }")
+  //   .equal("{ '3': [ [Function: match0] ] }")
+  //   expect(I(lex1.match))
+  //   //.equal("{\n  '1': [],\n  '2': [],\n  '3': [ [Function: match0] ],\n  '4': [ [Function: match1] ]\n}")
+  //   .equal("{ '3': [ [Function: match0] ], '4': [ [Function: match1] ] }")    
+  // })
 
 
   it('clone-parser', () => {

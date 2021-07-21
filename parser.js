@@ -2,11 +2,7 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.NONE = exports.Alt = exports.RuleState = exports.RuleSpec = exports.Rule = exports.Parser = void 0;
 const intern_1 = require("./intern");
-Object.defineProperty(exports, "RuleState", { enumerable: true, get: function () { return 
-    // regexp,
-    // mesc,
-    // CharCodeMap,
-    intern_1.RuleState; } });
+Object.defineProperty(exports, "RuleState", { enumerable: true, get: function () { return intern_1.RuleState; } });
 const lexer_1 = require("./lexer");
 class Rule {
     constructor(spec, ctx, node) {

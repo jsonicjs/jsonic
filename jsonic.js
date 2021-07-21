@@ -161,10 +161,10 @@ function make_default_options() {
         // Keyword values.
         value: {
             lex: true,
-            src: {
-                'null': null,
-                'true': true,
-                'false': false,
+            map: {
+                'true': { val: true },
+                'false': { val: false },
+                'null': { val: null },
             }
         },
         // Plugin custom options, (namespace by plugin name).

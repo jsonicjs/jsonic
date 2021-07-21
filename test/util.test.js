@@ -36,9 +36,11 @@ const I = Util.inspect
 describe('util', () => {
 
   it('configure', () => {
-    let c = {}
+    let c = {t:{},tI:0,lex:{}}
     let o0 = {
-      token: {},
+      fixed: { token: {} },
+      tokenSet: { ignore: [] },
+      text: {},
       value: {
         src: {}
       },
@@ -49,8 +51,8 @@ describe('util', () => {
       number: {},
       space: {},
       line: {},
-      block: {
-        marker: {}
+      lex: {
+        match: [],
       },
       config: {
         modify: {}
@@ -61,23 +63,15 @@ describe('util', () => {
     }
 
     configure(c,o0)
-    //console.log(c)
-    expect(c.sm).equal({})
+    // console.log(c)
+    expect(Object.keys(c.t).length).above(0)
+
     
-    c = {t:{},tI:0}
-    let o1 = deep({token:{'#Ta':{c:'a'}}},o0)
+    c = {t:{},tI:0,lex:{}}
+    let o1 = deep({fixed:{token:{'#Ta':'a'}}},o0)
     configure(c,o1)
-    //console.log(c)
-    expect(c.sm).equal({a: 0})
-
-    c = {t:{},tI:0}
-    let o2 = deep({token:{'#Ta':{c:'ab'}}},o0)
-    configure(c,o2)
-    //console.log(c)
-    expect(c.sm).equal({})
-
-    // TODO: 1 < token.length
-    
+    // console.log(c)
+    expect(c.t.Ta).equal(11)
   })
 
 
@@ -350,7 +344,7 @@ describe('util', () => {
 
 
   it('errinject', () => {
-    let args = ['c0',{a:1},{b:2},{c:3},{d:4,meta:{g:7},opts:{e:5},cnfg:{f:6}}]
+    let args = ['c0',{a:1},{b:2},{c:3},{d:4,meta:{g:7},opts:{e:5},cfg:{f:6}}]
     expect(errinject('x $code $a $b $c $d $e $f $g $Z x',...args))
       .equal('x "c0" 1 2 3 4 5 6 7 "$Z" x')
   })
@@ -368,19 +362,19 @@ describe('util', () => {
     let ctx = {
       src:()=>'',
       opts:{error:{unexpected:'unx'},hint:{unexpected:'unx'}},
-      cnfg:{t:{}},
+      cfg:{t:{}},
       plgn:()=>[],
     }
 
     try {
-      badlex(()=>({tin:1}),1,ctx)({})
+      badlex({next:()=>({tin:1})},1,ctx)({})
     }
     catch(e) {
       expect(e.code).equals('unexpected')
     }
 
     try {
-      badlex(()=>({tin:1,use:{x:1}}),1,ctx)({})
+      badlex({next:()=>({tin:1,use:{x:1}})},1,ctx)({})
     }
     catch(e) {
       expect(e.code).equals('unexpected')
@@ -442,7 +436,7 @@ describe('util', () => {
     dir = []
     let j = Jsonic.make(options)
     j('a:1',{log:-1})
-    expect(dir[0].d.print.config).true()
+    expect(dir[0].debug.print.config).true()
   })
 
 
@@ -535,15 +529,21 @@ describe('util', () => {
 
     let j1 = Jsonic.make()
     j1.use(function uppercaser(jsonic) {
-      j1.lex(jsonic.token.LTX, ({sI,rI,cI,src,token,ctx})=>{
+      //j1.lex(jsonic.token.LTX, ({sI,rI,cI,src,token,ctx})=>{
+      j1.lex(()=>(lex)=>{
+        let pnt = lex.pnt
+        let sI = pnt.sI
+        let rI = pnt.rI
+        let cI = pnt.cI
         let pI = sI
+        let src = lex.src
         let srclen = src.length
         
         if('<'===src[pI]) {
           while(pI < srclen && '>'!==src[pI]) {
             if(jsonic.options.line.row = src[pI]) {
               rI++
-              cI = 0
+              cI = 1
             }
             else {
               cI++
@@ -551,16 +551,25 @@ describe('util', () => {
             pI++
           }
 
-          token.len = pI - sI + 1
-          token.tin = jsonic.token.TX
-          token.val = src.substring(sI+1, pI).toUpperCase()
-          token.src = src.substring(sI, pI+1)
+          let tkn = lex.token(
+            '#TX',
+            src.substring(sI+1, pI).toUpperCase(),
+            src.substring(sI, pI+1),
+            lex.pnt
+          )
+          
+          // token.len = pI - sI + 1
+          // token.tin = jsonic.token.TX
+          // token.val = src.substring(sI+1, pI).toUpperCase()
+          // token.src = src.substring(sI, pI+1)
+          // sI = pI + 1
 
-          sI = pI + 1
-
+          pnt.sI = pI+1
+          pnt.rI = rI
+          pnt.cI = cI
           // console.log('T', token)
           
-          return { sI, rI, cI }
+          return tkn
         }
       })
     })
@@ -584,12 +593,12 @@ describe('util', () => {
   'parse pair~3 open',
   'node pair~3 open',
   'lex #TX "<x\\ny>"',
-  'lex #ZZ ',
+  'lex #ZZ ""',
   'stack 3 val~1/map~2/pair~3',
   'rule val~4 open',
   'parse val~4 open',
   'node val~4 open',
-  'lex #ZZ ',
+  'lex #ZZ ""',
   'stack 3 val~1/map~2/pair~3',
   'rule val~4 close',
   'parse val~4 close',
@@ -598,7 +607,7 @@ describe('util', () => {
   'rule pair~3 close',
   'parse pair~3 close',
   'node pair~3 close',
-  'lex #ZZ ',
+  'lex #ZZ ""',
   'stack 1 val~1',
   'rule map~2 close',
   'node map~2 close',
@@ -629,7 +638,7 @@ describe('util', () => {
       },
       src: ()=>'src',
       plgn: ()=>[{name:'p0'}],
-      cnfg: {
+      cfg: {
         t: {
           1: '#T1',
         }

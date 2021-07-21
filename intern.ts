@@ -169,8 +169,6 @@ type Options = {
   }
   comment: {
     lex: boolean
-    // balance: boolean
-
     marker: {
       line: boolean
       start: string
@@ -190,9 +188,9 @@ type Options = {
     merge?: (prev: any, curr: any) => any
   }
   value: {
-    lex: boolean,
-    src: KV
-  },
+    lex: boolean
+    map: { [src: string]: { val: any } }
+  }
   plugin: KV
   debug: {
     get_console: () => any
@@ -228,7 +226,7 @@ type Options = {
     // TODO: move to plugin
   block: {
     lex: boolean
-
+ 
     // NOTE: block.marker definition uses value structure to define start and end.
     marker: {
       [start_marker: string]: // Start marker (eg. `'''`).
@@ -304,7 +302,7 @@ type Config = {
   // Literal values
   value: {
     lex: boolean
-    m: { [literal: string]: { v: any } }
+    map: { [src: string]: { val: any } }
   }
 
   comment: {
@@ -385,9 +383,6 @@ function configure(incfg: Config | undefined, opts: Options): Config {
   t('#TX') // TEXT
   t('#VL') // VALUE
 
-
-
-
   cfg.fixed = {
     lex: !!opts.fixed.lex,
     //token: map(opts.fixed.token, ([name, src]: [string, string]) => [src, t(name)])
@@ -426,20 +421,22 @@ function configure(incfg: Config | undefined, opts: Options): Config {
   }
 
   cfg.value = {
-    lex: true,
-    m: {
-      'true': { v: true },
-      'false': { v: false },
-      'null': { v: null },
+    lex: !!opts.value.lex,
+    map: opts.value.map,
 
-      // TODO: just testing, move to plugin
-      // 'undefined': { v: undefined },
-      // 'NaN': { v: NaN },
-      // 'Infinity': { v: Infinity },
-      // '+Infinity': { v: +Infinity },
-      // '-Infinity': { v: -Infinity },
-    }
+    // map: {
+    //   'true': { v: true },
+    //   'false': { v: false },
+    //   'null': { v: null },
+
+    // TODO: just testing, move to plugin
+    // 'undefined': { v: undefined },
+    // 'NaN': { v: NaN },
+    // 'Infinity': { v: Infinity },
+    // '+Infinity': { v: +Infinity },
+    // '-Infinity': { v: -Infinity },
   }
+
 
 
   let fixedSorted = Object.keys(cfg.fixed.token)
@@ -565,7 +562,7 @@ function regexp(
 
 
 function escre(s: string) {
-  return s
+  return null == s ? '' : s
     .replace(/[-\\|\]{}()[^$+*?.!=]/g, '\\$&')
     .replace(/\t/g, '\\t')
     .replace(/\r/g, '\\r')

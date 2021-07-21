@@ -141,18 +141,18 @@ function configure(incfg, opts) {
         sepChar: opts.number.sep,
     };
     cfg.value = {
-        lex: true,
-        m: {
-            'true': { v: true },
-            'false': { v: false },
-            'null': { v: null },
-            // TODO: just testing, move to plugin
-            // 'undefined': { v: undefined },
-            // 'NaN': { v: NaN },
-            // 'Infinity': { v: Infinity },
-            // '+Infinity': { v: +Infinity },
-            // '-Infinity': { v: -Infinity },
-        }
+        lex: !!opts.value.lex,
+        map: opts.value.map,
+        // map: {
+        //   'true': { v: true },
+        //   'false': { v: false },
+        //   'null': { v: null },
+        // TODO: just testing, move to plugin
+        // 'undefined': { v: undefined },
+        // 'NaN': { v: NaN },
+        // 'Infinity': { v: Infinity },
+        // '+Infinity': { v: +Infinity },
+        // '-Infinity': { v: -Infinity },
     };
     let fixedSorted = Object.keys(cfg.fixed.token)
         .sort((a, b) => b.length - a.length);
@@ -232,7 +232,7 @@ function regexp(flags, ...parts) {
 }
 exports.regexp = regexp;
 function escre(s) {
-    return s
+    return null == s ? '' : s
         .replace(/[-\\|\]{}()[^$+*?.!=]/g, '\\$&')
         .replace(/\t/g, '\\t')
         .replace(/\r/g, '\\r')

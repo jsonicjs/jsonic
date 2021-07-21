@@ -263,7 +263,7 @@ let makeCommentMatcher: MakeLexMatcher = (cfg: Config, opts: Options) => {
 let makeTextMatcher: MakeLexMatcher = (cfg: Config, _opts: Options) => {
 
   let ender = regexp(
-    null,
+    cfg.line.lex ? null : 's',
     '^(.*?)',
     ...cfg.rePart.ender
   )
@@ -274,9 +274,12 @@ let makeTextMatcher: MakeLexMatcher = (cfg: Config, _opts: Options) => {
 
     let pnt = lex.pnt
     let fwd = lex.src.substring(pnt.sI)
-    let vm = cfg.value.m
+    let vm = cfg.value.map
 
     let m = fwd.match(ender)
+
+    // console.log('TXM', ender, m, fwd)
+
     if (m) {
       let msrc = m[1]
       let tsrc = m[2]
@@ -289,8 +292,7 @@ let makeTextMatcher: MakeLexMatcher = (cfg: Config, _opts: Options) => {
 
           let vs = undefined
           if (cfg.value.lex && undefined !== (vs = vm[msrc])) {
-            // TODO: get name from cfg  
-            out = lex.token('#VL', vs.v, msrc, pnt)
+            out = lex.token('#VL', vs.val, msrc, pnt)
           }
           else {
             out = lex.token('#TX', msrc, msrc, pnt)
@@ -340,7 +342,7 @@ let makeNumberMatcher: MakeLexMatcher = (cfg: Config, _opts: Options) => {
 
     let pnt = lex.pnt
     let fwd = lex.src.substring(pnt.sI)
-    let vm = cfg.value.m
+    let vm = cfg.value.map
 
     let m = fwd.match(ender)
     if (m) {
@@ -355,7 +357,7 @@ let makeNumberMatcher: MakeLexMatcher = (cfg: Config, _opts: Options) => {
 
           let vs = undefined
           if (cfg.value.lex && undefined !== (vs = vm[msrc])) {
-            out = lex.token('#VL', vs.v, msrc, pnt)
+            out = lex.token('#VL', vs.val, msrc, pnt)
           }
           else {
             let nstr = numberSep ? msrc.replace(numberSep, '') : msrc
@@ -454,7 +456,10 @@ let makeStringMatcher: MakeLexMatcher = (cfg: Config, opts: Options) => {
             if (isNaN(cc)) {
               sI = sI - 2
               cI -= 2
-              return lex.bad(S.invalid_ascii, sI - 2, sI + 2)
+              pnt.sI = sI
+              pnt.cI = cI
+              //return lex.bad(S.invalid_ascii, sI - 2, sI + 2)
+              return lex.bad(S.invalid_ascii, sI, sI + 4)
             }
 
             let us = String.fromCharCode(cc)
@@ -475,7 +480,10 @@ let makeStringMatcher: MakeLexMatcher = (cfg: Config, opts: Options) => {
             if (isNaN(cc)) {
               sI = sI - 2 - ux
               cI -= 2
-              return lex.bad(S.invalid_unicode, sI - 2 - ux, sI + ulen + ux)
+
+              pnt.sI = sI
+              pnt.cI = cI
+              return lex.bad(S.invalid_unicode, sI, sI + ulen + 2 + 2 * ux)
             }
 
             let us = String.fromCodePoint(cc)

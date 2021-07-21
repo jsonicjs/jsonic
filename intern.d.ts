@@ -135,7 +135,11 @@ declare type Options = {
     };
     value: {
         lex: boolean;
-        src: KV;
+        map: {
+            [src: string]: {
+                val: any;
+            };
+        };
     };
     plugin: KV;
     debug: {
@@ -211,9 +215,9 @@ declare type Config = {
     };
     value: {
         lex: boolean;
-        m: {
-            [literal: string]: {
-                v: any;
+        map: {
+            [src: string]: {
+                val: any;
             };
         };
     };

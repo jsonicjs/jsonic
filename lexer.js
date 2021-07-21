@@ -162,15 +162,16 @@ exports.makeCommentMatcher = makeCommentMatcher;
 // Match text, checking for literal values, optionally followed by a fixed token.
 // Text strings are terminated by end markers.
 let makeTextMatcher = (cfg, _opts) => {
-    let ender = intern_1.regexp(null, '^(.*?)', ...cfg.rePart.ender);
+    let ender = intern_1.regexp(cfg.line.lex ? null : 's', '^(.*?)', ...cfg.rePart.ender);
     return function textMatcher(lex) {
         let mcfg = cfg.text;
         if (!mcfg.lex)
             return undefined;
         let pnt = lex.pnt;
         let fwd = lex.src.substring(pnt.sI);
-        let vm = cfg.value.m;
+        let vm = cfg.value.map;
         let m = fwd.match(ender);
+        // console.log('TXM', ender, m, fwd)
         if (m) {
             let msrc = m[1];
             let tsrc = m[2];
@@ -180,8 +181,7 @@ let makeTextMatcher = (cfg, _opts) => {
                 if (0 < mlen) {
                     let vs = undefined;
                     if (cfg.value.lex && undefined !== (vs = vm[msrc])) {
-                        // TODO: get name from cfg  
-                        out = lex.token('#VL', vs.v, msrc, pnt);
+                        out = lex.token('#VL', vs.val, msrc, pnt);
                     }
                     else {
                         out = lex.token('#TX', msrc, msrc, pnt);
@@ -218,7 +218,7 @@ let makeNumberMatcher = (cfg, _opts) => {
             return undefined;
         let pnt = lex.pnt;
         let fwd = lex.src.substring(pnt.sI);
-        let vm = cfg.value.m;
+        let vm = cfg.value.map;
         let m = fwd.match(ender);
         if (m) {
             let msrc = m[1];
@@ -229,7 +229,7 @@ let makeNumberMatcher = (cfg, _opts) => {
                 if (0 < mlen) {
                     let vs = undefined;
                     if (cfg.value.lex && undefined !== (vs = vm[msrc])) {
-                        out = lex.token('#VL', vs.v, msrc, pnt);
+                        out = lex.token('#VL', vs.val, msrc, pnt);
                     }
                     else {
                         let nstr = numberSep ? msrc.replace(numberSep, '') : msrc;
@@ -303,7 +303,10 @@ let makeStringMatcher = (cfg, opts) => {
                         if (isNaN(cc)) {
                             sI = sI - 2;
                             cI -= 2;
-                            return lex.bad(intern_1.S.invalid_ascii, sI - 2, sI + 2);
+                            pnt.sI = sI;
+                            pnt.cI = cI;
+                            //return lex.bad(S.invalid_ascii, sI - 2, sI + 2)
+                            return lex.bad(intern_1.S.invalid_ascii, sI, sI + 4);
                         }
                         let us = String.fromCharCode(cc);
                         s.push(us);
@@ -319,7 +322,9 @@ let makeStringMatcher = (cfg, opts) => {
                         if (isNaN(cc)) {
                             sI = sI - 2 - ux;
                             cI -= 2;
-                            return lex.bad(intern_1.S.invalid_unicode, sI - 2 - ux, sI + ulen + ux);
+                            pnt.sI = sI;
+                            pnt.cI = cI;
+                            return lex.bad(intern_1.S.invalid_unicode, sI, sI + ulen + 2 + 2 * ux);
                         }
                         let us = String.fromCodePoint(cc);
                         s.push(us);
