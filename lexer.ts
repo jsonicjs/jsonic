@@ -17,7 +17,7 @@ import {
   Options,
   charset,
   // map,
-} from './intern'
+} from './utility'
 
 
 
@@ -780,12 +780,15 @@ class Lex {
 }
 
 
+export type {
+  MakeLexMatcher,
+  LexMatcher,
+}
+
 export {
   Point,
   Token,
   Lex,
-  LexMatcher,
-  MakeLexMatcher,
   makeFixedMatcher,
   makeSpaceMatcher,
   makeLineMatcher,

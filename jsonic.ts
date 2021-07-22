@@ -62,7 +62,7 @@ import {
   clone,
   charset,
   configure,
-} from './intern'
+} from './utility'
 
 
 import {
@@ -86,10 +86,12 @@ import {
   RuleDefiner,
   RuleSpec,
   RuleSpecMap,
+  /*
   Alt,
   AltCond,
   AltHandler,
   AltAction,
+  */
   NONE,
 } from './parser'
 
@@ -403,6 +405,7 @@ function make_default_options(): Options {
 
 
 
+
 let util = {
   tokenize,
   srcfmt,
@@ -689,29 +692,34 @@ Jsonic.JsonicError = JsonicError
 Jsonic.Parser = Parser
 Jsonic.Rule = Rule
 Jsonic.RuleSpec = RuleSpec
-Jsonic.Alt = Alt
+// Jsonic.Alt = Alt
 Jsonic.util = util
 Jsonic.make = make
 
 
 // Export most of the types for use by plugins.
-export {
-  Jsonic,
+export type {
   Plugin,
-  JsonicError,
   Tin,
-  Lex,
-  Parser,
-  Rule,
-  RuleSpec,
   RuleSpecMap,
-  Token,
   Context,
   Meta,
+  /*
   Alt,
   AltCond,
   AltHandler,
   AltAction,
+  */
+}
+
+export {
+  Jsonic,
+  JsonicError,
+  Lex,
+  Parser,
+  Rule,
+  RuleSpec,
+  Token,
   util,
   make,
 }

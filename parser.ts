@@ -18,7 +18,7 @@ import {
   JsonicError,
   srcfmt,
   clone,
-} from './intern'
+} from './utility'
 
 
 import {
@@ -843,18 +843,24 @@ class Parser {
 
 
 
+export type {
+  RuleDefiner,
+  RuleSpecMap,
+}
 
 export {
   Parser,
   Rule,
-  RuleDefiner,
   RuleSpec,
-  RuleSpecMap,
   RuleState,
+
+  /*
   AltError,
   Alt,
   AltCond,
   AltHandler,
   AltAction,
+  */
+
   NONE,
 }

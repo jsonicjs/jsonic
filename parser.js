@@ -1,8 +1,8 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.NONE = exports.Alt = exports.RuleState = exports.RuleSpec = exports.Rule = exports.Parser = void 0;
-const intern_1 = require("./intern");
-Object.defineProperty(exports, "RuleState", { enumerable: true, get: function () { return intern_1.RuleState; } });
+exports.NONE = exports.RuleState = exports.RuleSpec = exports.Rule = exports.Parser = void 0;
+const utility_1 = require("./utility");
+Object.defineProperty(exports, "RuleState", { enumerable: true, get: function () { return utility_1.RuleState; } });
 const lexer_1 = require("./lexer");
 class Rule {
     constructor(spec, ctx, node) {
@@ -10,7 +10,7 @@ class Rule {
         this.name = spec.name;
         this.spec = spec;
         this.node = node;
-        this.state = intern_1.RuleState.open;
+        this.state = utility_1.RuleState.open;
         this.child = NONE;
         this.open = [];
         this.close = [];
@@ -27,18 +27,17 @@ class Rule {
     }
 }
 exports.Rule = Rule;
-const NONE = { name: intern_1.S.none, state: 0 };
+const NONE = { name: utility_1.S.none, state: 0 };
 exports.NONE = NONE;
 // Parse match alternate (built from current tokens and AltSpec).
 class Alt {
     constructor() {
         this.m = []; // Matched tokens (not tins!).
-        this.p = intern_1.MT; // Push rule (by name).
-        this.r = intern_1.MT; // Replace rule (by name).
+        this.p = utility_1.MT; // Push rule (by name).
+        this.r = utility_1.MT; // Replace rule (by name).
         this.b = 0; // Move token position backward.
     }
 }
-exports.Alt = Alt;
 const PALT = new Alt(); // As with lexing, only one alt object is created.
 const EMPTY_ALT = new Alt();
 class RuleSpec {
@@ -62,7 +61,7 @@ class RuleSpec {
                 };
             }
             // Ensure groups are a string[]
-            if (intern_1.S.string === typeof (alt.g)) {
+            if (utility_1.S.string === typeof (alt.g)) {
                 alt.g = alt.g.split(/\s*,\s*/);
             }
         }
@@ -73,9 +72,9 @@ class RuleSpec {
         }
     }
     process(rule, ctx, state) {
-        let why = intern_1.MT;
+        let why = utility_1.MT;
         let F = ctx.F;
-        let is_open = state === intern_1.RuleState.open;
+        let is_open = state === utility_1.RuleState.open;
         let next = is_open ? rule : NONE;
         let def = this.def;
         // Match alternates for current state.
@@ -89,8 +88,8 @@ class RuleSpec {
             bout = before.call(this, rule, ctx);
             if (bout) {
                 if (bout.err) {
-                    throw new intern_1.JsonicError(bout.err, {
-                        ...bout, state: is_open ? intern_1.S.open : intern_1.S.close
+                    throw new utility_1.JsonicError(bout.err, {
+                        ...bout, state: is_open ? utility_1.S.open : utility_1.S.close
                     }, ctx.t0, rule, ctx);
                 }
                 rule.node = bout.node || rule.node;
@@ -114,7 +113,7 @@ class RuleSpec {
         }
         // Unconditional error.
         if (alt.e) {
-            throw new intern_1.JsonicError(intern_1.S.unexpected, { ...alt.e.use, state: is_open ? intern_1.S.open : intern_1.S.close }, alt.e, rule, ctx);
+            throw new utility_1.JsonicError(utility_1.S.unexpected, { ...alt.e.use, state: is_open ? utility_1.S.open : utility_1.S.close }, alt.e, rule, ctx);
         }
         // Update counters.
         if (alt.n) {
@@ -171,15 +170,15 @@ class RuleSpec {
             if (aout) {
                 if (aout.err) {
                     ctx.t0.why = why;
-                    throw new intern_1.JsonicError(aout.err, {
-                        ...aout, state: is_open ? intern_1.S.open : intern_1.S.close
+                    throw new utility_1.JsonicError(aout.err, {
+                        ...aout, state: is_open ? utility_1.S.open : utility_1.S.close
                     }, ctx.t0, rule, ctx);
                 }
                 next = aout.next || next;
             }
         }
         next.why = why;
-        ctx.log && ctx.log(intern_1.S.node, rule.name + '~' + rule.id, intern_1.RuleState[rule.state], 'w=' + why, 'n:' + intern_1.entries(rule.n).map(n => n[0] + '=' + n[1]).join(';'), 'u:' + intern_1.entries(rule.use).map(u => u[0] + '=' + u[1]).join(';'), F(rule.node));
+        ctx.log && ctx.log(utility_1.S.node, rule.name + '~' + rule.id, utility_1.RuleState[rule.state], 'w=' + why, 'n:' + utility_1.entries(rule.n).map(n => n[0] + '=' + n[1]).join(';'), 'u:' + utility_1.entries(rule.use).map(u => u[0] + '=' + u[1]).join(';'), F(rule.node));
         // Lex next tokens (up to backtrack).
         let mI = 0;
         let rewind = alt.m.length - (alt.b || 0);
@@ -187,8 +186,8 @@ class RuleSpec {
             ctx.next();
         }
         // Must be last as state is for next process call.
-        if (intern_1.RuleState.open === rule.state) {
-            rule.state = intern_1.RuleState.close;
+        if (utility_1.RuleState.open === rule.state) {
+            rule.state = utility_1.RuleState.close;
         }
         return next;
     }
@@ -198,8 +197,8 @@ class RuleSpec {
         let out = PALT;
         out.m = []; // Match 0, 1, or 2 tokens in order .
         out.b = 0; // Backtrack n tokens.
-        out.p = intern_1.MT; // Push named rule onto stack. 
-        out.r = intern_1.MT; // Replace current rule with named rule.
+        out.p = utility_1.MT; // Push named rule onto stack. 
+        out.r = utility_1.MT; // Replace current rule with named rule.
         out.n = undefined; // Increment named counters.
         out.h = undefined; // Custom handler function.
         out.a = undefined; // Rule action.
@@ -257,9 +256,9 @@ class RuleSpec {
             out.a = alt.a ? alt.a : out.a;
             out.u = alt.u ? alt.u : out.u;
         }
-        ctx.log && ctx.log(intern_1.S.parse, rule.name + '~' + rule.id, intern_1.RuleState[rule.state], altI < alts.length ? 'alt=' + altI : 'no-alt', altI < alts.length &&
+        ctx.log && ctx.log(utility_1.S.parse, rule.name + '~' + rule.id, utility_1.RuleState[rule.state], altI < alts.length ? 'alt=' + altI : 'no-alt', altI < alts.length &&
             alt.s ?
-            '[' + alt.s.map((pin) => t[pin]).join(' ') + ']' : '[]', 'tc=' + ctx.tC, 'p=' + (out.p || intern_1.MT), 'r=' + (out.r || intern_1.MT), 'b=' + (out.b || intern_1.MT), out.m.map((tkn) => t[tkn.tin]).join(' '), ctx.F(out.m.map((tkn) => tkn.src)), 'c:' + ((alt && alt.c) ? cond : intern_1.MT), 'n:' + intern_1.entries(rule.n).map(n => n[0] + '=' + n[1]).join(';'), 'u:' + intern_1.entries(rule.use).map(u => u[0] + '=' + u[1]).join(';'), out);
+            '[' + alt.s.map((pin) => t[pin]).join(' ') + ']' : '[]', 'tc=' + ctx.tC, 'p=' + (out.p || utility_1.MT), 'r=' + (out.r || utility_1.MT), 'b=' + (out.b || utility_1.MT), out.m.map((tkn) => t[tkn.tin]).join(' '), ctx.F(out.m.map((tkn) => tkn.src)), 'c:' + ((alt && alt.c) ? cond : utility_1.MT), 'n:' + utility_1.entries(rule.n).map(n => n[0] + '=' + n[1]).join(';'), 'u:' + utility_1.entries(rule.use).map(u => u[0] + '=' + u[1]).join(';'), out);
         return out;
     }
 }
@@ -287,7 +286,7 @@ class Parser {
         let finish = (_rule, ctx) => {
             if (!this.options.rule.finish) {
                 // TODO: needs own error code
-                ctx.t0.src = intern_1.S.END_OF_SOURCE;
+                ctx.t0.src = utility_1.S.END_OF_SOURCE;
                 return ctx.t0;
             }
         };
@@ -295,26 +294,26 @@ class Parser {
             val: {
                 open: [
                     // A map: { ...
-                    { s: [OB], p: intern_1.S.map, b: 1 },
+                    { s: [OB], p: utility_1.S.map, b: 1 },
                     // A list: [ ...
-                    { s: [OS], p: intern_1.S.list, b: 1 },
+                    { s: [OS], p: utility_1.S.list, b: 1 },
                     // A pair key: a: ...
-                    { s: [VAL, CL], p: intern_1.S.map, b: 2, n: { im: 1 } },
+                    { s: [VAL, CL], p: utility_1.S.map, b: 2, n: { im: 1 } },
                     // A plain value: x "x" 1 true.
                     { s: [VAL] },
                     // Implicit ends `{a:}` -> {"a":null}, `[a:]` -> [{"a":null}]
                     { s: [[CB, CS]], b: 1 },
                     // Implicit list at top level: a,b.
-                    { s: [CA], d: 0, p: intern_1.S.list, b: 1 },
+                    { s: [CA], d: 0, p: utility_1.S.list, b: 1 },
                     // Value is null when empty before commas.
-                    { s: [CA], b: 1, g: intern_1.S.imp_list },
+                    { s: [CA], b: 1, g: utility_1.S.imp_list },
                 ],
                 close: [
                     // Implicit list only allowed at top level: 1,2.
                     {
-                        s: [CA], d: 0, r: intern_1.S.elem,
+                        s: [CA], d: 0, r: utility_1.S.elem,
                         a: (rule) => rule.node = [rule.node],
-                        g: intern_1.S.imp_list
+                        g: utility_1.S.imp_list
                     },
                     // TODO: find a cleaner way to handle this edge case.
                     // Allow top level "a b".
@@ -325,9 +324,9 @@ class Parser {
                                 ST === ctx.t0.tin ||
                                 VL === ctx.t0.tin) && 0 === ctx.rs.length;
                         },
-                        r: intern_1.S.elem,
+                        r: utility_1.S.elem,
                         a: (rule) => rule.node = [rule.node],
-                        g: intern_1.S.imp_list
+                        g: utility_1.S.imp_list
                     },
                     // Close value, map, or list, but perhaps there are more elem?
                     { b: 1 },
@@ -356,9 +355,9 @@ class Parser {
                     { s: [OB, CB] },
                     // Start matching map key-value pairs: a:1.
                     // OB `{` resets implicit map counter.
-                    { s: [OB], p: intern_1.S.pair, n: { im: 0 } },
+                    { s: [OB], p: utility_1.S.pair, n: { im: 0 } },
                     // Pair from implicit map.
-                    { s: [VAL, CL], p: intern_1.S.pair, b: 2 },
+                    { s: [VAL, CL], p: utility_1.S.pair, b: 2 },
                 ],
                 close: []
             },
@@ -371,11 +370,11 @@ class Parser {
                     // An empty list: [].
                     { s: [OS, CS] },
                     // Start matching list elements: 1,2.
-                    { s: [OS], p: intern_1.S.elem },
+                    { s: [OS], p: utility_1.S.elem },
                     // Initial comma [, will insert null as [null,
-                    { s: [CA], p: intern_1.S.elem, b: 1 },
+                    { s: [CA], p: utility_1.S.elem, b: 1 },
                     // Another element.
-                    { p: intern_1.S.elem },
+                    { p: utility_1.S.elem },
                 ],
                 close: []
             },
@@ -383,7 +382,7 @@ class Parser {
             pair: {
                 open: [
                     // Match key-colon start of pair.
-                    { s: [VAL, CL], p: intern_1.S.val, u: { key: true } },
+                    { s: [VAL, CL], p: utility_1.S.val, u: { key: true } },
                     // Ignore initial comma: {,a:1.
                     { s: [CA] },
                 ],
@@ -394,15 +393,15 @@ class Parser {
                     // Ignore trailing comma at end of map.
                     { s: [CA, CB], c: { n: { im: 0 } } },
                     // Comma means a new pair at same level (unless implicit a:b:1,c:2).
-                    { s: [CA], c: { n: { im: 0 } }, r: intern_1.S.pair },
+                    { s: [CA], c: { n: { im: 0 } }, r: utility_1.S.pair },
                     // Who needs commas anyway?
-                    { s: [VAL], c: { n: { im: 0 } }, r: intern_1.S.pair, b: 1 },
+                    { s: [VAL], c: { n: { im: 0 } }, r: utility_1.S.pair, b: 1 },
                     // End of implicit path a:b:1,.
                     { s: [[CB, CA, ...VAL]], b: 1 },
                     // Close implicit single prop map inside list: [a:1,]
                     { s: [CS], b: 1 },
                     // Fail if auto-close option is false.
-                    { s: [ZZ], e: finish, g: intern_1.S.end },
+                    { s: [ZZ], e: finish, g: utility_1.S.end },
                 ],
                 bc: (r, ctx) => {
                     // If top level implicit map, correct `im` count.
@@ -422,7 +421,7 @@ class Parser {
                         }
                         r.node[key] = null == prev ? val :
                             (ctx.opts.map.merge ? ctx.opts.map.merge(prev, val) :
-                                (ctx.opts.map.extend ? intern_1.deep(prev, val) : val));
+                                (ctx.opts.map.extend ? utility_1.deep(prev, val) : val));
                     }
                 },
             },
@@ -431,22 +430,22 @@ class Parser {
                 open: [
                     // Empty commas insert null elements.
                     // Note that close consumes a comma, so b:2 works.
-                    { s: [CA, CA], b: 2, a: (r) => r.node.push(null), g: intern_1.S.nUll, },
-                    { s: [CA], a: (r) => r.node.push(null), g: intern_1.S.nUll, },
+                    { s: [CA, CA], b: 2, a: (r) => r.node.push(null), g: utility_1.S.nUll, },
+                    { s: [CA], a: (r) => r.node.push(null), g: utility_1.S.nUll, },
                     // Anything else must a list element value.
-                    { p: intern_1.S.val },
+                    { p: utility_1.S.val },
                 ],
                 close: [
                     // Ignore trailing comma.
                     { s: [CA, CS] },
                     // Next element.
-                    { s: [CA], r: intern_1.S.elem },
+                    { s: [CA], r: utility_1.S.elem },
                     // Who needs commas anyway?
-                    { s: [[...VAL, OB, OS]], r: intern_1.S.elem, b: 1 },
+                    { s: [[...VAL, OB, OS]], r: utility_1.S.elem, b: 1 },
                     // End of list.
                     { s: [CS] },
                     // Fail if auto-close option is false.
-                    { s: [ZZ], e: finish, g: intern_1.S.end },
+                    { s: [ZZ], e: finish, g: utility_1.S.end },
                 ],
                 bc: (rule) => {
                     if (undefined !== rule.child.node) {
@@ -456,7 +455,7 @@ class Parser {
             }
         };
         // TODO: just create the RuleSpec directly
-        this.rsm = intern_1.keys(rules).reduce((rsm, rn) => {
+        this.rsm = utility_1.keys(rules).reduce((rsm, rn) => {
             rsm[rn] = new RuleSpec(rules[rn]);
             rsm[rn].name = rn;
             return rsm;
@@ -483,7 +482,7 @@ class Parser {
     }
     start(src, jsonic, meta, parent_ctx) {
         let root;
-        let endtkn = new intern_1.Token('#ZZ', intern_1.tokenize('#ZZ', this.config), undefined, intern_1.MT, new lexer_1.Point(-1));
+        let endtkn = new utility_1.Token('#ZZ', utility_1.tokenize('#ZZ', this.config), undefined, utility_1.MT, new lexer_1.Point(-1));
         let ctx = {
             uI: 1,
             opts: this.options,
@@ -503,13 +502,13 @@ class Parser {
             rs: [],
             rsm: this.rsm,
             log: (meta && meta.log) || undefined,
-            F: intern_1.srcfmt(this.config),
+            F: utility_1.srcfmt(this.config),
             use: {}
         };
-        ctx = intern_1.deep(ctx, parent_ctx);
-        intern_1.makelog(ctx);
-        let tn = (pin) => intern_1.tokenize(pin, this.config);
-        let lex = intern_1.badlex(new lexer_1.Lex(ctx), intern_1.tokenize('#BD', this.config), ctx);
+        ctx = utility_1.deep(ctx, parent_ctx);
+        utility_1.makelog(ctx);
+        let tn = (pin) => utility_1.tokenize(pin, this.config);
+        let lex = utility_1.badlex(new lexer_1.Lex(ctx), utility_1.tokenize('#BD', this.config), ctx);
         let startspec = this.rsm[this.options.rule.start];
         if (null == startspec) {
             return undefined;
@@ -520,7 +519,7 @@ class Parser {
         // rule open and close, and for each rule on each char to be
         // virtual (like map, list), and double for safety margin (allows
         // lots of backtracking), and apply a multipler options as a get-out-of-jail.
-        let maxr = 2 * intern_1.keys(this.rsm).length * lex.src.length *
+        let maxr = 2 * utility_1.keys(this.rsm).length * lex.src.length *
             2 * this.options.rule.maxmul;
         let ignore = ctx.cfg.tokenSet.ignore;
         // Lex next token.
@@ -546,16 +545,16 @@ class Parser {
         // occurrences until there's none left.
         while (NONE !== rule && rI < maxr) {
             ctx.log &&
-                ctx.log(intern_1.S.rule, rule.name + '~' + rule.id, intern_1.RuleState[rule.state], 'rs=' + ctx.rs.length, 'tc=' + ctx.tC, '[' + tn(ctx.t0.tin) + ' ' + tn(ctx.t1.tin) + ']', '[' + ctx.F(ctx.t0.src) + ' ' + ctx.F(ctx.t1.src) + ']', rule, ctx);
+                ctx.log(utility_1.S.rule, rule.name + '~' + rule.id, utility_1.RuleState[rule.state], 'rs=' + ctx.rs.length, 'tc=' + ctx.tC, '[' + tn(ctx.t0.tin) + ' ' + tn(ctx.t1.tin) + ']', '[' + ctx.F(ctx.t0.src) + ' ' + ctx.F(ctx.t1.src) + ']', rule, ctx);
             ctx.rule = rule;
             rule = rule.process(ctx);
             ctx.log &&
-                ctx.log(intern_1.S.stack, ctx.rs.length, ctx.rs.map((r) => r.name + '~' + r.id).join('/'), rule, ctx);
+                ctx.log(utility_1.S.stack, ctx.rs.length, ctx.rs.map((r) => r.name + '~' + r.id).join('/'), rule, ctx);
             rI++;
         }
         // TODO: option to allow trailing content
-        if (intern_1.tokenize('#ZZ', this.config) !== ctx.t0.tin) {
-            throw new intern_1.JsonicError(intern_1.S.unexpected, {}, ctx.t0, NONE, ctx);
+        if (utility_1.tokenize('#ZZ', this.config) !== ctx.t0.tin) {
+            throw new utility_1.JsonicError(utility_1.S.unexpected, {}, ctx.t0, NONE, ctx);
         }
         // NOTE: by returning root, we get implicit closing of maps and lists.
         return root.node;
@@ -564,7 +563,7 @@ class Parser {
         let parser = new Parser(options, config);
         parser.rsm = Object
             .keys(this.rsm)
-            .reduce((a, rn) => (a[rn] = intern_1.clone(this.rsm[rn]), a), {});
+            .reduce((a, rn) => (a[rn] = utility_1.clone(this.rsm[rn]), a), {});
         return parser;
     }
 }

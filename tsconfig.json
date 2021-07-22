@@ -1,5 +1,6 @@
 {
   "compilerOptions": {
+    "isolatedModules": true,
     "esModuleInterop": true,
     "module": "commonjs",
     "noEmitOnError": true,

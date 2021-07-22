@@ -1,4 +1,4 @@
-import { Config, Context, KV, Options, Token, RuleState } from './intern';
+import { Config, Context, KV, Options, Token, RuleState } from './utility';
 import type { Jsonic } from './jsonic';
 declare class Rule {
     id: number;
@@ -78,4 +78,5 @@ declare class Parser {
     start(src: string, jsonic: Jsonic, meta?: any, parent_ctx?: any): any;
     clone(options: Options, config: Config): Parser;
 }
-export { Parser, Rule, RuleDefiner, RuleSpec, RuleSpecMap, RuleState, AltError, Alt, AltCond, AltHandler, AltAction, NONE, };
+export type { RuleDefiner, RuleSpecMap, };
+export { Parser, Rule, RuleSpec, RuleState, NONE, };

@@ -2,7 +2,7 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.makeTextMatcher = exports.makeNumberMatcher = exports.makeCommentMatcher = exports.makeStringMatcher = exports.makeLineMatcher = exports.makeSpaceMatcher = exports.makeFixedMatcher = exports.Lex = exports.Token = exports.Point = void 0;
 const inspect = Symbol.for('nodejs.util.inspect.custom');
-const intern_1 = require("./intern");
+const utility_1 = require("./utility");
 class Point {
     constructor(len, sI, rI, cI) {
         this.len = -1;
@@ -49,13 +49,13 @@ class Token {
     toString() {
         return 'Token[' +
             this.name + '=' + this.tin + ' ' +
-            intern_1.snip(this.src) +
+            utility_1.snip(this.src) +
             (undefined === this.val || '#ST' === this.name || '#TX' === this.name ? '' :
-                '=' + intern_1.snip(this.val)) + ' ' +
+                '=' + utility_1.snip(this.val)) + ' ' +
             [this.sI, this.rI, this.cI] +
             (null == this.use ? '' : ' ' +
-                intern_1.snip(('' + JSON.stringify(this.use).replace(/"/g, '')), 22)) +
-            (null == this.why ? '' : ' ' + intern_1.snip('' + this.why, 22)) +
+                utility_1.snip(('' + JSON.stringify(this.use).replace(/"/g, '')), 22)) +
+            (null == this.why ? '' : ' ' + utility_1.snip('' + this.why, 22)) +
             ']';
     }
     [inspect]() {
@@ -64,7 +64,7 @@ class Token {
 }
 exports.Token = Token;
 let makeFixedMatcher = (cfg, _opts) => {
-    let fixed = intern_1.regexp(null, '^(', cfg.rePart.fixed, ')');
+    let fixed = utility_1.regexp(null, '^(', cfg.rePart.fixed, ')');
     return function fixedMatcher(lex) {
         let mcfg = cfg.fixed;
         if (!mcfg.lex)
@@ -152,7 +152,7 @@ let makeCommentMatcher = (cfg, opts) => {
                     return tkn;
                 }
                 else {
-                    return lex.bad(intern_1.S.unterminated_comment, pnt.sI, pnt.sI + (9 * mc.start.length));
+                    return lex.bad(utility_1.S.unterminated_comment, pnt.sI, pnt.sI + (9 * mc.start.length));
                 }
             }
         }
@@ -162,7 +162,7 @@ exports.makeCommentMatcher = makeCommentMatcher;
 // Match text, checking for literal values, optionally followed by a fixed token.
 // Text strings are terminated by end markers.
 let makeTextMatcher = (cfg, _opts) => {
-    let ender = intern_1.regexp(cfg.line.lex ? null : 's', '^(.*?)', ...cfg.rePart.ender);
+    let ender = utility_1.regexp(cfg.line.lex ? null : 's', '^(.*?)', ...cfg.rePart.ender);
     return function textMatcher(lex) {
         let mcfg = cfg.text;
         if (!mcfg.lex)
@@ -198,7 +198,7 @@ let makeTextMatcher = (cfg, _opts) => {
 exports.makeTextMatcher = makeTextMatcher;
 let makeNumberMatcher = (cfg, _opts) => {
     let mcfg = cfg.number;
-    let ender = intern_1.regexp(null, [
+    let ender = utility_1.regexp(null, [
         '^([-+]?(0(',
         [
             mcfg.hex ? 'x[0-9a-fA-F_]+' : null,
@@ -210,8 +210,8 @@ let makeNumberMatcher = (cfg, _opts) => {
         '([eE][-+]?[0-9]+([0-9_]*[0-9])?)?',
     ]
         .join('')
-        .replace(/_/g, mcfg.sep ? intern_1.escre(mcfg.sepChar) : ''), ')', ...cfg.rePart.ender);
-    let numberSep = (mcfg.sep ? intern_1.regexp('g', intern_1.escre(mcfg.sepChar)) : undefined);
+        .replace(/_/g, mcfg.sep ? utility_1.escre(mcfg.sepChar) : ''), ')', ...cfg.rePart.ender);
+    let numberSep = (mcfg.sep ? utility_1.regexp('g', utility_1.escre(mcfg.sepChar)) : undefined);
     return function matchNumber(lex) {
         mcfg = cfg.number;
         if (!mcfg.lex)
@@ -252,8 +252,8 @@ let makeStringMatcher = (cfg, opts) => {
     let os = opts.string;
     cfg.string = {
         lex: !!os.lex,
-        quoteMap: intern_1.charset(os.chars),
-        multiChars: intern_1.charset(os.multiChars),
+        quoteMap: utility_1.charset(os.chars),
+        multiChars: utility_1.charset(os.multiChars),
         escMap: { ...os.escape },
         escChar: os.escapeChar,
         escCharCode: os.escapeChar.charCodeAt(0),
@@ -305,7 +305,7 @@ let makeStringMatcher = (cfg, opts) => {
                             cI -= 2;
                             pnt.sI = sI;
                             pnt.cI = cI;
-                            return lex.bad(intern_1.S.invalid_ascii, sI, sI + 4);
+                            return lex.bad(utility_1.S.invalid_ascii, sI, sI + 4);
                         }
                         let us = String.fromCharCode(cc);
                         s.push(us);
@@ -323,7 +323,7 @@ let makeStringMatcher = (cfg, opts) => {
                             cI -= 2;
                             pnt.sI = sI;
                             pnt.cI = cI;
-                            return lex.bad(intern_1.S.invalid_unicode, sI, sI + ulen + 2 + 2 * ux);
+                            return lex.bad(utility_1.S.invalid_unicode, sI, sI + ulen + 2 + 2 * ux);
                         }
                         let us = String.fromCodePoint(cc);
                         s.push(us);
@@ -354,7 +354,7 @@ let makeStringMatcher = (cfg, opts) => {
                             s.push(src.substring(bI, sI + 1));
                         }
                         else {
-                            return lex.bad(intern_1.S.unprintable, sI, sI + 1);
+                            return lex.bad(utility_1.S.unprintable, sI, sI + 1);
                         }
                     }
                     else {
@@ -365,9 +365,9 @@ let makeStringMatcher = (cfg, opts) => {
             }
             if (src[sI - 1] !== q || pnt.sI === sI - 1) {
                 pnt.rI = qrI;
-                return lex.bad(intern_1.S.unterminated_string, qI, sI);
+                return lex.bad(utility_1.S.unterminated_string, qI, sI);
             }
-            const tkn = lex.token('#ST', s.join(intern_1.MT), src.substring(pnt.sI, sI), pnt);
+            const tkn = lex.token('#ST', s.join(utility_1.MT), src.substring(pnt.sI, sI), pnt);
             pnt.sI = sI;
             pnt.rI = rI;
             pnt.cI = cI;
@@ -458,11 +458,11 @@ class Lex {
         let name;
         if ('string' === typeof (ref)) {
             name = ref;
-            tin = intern_1.tokenize(name, this.cfg);
+            tin = utility_1.tokenize(name, this.cfg);
         }
         else {
             tin = ref;
-            name = intern_1.tokenize(ref, this.cfg);
+            name = utility_1.tokenize(ref, this.cfg);
         }
         let tkn = new Token(name, tin, val, src, pnt || this.pnt, use, why);
         return tkn;
@@ -490,8 +490,8 @@ class Lex {
             tkn = tkn || this.token('#BD', undefined, this.src[pnt.sI], pnt, undefined, 'unexpected');
         }
         if (this.ctx.log) {
-            this.ctx.log(intern_1.S.lex, // Log entry prefix.
-            intern_1.tokenize(tkn.tin, this.cfg), // Name of token from tin (token identification numer).
+            this.ctx.log(utility_1.S.lex, // Log entry prefix.
+            utility_1.tokenize(tkn.tin, this.cfg), // Name of token from tin (token identification numer).
             this.ctx.F(tkn.src), // Format token src for log.
             pnt.sI, // Current source index.
             pnt.rI + ':' + pnt.cI);
@@ -499,7 +499,7 @@ class Lex {
         return tkn;
     }
     tokenize(ref) {
-        return intern_1.tokenize(ref, this.cfg);
+        return utility_1.tokenize(ref, this.cfg);
     }
     bad(why, pstart, pend) {
         return this.token('#BD', undefined, 0 <= pstart && pstart <= pend ?

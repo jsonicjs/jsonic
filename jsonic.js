@@ -1,7 +1,7 @@
 "use strict";
 /* Copyright (c) 2013-2021 Richard Rodger, MIT License */
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.make = exports.util = exports.Alt = exports.Token = exports.RuleSpec = exports.Rule = exports.Parser = exports.Lex = exports.JsonicError = exports.Jsonic = void 0;
+exports.make = exports.util = exports.Token = exports.RuleSpec = exports.Rule = exports.Parser = exports.Lex = exports.JsonicError = exports.Jsonic = void 0;
 // TODO: [,,,] syntax should match JS!
 // TODO: rename tokens to be user friendly
 // TODO: if token recognized, error needs to be about token, not characters
@@ -31,8 +31,8 @@ exports.make = exports.util = exports.Alt = exports.Token = exports.RuleSpec = e
 // ## Token names
 // * '#' prefix: parse token
 // * '@' prefix: lex state
-const intern_1 = require("./intern");
-Object.defineProperty(exports, "JsonicError", { enumerable: true, get: function () { return intern_1.JsonicError; } });
+const utility_1 = require("./utility");
+Object.defineProperty(exports, "JsonicError", { enumerable: true, get: function () { return utility_1.JsonicError; } });
 const lexer_1 = require("./lexer");
 Object.defineProperty(exports, "Token", { enumerable: true, get: function () { return lexer_1.Token; } });
 Object.defineProperty(exports, "Lex", { enumerable: true, get: function () { return lexer_1.Lex; } });
@@ -40,7 +40,6 @@ const parser_1 = require("./parser");
 Object.defineProperty(exports, "Parser", { enumerable: true, get: function () { return parser_1.Parser; } });
 Object.defineProperty(exports, "Rule", { enumerable: true, get: function () { return parser_1.Rule; } });
 Object.defineProperty(exports, "RuleSpec", { enumerable: true, get: function () { return parser_1.RuleSpec; } });
-Object.defineProperty(exports, "Alt", { enumerable: true, get: function () { return parser_1.Alt; } });
 function make_default_options() {
     let options = {
         // Default tag - set your own! 
@@ -208,7 +207,7 @@ function make_default_options() {
         // Parser rule options.
         rule: {
             // Name of the starting rule.
-            start: intern_1.S.val,
+            start: utility_1.S.val,
             // Automatically close remaining structures at EOF.
             finish: true,
             // Multiplier to increase the maximum number of rule occurences.
@@ -227,21 +226,21 @@ function make_default_options() {
     return options;
 }
 let util = {
-    tokenize: intern_1.tokenize,
-    srcfmt: intern_1.srcfmt,
-    deep: intern_1.deep,
-    clone: intern_1.clone,
-    charset: intern_1.charset,
-    trimstk: intern_1.trimstk,
-    makelog: intern_1.makelog,
-    badlex: intern_1.badlex,
-    extract: intern_1.extract,
-    errinject: intern_1.errinject,
-    errdesc: intern_1.errdesc,
-    configure: intern_1.configure,
+    tokenize: utility_1.tokenize,
+    srcfmt: utility_1.srcfmt,
+    deep: utility_1.deep,
+    clone: utility_1.clone,
+    charset: utility_1.charset,
+    trimstk: utility_1.trimstk,
+    makelog: utility_1.makelog,
+    badlex: utility_1.badlex,
+    extract: utility_1.extract,
+    errinject: utility_1.errinject,
+    errdesc: utility_1.errdesc,
+    configure: utility_1.configure,
     parserwrap,
-    regexp: intern_1.regexp,
-    mesc: intern_1.mesc,
+    regexp: utility_1.regexp,
+    mesc: utility_1.mesc,
 };
 exports.util = util;
 function make(param_options, parent) {
@@ -249,10 +248,10 @@ function make(param_options, parent) {
     let config;
     let plugins;
     // Merge options.
-    let merged_options = intern_1.deep({}, parent ? { ...parent.options } : make_default_options(), param_options ? param_options : {});
+    let merged_options = utility_1.deep({}, parent ? { ...parent.options } : make_default_options(), param_options ? param_options : {});
     // Create primary parsing function
     let jsonic = function Jsonic(src, meta, parent_ctx) {
-        if (intern_1.S.string === typeof (src)) {
+        if (utility_1.S.string === typeof (src)) {
             let internal = jsonic.internal();
             let parser = options.parser.start ?
                 parserwrap(options.parser) : internal.parser;
@@ -264,12 +263,12 @@ function make(param_options, parent) {
     // This lets you access options as direct properties,
     // and set them as a funtion call.
     let options = (change_options) => {
-        if (null != change_options && intern_1.S.object === typeof (change_options)) {
-            intern_1.configure(config, intern_1.deep(merged_options, change_options));
+        if (null != change_options && utility_1.S.object === typeof (change_options)) {
+            utility_1.configure(config, utility_1.deep(merged_options, change_options));
             for (let k in merged_options) {
                 jsonic.options[k] = merged_options[k];
             }
-            intern_1.assign(jsonic.token, config.t);
+            utility_1.assign(jsonic.token, config.t);
         }
         return { ...jsonic.options };
     };
@@ -277,9 +276,9 @@ function make(param_options, parent) {
     let api = {
         // TODO: not any, instead & { [token_name:string]: Tin }
         token: function token(ref) {
-            return intern_1.tokenize(ref, config, jsonic);
+            return utility_1.tokenize(ref, config, jsonic);
         },
-        options: intern_1.deep(options, merged_options),
+        options: utility_1.deep(options, merged_options),
         parse: jsonic,
         // TODO: how to handle null plugin?
         use: function use(plugin, plugin_options) {
@@ -323,7 +322,7 @@ function make(param_options, parent) {
         },
     };
     // Has to be done indirectly as we are in a fuction named `make`.
-    intern_1.defprop(api.make, intern_1.S.name, { value: intern_1.S.make });
+    utility_1.defprop(api.make, utility_1.S.name, { value: utility_1.S.make });
     // Transfer parent properties (preserves plugin decorations, etc).
     if (parent) {
         for (let k in parent) {
@@ -331,24 +330,24 @@ function make(param_options, parent) {
         }
         jsonic.parent = parent;
         let parent_internal = parent.internal();
-        config = intern_1.deep({}, parent_internal.config);
-        intern_1.configure(config, merged_options);
-        intern_1.assign(jsonic.token, config.t);
+        config = utility_1.deep({}, parent_internal.config);
+        utility_1.configure(config, merged_options);
+        utility_1.assign(jsonic.token, config.t);
         plugins = [...parent_internal.plugins];
         parser = parent_internal.parser.clone(merged_options, config);
     }
     else {
-        config = intern_1.configure(undefined, merged_options);
+        config = utility_1.configure(undefined, merged_options);
         plugins = [];
         parser = new parser_1.Parser(merged_options, config);
         parser.init();
     }
     // Add API methods to the core utility function.
-    intern_1.assign(jsonic, api);
+    utility_1.assign(jsonic, api);
     // As with options, provide direct access to tokens.
-    intern_1.assign(jsonic.token, config.t);
+    utility_1.assign(jsonic.token, config.t);
     // Hide internals where you can still find them.
-    intern_1.defprop(jsonic, 'internal', {
+    utility_1.defprop(jsonic, 'internal', {
         value: function internal() {
             return {
                 parser,
@@ -371,12 +370,12 @@ function parserwrap(parser) {
                     let loc = 0;
                     let row = 0;
                     let col = 0;
-                    let tsrc = intern_1.MT;
+                    let tsrc = utility_1.MT;
                     let errloc = ex.message.match(/^Unexpected token (.) .*position\s+(\d+)/i);
                     if (errloc) {
                         tsrc = errloc[1];
                         loc = parseInt(errloc[2]);
-                        row = src.substring(0, loc).replace(/[^\n]/g, intern_1.MT).length;
+                        row = src.substring(0, loc).replace(/[^\n]/g, utility_1.MT).length;
                         let cI = loc - 1;
                         while (-1 < cI && '\n' !== src.charAt(cI))
                             cI--;
@@ -384,8 +383,8 @@ function parserwrap(parser) {
                     }
                     let token = ex.token || new lexer_1.Token('#UK', 
                     // tokenize('#UK', jsonic.config),
-                    intern_1.tokenize('#UK', jsonic.internal().config), undefined, tsrc, new lexer_1.Point(tsrc.length, loc, ex.lineNumber || row, ex.columnNumber || col));
-                    throw new intern_1.JsonicError(ex.code || 'json', ex.details || {
+                    utility_1.tokenize('#UK', jsonic.internal().config), undefined, tsrc, new lexer_1.Point(tsrc.length, loc, ex.lineNumber || row, ex.columnNumber || col));
+                    throw new utility_1.JsonicError(ex.code || 'json', ex.details || {
                         msg: ex.message
                     }, token, {}, ex.ctx || {
                         uI: -1,
@@ -408,7 +407,7 @@ function parserwrap(parser) {
                         rsm: {},
                         n: {},
                         log: meta ? meta.log : undefined,
-                        F: intern_1.srcfmt(jsonic.internal().config),
+                        F: utility_1.srcfmt(jsonic.internal().config),
                         use: {},
                     });
                 }
@@ -433,11 +432,11 @@ delete top.lex;
 delete top.token;
 // Provide deconstruction export names
 Jsonic.Jsonic = Jsonic;
-Jsonic.JsonicError = intern_1.JsonicError;
+Jsonic.JsonicError = utility_1.JsonicError;
 Jsonic.Parser = parser_1.Parser;
 Jsonic.Rule = parser_1.Rule;
 Jsonic.RuleSpec = parser_1.RuleSpec;
-Jsonic.Alt = parser_1.Alt;
+// Jsonic.Alt = Alt
 Jsonic.util = util;
 Jsonic.make = make;
 exports.default = Jsonic;

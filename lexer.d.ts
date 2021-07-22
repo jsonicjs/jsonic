@@ -1,6 +1,6 @@
 declare const inspect: unique symbol;
 import type { Rule } from './jsonic';
-import { Config, Context, Tin, Options } from './intern';
+import { Config, Context, Tin, Options } from './utility';
 declare class Point {
     len: number;
     sI: number;
@@ -47,4 +47,5 @@ declare class Lex {
     tokenize<R extends string | Tin, T extends (R extends Tin ? string : Tin)>(ref: R): T;
     bad(why: string, pstart: number, pend: number): Token;
 }
-export { Point, Token, Lex, LexMatcher, MakeLexMatcher, makeFixedMatcher, makeSpaceMatcher, makeLineMatcher, makeStringMatcher, makeCommentMatcher, makeNumberMatcher, makeTextMatcher, };
+export type { MakeLexMatcher, LexMatcher, };
+export { Point, Token, Lex, makeFixedMatcher, makeSpaceMatcher, makeLineMatcher, makeStringMatcher, makeCommentMatcher, makeNumberMatcher, makeTextMatcher, };
