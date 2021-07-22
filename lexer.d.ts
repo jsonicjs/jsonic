@@ -1,6 +1,6 @@
 declare const inspect: unique symbol;
-import type { Rule } from './jsonic';
-import { Config, Context, Tin, Options } from './utility';
+import type { Tin, Rule, Options } from './jsonic';
+import { Config, Context } from './utility';
 declare class Point {
     len: number;
     sI: number;

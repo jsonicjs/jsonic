@@ -1,12 +1,15 @@
+/* Copyright (c) 2013-2021 Richard Rodger, MIT License */
+
+/*  parser.ts
+ *  Parser implementation, converts the lexer tokens into parsed data.
+ */
 
 import {
   Config,
   Context,
   KV,
   MT,
-  Options,
   S,
-  Tin,
   Token,
   deep,
   entries,
@@ -30,7 +33,9 @@ import {
 
 
 import type {
-  Jsonic
+  Tin,
+  Jsonic,
+  Options,
 } from './jsonic'
 
 

@@ -2,6 +2,9 @@
 /* Copyright (c) 2013-2021 Richard Rodger, MIT License */
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.make = exports.util = exports.Token = exports.RuleSpec = exports.Rule = exports.Parser = exports.Lex = exports.JsonicError = exports.Jsonic = void 0;
+/*  jsonic.ts
+ *  Entry point and API.
+ */
 // TODO: [,,,] syntax should match JS!
 // TODO: rename tokens to be user friendly
 // TODO: if token recognized, error needs to be about token, not characters
@@ -30,7 +33,6 @@ exports.make = exports.util = exports.Token = exports.RuleSpec = exports.Rule = 
 //
 // ## Token names
 // * '#' prefix: parse token
-// * '@' prefix: lex state
 const utility_1 = require("./utility");
 Object.defineProperty(exports, "JsonicError", { enumerable: true, get: function () { return utility_1.JsonicError; } });
 const defaults_1 = require("./defaults");

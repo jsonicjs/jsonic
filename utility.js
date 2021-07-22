@@ -1,15 +1,9 @@
 "use strict";
+/* Copyright (c) 2013-2021 Richard Rodger, MIT License */
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.map = exports.configure = exports.snip = exports.charset = exports.clone = exports.srcfmt = exports.trimstk = exports.tokenize = exports.escre = exports.regexp = exports.mesc = exports.makelog = exports.keys = exports.extract = exports.errinject = exports.errdesc = exports.entries = exports.defprop = exports.deep = exports.badlex = exports.assign = exports.Token = exports.S = exports.MT = exports.JsonicError = exports.CLOSE = exports.OPEN = void 0;
 const lexer_1 = require("./lexer");
 Object.defineProperty(exports, "Token", { enumerable: true, get: function () { return lexer_1.Token; } });
-// TODO: refactor
-/* $lab:coverage:off$ */
-// enum RuleState {
-//   open,
-//   close,
-// }
-/* $lab:coverage:on$ */
 const OPEN = 'o';
 exports.OPEN = OPEN;
 const CLOSE = 'c';

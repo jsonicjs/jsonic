@@ -1,4 +1,11 @@
-import { Options } from './utility'
+/* Copyright (c) 2013-2021 Richard Rodger, MIT License */
+
+/*  defaults.ts
+ *  Default option values.
+ */
+
+
+import { Options } from './jsonic'
 
 import {
   makeFixedMatcher,

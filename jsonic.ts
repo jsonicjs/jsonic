@@ -1,5 +1,9 @@
 /* Copyright (c) 2013-2021 Richard Rodger, MIT License */
 
+/*  jsonic.ts
+ *  Entry point and API.
+ */
+
 
 // TODO: [,,,] syntax should match JS!
 // TODO: rename tokens to be user friendly
@@ -31,7 +35,7 @@
 //
 // ## Token names
 // * '#' prefix: parse token
-// * '@' prefix: lex state
+
 
 
 
@@ -42,10 +46,9 @@ import {
   JsonicError,
   KV,
   MT,
-  Meta,
-  Options,
+  // Meta,
+  StrMap,
   S,
-  Tin,
   assign,
   badlex,
   deep,
@@ -92,6 +95,13 @@ import {
 } from './parser'
 
 
+// The full exported type.
+type Jsonic =
+  JsonicParse & // A function that parses.
+  JsonicAPI & // A utility with API methods.
+  { [prop: string]: any } // Extensible by plugin decoration.
+
+
 // The main top-level utility function. 
 // NOTE: Exported as `Jsonic`; this type is internal and *not* exported.
 type JsonicParse = (src: any, meta?: any, parent_ctx?: any) => any
@@ -115,17 +125,14 @@ type JsonicAPI = {
   // Get and set parser rules.
   rule: (name?: string, define?: RuleDefiner) => RuleSpec | RuleSpecMap
 
-  // Add. modify, and list lex matchers.
-  //lex: (match: LexMatcher | undefined,
-  //  modify: (mat: LexMatcher[]) => void) => LexMatcher[]
+  // Provide new lex matcher.
   lex: (matchmaker: MakeLexMatcher) => void
 
   // Token get and set for plugins. Reference by either name or Tin.
   token:
   { [ref: string]: Tin } &
   { [ref: number]: string } &
-  (<A extends string | Tin, B extends string | Tin>(ref: A)
-    => A extends string ? B : string)
+  (<A extends string | Tin>(ref: A) => A extends string ? Tin : string)
 
   // Unique identifier string for each Jsonic instance.
   id: string
@@ -135,14 +142,113 @@ type JsonicAPI = {
 }
 
 
-// The full exported type.
-type Jsonic =
-  JsonicParse & // A function that parses.
-  JsonicAPI & // A utility with API methods.
-  { [prop: string]: any } // Extensible by plugin decoration.
-
-
+// Define a plugin to extend the provided Jsonic instance.
 type Plugin = (jsonic: Jsonic) => void | Jsonic
+
+
+// Unique token identification number (aka "tin").
+type Tin = number
+
+
+// Parsing options. See defaults for commentary.
+type Options = {
+  tag: string
+  fixed: {
+    lex: boolean
+    token: StrMap
+  }
+  tokenSet: {
+    ignore: string[]
+  }
+  space: {
+    lex: boolean
+    chars: string
+  }
+  line: {
+    lex: boolean
+    chars: string
+    rowChars: string
+  },
+  text: {
+    lex: boolean
+  }
+  number: {
+    lex: boolean
+    hex: boolean
+    oct: boolean
+    bin: boolean
+    sep?: string
+  }
+  comment: {
+    lex: boolean
+    marker: {
+      line: boolean
+      start: string
+      end?: string
+      lex: boolean
+    }[]
+  }
+  string: {
+    lex: boolean
+    chars: string
+    multiChars: string
+    escapeChar: string
+    escape: { [char: string]: string }
+  }
+  map: {
+    extend: boolean
+    merge?: (prev: any, curr: any) => any
+  }
+  value: {
+    lex: boolean
+    map: { [src: string]: { val: any } }
+  }
+  plugin: KV
+  debug: {
+    get_console: () => any
+    maxlen: number
+    print: {
+      config: boolean
+    }
+  }
+  error: { [code: string]: string }
+  hint: any
+  lex: {
+    match: MakeLexMatcher[]
+  }
+  rule: {
+    start: string,
+    finish: boolean,
+    maxmul: number,
+  },
+  config: {
+    modify: { [plugin_name: string]: (config: Config, options: Options) => void }
+  },
+  parser: {
+    start?: (
+      lexer: any, //Lexer,
+      src: string,
+      jsonic: any, //Jsonic,
+      meta?: any,
+      parent_ctx?: any
+    ) => any
+  }
+  /*
+    // TODO: move to plugin
+  block: {
+    lex: boolean
+ 
+    // NOTE: block.marker definition uses value structure to define start and end.
+    marker: {
+      [start_marker: string]: // Start marker (eg. `'''`).
+      string  // End marker (eg. `'''`).
+    }
+  }
+  */
+}
+
+
+
 
 
 let util = {
@@ -439,7 +545,8 @@ export type {
   Tin,
   RuleSpecMap,
   Context,
-  Meta,
+  Options,
+  // Meta,
   /*
   Alt,
   AltCond,
@@ -459,6 +566,7 @@ export {
   util,
   make,
 }
+
 
 export default Jsonic
 

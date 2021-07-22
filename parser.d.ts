@@ -1,5 +1,5 @@
-import { Config, Context, KV, Options, Token, RuleState } from './utility';
-import type { Jsonic } from './jsonic';
+import { Config, Context, KV, Token, RuleState } from './utility';
+import type { Jsonic, Options } from './jsonic';
 declare class Rule {
     id: number;
     name: string;

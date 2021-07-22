@@ -1,7 +1,17 @@
+/* Copyright (c) 2013-2021 Richard Rodger, MIT License */
+
+/*  lexer.ts
+ *  Lexer implementation, converts source text into tokens for the parser.
+ */
+
 
 const inspect = Symbol.for('nodejs.util.inspect.custom')
 
-import type { Rule } from './jsonic'
+import type {
+  Tin,
+  Rule,
+  Options,
+} from './jsonic'
 
 
 import {
@@ -9,14 +19,11 @@ import {
   MT,
   Config,
   Context,
-  Tin,
   tokenize,
   snip,
   regexp,
   escre,
-  Options,
   charset,
-  // map,
 } from './utility'
 
 

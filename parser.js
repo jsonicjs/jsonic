@@ -1,6 +1,10 @@
 "use strict";
+/* Copyright (c) 2013-2021 Richard Rodger, MIT License */
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.NONE = exports.RuleSpec = exports.Rule = exports.Parser = void 0;
+/*  parser.ts
+ *  Parser implementation, converts the lexer tokens into parsed data.
+ */
 const utility_1 = require("./utility");
 const lexer_1 = require("./lexer");
 class Rule {

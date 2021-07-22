@@ -1,6 +1,10 @@
 "use strict";
+/* Copyright (c) 2013-2021 Richard Rodger, MIT License */
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.makeTextMatcher = exports.makeNumberMatcher = exports.makeCommentMatcher = exports.makeStringMatcher = exports.makeLineMatcher = exports.makeSpaceMatcher = exports.makeFixedMatcher = exports.Lex = exports.Token = exports.Point = void 0;
+/*  lexer.ts
+ *  Lexer implementation, converts source text into tokens for the parser.
+ */
 const inspect = Symbol.for('nodejs.util.inspect.custom');
 const utility_1 = require("./utility");
 class Point {
