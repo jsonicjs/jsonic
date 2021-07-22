@@ -68,10 +68,9 @@ let hint_short = hint_names.map(name=>encode(hint[name]))
 
 
 // The gnarly IIFE
-//let decode = `((d = (t: any, r = 'replace') => t[r](/[A-Z]/g, (m: any) => ' ' + m.toLowerCase())[r](/[~%][a-z]/g, (m: any) => ('~' == m[0] ? ' ' : '') + m[1].toUpperCase()), s = '${hint_short}'.split('|')) => '${hint_names.join('|')}'.split('|').reduce((a: any, n, i) => (a[n] = d(s[i]), a), {}))(),`
 let decode = `(d = (t: any, r = 'replace') => t[r](/[A-Z]/g, (m: any) => ' ' + m.toLowerCase())[r](/[~%][a-z]/g, (m: any) => ('~' == m[0] ? ' ' : '') + m[1].toUpperCase()), s = '${hint_short}'.split('|')): any { return '${hint_names.join('|')}'.split('|').reduce((a: any, n, i) => (a[n] = d(s[i]), a), {}) }`
 
 // Inject as part of build step (see package.json).
-let src = Fs.readFileSync('./utility.ts').toString()
+let src = Fs.readFileSync('./defaults.ts').toString()
 src = src.replace(/function make_hint.*/, 'function make_hint'+decode)
-Fs.writeFileSync('./utility.ts', src)
+Fs.writeFileSync('./defaults.ts', src)
