@@ -332,7 +332,7 @@ function errdesc(code, details, token, rule, ctx) {
     let meta = ctx.meta;
     let errtxt = errinject((options.error[code] || options.error.unknown), code, details, token, rule, ctx);
     if (S.function === typeof (options.hint)) {
-        // Only expand the hints on demand. Allow for plugin-defined hints.
+        // Only expand the hints on demand. Allows for plugin-defined hints.
         options.hint = { ...options.hint(), ...options.hint };
     }
     let message = [

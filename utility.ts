@@ -696,7 +696,7 @@ function errdesc(
   )
 
   if (S.function === typeof (options.hint)) {
-    // Only expand the hints on demand. Allow for plugin-defined hints.
+    // Only expand the hints on demand. Allows for plugin-defined hints.
     options.hint = { ...options.hint(), ...options.hint }
   }
 
