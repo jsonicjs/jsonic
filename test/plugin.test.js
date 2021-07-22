@@ -94,7 +94,6 @@ describe('plugin', function () {
     const a1 = j.make({a:1})
     expect(a1.options.a).equal(1)
     expect(j.options.a).undefined()
-    expect(j.internal().lexer === a1.internal().lexer).false()
     expect(j.internal().parser === a1.internal().parser).false()
     expect(j.token.OB === a1.token.OB).true()
     expect(a1('x:A,y:B,z:C')).equals({x:'aaa',y:'B',z:'C'})
@@ -104,8 +103,6 @@ describe('plugin', function () {
     expect(a2.options.a).equal(2)
     expect(a1.options.a).equal(1)
     expect(j.options.a).undefined()
-    expect(j.internal().lexer === a2.internal().lexer).false()
-    expect(a2.internal().lexer === a1.internal().lexer).false()
     expect(j.internal().parser === a2.internal().parser).false()
     expect(a2.internal().parser === a1.internal().parser).false()
     expect(j.token.OB === a2.token.OB).true()
@@ -125,16 +122,11 @@ describe('plugin', function () {
     expect(a2.options.a).equal(2)
     expect(a1.options.a).equal(1)
     expect(j.options.a).undefined()
-    expect(j.internal().lexer === a22.internal().lexer).false()
-    expect(j.internal().lexer === a2.internal().lexer).false()
-    expect(a22.internal().lexer === a1.internal().lexer).false()
-    expect(a2.internal().lexer === a1.internal().lexer).false()
     expect(j.internal().parser === a22.internal().parser).false()
     expect(j.internal().parser === a2.internal().parser).false()
     expect(a22.internal().parser === a1.internal().parser).false()
     expect(a2.internal().parser === a1.internal().parser).false()
     expect(a22.internal().parser === a2.internal().parser).false()
-    expect(a22.internal().lexer === a2.internal().lexer).false()
     expect(j.token.OB === a22.token.OB).true()
     expect(a22.token.OB === a1.token.OB).true()
     expect(a2.token.OB === a1.token.OB).true()
@@ -177,12 +169,12 @@ describe('plugin', function () {
       jsonic.options({
         config: {
           modify: {
-            foo: (config)=>config.cs.vend.X='X'.charCodeAt(0)
+            foo: (config)=>config.fixed.token['#QQ']=99
           }
         }
       })
     })
-    expect(j.internal().config.cs.vend.X).equal('X'.charCodeAt(0))
+    expect(j.internal().config.fixed.token['#QQ']).equal(99)
   })
 
   
@@ -671,7 +663,7 @@ aa\tbb
     let j = Jsonic.make().use(function foo(jsonic) {
       jsonic.options({
         parser: {
-          start: function(lexer, src, meta) {
+          start: function(src, jsonic, meta) {
             if('e:0'===src) {
               throw new Error('bad-parser:e:0')
             }
@@ -689,7 +681,7 @@ aa\tbb
               e2.ctx = {
                 src:()=>'',
                 opts:{error:{e2:'e:2'},hint:{e2:'e:2'}},
-                cnfg:{t:{}},
+                cfg:{t:{}},
                 plgn:()=>[]
               }
               throw e2
@@ -699,6 +691,8 @@ aa\tbb
       })
     })
 
+    // j('e:1')
+    
     expect(()=>j('e:0')).throws('Error', /e:0/)
     expect(()=>j('e:1',{log:()=>null})).throws('SyntaxError', /e:1/)
     expect(()=>j('e:2')).throws('SyntaxError', /e:2/)
@@ -769,8 +763,10 @@ function make_token_plugin(char, val) {
   let tn = '#T<'+char+'>'
   let plugin = function (jsonic) {
     jsonic.options({
-      token: {
-        [tn]: {c:char}
+      fixed: {
+        token: {
+          [tn]: char
+        }
       }
     })
 

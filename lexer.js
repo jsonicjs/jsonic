@@ -305,7 +305,6 @@ let makeStringMatcher = (cfg, opts) => {
                             cI -= 2;
                             pnt.sI = sI;
                             pnt.cI = cI;
-                            //return lex.bad(S.invalid_ascii, sI - 2, sI + 2)
                             return lex.bad(intern_1.S.invalid_ascii, sI, sI + 4);
                         }
                         let us = String.fromCharCode(cc);

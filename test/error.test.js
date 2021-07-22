@@ -54,9 +54,9 @@ describe('error', function () {
           foo: 'Foo hint.'
         }
       })
-      jsonic.lex(jsonic.token.LTP,({sI,rI,cI,src,token,ctx,rule,bad})=>{
-        if(src.substring(sI).startsWith('FOO')) {
-          return bad('foo',sI,'FOO')
+      jsonic.lex(()=>(lex)=>{
+        if(lex.src.substring(lex.pnt.sI).startsWith('FOO')) {
+          return lex.bad('foo', lex.pnt.sI, lex.pnt.sI + 4)
         }
       })
     })
@@ -78,12 +78,12 @@ describe('error', function () {
     catch(e) {
       expect(e.message).equals(
         '\u001b[31m[jsonic/foo]:\u001b[0m foo: "FOO"!\n' +
-          '  \u001b[34m-->\u001b[0m <no-file>:1:2\n' +
-          '\u001b[34m  0 | \u001b[0ma:1,\n' +
-          '\u001b[34m  1 | \u001b[0mb:FOO\n' +
+          '  \u001b[34m-->\u001b[0m <no-file>:2:3\n' +
+          '\u001b[34m  1 | \u001b[0ma:1,\n' +
+          '\u001b[34m  2 | \u001b[0mb:FOO\n' +
           '        \u001b[31m^^^ foo: "FOO"!\u001b[0m\n' +
-          '\u001b[34m  2 | \u001b[0m\n' +
           '\u001b[34m  3 | \u001b[0m\n' +
+          '\u001b[34m  4 | \u001b[0m\n' +
           '  Foo hint.\n' +
           '  \u001b[2mhttps://jsonic.richardrodger.com\u001b[0m\n' +
           '  \u001b[2m--internal: rule=pair~open; token=#BD~foo;'+
@@ -166,7 +166,7 @@ describe('error', function () {
       // console.log(e)
       expect(JSON.stringify(e))
         .includes('{"code":"unexpected","details":{},'+
-                  '"meta":{},"lineNumber":0,"columnNumber":0')
+                  '"meta":{},"lineNumber":1,"columnNumber":1')
     } 
   })
 

@@ -910,10 +910,12 @@ describe('jsonic', function () {
 
     let j = make_empty({rule:{start:'top'}})
     j.options({
-      token: {
-        'Ta': { c:'a' },
-        'Tb': { c:'b' },
-        'Tc': { c:'c' },
+      fixed: {
+        token: {
+          'Ta': 'a',
+          'Tb': 'b',
+          'Tc': 'c',
+        }
       }
     })
 
@@ -942,15 +944,15 @@ describe('jsonic', function () {
     let b = ''
     let j = Jsonic.make({
       value: {
-        src: {
-          foo: 'FOO',
-          bar: (lex)=>'BAR'+lex.sI
+        map: {
+          foo: {val:'FOO'},
+          bar: {val:'BAR'},
         }
       }
     })
 
     expect(j('foo')).equals('FOO')
-    expect(j('bar')).equals('BAR0')
+    expect(j('bar')).equals('BAR')
   })
 
 
@@ -965,8 +967,10 @@ describe('jsonic', function () {
     for(let c of cs) {
       let j = Jsonic.make()
       j.options({
-        token: {
-          '#T/': { c:c },
+        fixed: {
+          token: {
+            '#T/': c,
+          }
         }
       })
       

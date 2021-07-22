@@ -458,7 +458,6 @@ let makeStringMatcher: MakeLexMatcher = (cfg: Config, opts: Options) => {
               cI -= 2
               pnt.sI = sI
               pnt.cI = cI
-              //return lex.bad(S.invalid_ascii, sI - 2, sI + 2)
               return lex.bad(S.invalid_ascii, sI, sI + 4)
             }
 

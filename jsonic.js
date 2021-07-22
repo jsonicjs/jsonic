@@ -382,7 +382,9 @@ function parserwrap(parser) {
                             cI--;
                         col = Math.max(src.substring(cI, loc).length, 0);
                     }
-                    let token = ex.token || new lexer_1.Token('#UK', intern_1.tokenize('#UK', jsonic.config), undefined, tsrc, new lexer_1.Point(tsrc.length, loc, ex.lineNumber || row, ex.columnNumber || col));
+                    let token = ex.token || new lexer_1.Token('#UK', 
+                    // tokenize('#UK', jsonic.config),
+                    intern_1.tokenize('#UK', jsonic.internal().config), undefined, tsrc, new lexer_1.Point(tsrc.length, loc, ex.lineNumber || row, ex.columnNumber || col));
                     throw new intern_1.JsonicError(ex.code || 'json', ex.details || {
                         msg: ex.message
                     }, token, {}, ex.ctx || {

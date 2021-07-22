@@ -614,7 +614,8 @@ function parserwrap(parser: any) {
 
           let token = ex.token || new Token(
             '#UK',
-            tokenize('#UK', jsonic.config),
+            // tokenize('#UK', jsonic.config),
+            tokenize('#UK', jsonic.internal().config),
             undefined,
             tsrc,
             new Point(tsrc.length, loc, ex.lineNumber || row, ex.columnNumber || col)
