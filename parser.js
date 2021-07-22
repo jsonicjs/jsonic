@@ -1,8 +1,7 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.NONE = exports.RuleState = exports.RuleSpec = exports.Rule = exports.Parser = void 0;
+exports.NONE = exports.RuleSpec = exports.Rule = exports.Parser = void 0;
 const utility_1 = require("./utility");
-Object.defineProperty(exports, "RuleState", { enumerable: true, get: function () { return utility_1.RuleState; } });
 const lexer_1 = require("./lexer");
 class Rule {
     constructor(spec, ctx, node) {
@@ -10,7 +9,7 @@ class Rule {
         this.name = spec.name;
         this.spec = spec;
         this.node = node;
-        this.state = utility_1.RuleState.open;
+        this.state = utility_1.OPEN;
         this.child = NONE;
         this.open = [];
         this.close = [];
@@ -27,7 +26,7 @@ class Rule {
     }
 }
 exports.Rule = Rule;
-const NONE = { name: utility_1.S.none, state: 0 };
+const NONE = { name: utility_1.S.none, state: utility_1.OPEN };
 exports.NONE = NONE;
 // Parse match alternate (built from current tokens and AltSpec).
 class Alt {
@@ -74,7 +73,7 @@ class RuleSpec {
     process(rule, ctx, state) {
         let why = utility_1.MT;
         let F = ctx.F;
-        let is_open = state === utility_1.RuleState.open;
+        let is_open = state === 'o';
         let next = is_open ? rule : NONE;
         let def = this.def;
         // Match alternates for current state.
@@ -178,7 +177,7 @@ class RuleSpec {
             }
         }
         next.why = why;
-        ctx.log && ctx.log(utility_1.S.node, rule.name + '~' + rule.id, utility_1.RuleState[rule.state], 'w=' + why, 'n:' + utility_1.entries(rule.n).map(n => n[0] + '=' + n[1]).join(';'), 'u:' + utility_1.entries(rule.use).map(u => u[0] + '=' + u[1]).join(';'), F(rule.node));
+        ctx.log && ctx.log(utility_1.S.node, rule.name + '~' + rule.id, rule.state, 'w=' + why, 'n:' + utility_1.entries(rule.n).map(n => n[0] + '=' + n[1]).join(';'), 'u:' + utility_1.entries(rule.use).map(u => u[0] + '=' + u[1]).join(';'), F(rule.node));
         // Lex next tokens (up to backtrack).
         let mI = 0;
         let rewind = alt.m.length - (alt.b || 0);
@@ -186,8 +185,8 @@ class RuleSpec {
             ctx.next();
         }
         // Must be last as state is for next process call.
-        if (utility_1.RuleState.open === rule.state) {
-            rule.state = utility_1.RuleState.close;
+        if (utility_1.OPEN === rule.state) {
+            rule.state = utility_1.CLOSE;
         }
         return next;
     }
@@ -256,7 +255,7 @@ class RuleSpec {
             out.a = alt.a ? alt.a : out.a;
             out.u = alt.u ? alt.u : out.u;
         }
-        ctx.log && ctx.log(utility_1.S.parse, rule.name + '~' + rule.id, utility_1.RuleState[rule.state], altI < alts.length ? 'alt=' + altI : 'no-alt', altI < alts.length &&
+        ctx.log && ctx.log(utility_1.S.parse, rule.name + '~' + rule.id, rule.state, altI < alts.length ? 'alt=' + altI : 'no-alt', altI < alts.length &&
             alt.s ?
             '[' + alt.s.map((pin) => t[pin]).join(' ') + ']' : '[]', 'tc=' + ctx.tC, 'p=' + (out.p || utility_1.MT), 'r=' + (out.r || utility_1.MT), 'b=' + (out.b || utility_1.MT), out.m.map((tkn) => t[tkn.tin]).join(' '), ctx.F(out.m.map((tkn) => tkn.src)), 'c:' + ((alt && alt.c) ? cond : utility_1.MT), 'n:' + utility_1.entries(rule.n).map(n => n[0] + '=' + n[1]).join(';'), 'u:' + utility_1.entries(rule.use).map(u => u[0] + '=' + u[1]).join(';'), out);
         return out;
@@ -545,7 +544,7 @@ class Parser {
         // occurrences until there's none left.
         while (NONE !== rule && rI < maxr) {
             ctx.log &&
-                ctx.log(utility_1.S.rule, rule.name + '~' + rule.id, utility_1.RuleState[rule.state], 'rs=' + ctx.rs.length, 'tc=' + ctx.tC, '[' + tn(ctx.t0.tin) + ' ' + tn(ctx.t1.tin) + ']', '[' + ctx.F(ctx.t0.src) + ' ' + ctx.F(ctx.t1.src) + ']', rule, ctx);
+                ctx.log(utility_1.S.rule, rule.name + '~' + rule.id, rule.state, 'rs=' + ctx.rs.length, 'tc=' + ctx.tC, '[' + tn(ctx.t0.tin) + ' ' + tn(ctx.t1.tin) + ']', '[' + ctx.F(ctx.t0.src) + ' ' + ctx.F(ctx.t1.src) + ']', rule, ctx);
             ctx.rule = rule;
             rule = rule.process(ctx);
             ctx.log &&

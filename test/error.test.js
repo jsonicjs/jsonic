@@ -86,7 +86,7 @@ describe('error', function () {
           '\u001b[34m  4 | \u001b[0m\n' +
           '  Foo hint.\n' +
           '  \u001b[2mhttps://jsonic.richardrodger.com\u001b[0m\n' +
-          '  \u001b[2m--internal: rule=pair~open; token=#BD~foo;'+
+          '  \u001b[2m--internal: rule=pair~o; token=#BD~foo;'+
           ' plugins=foo--\u001b[0m\n'
       )
     }

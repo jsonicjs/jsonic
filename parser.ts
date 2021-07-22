@@ -18,6 +18,8 @@ import {
   JsonicError,
   srcfmt,
   clone,
+  OPEN,
+  CLOSE,
 } from './utility'
 
 
@@ -56,7 +58,7 @@ class Rule {
     this.name = spec.name
     this.spec = spec
     this.node = node
-    this.state = RuleState.open
+    this.state = OPEN
     this.child = NONE
     this.open = []
     this.close = []
@@ -76,7 +78,8 @@ class Rule {
 
 
 
-const NONE = ({ name: S.none, state: 0 } as Rule)
+const NONE = ({ name: S.none, state: OPEN } as Rule)
+
 
 // Parse alternate specification provided by rule.
 type AltSpec = {
@@ -173,7 +176,7 @@ class RuleSpec {
     let why = MT
     let F = ctx.F
 
-    let is_open = state === RuleState.open
+    let is_open = state === 'o'
     let next = is_open ? rule : NONE
 
     let def: RuleDef = this.def
@@ -302,7 +305,7 @@ class RuleSpec {
     ctx.log && ctx.log(
       S.node,
       rule.name + '~' + rule.id,
-      RuleState[rule.state],
+      rule.state,
       'w=' + why,
       'n:' + entries(rule.n).map(n => n[0] + '=' + n[1]).join(';'),
       'u:' + entries(rule.use).map(u => u[0] + '=' + u[1]).join(';'),
@@ -318,8 +321,8 @@ class RuleSpec {
     }
 
     // Must be last as state is for next process call.
-    if (RuleState.open === rule.state) {
-      rule.state = RuleState.close
+    if (OPEN === rule.state) {
+      rule.state = CLOSE
     }
 
     return next
@@ -410,7 +413,7 @@ class RuleSpec {
     ctx.log && ctx.log(
       S.parse,
       rule.name + '~' + rule.id,
-      RuleState[rule.state],
+      rule.state,
       altI < alts.length ? 'alt=' + altI : 'no-alt',
       altI < alts.length &&
         (alt as any).s ?
@@ -806,7 +809,7 @@ class Parser {
     // occurrences until there's none left.
     while (NONE !== rule && rI < maxr) {
       ctx.log &&
-        ctx.log(S.rule, rule.name + '~' + rule.id, RuleState[rule.state],
+        ctx.log(S.rule, rule.name + '~' + rule.id, rule.state,
           'rs=' + ctx.rs.length, 'tc=' + ctx.tC, '[' + tn(ctx.t0.tin) + ' ' + tn(ctx.t1.tin) + ']',
           '[' + ctx.F(ctx.t0.src) + ' ' + ctx.F(ctx.t1.src) + ']', rule, ctx)
 
@@ -846,13 +849,13 @@ class Parser {
 export type {
   RuleDefiner,
   RuleSpecMap,
+  RuleState,
 }
 
 export {
   Parser,
   Rule,
   RuleSpec,
-  RuleState,
 
   /*
   AltError,
