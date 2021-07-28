@@ -424,7 +424,24 @@ describe('feature', function () {
 
     expect(j('`\n`')).equals('\n')
     expect(()=>j('"\n"')).throws(JsonicError,/unprintable]/)
+    expect(()=>j('"\t"')).throws(JsonicError,/unprintable]/)
+    expect(()=>j('"\f"')).throws(JsonicError,/unprintable]/)
+    expect(()=>j('"\b"')).throws(JsonicError,/unprintable]/)
+    expect(()=>j('"\v"')).throws(JsonicError,/unprintable]/)
+    expect(()=>j('"\0"')).throws(JsonicError,/unprintable]/)
 
+    expect(j('"\\n"')).equals('\n')
+    expect(j('"\\t"')).equals('\t')
+    expect(j('"\\f"')).equals('\f')
+    expect(j('"\\b"')).equals('\b')
+    expect(j('"\\v"')).equals('\v')
+    expect(j('"\\""')).equals('"')
+    expect(j('"\\\'"')).equals('\'')
+    expect(j('"\\`"')).equals('`')
+
+    expect(j('"\\w"')).equals('w')
+    expect(j('"\\0"')).equals('0')
+    
     expect(()=>j('`\x1a`')).throws(JsonicError,/unprintable]/)
     expect(()=>j('"\x1a"')).throws(JsonicError,/unprintable]/)
     
@@ -472,6 +489,21 @@ describe('feature', function () {
     expect(()=>j('\n\naaa:"x')).throws(JsonicError,/unterminated_string].*:3:5/s)
     expect(()=>j('\n\n a:"x')).throws(JsonicError,/unterminated_string].*:3:4/s)
     expect(()=>j('\n\n a :"x')).throws(JsonicError,/unterminated_string].*:3:5/s)
+
+
+    // string.escape.allowUnknown:false
+    let j1 = j.make({string:{allowUnknown:false}})
+    expect(j1('"\\n"')).equals('\n')
+    expect(j1('"\\t"')).equals('\t')
+    expect(j1('"\\f"')).equals('\f')
+    expect(j1('"\\b"')).equals('\b')
+    expect(j1('"\\v"')).equals('\v')
+    expect(j1('"\\""')).equals('"')
+    expect(j1('"\\\\"')).equals('\\')
+    expect(()=>j1('"\\w"')).throws(JsonicError,/unexpected].*:1:3/s)
+    expect(()=>j1('"\\0"')).throws(JsonicError,/unexpected].*:1:3/s)
+    
+    
     
     // TODO: PLUGIN csv
     // let k = j.make({string:{escapedouble:true}})

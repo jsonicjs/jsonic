@@ -107,7 +107,16 @@ const defaults = {
             n: '\n',
             r: '\r',
             t: '\t',
+            v: '\v',
+            // These preserve standard escapes when allowUnknown=false.
+            '"': '"',
+            '\'': '\'',
+            '`': '`',
+            '\\': '\\',
+            '/': '/',
         },
+        // Allow unknown escape characters - they are copied to output: '\w' -> 'w'.
+        allowUnknown: true,
         // TODO: PLUGIN csv
         // CSV-style double quote escape.
         // doubleEscape: false,

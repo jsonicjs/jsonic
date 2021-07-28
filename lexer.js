@@ -258,15 +258,16 @@ let makeStringMatcher = (cfg, opts) => {
         lex: !!os.lex,
         quoteMap: utility_1.charset(os.chars),
         multiChars: utility_1.charset(os.multiChars),
-        escMap: { ...os.escape },
+        escMap: utility_1.clean({ ...os.escape }),
         escChar: os.escapeChar,
         escCharCode: os.escapeChar.charCodeAt(0),
+        allowUnknown: !!os.allowUnknown,
     };
     return function stringMatcher(lex) {
         let mcfg = cfg.string;
         if (!mcfg.lex)
             return undefined;
-        let { quoteMap, escMap, escChar, escCharCode, multiChars } = mcfg;
+        let { quoteMap, escMap, escChar, escCharCode, multiChars, allowUnknown, } = mcfg;
         let { pnt, src } = lex;
         let { sI, rI, cI } = pnt;
         let srclen = src.length;
@@ -334,8 +335,13 @@ let makeStringMatcher = (cfg, opts) => {
                         sI += (ulen - 1) + ux; // Loop increments sI.
                         cI += ulen + ux;
                     }
-                    else {
+                    else if (allowUnknown) {
                         s.push(src[sI]);
+                    }
+                    else {
+                        pnt.sI = sI;
+                        pnt.cI = cI - 1;
+                        return lex.bad(utility_1.S.unexpected, sI, sI + 1);
                     }
                 }
                 // Body part of string.

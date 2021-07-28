@@ -121,6 +121,7 @@ declare type Config = {
         escChar: string;
         escCharCode: number;
         multiChars: Chars;
+        allowUnknown: boolean;
     };
     value: {
         lex: boolean;
@@ -193,5 +194,6 @@ declare function srcfmt(config: Config): (s: any, _?: any) => string;
 declare function snip(s: any, len?: number): string;
 declare function clone(class_instance: any): any;
 declare function charset(...parts: (string | object | boolean)[]): Chars;
+declare function clean<T>(o: T): T;
 export type { Chars, Config, Context, KV, RuleState, StrMap, };
-export { OPEN, CLOSE, JsonicError, MT, S, Token, assign, badlex, deep, defprop, entries, errdesc, errinject, extract, keys, makelog, mesc, regexp, escre, tokenize, trimstk, srcfmt, clone, charset, snip, configure, map, };
+export { OPEN, CLOSE, JsonicError, MT, S, Token, assign, badlex, deep, defprop, entries, errdesc, errinject, extract, keys, makelog, mesc, regexp, escre, tokenize, trimstk, srcfmt, clone, charset, snip, configure, map, clean, };

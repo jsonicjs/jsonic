@@ -1,7 +1,7 @@
 "use strict";
 /* Copyright (c) 2013-2021 Richard Rodger, MIT License */
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.map = exports.configure = exports.snip = exports.charset = exports.clone = exports.srcfmt = exports.trimstk = exports.tokenize = exports.escre = exports.regexp = exports.mesc = exports.makelog = exports.keys = exports.extract = exports.errinject = exports.errdesc = exports.entries = exports.defprop = exports.deep = exports.badlex = exports.assign = exports.Token = exports.S = exports.MT = exports.JsonicError = exports.CLOSE = exports.OPEN = void 0;
+exports.clean = exports.map = exports.configure = exports.snip = exports.charset = exports.clone = exports.srcfmt = exports.trimstk = exports.tokenize = exports.escre = exports.regexp = exports.mesc = exports.makelog = exports.keys = exports.extract = exports.errinject = exports.errdesc = exports.entries = exports.defprop = exports.deep = exports.badlex = exports.assign = exports.Token = exports.S = exports.MT = exports.JsonicError = exports.CLOSE = exports.OPEN = void 0;
 const lexer_1 = require("./lexer");
 Object.defineProperty(exports, "Token", { enumerable: true, get: function () { return lexer_1.Token; } });
 const OPEN = 'o';
@@ -433,4 +433,14 @@ function charset(...parts) {
         .reduce((a, c) => (a[c] = c.charCodeAt(0), a), {});
 }
 exports.charset = charset;
+// Remove all properties with values null or undefined. Note: mutates argument.
+function clean(o) {
+    for (let p in o) {
+        if (null == o[p]) {
+            delete o[p];
+        }
+    }
+    return o;
+}
+exports.clean = clean;
 //# sourceMappingURL=utility.js.map

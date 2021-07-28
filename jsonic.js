@@ -5,6 +5,7 @@ exports.make = exports.util = exports.Token = exports.RuleSpec = exports.Rule = 
 /*  jsonic.ts
  *  Entry point and API.
  */
+// TODO: consistent use of clean on options to allow null to mean 'remove property'
 // TODO: [,,,] syntax should match JS!
 // TODO: rename tokens to be user friendly
 // TODO: if token recognized, error needs to be about token, not characters
@@ -28,7 +29,6 @@ exports.make = exports.util = exports.Token = exports.RuleSpec = exports.Rule = 
 // TODO: lex matcher should be able to explicitly disable rest of state logic
 // TODO: option to control comma null insertion
 // TODO: {,} should fail ({,,...} does).
-// TODO: import of plugins convenience: import { Foo, Bar } from 'jsonic/plugin'
 // # Conventions
 //
 // ## Token names

@@ -69,6 +69,7 @@ declare type Options = {
         escape: {
             [char: string]: string;
         };
+        allowUnknown: boolean;
     };
     map: {
         extend: boolean;

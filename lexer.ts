@@ -24,6 +24,7 @@ import {
   regexp,
   escre,
   charset,
+  clean,
 } from './utility'
 
 
@@ -394,9 +395,10 @@ let makeStringMatcher: MakeLexMatcher = (cfg: Config, opts: Options) => {
     lex: !!os.lex,
     quoteMap: charset(os.chars),
     multiChars: charset(os.multiChars),
-    escMap: { ...os.escape },
+    escMap: clean({ ...os.escape }),
     escChar: os.escapeChar,
     escCharCode: os.escapeChar.charCodeAt(0),
+    allowUnknown: !!os.allowUnknown,
   }
 
   return function stringMatcher(lex: Lex) {
@@ -408,7 +410,8 @@ let makeStringMatcher: MakeLexMatcher = (cfg: Config, opts: Options) => {
       escMap,
       escChar,
       escCharCode,
-      multiChars
+      multiChars,
+      allowUnknown,
     } = mcfg
 
     let { pnt, src } = lex
@@ -498,8 +501,13 @@ let makeStringMatcher: MakeLexMatcher = (cfg: Config, opts: Options) => {
             sI += (ulen - 1) + ux // Loop increments sI.
             cI += ulen + ux
           }
-          else {
+          else if (allowUnknown) {
             s.push(src[sI])
+          }
+          else {
+            pnt.sI = sI
+            pnt.cI = cI - 1
+            return lex.bad(S.unexpected, sI, sI + 1)
           }
         }
 

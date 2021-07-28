@@ -133,7 +133,7 @@ type Chars = { [char: string]: number }
 type StrMap = { [name: string]: string }
 
 
-// Internal configuration built from options by `configure`.
+// Internal clean configuration built from options by `configure` and LexMatchers.
 type Config = {
 
   lex: {
@@ -191,6 +191,7 @@ type Config = {
     escChar: string,
     escCharCode: number,
     multiChars: Chars,
+    allowUnknown: boolean,
   }
 
   // Literal values
@@ -719,6 +720,18 @@ function charset(...parts: (string | object | boolean)[]): Chars {
 }
 
 
+// Remove all properties with values null or undefined. Note: mutates argument.
+function clean<T>(o: T): T {
+  for (let p in o) {
+    if (null == o[p]) {
+      delete o[p]
+    }
+  }
+  return o
+}
+
+
+
 export type {
   Chars,
   Config,
@@ -756,4 +769,5 @@ export {
   snip,
   configure,
   map,
+  clean,
 }
