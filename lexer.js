@@ -243,6 +243,7 @@ let makeNumberMatcher = (cfg, _opts) => {
                             pnt.sI += mlen;
                             pnt.cI += mlen;
                         }
+                        // Else let later matchers try.
                     }
                 }
             }

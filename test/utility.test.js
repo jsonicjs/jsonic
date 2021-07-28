@@ -13,6 +13,12 @@ const describe = lab.describe
 const it = lab.it
 const expect = Code.expect
 
+
+const {
+  filterRules,
+  omap,
+} = require('../utility')
+
 const { util, Jsonic } = require('..')
 const {
   deep,
@@ -27,13 +33,15 @@ const {
   trimstk,
   configure,
   TIME,
-  } = util
+} = util
 
 
 const I = Util.inspect
 
+const D = (o)=>console.dir(o,{depth:null})
 
-describe('util', () => {
+
+describe('utility', () => {
 
   it('configure', () => {
     let c = {t:{},tI:0,lex:{}}
@@ -53,6 +61,10 @@ describe('util', () => {
       line: {},
       lex: {
         match: [],
+      },
+      rule: {
+        include: '',
+        exclude: '',
       },
       config: {
         modify: {}
@@ -670,4 +682,55 @@ describe('util', () => {
     expect(d1.message).includes('unknown-hint')
 
   })
+
+
+  it('filterRules', ()=>{
+    let F = (r,c)=>
+        omap(filterRules(deep({},r),{rule:c}),([k,v])=>[k,v.map(r=>r.x).join('')])
+    let DF = (r,c)=>D(F(r,c))
+
+    let rs0 = {
+      open: [
+        {x:1, g:'a0,a1'},
+        {x:2, g:'a0,a2'},
+        {x:3, g:'a1,a2'},
+        {x:4, g:'a3,a4'},
+      ],
+      close: []
+    }
+
+    expect(F(rs0, { include: [], exclude: []}))
+      .equals({ open: '1234', close: '' })
+    expect(F(rs0, { include: ['a0'], exclude: []}))
+      .equals({ open: '12', close: '' })
+    expect(F(rs0, { include: ['a1'], exclude: []}))
+      .equals({ open: '13', close: '' })
+    expect(F(rs0, { include: ['x0'], exclude: []}))
+      .equals({ open: '', close: '' })
+    expect(F(rs0, { include: ['a1','a2'], exclude: []}))
+      .equals({ open: '123', close: '' })
+
+
+    let rs1 = {
+      open: [
+        {x:1, g:'a0,a1'},
+        {x:2, g:'a0,a2'},
+        {x:3, g:'a1,a2'},
+        {x:4, g:'a3,a4'},
+      ],
+      close: []
+    }
+
+    expect(F(rs1, { include: [], exclude: []}))
+      .equals({ open: '1234', close: '' })
+    expect(F(rs1, { include: [], exclude: ['a0']}))
+      .equals({ open: '34', close: '' })
+    expect(F(rs1, { include: [], exclude: ['a1']}))
+      .equals({ open: '24', close: '' })
+    expect(F(rs1, { include: [], exclude: ['x0']}))
+      .equals({ open: '1234', close: '' })
+    expect(F(rs1, { include: [], exclude: ['a1','a2']}))
+      .equals({ open: '4', close: '' })
+
+  }) 
 })

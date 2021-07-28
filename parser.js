@@ -267,13 +267,13 @@ class RuleSpec {
 }
 exports.RuleSpec = RuleSpec;
 class Parser {
-    constructor(options, config) {
+    constructor(options, cfg) {
         this.rsm = {};
         this.options = options;
-        this.config = config;
+        this.cfg = cfg;
     }
     init() {
-        let t = this.config.t;
+        let t = this.cfg.t;
         let OB = t.OB;
         let CB = t.CB;
         let OS = t.OS;
@@ -459,7 +459,8 @@ class Parser {
         };
         // TODO: just create the RuleSpec directly
         this.rsm = utility_1.keys(rules).reduce((rsm, rn) => {
-            rsm[rn] = new RuleSpec(rules[rn]);
+            rsm[rn] = new RuleSpec(utility_1.filterRules(rules[rn], this.cfg));
+            //rsm[rn] = new RuleSpec(rules[rn])
             rsm[rn].name = rn;
             return rsm;
         }, {});
@@ -485,11 +486,11 @@ class Parser {
     }
     start(src, jsonic, meta, parent_ctx) {
         let root;
-        let endtkn = new utility_1.Token('#ZZ', utility_1.tokenize('#ZZ', this.config), undefined, utility_1.MT, new lexer_1.Point(-1));
+        let endtkn = new utility_1.Token('#ZZ', utility_1.tokenize('#ZZ', this.cfg), undefined, utility_1.MT, new lexer_1.Point(-1));
         let ctx = {
             uI: 1,
             opts: this.options,
-            cfg: this.config,
+            cfg: this.cfg,
             meta: meta || {},
             src: () => src,
             root: () => root.node,
@@ -505,13 +506,13 @@ class Parser {
             rs: [],
             rsm: this.rsm,
             log: (meta && meta.log) || undefined,
-            F: utility_1.srcfmt(this.config),
+            F: utility_1.srcfmt(this.cfg),
             use: {}
         };
         ctx = utility_1.deep(ctx, parent_ctx);
         utility_1.makelog(ctx);
-        let tn = (pin) => utility_1.tokenize(pin, this.config);
-        let lex = utility_1.badlex(new lexer_1.Lex(ctx), utility_1.tokenize('#BD', this.config), ctx);
+        let tn = (pin) => utility_1.tokenize(pin, this.cfg);
+        let lex = utility_1.badlex(new lexer_1.Lex(ctx), utility_1.tokenize('#BD', this.cfg), ctx);
         let startspec = this.rsm[this.options.rule.start];
         if (null == startspec) {
             return undefined;
@@ -556,7 +557,7 @@ class Parser {
             rI++;
         }
         // TODO: option to allow trailing content
-        if (utility_1.tokenize('#ZZ', this.config) !== ctx.t0.tin) {
+        if (utility_1.tokenize('#ZZ', this.cfg) !== ctx.t0.tin) {
             throw new utility_1.JsonicError(utility_1.S.unexpected, {}, ctx.t0, NONE, ctx);
         }
         // NOTE: by returning root, we get implicit closing of maps and lists.

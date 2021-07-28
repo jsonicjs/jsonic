@@ -43,6 +43,7 @@ const parser_1 = require("./parser");
 Object.defineProperty(exports, "Parser", { enumerable: true, get: function () { return parser_1.Parser; } });
 Object.defineProperty(exports, "Rule", { enumerable: true, get: function () { return parser_1.Rule; } });
 Object.defineProperty(exports, "RuleSpec", { enumerable: true, get: function () { return parser_1.RuleSpec; } });
+// TODO: remove - too much for an API!
 let util = {
     tokenize: utility_1.tokenize,
     srcfmt: utility_1.srcfmt,

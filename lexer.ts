@@ -376,6 +376,7 @@ let makeNumberMatcher: MakeLexMatcher = (cfg: Config, _opts: Options) => {
               pnt.sI += mlen
               pnt.cI += mlen
             }
+            // Else let later matchers try.
           }
         }
       }

@@ -1,7 +1,7 @@
 "use strict";
 /* Copyright (c) 2013-2021 Richard Rodger, MIT License */
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.clean = exports.map = exports.configure = exports.snip = exports.charset = exports.clone = exports.srcfmt = exports.trimstk = exports.tokenize = exports.escre = exports.regexp = exports.mesc = exports.makelog = exports.keys = exports.extract = exports.errinject = exports.errdesc = exports.entries = exports.defprop = exports.deep = exports.badlex = exports.assign = exports.Token = exports.S = exports.MT = exports.JsonicError = exports.CLOSE = exports.OPEN = void 0;
+exports.filterRules = exports.clean = exports.omap = exports.configure = exports.snip = exports.charset = exports.clone = exports.srcfmt = exports.trimstk = exports.tokenize = exports.escre = exports.regexp = exports.mesc = exports.makelog = exports.keys = exports.extract = exports.errinject = exports.errdesc = exports.entries = exports.defprop = exports.deep = exports.badlex = exports.assign = exports.Token = exports.S = exports.MT = exports.JsonicError = exports.CLOSE = exports.OPEN = void 0;
 const lexer_1 = require("./lexer");
 Object.defineProperty(exports, "Token", { enumerable: true, get: function () { return lexer_1.Token; } });
 const OPEN = 'o';
@@ -18,16 +18,21 @@ const assign = Object.assign;
 exports.assign = assign;
 const defprop = Object.defineProperty;
 exports.defprop = defprop;
-const map = (o, f) => {
+const omap = (o, f) => {
     return Object
         .entries(o)
         .reduce((o, e) => {
         let me = f(e);
-        o[me[0]] = me[1];
+        if (undefined === me[0]) {
+            delete o[e[0]];
+        }
+        else {
+            o[me[0]] = me[1];
+        }
         return o;
     }, {});
 };
-exports.map = map;
+exports.omap = omap;
 // A bit pedantic, but let's be strict about strings.
 // Also improves minification a little.
 const S = {
@@ -111,7 +116,7 @@ function configure(incfg, opts) {
     cfg.fixed = {
         lex: !!opts.fixed.lex,
         //token: map(opts.fixed.token, ([name, src]: [string, string]) => [src, t(name)])
-        token: map(opts.fixed.token, ([name, src]) => [src, tokenize(name, cfg)])
+        token: omap(opts.fixed.token, ([name, src]) => [src, tokenize(name, cfg)])
     };
     cfg.tokenSet = {
         ignore: Object.fromEntries(opts.tokenSet.ignore.map(tn => [t(tn), true]))
@@ -149,6 +154,10 @@ function configure(incfg, opts) {
         // 'Infinity': { v: Infinity },
         // '+Infinity': { v: +Infinity },
         // '-Infinity': { v: -Infinity },
+    };
+    cfg.rule = {
+        include: opts.rule.include.split(/\s*,+\s*/).filter(g => '' !== g),
+        exclude: opts.rule.exclude.split(/\s*,+\s*/).filter(g => '' !== g),
     };
     let fixedSorted = Object.keys(cfg.fixed.token)
         .sort((a, b) => b.length - a.length);
@@ -443,4 +452,21 @@ function clean(o) {
     return o;
 }
 exports.clean = clean;
+function filterRules(rulespec, cfg) {
+    let rsnames = ['open', 'close'];
+    for (let rsn of rsnames) {
+        rulespec[rsn] = rulespec[rsn]
+            // Convert comma separated rule group name list to string[]. 
+            .map((rs) => ((rs.g = 'string' === typeof rs.g ?
+            (rs.g || '').split(/\s*,+\s*/) :
+            (rs.g || [])),
+            rs))
+            // Keep rule if any group name matches, or if there are no includes.
+            .filter((rs) => cfg.rule.include.reduce((a, g) => (a || (-1 !== rs.g.indexOf(g))), 0 === cfg.rule.include.length))
+            // Drop rule if any group name matches, unless there are no excludes.
+            .filter((rs) => cfg.rule.exclude.reduce((a, g) => (a && (-1 === rs.g.indexOf(g))), true));
+    }
+    return rulespec;
+}
+exports.filterRules = filterRules;
 //# sourceMappingURL=utility.js.map

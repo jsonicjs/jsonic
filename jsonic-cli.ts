@@ -56,6 +56,9 @@ export async function run(argv: string[], console: Console) {
       else if ('--plugin' === arg || '-p' === arg) {
         args.plugins.push(argv[++aI])
       }
+      else {
+        args.sources.push(arg)
+      }
     }
     else {
       args.sources.push(arg)
@@ -133,6 +136,7 @@ async function read_stdin(console: Console) {
 // NOTE: uses vanilla Jsonic to parse arg vals, so you can set complex properties.
 function handle_props(propvals: string[]): KV {
   let out = {}
+
   for (let propval of propvals) {
     let pv = propval.split(/=/)
     if ('' !== pv[0] && '' !== pv[1]) {

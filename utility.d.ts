@@ -23,7 +23,7 @@ declare const assign: {
     (target: object, ...sources: any[]): any;
 };
 declare const defprop: (o: any, p: PropertyKey, attributes: PropertyDescriptor & ThisType<any>) => any;
-declare const map: (o: any, f: any) => any;
+declare const omap: (o: any, f: any) => any;
 declare const S: {
     object: string;
     string: string;
@@ -84,6 +84,10 @@ declare type StrMap = {
 declare type Config = {
     lex: {
         match: LexMatcher[];
+    };
+    rule: {
+        include: string[];
+        exclude: string[];
     };
     fixed: {
         lex: boolean;
@@ -195,5 +199,6 @@ declare function snip(s: any, len?: number): string;
 declare function clone(class_instance: any): any;
 declare function charset(...parts: (string | object | boolean)[]): Chars;
 declare function clean<T>(o: T): T;
+declare function filterRules(rulespec: any, cfg: Config): any;
 export type { Chars, Config, Context, KV, RuleState, StrMap, };
-export { OPEN, CLOSE, JsonicError, MT, S, Token, assign, badlex, deep, defprop, entries, errdesc, errinject, extract, keys, makelog, mesc, regexp, escre, tokenize, trimstk, srcfmt, clone, charset, snip, configure, map, clean, };
+export { OPEN, CLOSE, JsonicError, MT, S, Token, assign, badlex, deep, defprop, entries, errdesc, errinject, extract, keys, makelog, mesc, regexp, escre, tokenize, trimstk, srcfmt, clone, charset, snip, configure, omap, clean, filterRules, };

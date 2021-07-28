@@ -102,6 +102,8 @@ declare type Options = {
         start: string;
         finish: boolean;
         maxmul: number;
+        include: string;
+        exclude: string;
     };
     config: {
         modify: {

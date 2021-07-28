@@ -172,6 +172,7 @@ describe('feature', function () {
     expect(j('+1')).equals(1)
     expect(j('0')).equals(0)
     expect(j('0.9')).equals(0.9)
+    expect(j('-0.9')).equals(-0.9)
     expect(j('[1]')).equals([1])
     expect(j('a:1')).equals({a:1})
     expect(j('1:a')).equals({'1':'a'})
@@ -194,6 +195,10 @@ describe('feature', function () {
     expect(j('0o_12')).equals(10)
     expect(j('0b_1010')).equals(10)
     expect(j('1e6:a')).equals({'1e6':'a'}) // NOTE: "1e6" not "1000000"
+    expect(j('01')).equals(1)
+    expect(j('-01')).equals(-1)
+    expect(j('0099')).equals(99)
+    expect(j('-0099')).equals(-99)
 
     expect(j('a:1')).equals({a:1})
     expect(j('a:-1')).equals({a:-1})
@@ -230,6 +235,11 @@ describe('feature', function () {
     expect(j('1-')).equals('1-')
     expect(j('1-+')).equals('1-+')
 
+    // partial numbers are converted to text
+    expect(j('-')).equals('-')
+    expect(j('.0')).equals('.0')
+    
+    
     
     let jn = j.make({ number: { lex: false } })
     expect(jn('1')).equals('1') // Now it's a string.
@@ -276,6 +286,9 @@ describe('feature', function () {
     expect(js1('a:1 0')).equals({a:10})
     expect(js1('a:1 0, b : 2 000 ')).equals({a:10,b:2000})
     expect(j('1_0')).equals(10)
+
+
+    
   })
 
   

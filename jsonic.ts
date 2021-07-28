@@ -218,9 +218,11 @@ type Options = {
     match: MakeLexMatcher[]
   }
   rule: {
-    start: string,
-    finish: boolean,
-    maxmul: number,
+    start: string
+    finish: boolean
+    maxmul: number
+    include: string
+    exclude: string
   },
   config: {
     modify: { [plugin_name: string]: (config: Config, options: Options) => void }
@@ -251,7 +253,7 @@ type Options = {
 
 
 
-
+// TODO: remove - too much for an API!
 let util = {
   tokenize,
   srcfmt,

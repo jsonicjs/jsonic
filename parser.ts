@@ -23,6 +23,7 @@ import {
   clone,
   OPEN,
   CLOSE,
+  filterRules,
 } from './utility'
 
 
@@ -446,16 +447,16 @@ type RuleDefiner = (rs: RuleSpec, rsm: RuleSpecMap) => RuleSpec
 
 class Parser {
   options: Options
-  config: Config
+  cfg: Config
   rsm: RuleSpecMap = {}
 
-  constructor(options: Options, config: Config) {
+  constructor(options: Options, cfg: Config) {
     this.options = options
-    this.config = config
+    this.cfg = cfg
   }
 
   init() {
-    let t = this.config.t
+    let t = this.cfg.t
 
     let OB = t.OB
     let CB = t.CB
@@ -686,7 +687,8 @@ class Parser {
 
     // TODO: just create the RuleSpec directly
     this.rsm = keys(rules).reduce((rsm: any, rn: string) => {
-      rsm[rn] = new RuleSpec(rules[rn])
+      rsm[rn] = new RuleSpec(filterRules(rules[rn], this.cfg))
+      //rsm[rn] = new RuleSpec(rules[rn])
       rsm[rn].name = rn
       return rsm
     }, {})
@@ -730,7 +732,7 @@ class Parser {
 
     let endtkn = new Token(
       '#ZZ',
-      tokenize('#ZZ', this.config),
+      tokenize('#ZZ', this.cfg),
       undefined,
       MT,
       new Point(-1)
@@ -740,7 +742,7 @@ class Parser {
     let ctx: Context = {
       uI: 1,
       opts: this.options,
-      cfg: this.config,
+      cfg: this.cfg,
       meta: meta || {},
       src: () => src, // Avoid printing src
       root: () => root.node,
@@ -756,7 +758,7 @@ class Parser {
       rs: [],
       rsm: this.rsm,
       log: (meta && meta.log) || undefined,
-      F: srcfmt(this.config),
+      F: srcfmt(this.cfg),
       use: {}
     }
 
@@ -764,8 +766,8 @@ class Parser {
 
     makelog(ctx)
 
-    let tn = (pin: Tin): string => tokenize(pin, this.config)
-    let lex = badlex(new Lex(ctx), tokenize('#BD', this.config), ctx)
+    let tn = (pin: Tin): string => tokenize(pin, this.cfg)
+    let lex = badlex(new Lex(ctx), tokenize('#BD', this.cfg), ctx)
     let startspec = this.rsm[this.options.rule.start]
 
     if (null == startspec) {
@@ -829,7 +831,7 @@ class Parser {
     }
 
     // TODO: option to allow trailing content
-    if (tokenize('#ZZ', this.config) !== ctx.t0.tin) {
+    if (tokenize('#ZZ', this.cfg) !== ctx.t0.tin) {
       throw new JsonicError(S.unexpected, {}, ctx.t0, NONE, ctx)
     }
 

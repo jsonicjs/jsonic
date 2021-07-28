@@ -70,9 +70,9 @@ declare type RuleSpecMap = {
 declare type RuleDefiner = (rs: RuleSpec, rsm: RuleSpecMap) => RuleSpec;
 declare class Parser {
     options: Options;
-    config: Config;
+    cfg: Config;
     rsm: RuleSpecMap;
-    constructor(options: Options, config: Config);
+    constructor(options: Options, cfg: Config);
     init(): void;
     rule(name?: string, define?: RuleDefiner): RuleSpec | RuleSpecMap;
     start(src: string, jsonic: Jsonic, meta?: any, parent_ctx?: any): any;

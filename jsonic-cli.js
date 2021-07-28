@@ -51,6 +51,9 @@ async function run(argv, console) {
             else if ('--plugin' === arg || '-p' === arg) {
                 args.plugins.push(argv[++aI]);
             }
+            else {
+                args.sources.push(arg);
+            }
         }
         else {
             args.sources.push(arg);

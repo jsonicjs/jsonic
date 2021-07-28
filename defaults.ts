@@ -261,6 +261,9 @@ const defaults: Options = {
 
     // Multiplier to increase the maximum number of rule occurences.
     maxmul: 3,
+
+    include: '',
+    exclude: '',
   },
 
 

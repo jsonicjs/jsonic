@@ -39,12 +39,17 @@ const entries = Object.entries
 const assign = Object.assign
 const defprop = Object.defineProperty
 
-const map = (o: any, f: any) => {
+const omap = (o: any, f: any) => {
   return Object
     .entries(o)
     .reduce((o: any, e: any) => {
       let me = f(e)
-      o[me[0]] = me[1]
+      if (undefined === me[0]) {
+        delete o[e[0]]
+      }
+      else {
+        o[me[0]] = me[1]
+      }
       return o
     }, {})
 }
@@ -138,6 +143,11 @@ type Config = {
 
   lex: {
     match: LexMatcher[],
+  }
+
+  rule: {
+    include: string[]
+    exclude: string[]
   }
 
   // Fixed tokens (punctuation, operators, keywords, etc.)
@@ -282,7 +292,7 @@ function configure(incfg: Config | undefined, opts: Options): Config {
   cfg.fixed = {
     lex: !!opts.fixed.lex,
     //token: map(opts.fixed.token, ([name, src]: [string, string]) => [src, t(name)])
-    token: map(opts.fixed.token,
+    token: omap(opts.fixed.token,
       ([name, src]: [string, string]) => [src, tokenize(name, cfg)])
   }
 
@@ -333,6 +343,11 @@ function configure(incfg: Config | undefined, opts: Options): Config {
     // '-Infinity': { v: -Infinity },
   }
 
+
+  cfg.rule = {
+    include: opts.rule.include.split(/\s*,+\s*/).filter(g => '' !== g),
+    exclude: opts.rule.exclude.split(/\s*,+\s*/).filter(g => '' !== g),
+  }
 
 
   let fixedSorted = Object.keys(cfg.fixed.token)
@@ -730,6 +745,33 @@ function clean<T>(o: T): T {
   return o
 }
 
+function filterRules(rulespec: any, cfg: Config) {
+  let rsnames = ['open', 'close']
+  for (let rsn of rsnames) {
+    rulespec[rsn] = rulespec[rsn]
+
+      // Convert comma separated rule group name list to string[]. 
+      .map((rs: any) => (
+        (rs.g = 'string' === typeof rs.g ?
+          (rs.g || '').split(/\s*,+\s*/) :
+          (rs.g || [])),
+        rs
+      ))
+
+      // Keep rule if any group name matches, or if there are no includes.
+      .filter((rs: any) =>
+        cfg.rule.include.reduce((a, g) =>
+          (a || (-1 !== rs.g.indexOf(g))), 0 === cfg.rule.include.length))
+
+      // Drop rule if any group name matches, unless there are no excludes.
+      .filter((rs: any) =>
+        cfg.rule.exclude.reduce((a, g) =>
+          (a && (-1 === rs.g.indexOf(g))), true))
+
+  }
+
+  return rulespec
+}
 
 
 export type {
@@ -768,6 +810,7 @@ export {
   charset,
   snip,
   configure,
-  map,
+  omap,
   clean,
+  filterRules,
 }

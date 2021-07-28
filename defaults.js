@@ -183,6 +183,8 @@ const defaults = {
         finish: true,
         // Multiplier to increase the maximum number of rule occurences.
         maxmul: 3,
+        include: '',
+        exclude: '',
     },
     // Configuration options.
     config: {
