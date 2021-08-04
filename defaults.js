@@ -123,6 +123,7 @@ const defaults = {
     },
     // Object formats.
     map: {
+        // TODO: or trigger error?
         // Later duplicates extend earlier ones, rather than replacing them.
         extend: true,
         // Custom merge function for duplicates (optional).

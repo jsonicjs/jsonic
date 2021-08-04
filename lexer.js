@@ -169,8 +169,6 @@ let makeTextMatcher = (cfg, _opts) => {
     let ender = utility_1.regexp(cfg.line.lex ? null : 's', '^(.*?)', ...cfg.rePart.ender);
     return function textMatcher(lex) {
         let mcfg = cfg.text;
-        if (!mcfg.lex)
-            return undefined;
         let pnt = lex.pnt;
         let fwd = lex.src.substring(pnt.sI);
         let vm = cfg.value.map;
@@ -186,15 +184,22 @@ let makeTextMatcher = (cfg, _opts) => {
                     let vs = undefined;
                     if (cfg.value.lex && undefined !== (vs = vm[msrc])) {
                         out = lex.token('#VL', vs.val, msrc, pnt);
+                        pnt.sI += mlen;
+                        pnt.cI += mlen;
                     }
-                    else {
+                    else if (mcfg.lex) {
                         out = lex.token('#TX', msrc, msrc, pnt);
+                        pnt.sI += mlen;
+                        pnt.cI += mlen;
                     }
-                    pnt.sI += mlen;
-                    pnt.cI += mlen;
                 }
             }
-            out = subMatchFixed(lex, out, tsrc);
+            // A following fixed token can only match if there was already a
+            // valid text or value match.
+            if (out) {
+                out = subMatchFixed(lex, out, tsrc);
+            }
+            // console.log('TX out', out)
             return out;
         }
     };

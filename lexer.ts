@@ -278,8 +278,6 @@ let makeTextMatcher: MakeLexMatcher = (cfg: Config, _opts: Options) => {
 
   return function textMatcher(lex: Lex) {
     let mcfg = cfg.text
-    if (!mcfg.lex) return undefined
-
     let pnt = lex.pnt
     let fwd = lex.src.substring(pnt.sI)
     let vm = cfg.value.map
@@ -301,17 +299,25 @@ let makeTextMatcher: MakeLexMatcher = (cfg: Config, _opts: Options) => {
           let vs = undefined
           if (cfg.value.lex && undefined !== (vs = vm[msrc])) {
             out = lex.token('#VL', vs.val, msrc, pnt)
+            pnt.sI += mlen
+            pnt.cI += mlen
           }
-          else {
+          else if (mcfg.lex) {
             out = lex.token('#TX', msrc, msrc, pnt)
+            pnt.sI += mlen
+            pnt.cI += mlen
           }
-          pnt.sI += mlen
-          pnt.cI += mlen
         }
       }
 
-      out = subMatchFixed(lex, out, tsrc)
-
+      // A following fixed token can only match if there was already a
+      // valid text or value match.
+      if(out) {
+        out = subMatchFixed(lex, out, tsrc)
+      }
+      
+      // console.log('TX out', out)
+      
       return out
     }
   }

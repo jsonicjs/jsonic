@@ -5,6 +5,7 @@
  */
 
 
+// TODO: Jsonic.make('json') - preset plain JSON options - see variant test just-json
 // TODO: consistent use of clean on options to allow null to mean 'remove property'
 // TODO: [,,,] syntax should match JS!
 // TODO: rename tokens to be user friendly
@@ -343,21 +344,6 @@ function make(param_options?: KV, parent?: Jsonic): Jsonic {
       return jsonic.internal().parser.rule(name, define)
     },
 
-    /*
-    lex: (
-      match: LexMatcher | undefined,
-      modify: (mat: LexMatcher[]) => void) => {
-      let lexer = jsonic.internal().lexer
-      if (null != match) {
-        lexer.mat.unshift(match)
-      }
-      if (null != modify) {
-        modify(lexer.mat)
-      }
-      return lexer.mat
-    },
-    */
-
     lex: (matchmaker: MakeLexMatcher) => {
       let match = merged_options.lex.match
       match.unshift(matchmaker)
@@ -437,6 +423,7 @@ function make(param_options?: KV, parent?: Jsonic): Jsonic {
 }
 
 
+// TODO: move to utility
 function parserwrap(parser: any) {
   return {
     start: function(

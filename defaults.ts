@@ -181,6 +181,7 @@ const defaults: Options = {
   // Object formats.
   map: {
 
+    // TODO: or trigger error?
     // Later duplicates extend earlier ones, rather than replacing them.
     extend: true,
 

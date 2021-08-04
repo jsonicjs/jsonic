@@ -5,6 +5,7 @@ exports.make = exports.util = exports.Token = exports.RuleSpec = exports.Rule = 
 /*  jsonic.ts
  *  Entry point and API.
  */
+// TODO: Jsonic.make('json') - preset plain JSON options - see variant test just-json
 // TODO: consistent use of clean on options to allow null to mean 'remove property'
 // TODO: [,,,] syntax should match JS!
 // TODO: rename tokens to be user friendly
@@ -108,20 +109,6 @@ function make(param_options, parent) {
         rule: function rule(name, define) {
             return jsonic.internal().parser.rule(name, define);
         },
-        /*
-        lex: (
-          match: LexMatcher | undefined,
-          modify: (mat: LexMatcher[]) => void) => {
-          let lexer = jsonic.internal().lexer
-          if (null != match) {
-            lexer.mat.unshift(match)
-          }
-          if (null != modify) {
-            modify(lexer.mat)
-          }
-          return lexer.mat
-        },
-        */
         lex: (matchmaker) => {
             let match = merged_options.lex.match;
             match.unshift(matchmaker);
@@ -178,6 +165,7 @@ function make(param_options, parent) {
     return jsonic;
 }
 exports.make = make;
+// TODO: move to utility
 function parserwrap(parser) {
     return {
         start: function (src, jsonic, meta, parent_ctx) {
