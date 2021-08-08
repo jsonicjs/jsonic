@@ -373,8 +373,8 @@ describe('utility', () => {
   it('badlex', () => {
     let ctx = {
       src:()=>'',
-      opts:{error:{unexpected:'unx'},hint:{unexpected:'unx'}},
-      cfg:{t:{}},
+      //opts:{error:{unexpected:'unx'},hint:{unexpected:'unx'}},
+      cfg:{t:{},error:{unexpected:'unx'},hint:{unexpected:'unx'}},
       plgn:()=>[],
     }
 
@@ -413,7 +413,7 @@ describe('utility', () => {
     let log = []
     let dir = []
 
-    let options = {
+    let cfg = {
       debug:{
         print: {
           config: true,
@@ -426,8 +426,8 @@ describe('utility', () => {
     }
     
     let g0 = makelog({})
-    let g1 = makelog({log:1,opts:options})
-    let g2 = makelog({log:-1,opts:options})
+    let g1 = makelog({log:1,cfg})
+    let g2 = makelog({log:-1,cfg})
 
     expect(g0).undefined()
 
@@ -446,7 +446,7 @@ describe('utility', () => {
 
     log = []
     dir = []
-    let j = Jsonic.make(options)
+    let j = Jsonic.make(cfg)
     j('a:1',{log:-1})
     expect(dir[0].debug.print.config).true()
   })
@@ -638,7 +638,10 @@ describe('utility', () => {
 
   it('errdesc', () => {
     let ctx0 = {
-      opts: {
+      cfg: {
+        t: {
+          1: '#T1',
+        },
         error: {
           foo: 'foo-code',
           unknown: 'unknown-code'
@@ -650,11 +653,6 @@ describe('utility', () => {
       },
       src: ()=>'src',
       plgn: ()=>[{name:'p0'}],
-      cfg: {
-        t: {
-          1: '#T1',
-        }
-      }
     }
     
     let d0 = errdesc(
@@ -686,17 +684,19 @@ describe('utility', () => {
 
   it('filterRules', ()=>{
     let F = (r,c)=>
-        omap(filterRules(deep({},r),{rule:c}),([k,v])=>[k,v.map(r=>r.x).join('')])
+        omap(filterRules(deep({},r),{rule:c}).def,([k,v])=>[k,v.map(r=>r.x).join('')])
     let DF = (r,c)=>D(F(r,c))
 
     let rs0 = {
-      open: [
-        {x:1, g:'a0,a1'},
-        {x:2, g:'a0,a2'},
-        {x:3, g:'a1,a2'},
-        {x:4, g:'a3,a4'},
-      ],
-      close: []
+      def: {
+        open: [
+          {x:1, g:'a0,a1'},
+          {x:2, g:'a0,a2'},
+          {x:3, g:'a1,a2'},
+          {x:4, g:'a3,a4'},
+        ],
+        close: []
+      }
     }
 
     expect(F(rs0, { include: [], exclude: []}))
@@ -712,13 +712,15 @@ describe('utility', () => {
 
 
     let rs1 = {
-      open: [
-        {x:1, g:'a0,a1'},
-        {x:2, g:'a0,a2'},
-        {x:3, g:'a1,a2'},
-        {x:4, g:'a3,a4'},
-      ],
-      close: []
+      def: {
+        open: [
+          {x:1, g:'a0,a1'},
+          {x:2, g:'a0,a2'},
+          {x:3, g:'a1,a2'},
+          {x:4, g:'a3,a4'},
+        ],
+        close: []
+      }
     }
 
     expect(F(rs1, { include: [], exclude: []}))

@@ -84,8 +84,12 @@ declare type StrMap = {
 declare type Config = {
     lex: {
         match: LexMatcher[];
+        empty: boolean;
     };
     rule: {
+        start: string;
+        maxmul: number;
+        finish: boolean;
         include: string[];
         exclude: string[];
     };
@@ -116,14 +120,14 @@ declare type Config = {
         oct: boolean;
         bin: boolean;
         sep: boolean;
-        sepChar?: string;
+        sepChar?: string | null;
     };
     string: {
         lex: boolean;
         quoteMap: Chars;
         escMap: KV;
-        escChar: string;
-        escCharCode: number;
+        escChar?: string;
+        escCharCode?: number;
         multiChars: Chars;
         allowUnknown: boolean;
     };
@@ -144,8 +148,10 @@ declare type Config = {
             lex: boolean;
         }[];
     };
-    rePart: any;
-    re: any;
+    map: {
+        extend: boolean;
+        merge?: (prev: any, curr: any) => any;
+    };
     debug: {
         get_console: () => any;
         maxlen: number;
@@ -153,6 +159,12 @@ declare type Config = {
             config: boolean;
         };
     };
+    error: {
+        [code: string]: string;
+    };
+    hint: any;
+    rePart: any;
+    re: any;
     tI: number;
     t: any;
 };
@@ -186,7 +198,7 @@ declare function mesc(s: string, _?: any): any;
 declare function regexp(flags: string | null, ...parts: (string | (String & {
     esc?: boolean;
 }))[]): RegExp;
-declare function escre(s: string): string;
+declare function escre(s: string | undefined): string;
 declare function deep(base?: any, ...rest: any): any;
 declare function errinject(s: string, code: string, details: KV, token: Token, rule: Rule, ctx: Context): string;
 declare function trimstk(err: Error): void;
@@ -197,8 +209,8 @@ declare function makelog(ctx: Context): ((...rest: any) => undefined) | undefine
 declare function srcfmt(config: Config): (s: any, _?: any) => string;
 declare function snip(s: any, len?: number): string;
 declare function clone(class_instance: any): any;
-declare function charset(...parts: (string | object | boolean)[]): Chars;
+declare function charset(...parts: (string | object | boolean | undefined)[]): Chars;
 declare function clean<T>(o: T): T;
-declare function filterRules(rulespec: any, cfg: Config): any;
+declare function filterRules(rs: RuleSpec, cfg: Config): RuleSpec;
 export type { Chars, Config, Context, KV, RuleState, StrMap, };
 export { OPEN, CLOSE, JsonicError, MT, S, Token, assign, badlex, deep, defprop, entries, errdesc, errinject, extract, keys, makelog, mesc, regexp, escre, tokenize, trimstk, srcfmt, clone, charset, snip, configure, omap, clean, filterRules, };

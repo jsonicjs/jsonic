@@ -247,7 +247,10 @@ const defaults: Options = {
       makeCommentMatcher,
       makeNumberMatcher,
       makeTextMatcher,
-    ]
+    ],
+
+    // Empty string is allowed and returns undefined
+    empty: true
   },
 
 

@@ -287,7 +287,7 @@ class Parser {
         let ZZ = t.ZZ;
         let VAL = [TX, NR, ST, VL];
         let finish = (_rule, ctx) => {
-            if (!this.options.rule.finish) {
+            if (!this.cfg.rule.finish) {
                 // TODO: needs own error code
                 ctx.t0.src = utility_1.S.END_OF_SOURCE;
                 return ctx.t0;
@@ -387,14 +387,14 @@ class Parser {
                     // Match key-colon start of pair.
                     { s: [VAL, CL], p: utility_1.S.val, u: { key: true }, g: 'map,pair,key,json' },
                     // Ignore initial comma: {,a:1.
-                    { s: [CA], g: 'map,pair,ignore' },
+                    { s: [CA], g: 'map,pair,comma' },
                 ],
                 close: [
                     // End of map, reset implicit depth counter so that
                     // a:b:c:1,d:2 -> {a:{b:{c:1}},d:2}
                     { s: [CB], c: { n: { im: 0 } }, g: 'map,pair,json' },
                     // Ignore trailing comma at end of map.
-                    { s: [CA, CB], c: { n: { im: 0 } }, g: 'map,pair,ignore' },
+                    { s: [CA, CB], c: { n: { im: 0 } }, g: 'map,pair,comma' },
                     // Comma means a new pair at same level (unless implicit a:b:1,c:2).
                     { s: [CA], c: { n: { im: 0 } }, r: utility_1.S.pair, g: 'map,pair,json' },
                     // Who needs commas anyway?
@@ -423,8 +423,8 @@ class Parser {
                             val = null;
                         }
                         r.node[key] = null == prev ? val :
-                            (ctx.opts.map.merge ? ctx.opts.map.merge(prev, val) :
-                                (ctx.opts.map.extend ? utility_1.deep(prev, val) : val));
+                            (ctx.cfg.map.merge ? ctx.cfg.map.merge(prev, val) :
+                                (ctx.cfg.map.extend ? utility_1.deep(prev, val) : val));
                     }
                 },
             },
@@ -433,14 +433,22 @@ class Parser {
                 open: [
                     // Empty commas insert null elements.
                     // Note that close consumes a comma, so b:2 works.
-                    { s: [CA, CA], b: 2, a: (r) => r.node.push(null), g: 'list,elem,imp,null', },
-                    { s: [CA], a: (r) => r.node.push(null), g: 'list,elem,imp,null', },
+                    {
+                        s: [CA, CA], b: 2,
+                        a: (r) => r.node.push(null),
+                        g: 'list,elem,imp,null',
+                    },
+                    {
+                        s: [CA],
+                        a: (r) => r.node.push(null),
+                        g: 'list,elem,imp,null',
+                    },
                     // Anything else must a list element value.
                     { p: utility_1.S.val, g: 'list,elem,val,json' },
                 ],
                 close: [
                     // Ignore trailing comma.
-                    { s: [CA, CS], g: 'list,elem,ignore' },
+                    { s: [CA, CS], g: 'list,elem,comma' },
                     // Next element.
                     { s: [CA], r: utility_1.S.elem, g: 'list,elem,json' },
                     // Who needs commas anyway?
@@ -459,8 +467,7 @@ class Parser {
         };
         // TODO: just create the RuleSpec directly
         this.rsm = utility_1.keys(rules).reduce((rsm, rn) => {
-            rsm[rn] = new RuleSpec(utility_1.filterRules(rules[rn], this.cfg));
-            //rsm[rn] = new RuleSpec(rules[rn])
+            rsm[rn] = utility_1.filterRules(new RuleSpec(rules[rn]), this.cfg);
             rsm[rn].name = rn;
             return rsm;
         }, {});
@@ -511,9 +518,19 @@ class Parser {
         };
         ctx = utility_1.deep(ctx, parent_ctx);
         utility_1.makelog(ctx);
+        // Special case - avoids extra per-token tests in main parser rules.
+        if ('' === src) {
+            if (this.cfg.lex.empty) {
+                return undefined;
+            }
+            else {
+                throw new utility_1.JsonicError(utility_1.S.unexpected, { src }, ctx.t0, NONE, ctx);
+            }
+        }
         let tn = (pin) => utility_1.tokenize(pin, this.cfg);
         let lex = utility_1.badlex(new lexer_1.Lex(ctx), utility_1.tokenize('#BD', this.cfg), ctx);
-        let startspec = this.rsm[this.options.rule.start];
+        // let startspec = this.rsm[this.options.rule.start]
+        let startspec = this.rsm[this.cfg.rule.start];
         if (null == startspec) {
             return undefined;
         }
@@ -524,7 +541,7 @@ class Parser {
         // virtual (like map, list), and double for safety margin (allows
         // lots of backtracking), and apply a multipler options as a get-out-of-jail.
         let maxr = 2 * utility_1.keys(this.rsm).length * lex.src.length *
-            2 * this.options.rule.maxmul;
+            2 * ctx.cfg.rule.maxmul;
         let ignore = ctx.cfg.tokenSet.ignore;
         // Lex next token.
         function next() {
@@ -565,9 +582,10 @@ class Parser {
     }
     clone(options, config) {
         let parser = new Parser(options, config);
+        // Inherit rules from parent, filtered by config.rule
         parser.rsm = Object
             .keys(this.rsm)
-            .reduce((a, rn) => (a[rn] = utility_1.clone(this.rsm[rn]), a), {});
+            .reduce((a, rn) => (a[rn] = utility_1.filterRules(this.rsm[rn], this.cfg), a), {});
         return parser;
     }
 }

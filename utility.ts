@@ -55,6 +55,7 @@ const omap = (o: any, f: any) => {
 }
 
 
+
 // A bit pedantic, but let's be strict about strings.
 // Also improves minification a little.
 const S = {
@@ -142,10 +143,14 @@ type StrMap = { [name: string]: string }
 type Config = {
 
   lex: {
-    match: LexMatcher[],
+    match: LexMatcher[]
+    empty: boolean
   }
 
   rule: {
+    start: string
+    maxmul: number
+    finish: boolean
     include: string[]
     exclude: string[]
   }
@@ -190,7 +195,7 @@ type Config = {
     oct: boolean
     bin: boolean
     sep: boolean
-    sepChar?: string
+    sepChar?: string | null
   }
 
   // String quote characters.
@@ -198,8 +203,8 @@ type Config = {
     lex: boolean
     quoteMap: Chars,
     escMap: KV,
-    escChar: string,
-    escCharCode: number,
+    escChar?: string,
+    escCharCode?: number,
     multiChars: Chars,
     allowUnknown: boolean,
   }
@@ -220,9 +225,10 @@ type Config = {
     }[]
   }
 
-  rePart: any,
-
-  re: any,
+  map: {
+    extend: boolean
+    merge?: (prev: any, curr: any) => any
+  }
 
   debug: {
     get_console: () => any
@@ -232,6 +238,11 @@ type Config = {
     }
   }
 
+  error: { [code: string]: string }
+  hint: any
+
+  rePart: any,
+  re: any,
 
   tI: number // Token identifier index.
   t: any // Token index map.
@@ -271,7 +282,6 @@ function configure(incfg: Config | undefined, opts: Options): Config {
   const cfg = incfg || ({
     tI: 1, // Start at 1 to avoid spurious false value for first token
     t: {},
-    lex: {},
   } as Config)
 
   const t = (tn: string) => tokenize(tn, cfg)
@@ -290,45 +300,46 @@ function configure(incfg: Config | undefined, opts: Options): Config {
   t('#VL') // VALUE
 
   cfg.fixed = {
-    lex: !!opts.fixed.lex,
+    lex: !!opts.fixed?.lex,
     //token: map(opts.fixed.token, ([name, src]: [string, string]) => [src, t(name)])
-    token: omap(opts.fixed.token,
-      ([name, src]: [string, string]) => [src, tokenize(name, cfg)])
+    token: opts.fixed ? omap(opts.fixed.token,
+      ([name, src]: [string, string]) => [src, tokenize(name, cfg)]) : {}
   }
 
 
   cfg.tokenSet = {
-    ignore: Object.fromEntries(opts.tokenSet.ignore.map(tn => [t(tn), true]))
+    ignore: Object.fromEntries((opts.tokenSet?.ignore || []).map(tn => [t(tn), true]))
   }
 
   cfg.space = {
-    lex: !!opts.space.lex,
-    chars: charset(opts.space.chars)
+    lex: !!opts.space?.lex,
+    chars: charset(opts.space?.chars),
   }
 
   cfg.line = {
-    lex: !!opts.line.lex,
-    chars: charset(opts.line.chars),
-    rowChars: charset(opts.line.rowChars),
+    lex: !!opts.line?.lex,
+    chars: charset(opts.line?.chars),
+    rowChars: charset(opts.line?.rowChars),
   }
 
 
   cfg.text = {
-    lex: !!opts.text.lex,
+    // lex: opts.text ? !!opts.text.lex : false,
+    lex: !!opts.text?.lex,
   }
 
   cfg.number = {
-    lex: !!opts.number.lex,
-    hex: !!opts.number.hex,
-    oct: !!opts.number.oct,
-    bin: !!opts.number.bin,
-    sep: null != opts.number.sep && '' !== opts.number.sep,
-    sepChar: opts.number.sep,
+    lex: !!opts.number?.lex,
+    hex: !!opts.number?.hex,
+    oct: !!opts.number?.oct,
+    bin: !!opts.number?.bin,
+    sep: null != opts.number?.sep && '' !== opts.number.sep,
+    sepChar: opts.number?.sep,
   }
 
   cfg.value = {
-    lex: !!opts.value.lex,
-    map: opts.value.map,
+    lex: !!opts.value?.lex,
+    map: opts.value?.map || {},
 
     // map: {
     //   'true': { v: true },
@@ -345,8 +356,19 @@ function configure(incfg: Config | undefined, opts: Options): Config {
 
 
   cfg.rule = {
-    include: opts.rule.include.split(/\s*,+\s*/).filter(g => '' !== g),
-    exclude: opts.rule.exclude.split(/\s*,+\s*/).filter(g => '' !== g),
+    start: null == opts.rule?.start ? 'val' : opts.rule.start,
+    maxmul: null == opts.rule?.maxmul ? 3 : opts.rule.maxmul,
+    finish: !!opts.rule?.finish,
+    include: opts.rule?.include ?
+      opts.rule.include.split(/\s*,+\s*/).filter(g => '' !== g) : [],
+    exclude: opts.rule?.exclude ?
+      opts.rule.exclude.split(/\s*,+\s*/).filter(g => '' !== g) : [],
+  }
+
+
+  cfg.map = {
+    extend: !!opts.map?.extend,
+    merge: opts.map?.merge,
   }
 
 
@@ -355,7 +377,7 @@ function configure(incfg: Config | undefined, opts: Options): Config {
 
   let fixedRE = fixedSorted.map(fixed => escre(fixed)).join('|')
 
-  let commentStartRE = opts.comment.lex ? opts.comment.marker
+  let commentStartRE = opts.comment?.lex ? (opts.comment?.marker || [])
     .filter(c => c.lex)
     .map(c => '|' + escre(c.start)).join('')
     : ''
@@ -387,34 +409,42 @@ function configure(incfg: Config | undefined, opts: Options): Config {
     ender: regexp(null, ...enderRE),
 
     // TODO: prebuild these using a property on matcher?
-    rowChars: regexp(null, escre(opts.line.rowChars)),
+    rowChars: regexp(null, escre(opts.line?.rowChars)),
 
-    columns: regexp(null, '[' + escre(opts.line.chars) + ']', '(.*)$'),
+    columns: regexp(null, '[' + escre(opts.line?.chars) + ']', '(.*)$'),
 
   }
 
 
-  cfg.lex.match = opts.lex.match.map((maker: any) => maker(cfg, opts))
-
+  cfg.lex = {
+    empty: !!opts.lex?.empty,
+    match: opts.lex?.match ?
+      opts.lex.match.map((maker: any) => maker(cfg, opts)) : [],
+  }
 
   cfg.debug = {
-    get_console: opts.debug.get_console,
-    maxlen: opts.debug.maxlen,
+    get_console: opts.debug?.get_console || (() => console),
+    maxlen: null == opts.debug?.maxlen ? 99 : opts.debug.maxlen,
     print: {
-      config: opts.debug.print.config
+      config: !!opts.debug?.print?.config
     },
   }
 
 
-  // Apply any config modifiers (probably from plugins).
-  keys(opts.config.modify)
-    .forEach((modifer: string) =>
-      opts.config.modify[modifer](cfg, opts))
+  cfg.error = opts.error || {}
+  cfg.hint = opts.hint || {}
 
+
+  // Apply any config modifiers (probably from plugins).
+  if (opts.config?.modify) {
+    keys(opts.config.modify)
+      .forEach((modifer: string) =>
+        (opts.config as any).modify[modifer](cfg, opts))
+  }
 
   // Debug the config - useful for plugin authors.
-  if (opts.debug.print.config) {
-    opts.debug.get_console().dir(cfg, { depth: null })
+  if (cfg.debug.print.config) {
+    cfg.debug.get_console().dir(cfg, { depth: null })
   }
 
 
@@ -472,7 +502,7 @@ function regexp(
 }
 
 
-function escre(s: string) {
+function escre(s: string | undefined) {
   return null == s ? '' : s
     .replace(/[-\\|\]{}()[^$+*?.!=]/g, '\\$&')
     .replace(/\t/g, '\\t')
@@ -517,6 +547,9 @@ function deep(base?: any, ...rest: any): any {
 }
 
 
+// Inject value text into an error message. The value is taken from
+// the `details` parameter to JsonicError. If not defined, the value is
+// determined heuristically from the Token and Context.
 function errinject(
   s: string,
   code: string,
@@ -526,18 +559,18 @@ function errinject(
   ctx: Context
 ) {
   return s.replace(/\$([\w_]+)/g, (_m: any, name: string) => {
-    return JSON.stringify(
+    let instr = JSON.stringify(
       'code' === name ? code : (
-        details[name] ||
-        (ctx.meta ? ctx.meta[name] : undefined) ||
-        (token as KV)[name] ||
-        (rule as KV)[name] ||
-        (ctx as KV)[name] ||
-        (ctx.opts as any)[name] ||
-        (ctx.cfg as any)[name] ||
-        '$' + name
-      )
-    )
+        null != details[name] ? details[name] : (
+          (ctx.meta && null != ctx.meta[name]) ? ctx.meta[name] : (
+            null != (token as KV)[name] ? (token as KV)[name] : (
+              null != (rule as KV)[name] ? (rule as KV)[name] : (
+                null != (ctx.opts as any)[name] ? (ctx.opts as any)[name] : (
+                  null != (ctx.cfg as any)[name] ? (ctx.cfg as any)[name] :
+                    null != (ctx as KV)[name] ? (ctx as KV)[name] :
+                      '$' + name
+                )))))))
+    return instr
   })
 }
 
@@ -594,58 +627,63 @@ function errdesc(
   rule: Rule,
   ctx: Context,
 ): KV {
-  // token = { ...token }
-  let options = ctx.opts
-  let meta = ctx.meta
-  let errtxt = errinject(
-    (options.error[code] || options.error.unknown),
-    code, details, token, rule, ctx
-  )
+  try {
 
-  if (S.function === typeof (options.hint)) {
-    // Only expand the hints on demand. Allows for plugin-defined hints.
-    options.hint = { ...options.hint(), ...options.hint }
-  }
-
-  let message = [
-    ('\x1b[31m[jsonic/' + code + ']:\x1b[0m ' + errtxt),
-    '  \x1b[34m-->\x1b[0m ' + (meta && meta.fileName || '<no-file>') +
-    ':' + token.rI + ':' + token.cI,
-    extract(ctx.src(), errtxt, token),
-    errinject(
-      (options.hint[code] || options.hint.unknown)
-        .replace(/^([^ ])/, ' $1')
-        .split('\n')
-        .map((s: string, i: number) => (0 === i ? ' ' : '  ') + s).join('\n'),
+    let cfg = ctx.cfg
+    let meta = ctx.meta
+    let errtxt = errinject(
+      (cfg.error[code] || cfg.error.unknown),
       code, details, token, rule, ctx
-    ),
-    '  \x1b[2mhttps://jsonic.richardrodger.com\x1b[0m',
-    '  \x1b[2m--internal: rule=' + rule.name + '~' + rule.state +
-    //'; token=' + ctx.cfg.t[token.tin] +
-    '; token=' + tokenize(token.tin, ctx.cfg) +
-    (null == token.why ? '' : ('~' + token.why)) +
-    '; plugins=' + ctx.plgn().map((p: any) => p.name).join(',') + '--\x1b[0m\n'
-  ].join('\n')
+    )
 
-  let desc: any = {
-    internal: {
-      token,
-      ctx,
+    if (S.function === typeof (cfg.hint)) {
+      // Only expand the hints on demand. Allows for plugin-defined hints.
+      cfg.hint = { ...cfg.hint(), ...cfg.hint }
     }
-  }
 
-  desc = {
-    ...Object.create(desc),
-    message,
-    code,
-    details,
-    meta,
-    fileName: meta ? meta.fileName : undefined,
-    lineNumber: token.rI,
-    columnNumber: token.cI,
-  }
+    let message = [
+      ('\x1b[31m[jsonic/' + code + ']:\x1b[0m ' + errtxt),
+      '  \x1b[34m-->\x1b[0m ' + (meta && meta.fileName || '<no-file>') +
+      ':' + token.rI + ':' + token.cI,
+      extract(ctx.src(), errtxt, token),
+      errinject(
+        (cfg.hint[code] || cfg.hint.unknown)
+          .replace(/^([^ ])/, ' $1')
+          .split('\n')
+          .map((s: string, i: number) => (0 === i ? ' ' : '  ') + s).join('\n'),
+        code, details, token, rule, ctx
+      ),
+      '  \x1b[2mhttps://jsonic.richardrodger.com\x1b[0m',
+      '  \x1b[2m--internal: rule=' + rule.name + '~' + rule.state +
+      //'; token=' + ctx.cfg.t[token.tin] +
+      '; token=' + tokenize(token.tin, ctx.cfg) +
+      (null == token.why ? '' : ('~' + token.why)) +
+      '; plugins=' + ctx.plgn().map((p: any) => p.name).join(',') + '--\x1b[0m\n'
+    ].join('\n')
 
-  return desc
+    let desc: any = {
+      internal: {
+        token,
+        ctx,
+      }
+    }
+
+    desc = {
+      ...Object.create(desc),
+      message,
+      code,
+      details,
+      meta,
+      fileName: meta ? meta.fileName : undefined,
+      lineNumber: token.rI,
+      columnNumber: token.cI,
+    }
+
+    return desc
+  } catch (e) {
+    console.log(e)
+    return {}
+  }
 }
 
 function badlex(lex: Lex, BD: Tin, ctx: Context) {
@@ -692,10 +730,10 @@ function makelog(ctx: Context) {
           .filter((item: any) => S.object != typeof (item))
           .map((item: any) => S.function == typeof (item) ? item.name : item)
           .join('\t')
-        ctx.opts.debug.get_console().log(logstr)
+        ctx.cfg.debug.get_console().log(logstr)
       }
       else {
-        ctx.opts.debug.get_console().dir(rest, { depth: logdepth })
+        ctx.cfg.debug.get_console().dir(rest, { depth: logdepth })
       }
       return undefined
     }
@@ -725,8 +763,8 @@ function clone(class_instance: any) {
 
 
 // Lookup map for a set of chars.
-function charset(...parts: (string | object | boolean)[]): Chars {
-  return parts
+function charset(...parts: (string | object | boolean | undefined)[]): Chars {
+  return null == parts ? {} : parts
     .filter(p => false !== p)
     .map((p: any) => 'object' === typeof (p) ? keys(p).join(MT) : p)
     .join(MT)
@@ -745,10 +783,10 @@ function clean<T>(o: T): T {
   return o
 }
 
-function filterRules(rulespec: any, cfg: Config) {
+function filterRules(rs: RuleSpec, cfg: Config) {
   let rsnames = ['open', 'close']
   for (let rsn of rsnames) {
-    rulespec[rsn] = rulespec[rsn]
+    rs.def[rsn] = rs.def[rsn]
 
       // Convert comma separated rule group name list to string[]. 
       .map((rs: any) => (
@@ -770,7 +808,7 @@ function filterRules(rulespec: any, cfg: Config) {
 
   }
 
-  return rulespec
+  return rs
 }
 
 

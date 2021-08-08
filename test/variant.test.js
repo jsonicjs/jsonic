@@ -21,7 +21,7 @@ describe('variant', function () {
     let json = Jsonic.make({
       text:{lex:false},
       number:{hex:false,oct:false,bin:false,sep:null},
-      string:{chars:'"',multiChars:'',allowUnknown:false},
+      string:{chars:'"',multiChars:'',allowUnknown:false,escape:{v:null}},
       comment:{lex:false},
       map:{extend:false},
       rule:{include:'json'},
@@ -36,7 +36,8 @@ describe('variant', function () {
 
     // NOTE: as per JSON.parse
     expect(json('{"a":1,"a":2}')).equals({a:2})
-    
+
+    // console.log(json('{"a":1,}'))
 
     expect(()=>json('{a:1}')).throws(JsonicError,/unexpected.*:1:2/s)
     expect(()=>json('{"a":1,}')).throws(JsonicError,/unexpected.*:1:8/s)

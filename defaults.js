@@ -174,7 +174,9 @@ const defaults = {
             lexer_1.makeCommentMatcher,
             lexer_1.makeNumberMatcher,
             lexer_1.makeTextMatcher,
-        ]
+        ],
+        // Empty string is allowed and returns undefined
+        empty: true
     },
     // Parser rule options.
     rule: {

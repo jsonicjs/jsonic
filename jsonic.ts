@@ -86,12 +86,6 @@ import {
   RuleDefiner,
   RuleSpec,
   RuleSpecMap,
-  /*
-  Alt,
-  AltCond,
-  AltHandler,
-  AltAction,
-  */
   NONE,
 } from './parser'
 
@@ -144,7 +138,7 @@ type JsonicAPI = {
 
 
 // Define a plugin to extend the provided Jsonic instance.
-type Plugin = (jsonic: Jsonic) => void | Jsonic
+type Plugin = (jsonic: Jsonic, plugin_options: KV) => void | Jsonic
 
 
 // Unique token identification number (aka "tin").
@@ -153,82 +147,83 @@ type Tin = number
 
 // Parsing options. See defaults for commentary.
 type Options = {
-  tag: string
-  fixed: {
-    lex: boolean
-    token: StrMap
+  tag?: string
+  fixed?: {
+    lex?: boolean
+    token?: StrMap
   }
-  tokenSet: {
-    ignore: string[]
+  tokenSet?: {
+    ignore?: string[]
   }
-  space: {
-    lex: boolean
-    chars: string
+  space?: {
+    lex?: boolean
+    chars?: string
   }
-  line: {
-    lex: boolean
-    chars: string
-    rowChars: string
+  line?: {
+    lex?: boolean
+    chars?: string
+    rowChars?: string
   },
-  text: {
-    lex: boolean
+  text?: {
+    lex?: boolean
   }
-  number: {
-    lex: boolean
-    hex: boolean
-    oct: boolean
-    bin: boolean
-    sep?: string
+  number?: {
+    lex?: boolean
+    hex?: boolean
+    oct?: boolean
+    bin?: boolean
+    sep?: string | null
   }
-  comment: {
-    lex: boolean
-    marker: {
-      line: boolean
-      start: string
+  comment?: {
+    lex?: boolean
+    marker?: {
+      line?: boolean
+      start?: string
       end?: string
-      lex: boolean
+      lex?: boolean
     }[]
   }
-  string: {
-    lex: boolean
-    chars: string
-    multiChars: string
-    escapeChar: string
-    escape: { [char: string]: string }
-    allowUnknown: boolean
+  string?: {
+    lex?: boolean
+    chars?: string
+    multiChars?: string
+    escapeChar?: string
+    escape?: { [char: string]: string | null }
+    allowUnknown?: boolean
   }
-  map: {
-    extend: boolean
+  map?: {
+    extend?: boolean
     merge?: (prev: any, curr: any) => any
   }
-  value: {
-    lex: boolean
-    map: { [src: string]: { val: any } }
+  value?: {
+    lex?: boolean
+    map?: { [src: string]: { val: any } }
   }
-  plugin: KV
-  debug: {
-    get_console: () => any
-    maxlen: number
-    print: {
-      config: boolean
+  plugin?: KV
+  debug?: {
+    get_console?: () => any
+    maxlen?: number
+    print?: {
+      config?: boolean
     }
   }
-  error: { [code: string]: string }
-  hint: any
-  lex: {
-    match: MakeLexMatcher[]
+  error?: { [code: string]: string }
+  hint?: any
+  lex?: {
+    empty?: boolean
+    match?: MakeLexMatcher[]
   }
-  rule: {
-    start: string
-    finish: boolean
-    maxmul: number
-    include: string
-    exclude: string
+  rule?: {
+    start?: string
+    finish?: boolean
+    maxmul?: number
+    include?: string
+    exclude?: string
   },
-  config: {
-    modify: { [plugin_name: string]: (config: Config, options: Options) => void }
+  config?: {
+    modify?: { [plugin_name: string]: (config: Config, options: Options) => void }
   },
-  parser: {
+  parser?: {
     start?: (
       lexer: any, //Lexer,
       src: string,
@@ -275,10 +270,16 @@ let util = {
 
 
 function make(param_options?: KV, parent?: Jsonic): Jsonic {
-  let parser: Parser
-  let config: Config
-  let plugins: Plugin[]
 
+  let internal: {
+    parser: Parser,
+    config: Config,
+    plugins: Plugin[],
+  } = {
+    parser: ({} as Parser),
+    config: ({} as Config),
+    plugins: []
+  }
 
   // Merge options.
   let merged_options = deep(
@@ -295,7 +296,6 @@ function make(param_options?: KV, parent?: Jsonic): Jsonic {
         let internal = jsonic.internal()
         let parser = options.parser.start ?
           parserwrap(options.parser) : internal.parser
-        //return parser.start(internal.lexer, src, jsonic, meta, parent_ctx)
         return parser.start(src, jsonic, meta, parent_ctx)
       }
 
@@ -307,11 +307,17 @@ function make(param_options?: KV, parent?: Jsonic): Jsonic {
   // and set them as a funtion call.
   let options: any = (change_options?: KV) => {
     if (null != change_options && S.object === typeof (change_options)) {
-      configure(config, deep(merged_options, change_options))
+      deep(merged_options, change_options)
+      configure(internal.config, merged_options)
       for (let k in merged_options) {
         jsonic.options[k] = merged_options[k]
       }
-      assign(jsonic.token, config.t)
+      assign(jsonic.token, internal.config?.t)
+
+      let parser = jsonic.internal().parser
+      //if (parser) {
+      internal.parser = parser.clone(merged_options, internal.config)
+      //}
     }
     return { ...jsonic.options }
   }
@@ -325,7 +331,7 @@ function make(param_options?: KV, parent?: Jsonic): Jsonic {
       R extends string | Tin,
       T extends (R extends Tin ? string : Tin)
     >(ref: R): T {
-      return tokenize(ref, config, jsonic)
+      return tokenize(ref, internal.config, jsonic)
     } as any),
 
     options: deep(options, merged_options),
@@ -336,7 +342,7 @@ function make(param_options?: KV, parent?: Jsonic): Jsonic {
     use: function use(plugin: Plugin, plugin_options?: KV): Jsonic {
       jsonic.options({ plugin: { [plugin.name]: plugin_options || {} } })
       jsonic.internal().plugins.push(plugin)
-      return plugin(jsonic) || jsonic
+      return plugin(jsonic, plugin_options || {}) || jsonic
     },
 
     rule: function rule(name?: string, define?: RuleDefiner):
@@ -380,22 +386,22 @@ function make(param_options?: KV, parent?: Jsonic): Jsonic {
     jsonic.parent = parent
 
     let parent_internal = parent.internal()
-    config = deep({}, parent_internal.config)
+    internal.config = deep({}, parent_internal.config)
 
-    configure(config, merged_options)
-    assign(jsonic.token, config.t)
+    configure(internal.config, merged_options)
+    assign(jsonic.token, internal.config.t)
 
-    plugins = [...parent_internal.plugins]
+    internal.plugins = [...parent_internal.plugins]
 
-    parser = parent_internal.parser.clone(merged_options, config)
+    internal.parser = parent_internal.parser.clone(merged_options, internal.config)
   }
   else {
-    config = configure(undefined, merged_options)
+    internal.config = configure(undefined, merged_options)
 
-    plugins = []
+    internal.plugins = []
 
-    parser = new Parser(merged_options, config)
-    parser.init()
+    internal.parser = new Parser(merged_options, internal.config)
+    internal.parser.init()
   }
 
 
@@ -404,19 +410,11 @@ function make(param_options?: KV, parent?: Jsonic): Jsonic {
 
 
   // As with options, provide direct access to tokens.
-  assign(jsonic.token, config.t)
+  assign(jsonic.token, internal.config.t)
 
 
   // Hide internals where you can still find them.
-  defprop(jsonic, 'internal', {
-    value: function internal() {
-      return {
-        parser,
-        config,
-        plugins,
-      }
-    }
-  })
+  defprop(jsonic, 'internal', { value: () => internal })
 
 
   return jsonic
@@ -469,7 +467,8 @@ function parserwrap(parser: any) {
             ex.ctx || {
               uI: -1,
               opts: jsonic.options,
-              cfg: ({ t: {} } as Config),
+              //cfg: ({ t: {} } as Config),
+              cfg: jsonic.internal().config,
               token: token,
               meta,
               src: () => src,

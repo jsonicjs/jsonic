@@ -62,11 +62,11 @@ describe('plugin', function () {
 
 
   it('clone-parser', () => {
-    let config0 = {config:true,mark:0,tI:1,t:{}}
+    let config0 = {config:true,mark:0,tI:1,t:{},rule:{include:[],exclude:[]}}
     let opts0 = {opts:true,mark:0}
     let p0 = new Parser(opts0,config0)
 
-    let config1 = {config:true,mark:1,tI:1,t:{}}
+    let config1 = {config:true,mark:1,tI:1,t:{},rule:{include:[],exclude:[]}}
     let opts1 = {opts:true,mark:1}
     let p1 = p0.clone(opts1,config1)
 
@@ -680,8 +680,7 @@ aa\tbb
               e2.details = {}
               e2.ctx = {
                 src:()=>'',
-                opts:{error:{e2:'e:2'},hint:{e2:'e:2'}},
-                cfg:{t:{}},
+                cfg:{t:{},error:{e2:'e:2'},hint:{e2:'e:2'}},
                 plgn:()=>[]
               }
               throw e2

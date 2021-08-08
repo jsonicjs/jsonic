@@ -475,7 +475,7 @@ class Parser {
     let VAL = [TX, NR, ST, VL]
 
     let finish: AltError = (_rule: Rule, ctx: Context) => {
-      if (!this.options.rule.finish) {
+      if (!this.cfg.rule.finish) {
         // TODO: needs own error code
         ctx.t0.src = S.END_OF_SOURCE
         return ctx.t0
@@ -486,22 +486,22 @@ class Parser {
       val: {
         open: [
           // A map: { ...
-          { s: [OB], p: S.map, b: 1, g:'map,json' },
+          { s: [OB], p: S.map, b: 1, g: 'map,json' },
 
           // A list: [ ...
-          { s: [OS], p: S.list, b: 1, g:'list,json' },
+          { s: [OS], p: S.list, b: 1, g: 'list,json' },
 
           // A pair key: a: ...
-          { s: [VAL, CL], p: S.map, b: 2, n: { im: 1 }, g:'pair,json' },
+          { s: [VAL, CL], p: S.map, b: 2, n: { im: 1 }, g: 'pair,json' },
 
           // A plain value: x "x" 1 true.
-          { s: [VAL], g:'val,json' },
+          { s: [VAL], g: 'val,json' },
 
           // Implicit ends `{a:}` -> {"a":null}, `[a:]` -> [{"a":null}]
-          { s: [[CB, CS]], b: 1, g:'val,imp,null' },
+          { s: [[CB, CS]], b: 1, g: 'val,imp,null' },
 
           // Implicit list at top level: a,b.
-          { s: [CA], d: 0, p: S.list, b: 1, g:'list,imp' },
+          { s: [CA], d: 0, p: S.list, b: 1, g: 'list,imp' },
 
           // Value is null when empty before commas.
           { s: [CA], b: 1, g: 'list,val,imp,null' },
@@ -531,7 +531,7 @@ class Parser {
           },
 
           // Close value, map, or list, but perhaps there are more elem?
-          { b: 1, g:'val,json' },
+          { b: 1, g: 'val,json' },
         ],
         bo: (r: Rule) => {
           r.node = undefined
@@ -556,14 +556,14 @@ class Parser {
         },
         open: [
           // An empty map: {}.
-          { s: [OB, CB], g:'map,json' },
+          { s: [OB, CB], g: 'map,json' },
 
           // Start matching map key-value pairs: a:1.
           // OB `{` resets implicit map counter.
-          { s: [OB], p: S.pair, n: { im: 0 }, g:'map,json,pair' },
+          { s: [OB], p: S.pair, n: { im: 0 }, g: 'map,json,pair' },
 
           // Pair from implicit map.
-          { s: [VAL, CL], p: S.pair, b: 2, g:'pair,list,val,imp' },
+          { s: [VAL, CL], p: S.pair, b: 2, g: 'pair,list,val,imp' },
         ],
         close: []
       },
@@ -575,16 +575,16 @@ class Parser {
         },
         open: [
           // An empty list: [].
-          { s: [OS, CS], g:'list,json' },
+          { s: [OS, CS], g: 'list,json' },
 
           // Start matching list elements: 1,2.
-          { s: [OS], p: S.elem, g:'list,json,elem' },
+          { s: [OS], p: S.elem, g: 'list,json,elem' },
 
           // Initial comma [, will insert null as [null,
-          { s: [CA], p: S.elem, b: 1, g:'list,elem,val,imp' },
+          { s: [CA], p: S.elem, b: 1, g: 'list,elem,val,imp' },
 
           // Another element.
-          { p: S.elem, g:'list,elem' },
+          { p: S.elem, g: 'list,elem' },
         ],
         close: [
         ]
@@ -595,33 +595,33 @@ class Parser {
       pair: {
         open: [
           // Match key-colon start of pair.
-          { s: [VAL, CL], p: S.val, u: { key: true }, g:'map,pair,key,json' },
+          { s: [VAL, CL], p: S.val, u: { key: true }, g: 'map,pair,key,json' },
 
           // Ignore initial comma: {,a:1.
-          { s: [CA], g:'map,pair,ignore' },
+          { s: [CA], g: 'map,pair,comma' },
         ],
         close: [
           // End of map, reset implicit depth counter so that
           // a:b:c:1,d:2 -> {a:{b:{c:1}},d:2}
-          { s: [CB], c: { n: { im: 0 } }, g:'map,pair,json' },
+          { s: [CB], c: { n: { im: 0 } }, g: 'map,pair,json' },
 
           // Ignore trailing comma at end of map.
-          { s: [CA, CB], c: { n: { im: 0 } }, g:'map,pair,ignore'},
+          { s: [CA, CB], c: { n: { im: 0 } }, g: 'map,pair,comma' },
 
           // Comma means a new pair at same level (unless implicit a:b:1,c:2).
-          { s: [CA], c: { n: { im: 0 } }, r: S.pair, g:'map,pair,json' },
+          { s: [CA], c: { n: { im: 0 } }, r: S.pair, g: 'map,pair,json' },
 
           // Who needs commas anyway?
-          { s: [VAL], c: { n: { im: 0 } }, r: S.pair, b: 1, g:'map,pair,imp' },
+          { s: [VAL], c: { n: { im: 0 } }, r: S.pair, b: 1, g: 'map,pair,imp' },
 
           // End of implicit path a:b:1,.
-          { s: [[CB, CA, ...VAL]], b: 1, g:'map,pair,imp,path' },
+          { s: [[CB, CA, ...VAL]], b: 1, g: 'map,pair,imp,path' },
 
           // Close implicit single prop map inside list: [a:1,]
-          { s: [CS], b: 1, g:'list,pair,imp' },
+          { s: [CS], b: 1, g: 'list,pair,imp' },
 
           // Fail if auto-close option is false.
-          { s: [ZZ], e: finish, g:'map,pair,json' },
+          { s: [ZZ], e: finish, g: 'map,pair,json' },
         ],
         bc: (r: Rule, ctx: Context) => {
 
@@ -643,8 +643,8 @@ class Parser {
               val = null
             }
             r.node[key] = null == prev ? val :
-              (ctx.opts.map.merge ? ctx.opts.map.merge(prev, val) :
-                (ctx.opts.map.extend ? deep(prev, val) : val))
+              (ctx.cfg.map.merge ? ctx.cfg.map.merge(prev, val) :
+                (ctx.cfg.map.extend ? deep(prev, val) : val))
           }
         },
       },
@@ -655,30 +655,34 @@ class Parser {
         open: [
           // Empty commas insert null elements.
           // Note that close consumes a comma, so b:2 works.
-          { s: [CA, CA], b: 2, a: (r: Rule) => r.node.push(null),
-            g: 'list,elem,imp,null', },
+          {
+            s: [CA, CA], b: 2, a: (r: Rule) => r.node.push(null),
+            g: 'list,elem,imp,null',
+          },
 
-          { s: [CA], a: (r: Rule) => r.node.push(null),
-            g: 'list,elem,imp,null', },
+          {
+            s: [CA], a: (r: Rule) => r.node.push(null),
+            g: 'list,elem,imp,null',
+          },
 
           // Anything else must a list element value.
-          { p: S.val, g:'list,elem,val,json' },
+          { p: S.val, g: 'list,elem,val,json' },
         ],
         close: [
           // Ignore trailing comma.
-          { s: [CA, CS], g:'list,elem,ignore' },
+          { s: [CA, CS], g: 'list,elem,comma' },
 
           // Next element.
-          { s: [CA], r: S.elem, g:'list,elem,json' },
+          { s: [CA], r: S.elem, g: 'list,elem,json' },
 
           // Who needs commas anyway?
-          { s: [[...VAL, OB, OS]], r: S.elem, b: 1, g:'list,elem,imp' },
+          { s: [[...VAL, OB, OS]], r: S.elem, b: 1, g: 'list,elem,imp' },
 
           // End of list.
-          { s: [CS], g:'list,elem,json' },
+          { s: [CS], g: 'list,elem,json' },
 
           // Fail if auto-close option is false.
-          { s: [ZZ], e: finish, g:'list,elem,json' },
+          { s: [ZZ], e: finish, g: 'list,elem,json' },
         ],
         bc: (rule: Rule) => {
           if (undefined !== rule.child.node) {
@@ -690,12 +694,12 @@ class Parser {
 
     // TODO: just create the RuleSpec directly
     this.rsm = keys(rules).reduce((rsm: any, rn: string) => {
-      rsm[rn] = new RuleSpec(filterRules(rules[rn], this.cfg))
-      //rsm[rn] = new RuleSpec(rules[rn])
+      rsm[rn] = filterRules(new RuleSpec(rules[rn]), this.cfg)
       rsm[rn].name = rn
       return rsm
     }, {})
   }
+
 
 
   // Multi-functional get/set for rules.
@@ -732,7 +736,6 @@ class Parser {
   ): any {
     let root: Rule
 
-
     let endtkn = new Token(
       '#ZZ',
       tokenize('#ZZ', this.cfg),
@@ -740,7 +743,6 @@ class Parser {
       MT,
       new Point(-1)
     )
-
 
     let ctx: Context = {
       uI: 1,
@@ -769,9 +771,23 @@ class Parser {
 
     makelog(ctx)
 
+
+    // Special case - avoids extra per-token tests in main parser rules.
+    if ('' === src) {
+      if (this.cfg.lex.empty) {
+        return undefined
+      }
+      else {
+        throw new JsonicError(S.unexpected, { src }, ctx.t0, NONE, ctx)
+      }
+    }
+
+
+
     let tn = (pin: Tin): string => tokenize(pin, this.cfg)
     let lex = badlex(new Lex(ctx), tokenize('#BD', this.cfg), ctx)
-    let startspec = this.rsm[this.options.rule.start]
+    // let startspec = this.rsm[this.options.rule.start]
+    let startspec = this.rsm[this.cfg.rule.start]
 
     if (null == startspec) {
       return undefined
@@ -786,7 +802,7 @@ class Parser {
     // virtual (like map, list), and double for safety margin (allows
     // lots of backtracking), and apply a multipler options as a get-out-of-jail.
     let maxr = 2 * keys(this.rsm).length * lex.src.length *
-      2 * this.options.rule.maxmul
+      2 * ctx.cfg.rule.maxmul
 
     let ignore = ctx.cfg.tokenSet.ignore
 
@@ -846,9 +862,11 @@ class Parser {
   clone(options: Options, config: Config) {
     let parser = new Parser(options, config)
 
+    // Inherit rules from parent, filtered by config.rule
     parser.rsm = Object
       .keys(this.rsm)
-      .reduce((a, rn) => (a[rn] = clone(this.rsm[rn]), a), ({} as any))
+      .reduce((a, rn) =>
+        (a[rn] = filterRules(this.rsm[rn], this.cfg), a), ({} as any))
 
     return parser
   }

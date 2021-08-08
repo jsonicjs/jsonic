@@ -96,8 +96,8 @@ exports.makeFixedMatcher = makeFixedMatcher;
 let makeCommentMatcher = (cfg, opts) => {
     let oc = opts.comment;
     cfg.comment = {
-        lex: !!oc.lex,
-        marker: oc.marker.map(om => ({
+        lex: oc ? !!oc.lex : false,
+        marker: ((oc === null || oc === void 0 ? void 0 : oc.marker) || []).map(om => ({
             start: om.start,
             end: om.end,
             line: !!om.line,
@@ -259,14 +259,14 @@ let makeNumberMatcher = (cfg, _opts) => {
 };
 exports.makeNumberMatcher = makeNumberMatcher;
 let makeStringMatcher = (cfg, opts) => {
-    let os = opts.string;
+    let os = opts.string || {};
     cfg.string = {
-        lex: !!os.lex,
+        lex: !!(os === null || os === void 0 ? void 0 : os.lex),
         quoteMap: utility_1.charset(os.chars),
         multiChars: utility_1.charset(os.multiChars),
         escMap: utility_1.clean({ ...os.escape }),
         escChar: os.escapeChar,
-        escCharCode: os.escapeChar.charCodeAt(0),
+        escCharCode: null == os.escapeChar ? undefined : os.escapeChar.charCodeAt(0),
         allowUnknown: !!os.allowUnknown,
     };
     return function stringMatcher(lex) {

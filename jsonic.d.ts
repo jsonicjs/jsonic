@@ -22,95 +22,96 @@ declare type JsonicAPI = {
     id: string;
     toString: () => string;
 };
-declare type Plugin = (jsonic: Jsonic) => void | Jsonic;
+declare type Plugin = (jsonic: Jsonic, plugin_options: KV) => void | Jsonic;
 declare type Tin = number;
 declare type Options = {
-    tag: string;
-    fixed: {
-        lex: boolean;
-        token: StrMap;
+    tag?: string;
+    fixed?: {
+        lex?: boolean;
+        token?: StrMap;
     };
-    tokenSet: {
-        ignore: string[];
+    tokenSet?: {
+        ignore?: string[];
     };
-    space: {
-        lex: boolean;
-        chars: string;
+    space?: {
+        lex?: boolean;
+        chars?: string;
     };
-    line: {
-        lex: boolean;
-        chars: string;
-        rowChars: string;
+    line?: {
+        lex?: boolean;
+        chars?: string;
+        rowChars?: string;
     };
-    text: {
-        lex: boolean;
+    text?: {
+        lex?: boolean;
     };
-    number: {
-        lex: boolean;
-        hex: boolean;
-        oct: boolean;
-        bin: boolean;
-        sep?: string;
+    number?: {
+        lex?: boolean;
+        hex?: boolean;
+        oct?: boolean;
+        bin?: boolean;
+        sep?: string | null;
     };
-    comment: {
-        lex: boolean;
-        marker: {
-            line: boolean;
-            start: string;
+    comment?: {
+        lex?: boolean;
+        marker?: {
+            line?: boolean;
+            start?: string;
             end?: string;
-            lex: boolean;
+            lex?: boolean;
         }[];
     };
-    string: {
-        lex: boolean;
-        chars: string;
-        multiChars: string;
-        escapeChar: string;
-        escape: {
-            [char: string]: string;
+    string?: {
+        lex?: boolean;
+        chars?: string;
+        multiChars?: string;
+        escapeChar?: string;
+        escape?: {
+            [char: string]: string | null;
         };
-        allowUnknown: boolean;
+        allowUnknown?: boolean;
     };
-    map: {
-        extend: boolean;
+    map?: {
+        extend?: boolean;
         merge?: (prev: any, curr: any) => any;
     };
-    value: {
-        lex: boolean;
-        map: {
+    value?: {
+        lex?: boolean;
+        map?: {
             [src: string]: {
                 val: any;
             };
         };
     };
-    plugin: KV;
-    debug: {
-        get_console: () => any;
-        maxlen: number;
-        print: {
-            config: boolean;
+    plugin?: KV;
+    debug?: {
+        get_console?: () => any;
+        maxlen?: number;
+        print?: {
+            config?: boolean;
         };
     };
-    error: {
+    error?: {
         [code: string]: string;
     };
-    hint: any;
-    lex: {
-        match: MakeLexMatcher[];
+    hint?: any;
+    lex?: {
+        empty?: boolean;
+        match?: MakeLexMatcher[];
     };
-    rule: {
-        start: string;
-        finish: boolean;
-        maxmul: number;
-        include: string;
-        exclude: string;
+    rule?: {
+        start?: string;
+        finish?: boolean;
+        maxmul?: number;
+        include?: string;
+        exclude?: string;
     };
-    config: {
-        modify: {
+    config?: {
+        modify?: {
             [plugin_name: string]: (config: Config, options: Options) => void;
         };
     };
-    parser: {
+    parser?: {
         start?: (lexer: any, //Lexer,
         src: string, jsonic: any, //Jsonic,
         meta?: any, parent_ctx?: any) => any;

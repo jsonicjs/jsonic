@@ -16,7 +16,7 @@ const expect = Code.expect
 
 const I = Util.inspect
 
-const { Jsonic, Lexer, Rule, RuleSpec } = require('..')
+const { Jsonic, JsonicError, Lexer, Rule, RuleSpec } = require('..')
 const Exhaust = require('./exhaust')
 const JsonStandard = require('./json-standard')
 
@@ -59,6 +59,30 @@ describe('jsonic', function () {
     j.options('ignored')
     expect(j.options.x).equal(2)
 
+    expect(j.options.comment.lex).true()
+    expect(j.options().comment.lex).true()
+    expect(j.internal().config.comment.lex).true()
+    j.options({comment:{lex:false}})
+    expect(j.options.comment.lex).false()
+    expect(j.options().comment.lex).false()
+    expect(j.internal().config.comment.lex).false()
+
+    let k = Jsonic.make()
+    expect(k.options.comment.lex).true()
+    expect(k.options().comment.lex).true()
+    expect(k.internal().config.comment.lex).true()
+    expect(k.rule().val.def.open.length).above(4)
+    k.use((jsonic)=>{
+      jsonic.options({
+        comment:{lex:false},
+        rule:{include:'json'},
+      })
+    })
+    // console.dir(k.rule().val.def.open)
+    expect(k.options.comment.lex).false()
+    expect(k.options().comment.lex).false()
+    expect(k.internal().config.comment.lex).false()
+    expect(k.rule().val.def.open.length).equal(4)
   })
   
   
@@ -1047,6 +1071,30 @@ describe('jsonic', function () {
     JsonStandard(Jsonic)
   })
 
+
+  it('src-not-string', ()=>{
+    expect(Jsonic({})).equals({})
+    expect(Jsonic([])).equals([])
+    expect(Jsonic(true)).equals(true)
+    expect(Jsonic(false)).equals(false)
+    expect(Jsonic(null)).equals(null)
+    expect(Jsonic(undefined)).equals(undefined)
+    expect(Jsonic(1)).equals(1)
+    expect(Jsonic(/a/)).equals(/a/)
+
+    let sa = Symbol('a')
+    expect(Jsonic(sa)).equals(sa)
+  })
+
+
+  it('src-empty-string', ()=>{
+    expect(Jsonic('')).equals(undefined)
+
+    expect(()=>Jsonic.make({lex:{empty:false}}).parse(''))
+      .throws(JsonicError, /unexpected.*:1:1/s)
+  })
+
+  
 })
 
 

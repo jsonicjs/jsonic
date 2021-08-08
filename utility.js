@@ -95,10 +95,10 @@ exports.JsonicError = JsonicError;
 // Idempotent normalization of options.
 // See Config type for commentary.
 function configure(incfg, opts) {
+    var _a, _b, _c, _d, _e, _f, _g, _h, _j, _k, _l, _o, _p, _q, _r, _s, _t, _u, _v, _w, _x, _y, _z, _0, _1, _2, _3, _4, _5, _6, _7, _8, _9, _10;
     const cfg = incfg || {
         tI: 1,
         t: {},
-        lex: {},
     };
     const t = (tn) => tokenize(tn, cfg);
     // Standard tokens. These names cannot be changed.
@@ -114,36 +114,37 @@ function configure(incfg, opts) {
     t('#TX'); // TEXT
     t('#VL'); // VALUE
     cfg.fixed = {
-        lex: !!opts.fixed.lex,
+        lex: !!((_a = opts.fixed) === null || _a === void 0 ? void 0 : _a.lex),
         //token: map(opts.fixed.token, ([name, src]: [string, string]) => [src, t(name)])
-        token: omap(opts.fixed.token, ([name, src]) => [src, tokenize(name, cfg)])
+        token: opts.fixed ? omap(opts.fixed.token, ([name, src]) => [src, tokenize(name, cfg)]) : {}
     };
     cfg.tokenSet = {
-        ignore: Object.fromEntries(opts.tokenSet.ignore.map(tn => [t(tn), true]))
+        ignore: Object.fromEntries((((_b = opts.tokenSet) === null || _b === void 0 ? void 0 : _b.ignore) || []).map(tn => [t(tn), true]))
     };
     cfg.space = {
-        lex: !!opts.space.lex,
-        chars: charset(opts.space.chars)
+        lex: !!((_c = opts.space) === null || _c === void 0 ? void 0 : _c.lex),
+        chars: charset((_d = opts.space) === null || _d === void 0 ? void 0 : _d.chars),
     };
     cfg.line = {
-        lex: !!opts.line.lex,
-        chars: charset(opts.line.chars),
-        rowChars: charset(opts.line.rowChars),
+        lex: !!((_e = opts.line) === null || _e === void 0 ? void 0 : _e.lex),
+        chars: charset((_f = opts.line) === null || _f === void 0 ? void 0 : _f.chars),
+        rowChars: charset((_g = opts.line) === null || _g === void 0 ? void 0 : _g.rowChars),
     };
     cfg.text = {
-        lex: !!opts.text.lex,
+        // lex: opts.text ? !!opts.text.lex : false,
+        lex: !!((_h = opts.text) === null || _h === void 0 ? void 0 : _h.lex),
     };
     cfg.number = {
-        lex: !!opts.number.lex,
-        hex: !!opts.number.hex,
-        oct: !!opts.number.oct,
-        bin: !!opts.number.bin,
-        sep: null != opts.number.sep && '' !== opts.number.sep,
-        sepChar: opts.number.sep,
+        lex: !!((_j = opts.number) === null || _j === void 0 ? void 0 : _j.lex),
+        hex: !!((_k = opts.number) === null || _k === void 0 ? void 0 : _k.hex),
+        oct: !!((_l = opts.number) === null || _l === void 0 ? void 0 : _l.oct),
+        bin: !!((_o = opts.number) === null || _o === void 0 ? void 0 : _o.bin),
+        sep: null != ((_p = opts.number) === null || _p === void 0 ? void 0 : _p.sep) && '' !== opts.number.sep,
+        sepChar: (_q = opts.number) === null || _q === void 0 ? void 0 : _q.sep,
     };
     cfg.value = {
-        lex: !!opts.value.lex,
-        map: opts.value.map,
+        lex: !!((_r = opts.value) === null || _r === void 0 ? void 0 : _r.lex),
+        map: ((_s = opts.value) === null || _s === void 0 ? void 0 : _s.map) || {},
         // map: {
         //   'true': { v: true },
         //   'false': { v: false },
@@ -156,13 +157,22 @@ function configure(incfg, opts) {
         // '-Infinity': { v: -Infinity },
     };
     cfg.rule = {
-        include: opts.rule.include.split(/\s*,+\s*/).filter(g => '' !== g),
-        exclude: opts.rule.exclude.split(/\s*,+\s*/).filter(g => '' !== g),
+        start: null == ((_t = opts.rule) === null || _t === void 0 ? void 0 : _t.start) ? 'val' : opts.rule.start,
+        maxmul: null == ((_u = opts.rule) === null || _u === void 0 ? void 0 : _u.maxmul) ? 3 : opts.rule.maxmul,
+        finish: !!((_v = opts.rule) === null || _v === void 0 ? void 0 : _v.finish),
+        include: ((_w = opts.rule) === null || _w === void 0 ? void 0 : _w.include) ?
+            opts.rule.include.split(/\s*,+\s*/).filter(g => '' !== g) : [],
+        exclude: ((_x = opts.rule) === null || _x === void 0 ? void 0 : _x.exclude) ?
+            opts.rule.exclude.split(/\s*,+\s*/).filter(g => '' !== g) : [],
+    };
+    cfg.map = {
+        extend: !!((_y = opts.map) === null || _y === void 0 ? void 0 : _y.extend),
+        merge: (_z = opts.map) === null || _z === void 0 ? void 0 : _z.merge,
     };
     let fixedSorted = Object.keys(cfg.fixed.token)
         .sort((a, b) => b.length - a.length);
     let fixedRE = fixedSorted.map(fixed => escre(fixed)).join('|');
-    let commentStartRE = opts.comment.lex ? opts.comment.marker
+    let commentStartRE = ((_0 = opts.comment) === null || _0 === void 0 ? void 0 : _0.lex) ? (((_1 = opts.comment) === null || _1 === void 0 ? void 0 : _1.marker) || [])
         .filter(c => c.lex)
         .map(c => '|' + escre(c.start)).join('')
         : '';
@@ -184,23 +194,31 @@ function configure(incfg, opts) {
     cfg.re = {
         ender: regexp(null, ...enderRE),
         // TODO: prebuild these using a property on matcher?
-        rowChars: regexp(null, escre(opts.line.rowChars)),
-        columns: regexp(null, '[' + escre(opts.line.chars) + ']', '(.*)$'),
+        rowChars: regexp(null, escre((_2 = opts.line) === null || _2 === void 0 ? void 0 : _2.rowChars)),
+        columns: regexp(null, '[' + escre((_3 = opts.line) === null || _3 === void 0 ? void 0 : _3.chars) + ']', '(.*)$'),
     };
-    cfg.lex.match = opts.lex.match.map((maker) => maker(cfg, opts));
+    cfg.lex = {
+        empty: !!((_4 = opts.lex) === null || _4 === void 0 ? void 0 : _4.empty),
+        match: ((_5 = opts.lex) === null || _5 === void 0 ? void 0 : _5.match) ?
+            opts.lex.match.map((maker) => maker(cfg, opts)) : [],
+    };
     cfg.debug = {
-        get_console: opts.debug.get_console,
-        maxlen: opts.debug.maxlen,
+        get_console: ((_6 = opts.debug) === null || _6 === void 0 ? void 0 : _6.get_console) || (() => console),
+        maxlen: null == ((_7 = opts.debug) === null || _7 === void 0 ? void 0 : _7.maxlen) ? 99 : opts.debug.maxlen,
         print: {
-            config: opts.debug.print.config
+            config: !!((_9 = (_8 = opts.debug) === null || _8 === void 0 ? void 0 : _8.print) === null || _9 === void 0 ? void 0 : _9.config)
         },
     };
+    cfg.error = opts.error || {};
+    cfg.hint = opts.hint || {};
     // Apply any config modifiers (probably from plugins).
-    keys(opts.config.modify)
-        .forEach((modifer) => opts.config.modify[modifer](cfg, opts));
+    if ((_10 = opts.config) === null || _10 === void 0 ? void 0 : _10.modify) {
+        keys(opts.config.modify)
+            .forEach((modifer) => opts.config.modify[modifer](cfg, opts));
+    }
     // Debug the config - useful for plugin authors.
-    if (opts.debug.print.config) {
-        opts.debug.get_console().dir(cfg, { depth: null });
+    if (cfg.debug.print.config) {
+        cfg.debug.get_console().dir(cfg, { depth: null });
     }
     return cfg;
 }
@@ -277,16 +295,15 @@ function deep(base, ...rest) {
     return base;
 }
 exports.deep = deep;
+// Inject value text into an error message. The value is taken from
+// the `details` parameter to JsonicError. If not defined, the value is
+// determined heuristically from the Token and Context.
 function errinject(s, code, details, token, rule, ctx) {
     return s.replace(/\$([\w_]+)/g, (_m, name) => {
-        return JSON.stringify('code' === name ? code : (details[name] ||
-            (ctx.meta ? ctx.meta[name] : undefined) ||
-            token[name] ||
-            rule[name] ||
-            ctx[name] ||
-            ctx.opts[name] ||
-            ctx.cfg[name] ||
-            '$' + name));
+        let instr = JSON.stringify('code' === name ? code : (null != details[name] ? details[name] : ((ctx.meta && null != ctx.meta[name]) ? ctx.meta[name] : (null != token[name] ? token[name] : (null != rule[name] ? rule[name] : (null != ctx.opts[name] ? ctx.opts[name] : (null != ctx.cfg[name] ? ctx.cfg[name] :
+            null != ctx[name] ? ctx[name] :
+                '$' + name)))))));
+        return instr;
     });
 }
 exports.errinject = errinject;
@@ -330,47 +347,52 @@ function extract(src, errtxt, token) {
 }
 exports.extract = extract;
 function errdesc(code, details, token, rule, ctx) {
-    // token = { ...token }
-    let options = ctx.opts;
-    let meta = ctx.meta;
-    let errtxt = errinject((options.error[code] || options.error.unknown), code, details, token, rule, ctx);
-    if (S.function === typeof (options.hint)) {
-        // Only expand the hints on demand. Allows for plugin-defined hints.
-        options.hint = { ...options.hint(), ...options.hint };
-    }
-    let message = [
-        ('\x1b[31m[jsonic/' + code + ']:\x1b[0m ' + errtxt),
-        '  \x1b[34m-->\x1b[0m ' + (meta && meta.fileName || '<no-file>') +
-            ':' + token.rI + ':' + token.cI,
-        extract(ctx.src(), errtxt, token),
-        errinject((options.hint[code] || options.hint.unknown)
-            .replace(/^([^ ])/, ' $1')
-            .split('\n')
-            .map((s, i) => (0 === i ? ' ' : '  ') + s).join('\n'), code, details, token, rule, ctx),
-        '  \x1b[2mhttps://jsonic.richardrodger.com\x1b[0m',
-        '  \x1b[2m--internal: rule=' + rule.name + '~' + rule.state +
-            //'; token=' + ctx.cfg.t[token.tin] +
-            '; token=' + tokenize(token.tin, ctx.cfg) +
-            (null == token.why ? '' : ('~' + token.why)) +
-            '; plugins=' + ctx.plgn().map((p) => p.name).join(',') + '--\x1b[0m\n'
-    ].join('\n');
-    let desc = {
-        internal: {
-            token,
-            ctx,
+    try {
+        let cfg = ctx.cfg;
+        let meta = ctx.meta;
+        let errtxt = errinject((cfg.error[code] || cfg.error.unknown), code, details, token, rule, ctx);
+        if (S.function === typeof (cfg.hint)) {
+            // Only expand the hints on demand. Allows for plugin-defined hints.
+            cfg.hint = { ...cfg.hint(), ...cfg.hint };
         }
-    };
-    desc = {
-        ...Object.create(desc),
-        message,
-        code,
-        details,
-        meta,
-        fileName: meta ? meta.fileName : undefined,
-        lineNumber: token.rI,
-        columnNumber: token.cI,
-    };
-    return desc;
+        let message = [
+            ('\x1b[31m[jsonic/' + code + ']:\x1b[0m ' + errtxt),
+            '  \x1b[34m-->\x1b[0m ' + (meta && meta.fileName || '<no-file>') +
+                ':' + token.rI + ':' + token.cI,
+            extract(ctx.src(), errtxt, token),
+            errinject((cfg.hint[code] || cfg.hint.unknown)
+                .replace(/^([^ ])/, ' $1')
+                .split('\n')
+                .map((s, i) => (0 === i ? ' ' : '  ') + s).join('\n'), code, details, token, rule, ctx),
+            '  \x1b[2mhttps://jsonic.richardrodger.com\x1b[0m',
+            '  \x1b[2m--internal: rule=' + rule.name + '~' + rule.state +
+                //'; token=' + ctx.cfg.t[token.tin] +
+                '; token=' + tokenize(token.tin, ctx.cfg) +
+                (null == token.why ? '' : ('~' + token.why)) +
+                '; plugins=' + ctx.plgn().map((p) => p.name).join(',') + '--\x1b[0m\n'
+        ].join('\n');
+        let desc = {
+            internal: {
+                token,
+                ctx,
+            }
+        };
+        desc = {
+            ...Object.create(desc),
+            message,
+            code,
+            details,
+            meta,
+            fileName: meta ? meta.fileName : undefined,
+            lineNumber: token.rI,
+            columnNumber: token.cI,
+        };
+        return desc;
+    }
+    catch (e) {
+        console.log(e);
+        return {};
+    }
 }
 exports.errdesc = errdesc;
 function badlex(lex, BD, ctx) {
@@ -407,10 +429,10 @@ function makelog(ctx) {
                     .filter((item) => S.object != typeof (item))
                     .map((item) => S.function == typeof (item) ? item.name : item)
                     .join('\t');
-                ctx.opts.debug.get_console().log(logstr);
+                ctx.cfg.debug.get_console().log(logstr);
             }
             else {
-                ctx.opts.debug.get_console().dir(rest, { depth: logdepth });
+                ctx.cfg.debug.get_console().dir(rest, { depth: logdepth });
             }
             return undefined;
         };
@@ -434,7 +456,7 @@ function clone(class_instance) {
 exports.clone = clone;
 // Lookup map for a set of chars.
 function charset(...parts) {
-    return parts
+    return null == parts ? {} : parts
         .filter(p => false !== p)
         .map((p) => 'object' === typeof (p) ? keys(p).join(MT) : p)
         .join(MT)
@@ -452,10 +474,10 @@ function clean(o) {
     return o;
 }
 exports.clean = clean;
-function filterRules(rulespec, cfg) {
+function filterRules(rs, cfg) {
     let rsnames = ['open', 'close'];
     for (let rsn of rsnames) {
-        rulespec[rsn] = rulespec[rsn]
+        rs.def[rsn] = rs.def[rsn]
             // Convert comma separated rule group name list to string[]. 
             .map((rs) => ((rs.g = 'string' === typeof rs.g ?
             (rs.g || '').split(/\s*,+\s*/) :
@@ -466,7 +488,7 @@ function filterRules(rulespec, cfg) {
             // Drop rule if any group name matches, unless there are no excludes.
             .filter((rs) => cfg.rule.exclude.reduce((a, g) => (a && (-1 === rs.g.indexOf(g))), true));
     }
-    return rulespec;
+    return rs;
 }
 exports.filterRules = filterRules;
 //# sourceMappingURL=utility.js.map

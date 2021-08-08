@@ -169,9 +169,9 @@ let makeCommentMatcher: MakeLexMatcher = (cfg: Config, opts: Options) => {
 
   let oc = opts.comment
   cfg.comment = {
-    lex: !!oc.lex,
-    marker: oc.marker.map(om => ({
-      start: om.start,
+    lex: oc ? !!oc.lex : false,
+    marker: (oc?.marker || []).map(om => ({
+      start: (om.start as string),
       end: om.end,
       line: !!om.line,
       lex: !!om.lex,
@@ -312,12 +312,12 @@ let makeTextMatcher: MakeLexMatcher = (cfg: Config, _opts: Options) => {
 
       // A following fixed token can only match if there was already a
       // valid text or value match.
-      if(out) {
+      if (out) {
         out = subMatchFixed(lex, out, tsrc)
       }
-      
+
       // console.log('TX out', out)
-      
+
       return out
     }
   }
@@ -397,14 +397,14 @@ let makeNumberMatcher: MakeLexMatcher = (cfg: Config, _opts: Options) => {
 
 let makeStringMatcher: MakeLexMatcher = (cfg: Config, opts: Options) => {
 
-  let os = opts.string
+  let os = opts.string || {}
   cfg.string = {
-    lex: !!os.lex,
+    lex: !!os?.lex,
     quoteMap: charset(os.chars),
     multiChars: charset(os.multiChars),
     escMap: clean({ ...os.escape }),
     escChar: os.escapeChar,
-    escCharCode: os.escapeChar.charCodeAt(0),
+    escCharCode: null == os.escapeChar ? undefined : os.escapeChar.charCodeAt(0),
     allowUnknown: !!os.allowUnknown,
   }
 
