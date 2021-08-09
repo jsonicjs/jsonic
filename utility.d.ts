@@ -44,7 +44,6 @@ declare const S: {
     unterminated_comment: string;
     lex: string;
     parse: string;
-    block_indent_: string;
     error: string;
     none: string;
     END_OF_SOURCE: string;

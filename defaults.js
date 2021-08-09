@@ -76,19 +76,6 @@ const defaults = {
             { line: false, start: '/' + '*', end: '*' + '/', lex: true },
         ],
     },
-    /* TODO: PLUGIN
-        // Multiline blocks.
-        block: {
-    
-          // Recognize blocks in the Lexer.
-          lex: true,
-    
-          // Block markers
-          marker: {
-            '\'\'\'': '\'\'\''
-          },
-        },
-    */
     // String formats.
     string: {
         // Recognize strings in the Lexer.

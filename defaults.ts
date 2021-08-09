@@ -122,19 +122,6 @@ const defaults: Options = {
     ],
   },
 
-  /* TODO: PLUGIN
-      // Multiline blocks.
-      block: {
-  
-        // Recognize blocks in the Lexer.
-        lex: true,
-  
-        // Block markers
-        marker: {
-          '\'\'\'': '\'\'\''
-        },
-      },
-  */
 
   // String formats.
   string: {

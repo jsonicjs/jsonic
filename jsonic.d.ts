@@ -1,4 +1,4 @@
-import { Config, Context, JsonicError, KV, StrMap, badlex, deep, errdesc, errinject, extract, makelog, mesc, regexp, tokenize, trimstk, srcfmt, clone, charset, configure } from './utility';
+import { Config, Context, JsonicError, KV, StrMap, badlex, deep, errdesc, errinject, extract, makelog, mesc, regexp, tokenize, trimstk, srcfmt, clone, charset, configure, escre } from './utility';
 import { Token, Lex, MakeLexMatcher } from './lexer';
 import { Parser, Rule, RuleDefiner, RuleSpec, RuleSpecMap } from './parser';
 declare type Jsonic = JsonicParse & // A function that parses.
@@ -21,8 +21,11 @@ declare type JsonicAPI = {
     } & (<A extends string | Tin>(ref: A) => A extends string ? Tin : string);
     id: string;
     toString: () => string;
+    util: KV;
 };
-declare type Plugin = (jsonic: Jsonic, plugin_options: KV) => void | Jsonic;
+declare type Plugin = ((jsonic: Jsonic, plugin_options: KV) => void | Jsonic) & {
+    defaults?: KV;
+};
 declare type Tin = number;
 declare type Options = {
     tag?: string;
@@ -131,8 +134,9 @@ declare let util: {
     errdesc: typeof errdesc;
     configure: typeof configure;
     parserwrap: typeof parserwrap;
-    regexp: typeof regexp;
     mesc: typeof mesc;
+    escre: typeof escre;
+    regexp: typeof regexp;
 };
 declare function make(param_options?: KV, parent?: Jsonic): Jsonic;
 declare function parserwrap(parser: any): {

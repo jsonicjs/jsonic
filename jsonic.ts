@@ -66,6 +66,7 @@ import {
   clone,
   charset,
   configure,
+  escre,
 } from './utility'
 
 
@@ -134,11 +135,14 @@ type JsonicAPI = {
 
   // Provide identifier for string conversion.
   toString: () => string
+
+  util: KV
 }
 
 
 // Define a plugin to extend the provided Jsonic instance.
-type Plugin = (jsonic: Jsonic, plugin_options: KV) => void | Jsonic
+type Plugin = ((jsonic: Jsonic, plugin_options: KV) => void | Jsonic) &
+{ defaults?: KV }
 
 
 // Unique token identification number (aka "tin").
@@ -232,18 +236,6 @@ type Options = {
       parent_ctx?: any
     ) => any
   }
-  /*
-    // TODO: move to plugin
-  block: {
-    lex: boolean
- 
-    // NOTE: block.marker definition uses value structure to define start and end.
-    marker: {
-      [start_marker: string]: // Start marker (eg. `'''`).
-      string  // End marker (eg. `'''`).
-    }
-  }
-  */
 }
 
 
@@ -264,8 +256,10 @@ let util = {
   errdesc,
   configure,
   parserwrap,
-  regexp,
   mesc,
+
+  escre,
+  regexp,
 }
 
 
@@ -340,9 +334,15 @@ function make(param_options?: KV, parent?: Jsonic): Jsonic {
 
     // TODO: how to handle null plugin?
     use: function use(plugin: Plugin, plugin_options?: KV): Jsonic {
-      jsonic.options({ plugin: { [plugin.name]: plugin_options || {} } })
+      const full_plugin_options =
+        deep({}, plugin.defaults || {}, plugin_options || {})
+      jsonic.options({
+        plugin: {
+          [plugin.name]: full_plugin_options
+        }
+      })
       jsonic.internal().plugins.push(plugin)
-      return plugin(jsonic, plugin_options || {}) || jsonic
+      return plugin(jsonic, full_plugin_options) || jsonic
     },
 
     rule: function rule(name?: string, define?: RuleDefiner):
@@ -370,6 +370,8 @@ function make(param_options?: KV, parent?: Jsonic): Jsonic {
     toString: function() {
       return this.id
     },
+
+    util,
   }
 
 

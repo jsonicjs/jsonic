@@ -352,6 +352,10 @@ describe('utility', () => {
     //console.log(a2)
     expect(a2.x).equal(3)
 
+    // NOTE: undefined does not delete
+    expect(deep({a:1},{a:null})).equals({a:null})
+    expect(deep({a:undefined},{a:null})).equals({a:null})
+    expect(deep({a:1},{a:undefined})).equals({a:1})
   })
 
 

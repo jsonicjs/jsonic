@@ -417,13 +417,6 @@ describe('lex', function () {
     expect(no_number('a:1')).equals({a:'1'})
     expect(no_number('a,1')).equals(['a','1'])
 
-    // TODO: plugin
-    // let no_block = Jsonic.make({block:{lex:false}})
-    // expect(Jsonic("a:'''1'''")).equals({a:'1'})
-    // expect(Jsonic("a,'''1'''")).equals(['a','1'])
-    // expect(()=>no_block("a:'''1'''")).throws('JsonicError', /unexpected/)
-    // expect(no_block("a,'''1'''")).equals(['a', '', '1', ''])
-
     let no_string = Jsonic.make({string:{lex:false}})
     expect(Jsonic('a:1')).equals({a:1})
     expect(Jsonic('a,1')).equals(['a',1])

@@ -55,7 +55,6 @@ const S = {
     unterminated_comment: 'unterminated_comment',
     lex: 'lex',
     parse: 'parse',
-    block_indent_: 'block_indent_',
     error: 'error',
     none: 'none',
     END_OF_SOURCE: 'END_OF_SOURCE',

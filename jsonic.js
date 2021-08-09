@@ -59,8 +59,9 @@ let util = {
     errdesc: utility_1.errdesc,
     configure: utility_1.configure,
     parserwrap,
-    regexp: utility_1.regexp,
     mesc: utility_1.mesc,
+    escre: utility_1.escre,
+    regexp: utility_1.regexp,
 };
 exports.util = util;
 function make(param_options, parent) {
@@ -109,9 +110,14 @@ function make(param_options, parent) {
         parse: jsonic,
         // TODO: how to handle null plugin?
         use: function use(plugin, plugin_options) {
-            jsonic.options({ plugin: { [plugin.name]: plugin_options || {} } });
+            const full_plugin_options = utility_1.deep({}, plugin.defaults || {}, plugin_options || {});
+            jsonic.options({
+                plugin: {
+                    [plugin.name]: full_plugin_options
+                }
+            });
             jsonic.internal().plugins.push(plugin);
-            return plugin(jsonic, plugin_options || {}) || jsonic;
+            return plugin(jsonic, full_plugin_options) || jsonic;
         },
         rule: function rule(name, define) {
             return jsonic.internal().parser.rule(name, define);
@@ -133,6 +139,7 @@ function make(param_options, parent) {
         toString: function () {
             return this.id;
         },
+        util,
     };
     // Has to be done indirectly as we are in a fuction named `make`.
     utility_1.defprop(api.make, utility_1.S.name, { value: utility_1.S.make });
