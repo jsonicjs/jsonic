@@ -83,6 +83,15 @@ describe('jsonic', function () {
     expect(k.options().comment.lex).false()
     expect(k.internal().config.comment.lex).false()
     expect(k.rule().val.def.open.length).equal(4)
+
+    let k1 = Jsonic.make()
+    k1.use((jsonic)=>{
+      jsonic.options({
+        rule:{exclude:'json'},
+      })
+    })
+    expect(k1.rule().val.def.open.length).equal(3)
+
   })
   
   

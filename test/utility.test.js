@@ -44,46 +44,54 @@ const D = (o)=>console.dir(o,{depth:null})
 describe('utility', () => {
 
   it('configure', () => {
-    let c = {t:{},tI:0,lex:{}}
+    configure({},{})
+
+    configure({},{
+      fixed: null,
+      tokenSet: null,
+      text: null,
+      value: null,
+      string: null,
+      comment: null,
+      number: null,
+      space: null,
+      line: null,
+      lex: null,
+      rule: null,
+      config: null,
+      debug: null,
+      map: null,
+    })
+
+    configure({},{debug:{print:null},comment:{lex:true}})
+    
+    let c = {t:{},tI:0}
     let o0 = {
-      fixed: { token: {} },
-      tokenSet: { ignore: [] },
+      fixed: {},
+      tokenSet: {},
       text: {},
-      value: {
-        src: {}
-      },
-      string: {
-        escape: {}
-      },
+      value: {},
+      string: {},
       comment: {},
       number: {},
       space: {},
       line: {},
-      lex: {
-        match: [],
-      },
-      rule: {
-        include: '',
-        exclude: '',
-      },
-      config: {
-        modify: {}
-      },
-      debug: {
-        print: {}
-      },
+      lex: {},
+      rule: {},
+      config: {},
+      debug: {},
+      map: {},
     }
 
     configure(c,o0)
-    // console.log(c)
     expect(Object.keys(c.t).length).above(0)
 
     
-    c = {t:{},tI:0,lex:{}}
+    c = {t:{},tI:1}
     let o1 = deep({fixed:{token:{'#Ta':'a'}}},o0)
     configure(c,o1)
     // console.log(c)
-    expect(c.t.Ta).equal(11)
+    expect(c.t.Ta).equal(12)
   })
 
 

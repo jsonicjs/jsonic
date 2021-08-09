@@ -41,9 +41,9 @@ const defprop = Object.defineProperty
 
 const omap = (o: any, f: any) => {
   return Object
-    .entries(o)
+    .entries(o || {})
     .reduce((o: any, e: any) => {
-      let me = f(e)
+      let me = f ? f(e) : e
       if (undefined === me[0]) {
         delete o[e[0]]
       }
@@ -278,10 +278,10 @@ type Context = {
 // Idempotent normalization of options.
 // See Config type for commentary.
 function configure(incfg: Config | undefined, opts: Options): Config {
-  const cfg = incfg || ({
-    tI: 1, // Start at 1 to avoid spurious false value for first token
-    t: {},
-  } as Config)
+  const cfg = incfg || ({} as Config)
+
+  cfg.t = cfg.t || {}
+  cfg.tI = cfg.tI || 1
 
   const t = (tn: string) => tokenize(tn, cfg)
 
@@ -323,7 +323,6 @@ function configure(incfg: Config | undefined, opts: Options): Config {
 
 
   cfg.text = {
-    // lex: opts.text ? !!opts.text.lex : false,
     lex: !!opts.text?.lex,
   }
 
@@ -339,11 +338,6 @@ function configure(incfg: Config | undefined, opts: Options): Config {
   cfg.value = {
     lex: !!opts.value?.lex,
     map: opts.value?.map || {},
-
-    // map: {
-    //   'true': { v: true },
-    //   'false': { v: false },
-    //   'null': { v: null },
 
     // TODO: just testing, move to plugin
     // 'undefined': { v: undefined },
@@ -376,7 +370,7 @@ function configure(incfg: Config | undefined, opts: Options): Config {
 
   let fixedRE = fixedSorted.map(fixed => escre(fixed)).join('|')
 
-  let commentStartRE = opts.comment?.lex ? (opts.comment?.marker || [])
+  let commentStartRE = opts.comment?.lex ? (opts.comment.marker || [])
     .filter(c => c.lex)
     .map(c => '|' + escre(c.start)).join('')
     : ''
@@ -652,7 +646,7 @@ function errdesc(
           .map((s: string, i: number) => (0 === i ? ' ' : '  ') + s).join('\n'),
         code, details, token, rule, ctx
       ),
-      '  \x1b[2mhttps://jsonic.richardrodger.com\x1b[0m',
+      '  \x1b[2mhttps://jsonic.senecajs.org\x1b[0m',
       '  \x1b[2m--internal: rule=' + rule.name + '~' + rule.state +
       //'; token=' + ctx.cfg.t[token.tin] +
       '; token=' + tokenize(token.tin, ctx.cfg) +

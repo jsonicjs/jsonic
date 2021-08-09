@@ -24,7 +24,8 @@ describe('variant', function () {
       string:{chars:'"',multiChars:'',allowUnknown:false,escape:{v:null}},
       comment:{lex:false},
       map:{extend:false},
-      rule:{include:'json'},
+      lex:{empty: false},
+      rule:{finish:false,include:'json'},
     })
 
 
@@ -47,7 +48,9 @@ describe('variant', function () {
     expect(()=>json('0xA')).throws(JsonicError,/unexpected.*:1:1/s)
     expect(()=>json('`a`')).throws(JsonicError,/unexpected.*:1:1/s)
     expect(()=>json('\'a\'')).throws(JsonicError,/unexpected.*:1:1/s)
-
+    expect(()=>json('')).throws(JsonicError,/unexpected.*:1:1/s)
+    expect(()=>json('{"a":1')).throws(JsonicError,/unexpected.*:1:7/s)
+    
     // TODO: fix: unexpected on `a` as `,` is already parsed as a valid fixed token
     expect(()=>json('[,a]')).throws(JsonicError,/unexpected.*:1:3/s)
 

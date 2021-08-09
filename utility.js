@@ -20,9 +20,9 @@ const defprop = Object.defineProperty;
 exports.defprop = defprop;
 const omap = (o, f) => {
     return Object
-        .entries(o)
+        .entries(o || {})
         .reduce((o, e) => {
-        let me = f(e);
+        let me = f ? f(e) : e;
         if (undefined === me[0]) {
             delete o[e[0]];
         }
@@ -94,11 +94,10 @@ exports.JsonicError = JsonicError;
 // Idempotent normalization of options.
 // See Config type for commentary.
 function configure(incfg, opts) {
-    var _a, _b, _c, _d, _e, _f, _g, _h, _j, _k, _l, _o, _p, _q, _r, _s, _t, _u, _v, _w, _x, _y, _z, _0, _1, _2, _3, _4, _5, _6, _7, _8, _9, _10;
-    const cfg = incfg || {
-        tI: 1,
-        t: {},
-    };
+    var _a, _b, _c, _d, _e, _f, _g, _h, _j, _k, _l, _o, _p, _q, _r, _s, _t, _u, _v, _w, _x, _y, _z, _0, _1, _2, _3, _4, _5, _6, _7, _8, _9;
+    const cfg = incfg || {};
+    cfg.t = cfg.t || {};
+    cfg.tI = cfg.tI || 1;
     const t = (tn) => tokenize(tn, cfg);
     // Standard tokens. These names cannot be changed.
     t('#BD'); // BAD
@@ -130,7 +129,6 @@ function configure(incfg, opts) {
         rowChars: charset((_g = opts.line) === null || _g === void 0 ? void 0 : _g.rowChars),
     };
     cfg.text = {
-        // lex: opts.text ? !!opts.text.lex : false,
         lex: !!((_h = opts.text) === null || _h === void 0 ? void 0 : _h.lex),
     };
     cfg.number = {
@@ -144,10 +142,6 @@ function configure(incfg, opts) {
     cfg.value = {
         lex: !!((_r = opts.value) === null || _r === void 0 ? void 0 : _r.lex),
         map: ((_s = opts.value) === null || _s === void 0 ? void 0 : _s.map) || {},
-        // map: {
-        //   'true': { v: true },
-        //   'false': { v: false },
-        //   'null': { v: null },
         // TODO: just testing, move to plugin
         // 'undefined': { v: undefined },
         // 'NaN': { v: NaN },
@@ -171,7 +165,7 @@ function configure(incfg, opts) {
     let fixedSorted = Object.keys(cfg.fixed.token)
         .sort((a, b) => b.length - a.length);
     let fixedRE = fixedSorted.map(fixed => escre(fixed)).join('|');
-    let commentStartRE = ((_0 = opts.comment) === null || _0 === void 0 ? void 0 : _0.lex) ? (((_1 = opts.comment) === null || _1 === void 0 ? void 0 : _1.marker) || [])
+    let commentStartRE = ((_0 = opts.comment) === null || _0 === void 0 ? void 0 : _0.lex) ? (opts.comment.marker || [])
         .filter(c => c.lex)
         .map(c => '|' + escre(c.start)).join('')
         : '';
@@ -193,25 +187,25 @@ function configure(incfg, opts) {
     cfg.re = {
         ender: regexp(null, ...enderRE),
         // TODO: prebuild these using a property on matcher?
-        rowChars: regexp(null, escre((_2 = opts.line) === null || _2 === void 0 ? void 0 : _2.rowChars)),
-        columns: regexp(null, '[' + escre((_3 = opts.line) === null || _3 === void 0 ? void 0 : _3.chars) + ']', '(.*)$'),
+        rowChars: regexp(null, escre((_1 = opts.line) === null || _1 === void 0 ? void 0 : _1.rowChars)),
+        columns: regexp(null, '[' + escre((_2 = opts.line) === null || _2 === void 0 ? void 0 : _2.chars) + ']', '(.*)$'),
     };
     cfg.lex = {
-        empty: !!((_4 = opts.lex) === null || _4 === void 0 ? void 0 : _4.empty),
-        match: ((_5 = opts.lex) === null || _5 === void 0 ? void 0 : _5.match) ?
+        empty: !!((_3 = opts.lex) === null || _3 === void 0 ? void 0 : _3.empty),
+        match: ((_4 = opts.lex) === null || _4 === void 0 ? void 0 : _4.match) ?
             opts.lex.match.map((maker) => maker(cfg, opts)) : [],
     };
     cfg.debug = {
-        get_console: ((_6 = opts.debug) === null || _6 === void 0 ? void 0 : _6.get_console) || (() => console),
-        maxlen: null == ((_7 = opts.debug) === null || _7 === void 0 ? void 0 : _7.maxlen) ? 99 : opts.debug.maxlen,
+        get_console: ((_5 = opts.debug) === null || _5 === void 0 ? void 0 : _5.get_console) || (() => console),
+        maxlen: null == ((_6 = opts.debug) === null || _6 === void 0 ? void 0 : _6.maxlen) ? 99 : opts.debug.maxlen,
         print: {
-            config: !!((_9 = (_8 = opts.debug) === null || _8 === void 0 ? void 0 : _8.print) === null || _9 === void 0 ? void 0 : _9.config)
+            config: !!((_8 = (_7 = opts.debug) === null || _7 === void 0 ? void 0 : _7.print) === null || _8 === void 0 ? void 0 : _8.config)
         },
     };
     cfg.error = opts.error || {};
     cfg.hint = opts.hint || {};
     // Apply any config modifiers (probably from plugins).
-    if ((_10 = opts.config) === null || _10 === void 0 ? void 0 : _10.modify) {
+    if ((_9 = opts.config) === null || _9 === void 0 ? void 0 : _9.modify) {
         keys(opts.config.modify)
             .forEach((modifer) => opts.config.modify[modifer](cfg, opts));
     }
@@ -363,7 +357,7 @@ function errdesc(code, details, token, rule, ctx) {
                 .replace(/^([^ ])/, ' $1')
                 .split('\n')
                 .map((s, i) => (0 === i ? ' ' : '  ') + s).join('\n'), code, details, token, rule, ctx),
-            '  \x1b[2mhttps://jsonic.richardrodger.com\x1b[0m',
+            '  \x1b[2mhttps://jsonic.senecajs.org\x1b[0m',
             '  \x1b[2m--internal: rule=' + rule.name + '~' + rule.state +
                 //'; token=' + ctx.cfg.t[token.tin] +
                 '; token=' + tokenize(token.tin, ctx.cfg) +

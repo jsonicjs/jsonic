@@ -37,7 +37,7 @@ describe('error', function () {
   code to see how Java script will interpret it. Also consider that your
   data may have become corrupted, or the escape sequence has not been
   generated correctly.
-  \u001b[2mhttps://jsonic.richardrodger.com\u001b[0m
+  \u001b[2mhttps://jsonic.senecajs.org\u001b[0m
   \u001b[2m--internal: rule=val~open; token=#BD~foo; plugins=--\u001b[0m'
 `      )
     }
@@ -85,7 +85,7 @@ describe('error', function () {
           '\u001b[34m  3 | \u001b[0m\n' +
           '\u001b[34m  4 | \u001b[0m\n' +
           '  Foo hint.\n' +
-          '  \u001b[2mhttps://jsonic.richardrodger.com\u001b[0m\n' +
+          '  \u001b[2mhttps://jsonic.senecajs.org\u001b[0m\n' +
           '  \u001b[2m--internal: rule=pair~o; token=#BD~foo;'+
           ' plugins=foo--\u001b[0m\n'
       )
