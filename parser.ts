@@ -40,6 +40,7 @@ import type {
 } from './jsonic'
 
 
+// TODO: add depth!
 class Rule {
   id: number
   name: string

@@ -7,6 +7,7 @@ exports.NONE = exports.RuleSpec = exports.Rule = exports.Parser = void 0;
  */
 const utility_1 = require("./utility");
 const lexer_1 = require("./lexer");
+// TODO: add depth!
 class Rule {
     constructor(spec, ctx, node) {
         this.id = ctx.uI++;

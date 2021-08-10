@@ -141,7 +141,7 @@ type JsonicAPI = {
 
 
 // Define a plugin to extend the provided Jsonic instance.
-type Plugin = ((jsonic: Jsonic, plugin_options: KV) => void | Jsonic) &
+type Plugin = ((jsonic: Jsonic, plugin_options?: any) => void | Jsonic) &
 { defaults?: KV }
 
 

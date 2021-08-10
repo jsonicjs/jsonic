@@ -23,7 +23,7 @@ declare type JsonicAPI = {
     toString: () => string;
     util: KV;
 };
-declare type Plugin = ((jsonic: Jsonic, plugin_options: KV) => void | Jsonic) & {
+declare type Plugin = ((jsonic: Jsonic, plugin_options?: any) => void | Jsonic) & {
     defaults?: KV;
 };
 declare type Tin = number;
