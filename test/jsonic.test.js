@@ -1062,13 +1062,13 @@ describe('jsonic', function () {
       // NOTE: if parse algo changes then these may change.
       // But if *not intended* changes here indicate unexpected effects.
       expect(out).includes({
-        rmc: 62252,
-        emc: 2774,
+        rmc: 62734,
+        emc: 2292,
         ecc: {
           unprintable: 91,
-          unexpected: 1981,
+          unexpected: 1499,
           unterminated_string: 701,
-          unterminated_comment: 1,
+          unterminated_comment: 1
         }
       })
     }

@@ -557,26 +557,22 @@ class Parser {
                     { s: [CA], b: 1, g: 'list,val,imp,null' },
                 ],
                 close: [
+                    { s: [ZZ] },
+                    { s: [[CB, CS]], b: 1, g: 'val,json' },
                     // Implicit list only allowed at top level: 1,2.
                     {
                         s: [CA],
                         c: { n: { il: 0 } }, n: { il: 1 },
                         r: utility_1.S.elem,
                         a: (rule) => rule.node = [rule.node],
-                        g: 'list,val,imp'
+                        g: 'list,val,imp',
                     },
-                    // TODO: find a cleaner way to handle this edge case.
-                    // Allow top level "a b".
                     {
-                        c: (_rule, ctx, _alt) => {
-                            return (TX === ctx.t0.tin ||
-                                NR === ctx.t0.tin ||
-                                ST === ctx.t0.tin ||
-                                VL === ctx.t0.tin) && 0 === ctx.rs.length;
-                        },
+                        c: { n: { il: 0 } }, n: { il: 1 },
                         r: utility_1.S.elem,
                         a: (rule) => rule.node = [rule.node],
-                        g: 'list,val,imp'
+                        g: 'list,val,imp',
+                        b: 1,
                     },
                     // Close value, map, or list, but perhaps there are more elem?
                     { b: 1, g: 'val,json' },
@@ -650,7 +646,7 @@ class Parser {
                     { s: [VAL], c: { n: { im: 0 } }, r: utility_1.S.pair, b: 1, g: 'map,pair,imp' },
                     // End of implicit path a:b:1,.
                     { s: [[CB, CA, ...VAL]], b: 1, g: 'map,pair,imp,path' },
-                    // Close implicit single prop map inside list: [a:1,]
+                    // Close implicit single prop map inside list: [a:1]
                     { s: [CS], b: 1, g: 'list,pair,imp' },
                     // Fail if auto-close option is false.
                     { s: [ZZ], e: finish, g: 'map,pair,json' },
@@ -668,9 +664,10 @@ class Parser {
                         let prev = r.node[key];
                         // Convert undefined to null when there was no pair value
                         // Otherwise leave it alone (eg. dynamic plugin sets undefined)
-                        if (undefined === val && CL === ctx.v1.tin) {
-                            val = null;
-                        }
+                        // if (undefined === val && CL === ctx.v1.tin) {
+                        //   val = null
+                        // }
+                        val = undefined === val ? null : val;
                         r.node[key] = null == prev ? val :
                             (ctx.cfg.map.merge ? ctx.cfg.map.merge(prev, val) :
                                 (ctx.cfg.map.extend ? utility_1.deep(prev, val) : val));

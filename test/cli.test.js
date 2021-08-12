@@ -36,21 +36,21 @@ describe('cli', function () {
         '--option','value.lex=false',
         '--',
         'a:true'],cn)
-    expect(cn.d.log[37][0]).equals('{"a":"true"}')
+    expect(cn.d.log[39][0]).equals('{"a":"true"}')
 
     jr([0,0,'--debug',
         '--option','debug.maxlen=11',
         '-o','text.lex_value=false',
         'a:true'],cn)
-    expect(cn.d.log[37][0]).equals('{"a":"true"}')
+    expect(cn.d.log[39][0]).equals('{"a":"true"}')
 
     cn = make_cn()
     jr([0,0,'--meta', 'log=-1', 'a:true'],cn)
-    expect(cn.d.log[37][0]).equals('{"a":true}')
+    expect(cn.d.log[39][0]).equals('{"a":true}')
 
     cn = make_cn()
     jr([0,0,'-m', 'log=-1', 'a:true'],cn)
-    expect(cn.d.log[37][0]).equals('{"a":true}')
+    expect(cn.d.log[39][0]).equals('{"a":true}')
 
     cn = make_cn()
     jr([0,0,'-h'],cn)
