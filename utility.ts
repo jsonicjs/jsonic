@@ -253,7 +253,6 @@ type Context = {
   uI: number           // Rule index.
   opts: Options        // Jsonic instance options.
   cfg: Config         // Jsonic instance config.
-  //meta: Meta           // Parse meta parameters.
   meta: KV             // Parse meta parameters.
   src: () => string,   // source text to parse.
   root: () => any,     // Root node.
@@ -709,26 +708,31 @@ function badlex(lex: Lex, BD: Tin, ctx: Context) {
 // Special debug logging to console (use Jsonic('...', {log:N})).
 // log:N -> console.dir to depth N
 // log:-1 -> console.dir to depth 1, omitting objects (good summary!)
-function makelog(ctx: Context) {
-  if ('number' === typeof ctx.log) {
-    let exclude_objects = false
-    let logdepth = (ctx.log as number)
-    if (-1 === logdepth) {
-      logdepth = 1
-      exclude_objects = true
+function makelog(ctx: Context, meta: any) {
+  if (meta) {
+    if ('number' === typeof meta.log) {
+      let exclude_objects = false
+      let logdepth = meta.log
+      if (-1 === logdepth) {
+        logdepth = 1
+        exclude_objects = true
+      }
+      ctx.log = (...rest: any) => {
+        if (exclude_objects) {
+          let logstr = rest
+            .filter((item: any) => S.object != typeof (item))
+            .map((item: any) => S.function == typeof (item) ? item.name : item)
+            .join('\t')
+          ctx.cfg.debug.get_console().log(logstr)
+        }
+        else {
+          ctx.cfg.debug.get_console().dir(rest, { depth: logdepth })
+        }
+        return undefined
+      }
     }
-    ctx.log = (...rest: any) => {
-      if (exclude_objects) {
-        let logstr = rest
-          .filter((item: any) => S.object != typeof (item))
-          .map((item: any) => S.function == typeof (item) ? item.name : item)
-          .join('\t')
-        ctx.cfg.debug.get_console().log(logstr)
-      }
-      else {
-        ctx.cfg.debug.get_console().dir(rest, { depth: logdepth })
-      }
-      return undefined
+    else if ('function' === typeof meta.log) {
+      ctx.log = meta.log
     }
   }
   return ctx.log

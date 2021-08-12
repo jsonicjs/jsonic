@@ -685,13 +685,14 @@ describe('feature', function () {
     expect(j('a:1')).equals({a:1})
     expect(j('a:1,b:2')).equals({a:1,b:2})
 
+    expect(j('{a:b:1}')).equals({a:{b:1}})
+    expect(j('{a:b:1,a:c:2}')).equals({a:{b:1,c:2}})
+    expect(j('{a:b:1,a:c:2,a:d:3}')).equals({a:{b:1,c:2,d:3}})
+    
     expect(j('a:b:1')).equals({a:{b:1}})
     expect(j('a:b:1,a:c:2')).equals({a:{b:1,c:2}})
     expect(j('a:b:1,a:c:2,a:d:3')).equals({a:{b:1,c:2,d:3}})
 
-    expect(j('{a:b:1}')).equals({a:{b:1}})
-    expect(j('{a:b:1,a:c:2}')).equals({a:{b:1,c:2}})
-    
     expect(j('a:b:c:1')).equals({a:{b:{c:1}}})
     expect(j('a:b:1,d:2')).equals({a:{b:1},d:2})
     expect(j('a:b:c:1,d:2')).equals({a:{b:{c:1}},d:2})

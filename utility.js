@@ -408,27 +408,32 @@ exports.badlex = badlex;
 // Special debug logging to console (use Jsonic('...', {log:N})).
 // log:N -> console.dir to depth N
 // log:-1 -> console.dir to depth 1, omitting objects (good summary!)
-function makelog(ctx) {
-    if ('number' === typeof ctx.log) {
-        let exclude_objects = false;
-        let logdepth = ctx.log;
-        if (-1 === logdepth) {
-            logdepth = 1;
-            exclude_objects = true;
+function makelog(ctx, meta) {
+    if (meta) {
+        if ('number' === typeof meta.log) {
+            let exclude_objects = false;
+            let logdepth = meta.log;
+            if (-1 === logdepth) {
+                logdepth = 1;
+                exclude_objects = true;
+            }
+            ctx.log = (...rest) => {
+                if (exclude_objects) {
+                    let logstr = rest
+                        .filter((item) => S.object != typeof (item))
+                        .map((item) => S.function == typeof (item) ? item.name : item)
+                        .join('\t');
+                    ctx.cfg.debug.get_console().log(logstr);
+                }
+                else {
+                    ctx.cfg.debug.get_console().dir(rest, { depth: logdepth });
+                }
+                return undefined;
+            };
         }
-        ctx.log = (...rest) => {
-            if (exclude_objects) {
-                let logstr = rest
-                    .filter((item) => S.object != typeof (item))
-                    .map((item) => S.function == typeof (item) ? item.name : item)
-                    .join('\t');
-                ctx.cfg.debug.get_console().log(logstr);
-            }
-            else {
-                ctx.cfg.debug.get_console().dir(rest, { depth: logdepth });
-            }
-            return undefined;
-        };
+        else if ('function' === typeof meta.log) {
+            ctx.log = meta.log;
+        }
     }
     return ctx.log;
 }

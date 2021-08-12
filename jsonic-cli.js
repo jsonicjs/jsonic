@@ -110,6 +110,8 @@ async function read_stdin(console) {
     return s;
     /* $lab:coverage:on$ */
 }
+// TODO: FIX!!! this is very fragile and causes bizarro bugs!!!
+// perhaps construct a simplified rules Jsonic instance for this use case?
 // NOTE: uses vanilla Jsonic to parse arg vals, so you can set complex properties.
 function handle_props(propvals) {
     let out = {};

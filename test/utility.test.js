@@ -438,8 +438,8 @@ describe('utility', () => {
     }
     
     let g0 = makelog({})
-    let g1 = makelog({log:1,cfg})
-    let g2 = makelog({log:-1,cfg})
+    let g1 = makelog({cfg},{log:1})
+    let g2 = makelog({cfg},{log:-1})
 
     expect(g0).undefined()
 

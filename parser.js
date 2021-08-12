@@ -52,6 +52,7 @@ class RuleSpec {
         this.bc = true;
         this.ac = true;
         this.def = def || {};
+        // TODO: AltSpec?
         function norm_alt(alt) {
             // Convert counter abbrev condition into an actual function.
             let counters = null != alt.c && alt.c.n;
@@ -69,8 +70,9 @@ class RuleSpec {
                 alt.g = alt.g.split(/\s*,\s*/);
             }
         }
-        this.def.open = this.def.open || [];
-        this.def.close = this.def.close || [];
+        // Null Alt entries are allowed and ignored as a convenience.
+        this.def.open = (this.def.open || []).filter((alt) => null != alt);
+        this.def.close = (this.def.close || []).filter((alt) => null != alt);
         for (let alt of [...this.def.open, ...this.def.close]) {
             norm_alt(alt);
         }
@@ -294,6 +296,242 @@ class Parser {
                 return ctx.t0;
             }
         };
+        /*
+        let rules: any = {
+          val: {
+            open: [
+              // A map: { ...
+              { s: [OB], p: S.map, b: 1, g: 'map,json' },
+    
+              // A list: [ ...
+              { s: [OS], p: S.list, b: 1, g: 'list,json' },
+    
+              // A pair key: a: ...
+              { s: [VAL, CL], p: S.map, b: 2, xn: { im: 1, il: 1 }, g: 'pair,json' },
+              //{ s: [VAL, CL], p: S.map, b: 2, g: 'pair,json' },
+    
+              // A plain value: x "x" 1 true.
+              { s: [VAL], g: 'val,json' },
+    
+              // Implicit ends `{a:}` -> {"a":null}, `[a:]` -> [{"a":null}]
+              { s: [[CB, CS]], b: 1, g: 'val,imp,null' },
+    
+              // Implicit list at top level: a,b.
+              // { s: [CA], d: 0, p: S.list, b: 1, g: 'list,imp' },
+              { s: [CA], xd: 0, p: S.list, b: 1, c: { n: { il: 0 } }, n: { il: 1 }, g: 'list,imp' },
+    
+              // Value is null when empty before commas.
+              { s: [CA], b: 1, g: 'list,val,imp,null' },
+            ],
+    
+            close: [
+              { s: [ZZ] },
+    
+              { s: [[CB, CS]], b: 1, g: 'val,json' },
+    
+              // Implicit list only allowed at top level: 1,2.
+              {
+                // s: [CA], d: 0, r: S.elem,
+                s: [CA],
+                c: { n: { il: 0 } }, n: { il: 1 }, r: S.elem,
+                a: (rule: Rule) => rule.node = [rule.node],
+                g: 'list,val,imp'
+              },
+    
+              {
+                // s: [[TX, NR, VL, ST, OB, OS]],
+                c: { n: { il: 0 } }, n: { il: 1 }, r: S.elem,
+                b: 1,
+                a: (rule: Rule) => rule.node = [rule.node],
+                g: 'list,val,imp'
+              },
+    
+              // TODO: find a cleaner way to handle this edge case.
+              // Allow top level "a b".
+              // {
+              //   c: (_rule: Rule, ctx: Context, _alt: Alt) => {
+              //     return (TX === ctx.t0.tin ||
+              //       NR === ctx.t0.tin ||
+              //       ST === ctx.t0.tin ||
+              //       VL === ctx.t0.tin
+              //     ) && 0 === ctx.rs.length
+              //   },
+              //   r: S.elem,
+              //   a: (rule: Rule) => rule.node = [rule.node],
+              //   g: 'list,val,imp'
+              // },
+    
+    
+              // Close value, map, or list, but perhaps there are more elem?
+              { b: 1, g: 'val,json' },
+            ],
+            bo: (r: Rule) => {
+              r.node = undefined
+            },
+            bc: (r: Rule) => {
+              // NOTE: val can be undefined when there is no value at all
+              // (eg. empty string, thus no matched opening token)
+              r.node =
+                undefined === r.node ?
+                  undefined === r.child.node ?
+                    (null == r.open[0] ? undefined : r.open[0].val) :
+                    r.child.node :
+                  r.node
+            },
+          },
+    
+    
+          map: {
+            bo: (rule: Rule) => {
+              // rule.n.im = 1 + (rule.n.im ? rule.n.im : 0)
+              rule.n.il = 1 + (rule.n.il ? rule.n.il : 0)
+              // Create a new empty map.
+              return { node: {} }
+            },
+            open: [
+              // An empty map: {}.
+              { s: [OB, CB], g: 'map,json' },
+    
+              // Start matching map key-value pairs: a:1.
+              // OB `{` resets implicit map counter.
+              { s: [OB], p: S.pair, n: { im: 0 }, g: 'map,json,pair' },
+    
+              // Pair from implicit map.
+              { s: [VAL, CL], p: S.pair, b: 2, g: 'pair,list,val,imp' },
+            ],
+            close: []
+          },
+    
+          list: {
+            bo: (rule: Rule) => {
+              rule.n.il = 1 + (rule.n.il ? rule.n.il : 0)
+    
+              // Create a new empty list.
+              return { node: [] }
+            },
+            open: [
+              // An empty list: [].
+              { s: [OS, CS], g: 'list,json' },
+    
+              // Start matching list elements: 1,2.
+              { s: [OS], p: S.elem, g: 'list,json,elem' },
+    
+              // Initial comma [, will insert null as [null,
+              { s: [CA], p: S.elem, b: 1, g: 'list,elem,val,imp' },
+    
+              // Another element.
+              { p: S.elem, g: 'list,elem' },
+            ],
+            close: [
+            ]
+          },
+    
+    
+          // sets key:val on node
+          pair: {
+            open: [
+              // Match key-colon start of pair.
+              { s: [VAL, CL], p: S.val, u: { key: true }, g: 'map,pair,key,json' },
+    
+              // Ignore initial comma: {,a:1.
+              { s: [CA], g: 'map,pair,comma' },
+            ],
+            close: [
+              // End of map, reset implicit depth counter so that
+              // a:b:c:1,d:2 -> {a:{b:{c:1}},d:2}
+              { s: [CB], c: { n: { im: 0 } }, g: 'map,pair,json' },
+    
+              // Ignore trailing comma at end of map.
+              { s: [CA, CB], c: { n: { im: 0 } }, g: 'map,pair,comma' },
+    
+              // Comma means a new pair at same level (unless implicit a:b:1,c:2).
+              { s: [CA], c: { n: { im: 0 } }, r: S.pair, g: 'map,pair,json' },
+    
+              // Who needs commas anyway?
+              { s: [VAL], c: { n: { im: 0 } }, r: S.pair, b: 1, g: 'map,pair,imp' },
+    
+              // End of implicit path a:b:1,.
+              { s: [[CB, CA, ...VAL]], b: 1, g: 'map,pair,imp,path' },
+    
+              // Close implicit single prop map inside list: [a:1,]
+              { s: [CS], b: 1, g: 'list,pair,imp' },
+    
+              // Fail if auto-close option is false.
+              { s: [ZZ], e: finish, g: 'map,pair,json' },
+            ],
+            bc: (r: Rule, ctx: Context) => {
+    
+              // If top level implicit map, correct `im` count.
+              // rs=val,map => len 2; a:b:1 should be im=1, not 2 as with {a:b:.
+              if (2 === ctx.rs.length) {
+                r.n.im = 0
+              }
+    
+              if (r.use.key) {
+                let key_token = r.open[0]
+                let key = ST === key_token.tin ? key_token.val : key_token.src
+                let val = r.child.node
+                let prev = r.node[key]
+    
+                // Convert undefined to null when there was no pair value
+                // Otherwise leave it alone (eg. dynamic plugin sets undefined)
+                // if (undefined === val && CL === ctx.v1.tin) {
+                //   val = null
+                // }
+                // console.log('KEYb', key, val)
+    
+                val = undefined === val ? null : val
+    
+                r.node[key] = null == prev ? val :
+                  (ctx.cfg.map.merge ? ctx.cfg.map.merge(prev, val) :
+                    (ctx.cfg.map.extend ? deep(prev, val) : val))
+              }
+            },
+          },
+    
+    
+          // push onto node
+          elem: {
+            open: [
+              // Empty commas insert null elements.
+              // Note that close consumes a comma, so b:2 works.
+              {
+                s: [CA, CA], b: 2, a: (r: Rule) => r.node.push(null),
+                g: 'list,elem,imp,null',
+              },
+    
+              {
+                s: [CA], a: (r: Rule) => r.node.push(null),
+                g: 'list,elem,imp,null',
+              },
+    
+              // Anything else must a list element value.
+              { p: S.val, g: 'list,elem,val,json' },
+            ],
+            close: [
+              // Ignore trailing comma.
+              { s: [CA, CS], g: 'list,elem,comma' },
+    
+              // Next element.
+              { s: [CA], r: S.elem, g: 'list,elem,json' },
+    
+              // Who needs commas anyway?
+              { s: [[...VAL, OB, OS]], r: S.elem, b: 1, g: 'list,elem,imp' },
+    
+              // End of list.
+              { s: [CS], g: 'list,elem,json' },
+    
+              // Fail if auto-close option is false.
+              { s: [ZZ], e: finish, g: 'list,elem,json' },
+            ],
+            bc: (rule: Rule) => {
+              if (undefined !== rule.child.node) {
+                rule.node.push(rule.child.node)
+              }
+            },
+          }
+        }
+        */
         let rules = {
             val: {
                 open: [
@@ -308,14 +546,22 @@ class Parser {
                     // Implicit ends `{a:}` -> {"a":null}, `[a:]` -> [{"a":null}]
                     { s: [[CB, CS]], b: 1, g: 'val,imp,null' },
                     // Implicit list at top level: a,b.
-                    { s: [CA], d: 0, p: utility_1.S.list, b: 1, g: 'list,imp' },
+                    {
+                        s: [CA],
+                        c: { n: { il: 0 } }, n: { il: 1 },
+                        p: utility_1.S.list,
+                        b: 1,
+                        g: 'list,imp'
+                    },
                     // Value is null when empty before commas.
                     { s: [CA], b: 1, g: 'list,val,imp,null' },
                 ],
                 close: [
                     // Implicit list only allowed at top level: 1,2.
                     {
-                        s: [CA], d: 0, r: utility_1.S.elem,
+                        s: [CA],
+                        c: { n: { il: 0 } }, n: { il: 1 },
+                        r: utility_1.S.elem,
                         a: (rule) => rule.node = [rule.node],
                         g: 'list,val,imp'
                     },
@@ -350,7 +596,8 @@ class Parser {
                 },
             },
             map: {
-                bo: () => {
+                bo: (rule) => {
+                    rule.n.il = 1 + (rule.n.il ? rule.n.il : 0);
                     // Create a new empty map.
                     return { node: {} };
                 },
@@ -366,7 +613,8 @@ class Parser {
                 close: []
             },
             list: {
-                bo: () => {
+                bo: (rule) => {
+                    rule.n.il = 1 + (rule.n.il ? rule.n.il : 0);
                     // Create a new empty list.
                     return { node: [] };
                 },
@@ -513,12 +761,12 @@ class Parser {
             next,
             rs: [],
             rsm: this.rsm,
-            log: (meta && meta.log) || undefined,
+            log: undefined,
             F: utility_1.srcfmt(this.cfg),
             use: {}
         };
         ctx = utility_1.deep(ctx, parent_ctx);
-        utility_1.makelog(ctx);
+        utility_1.makelog(ctx, meta);
         // Special case - avoids extra per-token tests in main parser rules.
         if ('' === src) {
             if (this.cfg.lex.empty) {

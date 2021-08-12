@@ -204,7 +204,7 @@ declare function trimstk(err: Error): void;
 declare function extract(src: string, errtxt: string, token: Token): string;
 declare function errdesc(code: string, details: KV, token: Token, rule: Rule, ctx: Context): KV;
 declare function badlex(lex: Lex, BD: Tin, ctx: Context): any;
-declare function makelog(ctx: Context): ((...rest: any) => undefined) | undefined;
+declare function makelog(ctx: Context, meta: any): ((...rest: any) => undefined) | undefined;
 declare function srcfmt(config: Config): (s: any, _?: any) => string;
 declare function snip(s: any, len?: number): string;
 declare function clone(class_instance: any): any;
