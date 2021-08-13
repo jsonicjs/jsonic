@@ -10,11 +10,11 @@ const CLOSE = 'c';
 exports.CLOSE = CLOSE;
 const MT = ''; // Empty ("MT"!) string.
 exports.MT = MT;
-const keys = Object.keys;
+const keys = (x) => null == x ? [] : Object.keys(x);
 exports.keys = keys;
-const entries = Object.entries;
+const entries = (x) => null == x ? [] : Object.entries(x);
 exports.entries = entries;
-const assign = Object.assign;
+const assign = (x, ...r) => Object.assign(null == x ? {} : x, ...r);
 exports.assign = assign;
 const defprop = Object.defineProperty;
 exports.defprop = defprop;
@@ -423,7 +423,7 @@ function makelog(ctx, meta) {
                         .filter((item) => S.object != typeof (item))
                         .map((item) => S.function == typeof (item) ? item.name : item)
                         .join('\t');
-                    ctx.cfg.debug.get_console().log(logstr);
+                    ctx.cfg.debug.get_console().log(logstr + ('stack' === rest[0] ? '\n' : ''));
                 }
                 else {
                     ctx.cfg.debug.get_console().dir(rest, { depth: logdepth });

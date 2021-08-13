@@ -672,6 +672,26 @@ describe('feature', function () {
     expect(j('1,1')).equals([1,1])
 
     expect(j('a,b')).equals(['a','b'])
+    expect(j('a,b,c')).equals(['a','b','c'])
+    expect(j('a,b,c,d')).equals(['a','b','c','d'])
+
+    expect(j('a b')).equals(['a','b'])
+    expect(j('a b c')).equals(['a','b','c'])
+    expect(j('a b c d')).equals(['a','b','c','d'])
+
+    expect(j('[a],[b]')).equals([['a'],['b']])
+    expect(j('[a],[b],[c]')).equals([['a'],['b'],['c']])
+    expect(j('[a],[b],[c],[d]')).equals([['a'],['b'],['c'],['d']])
+
+    expect(j('[a] [b]')).equals([['a'],['b']])
+    expect(j('[a] [b] [c]')).equals([['a'],['b'],['c']])
+    expect(j('[a] [b] [c] [d]')).equals([['a'],['b'],['c'],['d']])
+
+    // TODO: note this in docs as it enables parsing of JSON logs/records
+    expect(j('{a:1} {b:1}')).equals([{'a':1},{'b':1}])
+    expect(j('{a:1} {b:1} {c:1}')).equals([{'a':1},{'b':1},{'c':1}])
+    expect(j('{a:1} {b:1} {c:1} {d:1}')).equals([{'a':1},{'b':1},{'c':1},{'d':1}])
+
     expect(j('{a:1},')).equals([{a:1}])
     expect(j('[1],')).equals([[1]])
 

@@ -5,6 +5,7 @@
  */
 
 
+// TODO: rule.use should be rule.u for consistency
 // TODO: replace KV with Record<string,any>
 // TODO: Jsonic.make('json') - preset plain JSON options - see variant test just-json
 // TODO: consistent use of clean on options to allow null to mean 'remove property'

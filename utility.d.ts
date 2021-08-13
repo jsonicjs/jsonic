@@ -6,22 +6,9 @@ declare const OPEN = "o";
 declare const CLOSE = "c";
 declare type RuleState = 'o' | 'c';
 declare const MT = "";
-declare const keys: {
-    (o: object): string[];
-    (o: {}): string[];
-};
-declare const entries: {
-    <T>(o: {
-        [s: string]: T;
-    } | ArrayLike<T>): [string, T][];
-    (o: {}): [string, any][];
-};
-declare const assign: {
-    <T, U>(target: T, source: U): T & U;
-    <T_1, U_1, V>(target: T_1, source1: U_1, source2: V): T_1 & U_1 & V;
-    <T_2, U_2, V_1, W>(target: T_2, source1: U_2, source2: V_1, source3: W): T_2 & U_2 & V_1 & W;
-    (target: object, ...sources: any[]): any;
-};
+declare const keys: (x: any) => string[];
+declare const entries: (x: any) => [string, unknown][];
+declare const assign: (x: any, ...r: any[]) => any;
 declare const defprop: (o: any, p: PropertyKey, attributes: PropertyDescriptor & ThisType<any>) => any;
 declare const omap: (o: any, f: any) => any;
 declare const S: {

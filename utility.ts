@@ -34,9 +34,9 @@ type RuleState = 'o' | 'c'
 const MT = '' // Empty ("MT"!) string.
 
 
-const keys = Object.keys
-const entries = Object.entries
-const assign = Object.assign
+const keys = (x: any) => null == x ? [] : Object.keys(x)
+const entries = (x: any) => null == x ? [] : Object.entries(x)
+const assign = (x: any, ...r: any[]) => Object.assign(null == x ? {} : x, ...r)
 const defprop = Object.defineProperty
 
 const omap = (o: any, f: any) => {
@@ -723,7 +723,7 @@ function makelog(ctx: Context, meta: any) {
             .filter((item: any) => S.object != typeof (item))
             .map((item: any) => S.function == typeof (item) ? item.name : item)
             .join('\t')
-          ctx.cfg.debug.get_console().log(logstr)
+          ctx.cfg.debug.get_console().log(logstr + ('stack' === rest[0] ? '\n' : ''))
         }
         else {
           ctx.cfg.debug.get_console().dir(rest, { depth: logdepth })
