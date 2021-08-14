@@ -82,6 +82,7 @@ declare type Config = {
     fixed: {
         lex: boolean;
         token: TokenMap;
+        ref: Record<string | Tin, Tin | string>;
     };
     tokenSet: {
         ignore: {
@@ -178,7 +179,7 @@ declare type Context = {
     F: (s: any) => string;
     use: KV;
 };
-declare function configure(incfg: Config | undefined, opts: Options): Config;
+declare function configure(jsonic: any, incfg: Config | undefined, opts: Options): Config;
 declare function tokenize<R extends string | Tin, T extends (R extends Tin ? string : Tin)>(ref: R, cfg: Config, jsonic?: any): T;
 declare function mesc(s: string, _?: any): any;
 declare function regexp(flags: string | null, ...parts: (string | (String & {

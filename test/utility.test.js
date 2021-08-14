@@ -44,9 +44,9 @@ const D = (o)=>console.dir(o,{depth:null})
 describe('utility', () => {
 
   it('configure', () => {
-    configure({},{})
+    configure({},{},{})
 
-    configure({},{
+    configure({},{},{
       fixed: null,
       tokenSet: null,
       text: null,
@@ -63,7 +63,7 @@ describe('utility', () => {
       map: null,
     })
 
-    configure({},{debug:{print:null},comment:{lex:true}})
+    configure({},{},{debug:{print:null},comment:{lex:true}})
     
     let c = {t:{},tI:0}
     let o0 = {
@@ -83,13 +83,13 @@ describe('utility', () => {
       map: {},
     }
 
-    configure(c,o0)
+    configure({},c,o0)
     expect(Object.keys(c.t).length).above(0)
 
     
     c = {t:{},tI:1}
     let o1 = deep({fixed:{token:{'#Ta':'a'}}},o0)
-    configure(c,o1)
+    configure({},c,o1)
     // console.log(c)
     expect(c.t.Ta).equal(12)
   })

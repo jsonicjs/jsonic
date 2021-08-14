@@ -5,6 +5,7 @@
  */
 
 
+// TODO: docs: nice tree diagram of rules (generate?)
 // TODO: rule.use should be rule.u for consistency
 // TODO: replace KV with Record<string,any>
 // TODO: Jsonic.make('json') - preset plain JSON options - see variant test just-json
@@ -128,6 +129,12 @@ type JsonicAPI = {
 
   // Token get and set for plugins. Reference by either name or Tin.
   token:
+  { [ref: string]: Tin } &
+  { [ref: number]: string } &
+  (<A extends string | Tin>(ref: A) => A extends string ? Tin : string)
+
+  // Fixed token src get and set for plugins. Reference by either src or Tin.
+  fixed:
   { [ref: string]: Tin } &
   { [ref: number]: string } &
   (<A extends string | Tin>(ref: A) => A extends string ? Tin : string)
@@ -271,10 +278,12 @@ function make(param_options?: KV, parent?: Jsonic): Jsonic {
     parser: Parser,
     config: Config,
     plugins: Plugin[],
+    mark: number,
   } = {
     parser: ({} as Parser),
     config: ({} as Config),
-    plugins: []
+    plugins: [],
+    mark: Math.random()
   }
 
   // Merge options.
@@ -304,11 +313,11 @@ function make(param_options?: KV, parent?: Jsonic): Jsonic {
   let options: any = (change_options?: KV) => {
     if (null != change_options && S.object === typeof (change_options)) {
       deep(merged_options, change_options)
-      configure(internal.config, merged_options)
-      for (let k in merged_options) {
-        jsonic.options[k] = merged_options[k]
-      }
-      assign(jsonic.token, internal.config?.t)
+      configure(jsonic, internal.config, merged_options)
+      // for (let k in merged_options) {
+      //   jsonic.options[k] = merged_options[k]
+      // }
+      // assign(jsonic.token, internal.config?.t)
 
       let parser = jsonic.internal().parser
       //if (parser) {
@@ -322,13 +331,9 @@ function make(param_options?: KV, parent?: Jsonic): Jsonic {
   // Define the API
   let api: JsonicAPI = {
 
-    // TODO: not any, instead & { [token_name:string]: Tin }
-    token: (function token<
-      R extends string | Tin,
-      T extends (R extends Tin ? string : Tin)
-    >(ref: R): T {
-      return tokenize(ref, internal.config, jsonic)
-    } as any),
+    token: ((ref: string | Tin) => tokenize(ref, internal.config, jsonic)) as unknown as JsonicAPI['token'],
+
+    fixed: ((ref: string | Tin) => internal.config.fixed.ref[ref]) as unknown as JsonicAPI['fixed'],
 
     options: deep(options, merged_options),
 
@@ -347,8 +352,7 @@ function make(param_options?: KV, parent?: Jsonic): Jsonic {
       return plugin(jsonic, full_plugin_options) || jsonic
     },
 
-    rule: function rule(name?: string, define?: RuleDefiner):
-      RuleSpecMap | RuleSpec {
+    rule: (name?: string, define?: RuleDefiner) => {
       return jsonic.internal().parser.rule(name, define)
     },
 
@@ -360,7 +364,7 @@ function make(param_options?: KV, parent?: Jsonic): Jsonic {
       })
     },
 
-    make: function(options?: Options) {
+    make: (options?: Options) => {
       return make(options, jsonic)
     },
 
@@ -369,8 +373,8 @@ function make(param_options?: KV, parent?: Jsonic): Jsonic {
       ('' + Math.random()).substring(2, 8).padEnd(6, '0') + '/' +
       options.tag,
 
-    toString: function() {
-      return this.id
+    toString: () => {
+      return api.id
     },
 
     util,
@@ -381,10 +385,16 @@ function make(param_options?: KV, parent?: Jsonic): Jsonic {
   defprop(api.make, S.name, { value: S.make })
 
 
-  // Transfer parent properties (preserves plugin decorations, etc).
+  // Add API methods to the core utility function.
+  assign(jsonic, api)
+
+
   if (parent) {
+    // Transfer extra parent properties (preserves plugin decorations, etc).
     for (let k in parent) {
-      jsonic[k] = parent[k]
+      if (undefined === jsonic[k]) {
+        jsonic[k] = parent[k]
+      }
     }
 
     jsonic.parent = parent
@@ -392,7 +402,7 @@ function make(param_options?: KV, parent?: Jsonic): Jsonic {
     let parent_internal = parent.internal()
     internal.config = deep({}, parent_internal.config)
 
-    configure(internal.config, merged_options)
+    configure(jsonic, internal.config, merged_options)
     assign(jsonic.token, internal.config.t)
 
     internal.plugins = [...parent_internal.plugins]
@@ -400,7 +410,7 @@ function make(param_options?: KV, parent?: Jsonic): Jsonic {
     internal.parser = parent_internal.parser.clone(merged_options, internal.config)
   }
   else {
-    internal.config = configure(undefined, merged_options)
+    internal.config = configure(jsonic, undefined, merged_options)
 
     internal.plugins = []
 
@@ -409,12 +419,14 @@ function make(param_options?: KV, parent?: Jsonic): Jsonic {
   }
 
 
-  // Add API methods to the core utility function.
-  assign(jsonic, api)
 
 
   // As with options, provide direct access to tokens.
-  assign(jsonic.token, internal.config.t)
+  // assign(jsonic.token, internal.config.t)
+
+
+  // As with options, provide direct access to fixed token src strings.
+  // assign(jsonic.fixed, internal.config.fixed.ref)
 
 
   // Hide internals where you can still find them.
@@ -519,6 +531,7 @@ delete top.use
 delete top.rule
 delete top.lex
 delete top.token
+delete top.fixed
 
 
 // Provide deconstruction export names

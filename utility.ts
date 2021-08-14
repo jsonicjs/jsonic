@@ -158,6 +158,7 @@ type Config = {
   fixed: {
     lex: boolean
     token: TokenMap
+    ref: Record<string | Tin, Tin | string>
   }
 
   // Token sets.
@@ -276,7 +277,7 @@ type Context = {
 
 // Idempotent normalization of options.
 // See Config type for commentary.
-function configure(incfg: Config | undefined, opts: Options): Config {
+function configure(jsonic: any, incfg: Config | undefined, opts: Options): Config {
   const cfg = incfg || ({} as Config)
 
   cfg.t = cfg.t || {}
@@ -301,9 +302,18 @@ function configure(incfg: Config | undefined, opts: Options): Config {
     lex: !!opts.fixed?.lex,
     //token: map(opts.fixed.token, ([name, src]: [string, string]) => [src, t(name)])
     token: opts.fixed ? omap(opts.fixed.token,
-      ([name, src]: [string, string]) => [src, tokenize(name, cfg)]) : {}
+      ([name, src]: [string, string]) => [src, tokenize(name, cfg)]) : {},
+    ref: (undefined as any)
   }
 
+  cfg.fixed.ref = omap(cfg.fixed.token,
+    ([tin, src]: [string, string]) => [tin, src])
+  cfg.fixed.ref = Object.assign(
+    cfg.fixed.ref, omap(cfg.fixed.ref,
+      ([tin, src]: [string, string]) => [src, tin]))
+
+
+  // console.log('CFG FIXED', cfg.fixed)
 
   cfg.tokenSet = {
     ignore: Object.fromEntries((opts.tokenSet?.ignore || []).map(tn => [t(tn), true]))
@@ -426,7 +436,6 @@ function configure(incfg: Config | undefined, opts: Options): Config {
   cfg.error = opts.error || {}
   cfg.hint = opts.hint || {}
 
-
   // Apply any config modifiers (probably from plugins).
   if (opts.config?.modify) {
     keys(opts.config.modify)
@@ -439,6 +448,12 @@ function configure(incfg: Config | undefined, opts: Options): Config {
     cfg.debug.get_console().dir(cfg, { depth: null })
   }
 
+  assign(jsonic.options, opts)
+  assign(jsonic.token, cfg.t)
+  assign(jsonic.fixed, cfg.fixed.ref)
+
+  // console.log('QQQ', cfg.t)
+  // console.log('WWW', jsonic)
 
   return cfg
 }

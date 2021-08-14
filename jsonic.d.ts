@@ -19,6 +19,11 @@ declare type JsonicAPI = {
     } & {
         [ref: number]: string;
     } & (<A extends string | Tin>(ref: A) => A extends string ? Tin : string);
+    fixed: {
+        [ref: string]: Tin;
+    } & {
+        [ref: number]: string;
+    } & (<A extends string | Tin>(ref: A) => A extends string ? Tin : string);
     id: string;
     toString: () => string;
     util: KV;

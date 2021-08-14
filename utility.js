@@ -93,7 +93,7 @@ class JsonicError extends SyntaxError {
 exports.JsonicError = JsonicError;
 // Idempotent normalization of options.
 // See Config type for commentary.
-function configure(incfg, opts) {
+function configure(jsonic, incfg, opts) {
     var _a, _b, _c, _d, _e, _f, _g, _h, _j, _k, _l, _o, _p, _q, _r, _s, _t, _u, _v, _w, _x, _y, _z, _0, _1, _2, _3, _4, _5, _6, _7, _8, _9;
     const cfg = incfg || {};
     cfg.t = cfg.t || {};
@@ -114,8 +114,12 @@ function configure(incfg, opts) {
     cfg.fixed = {
         lex: !!((_a = opts.fixed) === null || _a === void 0 ? void 0 : _a.lex),
         //token: map(opts.fixed.token, ([name, src]: [string, string]) => [src, t(name)])
-        token: opts.fixed ? omap(opts.fixed.token, ([name, src]) => [src, tokenize(name, cfg)]) : {}
+        token: opts.fixed ? omap(opts.fixed.token, ([name, src]) => [src, tokenize(name, cfg)]) : {},
+        ref: undefined
     };
+    cfg.fixed.ref = omap(cfg.fixed.token, ([tin, src]) => [tin, src]);
+    cfg.fixed.ref = Object.assign(cfg.fixed.ref, omap(cfg.fixed.ref, ([tin, src]) => [src, tin]));
+    // console.log('CFG FIXED', cfg.fixed)
     cfg.tokenSet = {
         ignore: Object.fromEntries((((_b = opts.tokenSet) === null || _b === void 0 ? void 0 : _b.ignore) || []).map(tn => [t(tn), true]))
     };
@@ -213,6 +217,11 @@ function configure(incfg, opts) {
     if (cfg.debug.print.config) {
         cfg.debug.get_console().dir(cfg, { depth: null });
     }
+    assign(jsonic.options, opts);
+    assign(jsonic.token, cfg.t);
+    assign(jsonic.fixed, cfg.fixed.ref);
+    // console.log('QQQ', cfg.t)
+    // console.log('WWW', jsonic)
     return cfg;
 }
 exports.configure = configure;

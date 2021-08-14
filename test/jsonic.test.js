@@ -124,6 +124,95 @@ describe('jsonic', function () {
   })
 
   
+  it('token-fixed', () => {
+    let j = Jsonic.make()
+
+    // console.log(j.token)
+    // console.log(j.fixed)
+    // console.log(j.options)
+
+    expect({...j.fixed}).equals({
+      '12': '{',
+      '13': '}',
+      '14': '[',
+      '15': ']',
+      '16': ':',
+      '17': ',',
+      '{': 12,
+      '}': 13,
+      '[': 14,
+      ']': 15,
+      ':': 16,
+      ',': 17
+    })
+
+    expect(j.fixed('{')).equals(12)
+    expect(j.fixed('}')).equals(13)
+    expect(j.fixed('[')).equals(14)
+    expect(j.fixed(']')).equals(15)
+    expect(j.fixed(':')).equals(16)
+    expect(j.fixed(',')).equals(17)
+
+    expect(j.fixed(12)).equals('{')
+    expect(j.fixed(13)).equals('}')
+    expect(j.fixed(14)).equals('[')
+    expect(j.fixed(15)).equals(']')
+    expect(j.fixed(16)).equals(':')
+    expect(j.fixed(17)).equals(',')
+
+    // console.log('=======')
+    
+    j.options({
+      fixed: {
+        token: {
+          '#A': 'a',
+          '#BB': 'bb',
+        }
+      }
+    })
+
+    // console.log(j.internal().config.fixed)
+
+    expect({...j.fixed}).equals({
+      '12': '{',
+      '13': '}',
+      '14': '[',
+      '15': ']',
+      '16': ':',
+      '17': ',',
+      '18': 'a',
+      '19': 'bb',
+      '{': 12,
+      '}': 13,
+      '[': 14,
+      ']': 15,
+      ':': 16,
+      ',': 17,
+      'a': 18,
+      'bb': 19,
+    })
+
+    expect(j.fixed('{')).equals(12)
+    expect(j.fixed('}')).equals(13)
+    expect(j.fixed('[')).equals(14)
+    expect(j.fixed(']')).equals(15)
+    expect(j.fixed(':')).equals(16)
+    expect(j.fixed(',')).equals(17)
+    expect(j.fixed('a')).equals(18)
+    expect(j.fixed('bb')).equals(19)
+
+    expect(j.fixed(12)).equals('{')
+    expect(j.fixed(13)).equals('}')
+    expect(j.fixed(14)).equals('[')
+    expect(j.fixed(15)).equals(']')
+    expect(j.fixed(16)).equals(':')
+    expect(j.fixed(17)).equals(',')
+    expect(j.fixed(18)).equals('a')
+    expect(j.fixed(19)).equals('bb')
+    
+  })
+
+  
   it('basic-json', () => {
     expect(Jsonic('"a"')).equals('a')
     expect(Jsonic('{"a":1}')).equals({a: 1})

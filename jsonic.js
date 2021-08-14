@@ -5,6 +5,7 @@ exports.make = exports.util = exports.Token = exports.RuleSpec = exports.Rule = 
 /*  jsonic.ts
  *  Entry point and API.
  */
+// TODO: docs: nice tree diagram of rules (generate?)
 // TODO: rule.use should be rule.u for consistency
 // TODO: replace KV with Record<string,any>
 // TODO: Jsonic.make('json') - preset plain JSON options - see variant test just-json
@@ -70,7 +71,8 @@ function make(param_options, parent) {
     let internal = {
         parser: {},
         config: {},
-        plugins: []
+        plugins: [],
+        mark: Math.random()
     };
     // Merge options.
     let merged_options = utility_1.deep({}, parent ? { ...parent.options } : defaults_1.defaults, param_options ? param_options : {});
@@ -87,14 +89,13 @@ function make(param_options, parent) {
     // This lets you access options as direct properties,
     // and set them as a funtion call.
     let options = (change_options) => {
-        var _a;
         if (null != change_options && utility_1.S.object === typeof (change_options)) {
             utility_1.deep(merged_options, change_options);
-            utility_1.configure(internal.config, merged_options);
-            for (let k in merged_options) {
-                jsonic.options[k] = merged_options[k];
-            }
-            utility_1.assign(jsonic.token, (_a = internal.config) === null || _a === void 0 ? void 0 : _a.t);
+            utility_1.configure(jsonic, internal.config, merged_options);
+            // for (let k in merged_options) {
+            //   jsonic.options[k] = merged_options[k]
+            // }
+            // assign(jsonic.token, internal.config?.t)
             let parser = jsonic.internal().parser;
             //if (parser) {
             internal.parser = parser.clone(merged_options, internal.config);
@@ -104,10 +105,8 @@ function make(param_options, parent) {
     };
     // Define the API
     let api = {
-        // TODO: not any, instead & { [token_name:string]: Tin }
-        token: function token(ref) {
-            return utility_1.tokenize(ref, internal.config, jsonic);
-        },
+        token: ((ref) => utility_1.tokenize(ref, internal.config, jsonic)),
+        fixed: ((ref) => internal.config.fixed.ref[ref]),
         options: utility_1.deep(options, merged_options),
         parse: jsonic,
         // TODO: how to handle null plugin?
@@ -121,7 +120,7 @@ function make(param_options, parent) {
             jsonic.internal().plugins.push(plugin);
             return plugin(jsonic, full_plugin_options) || jsonic;
         },
-        rule: function rule(name, define) {
+        rule: (name, define) => {
             return jsonic.internal().parser.rule(name, define);
         },
         lex: (matchmaker) => {
@@ -131,43 +130,47 @@ function make(param_options, parent) {
                 lex: { match }
             });
         },
-        make: function (options) {
+        make: (options) => {
             return make(options, jsonic);
         },
         id: 'Jsonic/' +
             Date.now() + '/' +
             ('' + Math.random()).substring(2, 8).padEnd(6, '0') + '/' +
             options.tag,
-        toString: function () {
-            return this.id;
+        toString: () => {
+            return api.id;
         },
         util,
     };
     // Has to be done indirectly as we are in a fuction named `make`.
     utility_1.defprop(api.make, utility_1.S.name, { value: utility_1.S.make });
-    // Transfer parent properties (preserves plugin decorations, etc).
+    // Add API methods to the core utility function.
+    utility_1.assign(jsonic, api);
     if (parent) {
+        // Transfer extra parent properties (preserves plugin decorations, etc).
         for (let k in parent) {
-            jsonic[k] = parent[k];
+            if (undefined === jsonic[k]) {
+                jsonic[k] = parent[k];
+            }
         }
         jsonic.parent = parent;
         let parent_internal = parent.internal();
         internal.config = utility_1.deep({}, parent_internal.config);
-        utility_1.configure(internal.config, merged_options);
+        utility_1.configure(jsonic, internal.config, merged_options);
         utility_1.assign(jsonic.token, internal.config.t);
         internal.plugins = [...parent_internal.plugins];
         internal.parser = parent_internal.parser.clone(merged_options, internal.config);
     }
     else {
-        internal.config = utility_1.configure(undefined, merged_options);
+        internal.config = utility_1.configure(jsonic, undefined, merged_options);
         internal.plugins = [];
         internal.parser = new parser_1.Parser(merged_options, internal.config);
         internal.parser.init();
     }
-    // Add API methods to the core utility function.
-    utility_1.assign(jsonic, api);
     // As with options, provide direct access to tokens.
-    utility_1.assign(jsonic.token, internal.config.t);
+    // assign(jsonic.token, internal.config.t)
+    // As with options, provide direct access to fixed token src strings.
+    // assign(jsonic.fixed, internal.config.fixed.ref)
     // Hide internals where you can still find them.
     utility_1.defprop(jsonic, 'internal', { value: () => internal });
     return jsonic;
@@ -243,6 +246,7 @@ delete top.use;
 delete top.rule;
 delete top.lex;
 delete top.token;
+delete top.fixed;
 // Provide deconstruction export names
 Jsonic.Jsonic = Jsonic;
 Jsonic.JsonicError = utility_1.JsonicError;

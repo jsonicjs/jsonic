@@ -30,7 +30,100 @@ const I = Util.inspect
 
 describe('plugin', function () {
 
+  it('parent-safe', () => {
+    let c0 = Jsonic.make({
+      a:1,
+      fixed: { token: { '#B': 'b' } }
+    })
 
+    c0.foo = ()=>'FOO'
+    c0.bar = 11
+    
+    // Jsonic unaffected
+    expect(Jsonic('b')).equals('b')
+    expect(Jsonic.foo).undefined()
+    expect(Jsonic.bar).undefined()
+    
+    expect(c0.options.a).equal(1)
+    expect(c0.token['#B']).equal(18)
+    expect(c0.fixed['b']).equal(18)
+    expect(c0.token[18]).equals('#B')
+    expect(c0.fixed[18]).equal('b')
+    expect(c0.token('#B')).equal(18)
+    expect(c0.fixed('b')).equal(18)
+    expect(c0.token(18)).equals('#B')
+    expect(c0.fixed(18)).equal('b')
+    expect(c0.foo()).equals('FOO')
+    expect(c0.bar).equals(11)
+    
+    expect(()=>c0('b')).throws(/unexpected/)
+    
+    // console.log('c0 int A', c0.internal().mark, c0.internal().config.fixed)
+    
+    let c1 = c0.make({
+      c:2,
+      fixed: { token: { '#D': 'd' } }
+    })
+
+    expect(c1.options.a).equal(1)
+    expect(c1.token['#B']).equal(18)
+    expect(c1.fixed['b']).equal(18)
+    expect(c1.token[18]).equals('#B')
+    expect(c1.fixed[18]).equal('b')
+    expect(c1.token('#B')).equal(18)
+    expect(c1.fixed('b')).equal(18)
+    expect(c1.token(18)).equals('#B')
+    expect(c1.fixed(18)).equal('b')
+    expect(c1.foo()).equals('FOO')
+    expect(c1.bar).equals(11)
+
+    expect(c1.options.c).equal(2)
+    expect(c1.token['#D']).equal(19)
+    expect(c1.fixed['d']).equal(19)
+    expect(c1.token[19]).equals('#D')
+    expect(c1.fixed[19]).equal('d')
+    expect(c1.token('#D')).equal(19)
+    expect(c1.fixed('d')).equal(19)
+    expect(c1.token(19)).equals('#D')
+    expect(c1.fixed(19)).equal('d')
+    expect(c1.foo()).equals('FOO')
+    expect(c1.bar).equals(11)
+
+    expect(()=>c1('b')).throws(/unexpected/)
+    expect(()=>c1('d')).throws(/unexpected/)
+
+    // console.log('c1 int A', c1.internal().mark, c1.internal().config.fixed)
+    // console.log('c0 int B', c0.internal().mark, c0.internal().config.fixed)
+    
+    // c0 unaffected by c1
+    
+    expect(c0.options.a).equal(1)
+    expect(c0.token['#B']).equal(18)
+    expect(c0.fixed['b']).equal(18)
+    expect(c0.token[18]).equals('#B')
+    expect(c0.fixed[18]).equal('b')
+    expect(c0.token('#B')).equal(18)
+    expect(c0.fixed('b')).equal(18)
+    expect(c0.token(18)).equals('#B')
+    expect(c0.fixed(18)).equal('b')
+    expect(c0.foo()).equals('FOO')
+    expect(c0.bar).equals(11)
+    
+    expect(()=>c0('b')).throws(/unexpected/)
+
+    expect(c0.options.c).undefined()
+    expect(c0.token['#D']).undefined()
+    expect(c0.fixed['d']).undefined()
+    expect(c0.token[19]).undefined()
+    expect(c0.fixed[19]).undefined()
+    
+    expect(c0.fixed('d')).undefined()
+    expect(c0.token(19)).undefined()
+    expect(c0.fixed(19)).undefined()
+    // NOTE: c0.token('#D') will create a new token
+  })
+
+  
   it('clone-parser', () => {
     let config0 = {config:true,mark:0,tI:1,t:{},rule:{include:[],exclude:[]}}
     let opts0 = {opts:true,mark:0}

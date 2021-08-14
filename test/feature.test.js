@@ -691,6 +691,8 @@ describe('feature', function () {
     expect(j('{a:1} {b:1}')).equals([{'a':1},{'b':1}])
     expect(j('{a:1} {b:1} {c:1}')).equals([{'a':1},{'b':1},{'c':1}])
     expect(j('{a:1} {b:1} {c:1} {d:1}')).equals([{'a':1},{'b':1},{'c':1},{'d':1}])
+    expect(j('\n{a:1}\n{b:1}\r\n{c:1}\n{d:1}\r\n'))
+      .equals([{'a':1},{'b':1},{'c':1},{'d':1}])
 
     expect(j('{a:1},')).equals([{a:1}])
     expect(j('[1],')).equals([[1]])
