@@ -118,7 +118,7 @@ class RuleSpec {
         }
         // Attempt to match one of the alts.
         let alt = (bout && bout.alt) ? { ...EMPTY_ALT, ...bout.alt } :
-            0 < alts.length ? this.parse_alts(alts, rule, ctx) :
+            0 < alts.length ? this.parse_alts(is_open, alts, rule, ctx) :
                 EMPTY_ALT;
         // Custom alt handler.
         if (alt.h) {
@@ -126,12 +126,7 @@ class RuleSpec {
             why += 'H';
         }
         // Expose match to handlers.
-        if (is_open) {
-            rule.open = alt.m;
-        }
-        else {
-            rule.close = alt.m;
-        }
+        rule[is_open ? 'open' : 'close'] = alt.m;
         // Unconditional error.
         if (alt.e) {
             throw new utility_1.JsonicError(alt.e.err || utility_1.S.unexpected, { ...alt.e.use, state: is_open ? utility_1.S.open : utility_1.S.close }, alt.e, rule, ctx);
@@ -212,7 +207,7 @@ class RuleSpec {
     }
     // First match wins.
     // NOTE: input AltSpecs are used to build the Alt output.
-    parse_alts(alts, rule, ctx) {
+    parse_alts(is_open, alts, rule, ctx) {
         let out = PALT;
         out.m = []; // Match 0, 1, or 2 tokens in order .
         out.b = 0; // Backtrack n tokens.
@@ -262,25 +257,24 @@ class RuleSpec {
                 alt = null;
             }
         }
+        // Expose match to error handler.
+        rule[is_open ? 'open' : 'close'] = out.m;
         if (null == alt && t.ZZ !== ctx.t0.tin) {
             out.e = ctx.t0;
         }
         if (null != alt) {
             out.e = alt.e && alt.e(rule, ctx, out) || undefined;
-            out.b = alt.b ? alt.b : out.b;
-            out.p = alt.p ? alt.p : out.p;
-            out.r = alt.r ? alt.r : out.r;
-            out.n = alt.n ? alt.n : out.n;
-            out.h = alt.h ? alt.h : out.h;
-            out.a = alt.a ? alt.a : out.a;
-            out.u = alt.u ? alt.u : out.u;
+            out.b = null != alt.b ? alt.b : out.b;
+            out.p = null != alt.p ? alt.p : out.p;
+            out.r = null != alt.r ? alt.r : out.r;
+            out.n = null != alt.n ? alt.n : out.n;
+            out.h = null != alt.h ? alt.h : out.h;
+            out.a = null != alt.a ? alt.a : out.a;
+            out.u = null != alt.u ? alt.u : out.u;
         }
         ctx.log && ctx.log(utility_1.S.parse, rule.name + '~' + rule.id, rule.state, altI < alts.length ? 'alt=' + altI : 'no-alt', altI < alts.length &&
             alt.s ?
-            '[' + alt.s.map((pin) => t[pin]).join(' ') + ']' : '[]', 'tc=' + ctx.tC, 'p=' + (out.p || utility_1.MT), 'r=' + (out.r || utility_1.MT), 'b=' + (out.b || utility_1.MT), out.m.map((tkn) => t[tkn.tin]).join(' '), ctx.F(out.m.map((tkn) => tkn.src)), 'c:' + ((alt && alt.c) ? cond : utility_1.MT), 
-        // 'n:' + entries(rule.n).map(n => n[0] + '=' + n[1]).join(';'),
-        // 'u:' + entries(rule.use).map(u => u[0] + '=' + u[1]).join(';'),
-        'n:' + utility_1.entries(out.n).map(n => n[0] + '=' + n[1]).join(';'), 'u:' + utility_1.entries(out.u).map(u => u[0] + '=' + u[1]).join(';'), out);
+            '[' + alt.s.map((pin) => t[pin]).join(' ') + ']' : '[]', 'tc=' + ctx.tC, 'p=' + (out.p || utility_1.MT), 'r=' + (out.r || utility_1.MT), 'b=' + (out.b || utility_1.MT), out.m.map((tkn) => t[tkn.tin]).join(' '), ctx.F(out.m.map((tkn) => tkn.src)), 'c:' + ((alt && alt.c) ? cond : utility_1.MT), 'n:' + utility_1.entries(out.n).map(n => n[0] + '=' + n[1]).join(';'), 'u:' + utility_1.entries(out.u).map(u => u[0] + '=' + u[1]).join(';'), out);
         return out;
     }
 }
@@ -590,9 +584,8 @@ class Parser {
             do {
                 t1 = lex(rule);
                 ctx.tC++;
-                //} while (ctx.cfg.ts.IGNORE[t1.tin])
             } while (ignore[t1.tin]);
-            ctx.t1 = { ...t1 };
+            ctx.t1 = t1;
             return ctx.t0;
         }
         // Look two tokens ahead
@@ -606,7 +599,6 @@ class Parser {
             ctx.log &&
                 ctx.log(utility_1.S.rule, rule.name + '~' + rule.id, rule.state, 'd=' + ctx.rs.length, 'tc=' + ctx.tC, '[' + tn(ctx.t0.tin) + ' ' + tn(ctx.t1.tin) + ']', '[' + ctx.F(ctx.t0.src) + ' ' + ctx.F(ctx.t1.src) + ']', 'n:' + utility_1.entries(rule.n).map(n => n[0] + '=' + n[1]).join(';'), 'u:' + utility_1.entries(rule.use).map(u => u[0] + '=' + u[1]).join(';'), rule, ctx);
             ctx.rule = rule;
-            // console.log('PROCESS', rule.name + '~' + rule.id, rule.n)
             rule = rule.process(ctx);
             ctx.log &&
                 ctx.log(utility_1.S.stack, ctx.rs.length, ctx.rs.map((r) => r.name + '~' + r.id).join('/'), rule, ctx);

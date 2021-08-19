@@ -364,10 +364,15 @@ function errdesc(code, details, token, rule, ctx) {
             '  \x1b[34m-->\x1b[0m ' + (meta && meta.fileName || '<no-file>') +
                 ':' + token.rI + ':' + token.cI,
             extract(ctx.src(), errtxt, token),
+            '',
             errinject((cfg.hint[code] || cfg.hint.unknown)
-                .replace(/^([^ ])/, ' $1')
+                .trim()
+                // .replace(/^([^ ])/, '\n $1')
                 .split('\n')
-                .map((s, i) => (0 === i ? ' ' : '  ') + s).join('\n'), code, details, token, rule, ctx),
+                //.map((s: string, i: number) => (0 === i ? ' ' : '  ') + s).join('\n'),
+                .map((s) => '  ' + s)
+                .join('\n'), code, details, token, rule, ctx),
+            '',
             '  \x1b[2mhttps://jsonic.senecajs.org\x1b[0m',
             '  \x1b[2m--internal: rule=' + rule.name + '~' + rule.state +
                 //'; token=' + ctx.cfg.t[token.tin] +

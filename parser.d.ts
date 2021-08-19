@@ -69,7 +69,7 @@ declare class RuleSpec {
     open(a: AltSpec | AltSpec[], flags?: any): RuleSpec;
     close(a: AltSpec | AltSpec[], flags?: any): RuleSpec;
     process(rule: Rule, ctx: Context, state: RuleState): Rule;
-    parse_alts(alts: NormAltSpec[], rule: Rule, ctx: Context): Alt;
+    parse_alts(is_open: boolean, alts: NormAltSpec[], rule: Rule, ctx: Context): Alt;
 }
 declare type RuleSpecMap = {
     [name: string]: RuleSpec;

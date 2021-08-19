@@ -571,6 +571,7 @@ export {
   Rule,
   RuleSpec,
   Token,
+  Point,
   util,
   make,
 }

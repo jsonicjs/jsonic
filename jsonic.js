@@ -1,7 +1,7 @@
 "use strict";
 /* Copyright (c) 2013-2021 Richard Rodger, MIT License */
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.make = exports.util = exports.Token = exports.RuleSpec = exports.Rule = exports.Parser = exports.Lex = exports.JsonicError = exports.Jsonic = void 0;
+exports.make = exports.util = exports.Point = exports.Token = exports.RuleSpec = exports.Rule = exports.Parser = exports.Lex = exports.JsonicError = exports.Jsonic = void 0;
 /*  jsonic.ts
  *  Entry point and API.
  */
@@ -43,6 +43,7 @@ const utility_1 = require("./utility");
 Object.defineProperty(exports, "JsonicError", { enumerable: true, get: function () { return utility_1.JsonicError; } });
 const defaults_1 = require("./defaults");
 const lexer_1 = require("./lexer");
+Object.defineProperty(exports, "Point", { enumerable: true, get: function () { return lexer_1.Point; } });
 Object.defineProperty(exports, "Token", { enumerable: true, get: function () { return lexer_1.Token; } });
 Object.defineProperty(exports, "Lex", { enumerable: true, get: function () { return lexer_1.Lex; } });
 const parser_1 = require("./parser");

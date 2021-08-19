@@ -241,7 +241,7 @@ class RuleSpec {
 
     // Attempt to match one of the alts.
     let alt: Alt = (bout && bout.alt) ? { ...EMPTY_ALT, ...bout.alt } :
-      0 < alts.length ? this.parse_alts(alts, rule, ctx) :
+      0 < alts.length ? this.parse_alts(is_open, alts, rule, ctx) :
         EMPTY_ALT
 
     // Custom alt handler.
@@ -251,12 +251,7 @@ class RuleSpec {
     }
 
     // Expose match to handlers.
-    if (is_open) {
-      rule.open = alt.m
-    }
-    else {
-      rule.close = alt.m
-    }
+    rule[is_open ? 'open' : 'close'] = alt.m
 
     // Unconditional error.
     if (alt.e) {
@@ -365,7 +360,7 @@ class RuleSpec {
 
   // First match wins.
   // NOTE: input AltSpecs are used to build the Alt output.
-  parse_alts(alts: NormAltSpec[], rule: Rule, ctx: Context): Alt {
+  parse_alts(is_open: boolean, alts: NormAltSpec[], rule: Rule, ctx: Context): Alt {
     let out = PALT
     out.m = []          // Match 0, 1, or 2 tokens in order .
     out.b = 0           // Backtrack n tokens.
@@ -428,6 +423,10 @@ class RuleSpec {
       }
     }
 
+
+    // Expose match to error handler.
+    rule[is_open ? 'open' : 'close'] = out.m
+
     if (null == alt && t.ZZ !== ctx.t0.tin) {
       out.e = ctx.t0
     }
@@ -435,13 +434,13 @@ class RuleSpec {
     if (null != alt) {
       out.e = alt.e && alt.e(rule, ctx, out) || undefined
 
-      out.b = alt.b ? alt.b : out.b
-      out.p = alt.p ? alt.p : out.p
-      out.r = alt.r ? alt.r : out.r
-      out.n = alt.n ? alt.n : out.n
-      out.h = alt.h ? alt.h : out.h
-      out.a = alt.a ? alt.a : out.a
-      out.u = alt.u ? alt.u : out.u
+      out.b = null != alt.b ? alt.b : out.b
+      out.p = null != alt.p ? alt.p : out.p
+      out.r = null != alt.r ? alt.r : out.r
+      out.n = null != alt.n ? alt.n : out.n
+      out.h = null != alt.h ? alt.h : out.h
+      out.a = null != alt.a ? alt.a : out.a
+      out.u = null != alt.u ? alt.u : out.u
     }
 
     ctx.log && ctx.log(
@@ -459,8 +458,6 @@ class RuleSpec {
       out.m.map((tkn: Token) => t[tkn.tin]).join(' '),
       ctx.F(out.m.map((tkn: Token) => tkn.src)),
       'c:' + ((alt && alt.c) ? cond : MT),
-      // 'n:' + entries(rule.n).map(n => n[0] + '=' + n[1]).join(';'),
-      // 'u:' + entries(rule.use).map(u => u[0] + '=' + u[1]).join(';'),
       'n:' + entries(out.n).map(n => n[0] + '=' + n[1]).join(';'),
       'u:' + entries(out.u).map(u => u[0] + '=' + u[1]).join(';'),
       out)
@@ -872,10 +869,9 @@ class Parser {
       do {
         t1 = lex(rule)
         ctx.tC++
-        //} while (ctx.cfg.ts.IGNORE[t1.tin])
       } while (ignore[t1.tin])
 
-      ctx.t1 = { ...t1 }
+      ctx.t1 = t1
 
       return ctx.t0
     }
@@ -900,8 +896,6 @@ class Parser {
           rule, ctx)
 
       ctx.rule = rule
-
-      // console.log('PROCESS', rule.name + '~' + rule.id, rule.n)
 
       rule = rule.process(ctx)
 

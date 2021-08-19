@@ -91,6 +91,11 @@ class Token {
     this.len = null == src ? 0 : src.length
   }
 
+  bad(err: string) {
+    this.err = err
+    return this
+  }
+
   toString() {
     return 'Token[' +
       this.name + '=' + this.tin + ' ' +
@@ -104,6 +109,8 @@ class Token {
 
       (null == this.use ? '' : ' ' +
         snip(('' + JSON.stringify(this.use).replace(/"/g, '')), 22)) +
+
+      (null == this.err ? '' : ' ' + this.err) +
 
       (null == this.why ? '' : ' ' + snip('' + this.why, 22)) +
       ']'
