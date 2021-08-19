@@ -35,7 +35,6 @@ class Point {
     }
 }
 exports.Point = Point;
-// TODO: rename loc to sI, row to rI, col to cI
 // Tokens from the lexer.
 class Token {
     constructor(name, tin, val, src, pnt, use, why) {

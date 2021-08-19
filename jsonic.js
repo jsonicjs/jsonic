@@ -5,6 +5,8 @@ exports.make = exports.util = exports.Token = exports.RuleSpec = exports.Rule = 
 /*  jsonic.ts
  *  Entry point and API.
  */
+// TODO: d:X condition should be c:{d:X} - it's a condition!
+// TODO: docs: ref https://wiki.alopex.li/OnParsers
 // TODO: docs: nice tree diagram of rules (generate?)
 // TODO: rule.use should be rule.u for consistency
 // TODO: replace KV with Record<string,any>

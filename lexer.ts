@@ -55,7 +55,6 @@ class Point {
 }
 
 
-// TODO: rename loc to sI, row to rI, col to cI
 // Tokens from the lexer.
 class Token {
   name: string  // Token name.
@@ -65,9 +64,10 @@ class Token {
   sI: number    // Location of token index in source text.
   rI: number    // Row location of token in source text.
   cI: number    // Column location of token in source text.
-  use?: any     // Custom meta data from plugins goes here.
-  why?: string  // Error code.
   len: number   // Length of Token source text.
+  use?: any     // Custom meta data from plugins goes here.
+  err?: string  // Error code.
+  why?: string  // Internal tracing.
 
   constructor(
     name: string,

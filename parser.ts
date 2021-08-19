@@ -5,25 +5,24 @@
  */
 
 import {
+  CLOSE,
   Config,
   Context,
-  KV,
+  JsonicError,
   MT,
+  OPEN,
+  RuleState,
   S,
   Token,
+  badlex,
   deep,
   entries,
-  keys,
-  tokenize,
-  badlex,
-  makelog,
-  RuleState,
-  JsonicError,
-  srcfmt,
-  // clone,
-  OPEN,
-  CLOSE,
   filterRules,
+  isarr,
+  keys,
+  makelog,
+  srcfmt,
+  tokenize,
 } from './utility'
 
 
@@ -52,8 +51,8 @@ class Rule {
   prev?: Rule
   open: Token[]
   close: Token[]
-  n: KV
-  use: any
+  n: Record<string, number>
+  use: Record<string, any>
   bo: boolean // Call bo (before-open).
   ao: boolean // Call ao (after-open).
   bc: boolean // Call bc (before-close).
@@ -71,10 +70,10 @@ class Rule {
     this.close = []
     this.n = {}
     this.use = {}
-    this.bo = false === spec.bo ? false : true
-    this.ao = false === spec.ao ? false : true
-    this.bc = false === spec.bc ? false : true
-    this.ac = false === spec.ac ? false : true
+    this.bo = false !== spec.bo
+    this.ao = false !== spec.ao
+    this.bc = false !== spec.bc
+    this.ac = false !== spec.ac
   }
 
   process(ctx: Context): Rule {
@@ -89,12 +88,12 @@ const NONE = ({ name: S.none, state: OPEN } as Rule)
 
 
 // Parse alternate specification provided by rule.
-type AltSpec = {
+interface AltSpec {
   s?: any[]      // Token tin sequence to match (0,1,2 tins, or a subset of tins).
   p?: string
   r?: string
   b?: number
-  c?: AltCond
+  c?: AltCond | Record<string, any>
   d?: number     // Rule stack depth to match.
   n?: any
   a?: AltAction
@@ -103,6 +102,11 @@ type AltSpec = {
   g?: string[]
   e?: AltError
 }
+
+interface NormAltSpec extends AltSpec {
+  c?: AltCond
+}
+
 
 // NOTE: errors are specified using tokens to capture row and col.
 type AltError = (rule: Rule, ctx: Context, alt: Alt) => Token | undefined
@@ -119,14 +123,14 @@ class Alt {
   h?: AltHandler    // Custom match handler.
   u?: any           // Custom properties to add to Rule.use.
   g?: string[]      // Named groups for this alt (allows plugins to find alts).
-  e?: Token         // Error on this token (giving row and col).
+  e?: Token         // Errored on this token.
 }
 
 type AltCond = (rule: Rule, ctx: Context, alt: Alt) => boolean
 type AltHandler = (rule: Rule, ctx: Context, alt: Alt, next: Rule) => Alt
 type AltAction = (rule: Rule, ctx: Context, alt: Alt, next: Rule) => void
 
-const PALT = new Alt() // As with lexing, only one alt object is created.
+const PALT = new Alt() // Only one alt object is created.
 const EMPTY_ALT = new Alt()
 
 
@@ -142,7 +146,7 @@ type RuleDef = {
 
 class RuleSpec {
   name: string = '-'
-  def: any
+  def: any // TODO: AltSpec[] ?
   bo: boolean = true
   ao: boolean = true
   bc: boolean = true
@@ -151,36 +155,57 @@ class RuleSpec {
   constructor(def: any) {
     this.def = def || {}
 
-    // TODO: AltSpec?
-    function norm_alt(alt: Alt) {
-      // Convert counter abbrev condition into an actual function.
-      let counters = null != alt.c && (alt.c as any).n
-      if (counters) {
-        alt.c = (rule: Rule) => {
-          let pass = true
-          for (let cn in counters) {
-
-            // console.log('COUNTER', rule.name + '~' + rule.id, cn, rule.n, counters)
-
-            pass = pass && (null == rule.n[cn] || (rule.n[cn] <= counters[cn]))
-          }
-          return pass
-        }
-      }
-
-      // Ensure groups are a string[]
-      if (S.string === typeof (alt.g)) {
-        alt.g = (alt as any).g.split(/\s*,\s*/)
-      }
-    }
-
     // Null Alt entries are allowed and ignored as a convenience.
     this.def.open = (this.def.open || []).filter((alt: Alt) => null != alt)
     this.def.close = (this.def.close || []).filter((alt: Alt) => null != alt)
 
     for (let alt of [...this.def.open, ...this.def.close]) {
-      norm_alt(alt)
+      RuleSpec.norm(alt)
     }
+  }
+
+
+  // Normalize AltSpec (mutates).
+  static norm(a: AltSpec): NormAltSpec {
+    // Convert counter abbrev condition into an actual function.
+    let counters = null != a.c && (a.c as any).n
+    if (counters) {
+      a.c = (rule: Rule) => {
+        let pass = true
+        for (let cn in counters) {
+
+          // Pass if rule counter <= alt counter, (0 if undef).
+          pass = pass && (null == rule.n[cn] ||
+            (rule.n[cn] <= (null == counters[cn] ? 0 : counters[cn])))
+
+        }
+        return pass
+      }
+    }
+
+    // Ensure groups are a string[]
+    if (S.string === typeof (a.g)) {
+      a.g = (a as any).g.split(/\s*,\s*/)
+    }
+
+    return (a as NormAltSpec)
+  }
+
+
+  add(state: RuleState, a: AltSpec | AltSpec[], flags: any): RuleSpec {
+    let inject = flags?.last ? 'push' : 'unshift'
+    let aa = ((isarr(a) ? a : [a]) as AltSpec[]).map(a => RuleSpec.norm(a))
+    this.def[('o' === state ? 'open' : 'close')][inject](...aa)
+    return this
+  }
+
+
+  open(a: AltSpec | AltSpec[], flags?: any): RuleSpec {
+    return this.add('o', a, flags)
+  }
+
+  close(a: AltSpec | AltSpec[], flags?: any): RuleSpec {
+    return this.add('c', a, flags)
   }
 
 
@@ -194,7 +219,7 @@ class RuleSpec {
     let def: RuleDef = this.def
 
     // Match alternates for current state.
-    let alts = (is_open ? def.open : def.close) as AltSpec[]
+    let alts = (is_open ? def.open : def.close) as NormAltSpec[]
 
     // Handle "before" call.
     let before = is_open ?
@@ -236,7 +261,7 @@ class RuleSpec {
     // Unconditional error.
     if (alt.e) {
       throw new JsonicError(
-        S.unexpected,
+        alt.e.err || S.unexpected,
         { ...alt.e.use, state: is_open ? S.open : S.close },
         alt.e, rule, ctx)
     }
@@ -340,7 +365,7 @@ class RuleSpec {
 
   // First match wins.
   // NOTE: input AltSpecs are used to build the Alt output.
-  parse_alts(alts: AltSpec[], rule: Rule, ctx: Context): Alt {
+  parse_alts(alts: NormAltSpec[], rule: Rule, ctx: Context): Alt {
     let out = PALT
     out.m = []          // Match 0, 1, or 2 tokens in order .
     out.b = 0           // Backtrack n tokens.
@@ -749,6 +774,10 @@ class Parser {
     else if (undefined !== define) {
       rs = this.rsm[name] = (define(this.rsm[name], this.rsm) || this.rsm[name])
       rs.name = name
+
+      for (let alt of [...rs.def.open, ...rs.def.close]) {
+        RuleSpec.norm(alt)
+      }
     }
 
     return rs

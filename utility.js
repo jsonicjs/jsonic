@@ -1,7 +1,7 @@
 "use strict";
 /* Copyright (c) 2013-2021 Richard Rodger, MIT License */
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.filterRules = exports.clean = exports.omap = exports.configure = exports.snip = exports.charset = exports.clone = exports.srcfmt = exports.trimstk = exports.tokenize = exports.escre = exports.regexp = exports.mesc = exports.makelog = exports.keys = exports.extract = exports.errinject = exports.errdesc = exports.entries = exports.defprop = exports.deep = exports.badlex = exports.assign = exports.Token = exports.S = exports.MT = exports.JsonicError = exports.CLOSE = exports.OPEN = void 0;
+exports.trimstk = exports.tokenize = exports.srcfmt = exports.snip = exports.regexp = exports.omap = exports.mesc = exports.makelog = exports.keys = exports.isarr = exports.filterRules = exports.extract = exports.escre = exports.errinject = exports.errdesc = exports.entries = exports.defprop = exports.deep = exports.configure = exports.clone = exports.clean = exports.charset = exports.badlex = exports.assign = exports.Token = exports.S = exports.OPEN = exports.MT = exports.JsonicError = exports.CLOSE = void 0;
 const lexer_1 = require("./lexer");
 Object.defineProperty(exports, "Token", { enumerable: true, get: function () { return lexer_1.Token; } });
 const OPEN = 'o';
@@ -16,6 +16,8 @@ const entries = (x) => null == x ? [] : Object.entries(x);
 exports.entries = entries;
 const assign = (x, ...r) => Object.assign(null == x ? {} : x, ...r);
 exports.assign = assign;
+const isarr = (x) => Array.isArray(x);
+exports.isarr = isarr;
 const defprop = Object.defineProperty;
 exports.defprop = defprop;
 const omap = (o, f) => {

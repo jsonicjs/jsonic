@@ -1,4 +1,4 @@
-import { Config, Context, KV, Token, RuleState } from './utility';
+import { Config, Context, RuleState, Token } from './utility';
 import type { Jsonic, Options } from './jsonic';
 declare class Rule {
     id: number;
@@ -11,8 +11,8 @@ declare class Rule {
     prev?: Rule;
     open: Token[];
     close: Token[];
-    n: KV;
-    use: any;
+    n: Record<string, number>;
+    use: Record<string, any>;
     bo: boolean;
     ao: boolean;
     bc: boolean;
@@ -22,12 +22,12 @@ declare class Rule {
     process(ctx: Context): Rule;
 }
 declare const NONE: Rule;
-declare type AltSpec = {
+interface AltSpec {
     s?: any[];
     p?: string;
     r?: string;
     b?: number;
-    c?: AltCond;
+    c?: AltCond | Record<string, any>;
     d?: number;
     n?: any;
     a?: AltAction;
@@ -35,7 +35,10 @@ declare type AltSpec = {
     u?: any;
     g?: string[];
     e?: AltError;
-};
+}
+interface NormAltSpec extends AltSpec {
+    c?: AltCond;
+}
 declare type AltError = (rule: Rule, ctx: Context, alt: Alt) => Token | undefined;
 declare class Alt {
     m: Token[];
@@ -61,8 +64,12 @@ declare class RuleSpec {
     bc: boolean;
     ac: boolean;
     constructor(def: any);
+    static norm(a: AltSpec): NormAltSpec;
+    add(state: RuleState, a: AltSpec | AltSpec[], flags: any): RuleSpec;
+    open(a: AltSpec | AltSpec[], flags?: any): RuleSpec;
+    close(a: AltSpec | AltSpec[], flags?: any): RuleSpec;
     process(rule: Rule, ctx: Context, state: RuleState): Rule;
-    parse_alts(alts: AltSpec[], rule: Rule, ctx: Context): Alt;
+    parse_alts(alts: NormAltSpec[], rule: Rule, ctx: Context): Alt;
 }
 declare type RuleSpecMap = {
     [name: string]: RuleSpec;

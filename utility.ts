@@ -37,6 +37,7 @@ const MT = '' // Empty ("MT"!) string.
 const keys = (x: any) => null == x ? [] : Object.keys(x)
 const entries = (x: any) => null == x ? [] : Object.entries(x)
 const assign = (x: any, ...r: any[]) => Object.assign(null == x ? {} : x, ...r)
+const isarr = (x: any) => Array.isArray(x)
 const defprop = Object.defineProperty
 
 const omap = (o: any, f: any) => {
@@ -834,33 +835,34 @@ export type {
 }
 
 export {
-  OPEN,
   CLOSE,
   JsonicError,
   MT,
+  OPEN,
   S,
   Token,
   assign,
   badlex,
+  charset,
+  clean,
+  clone,
+  configure,
   deep,
   defprop,
   entries,
   errdesc,
   errinject,
+  escre,
   extract,
+  filterRules,
+  isarr,
   keys,
   makelog,
   mesc,
+  omap,
   regexp,
-  escre,
+  snip,
+  srcfmt,
   tokenize,
   trimstk,
-  srcfmt,
-  clone,
-  charset,
-  snip,
-  configure,
-  omap,
-  clean,
-  filterRules,
 }

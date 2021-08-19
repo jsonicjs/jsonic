@@ -1,7 +1,7 @@
 {
   "compilerOptions": {
-    "isolatedModules": true,
     "esModuleInterop": true,
+    "isolatedModules": true,
     "module": "commonjs",
     "noEmitOnError": true,
     "noImplicitAny": true,

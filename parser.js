@@ -20,10 +20,10 @@ class Rule {
         this.close = [];
         this.n = {};
         this.use = {};
-        this.bo = false === spec.bo ? false : true;
-        this.ao = false === spec.ao ? false : true;
-        this.bc = false === spec.bc ? false : true;
-        this.ac = false === spec.ac ? false : true;
+        this.bo = false !== spec.bo;
+        this.ao = false !== spec.ao;
+        this.bc = false !== spec.bc;
+        this.ac = false !== spec.ac;
     }
     process(ctx) {
         let rule = this.spec.process(this, ctx, this.state);
@@ -42,7 +42,7 @@ class Alt {
         this.b = 0; // Move token position backward.
     }
 }
-const PALT = new Alt(); // As with lexing, only one alt object is created.
+const PALT = new Alt(); // Only one alt object is created.
 const EMPTY_ALT = new Alt();
 class RuleSpec {
     constructor(def) {
@@ -52,31 +52,45 @@ class RuleSpec {
         this.bc = true;
         this.ac = true;
         this.def = def || {};
-        // TODO: AltSpec?
-        function norm_alt(alt) {
-            // Convert counter abbrev condition into an actual function.
-            let counters = null != alt.c && alt.c.n;
-            if (counters) {
-                alt.c = (rule) => {
-                    let pass = true;
-                    for (let cn in counters) {
-                        // console.log('COUNTER', rule.name + '~' + rule.id, cn, rule.n, counters)
-                        pass = pass && (null == rule.n[cn] || (rule.n[cn] <= counters[cn]));
-                    }
-                    return pass;
-                };
-            }
-            // Ensure groups are a string[]
-            if (utility_1.S.string === typeof (alt.g)) {
-                alt.g = alt.g.split(/\s*,\s*/);
-            }
-        }
         // Null Alt entries are allowed and ignored as a convenience.
         this.def.open = (this.def.open || []).filter((alt) => null != alt);
         this.def.close = (this.def.close || []).filter((alt) => null != alt);
         for (let alt of [...this.def.open, ...this.def.close]) {
-            norm_alt(alt);
+            RuleSpec.norm(alt);
         }
+    }
+    // Normalize AltSpec (mutates).
+    static norm(a) {
+        // Convert counter abbrev condition into an actual function.
+        let counters = null != a.c && a.c.n;
+        if (counters) {
+            a.c = (rule) => {
+                let pass = true;
+                for (let cn in counters) {
+                    // Pass if rule counter <= alt counter, (0 if undef).
+                    pass = pass && (null == rule.n[cn] ||
+                        (rule.n[cn] <= (null == counters[cn] ? 0 : counters[cn])));
+                }
+                return pass;
+            };
+        }
+        // Ensure groups are a string[]
+        if (utility_1.S.string === typeof (a.g)) {
+            a.g = a.g.split(/\s*,\s*/);
+        }
+        return a;
+    }
+    add(state, a, flags) {
+        let inject = (flags === null || flags === void 0 ? void 0 : flags.last) ? 'push' : 'unshift';
+        let aa = (utility_1.isarr(a) ? a : [a]).map(a => RuleSpec.norm(a));
+        this.def[('o' === state ? 'open' : 'close')][inject](...aa);
+        return this;
+    }
+    open(a, flags) {
+        return this.add('o', a, flags);
+    }
+    close(a, flags) {
+        return this.add('c', a, flags);
     }
     process(rule, ctx, state) {
         let why = utility_1.MT;
@@ -120,7 +134,7 @@ class RuleSpec {
         }
         // Unconditional error.
         if (alt.e) {
-            throw new utility_1.JsonicError(utility_1.S.unexpected, { ...alt.e.use, state: is_open ? utility_1.S.open : utility_1.S.close }, alt.e, rule, ctx);
+            throw new utility_1.JsonicError(alt.e.err || utility_1.S.unexpected, { ...alt.e.use, state: is_open ? utility_1.S.open : utility_1.S.close }, alt.e, rule, ctx);
         }
         // Update counters.
         if (alt.n) {
@@ -509,6 +523,9 @@ class Parser {
         else if (undefined !== define) {
             rs = this.rsm[name] = (define(this.rsm[name], this.rsm) || this.rsm[name]);
             rs.name = name;
+            for (let alt of [...rs.def.open, ...rs.def.close]) {
+                RuleSpec.norm(alt);
+            }
         }
         return rs;
     }

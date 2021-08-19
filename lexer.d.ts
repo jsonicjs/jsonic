@@ -20,9 +20,10 @@ declare class Token {
     sI: number;
     rI: number;
     cI: number;
-    use?: any;
-    why?: string;
     len: number;
+    use?: any;
+    err?: string;
+    why?: string;
     constructor(name: string, tin: Tin, val: any, src: string, pnt: Point, use?: any, why?: string);
     toString(): string;
     [inspect](): string;
