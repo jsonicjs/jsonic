@@ -7,11 +7,12 @@ declare class Rule {
     node: any;
     state: RuleState;
     child: Rule;
-    parent?: Rule;
-    prev?: Rule;
+    parent: Rule;
+    prev: Rule;
     open: Token[];
     close: Token[];
     n: Record<string, number>;
+    d: number;
     use: Record<string, any>;
     bo: boolean;
     ao: boolean;

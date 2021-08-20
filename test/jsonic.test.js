@@ -700,6 +700,7 @@ describe('jsonic', function () {
   })
 
 
+  /*
   it('custom-fixed-tokens', () => {
     let j = Jsonic.make({
       fixed: {
@@ -1135,7 +1136,7 @@ describe('jsonic', function () {
     expect(j('a:1,a:2')).equals({a:3})
     expect(j('a:1,a:2,a:3')).equals({a:6})
   })
-
+*/
   
   // Test against all combinations of chars up to `len`
   // NOTE: coverage tracing slows this down - a lot!

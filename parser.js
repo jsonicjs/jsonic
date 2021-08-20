@@ -7,7 +7,11 @@ exports.NONE = exports.RuleSpec = exports.Rule = exports.Parser = void 0;
  */
 const utility_1 = require("./utility");
 const lexer_1 = require("./lexer");
-// TODO: add depth!
+// Represents the application of a parsing rule. An instance is created
+// for each attempt to match tokens based on the RuleSpec, and pushed
+// onto the main parser rule stack. A Rule can be in two states:
+// "open" when first placed on the stack, and "close" when it needs to be
+// removed from the stack.
 class Rule {
     constructor(spec, ctx, node) {
         this.id = ctx.uI++;
@@ -16,15 +20,20 @@ class Rule {
         this.node = node;
         this.state = utility_1.OPEN;
         this.child = NONE;
+        this.parent = NONE;
+        this.prev = NONE;
         this.open = [];
         this.close = [];
         this.n = {};
+        this.d = ctx.rs.length;
         this.use = {};
         this.bo = false !== spec.bo;
         this.ao = false !== spec.ao;
         this.bc = false !== spec.bc;
         this.ac = false !== spec.ac;
     }
+    // Process the "open" or "close" state of the Rule, returning the
+    // next rule to process.
     process(ctx) {
         let rule = this.spec.process(this, ctx, this.state);
         return rule;
@@ -61,18 +70,29 @@ class RuleSpec {
     }
     // Normalize AltSpec (mutates).
     static norm(a) {
-        // Convert counter abbrev condition into an actual function.
-        let counters = null != a.c && a.c.n;
-        if (counters) {
-            a.c = (rule) => {
-                let pass = true;
-                for (let cn in counters) {
-                    // Pass if rule counter <= alt counter, (0 if undef).
-                    pass = pass && (null == rule.n[cn] ||
-                        (rule.n[cn] <= (null == counters[cn] ? 0 : counters[cn])));
-                }
-                return pass;
-            };
+        if (null != a.c) {
+            // Convert counter and depth abbrev condition into an actual function.
+            // c: { x:1 } -> rule.n.x <= c.x
+            // c: { d:0 } -> 0 === rule stack depth
+            let counters = a.c.n;
+            let depth = a.c.d;
+            if (null != counters || null != depth) {
+                a.c = (rule) => {
+                    let pass = true;
+                    if (null + counters) {
+                        for (let cn in counters) {
+                            // Pass if rule counter <= alt counter, (0 if undef).
+                            pass = pass && (null == rule.n[cn] ||
+                                (rule.n[cn] <= (null == counters[cn] ? 0 : counters[cn])));
+                        }
+                    }
+                    if (null != depth) {
+                        // pass = pass && (ctx.rs.length === depth)
+                        pass = pass && (rule.d === depth);
+                    }
+                    return pass;
+                };
+            }
         }
         // Ensure groups are a string[]
         if (utility_1.S.string === typeof (a.g)) {
@@ -248,8 +268,6 @@ class RuleSpec {
             }
             // Optional custom condition
             cond = cond && (alt.c ? alt.c(rule, ctx, out) : true);
-            // Depth.
-            cond = cond && (null == alt.d ? true : alt.d === ctx.rs.length);
             if (cond) {
                 break;
             }
@@ -422,11 +440,11 @@ class Parser {
                     // Comma means a new pair at same level (unless implicit a:b:1,c:2).
                     { s: [CA], c: { n: { pk: 0 } }, r: utility_1.S.pair, g: 'map,pair,json' },
                     // Comma means a new pair if implicit top level map.
-                    { s: [CA], d: 2, r: utility_1.S.pair, g: 'map,pair,json' },
+                    { s: [CA], c: { d: 2 }, r: utility_1.S.pair, g: 'map,pair,json' },
                     // Who needs commas anyway?
                     { s: [VAL], c: { n: { pk: 0 } }, r: utility_1.S.pair, b: 1, g: 'map,pair,imp' },
                     // Value means a new pair if implicit top level map.
-                    { s: [VAL], d: 2, r: utility_1.S.pair, b: 1, g: 'map,pair,imp' },
+                    { s: [VAL], c: { d: 2 }, r: utility_1.S.pair, b: 1, g: 'map,pair,imp' },
                     // End of implicit path a:b:1,.
                     { s: [[CB, CA, ...VAL]], b: 1, g: 'map,pair,imp,path' },
                     // Close implicit single prop map inside list: [a:1]
@@ -435,21 +453,12 @@ class Parser {
                     { s: [ZZ], e: finish, g: 'map,pair,json' },
                 ],
                 bc: (r, ctx) => {
-                    // If top level implicit map, correct `im` count.
-                    // rs=val,map => len 2; a:b:1 should be im=1, not 2 as with {a:b:.
-                    // if (2 === ctx.rs.length) {
-                    //   r.n.im = 0
-                    // }
                     if (r.use.key) {
                         let key_token = r.open[0];
                         let key = ST === key_token.tin ? key_token.val : key_token.src;
                         let val = r.child.node;
                         let prev = r.node[key];
                         // Convert undefined to null when there was no pair value
-                        // Otherwise leave it alone (eg. dynamic plugin sets undefined)
-                        // if (undefined === val && CL === ctx.v1.tin) {
-                        //   val = null
-                        // }
                         val = undefined === val ? null : val;
                         r.node[key] = null == prev ? val :
                             (ctx.cfg.map.merge ? ctx.cfg.map.merge(prev, val) :

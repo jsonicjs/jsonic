@@ -254,7 +254,7 @@ type Config = {
 type Context = {
   uI: number           // Rule index.
   opts: Options        // Jsonic instance options.
-  cfg: Config         // Jsonic instance config.
+  cfg: Config          // Jsonic instance config.
   meta: KV             // Parse meta parameters.
   src: () => string,   // source text to parse.
   root: () => any,     // Root node.

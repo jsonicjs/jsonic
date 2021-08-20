@@ -1,7 +1,6 @@
 const Util = require('util')
 
 const { Jsonic, Lexer } = require('..')
-const lexer = Jsonic.internal().lexer
 const config = Jsonic.internal().config
 const opts = Jsonic.make().options
 
@@ -24,7 +23,7 @@ let inputs = [
   },
 
   {
-    src: 'a:1,b:{c:2,d:{e:3,f:{g:4,h:{i:5}}}}}',
+    src: 'a:1,b:{c:2,d:{e:3,f:{g:4,h:{i:5}}}}',
     out: {a:1,b:{c:2,d:{e:3,f:{g:4,h:{i:5}}}}},
   },
 
@@ -35,24 +34,8 @@ let inputs = [
 
 ]
 
-//run_lex()
 run_parse()
 
-
-function run_lex() {
-  console.log( '\n' )
-  console.log( 'lex/sec' )
-  console.log( '==================' )
-  
-  inputs.forEach(input=>{
-    let count = count_lex(input.src)
-    console.log(
-      input.src.replace(/\t/,'\\t').padEnd(48,' '),
-      ' >> ',
-    (''+count).padStart(8, ' ')
-    )
-  })
-}
 
 function run_parse() {
   console.log( '\n' )
@@ -72,31 +55,6 @@ function run_parse() {
         'FAIL: '+JSON.stringify(out)+' != '+JSON.stringify(input.out)
     )
   })
-}
-
-
-
-function count_lex(input) {
-  let start = Date.now()
-  let lex = null
-  let src = ()=>input
-
-  
-  // warm up
-  while( Date.now()-start < 2000 ) {
-    lex = lexer.start({src,config,opts})
-    while( ZZ !== lex().pin );
-  }
-  
-  let count = 0
-  start = Date.now()
-
-  while( Date.now()-start < 1000 ) {
-    lex = lexer.start({src,config,opts})
-    while( ZZ !== lex().pin ) count++;
-  }
-
-  return count
 }
 
 
