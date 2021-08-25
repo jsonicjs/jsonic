@@ -25,7 +25,7 @@ declare class Token {
     err?: string;
     why?: string;
     constructor(name: string, tin: Tin, val: any, src: string, pnt: Point, use?: any, why?: string);
-    bad(err: string): this;
+    bad(err: string, details?: any): this;
     toString(): string;
     [inspect](): string;
 }

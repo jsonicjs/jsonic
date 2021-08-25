@@ -49,8 +49,11 @@ class Token {
         this.why = why;
         this.len = null == src ? 0 : src.length;
     }
-    bad(err) {
+    bad(err, details) {
         this.err = err;
+        if (null != details) {
+            this.use = utility_1.deep(this.use || {}, details);
+        }
         return this;
     }
     toString() {

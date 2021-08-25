@@ -56,7 +56,7 @@ declare class Alt {
 }
 declare type AltCond = (rule: Rule, ctx: Context, alt: Alt) => boolean;
 declare type AltHandler = (rule: Rule, ctx: Context, alt: Alt, next: Rule) => Alt;
-declare type AltAction = (rule: Rule, ctx: Context, alt: Alt) => void;
+declare type AltAction = (rule: Rule, ctx: Context, alt: Alt) => void | Token;
 declare class RuleSpec {
     name: string;
     def: any;
@@ -71,6 +71,9 @@ declare class RuleSpec {
     close(a: AltSpec | AltSpec[], flags?: any): RuleSpec;
     process(rule: Rule, ctx: Context, state: RuleState): Rule;
     parse_alts(is_open: boolean, alts: NormAltSpec[], rule: Rule, ctx: Context): Alt;
+    bad(tkn: Token, rule: Rule, ctx: Context, parse: {
+        is_open: boolean;
+    }): Rule;
 }
 declare type RuleSpecMap = {
     [name: string]: RuleSpec;

@@ -139,7 +139,7 @@ class Alt {
 type AltCond = (rule: Rule, ctx: Context, alt: Alt) => boolean
 type AltHandler = (rule: Rule, ctx: Context, alt: Alt, next: Rule) => Alt
 
-type AltAction = (rule: Rule, ctx: Context, alt: Alt) => void
+type AltAction = (rule: Rule, ctx: Context, alt: Alt) => void | Token
 
 
 const PALT = new Alt() // Only one alt object is created.
@@ -242,7 +242,7 @@ class RuleSpec {
   }
 
 
-  process(rule: Rule, ctx: Context, state: RuleState) {
+  process(rule: Rule, ctx: Context, state: RuleState): Rule {
     let why = MT
     let F = ctx.F
 
@@ -263,10 +263,20 @@ class RuleSpec {
     if (before) {
       bout = before.call(this, rule, ctx)
       if (bout) {
-        if (bout.err) {
-          throw new JsonicError(bout.err, {
-            ...bout, state: is_open ? S.open : S.close
-          }, ctx.t0, rule, ctx)
+        if (bout instanceof Token && bout.err) {
+          return this.bad(bout, rule, ctx, { is_open })
+        }
+
+        // TODO: remove
+        else if (bout.err) {
+          ctx.t0.err = bout.err
+          deep((ctx.t0.use = ctx.t0.use || {}), bout)
+          ctx.t0.why = why
+          return this.bad(ctx.t0, rule, ctx, { is_open })
+
+          // throw new JsonicError(bout.err, {
+          //   ...bout, state: is_open ? S.open : S.close
+          // }, ctx.t0, rule, ctx)
         }
         rule.node = bout.node || rule.node
       }
@@ -288,10 +298,14 @@ class RuleSpec {
 
     // Unconditional error.
     if (alt.e) {
+      return this.bad(alt.e, rule, ctx, { is_open })
+      // return NONE
+      /*
       throw new JsonicError(
         alt.e.err || S.unexpected,
         { ...alt.e.use, state: is_open ? S.open : S.close },
         alt.e, rule, ctx)
+        */
     }
 
     // Update counters.
@@ -315,8 +329,10 @@ class RuleSpec {
     // Action call.
     if (alt.a) {
       why += 'A'
-      // alt.a.call(this, rule, ctx, alt, next)
-      alt.a.call(this, rule, ctx, alt)
+      let aout = alt.a.call(this, rule, ctx, alt)
+      if (aout instanceof Token && aout.err) {
+        return this.bad(aout, rule, ctx, { is_open })
+      }
     }
 
     // Push a new rule onto the stack...
@@ -351,13 +367,26 @@ class RuleSpec {
       (rule.ac && def.ac)
 
     if (after) {
+      // TODO: might be better to allow explicit error Token return?
       let aout = after.call(this, rule, ctx, alt, next)
       if (aout) {
-        if (aout.err) {
+        if (aout instanceof Token && aout.err) {
+          return this.bad(aout, rule, ctx, { is_open })
+        }
+
+        // TODO: remove
+        else if (aout.err) {
+          ctx.t0.err = aout.err
+          deep((ctx.t0.use = ctx.t0.use || {}), aout)
           ctx.t0.why = why
+          return this.bad(ctx.t0, rule, ctx, { is_open })
+          // return NONE
+
+          /*
           throw new JsonicError(aout.err, {
             ...aout, state: is_open ? S.open : S.close
           }, ctx.t0, rule, ctx)
+          */
         }
         next = aout.next || next
       }
@@ -494,6 +523,21 @@ class RuleSpec {
       out)
 
     return out
+  }
+
+  bad(tkn: Token, rule: Rule, ctx: Context, parse: { is_open: boolean }): Rule {
+    let je = new JsonicError(
+      tkn.err || S.unexpected,
+      {
+        ...tkn.use,
+        state: parse.is_open ? S.open : S.close
+      },
+      tkn,
+      rule,
+      ctx
+    )
+    // console.log(je)
+    throw je
   }
 }
 

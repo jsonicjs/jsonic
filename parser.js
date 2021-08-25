@@ -128,10 +128,18 @@ class RuleSpec {
         if (before) {
             bout = before.call(this, rule, ctx);
             if (bout) {
-                if (bout.err) {
-                    throw new utility_1.JsonicError(bout.err, {
-                        ...bout, state: is_open ? utility_1.S.open : utility_1.S.close
-                    }, ctx.t0, rule, ctx);
+                if (bout instanceof utility_1.Token && bout.err) {
+                    return this.bad(bout, rule, ctx, { is_open });
+                }
+                // TODO: remove
+                else if (bout.err) {
+                    ctx.t0.err = bout.err;
+                    utility_1.deep((ctx.t0.use = ctx.t0.use || {}), bout);
+                    ctx.t0.why = why;
+                    return this.bad(ctx.t0, rule, ctx, { is_open });
+                    // throw new JsonicError(bout.err, {
+                    //   ...bout, state: is_open ? S.open : S.close
+                    // }, ctx.t0, rule, ctx)
                 }
                 rule.node = bout.node || rule.node;
             }
@@ -149,7 +157,14 @@ class RuleSpec {
         rule[is_open ? 'open' : 'close'] = alt.m;
         // Unconditional error.
         if (alt.e) {
-            throw new utility_1.JsonicError(alt.e.err || utility_1.S.unexpected, { ...alt.e.use, state: is_open ? utility_1.S.open : utility_1.S.close }, alt.e, rule, ctx);
+            return this.bad(alt.e, rule, ctx, { is_open });
+            // return NONE
+            /*
+            throw new JsonicError(
+              alt.e.err || S.unexpected,
+              { ...alt.e.use, state: is_open ? S.open : S.close },
+              alt.e, rule, ctx)
+              */
         }
         // Update counters.
         if (alt.n) {
@@ -170,8 +185,10 @@ class RuleSpec {
         // Action call.
         if (alt.a) {
             why += 'A';
-            // alt.a.call(this, rule, ctx, alt, next)
-            alt.a.call(this, rule, ctx, alt);
+            let aout = alt.a.call(this, rule, ctx, alt);
+            if (aout instanceof utility_1.Token && aout.err) {
+                return this.bad(aout, rule, ctx, { is_open });
+            }
         }
         // Push a new rule onto the stack...
         if (alt.p) {
@@ -201,13 +218,24 @@ class RuleSpec {
             (rule.ao && def.ao) :
             (rule.ac && def.ac);
         if (after) {
+            // TODO: might be better to allow explicit error Token return?
             let aout = after.call(this, rule, ctx, alt, next);
             if (aout) {
-                if (aout.err) {
+                if (aout instanceof utility_1.Token && aout.err) {
+                    return this.bad(aout, rule, ctx, { is_open });
+                }
+                // TODO: remove
+                else if (aout.err) {
+                    ctx.t0.err = aout.err;
+                    utility_1.deep((ctx.t0.use = ctx.t0.use || {}), aout);
                     ctx.t0.why = why;
-                    throw new utility_1.JsonicError(aout.err, {
-                        ...aout, state: is_open ? utility_1.S.open : utility_1.S.close
-                    }, ctx.t0, rule, ctx);
+                    return this.bad(ctx.t0, rule, ctx, { is_open });
+                    // return NONE
+                    /*
+                    throw new JsonicError(aout.err, {
+                      ...aout, state: is_open ? S.open : S.close
+                    }, ctx.t0, rule, ctx)
+                    */
                 }
                 next = aout.next || next;
             }
@@ -295,6 +323,14 @@ class RuleSpec {
             alt.s ?
             '[' + alt.s.map((pin) => t[pin]).join(' ') + ']' : '[]', 'tc=' + ctx.tC, 'p=' + (out.p || utility_1.MT), 'r=' + (out.r || utility_1.MT), 'b=' + (out.b || utility_1.MT), out.m.map((tkn) => t[tkn.tin]).join(' '), ctx.F(out.m.map((tkn) => tkn.src)), 'c:' + ((alt && alt.c) ? cond : utility_1.MT), 'n:' + utility_1.entries(out.n).map(n => n[0] + '=' + n[1]).join(';'), 'u:' + utility_1.entries(out.u).map(u => u[0] + '=' + u[1]).join(';'), out);
         return out;
+    }
+    bad(tkn, rule, ctx, parse) {
+        let je = new utility_1.JsonicError(tkn.err || utility_1.S.unexpected, {
+            ...tkn.use,
+            state: parse.is_open ? utility_1.S.open : utility_1.S.close
+        }, tkn, rule, ctx);
+        // console.log(je)
+        throw je;
     }
 }
 exports.RuleSpec = RuleSpec;

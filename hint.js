@@ -15,7 +15,10 @@ const Fs = require('fs')
 let hint = {
   unknown:
   ` Since the error is unknown, this is probably a bug inside jsonic
-itself, or a plugin. Please consider posting a github issue - thanks!`,
+itself, or a plugin. Please consider posting a github issue - thanks!
+
+ Code: $code, Details: 
+$details`,
 
   unexpected:
   ` The character(s) $src were not expected at this point as they do not

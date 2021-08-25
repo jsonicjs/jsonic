@@ -303,8 +303,11 @@ exports.deep = deep;
 // the `details` parameter to JsonicError. If not defined, the value is
 // determined heuristically from the Token and Context.
 function errinject(s, code, details, token, rule, ctx) {
+    let ref = { code, details, token, rule, ctx };
     return s.replace(/\$([\w_]+)/g, (_m, name) => {
-        let instr = JSON.stringify('code' === name ? code : (null != details[name] ? details[name] : ((ctx.meta && null != ctx.meta[name]) ? ctx.meta[name] : (null != token[name] ? token[name] : (null != rule[name] ? rule[name] : (null != ctx.opts[name] ? ctx.opts[name] : (null != ctx.cfg[name] ? ctx.cfg[name] :
+        let instr = JSON.stringify(
+        //'code' === name ? code : (
+        null != ref[name] ? ref[name] : (null != details[name] ? details[name] : ((ctx.meta && null != ctx.meta[name]) ? ctx.meta[name] : (null != token[name] ? token[name] : (null != rule[name] ? rule[name] : (null != ctx.opts[name] ? ctx.opts[name] : (null != ctx.cfg[name] ? ctx.cfg[name] :
             null != ctx[name] ? ctx[name] :
                 '$' + name)))))));
         return instr;

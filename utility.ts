@@ -566,9 +566,11 @@ function errinject(
   rule: Rule,
   ctx: Context
 ) {
+  let ref: Record<string, any> = { code, details, token, rule, ctx }
   return s.replace(/\$([\w_]+)/g, (_m: any, name: string) => {
     let instr = JSON.stringify(
-      'code' === name ? code : (
+      //'code' === name ? code : (
+      null != ref[name] ? ref[name] : (
         null != details[name] ? details[name] : (
           (ctx.meta && null != ctx.meta[name]) ? ctx.meta[name] : (
             null != (token as KV)[name] ? (token as KV)[name] : (

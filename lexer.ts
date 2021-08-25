@@ -25,6 +25,7 @@ import {
   escre,
   charset,
   clean,
+  deep,
 } from './utility'
 
 
@@ -91,8 +92,11 @@ class Token {
     this.len = null == src ? 0 : src.length
   }
 
-  bad(err: string) {
+  bad(err: string, details?: any) {
     this.err = err
+    if (null != details) {
+      this.use = deep(this.use || {}, details)
+    }
     return this
   }
 
