@@ -1,5 +1,6 @@
 import { Config, Context, JsonicError, KV, StrMap, badlex, deep, errdesc, errinject, extract, makelog, mesc, regexp, tokenize, trimstk, srcfmt, clone, charset, configure, escre } from './utility';
 import { Point, Token, Lex, MakeLexMatcher } from './lexer';
+import type { AltAction } from './parser';
 import { Parser, Rule, RuleDefiner, RuleSpec, RuleSpecMap } from './parser';
 declare type Jsonic = JsonicParse & // A function that parses.
 JsonicAPI & // A utility with API methods.
@@ -148,6 +149,6 @@ declare function parserwrap(parser: any): {
     start: (src: string, jsonic: Jsonic, meta?: any, parent_ctx?: any) => any;
 };
 declare let Jsonic: Jsonic;
-export type { Plugin, Tin, RuleSpecMap, Context, Options, };
+export type { Plugin, Tin, RuleSpecMap, Context, Options, AltAction, };
 export { Jsonic, JsonicError, Lex, Parser, Rule, RuleSpec, Token, Point, util, make, };
 export default Jsonic;

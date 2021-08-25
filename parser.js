@@ -170,7 +170,8 @@ class RuleSpec {
         // Action call.
         if (alt.a) {
             why += 'A';
-            alt.a.call(this, rule, ctx, alt, next);
+            // alt.a.call(this, rule, ctx, alt, next)
+            alt.a.call(this, rule, ctx, alt);
         }
         // Push a new rule onto the stack...
         if (alt.p) {
@@ -219,7 +220,7 @@ class RuleSpec {
         while (mI++ < rewind) {
             ctx.next();
         }
-        // Must be last as state is for next process call.
+        // Must be last as state change is for next process call.
         if (utility_1.OPEN === rule.state) {
             rule.state = utility_1.CLOSE;
         }

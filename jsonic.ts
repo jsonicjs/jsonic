@@ -5,7 +5,7 @@
  */
 
 
-// TODO: d:X condition should be c:{d:X} - it's a condition!
+// TODO: Context provides current jsonic instance: { ..., jsonic: ()=>instance }
 // TODO: docs: ref https://wiki.alopex.li/OnParsers
 // TODO: docs: nice tree diagram of rules (generate?)
 // TODO: rule.use should be rule.u for consistency
@@ -85,6 +85,10 @@ import {
   MakeLexMatcher,
 } from './lexer'
 
+
+import type {
+  AltAction,
+} from './parser'
 
 import {
   Parser,
@@ -554,12 +558,14 @@ export type {
   RuleSpecMap,
   Context,
   Options,
+  AltAction,
+
   // Meta,
   /*
   Alt,
   AltCond,
   AltHandler,
-  AltAction,
+
   */
 }
 

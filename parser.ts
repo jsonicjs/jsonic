@@ -138,14 +138,21 @@ class Alt {
 
 type AltCond = (rule: Rule, ctx: Context, alt: Alt) => boolean
 type AltHandler = (rule: Rule, ctx: Context, alt: Alt, next: Rule) => Alt
-type AltAction = (rule: Rule, ctx: Context, alt: Alt, next: Rule) => void
+
+type AltAction = (rule: Rule, ctx: Context, alt: Alt) => void
+
 
 const PALT = new Alt() // Only one alt object is created.
 const EMPTY_ALT = new Alt()
 
 
+
+
+
 type RuleDef = {
+  // TODO: rename to `o`
   open?: any[]
+  // TODO: rename to `c`
   close?: any[]
   bo?: (rule: Rule, ctx: Context) => any
   bc?: (rule: Rule, ctx: Context) => any
@@ -156,7 +163,7 @@ type RuleDef = {
 
 class RuleSpec {
   name: string = '-'
-  def: any // TODO: AltSpec[] ?
+  def: any // TODO: hoist open, close
   bo: boolean = true
   ao: boolean = true
   bc: boolean = true
@@ -308,7 +315,8 @@ class RuleSpec {
     // Action call.
     if (alt.a) {
       why += 'A'
-      alt.a.call(this, rule, ctx, alt, next)
+      // alt.a.call(this, rule, ctx, alt, next)
+      alt.a.call(this, rule, ctx, alt)
     }
 
     // Push a new rule onto the stack...
@@ -375,7 +383,7 @@ class RuleSpec {
       ctx.next()
     }
 
-    // Must be last as state is for next process call.
+    // Must be last as state change is for next process call.
     if (OPEN === rule.state) {
       rule.state = CLOSE
     }
@@ -947,6 +955,7 @@ export type {
   RuleDefiner,
   RuleSpecMap,
   RuleState,
+  AltAction,
 }
 
 export {
@@ -959,7 +968,7 @@ export {
   Alt,
   AltCond,
   AltHandler,
-  AltAction,
+
   */
 
   NONE,

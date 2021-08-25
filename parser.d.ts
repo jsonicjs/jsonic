@@ -56,7 +56,7 @@ declare class Alt {
 }
 declare type AltCond = (rule: Rule, ctx: Context, alt: Alt) => boolean;
 declare type AltHandler = (rule: Rule, ctx: Context, alt: Alt, next: Rule) => Alt;
-declare type AltAction = (rule: Rule, ctx: Context, alt: Alt, next: Rule) => void;
+declare type AltAction = (rule: Rule, ctx: Context, alt: Alt) => void;
 declare class RuleSpec {
     name: string;
     def: any;
@@ -86,5 +86,5 @@ declare class Parser {
     start(src: string, jsonic: Jsonic, meta?: any, parent_ctx?: any): any;
     clone(options: Options, config: Config): Parser;
 }
-export type { RuleDefiner, RuleSpecMap, RuleState, };
+export type { RuleDefiner, RuleSpecMap, RuleState, AltAction, };
 export { Parser, Rule, RuleSpec, NONE, };
