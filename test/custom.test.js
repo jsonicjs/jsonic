@@ -170,11 +170,12 @@ describe('custom', function () {
     j.rule('top', () => {
       let rs = new RuleSpec({
         ...rsdef,
-        ao: ()=>({err:'unexpected', src:'AO'}),
+        // ao: ()=>({err:'unexpected', src:'AO'}),
+        ao: (rule,ctx)=>ctx.t0.bad('foo',{bar:'AO'})
       })
       return rs
     })
-    expect(()=>j('a')).throws('JsonicError', /unexpected.*AO/)
+    expect(()=>j('a')).throws('JsonicError', /foo.*AO/s)
 
     
     j.rule('top', () => {
@@ -192,11 +193,12 @@ describe('custom', function () {
     j.rule('top', () => {
       let rs = new RuleSpec({
         ...rsdef,
-        ac: ()=>({err:'unexpected', src:'AC'}),
+        // ac: ()=>({err:'unexpected', src:'AC'}),
+        ac: (rule,ctx)=>ctx.t0.bad('foo',{bar:'AC'})
       })
       return rs
     })
-    expect(()=>j('a')).throws('JsonicError', /unexpected.*AC/)
+    expect(()=>j('a')).throws('JsonicError', /foo.*AC/s)
   })
 
 
@@ -266,6 +268,7 @@ describe('custom', function () {
   */
   
 
+  /*
   it('parser-after-next', () => {
     let b = ''
     let j = make_empty({rule:{start:'top'}})
@@ -296,7 +299,8 @@ describe('custom', function () {
     expect(j('b')).equals([])
 
   })
-
+  */
+  
 
   it('parser-empty-seq', () => {
     let b = ''
@@ -347,16 +351,11 @@ describe('custom', function () {
       return new RuleSpec({
         open: [{s:[AA]}],
         close: [{s:[AA]}],
-        ac: (rule)=>{
-          return {
-            err:'unexpected',
-            src:'AAA'
-          }
-        }
+        ac: (rule,ctx)=>(ctx.t0.bad('foo', {bar:'AAA'}))
       })
     })
 
-    expect(()=>j('a')).throws('JsonicError',/unexpected.*AAA/)
+    expect(()=>j('a')).throws('JsonicError',/foo.*AAA/s)
   })
 
 

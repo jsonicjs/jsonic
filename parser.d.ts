@@ -24,7 +24,7 @@ declare class Rule {
 }
 declare const NONE: Rule;
 interface AltSpec {
-    s?: (Tin | Tin[])[];
+    s?: (Tin | Tin[] | null | undefined)[];
     p?: string;
     r?: string;
     b?: number;

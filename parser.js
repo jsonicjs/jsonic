@@ -125,7 +125,7 @@ class RuleSpec {
             (rule.bo && def.bo) :
             (rule.bc && def.bc);
         let bout = before && before.call(this, rule, ctx);
-        if (bout && null != bout.err) {
+        if (bout instanceof utility_1.Token && null != bout.err) {
             return this.bad(bout, rule, ctx, { is_open });
         }
         // Attempt to match one of the alts.
@@ -162,9 +162,9 @@ class RuleSpec {
         // Action call.
         if (alt.a) {
             why += 'A';
-            let aout = alt.a.call(this, rule, ctx, alt);
-            if (aout instanceof utility_1.Token && aout.err) {
-                return this.bad(aout, rule, ctx, { is_open });
+            let tout = alt.a.call(this, rule, ctx, alt);
+            if (tout instanceof utility_1.Token && tout.err) {
+                return this.bad(tout, rule, ctx, { is_open });
             }
         }
         // Push a new rule onto the stack...
@@ -194,22 +194,9 @@ class RuleSpec {
         let after = is_open ?
             (rule.ao && def.ao) :
             (rule.ac && def.ac);
-        if (after) {
-            // TODO: might be better to allow explicit error Token return?
-            let aout = after.call(this, rule, ctx, alt, next);
-            if (aout) {
-                if (aout instanceof utility_1.Token && aout.err) {
-                    return this.bad(aout, rule, ctx, { is_open });
-                }
-                // TODO: remove
-                else if (aout.err) {
-                    ctx.t0.err = aout.err;
-                    utility_1.deep((ctx.t0.use = ctx.t0.use || {}), aout);
-                    ctx.t0.why = why;
-                    return this.bad(ctx.t0, rule, ctx, { is_open });
-                }
-                next = aout.next || next;
-            }
+        let aout = after && after.call(this, rule, ctx, alt, next);
+        if (aout instanceof utility_1.Token && null != aout.err) {
+            return this.bad(aout, rule, ctx, { is_open });
         }
         next.why = why;
         ctx.log && ctx.log(utility_1.S.node, rule.name + '~' + rule.id, rule.state, 'w=' + why, 'n:' + utility_1.entries(rule.n).map(n => n[0] + '=' + n[1]).join(';'), 'u:' + utility_1.entries(rule.use).map(u => u[0] + '=' + u[1]).join(';'), F(rule.node));

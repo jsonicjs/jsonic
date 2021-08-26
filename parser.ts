@@ -103,8 +103,8 @@ const NONE = ({ name: S.none, state: OPEN } as Rule)
 // Represent a possible token match (2-token lookahead)
 interface AltSpec {
 
-  // Token Tin sequence to match (0,1,2 Tins, or a subset of Tins).
-  s?: (Tin | Tin[])[]
+  // Token Tin sequence to match (0,1,2 Tins, or a subset of Tins; nulls filterd out).
+  s?: (Tin | Tin[] | null | undefined)[]
 
   p?: string      // Push named Rule onto stack (create child).
   r?: string      // Replace current rule with named Rule on stack (create sibling).
@@ -283,7 +283,7 @@ class RuleSpec {
       (rule.bo && def.bo) :
       (rule.bc && def.bc)
     let bout = before && before.call(this, rule, ctx)
-    if (bout && null != bout.err) {
+    if (bout instanceof Token && null != bout.err) {
       return this.bad(bout, rule, ctx, { is_open })
     }
 
@@ -327,9 +327,9 @@ class RuleSpec {
     // Action call.
     if (alt.a) {
       why += 'A'
-      let aout = alt.a.call(this, rule, ctx, alt)
-      if (aout instanceof Token && aout.err) {
-        return this.bad(aout, rule, ctx, { is_open })
+      let tout = alt.a.call(this, rule, ctx, alt)
+      if (tout instanceof Token && tout.err) {
+        return this.bad(tout, rule, ctx, { is_open })
       }
     }
 
@@ -363,24 +363,9 @@ class RuleSpec {
     let after = is_open ?
       (rule.ao && def.ao) :
       (rule.ac && def.ac)
-
-    if (after) {
-      // TODO: might be better to allow explicit error Token return?
-      let aout = after.call(this, rule, ctx, alt, next)
-      if (aout) {
-        if (aout instanceof Token && aout.err) {
-          return this.bad(aout, rule, ctx, { is_open })
-        }
-
-        // TODO: remove
-        else if (aout.err) {
-          ctx.t0.err = aout.err
-          deep((ctx.t0.use = ctx.t0.use || {}), aout)
-          ctx.t0.why = why
-          return this.bad(ctx.t0, rule, ctx, { is_open })
-        }
-        next = aout.next || next
-      }
+    let aout = after && after.call(this, rule, ctx, alt, next)
+    if (aout instanceof Token && null != aout.err) {
+      return this.bad(aout, rule, ctx, { is_open })
     }
 
     next.why = why
