@@ -1,6 +1,7 @@
-import type { Relate } from './types';
-import { Config, Context, JsonicError, StrMap, badlex, deep, errdesc, errinject, extract, makelog, mesc, regexp, tokenize, trimstk, srcfmt, clone, charset, configure, escre, parserwrap } from './utility';
-import { Point, Token, Lex, MakeLexMatcher } from './lexer';
+import type { Relate, Tin, Token, StrMap } from './types';
+import { Config, Context, JsonicError, badlex, deep, errdesc, errinject, extract, makelog, mesc, regexp, tokenize, trimstk, srcfmt, clone, charset, configure, escre, parserwrap } from './utility';
+import type { MakeLexMatcher } from './lexer';
+import { Point, Lex, makeToken } from './lexer';
 import type { AltAction } from './parser';
 import { Parser, Rule, RuleDefiner, RuleSpec, RuleSpecMap } from './parser';
 declare type Jsonic = JsonicParse & // A function that parses.
@@ -33,7 +34,6 @@ declare type JsonicAPI = {
 declare type Plugin = ((jsonic: Jsonic, plugin_options?: any) => void | Jsonic) & {
     defaults?: Relate;
 };
-declare type Tin = number;
 declare type Options = {
     tag?: string;
     fixed?: {
@@ -147,6 +147,6 @@ declare let util: {
 };
 declare function make(param_options?: Relate, parent?: Jsonic): Jsonic;
 declare let Jsonic: Jsonic;
-export type { Plugin, Tin, RuleSpecMap, Context, Options, AltAction, };
-export { Jsonic, JsonicError, Lex, Parser, Rule, RuleSpec, Token, Point, util, make, };
+export type { Plugin, Tin, RuleSpecMap, Context, Options, AltAction, Token, };
+export { Jsonic, JsonicError, Lex, Parser, Rule, RuleSpec, Point, util, make, makeToken, };
 export default Jsonic;

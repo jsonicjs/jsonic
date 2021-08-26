@@ -19,7 +19,7 @@ const {
   omap,
 } = require('../utility')
 
-const { util, Jsonic, Token, Point } = require('..')
+const { util, Jsonic, makeToken, Point } = require('..')
 const {
   deep,
   errinject,
@@ -45,7 +45,7 @@ describe('utility', () => {
 
   it('token', ()=>{
     let p0 = new Point(1,2,3,4)
-    let t0 = new Token('a',1,'b','bs',p0,{x:1},'W')
+    let t0 = makeToken('a',1,'b','bs',p0,{x:1},'W')
     expect(''+t0).equals('Token[a=1 bs=b 2,3,4 {x:1} W]')
 
     let t0e = t0.bad('foo')

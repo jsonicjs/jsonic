@@ -1,14 +1,14 @@
 "use strict";
 /* Copyright (c) 2013-2021 Richard Rodger, MIT License */
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.make = exports.util = exports.Point = exports.Token = exports.RuleSpec = exports.Rule = exports.Parser = exports.Lex = exports.JsonicError = exports.Jsonic = void 0;
+exports.makeToken = exports.make = exports.util = exports.Point = exports.RuleSpec = exports.Rule = exports.Parser = exports.Lex = exports.JsonicError = exports.Jsonic = void 0;
 const utility_1 = require("./utility");
 Object.defineProperty(exports, "JsonicError", { enumerable: true, get: function () { return utility_1.JsonicError; } });
 const defaults_1 = require("./defaults");
 const lexer_1 = require("./lexer");
 Object.defineProperty(exports, "Point", { enumerable: true, get: function () { return lexer_1.Point; } });
-Object.defineProperty(exports, "Token", { enumerable: true, get: function () { return lexer_1.Token; } });
 Object.defineProperty(exports, "Lex", { enumerable: true, get: function () { return lexer_1.Lex; } });
+Object.defineProperty(exports, "makeToken", { enumerable: true, get: function () { return lexer_1.makeToken; } });
 const parser_1 = require("./parser");
 Object.defineProperty(exports, "Parser", { enumerable: true, get: function () { return parser_1.Parser; } });
 Object.defineProperty(exports, "Rule", { enumerable: true, get: function () { return parser_1.Rule; } });
@@ -142,85 +142,6 @@ function make(param_options, parent) {
     return jsonic;
 }
 exports.make = make;
-// TODO: move to utility
-/*
-function parserwrap(parser: any) {
-  return {
-    start: function(
-      src: string,
-      jsonic: Jsonic,
-      meta?: any,
-      parent_ctx?: any
-    ) {
-      try {
-        return parser.start(src, jsonic, meta, parent_ctx)
-      } catch (ex) {
-        if ('SyntaxError' === ex.name) {
-          let loc = 0
-          let row = 0
-          let col = 0
-          let tsrc = MT
-          let errloc = ex.message.match(/^Unexpected token (.) .*position\s+(\d+)/i)
-          if (errloc) {
-            tsrc = errloc[1]
-            loc = parseInt(errloc[2])
-            row = src.substring(0, loc).replace(/[^\n]/g, MT).length
-            let cI = loc - 1
-            while (-1 < cI && '\n' !== src.charAt(cI)) cI--;
-            col = Math.max(src.substring(cI, loc).length, 0)
-          }
-
-          let token = ex.token || new Token(
-            '#UK',
-            // tokenize('#UK', jsonic.config),
-            tokenize('#UK', jsonic.internal().config),
-            undefined,
-            tsrc,
-            new Point(tsrc.length, loc, ex.lineNumber || row, ex.columnNumber || col)
-          )
-
-          throw new JsonicError(
-            ex.code || 'json',
-            ex.details || {
-              msg: ex.message
-            },
-            token,
-            ({} as Rule),
-            ex.ctx || {
-              uI: -1,
-              opts: jsonic.options,
-              //cfg: ({ t: {} } as Config),
-              cfg: jsonic.internal().config,
-              token: token,
-              meta,
-              src: () => src,
-              root: () => undefined,
-              plgn: () => jsonic.internal().plugins,
-              rule: NONE,
-              xs: -1,
-              v2: token,
-              v1: token,
-              t0: token,
-              t1: token, // TODO: should be end token
-              tC: -1,
-              rs: [],
-              next: () => token, // TODO: should be end token
-              rsm: {},
-              n: {},
-              log: meta ? meta.log : undefined,
-              F: srcfmt(jsonic.internal().config),
-              use: {},
-            } as Context,
-          )
-        }
-        else {
-          throw ex
-        }
-      }
-    }
-  }
-}
-*/
 let Jsonic = make();
 exports.Jsonic = Jsonic;
 // Keep global top level safe

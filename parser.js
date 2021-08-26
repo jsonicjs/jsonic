@@ -123,7 +123,7 @@ class RuleSpec {
             (rule.bo && def.bo) :
             (rule.bc && def.bc);
         let bout = before && before.call(this, rule, ctx);
-        if (bout instanceof utility_1.Token && null != bout.err) {
+        if (bout && bout.isToken && null != bout.err) {
             return this.bad(bout, rule, ctx, { is_open });
         }
         // Attempt to match one of the alts.
@@ -161,7 +161,7 @@ class RuleSpec {
         if (alt.a) {
             why += 'A';
             let tout = alt.a.call(this, rule, ctx, alt);
-            if (tout instanceof utility_1.Token && tout.err) {
+            if (tout && tout.isToken && tout.err) {
                 return this.bad(tout, rule, ctx, { is_open });
             }
         }
@@ -193,7 +193,7 @@ class RuleSpec {
             (rule.ao && def.ao) :
             (rule.ac && def.ac);
         let aout = after && after.call(this, rule, ctx, alt, next);
-        if (aout instanceof utility_1.Token && null != aout.err) {
+        if (aout && aout.isToken && null != aout.err) {
             return this.bad(aout, rule, ctx, { is_open });
         }
         next.why = why;
@@ -530,7 +530,7 @@ class Parser {
     }
     start(src, jsonic, meta, parent_ctx) {
         let root;
-        let endtkn = new utility_1.Token('#ZZ', utility_1.tokenize('#ZZ', this.cfg), undefined, types_1.EMPTY, new lexer_1.Point(-1));
+        let endtkn = lexer_1.makeToken('#ZZ', utility_1.tokenize('#ZZ', this.cfg), undefined, types_1.EMPTY, new lexer_1.Point(-1));
         let ctx = {
             uI: 1,
             opts: this.options,

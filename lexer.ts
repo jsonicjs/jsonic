@@ -6,20 +6,20 @@
 
 
 import type {
-  Relate,
+  Tin,
+  Token,
 } from './types'
 
 
 import {
   EMPTY,
+  INSPECT,
 } from './types'
 
 
 
-const inspect = Symbol.for('nodejs.util.inspect.custom')
 
 import type {
-  Tin,
   Rule,
   Options,
 } from './jsonic'
@@ -37,7 +37,6 @@ import {
   clean,
   deep,
 } from './utility'
-
 
 
 class Point {
@@ -60,14 +59,15 @@ class Point {
       (0 < this.token.length ? (' ' + this.token) : '') + ']'
   }
 
-  [inspect]() {
+  [INSPECT]() {
     return this.toString()
   }
 }
 
 
 // Tokens from the lexer.
-class Token {
+class TokenImpl implements Token {
+  isToken = true // Type guard.
   name: string  // Token name.
   tin: Tin      // Token identification number.
   val: any      // Value of Token if literal (eg. number).
@@ -102,7 +102,7 @@ class Token {
     this.len = null == src ? 0 : src.length
   }
 
-  bad(err: string, details?: any) {
+  bad(err: string, details?: any): Token {
     this.err = err
     if (null != details) {
       this.use = deep(this.use || {}, details)
@@ -130,16 +130,23 @@ class Token {
       ']'
   }
 
-  [inspect]() {
+  [INSPECT]() {
     return this.toString()
   }
-
 }
 
+const makeToken = (...params: ConstructorParameters<typeof TokenImpl>) =>
+  new TokenImpl(...params)
 
 
+
+// Construct a lexing function based on configuration.
 type MakeLexMatcher = (cfg: Config, opts: Options) => LexMatcher
+
+
+// A lexing function that attempts to match tokens.
 type LexMatcher = (lex: Lex, rule: Rule) => Token | undefined
+
 
 
 
@@ -729,7 +736,7 @@ class Lex {
       name = tokenize(ref, this.cfg)
     }
 
-    let tkn = new Token(
+    let tkn = makeToken(
       name,
       tin,
       val,
@@ -823,6 +830,9 @@ class Lex {
 }
 
 
+
+
+
 export type {
   MakeLexMatcher,
   LexMatcher,
@@ -830,8 +840,8 @@ export type {
 
 export {
   Point,
-  Token,
   Lex,
+  makeToken,
   makeFixedMatcher,
   makeSpaceMatcher,
   makeLineMatcher,

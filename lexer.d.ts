@@ -1,5 +1,6 @@
-declare const inspect: unique symbol;
-import type { Tin, Rule, Options } from './jsonic';
+import type { Tin, Token } from './types';
+import { INSPECT } from './types';
+import type { Rule, Options } from './jsonic';
 import { Config, Context } from './utility';
 declare class Point {
     len: number;
@@ -10,9 +11,10 @@ declare class Point {
     end: Token | undefined;
     constructor(len: number, sI?: number, rI?: number, cI?: number);
     toString(): string;
-    [inspect](): string;
+    [INSPECT](): string;
 }
-declare class Token {
+declare class TokenImpl implements Token {
+    isToken: boolean;
     name: string;
     tin: Tin;
     val: any;
@@ -25,10 +27,11 @@ declare class Token {
     err?: string;
     why?: string;
     constructor(name: string, tin: Tin, val: any, src: string, pnt: Point, use?: any, why?: string);
-    bad(err: string, details?: any): this;
+    bad(err: string, details?: any): Token;
     toString(): string;
-    [inspect](): string;
+    [INSPECT](): string;
 }
+declare const makeToken: (name: string, tin: number, val: any, src: string, pnt: Point, use?: any, why?: string | undefined) => TokenImpl;
 declare type MakeLexMatcher = (cfg: Config, opts: Options) => LexMatcher;
 declare type LexMatcher = (lex: Lex, rule: Rule) => Token | undefined;
 declare let makeFixedMatcher: MakeLexMatcher;
@@ -50,4 +53,4 @@ declare class Lex {
     bad(why: string, pstart: number, pend: number): Token;
 }
 export type { MakeLexMatcher, LexMatcher, };
-export { Point, Token, Lex, makeFixedMatcher, makeSpaceMatcher, makeLineMatcher, makeStringMatcher, makeCommentMatcher, makeNumberMatcher, makeTextMatcher, };
+export { Point, Lex, makeToken, makeFixedMatcher, makeSpaceMatcher, makeLineMatcher, makeStringMatcher, makeCommentMatcher, makeNumberMatcher, makeTextMatcher, };

@@ -1,13 +1,13 @@
 "use strict";
 /* Copyright (c) 2013-2021 Richard Rodger, MIT License */
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.parserwrap = exports.trimstk = exports.tokenize = exports.srcfmt = exports.snip = exports.regexp = exports.omap = exports.mesc = exports.makelog = exports.keys = exports.isarr = exports.filterRules = exports.extract = exports.escre = exports.errinject = exports.errdesc = exports.entries = exports.defprop = exports.deep = exports.configure = exports.clone = exports.clean = exports.charset = exports.badlex = exports.assign = exports.Token = exports.S = exports.OPEN = exports.JsonicError = exports.CLOSE = void 0;
+exports.parserwrap = exports.trimstk = exports.tokenize = exports.srcfmt = exports.snip = exports.regexp = exports.omap = exports.mesc = exports.makelog = exports.keys = exports.isarr = exports.filterRules = exports.extract = exports.escre = exports.errinject = exports.errdesc = exports.entries = exports.defprop = exports.deep = exports.configure = exports.clone = exports.clean = exports.charset = exports.badlex = exports.assign = exports.S = exports.OPEN = exports.JsonicError = exports.CLOSE = void 0;
 const types_1 = require("./types");
 Object.defineProperty(exports, "OPEN", { enumerable: true, get: function () { return types_1.OPEN; } });
 Object.defineProperty(exports, "CLOSE", { enumerable: true, get: function () { return types_1.CLOSE; } });
 const parser_1 = require("./parser");
 const lexer_1 = require("./lexer");
-Object.defineProperty(exports, "Token", { enumerable: true, get: function () { return lexer_1.Token; } });
+// Null-safe object and array utilities
 const keys = (x) => null == x ? [] : Object.keys(x);
 exports.keys = keys;
 const entries = (x) => null == x ? [] : Object.entries(x);
@@ -18,6 +18,7 @@ const isarr = (x) => Array.isArray(x);
 exports.isarr = isarr;
 const defprop = Object.defineProperty;
 exports.defprop = defprop;
+// Map object properties using entries.
 const omap = (o, f) => {
     return Object
         .entries(o || {})
@@ -528,7 +529,7 @@ function parserwrap(parser) {
                             cI--;
                         col = Math.max(src.substring(cI, loc).length, 0);
                     }
-                    let token = ex.token || new lexer_1.Token('#UK', 
+                    let token = ex.token || lexer_1.makeToken('#UK', 
                     // tokenize('#UK', jsonic.config),
                     tokenize('#UK', jsonic.internal().config), undefined, tsrc, new lexer_1.Point(tsrc.length, loc, ex.lineNumber || row, ex.columnNumber || col));
                     throw new JsonicError(ex.code || 'json', ex.details || {

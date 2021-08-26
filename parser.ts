@@ -8,6 +8,9 @@
 import type {
   Relate,
   RuleState,
+  Tin,
+  Counters,
+  Token,
 } from './types'
 
 import {
@@ -22,7 +25,6 @@ import {
   Context,
   JsonicError,
   S,
-  Token,
   badlex,
   deep,
   entries,
@@ -32,19 +34,17 @@ import {
   makelog,
   srcfmt,
   tokenize,
-  // Relate,
-  Counters,
 } from './utility'
 
 
 import {
   Lex,
   Point,
+  makeToken,
 } from './lexer'
 
 
 import type {
-  Tin,
   Jsonic,
   Options,
 } from './jsonic'
@@ -292,7 +292,7 @@ class RuleSpec {
       (rule.bo && def.bo) :
       (rule.bc && def.bc)
     let bout = before && before.call(this, rule, ctx)
-    if (bout instanceof Token && null != bout.err) {
+    if (bout && bout.isToken && null != bout.err) {
       return this.bad(bout, rule, ctx, { is_open })
     }
 
@@ -337,7 +337,7 @@ class RuleSpec {
     if (alt.a) {
       why += 'A'
       let tout = alt.a.call(this, rule, ctx, alt)
-      if (tout instanceof Token && tout.err) {
+      if (tout && tout.isToken && tout.err) {
         return this.bad(tout, rule, ctx, { is_open })
       }
     }
@@ -373,7 +373,7 @@ class RuleSpec {
       (rule.ao && def.ao) :
       (rule.ac && def.ac)
     let aout = after && after.call(this, rule, ctx, alt, next)
-    if (aout instanceof Token && null != aout.err) {
+    if (aout && aout.isToken && null != aout.err) {
       return this.bad(aout, rule, ctx, { is_open })
     }
 
@@ -842,7 +842,7 @@ class Parser {
   ): any {
     let root: Rule
 
-    let endtkn = new Token(
+    let endtkn = makeToken(
       '#ZZ',
       tokenize('#ZZ', this.cfg),
       undefined,

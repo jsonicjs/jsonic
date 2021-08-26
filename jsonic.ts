@@ -37,12 +37,12 @@
 
 import type {
   Relate,
+  Tin,
+  Token,
+  StrMap,
 } from './types'
 
 import {
-  // OPEN,
-  // CLOSE,
-  EMPTY,
 } from './types'
 
 
@@ -51,7 +51,7 @@ import {
   Config,
   Context,
   JsonicError,
-  StrMap,
+
   S,
   assign,
   badlex,
@@ -77,11 +77,14 @@ import {
 import { defaults } from './defaults'
 
 
+import type {
+  MakeLexMatcher,
+} from './lexer'
+
 import {
   Point,
-  Token,
   Lex,
-  MakeLexMatcher,
+  makeToken,
 } from './lexer'
 
 
@@ -95,7 +98,6 @@ import {
   RuleDefiner,
   RuleSpec,
   RuleSpecMap,
-  NONE,
 } from './parser'
 
 
@@ -156,10 +158,6 @@ type JsonicAPI = {
 // Define a plugin to extend the provided Jsonic instance.
 type Plugin = ((jsonic: Jsonic, plugin_options?: any) => void | Jsonic) &
 { defaults?: Relate }
-
-
-// Unique token identification number (aka "tin").
-type Tin = number
 
 
 // Parsing options. See defaults for commentary.
@@ -441,92 +439,6 @@ function make(param_options?: Relate, parent?: Jsonic): Jsonic {
 }
 
 
-// TODO: move to utility
-/*
-function parserwrap(parser: any) {
-  return {
-    start: function(
-      src: string,
-      jsonic: Jsonic,
-      meta?: any,
-      parent_ctx?: any
-    ) {
-      try {
-        return parser.start(src, jsonic, meta, parent_ctx)
-      } catch (ex) {
-        if ('SyntaxError' === ex.name) {
-          let loc = 0
-          let row = 0
-          let col = 0
-          let tsrc = MT
-          let errloc = ex.message.match(/^Unexpected token (.) .*position\s+(\d+)/i)
-          if (errloc) {
-            tsrc = errloc[1]
-            loc = parseInt(errloc[2])
-            row = src.substring(0, loc).replace(/[^\n]/g, MT).length
-            let cI = loc - 1
-            while (-1 < cI && '\n' !== src.charAt(cI)) cI--;
-            col = Math.max(src.substring(cI, loc).length, 0)
-          }
-
-          let token = ex.token || new Token(
-            '#UK',
-            // tokenize('#UK', jsonic.config),
-            tokenize('#UK', jsonic.internal().config),
-            undefined,
-            tsrc,
-            new Point(tsrc.length, loc, ex.lineNumber || row, ex.columnNumber || col)
-          )
-
-          throw new JsonicError(
-            ex.code || 'json',
-            ex.details || {
-              msg: ex.message
-            },
-            token,
-            ({} as Rule),
-            ex.ctx || {
-              uI: -1,
-              opts: jsonic.options,
-              //cfg: ({ t: {} } as Config),
-              cfg: jsonic.internal().config,
-              token: token,
-              meta,
-              src: () => src,
-              root: () => undefined,
-              plgn: () => jsonic.internal().plugins,
-              rule: NONE,
-              xs: -1,
-              v2: token,
-              v1: token,
-              t0: token,
-              t1: token, // TODO: should be end token
-              tC: -1,
-              rs: [],
-              next: () => token, // TODO: should be end token
-              rsm: {},
-              n: {},
-              log: meta ? meta.log : undefined,
-              F: srcfmt(jsonic.internal().config),
-              use: {},
-            } as Context,
-          )
-        }
-        else {
-          throw ex
-        }
-      }
-    }
-  }
-}
-*/
-
-
-
-
-
-
-
 let Jsonic: Jsonic = make()
 
 // Keep global top level safe
@@ -558,14 +470,7 @@ export type {
   Context,
   Options,
   AltAction,
-
-  // Meta,
-  /*
-  Alt,
-  AltCond,
-  AltHandler,
-
-  */
+  Token,
 }
 
 export {
@@ -575,10 +480,10 @@ export {
   Parser,
   Rule,
   RuleSpec,
-  Token,
   Point,
   util,
   make,
+  makeToken,
 }
 
 

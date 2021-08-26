@@ -6,6 +6,9 @@
 
 import type {
   Relate,
+  TokenMap,
+  Chars,
+  Token,
 } from './types'
 
 
@@ -36,20 +39,21 @@ import type {
 } from './lexer'
 
 import {
-  Token,
   LexMatcher,
   Point,
+  makeToken,
 } from './lexer'
 
 
 
-
+// Null-safe object and array utilities
 const keys = (x: any) => null == x ? [] : Object.keys(x)
 const entries = (x: any) => null == x ? [] : Object.entries(x)
 const assign = (x: any, ...r: any[]) => Object.assign(null == x ? {} : x, ...r)
 const isarr = (x: any) => Array.isArray(x)
 const defprop = Object.defineProperty
 
+// Map object properties using entries.
 const omap = (o: any, f: any) => {
   return Object
     .entries(o || {})
@@ -132,25 +136,6 @@ class JsonicError extends SyntaxError {
     }
   }
 }
-
-
-// General relation map.
-// type Relate = { [key: string]: any }
-
-
-// A set of named counters.
-type Counters = { [key: string]: number }
-
-
-// Map token string to Token index.
-type TokenMap = { [token: string]: Tin }
-
-
-// Map character to code value.
-type Chars = { [char: string]: number }
-
-// Map string to string value.
-type StrMap = { [name: string]: string }
 
 
 // Internal clean configuration built from options by `configure` and LexMatchers.
@@ -872,7 +857,7 @@ function parserwrap(parser: any) {
             col = Math.max(src.substring(cI, loc).length, 0)
           }
 
-          let token = ex.token || new Token(
+          let token = ex.token || makeToken(
             '#UK',
             // tokenize('#UK', jsonic.config),
             tokenize('#UK', jsonic.internal().config),
@@ -926,13 +911,8 @@ function parserwrap(parser: any) {
 
 
 export type {
-  Chars,
   Config,
   Context,
-  // Relate,
-  // RuleState,
-  StrMap,
-  Counters,
 }
 
 export {
@@ -940,7 +920,6 @@ export {
   JsonicError,
   OPEN,
   S,
-  Token,
   assign,
   badlex,
   charset,

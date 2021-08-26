@@ -1,9 +1,8 @@
 "use strict";
 /* Copyright (c) 2013-2021 Richard Rodger, MIT License */
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.makeTextMatcher = exports.makeNumberMatcher = exports.makeCommentMatcher = exports.makeStringMatcher = exports.makeLineMatcher = exports.makeSpaceMatcher = exports.makeFixedMatcher = exports.Lex = exports.Token = exports.Point = void 0;
+exports.makeTextMatcher = exports.makeNumberMatcher = exports.makeCommentMatcher = exports.makeStringMatcher = exports.makeLineMatcher = exports.makeSpaceMatcher = exports.makeFixedMatcher = exports.makeToken = exports.Lex = exports.Point = void 0;
 const types_1 = require("./types");
-const inspect = Symbol.for('nodejs.util.inspect.custom');
 const utility_1 = require("./utility");
 class Point {
     constructor(len, sI, rI, cI) {
@@ -28,14 +27,15 @@ class Point {
         return 'Point[' + [this.sI, this.rI, this.cI] +
             (0 < this.token.length ? (' ' + this.token) : '') + ']';
     }
-    [inspect]() {
+    [types_1.INSPECT]() {
         return this.toString();
     }
 }
 exports.Point = Point;
 // Tokens from the lexer.
-class Token {
+class TokenImpl {
     constructor(name, tin, val, src, pnt, use, why) {
+        this.isToken = true; // Type guard.
         this.name = name;
         this.tin = tin;
         this.src = src;
@@ -67,11 +67,12 @@ class Token {
             (null == this.why ? '' : ' ' + utility_1.snip('' + this.why, 22)) +
             ']';
     }
-    [inspect]() {
+    [types_1.INSPECT]() {
         return this.toString();
     }
 }
-exports.Token = Token;
+const makeToken = (...params) => new TokenImpl(...params);
+exports.makeToken = makeToken;
 let makeFixedMatcher = (cfg, _opts) => {
     let fixed = utility_1.regexp(null, '^(', cfg.rePart.fixed, ')');
     return function fixedMatcher(lex) {
@@ -485,7 +486,7 @@ class Lex {
             tin = ref;
             name = utility_1.tokenize(ref, this.cfg);
         }
-        let tkn = new Token(name, tin, val, src, pnt || this.pnt, use, why);
+        let tkn = makeToken(name, tin, val, src, pnt || this.pnt, use, why);
         return tkn;
     }
     next(rule) {
