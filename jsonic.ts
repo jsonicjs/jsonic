@@ -14,24 +14,17 @@
 // TODO: [,,,] syntax should match JS!
 // TODO: rename tokens to be user friendly
 // TODO: if token recognized, error needs to be about token, not characters
-// TODO: row numbers need to start at 1 as editors start line numbers at 1, cols too - fix error msg
 // TODO: test custom alt error: eg.  { e: (r: Rule) => r.close[0] } ??? bug: r.close empty!
 // TODO: multipe merges, also with dynamic
 // TODO: FIX: jsonic script direct invocation in package.json not working
-// TODO: norm alt should be called as needed to handle new dynamic alts
 // TODO: quotes are value enders - x:a"a" is an err! not 'a"a"'
 // TODO: tag should appear in error
 // TODO: remove console colors in browser?
 // post release: 
-// TODO: test use of constructed regexps - perf?
-// TODO: complete rule tagging groups g:imp etc.
 // TODO: plugin for path expr: a.b:1 -> {a:{b:1}}
 // TODO: data file to diff exhaust changes
 // TODO: cli - less ambiguous merging at top level
 // TODO: internal errors - e.g. adding a null rulespec
-// TODO: replace parse_alt loop with lookups
-// TODO: extend lexer to handle multi-char tokens (e.g `->`)
-// TODO: lex matcher should be able to explicitly disable rest of state logic
 // TODO: option to control comma null insertion
 // TODO: {,} should fail ({,,...} does).
 
