@@ -14,7 +14,7 @@ const lexer_1 = require("./lexer");
 // removed from the stack.
 class Rule {
     constructor(spec, ctx, node) {
-        this.id = ctx.uI++;
+        this.id = ctx.uI++; // Rule ids are unique only to the parse run.
         this.name = spec.name;
         this.spec = spec;
         this.node = node;
@@ -40,19 +40,20 @@ class Rule {
     }
 }
 exports.Rule = Rule;
+// Empty rule used as a no-value placeholder.
 const NONE = { name: utility_1.S.none, state: utility_1.OPEN };
 exports.NONE = NONE;
-// Parse match alternate (built from current tokens and AltSpec).
-class Alt {
+// Parse-alternate match (built from current tokens and AltSpec).
+class AltMatch {
     constructor() {
-        this.m = []; // Matched tokens (not tins!).
+        this.m = []; // Matched Tokens (not Tins!).
         this.p = utility_1.MT; // Push rule (by name).
         this.r = utility_1.MT; // Replace rule (by name).
         this.b = 0; // Move token position backward.
     }
 }
-const PALT = new Alt(); // Only one alt object is created.
-const EMPTY_ALT = new Alt();
+const PALT = new AltMatch(); // Only one alt object is created.
+const EMPTY_ALT = new AltMatch();
 class RuleSpec {
     constructor(def) {
         this.name = '-';
@@ -87,8 +88,7 @@ class RuleSpec {
                         }
                     }
                     if (null != depth) {
-                        // pass = pass && (ctx.rs.length === depth)
-                        pass = pass && (rule.d === depth);
+                        pass = pass && (rule.d <= depth);
                     }
                     return pass;
                 };
@@ -124,30 +124,14 @@ class RuleSpec {
         let before = is_open ?
             (rule.bo && def.bo) :
             (rule.bc && def.bc);
-        let bout;
-        if (before) {
-            bout = before.call(this, rule, ctx);
-            if (bout) {
-                if (bout instanceof utility_1.Token && bout.err) {
-                    return this.bad(bout, rule, ctx, { is_open });
-                }
-                // TODO: remove
-                else if (bout.err) {
-                    ctx.t0.err = bout.err;
-                    utility_1.deep((ctx.t0.use = ctx.t0.use || {}), bout);
-                    ctx.t0.why = why;
-                    return this.bad(ctx.t0, rule, ctx, { is_open });
-                    // throw new JsonicError(bout.err, {
-                    //   ...bout, state: is_open ? S.open : S.close
-                    // }, ctx.t0, rule, ctx)
-                }
-                rule.node = bout.node || rule.node;
-            }
+        let bout = before && before.call(this, rule, ctx);
+        if (bout && null != bout.err) {
+            return this.bad(bout, rule, ctx, { is_open });
         }
         // Attempt to match one of the alts.
-        let alt = (bout && bout.alt) ? { ...EMPTY_ALT, ...bout.alt } :
-            0 < alts.length ? this.parse_alts(is_open, alts, rule, ctx) :
-                EMPTY_ALT;
+        // let alt: AltMatch = (bout && bout.alt) ? { ...EMPTY_ALT, ...bout.alt } :
+        let alt = 0 < alts.length ? this.parse_alts(is_open, alts, rule, ctx) :
+            EMPTY_ALT;
         // Custom alt handler.
         if (alt.h) {
             alt = alt.h(rule, ctx, alt, next) || alt;
@@ -158,13 +142,6 @@ class RuleSpec {
         // Unconditional error.
         if (alt.e) {
             return this.bad(alt.e, rule, ctx, { is_open });
-            // return NONE
-            /*
-            throw new JsonicError(
-              alt.e.err || S.unexpected,
-              { ...alt.e.use, state: is_open ? S.open : S.close },
-              alt.e, rule, ctx)
-              */
         }
         // Update counters.
         if (alt.n) {
@@ -230,12 +207,6 @@ class RuleSpec {
                     utility_1.deep((ctx.t0.use = ctx.t0.use || {}), aout);
                     ctx.t0.why = why;
                     return this.bad(ctx.t0, rule, ctx, { is_open });
-                    // return NONE
-                    /*
-                    throw new JsonicError(aout.err, {
-                      ...aout, state: is_open ? S.open : S.close
-                    }, ctx.t0, rule, ctx)
-                    */
                 }
                 next = aout.next || next;
             }
@@ -315,7 +286,7 @@ class RuleSpec {
             out.p = null != alt.p ? alt.p : out.p;
             out.r = null != alt.r ? alt.r : out.r;
             out.n = null != alt.n ? alt.n : out.n;
-            out.h = null != alt.h ? alt.h : out.h;
+            out.h = null != alt.m ? alt.m : out.h;
             out.a = null != alt.a ? alt.a : out.a;
             out.u = null != alt.u ? alt.u : out.u;
         }
@@ -427,7 +398,8 @@ class Parser {
                     // Implicit lists only at top level.
                     rule.n.il = 1 + (rule.n.il ? rule.n.il : 0);
                     // Create a new empty map.
-                    return { node: {} };
+                    // return { node: {} }
+                    rule.node = {};
                 },
                 open: [
                     // An empty map: {}.
@@ -446,7 +418,8 @@ class Parser {
                     rule.n.il = 1 + (rule.n.il ? rule.n.il : 0);
                     rule.n.pk = 1 + (rule.n.pk ? rule.n.pk : 0);
                     // Create a new empty list.
-                    return { node: [] };
+                    // return { node: [] }
+                    rule.node = [];
                 },
                 open: [
                     // An empty list: [].

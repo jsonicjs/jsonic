@@ -100,7 +100,7 @@ const S = {
 class JsonicError extends SyntaxError {
   constructor(
     code: string,
-    details: KV,
+    details: Relate,
     token: Token,
     rule: Rule,
     ctx: Context,
@@ -124,8 +124,12 @@ class JsonicError extends SyntaxError {
 }
 
 
-// General Key-Value map.
-type KV = { [k: string]: any }
+// General relation map.
+type Relate = { [key: string]: any }
+
+
+// A set of named counters.
+type Counters = { [key: string]: number }
 
 
 // Map token string to Token index.
@@ -203,7 +207,7 @@ type Config = {
   string: {
     lex: boolean
     quoteMap: Chars,
-    escMap: KV,
+    escMap: Relate,
     escChar?: string,
     escCharCode?: number,
     multiChars: Chars,
@@ -255,7 +259,7 @@ type Context = {
   uI: number           // Rule index.
   opts: Options        // Jsonic instance options.
   cfg: Config          // Jsonic instance config.
-  meta: KV             // Parse meta parameters.
+  meta: Relate             // Parse meta parameters.
   src: () => string,   // source text to parse.
   root: () => any,     // Root node.
   plgn: () => Plugin[] // Jsonic instance plugins.
@@ -271,7 +275,7 @@ type Context = {
   next: () => Token    // Move to next token.
   log?: (...rest: any) => undefined // Log parse/lex step (if defined).
   F: (s: any) => string // Format arbitrary data as length-limited string.
-  use: KV               // Custom meta data (for use by plugins)
+  use: Relate               // Custom meta data (for use by plugins)
 }
 
 
@@ -561,7 +565,7 @@ function deep(base?: any, ...rest: any): any {
 function errinject(
   s: string,
   code: string,
-  details: KV,
+  details: Relate,
   token: Token,
   rule: Rule,
   ctx: Context
@@ -573,11 +577,11 @@ function errinject(
       null != ref[name] ? ref[name] : (
         null != details[name] ? details[name] : (
           (ctx.meta && null != ctx.meta[name]) ? ctx.meta[name] : (
-            null != (token as KV)[name] ? (token as KV)[name] : (
-              null != (rule as KV)[name] ? (rule as KV)[name] : (
+            null != (token as Relate)[name] ? (token as Relate)[name] : (
+              null != (rule as Relate)[name] ? (rule as Relate)[name] : (
                 null != (ctx.opts as any)[name] ? (ctx.opts as any)[name] : (
                   null != (ctx.cfg as any)[name] ? (ctx.cfg as any)[name] :
-                    null != (ctx as KV)[name] ? (ctx as KV)[name] :
+                    null != (ctx as Relate)[name] ? (ctx as Relate)[name] :
                       '$' + name
                 )))))))
     return instr
@@ -632,11 +636,11 @@ function extract(src: string, errtxt: string, token: Token) {
 
 function errdesc(
   code: string,
-  details: KV,
+  details: Relate,
   token: Token,
   rule: Rule,
   ctx: Context,
-): KV {
+): Relate {
   try {
 
     let cfg = ctx.cfg
@@ -836,9 +840,10 @@ export type {
   Chars,
   Config,
   Context,
-  KV,
+  Relate,
   RuleState,
   StrMap,
+  Counters,
 }
 
 export {

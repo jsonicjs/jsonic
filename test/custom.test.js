@@ -86,7 +86,7 @@ describe('custom', function () {
         open: [
           {
             s:[AA,AA],
-            h: (rule,ctx,alt) => {
+            m: (rule,ctx,alt) => {
               // No effect: rule.bo - bo already called at this point.
               // rule.bo = false
               rule.ao = false
@@ -109,7 +109,7 @@ describe('custom', function () {
 
     //expect(j('a b c d e f')).equal(1111)
     expect(j('a')).equal(1111)
-    expect(b).equal('bo;') // h: is too late to avoid bo
+    expect(b).equal('bo;') // m: is too late to avoid bo
   })
 
 
@@ -121,7 +121,7 @@ describe('custom', function () {
     j.rule('top', () => {
       let rs = new RuleSpec({
         open: [{s:[AA,AA]}],
-        close:[{s:[AA,AA], h:(rule,ctx,alt)=>(rule.node=2222, undefined)}],
+        close:[{s:[AA,AA], m:(rule,ctx,alt)=>(rule.node=2222, undefined)}],
         bo: ()=>(b+='bo;'),
         ao: ()=>(b+='ao;'),
         bc: ()=>(b+='bc;'),
@@ -158,11 +158,14 @@ describe('custom', function () {
     j.rule('top', () => {
       let rs = new RuleSpec({
         ...rsdef,
-        bo: ()=>({err:'unexpected', src:'BO'}),
+        // bo: ()=>({err:'unexpected', src:'BO'}),
+        bo: (rule,ctx)=>ctx.t0.bad('foo',{bar:'BO'})
       })
       return rs
     })
-    expect(()=>j('a')).throws('JsonicError', /unexpected.*BO/)
+    // expect(()=>j('a')).throws('JsonicError', /unexpected.*BO/)
+    expect(()=>j('a')).throws('JsonicError', /foo.*BO/s)
+
     
     j.rule('top', () => {
       let rs = new RuleSpec({
@@ -173,15 +176,19 @@ describe('custom', function () {
     })
     expect(()=>j('a')).throws('JsonicError', /unexpected.*AO/)
 
+    
     j.rule('top', () => {
       let rs = new RuleSpec({
         ...rsdef,
-        bc: ()=>({err:'unexpected', src:'BC'}),
+        // bc: ()=>({err:'unexpected', src:'BC'}),
+        bc: (rule,ctx)=>ctx.t0.bad('foo',{bar:'BC'})
       })
       return rs
     })
-    expect(()=>j('a')).throws('JsonicError', /unexpected.*BC/)
+    // expect(()=>j('a')).throws('JsonicError', /unexpected.*BC/)
+    expect(()=>j('a')).throws('JsonicError', /foo.*BC/s)
 
+    
     j.rule('top', () => {
       let rs = new RuleSpec({
         ...rsdef,
@@ -208,7 +215,7 @@ describe('custom', function () {
     j.rule('top', () => {
       let rs = new RuleSpec({
         ...rsdef,
-        bo: ()=>({node:'BO'}),
+        bo: (rule)=>rule.node='BO',
       })
       return rs
     })
@@ -217,7 +224,7 @@ describe('custom', function () {
     j.rule('top', () => {
       let rs = new RuleSpec({
         ...rsdef,
-        bc: ()=>({node:'BC'}),
+        bc: (rule)=>rule.node='BC',
       })
       return rs
     })
@@ -226,6 +233,7 @@ describe('custom', function () {
   })
 
 
+  /*
   it('parser-before-alt', () => {
     let b = ''
     let j = make_empty({rule:{start:'top'}})
@@ -255,7 +263,8 @@ describe('custom', function () {
     expect(j('a')).equals('YY')
 
   })
-
+  */
+  
 
   it('parser-after-next', () => {
     let b = ''
@@ -498,7 +507,7 @@ describe('custom', function () {
 
     j.rule('bar',(rs)=>{
       return new RuleSpec({
-        open:[{s:[BT],c:{d:99}}],
+        open:[{s:[BT],c:{d:0}}],
         ao:(r)=>r.node.o+='B'
       })
     })

@@ -48,7 +48,7 @@ declare const S: {
     make: string;
 };
 declare class JsonicError extends SyntaxError {
-    constructor(code: string, details: KV, token: Token, rule: Rule, ctx: Context);
+    constructor(code: string, details: Relate, token: Token, rule: Rule, ctx: Context);
     toJSON(): this & {
         __error: boolean;
         name: string;
@@ -56,8 +56,11 @@ declare class JsonicError extends SyntaxError {
         stack: string | undefined;
     };
 }
-declare type KV = {
-    [k: string]: any;
+declare type Relate = {
+    [key: string]: any;
+};
+declare type Counters = {
+    [key: string]: number;
 };
 declare type TokenMap = {
     [token: string]: Tin;
@@ -113,7 +116,7 @@ declare type Config = {
     string: {
         lex: boolean;
         quoteMap: Chars;
-        escMap: KV;
+        escMap: Relate;
         escChar?: string;
         escCharCode?: number;
         multiChars: Chars;
@@ -160,7 +163,7 @@ declare type Context = {
     uI: number;
     opts: Options;
     cfg: Config;
-    meta: KV;
+    meta: Relate;
     src: () => string;
     root: () => any;
     plgn: () => Plugin[];
@@ -178,7 +181,7 @@ declare type Context = {
     next: () => Token;
     log?: (...rest: any) => undefined;
     F: (s: any) => string;
-    use: KV;
+    use: Relate;
 };
 declare function configure(jsonic: any, incfg: Config | undefined, opts: Options): Config;
 declare function tokenize<R extends string | Tin, T extends (R extends Tin ? string : Tin)>(ref: R, cfg: Config, jsonic?: any): T;
@@ -188,10 +191,10 @@ declare function regexp(flags: string | null, ...parts: (string | (String & {
 }))[]): RegExp;
 declare function escre(s: string | undefined): string;
 declare function deep(base?: any, ...rest: any): any;
-declare function errinject(s: string, code: string, details: KV, token: Token, rule: Rule, ctx: Context): string;
+declare function errinject(s: string, code: string, details: Relate, token: Token, rule: Rule, ctx: Context): string;
 declare function trimstk(err: Error): void;
 declare function extract(src: string, errtxt: string, token: Token): string;
-declare function errdesc(code: string, details: KV, token: Token, rule: Rule, ctx: Context): KV;
+declare function errdesc(code: string, details: Relate, token: Token, rule: Rule, ctx: Context): Relate;
 declare function badlex(lex: Lex, BD: Tin, ctx: Context): any;
 declare function makelog(ctx: Context, meta: any): ((...rest: any) => undefined) | undefined;
 declare function srcfmt(config: Config): (s: any, _?: any) => string;
@@ -200,5 +203,5 @@ declare function clone(class_instance: any): any;
 declare function charset(...parts: (string | object | boolean | undefined)[]): Chars;
 declare function clean<T>(o: T): T;
 declare function filterRules(rs: RuleSpec, cfg: Config): RuleSpec;
-export type { Chars, Config, Context, KV, RuleState, StrMap, };
+export type { Chars, Config, Context, Relate, RuleState, StrMap, Counters, };
 export { CLOSE, JsonicError, MT, OPEN, S, Token, assign, badlex, charset, clean, clone, configure, deep, defprop, entries, errdesc, errinject, escre, extract, filterRules, isarr, keys, makelog, mesc, omap, regexp, snip, srcfmt, tokenize, trimstk, };

@@ -1,4 +1,4 @@
-import { Config, Context, JsonicError, KV, StrMap, badlex, deep, errdesc, errinject, extract, makelog, mesc, regexp, tokenize, trimstk, srcfmt, clone, charset, configure, escre } from './utility';
+import { Config, Context, JsonicError, Relate, StrMap, badlex, deep, errdesc, errinject, extract, makelog, mesc, regexp, tokenize, trimstk, srcfmt, clone, charset, configure, escre } from './utility';
 import { Point, Token, Lex, MakeLexMatcher } from './lexer';
 import type { AltAction } from './parser';
 import { Parser, Rule, RuleDefiner, RuleSpec, RuleSpecMap } from './parser';
@@ -10,9 +10,9 @@ JsonicAPI & // A utility with API methods.
 declare type JsonicParse = (src: any, meta?: any, parent_ctx?: any) => any;
 declare type JsonicAPI = {
     parse: JsonicParse;
-    options: Options & ((change_options?: KV) => KV);
+    options: Options & ((change_options?: Relate) => Relate);
     make: (options?: Options) => Jsonic;
-    use: (plugin: Plugin, plugin_options?: KV) => Jsonic;
+    use: (plugin: Plugin, plugin_options?: Relate) => Jsonic;
     rule: (name?: string, define?: RuleDefiner) => RuleSpec | RuleSpecMap;
     lex: (matchmaker: MakeLexMatcher) => void;
     token: {
@@ -27,10 +27,10 @@ declare type JsonicAPI = {
     } & (<A extends string | Tin>(ref: A) => A extends string ? Tin : string);
     id: string;
     toString: () => string;
-    util: KV;
+    util: Relate;
 };
 declare type Plugin = ((jsonic: Jsonic, plugin_options?: any) => void | Jsonic) & {
-    defaults?: KV;
+    defaults?: Relate;
 };
 declare type Tin = number;
 declare type Options = {
@@ -92,7 +92,7 @@ declare type Options = {
             };
         };
     };
-    plugin?: KV;
+    plugin?: Relate;
     debug?: {
         get_console?: () => any;
         maxlen?: number;
@@ -144,7 +144,7 @@ declare let util: {
     escre: typeof escre;
     regexp: typeof regexp;
 };
-declare function make(param_options?: KV, parent?: Jsonic): Jsonic;
+declare function make(param_options?: Relate, parent?: Jsonic): Jsonic;
 declare function parserwrap(parser: any): {
     start: (src: string, jsonic: Jsonic, meta?: any, parent_ctx?: any) => any;
 };

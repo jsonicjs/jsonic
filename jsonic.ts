@@ -9,7 +9,6 @@
 // TODO: docs: ref https://wiki.alopex.li/OnParsers
 // TODO: docs: nice tree diagram of rules (generate?)
 // TODO: rule.use should be rule.u for consistency
-// TODO: replace KV with Record<string,any>
 // TODO: Jsonic.make('json') - preset plain JSON options - see variant test just-json
 // TODO: consistent use of clean on options to allow null to mean 'remove property'
 // TODO: [,,,] syntax should match JS!
@@ -50,7 +49,7 @@ import {
   Config,
   Context,
   JsonicError,
-  KV,
+  Relate,
   MT,
   // Meta,
   StrMap,
@@ -108,24 +107,23 @@ type Jsonic =
 
 
 // The main top-level utility function. 
-// NOTE: Exported as `Jsonic`; this type is internal and *not* exported.
 type JsonicParse = (src: any, meta?: any, parent_ctx?: any) => any
 
 
 // The core API is exposed as methods on the main utility function.
 type JsonicAPI = {
 
-  // Explicit parse method.
+  // Explicit parse method. 
   parse: JsonicParse
 
   // Get and set partial option trees.
-  options: Options & ((change_options?: KV) => KV)
+  options: Options & ((change_options?: Relate) => Relate)
 
   // Create a new Jsonic instance to customize.
   make: (options?: Options) => Jsonic
 
   // Use a plugin
-  use: (plugin: Plugin, plugin_options?: KV) => Jsonic
+  use: (plugin: Plugin, plugin_options?: Relate) => Jsonic
 
   // Get and set parser rules.
   rule: (name?: string, define?: RuleDefiner) => RuleSpec | RuleSpecMap
@@ -151,13 +149,13 @@ type JsonicAPI = {
   // Provide identifier for string conversion.
   toString: () => string
 
-  util: KV
+  util: Relate
 }
 
 
 // Define a plugin to extend the provided Jsonic instance.
 type Plugin = ((jsonic: Jsonic, plugin_options?: any) => void | Jsonic) &
-{ defaults?: KV }
+{ defaults?: Relate }
 
 
 // Unique token identification number (aka "tin").
@@ -218,7 +216,7 @@ type Options = {
     lex?: boolean
     map?: { [src: string]: { val: any } }
   }
-  plugin?: KV
+  plugin?: Relate
   debug?: {
     get_console?: () => any
     maxlen?: number
@@ -278,7 +276,7 @@ let util = {
 }
 
 
-function make(param_options?: KV, parent?: Jsonic): Jsonic {
+function make(param_options?: Relate, parent?: Jsonic): Jsonic {
 
   let internal: {
     parser: Parser,
@@ -316,7 +314,7 @@ function make(param_options?: KV, parent?: Jsonic): Jsonic {
 
   // This lets you access options as direct properties,
   // and set them as a funtion call.
-  let options: any = (change_options?: KV) => {
+  let options: any = (change_options?: Relate) => {
     if (null != change_options && S.object === typeof (change_options)) {
       deep(merged_options, change_options)
       configure(jsonic, internal.config, merged_options)
@@ -346,7 +344,7 @@ function make(param_options?: KV, parent?: Jsonic): Jsonic {
     parse: jsonic,
 
     // TODO: how to handle null plugin?
-    use: function use(plugin: Plugin, plugin_options?: KV): Jsonic {
+    use: function use(plugin: Plugin, plugin_options?: Relate): Jsonic {
       const full_plugin_options =
         deep({}, plugin.defaults || {}, plugin_options || {})
       jsonic.options({

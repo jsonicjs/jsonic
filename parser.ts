@@ -23,6 +23,8 @@ import {
   makelog,
   srcfmt,
   tokenize,
+  Relate,
+  Counters,
 } from './utility'
 
 
@@ -57,7 +59,7 @@ class Rule {
   close: Token[]     // The tokens than matched in the close state.
   n: Record<string, number> // Named counter values.
   d: number          // The current stack depth.   
-  use: Record<string, any> // Custom key-value store. 
+  use: Relate        // Custom key-value store. 
   bo: boolean        // Flag: call bo (before-open).
   ao: boolean        // Flag: call ao (after-open).
   bc: boolean        // Flag: call bc (before-close).
@@ -65,7 +67,7 @@ class Rule {
   why?: string       // Internal tracing.
 
   constructor(spec: RuleSpec, ctx: Context, node?: any) {
-    this.id = ctx.uI++
+    this.id = ctx.uI++     // Rule ids are unique only to the parse run.
     this.name = spec.name
     this.spec = spec
     this.node = node
@@ -93,60 +95,83 @@ class Rule {
 }
 
 
-
+// Empty rule used as a no-value placeholder.
 const NONE = ({ name: S.none, state: OPEN } as Rule)
 
 
-// Parse alternate specification provided by rule.
+// Specification for a parse-alternate within a Rule state.
+// Represent a possible token match (2-token lookahead)
 interface AltSpec {
-  s?: any[]      // Token tin sequence to match (0,1,2 tins, or a subset of tins).
-  p?: string
-  r?: string
-  b?: number
-  c?: AltCond | Record<string, any>
-  d?: number     // Rule stack depth to match.
-  n?: any
-  a?: AltAction
-  h?: AltHandler
-  u?: any
-  g?: string[]
-  e?: AltError
+
+  // Token Tin sequence to match (0,1,2 Tins, or a subset of Tins).
+  s?: (Tin | Tin[])[]
+
+  p?: string      // Push named Rule onto stack (create child).
+  r?: string      // Replace current rule with named Rule on stack (create sibling).
+  b?: number      // Move token pointer back by indicated number of steps.
+
+  // Condition function, return true to match alternate.
+  // NOTE: Token sequence (s) must also match.
+  c?: AltCond |
+  {               // Condition convenience definitions (all must pass).
+    d?: number    // - Match if rule stack depth <= d.
+    n: Counters   // - Match if rule counters <= respective given values.
+  }
+
+  n?: Counters    // Increment counters by specified amounts.
+  a?: AltAction   // Perform an action if this alternate matches.
+  m?: AltModifier // Modify current Alt to customize parser.
+  u?: Relate      // Key-value custom data.
+
+  g?: string |    // Named group tags for the alternate (allows filtering).
+  string[]        // - comma separated or string array
+
+  e?: AltError    // Generate an error token (alternate is not allowed).
 }
 
+
+// Normalized parse-alternate.
 interface NormAltSpec extends AltSpec {
-  c?: AltCond
+  c?: AltCond  // Convenience definition reduce to function for processing.
+  g?: string[] // Named group tags
 }
 
 
-// NOTE: errors are specified using tokens to capture row and col.
-type AltError = (rule: Rule, ctx: Context, alt: Alt) => Token | undefined
+// Conditionally pass an alternate.
+type AltCond = (rule: Rule, ctx: Context, alt: AltMatch) => boolean
 
-// Parse match alternate (built from current tokens and AltSpec).
-class Alt {
-  m: Token[] = []   // Matched tokens (not tins!).
+
+// Arbitrarily modify an alternate to customize parser.
+type AltModifier = (rule: Rule, ctx: Context, alt: AltMatch, next: Rule) => AltMatch
+
+
+// Execute some action when alternate matches.
+type AltAction = (rule: Rule, ctx: Context, alt: AltMatch) => void | Token
+
+
+// Generate an error token (with an appropriate code).
+// NOTE: errors are specified using tokens in order to capture file row and col.
+type AltError = (rule: Rule, ctx: Context, alt: AltMatch) => Token | undefined
+
+
+// Parse-alternate match (built from current tokens and AltSpec).
+class AltMatch {
+  m: Token[] = []   // Matched Tokens (not Tins!).
   p: string = MT    // Push rule (by name).
   r: string = MT    // Replace rule (by name).
   b: number = 0     // Move token position backward.
   c?: AltCond       // Custom alt match condition.
   n?: any           // increment named counters.
   a?: AltAction     // Match actions.
-  h?: AltHandler    // Custom match handler.
+  h?: AltModifier   // Modify alternate match.
   u?: any           // Custom properties to add to Rule.use.
-  g?: string[]      // Named groups for this alt (allows plugins to find alts).
+  g?: string[]      // Named group tags (allows plugins to find alts).
   e?: Token         // Errored on this token.
 }
 
-type AltCond = (rule: Rule, ctx: Context, alt: Alt) => boolean
-type AltHandler = (rule: Rule, ctx: Context, alt: Alt, next: Rule) => Alt
 
-type AltAction = (rule: Rule, ctx: Context, alt: Alt) => void | Token
-
-
-const PALT = new Alt() // Only one alt object is created.
-const EMPTY_ALT = new Alt()
-
-
-
+const PALT = new AltMatch() // Only one alt object is created.
+const EMPTY_ALT = new AltMatch()
 
 
 type RuleDef = {
@@ -156,8 +181,8 @@ type RuleDef = {
   close?: any[]
   bo?: (rule: Rule, ctx: Context) => any
   bc?: (rule: Rule, ctx: Context) => any
-  ao?: (rule: Rule, ctx: Context, alt: Alt, next: Rule) => any
-  ac?: (rule: Rule, ctx: Context, alt: Alt, next: Rule) => any
+  ao?: (rule: Rule, ctx: Context, alt: AltMatch, next: Rule) => any
+  ac?: (rule: Rule, ctx: Context, alt: AltMatch, next: Rule) => any
 }
 
 
@@ -173,8 +198,8 @@ class RuleSpec {
     this.def = def || {}
 
     // Null Alt entries are allowed and ignored as a convenience.
-    this.def.open = (this.def.open || []).filter((alt: Alt) => null != alt)
-    this.def.close = (this.def.close || []).filter((alt: Alt) => null != alt)
+    this.def.open = (this.def.open || []).filter((alt: AltMatch) => null != alt)
+    this.def.close = (this.def.close || []).filter((alt: AltMatch) => null != alt)
 
     for (let alt of [...this.def.open, ...this.def.close]) {
       RuleSpec.norm(alt)
@@ -207,8 +232,7 @@ class RuleSpec {
           }
 
           if (null != depth) {
-            // pass = pass && (ctx.rs.length === depth)
-            pass = pass && (rule.d === depth)
+            pass = pass && (rule.d <= depth)
           }
 
           return pass
@@ -258,34 +282,15 @@ class RuleSpec {
     let before = is_open ?
       (rule.bo && def.bo) :
       (rule.bc && def.bc)
-
-    let bout
-    if (before) {
-      bout = before.call(this, rule, ctx)
-      if (bout) {
-        if (bout instanceof Token && bout.err) {
-          return this.bad(bout, rule, ctx, { is_open })
-        }
-
-        // TODO: remove
-        else if (bout.err) {
-          ctx.t0.err = bout.err
-          deep((ctx.t0.use = ctx.t0.use || {}), bout)
-          ctx.t0.why = why
-          return this.bad(ctx.t0, rule, ctx, { is_open })
-
-          // throw new JsonicError(bout.err, {
-          //   ...bout, state: is_open ? S.open : S.close
-          // }, ctx.t0, rule, ctx)
-        }
-        rule.node = bout.node || rule.node
-      }
+    let bout = before && before.call(this, rule, ctx)
+    if (bout && null != bout.err) {
+      return this.bad(bout, rule, ctx, { is_open })
     }
 
     // Attempt to match one of the alts.
-    let alt: Alt = (bout && bout.alt) ? { ...EMPTY_ALT, ...bout.alt } :
-      0 < alts.length ? this.parse_alts(is_open, alts, rule, ctx) :
-        EMPTY_ALT
+    // let alt: AltMatch = (bout && bout.alt) ? { ...EMPTY_ALT, ...bout.alt } :
+    let alt: AltMatch = 0 < alts.length ? this.parse_alts(is_open, alts, rule, ctx) :
+      EMPTY_ALT
 
     // Custom alt handler.
     if (alt.h) {
@@ -299,13 +304,6 @@ class RuleSpec {
     // Unconditional error.
     if (alt.e) {
       return this.bad(alt.e, rule, ctx, { is_open })
-      // return NONE
-      /*
-      throw new JsonicError(
-        alt.e.err || S.unexpected,
-        { ...alt.e.use, state: is_open ? S.open : S.close },
-        alt.e, rule, ctx)
-        */
     }
 
     // Update counters.
@@ -380,13 +378,6 @@ class RuleSpec {
           deep((ctx.t0.use = ctx.t0.use || {}), aout)
           ctx.t0.why = why
           return this.bad(ctx.t0, rule, ctx, { is_open })
-          // return NONE
-
-          /*
-          throw new JsonicError(aout.err, {
-            ...aout, state: is_open ? S.open : S.close
-          }, ctx.t0, rule, ctx)
-          */
         }
         next = aout.next || next
       }
@@ -423,7 +414,7 @@ class RuleSpec {
 
   // First match wins.
   // NOTE: input AltSpecs are used to build the Alt output.
-  parse_alts(is_open: boolean, alts: NormAltSpec[], rule: Rule, ctx: Context): Alt {
+  parse_alts(is_open: boolean, alts: NormAltSpec[], rule: Rule, ctx: Context): AltMatch {
     let out = PALT
     out.m = []          // Match 0, 1, or 2 tokens in order .
     out.b = 0           // Backtrack n tokens.
@@ -498,7 +489,7 @@ class RuleSpec {
       out.p = null != alt.p ? alt.p : out.p
       out.r = null != alt.r ? alt.r : out.r
       out.n = null != alt.n ? alt.n : out.n
-      out.h = null != alt.h ? alt.h : out.h
+      out.h = null != alt.m ? alt.m : out.h
       out.a = null != alt.a ? alt.a : out.a
       out.u = null != alt.u ? alt.u : out.u
     }
@@ -664,7 +655,8 @@ class Parser {
           rule.n.il = 1 + (rule.n.il ? rule.n.il : 0)
 
           // Create a new empty map.
-          return { node: {} }
+          // return { node: {} }
+          rule.node = {}
         },
         open: [
           // An empty map: {}.
@@ -687,7 +679,8 @@ class Parser {
           rule.n.pk = 1 + (rule.n.pk ? rule.n.pk : 0)
 
           // Create a new empty list.
-          return { node: [] }
+          // return { node: [] }
+          rule.node = []
         },
         open: [
           // An empty list: [].
@@ -999,21 +992,16 @@ export type {
   RuleDefiner,
   RuleSpecMap,
   RuleState,
+  AltSpec,
+  AltCond,
+  AltError,
   AltAction,
+  AltModifier,
 }
 
 export {
   Parser,
   Rule,
   RuleSpec,
-
-  /*
-  AltError,
-  Alt,
-  AltCond,
-  AltHandler,
-
-  */
-
   NONE,
 }
