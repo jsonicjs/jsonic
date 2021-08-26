@@ -1,15 +1,13 @@
 "use strict";
 /* Copyright (c) 2013-2021 Richard Rodger, MIT License */
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.trimstk = exports.tokenize = exports.srcfmt = exports.snip = exports.regexp = exports.omap = exports.mesc = exports.makelog = exports.keys = exports.isarr = exports.filterRules = exports.extract = exports.escre = exports.errinject = exports.errdesc = exports.entries = exports.defprop = exports.deep = exports.configure = exports.clone = exports.clean = exports.charset = exports.badlex = exports.assign = exports.Token = exports.S = exports.OPEN = exports.MT = exports.JsonicError = exports.CLOSE = void 0;
+exports.parserwrap = exports.trimstk = exports.tokenize = exports.srcfmt = exports.snip = exports.regexp = exports.omap = exports.mesc = exports.makelog = exports.keys = exports.isarr = exports.filterRules = exports.extract = exports.escre = exports.errinject = exports.errdesc = exports.entries = exports.defprop = exports.deep = exports.configure = exports.clone = exports.clean = exports.charset = exports.badlex = exports.assign = exports.Token = exports.S = exports.OPEN = exports.JsonicError = exports.CLOSE = void 0;
+const types_1 = require("./types");
+Object.defineProperty(exports, "OPEN", { enumerable: true, get: function () { return types_1.OPEN; } });
+Object.defineProperty(exports, "CLOSE", { enumerable: true, get: function () { return types_1.CLOSE; } });
+const parser_1 = require("./parser");
 const lexer_1 = require("./lexer");
 Object.defineProperty(exports, "Token", { enumerable: true, get: function () { return lexer_1.Token; } });
-const OPEN = 'o';
-exports.OPEN = OPEN;
-const CLOSE = 'c';
-exports.CLOSE = CLOSE;
-const MT = ''; // Empty ("MT"!) string.
-exports.MT = MT;
 const keys = (x) => null == x ? [] : Object.keys(x);
 exports.keys = keys;
 const entries = (x) => null == x ? [] : Object.entries(x);
@@ -48,7 +46,7 @@ const S = {
     pair: 'pair',
     val: 'val',
     node: 'node',
-    no_re_flags: MT,
+    no_re_flags: types_1.EMPTY,
     unprintable: 'unprintable',
     invalid_ascii: 'invalid_ascii',
     invalid_unicode: 'invalid_unicode',
@@ -255,7 +253,7 @@ function regexp(flags, ...parts) {
     return new RegExp(parts.map(p => p.esc ?
         //p.replace(/[-\\|\]{}()[^$+*?.!=]/g, '\\$&')
         escre(p.toString())
-        : p).join(MT), null == flags ? '' : flags);
+        : p).join(types_1.EMPTY), null == flags ? '' : flags);
 }
 exports.regexp = regexp;
 function escre(s) {
@@ -329,13 +327,13 @@ function extract(src, errtxt, token) {
     let loc = 0 < token.sI ? token.sI : 0;
     let row = 0 < token.rI ? token.rI : 1;
     let col = 0 < token.cI ? token.cI : 1;
-    let tsrc = null == token.src ? MT : token.src;
+    let tsrc = null == token.src ? types_1.EMPTY : token.src;
     let behind = src.substring(Math.max(0, loc - 333), loc).split('\n');
     let ahead = src.substring(loc, loc + 333).split('\n');
-    let pad = 2 + (MT + (row + 2)).length;
+    let pad = 2 + (types_1.EMPTY + (row + 2)).length;
     let rc = row < 3 ? 1 : row - 2;
-    let ln = (s) => '\x1b[34m' + (MT + (rc++)).padStart(pad, ' ') +
-        ' | \x1b[0m' + (null == s ? MT : s);
+    let ln = (s) => '\x1b[34m' + (types_1.EMPTY + (rc++)).padStart(pad, ' ') +
+        ' | \x1b[0m' + (null == s ? types_1.EMPTY : s);
     let blen = behind.length;
     let lines = [
         2 < blen ? ln(behind[blen - 3]) : null,
@@ -458,9 +456,9 @@ function makelog(ctx, meta) {
 }
 exports.makelog = makelog;
 function srcfmt(config) {
-    return (s, _) => null == s ? MT : (_ = JSON.stringify(s),
+    return (s, _) => null == s ? types_1.EMPTY : (_ = JSON.stringify(s),
         _.substring(0, config.debug.maxlen) +
-            (config.debug.maxlen < _.length ? '...' : MT));
+            (config.debug.maxlen < _.length ? '...' : types_1.EMPTY));
 }
 exports.srcfmt = srcfmt;
 function snip(s, len = 5) {
@@ -475,9 +473,9 @@ exports.clone = clone;
 function charset(...parts) {
     return null == parts ? {} : parts
         .filter(p => false !== p)
-        .map((p) => 'object' === typeof (p) ? keys(p).join(MT) : p)
-        .join(MT)
-        .split(MT)
+        .map((p) => 'object' === typeof (p) ? keys(p).join(types_1.EMPTY) : p)
+        .join(types_1.EMPTY)
+        .split(types_1.EMPTY)
         .reduce((a, c) => (a[c] = c.charCodeAt(0), a), {});
 }
 exports.charset = charset;
@@ -508,4 +506,65 @@ function filterRules(rs, cfg) {
     return rs;
 }
 exports.filterRules = filterRules;
+function parserwrap(parser) {
+    return {
+        start: function (src, jsonic, meta, parent_ctx) {
+            try {
+                return parser.start(src, jsonic, meta, parent_ctx);
+            }
+            catch (ex) {
+                if ('SyntaxError' === ex.name) {
+                    let loc = 0;
+                    let row = 0;
+                    let col = 0;
+                    let tsrc = types_1.EMPTY;
+                    let errloc = ex.message.match(/^Unexpected token (.) .*position\s+(\d+)/i);
+                    if (errloc) {
+                        tsrc = errloc[1];
+                        loc = parseInt(errloc[2]);
+                        row = src.substring(0, loc).replace(/[^\n]/g, types_1.EMPTY).length;
+                        let cI = loc - 1;
+                        while (-1 < cI && '\n' !== src.charAt(cI))
+                            cI--;
+                        col = Math.max(src.substring(cI, loc).length, 0);
+                    }
+                    let token = ex.token || new lexer_1.Token('#UK', 
+                    // tokenize('#UK', jsonic.config),
+                    tokenize('#UK', jsonic.internal().config), undefined, tsrc, new lexer_1.Point(tsrc.length, loc, ex.lineNumber || row, ex.columnNumber || col));
+                    throw new JsonicError(ex.code || 'json', ex.details || {
+                        msg: ex.message
+                    }, token, {}, ex.ctx || {
+                        uI: -1,
+                        opts: jsonic.options,
+                        //cfg: ({ t: {} } as Config),
+                        cfg: jsonic.internal().config,
+                        token: token,
+                        meta,
+                        src: () => src,
+                        root: () => undefined,
+                        plgn: () => jsonic.internal().plugins,
+                        rule: parser_1.NONE,
+                        xs: -1,
+                        v2: token,
+                        v1: token,
+                        t0: token,
+                        t1: token,
+                        tC: -1,
+                        rs: [],
+                        next: () => token,
+                        rsm: {},
+                        n: {},
+                        log: meta ? meta.log : undefined,
+                        F: srcfmt(jsonic.internal().config),
+                        use: {},
+                    });
+                }
+                else {
+                    throw ex;
+                }
+            }
+        }
+    };
+}
+exports.parserwrap = parserwrap;
 //# sourceMappingURL=utility.js.map

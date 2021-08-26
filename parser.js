@@ -2,9 +2,7 @@
 /* Copyright (c) 2013-2021 Richard Rodger, MIT License */
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.NONE = exports.RuleSpec = exports.Rule = exports.Parser = void 0;
-/*  parser.ts
- *  Parser implementation, converts the lexer tokens into parsed data.
- */
+const types_1 = require("./types");
 const utility_1 = require("./utility");
 const lexer_1 = require("./lexer");
 // Represents the application of a parsing rule. An instance is created
@@ -18,7 +16,7 @@ class Rule {
         this.name = spec.name;
         this.spec = spec;
         this.node = node;
-        this.state = utility_1.OPEN;
+        this.state = types_1.OPEN;
         this.child = NONE;
         this.parent = NONE;
         this.prev = NONE;
@@ -41,14 +39,14 @@ class Rule {
 }
 exports.Rule = Rule;
 // Empty rule used as a no-value placeholder.
-const NONE = { name: utility_1.S.none, state: utility_1.OPEN };
+const NONE = { name: 'none', state: types_1.OPEN };
 exports.NONE = NONE;
 // Parse-alternate match (built from current tokens and AltSpec).
 class AltMatch {
     constructor() {
         this.m = []; // Matched Tokens (not Tins!).
-        this.p = utility_1.MT; // Push rule (by name).
-        this.r = utility_1.MT; // Replace rule (by name).
+        this.p = types_1.EMPTY; // Push rule (by name).
+        this.r = types_1.EMPTY; // Replace rule (by name).
         this.b = 0; // Move token position backward.
     }
 }
@@ -113,7 +111,7 @@ class RuleSpec {
         return this.add('c', a, flags);
     }
     process(rule, ctx, state) {
-        let why = utility_1.MT;
+        let why = types_1.EMPTY;
         let F = ctx.F;
         let is_open = state === 'o';
         let next = is_open ? rule : NONE;
@@ -207,8 +205,8 @@ class RuleSpec {
             ctx.next();
         }
         // Must be last as state change is for next process call.
-        if (utility_1.OPEN === rule.state) {
-            rule.state = utility_1.CLOSE;
+        if (types_1.OPEN === rule.state) {
+            rule.state = types_1.CLOSE;
         }
         return next;
     }
@@ -218,8 +216,8 @@ class RuleSpec {
         let out = PALT;
         out.m = []; // Match 0, 1, or 2 tokens in order .
         out.b = 0; // Backtrack n tokens.
-        out.p = utility_1.MT; // Push named rule onto stack. 
-        out.r = utility_1.MT; // Replace current rule with named rule.
+        out.p = types_1.EMPTY; // Push named rule onto stack. 
+        out.r = types_1.EMPTY; // Replace current rule with named rule.
         out.n = undefined; // Increment named counters.
         out.h = undefined; // Custom handler function.
         out.a = undefined; // Rule action.
@@ -279,7 +277,7 @@ class RuleSpec {
         }
         ctx.log && ctx.log(utility_1.S.parse, rule.name + '~' + rule.id, rule.state, altI < alts.length ? 'alt=' + altI : 'no-alt', altI < alts.length &&
             alt.s ?
-            '[' + alt.s.map((pin) => t[pin]).join(' ') + ']' : '[]', 'tc=' + ctx.tC, 'p=' + (out.p || utility_1.MT), 'r=' + (out.r || utility_1.MT), 'b=' + (out.b || utility_1.MT), out.m.map((tkn) => t[tkn.tin]).join(' '), ctx.F(out.m.map((tkn) => tkn.src)), 'c:' + ((alt && alt.c) ? cond : utility_1.MT), 'n:' + utility_1.entries(out.n).map(n => n[0] + '=' + n[1]).join(';'), 'u:' + utility_1.entries(out.u).map(u => u[0] + '=' + u[1]).join(';'), out);
+            '[' + alt.s.map((pin) => t[pin]).join(' ') + ']' : '[]', 'tc=' + ctx.tC, 'p=' + (out.p || types_1.EMPTY), 'r=' + (out.r || types_1.EMPTY), 'b=' + (out.b || types_1.EMPTY), out.m.map((tkn) => t[tkn.tin]).join(' '), ctx.F(out.m.map((tkn) => tkn.src)), 'c:' + ((alt && alt.c) ? cond : types_1.EMPTY), 'n:' + utility_1.entries(out.n).map(n => n[0] + '=' + n[1]).join(';'), 'u:' + utility_1.entries(out.u).map(u => u[0] + '=' + u[1]).join(';'), out);
         return out;
     }
     bad(tkn, rule, ctx, parse) {
@@ -319,6 +317,7 @@ class Parser {
                 return ctx.t0;
             }
         };
+        // TODO: move to own file, use .rule() method, same as plugins
         let rules = {
             val: {
                 bo: (r) => {
@@ -531,7 +530,7 @@ class Parser {
     }
     start(src, jsonic, meta, parent_ctx) {
         let root;
-        let endtkn = new utility_1.Token('#ZZ', utility_1.tokenize('#ZZ', this.cfg), undefined, utility_1.MT, new lexer_1.Point(-1));
+        let endtkn = new utility_1.Token('#ZZ', utility_1.tokenize('#ZZ', this.cfg), undefined, types_1.EMPTY, new lexer_1.Point(-1));
         let ctx = {
             uI: 1,
             opts: this.options,

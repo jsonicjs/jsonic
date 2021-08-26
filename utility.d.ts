@@ -1,11 +1,9 @@
-import type { Tin, Options } from './jsonic';
+import type { Relate } from './types';
+import { OPEN, CLOSE } from './types';
+import type { Jsonic, Tin, Options } from './jsonic';
 import type { Rule, RuleSpec } from './parser';
 import type { Lex } from './lexer';
 import { Token, LexMatcher } from './lexer';
-declare const OPEN = "o";
-declare const CLOSE = "c";
-declare type RuleState = 'o' | 'c';
-declare const MT = "";
 declare const keys: (x: any) => string[];
 declare const entries: (x: any) => [string, unknown][];
 declare const assign: (x: any, ...r: any[]) => any;
@@ -56,9 +54,6 @@ declare class JsonicError extends SyntaxError {
         stack: string | undefined;
     };
 }
-declare type Relate = {
-    [key: string]: any;
-};
 declare type Counters = {
     [key: string]: number;
 };
@@ -203,5 +198,8 @@ declare function clone(class_instance: any): any;
 declare function charset(...parts: (string | object | boolean | undefined)[]): Chars;
 declare function clean<T>(o: T): T;
 declare function filterRules(rs: RuleSpec, cfg: Config): RuleSpec;
-export type { Chars, Config, Context, Relate, RuleState, StrMap, Counters, };
-export { CLOSE, JsonicError, MT, OPEN, S, Token, assign, badlex, charset, clean, clone, configure, deep, defprop, entries, errdesc, errinject, escre, extract, filterRules, isarr, keys, makelog, mesc, omap, regexp, snip, srcfmt, tokenize, trimstk, };
+declare function parserwrap(parser: any): {
+    start: (src: string, jsonic: Jsonic, meta?: any, parent_ctx?: any) => any;
+};
+export type { Chars, Config, Context, StrMap, Counters, };
+export { CLOSE, JsonicError, OPEN, S, Token, assign, badlex, charset, clean, clone, configure, deep, defprop, entries, errdesc, errinject, escre, extract, filterRules, isarr, keys, makelog, mesc, omap, regexp, snip, srcfmt, tokenize, trimstk, parserwrap, };

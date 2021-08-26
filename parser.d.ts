@@ -1,4 +1,5 @@
-import { Config, Context, RuleState, Token, Relate, Counters } from './utility';
+import type { Relate, RuleState } from './types';
+import { Config, Context, Token, Counters } from './utility';
 import type { Tin, Jsonic, Options } from './jsonic';
 declare class Rule {
     id: number;

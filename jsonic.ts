@@ -35,6 +35,15 @@
 // * '#' prefix: parse token
 
 
+import type {
+  Relate,
+} from './types'
+
+import {
+  // OPEN,
+  // CLOSE,
+  EMPTY,
+} from './types'
 
 
 
@@ -42,9 +51,6 @@ import {
   Config,
   Context,
   JsonicError,
-  Relate,
-  MT,
-  // Meta,
   StrMap,
   S,
   assign,
@@ -64,6 +70,7 @@ import {
   charset,
   configure,
   escre,
+  parserwrap,
 } from './utility'
 
 
@@ -435,6 +442,7 @@ function make(param_options?: Relate, parent?: Jsonic): Jsonic {
 
 
 // TODO: move to utility
+/*
 function parserwrap(parser: any) {
   return {
     start: function(
@@ -511,7 +519,7 @@ function parserwrap(parser: any) {
     }
   }
 }
-
+*/
 
 
 

@@ -5,6 +5,19 @@
  */
 
 import type {
+  Relate,
+} from './types'
+
+
+import {
+  OPEN,
+  CLOSE,
+  EMPTY,
+} from './types'
+
+
+import type {
+  Jsonic,
   Tin,
   Options,
 } from './jsonic'
@@ -14,6 +27,10 @@ import type {
   RuleSpec,
 } from './parser'
 
+import {
+  NONE,
+} from './parser'
+
 import type {
   Lex,
 } from './lexer'
@@ -21,17 +38,10 @@ import type {
 import {
   Token,
   LexMatcher,
+  Point,
 } from './lexer'
 
 
-
-const OPEN = 'o'
-const CLOSE = 'c'
-
-type RuleState = 'o' | 'c'
-
-
-const MT = '' // Empty ("MT"!) string.
 
 
 const keys = (x: any) => null == x ? [] : Object.keys(x)
@@ -70,7 +80,7 @@ const S = {
   pair: 'pair',
   val: 'val',
   node: 'node',
-  no_re_flags: MT,
+  no_re_flags: EMPTY,
   unprintable: 'unprintable',
   invalid_ascii: 'invalid_ascii',
   invalid_unicode: 'invalid_unicode',
@@ -125,7 +135,7 @@ class JsonicError extends SyntaxError {
 
 
 // General relation map.
-type Relate = { [key: string]: any }
+// type Relate = { [key: string]: any }
 
 
 // A set of named counters.
@@ -510,7 +520,7 @@ function regexp(
     parts.map(p => (p as any).esc ?
       //p.replace(/[-\\|\]{}()[^$+*?.!=]/g, '\\$&')
       escre(p.toString())
-      : p).join(MT), null == flags ? '' : flags)
+      : p).join(EMPTY), null == flags ? '' : flags)
 }
 
 
@@ -605,14 +615,14 @@ function extract(src: string, errtxt: string, token: Token) {
   let loc = 0 < token.sI ? token.sI : 0
   let row = 0 < token.rI ? token.rI : 1
   let col = 0 < token.cI ? token.cI : 1
-  let tsrc = null == token.src ? MT : token.src
+  let tsrc = null == token.src ? EMPTY : token.src
   let behind = src.substring(Math.max(0, loc - 333), loc).split('\n')
   let ahead = src.substring(loc, loc + 333).split('\n')
 
-  let pad = 2 + (MT + (row + 2)).length
+  let pad = 2 + (EMPTY + (row + 2)).length
   let rc = row < 3 ? 1 : row - 2
-  let ln = (s: string) => '\x1b[34m' + (MT + (rc++)).padStart(pad, ' ') +
-    ' | \x1b[0m' + (null == s ? MT : s)
+  let ln = (s: string) => '\x1b[34m' + (EMPTY + (rc++)).padStart(pad, ' ') +
+    ' | \x1b[0m' + (null == s ? EMPTY : s)
 
   let blen = behind.length
 
@@ -768,9 +778,9 @@ function makelog(ctx: Context, meta: any) {
 
 function srcfmt(config: Config) {
   return (s: any, _?: any) =>
-    null == s ? MT : (_ = JSON.stringify(s),
+    null == s ? EMPTY : (_ = JSON.stringify(s),
       _.substring(0, config.debug.maxlen) +
-      (config.debug.maxlen < _.length ? '...' : MT))
+      (config.debug.maxlen < _.length ? '...' : EMPTY))
 }
 
 
@@ -790,9 +800,9 @@ function clone(class_instance: any) {
 function charset(...parts: (string | object | boolean | undefined)[]): Chars {
   return null == parts ? {} : parts
     .filter(p => false !== p)
-    .map((p: any) => 'object' === typeof (p) ? keys(p).join(MT) : p)
-    .join(MT)
-    .split(MT)
+    .map((p: any) => 'object' === typeof (p) ? keys(p).join(EMPTY) : p)
+    .join(EMPTY)
+    .split(EMPTY)
     .reduce((a: any, c: string) => (a[c] = c.charCodeAt(0), a), {})
 }
 
@@ -836,12 +846,91 @@ function filterRules(rs: RuleSpec, cfg: Config) {
 }
 
 
+function parserwrap(parser: any) {
+  return {
+    start: function(
+      src: string,
+      jsonic: Jsonic,
+      meta?: any,
+      parent_ctx?: any
+    ) {
+      try {
+        return parser.start(src, jsonic, meta, parent_ctx)
+      } catch (ex) {
+        if ('SyntaxError' === ex.name) {
+          let loc = 0
+          let row = 0
+          let col = 0
+          let tsrc = EMPTY
+          let errloc = ex.message.match(/^Unexpected token (.) .*position\s+(\d+)/i)
+          if (errloc) {
+            tsrc = errloc[1]
+            loc = parseInt(errloc[2])
+            row = src.substring(0, loc).replace(/[^\n]/g, EMPTY).length
+            let cI = loc - 1
+            while (-1 < cI && '\n' !== src.charAt(cI)) cI--;
+            col = Math.max(src.substring(cI, loc).length, 0)
+          }
+
+          let token = ex.token || new Token(
+            '#UK',
+            // tokenize('#UK', jsonic.config),
+            tokenize('#UK', jsonic.internal().config),
+            undefined,
+            tsrc,
+            new Point(tsrc.length, loc, ex.lineNumber || row, ex.columnNumber || col)
+          )
+
+          throw new JsonicError(
+            ex.code || 'json',
+            ex.details || {
+              msg: ex.message
+            },
+            token,
+            ({} as Rule),
+            ex.ctx || {
+              uI: -1,
+              opts: jsonic.options,
+              //cfg: ({ t: {} } as Config),
+              cfg: jsonic.internal().config,
+              token: token,
+              meta,
+              src: () => src,
+              root: () => undefined,
+              plgn: () => jsonic.internal().plugins,
+              rule: NONE,
+              xs: -1,
+              v2: token,
+              v1: token,
+              t0: token,
+              t1: token, // TODO: should be end token
+              tC: -1,
+              rs: [],
+              next: () => token, // TODO: should be end token
+              rsm: {},
+              n: {},
+              log: meta ? meta.log : undefined,
+              F: srcfmt(jsonic.internal().config),
+              use: {},
+            } as Context,
+          )
+        }
+        else {
+          throw ex
+        }
+      }
+    }
+  }
+}
+
+
+
 export type {
   Chars,
   Config,
   Context,
-  Relate,
-  RuleState,
+  // Relate,
+  // RuleState,
   StrMap,
   Counters,
 }
@@ -849,7 +938,6 @@ export type {
 export {
   CLOSE,
   JsonicError,
-  MT,
   OPEN,
   S,
   Token,
@@ -877,4 +965,5 @@ export {
   srcfmt,
   tokenize,
   trimstk,
+  parserwrap,
 }

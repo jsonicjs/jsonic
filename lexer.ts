@@ -5,6 +5,17 @@
  */
 
 
+import type {
+  Relate,
+} from './types'
+
+
+import {
+  EMPTY,
+} from './types'
+
+
+
 const inspect = Symbol.for('nodejs.util.inspect.custom')
 
 import type {
@@ -16,7 +27,6 @@ import type {
 
 import {
   S,
-  MT,
   Config,
   Context,
   tokenize,
@@ -570,7 +580,7 @@ let makeStringMatcher: MakeLexMatcher = (cfg: Config, opts: Options) => {
 
       const tkn = lex.token(
         '#ST',
-        s.join(MT),
+        s.join(EMPTY),
         src.substring(pnt.sI, sI),
         pnt,
       )

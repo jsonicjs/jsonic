@@ -1,4 +1,5 @@
-import { Config, Context, JsonicError, Relate, StrMap, badlex, deep, errdesc, errinject, extract, makelog, mesc, regexp, tokenize, trimstk, srcfmt, clone, charset, configure, escre } from './utility';
+import type { Relate } from './types';
+import { Config, Context, JsonicError, StrMap, badlex, deep, errdesc, errinject, extract, makelog, mesc, regexp, tokenize, trimstk, srcfmt, clone, charset, configure, escre, parserwrap } from './utility';
 import { Point, Token, Lex, MakeLexMatcher } from './lexer';
 import type { AltAction } from './parser';
 import { Parser, Rule, RuleDefiner, RuleSpec, RuleSpecMap } from './parser';
@@ -145,9 +146,6 @@ declare let util: {
     regexp: typeof regexp;
 };
 declare function make(param_options?: Relate, parent?: Jsonic): Jsonic;
-declare function parserwrap(parser: any): {
-    start: (src: string, jsonic: Jsonic, meta?: any, parent_ctx?: any) => any;
-};
 declare let Jsonic: Jsonic;
 export type { Plugin, Tin, RuleSpecMap, Context, Options, AltAction, };
 export { Jsonic, JsonicError, Lex, Parser, Rule, RuleSpec, Token, Point, util, make, };

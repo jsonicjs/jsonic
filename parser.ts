@@ -4,14 +4,23 @@
  *  Parser implementation, converts the lexer tokens into parsed data.
  */
 
+
+import type {
+  Relate,
+  RuleState,
+} from './types'
+
 import {
+  OPEN,
   CLOSE,
+  EMPTY,
+} from './types'
+
+
+import {
   Config,
   Context,
   JsonicError,
-  MT,
-  OPEN,
-  RuleState,
   S,
   Token,
   badlex,
@@ -23,7 +32,7 @@ import {
   makelog,
   srcfmt,
   tokenize,
-  Relate,
+  // Relate,
   Counters,
 } from './utility'
 
@@ -96,7 +105,7 @@ class Rule {
 
 
 // Empty rule used as a no-value placeholder.
-const NONE = ({ name: S.none, state: OPEN } as Rule)
+const NONE = ({ name: 'none', state: OPEN } as Rule)
 
 
 // Specification for a parse-alternate within a Rule state.
@@ -157,8 +166,8 @@ type AltError = (rule: Rule, ctx: Context, alt: AltMatch) => Token | undefined
 // Parse-alternate match (built from current tokens and AltSpec).
 class AltMatch {
   m: Token[] = []   // Matched Tokens (not Tins!).
-  p: string = MT    // Push rule (by name).
-  r: string = MT    // Replace rule (by name).
+  p: string = EMPTY    // Push rule (by name).
+  r: string = EMPTY    // Replace rule (by name).
   b: number = 0     // Move token position backward.
   c?: AltCond       // Custom alt match condition.
   n?: any           // increment named counters.
@@ -267,7 +276,7 @@ class RuleSpec {
 
 
   process(rule: Rule, ctx: Context, state: RuleState): Rule {
-    let why = MT
+    let why = EMPTY
     let F = ctx.F
 
     let is_open = state === 'o'
@@ -403,8 +412,8 @@ class RuleSpec {
     let out = PALT
     out.m = []          // Match 0, 1, or 2 tokens in order .
     out.b = 0           // Backtrack n tokens.
-    out.p = MT          // Push named rule onto stack. 
-    out.r = MT          // Replace current rule with named rule.
+    out.p = EMPTY          // Push named rule onto stack. 
+    out.r = EMPTY          // Replace current rule with named rule.
     out.n = undefined   // Increment named counters.
     out.h = undefined   // Custom handler function.
     out.a = undefined   // Rule action.
@@ -488,12 +497,12 @@ class RuleSpec {
         (alt as any).s ?
         '[' + (alt as any).s.map((pin: Tin) => t[pin]).join(' ') + ']' : '[]',
       'tc=' + ctx.tC,
-      'p=' + (out.p || MT),
-      'r=' + (out.r || MT),
-      'b=' + (out.b || MT),
+      'p=' + (out.p || EMPTY),
+      'r=' + (out.r || EMPTY),
+      'b=' + (out.b || EMPTY),
       out.m.map((tkn: Token) => t[tkn.tin]).join(' '),
       ctx.F(out.m.map((tkn: Token) => tkn.src)),
-      'c:' + ((alt && alt.c) ? cond : MT),
+      'c:' + ((alt && alt.c) ? cond : EMPTY),
       'n:' + entries(out.n).map(n => n[0] + '=' + n[1]).join(';'),
       'u:' + entries(out.u).map(u => u[0] + '=' + u[1]).join(';'),
       out)
@@ -559,6 +568,8 @@ class Parser {
         return ctx.t0
       }
     }
+
+    // TODO: move to own file, use .rule() method, same as plugins
 
     let rules: any = {
       val: {
@@ -835,7 +846,7 @@ class Parser {
       '#ZZ',
       tokenize('#ZZ', this.cfg),
       undefined,
-      MT,
+      EMPTY,
       new Point(-1)
     )
 

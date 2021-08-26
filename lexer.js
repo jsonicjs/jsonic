@@ -2,9 +2,7 @@
 /* Copyright (c) 2013-2021 Richard Rodger, MIT License */
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.makeTextMatcher = exports.makeNumberMatcher = exports.makeCommentMatcher = exports.makeStringMatcher = exports.makeLineMatcher = exports.makeSpaceMatcher = exports.makeFixedMatcher = exports.Lex = exports.Token = exports.Point = void 0;
-/*  lexer.ts
- *  Lexer implementation, converts source text into tokens for the parser.
- */
+const types_1 = require("./types");
 const inspect = Symbol.for('nodejs.util.inspect.custom');
 const utility_1 = require("./utility");
 class Point {
@@ -390,7 +388,7 @@ let makeStringMatcher = (cfg, opts) => {
                 pnt.rI = qrI;
                 return lex.bad(utility_1.S.unterminated_string, qI, sI);
             }
-            const tkn = lex.token('#ST', s.join(utility_1.MT), src.substring(pnt.sI, sI), pnt);
+            const tkn = lex.token('#ST', s.join(types_1.EMPTY), src.substring(pnt.sI, sI), pnt);
             pnt.sI = sI;
             pnt.rI = rI;
             pnt.cI = cI;

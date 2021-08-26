@@ -2,35 +2,6 @@
 /* Copyright (c) 2013-2021 Richard Rodger, MIT License */
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.make = exports.util = exports.Point = exports.Token = exports.RuleSpec = exports.Rule = exports.Parser = exports.Lex = exports.JsonicError = exports.Jsonic = void 0;
-/*  jsonic.ts
- *  Entry point and API.
- */
-// TODO: Context provides current jsonic instance: { ..., jsonic: ()=>instance }
-// TODO: docs: ref https://wiki.alopex.li/OnParsers
-// TODO: docs: nice tree diagram of rules (generate?)
-// TODO: rule.use should be rule.u for consistency
-// TODO: Jsonic.make('json') - preset plain JSON options - see variant test just-json
-// TODO: consistent use of clean on options to allow null to mean 'remove property'
-// TODO: [,,,] syntax should match JS!
-// TODO: rename tokens to be user friendly
-// TODO: if token recognized, error needs to be about token, not characters
-// TODO: test custom alt error: eg.  { e: (r: Rule) => r.close[0] } ??? bug: r.close empty!
-// TODO: multipe merges, also with dynamic
-// TODO: FIX: jsonic script direct invocation in package.json not working
-// TODO: quotes are value enders - x:a"a" is an err! not 'a"a"'
-// TODO: tag should appear in error
-// TODO: remove console colors in browser?
-// post release: 
-// TODO: plugin for path expr: a.b:1 -> {a:{b:1}}
-// TODO: data file to diff exhaust changes
-// TODO: cli - less ambiguous merging at top level
-// TODO: internal errors - e.g. adding a null rulespec
-// TODO: option to control comma null insertion
-// TODO: {,} should fail ({,,...} does).
-// # Conventions
-//
-// ## Token names
-// * '#' prefix: parse token
 const utility_1 = require("./utility");
 Object.defineProperty(exports, "JsonicError", { enumerable: true, get: function () { return utility_1.JsonicError; } });
 const defaults_1 = require("./defaults");
@@ -56,7 +27,7 @@ let util = {
     errinject: utility_1.errinject,
     errdesc: utility_1.errdesc,
     configure: utility_1.configure,
-    parserwrap,
+    parserwrap: utility_1.parserwrap,
     mesc: utility_1.mesc,
     escre: utility_1.escre,
     regexp: utility_1.regexp,
@@ -76,7 +47,7 @@ function make(param_options, parent) {
         if (utility_1.S.string === typeof (src)) {
             let internal = jsonic.internal();
             let parser = options.parser.start ?
-                parserwrap(options.parser) : internal.parser;
+                utility_1.parserwrap(options.parser) : internal.parser;
             return parser.start(src, jsonic, meta, parent_ctx);
         }
         return src;
@@ -172,66 +143,84 @@ function make(param_options, parent) {
 }
 exports.make = make;
 // TODO: move to utility
-function parserwrap(parser) {
-    return {
-        start: function (src, jsonic, meta, parent_ctx) {
-            try {
-                return parser.start(src, jsonic, meta, parent_ctx);
-            }
-            catch (ex) {
-                if ('SyntaxError' === ex.name) {
-                    let loc = 0;
-                    let row = 0;
-                    let col = 0;
-                    let tsrc = utility_1.MT;
-                    let errloc = ex.message.match(/^Unexpected token (.) .*position\s+(\d+)/i);
-                    if (errloc) {
-                        tsrc = errloc[1];
-                        loc = parseInt(errloc[2]);
-                        row = src.substring(0, loc).replace(/[^\n]/g, utility_1.MT).length;
-                        let cI = loc - 1;
-                        while (-1 < cI && '\n' !== src.charAt(cI))
-                            cI--;
-                        col = Math.max(src.substring(cI, loc).length, 0);
-                    }
-                    let token = ex.token || new lexer_1.Token('#UK', 
-                    // tokenize('#UK', jsonic.config),
-                    utility_1.tokenize('#UK', jsonic.internal().config), undefined, tsrc, new lexer_1.Point(tsrc.length, loc, ex.lineNumber || row, ex.columnNumber || col));
-                    throw new utility_1.JsonicError(ex.code || 'json', ex.details || {
-                        msg: ex.message
-                    }, token, {}, ex.ctx || {
-                        uI: -1,
-                        opts: jsonic.options,
-                        //cfg: ({ t: {} } as Config),
-                        cfg: jsonic.internal().config,
-                        token: token,
-                        meta,
-                        src: () => src,
-                        root: () => undefined,
-                        plgn: () => jsonic.internal().plugins,
-                        rule: parser_1.NONE,
-                        xs: -1,
-                        v2: token,
-                        v1: token,
-                        t0: token,
-                        t1: token,
-                        tC: -1,
-                        rs: [],
-                        next: () => token,
-                        rsm: {},
-                        n: {},
-                        log: meta ? meta.log : undefined,
-                        F: utility_1.srcfmt(jsonic.internal().config),
-                        use: {},
-                    });
-                }
-                else {
-                    throw ex;
-                }
-            }
+/*
+function parserwrap(parser: any) {
+  return {
+    start: function(
+      src: string,
+      jsonic: Jsonic,
+      meta?: any,
+      parent_ctx?: any
+    ) {
+      try {
+        return parser.start(src, jsonic, meta, parent_ctx)
+      } catch (ex) {
+        if ('SyntaxError' === ex.name) {
+          let loc = 0
+          let row = 0
+          let col = 0
+          let tsrc = MT
+          let errloc = ex.message.match(/^Unexpected token (.) .*position\s+(\d+)/i)
+          if (errloc) {
+            tsrc = errloc[1]
+            loc = parseInt(errloc[2])
+            row = src.substring(0, loc).replace(/[^\n]/g, MT).length
+            let cI = loc - 1
+            while (-1 < cI && '\n' !== src.charAt(cI)) cI--;
+            col = Math.max(src.substring(cI, loc).length, 0)
+          }
+
+          let token = ex.token || new Token(
+            '#UK',
+            // tokenize('#UK', jsonic.config),
+            tokenize('#UK', jsonic.internal().config),
+            undefined,
+            tsrc,
+            new Point(tsrc.length, loc, ex.lineNumber || row, ex.columnNumber || col)
+          )
+
+          throw new JsonicError(
+            ex.code || 'json',
+            ex.details || {
+              msg: ex.message
+            },
+            token,
+            ({} as Rule),
+            ex.ctx || {
+              uI: -1,
+              opts: jsonic.options,
+              //cfg: ({ t: {} } as Config),
+              cfg: jsonic.internal().config,
+              token: token,
+              meta,
+              src: () => src,
+              root: () => undefined,
+              plgn: () => jsonic.internal().plugins,
+              rule: NONE,
+              xs: -1,
+              v2: token,
+              v1: token,
+              t0: token,
+              t1: token, // TODO: should be end token
+              tC: -1,
+              rs: [],
+              next: () => token, // TODO: should be end token
+              rsm: {},
+              n: {},
+              log: meta ? meta.log : undefined,
+              F: srcfmt(jsonic.internal().config),
+              use: {},
+            } as Context,
+          )
         }
-    };
+        else {
+          throw ex
+        }
+      }
+    }
+  }
 }
+*/
 let Jsonic = make();
 exports.Jsonic = Jsonic;
 // Keep global top level safe
