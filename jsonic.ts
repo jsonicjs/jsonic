@@ -38,6 +38,7 @@
 import type {
   Relate,
   Tin,
+  Point,
   Token,
   StrMap,
 } from './types'
@@ -82,8 +83,8 @@ import type {
 } from './lexer'
 
 import {
-  Point,
   Lex,
+  makePoint,
   makeToken,
 } from './lexer'
 
@@ -470,6 +471,7 @@ export type {
   Context,
   Options,
   AltAction,
+  Point,
   Token,
 }
 
@@ -480,10 +482,10 @@ export {
   Parser,
   Rule,
   RuleSpec,
-  Point,
   util,
   make,
   makeToken,
+  makePoint,
 }
 
 

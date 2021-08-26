@@ -19,6 +19,14 @@ export declare type StrMap = {
     [name: string]: string;
 };
 export declare type RuleState = 'o' | 'c';
+export interface Point {
+    len: number;
+    sI: number;
+    rI: number;
+    cI: number;
+    token: Token[];
+    end: Token | undefined;
+}
 export interface Token {
     isToken: boolean;
     name: string;

@@ -8,6 +8,7 @@
 import type {
   Tin,
   Token,
+  Point,
 } from './types'
 
 
@@ -39,7 +40,7 @@ import {
 } from './utility'
 
 
-class Point {
+class PointImpl implements Point {
   len: number = -1
   sI: number = 0
   rI: number = 1
@@ -63,6 +64,11 @@ class Point {
     return this.toString()
   }
 }
+
+const makePoint = (...params: ConstructorParameters<typeof PointImpl>) =>
+  new PointImpl(...params)
+
+
 
 
 // Tokens from the lexer.
@@ -714,7 +720,7 @@ class Lex {
     this.ctx = ctx
     this.src = ctx.src()
     this.cfg = ctx.cfg
-    this.pnt = new Point(this.src.length)
+    this.pnt = makePoint(this.src.length)
   }
 
   token(
@@ -830,17 +836,14 @@ class Lex {
 }
 
 
-
-
-
 export type {
   MakeLexMatcher,
   LexMatcher,
 }
 
 export {
-  Point,
   Lex,
+  makePoint,
   makeToken,
   makeFixedMatcher,
   makeSpaceMatcher,

@@ -1,8 +1,8 @@
-import type { Tin, Token } from './types';
+import type { Tin, Token, Point } from './types';
 import { INSPECT } from './types';
 import type { Rule, Options } from './jsonic';
 import { Config, Context } from './utility';
-declare class Point {
+declare class PointImpl implements Point {
     len: number;
     sI: number;
     rI: number;
@@ -13,6 +13,7 @@ declare class Point {
     toString(): string;
     [INSPECT](): string;
 }
+declare const makePoint: (len: number, sI?: number | undefined, rI?: number | undefined, cI?: number | undefined) => PointImpl;
 declare class TokenImpl implements Token {
     isToken: boolean;
     name: string;
@@ -53,4 +54,4 @@ declare class Lex {
     bad(why: string, pstart: number, pend: number): Token;
 }
 export type { MakeLexMatcher, LexMatcher, };
-export { Point, Lex, makeToken, makeFixedMatcher, makeSpaceMatcher, makeLineMatcher, makeStringMatcher, makeCommentMatcher, makeNumberMatcher, makeTextMatcher, };
+export { Lex, makePoint, makeToken, makeFixedMatcher, makeSpaceMatcher, makeLineMatcher, makeStringMatcher, makeCommentMatcher, makeNumberMatcher, makeTextMatcher, };

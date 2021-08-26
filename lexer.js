@@ -1,10 +1,10 @@
 "use strict";
 /* Copyright (c) 2013-2021 Richard Rodger, MIT License */
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.makeTextMatcher = exports.makeNumberMatcher = exports.makeCommentMatcher = exports.makeStringMatcher = exports.makeLineMatcher = exports.makeSpaceMatcher = exports.makeFixedMatcher = exports.makeToken = exports.Lex = exports.Point = void 0;
+exports.makeTextMatcher = exports.makeNumberMatcher = exports.makeCommentMatcher = exports.makeStringMatcher = exports.makeLineMatcher = exports.makeSpaceMatcher = exports.makeFixedMatcher = exports.makeToken = exports.makePoint = exports.Lex = void 0;
 const types_1 = require("./types");
 const utility_1 = require("./utility");
-class Point {
+class PointImpl {
     constructor(len, sI, rI, cI) {
         this.len = -1;
         this.sI = 0;
@@ -31,7 +31,8 @@ class Point {
         return this.toString();
     }
 }
-exports.Point = Point;
+const makePoint = (...params) => new PointImpl(...params);
+exports.makePoint = makePoint;
 // Tokens from the lexer.
 class TokenImpl {
     constructor(name, tin, val, src, pnt, use, why) {
@@ -473,7 +474,7 @@ class Lex {
         this.ctx = ctx;
         this.src = ctx.src();
         this.cfg = ctx.cfg;
-        this.pnt = new Point(this.src.length);
+        this.pnt = makePoint(this.src.length);
     }
     token(ref, val, src, pnt, use, why) {
         let tin;

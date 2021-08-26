@@ -39,7 +39,7 @@ import {
 
 import {
   Lex,
-  Point,
+  makePoint,
   makeToken,
 } from './lexer'
 
@@ -847,7 +847,7 @@ class Parser {
       tokenize('#ZZ', this.cfg),
       undefined,
       EMPTY,
-      new Point(-1)
+      makePoint(-1)
     )
 
     let ctx: Context = {

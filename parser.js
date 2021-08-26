@@ -530,7 +530,7 @@ class Parser {
     }
     start(src, jsonic, meta, parent_ctx) {
         let root;
-        let endtkn = lexer_1.makeToken('#ZZ', utility_1.tokenize('#ZZ', this.cfg), undefined, types_1.EMPTY, new lexer_1.Point(-1));
+        let endtkn = lexer_1.makeToken('#ZZ', utility_1.tokenize('#ZZ', this.cfg), undefined, types_1.EMPTY, lexer_1.makePoint(-1));
         let ctx = {
             uI: 1,
             opts: this.options,

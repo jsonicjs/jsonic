@@ -41,6 +41,15 @@ export type StrMap = { [name: string]: string }
 export type RuleState = 'o' | 'c'
 
 
+export interface Point {
+  len: number
+  sI: number
+  rI: number
+  cI: number
+  token: Token[]
+  end: Token | undefined
+}
+
 
 export interface Token {
   isToken: boolean // Type guard.

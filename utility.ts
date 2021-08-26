@@ -40,8 +40,8 @@ import type {
 
 import {
   LexMatcher,
-  Point,
   makeToken,
+  makePoint,
 } from './lexer'
 
 
@@ -863,7 +863,7 @@ function parserwrap(parser: any) {
             tokenize('#UK', jsonic.internal().config),
             undefined,
             tsrc,
-            new Point(tsrc.length, loc, ex.lineNumber || row, ex.columnNumber || col)
+            makePoint(tsrc.length, loc, ex.lineNumber || row, ex.columnNumber || col)
           )
 
           throw new JsonicError(
