@@ -14,16 +14,7 @@ const describe = lab.describe
 const it = lab.it
 const expect = Code.expect
 
-const { Jsonic, Lexer, Parser, JsonicError, RuleSpec, make } = require('..')
-
-// const { Json } = require('../plugin/json')
-// const { Csv } = require('../plugin/csv')
-// const { Dynamic } = require('../plugin/dynamic')
-// const { Native } = require('../plugin/native')
-// const { Multifile } = require('../plugin/multifile')
-// const { LegacyStringify } = require('../plugin/legacy-stringify')
-
-// const I = Util.inspect
+const { Jsonic, Parser, JsonicError, makeRuleSpec, make } = require('..')
 
 
 describe('docs', function () {
@@ -169,7 +160,7 @@ describe('docs', function () {
 
     let HH = concat.token.HH
     concat.rule('hundred', ()=>{
-      return new RuleSpec({
+      return makeRuleSpec({
         ao: (rule)=>{
           rule.node = 100
         }

@@ -1,11 +1,8 @@
 "use strict";
 /* Copyright (c) 2013-2021 Richard Rodger, MIT License */
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.parserwrap = exports.trimstk = exports.tokenize = exports.srcfmt = exports.snip = exports.regexp = exports.omap = exports.mesc = exports.makelog = exports.keys = exports.isarr = exports.filterRules = exports.extract = exports.escre = exports.errinject = exports.errdesc = exports.entries = exports.defprop = exports.deep = exports.configure = exports.clone = exports.clean = exports.charset = exports.badlex = exports.assign = exports.S = exports.OPEN = exports.JsonicError = exports.CLOSE = void 0;
+exports.normalt = exports.parserwrap = exports.trimstk = exports.tokenize = exports.srcfmt = exports.snip = exports.regexp = exports.omap = exports.mesc = exports.makelog = exports.keys = exports.isarr = exports.filterRules = exports.extract = exports.escre = exports.errinject = exports.errdesc = exports.entries = exports.defprop = exports.deep = exports.configure = exports.clone = exports.clean = exports.charset = exports.badlex = exports.assign = exports.S = exports.JsonicError = void 0;
 const types_1 = require("./types");
-Object.defineProperty(exports, "OPEN", { enumerable: true, get: function () { return types_1.OPEN; } });
-Object.defineProperty(exports, "CLOSE", { enumerable: true, get: function () { return types_1.CLOSE; } });
-const parser_1 = require("./parser");
 const lexer_1 = require("./lexer");
 // Null-safe object and array utilities
 const keys = (x) => null == x ? [] : Object.keys(x);
@@ -231,7 +228,7 @@ exports.configure = configure;
 function tokenize(ref, cfg, jsonic) {
     let tokenmap = cfg.t;
     let token = tokenmap[ref];
-    if (null == token && S.string === typeof (ref)) {
+    if (null == token && types_1.STRING === typeof (ref)) {
         token = cfg.tI++;
         tokenmap[token] = ref;
         tokenmap[ref] = token;
@@ -507,9 +504,43 @@ function filterRules(rs, cfg) {
     return rs;
 }
 exports.filterRules = filterRules;
+// Normalize AltSpec (mutates).
+function normalt(a) {
+    if (null != a.c) {
+        // Convert counter and depth abbrev condition into an actual function.
+        // c: { x:1 } -> rule.n.x <= c.x
+        // c: { d:0 } -> 0 === rule stack depth
+        let counters = a.c.n;
+        let depth = a.c.d;
+        if (null != counters || null != depth) {
+            a.c = (rule) => {
+                let pass = true;
+                if (null + counters) {
+                    for (let cn in counters) {
+                        // Pass if rule counter <= alt counter, (0 if undef).
+                        pass = pass && (null == rule.n[cn] ||
+                            (rule.n[cn] <= (null == counters[cn] ? 0 : counters[cn])));
+                    }
+                }
+                if (null != depth) {
+                    pass = pass && (rule.d <= depth);
+                }
+                return pass;
+            };
+        }
+    }
+    // Ensure groups are a string[]
+    if (types_1.STRING === typeof (a.g)) {
+        a.g = a.g.split(/\s*,\s*/);
+    }
+    return a;
+}
+exports.normalt = normalt;
 function parserwrap(parser) {
     return {
-        start: function (src, jsonic, meta, parent_ctx) {
+        start: function (src, 
+        // jsonic: Jsonic,
+        jsonic, meta, parent_ctx) {
             try {
                 return parser.start(src, jsonic, meta, parent_ctx);
             }
@@ -544,7 +575,7 @@ function parserwrap(parser) {
                         src: () => src,
                         root: () => undefined,
                         plgn: () => jsonic.internal().plugins,
-                        rule: parser_1.NONE,
+                        rule: types_1.NONE,
                         xs: -1,
                         v2: token,
                         v1: token,

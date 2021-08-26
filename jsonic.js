@@ -1,18 +1,18 @@
 "use strict";
 /* Copyright (c) 2013-2021 Richard Rodger, MIT License */
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.makePoint = exports.makeToken = exports.make = exports.util = exports.RuleSpec = exports.Rule = exports.Parser = exports.Lex = exports.JsonicError = exports.Jsonic = void 0;
+exports.makeLex = exports.makeRuleSpec = exports.makeRule = exports.makePoint = exports.makeToken = exports.make = exports.util = exports.Parser = exports.JsonicError = exports.Jsonic = void 0;
 const utility_1 = require("./utility");
 Object.defineProperty(exports, "JsonicError", { enumerable: true, get: function () { return utility_1.JsonicError; } });
 const defaults_1 = require("./defaults");
 const lexer_1 = require("./lexer");
-Object.defineProperty(exports, "Lex", { enumerable: true, get: function () { return lexer_1.Lex; } });
 Object.defineProperty(exports, "makePoint", { enumerable: true, get: function () { return lexer_1.makePoint; } });
 Object.defineProperty(exports, "makeToken", { enumerable: true, get: function () { return lexer_1.makeToken; } });
+Object.defineProperty(exports, "makeLex", { enumerable: true, get: function () { return lexer_1.makeLex; } });
 const parser_1 = require("./parser");
+Object.defineProperty(exports, "makeRule", { enumerable: true, get: function () { return parser_1.makeRule; } });
+Object.defineProperty(exports, "makeRuleSpec", { enumerable: true, get: function () { return parser_1.makeRuleSpec; } });
 Object.defineProperty(exports, "Parser", { enumerable: true, get: function () { return parser_1.Parser; } });
-Object.defineProperty(exports, "Rule", { enumerable: true, get: function () { return parser_1.Rule; } });
-Object.defineProperty(exports, "RuleSpec", { enumerable: true, get: function () { return parser_1.RuleSpec; } });
 // TODO: remove - too much for an API!
 let util = {
     tokenize: utility_1.tokenize,
@@ -58,14 +58,8 @@ function make(param_options, parent) {
         if (null != change_options && utility_1.S.object === typeof (change_options)) {
             utility_1.deep(merged_options, change_options);
             utility_1.configure(jsonic, internal.config, merged_options);
-            // for (let k in merged_options) {
-            //   jsonic.options[k] = merged_options[k]
-            // }
-            // assign(jsonic.token, internal.config?.t)
             let parser = jsonic.internal().parser;
-            //if (parser) {
             internal.parser = parser.clone(merged_options, internal.config);
-            //}
         }
         return { ...jsonic.options };
     };
@@ -133,34 +127,33 @@ function make(param_options, parent) {
         internal.parser = new parser_1.Parser(merged_options, internal.config);
         internal.parser.init();
     }
-    // As with options, provide direct access to tokens.
-    // assign(jsonic.token, internal.config.t)
-    // As with options, provide direct access to fixed token src strings.
-    // assign(jsonic.fixed, internal.config.fixed.ref)
     // Hide internals where you can still find them.
     utility_1.defprop(jsonic, 'internal', { value: () => internal });
     return jsonic;
 }
 exports.make = make;
-let Jsonic = make();
+let root = undefined;
+let Jsonic = root = make();
 exports.Jsonic = Jsonic;
-// Keep global top level safe
-let top = Jsonic;
-delete top.options;
-delete top.use;
-delete top.rule;
-delete top.lex;
-delete top.token;
-delete top.fixed;
+// The global root Jsonic instance cannot be modified.
+// use Jsonic.make() to create a modifiable instance.
+delete root.options;
+delete root.use;
+delete root.rule;
+delete root.lex;
+delete root.token;
+delete root.fixed;
 // Provide deconstruction export names
-Jsonic.Jsonic = Jsonic;
-Jsonic.JsonicError = utility_1.JsonicError;
-Jsonic.Parser = parser_1.Parser;
-Jsonic.Rule = parser_1.Rule;
-Jsonic.RuleSpec = parser_1.RuleSpec;
-// Jsonic.Alt = Alt
-Jsonic.util = util;
-Jsonic.make = make;
+root.Jsonic = root;
+root.JsonicError = utility_1.JsonicError;
+root.Parser = parser_1.Parser;
+root.makeLex = lexer_1.makeLex;
+root.makeToken = lexer_1.makeToken;
+root.makePoint = lexer_1.makePoint;
+root.makeRule = parser_1.makeRule;
+root.makeRuleSpec = parser_1.makeRuleSpec;
+root.util = util;
+root.make = make;
 exports.default = Jsonic;
 // Build process uncomments this to enable more natural Node.js requires.
 /* $lab:coverage:off$ */

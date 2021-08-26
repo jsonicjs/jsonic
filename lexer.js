@@ -1,7 +1,7 @@
 "use strict";
 /* Copyright (c) 2013-2021 Richard Rodger, MIT License */
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.makeTextMatcher = exports.makeNumberMatcher = exports.makeCommentMatcher = exports.makeStringMatcher = exports.makeLineMatcher = exports.makeSpaceMatcher = exports.makeFixedMatcher = exports.makeToken = exports.makePoint = exports.Lex = void 0;
+exports.makeTextMatcher = exports.makeNumberMatcher = exports.makeCommentMatcher = exports.makeStringMatcher = exports.makeLineMatcher = exports.makeSpaceMatcher = exports.makeFixedMatcher = exports.makeToken = exports.makePoint = exports.makeLex = void 0;
 const types_1 = require("./types");
 const utility_1 = require("./utility");
 class PointImpl {
@@ -11,7 +11,6 @@ class PointImpl {
         this.rI = 1;
         this.cI = 1;
         this.token = [];
-        this.end = undefined;
         this.len = len;
         if (null != sI) {
             this.sI = sI;
@@ -36,7 +35,15 @@ exports.makePoint = makePoint;
 // Tokens from the lexer.
 class TokenImpl {
     constructor(name, tin, val, src, pnt, use, why) {
-        this.isToken = true; // Type guard.
+        this.isToken = true;
+        this.name = types_1.EMPTY;
+        this.tin = -1;
+        this.val = undefined;
+        this.src = types_1.EMPTY;
+        this.sI = -1;
+        this.rI = -1;
+        this.cI = -1;
+        this.len = -1;
         this.name = name;
         this.tin = tin;
         this.src = src;
@@ -469,8 +476,12 @@ function subMatchFixed(lex, first, tsrc) {
     }
     return out;
 }
-class Lex {
+class LexImpl {
     constructor(ctx) {
+        this.src = types_1.EMPTY;
+        this.ctx = {};
+        this.cfg = {};
+        this.pnt = makePoint(-1);
         this.ctx = ctx;
         this.src = ctx.src();
         this.cfg = ctx.cfg;
@@ -530,5 +541,6 @@ class Lex {
             this.src[this.pnt.sI], undefined, undefined, why);
     }
 }
-exports.Lex = Lex;
+const makeLex = (...params) => new LexImpl(...params);
+exports.makeLex = makeLex;
 //# sourceMappingURL=lexer.js.map

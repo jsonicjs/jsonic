@@ -16,7 +16,7 @@ const expect = Code.expect
 
 const I = Util.inspect
 
-const { Jsonic, Lex, JsonicError } = require('..')
+const { Jsonic, makeLex, JsonicError } = require('..')
 
 let j = Jsonic.make()
 let config = j.internal().config
@@ -43,7 +43,7 @@ function alleq(ta) {
 
 
 function lexstart(src) {
-  let lex = new Lex({src:()=>src, cfg:config, opts:j.options})
+  let lex = makeLex({src:()=>src, cfg:config, opts:j.options})
   return lex.next.bind(lex)
 }
 

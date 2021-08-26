@@ -16,7 +16,7 @@ const expect = Code.expect
 
 const I = Util.inspect
 
-const { Jsonic, JsonicError, Lexer, Rule, RuleSpec } = require('..')
+const { Jsonic, JsonicError, makeRule, makeRuleSpec } = require('..')
 const Exhaust = require('./exhaust')
 const JsonStandard = require('./json-standard')
 
@@ -646,19 +646,19 @@ describe('jsonic', function () {
 
 
   it('rule-spec', () => {
-    let rs0 = new j.RuleSpec({})
-    expect(rs0.name).equal('-')
+    let rs0 = j.makeRuleSpec({})
+    expect(rs0.name).equal('')
     expect(rs0.def.open).equal([])
     expect(rs0.def.close).equal([])
 
-    let rs1 = new j.RuleSpec({
+    let rs1 = j.makeRuleSpec({
       open:[{},{c:()=>true},{c:{n:{}}},{c:{}}]
     })
     expect(rs1.def.open[0].c).equals(undefined)
     expect(rs1.def.open[1].c).function()
     expect(rs1.def.open[2].c).function()
 
-    let rs2 = new j.RuleSpec({
+    let rs2 = j.makeRuleSpec({
       open:[{c:{n:{a:10,b:20}}}]
     })
     let c0 = rs2.def.open[0].c

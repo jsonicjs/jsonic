@@ -1,9 +1,4 @@
-import type { Relate, TokenMap, Chars, Token } from './types';
-import { OPEN, CLOSE } from './types';
-import type { Jsonic, Tin, Options } from './jsonic';
-import type { Rule, RuleSpec } from './parser';
-import type { Lex } from './lexer';
-import { LexMatcher } from './lexer';
+import type { Context, Config, Relate, Chars, Token, AltSpec, NormAltSpec, Lex, Rule, RuleSpec, Tin, Options } from './types';
 declare const keys: (x: any) => string[];
 declare const entries: (x: any) => [string, unknown][];
 declare const assign: (x: any, ...r: any[]) => any;
@@ -54,118 +49,6 @@ declare class JsonicError extends SyntaxError {
         stack: string | undefined;
     };
 }
-declare type Config = {
-    lex: {
-        match: LexMatcher[];
-        empty: boolean;
-    };
-    rule: {
-        start: string;
-        maxmul: number;
-        finish: boolean;
-        include: string[];
-        exclude: string[];
-    };
-    fixed: {
-        lex: boolean;
-        token: TokenMap;
-        ref: Record<string | Tin, Tin | string>;
-    };
-    tokenSet: {
-        ignore: {
-            [name: number]: boolean;
-        };
-    };
-    space: {
-        lex: boolean;
-        chars: Chars;
-    };
-    line: {
-        lex: boolean;
-        chars: Chars;
-        rowChars: Chars;
-    };
-    text: {
-        lex: boolean;
-    };
-    number: {
-        lex: boolean;
-        hex: boolean;
-        oct: boolean;
-        bin: boolean;
-        sep: boolean;
-        sepChar?: string | null;
-    };
-    string: {
-        lex: boolean;
-        quoteMap: Chars;
-        escMap: Relate;
-        escChar?: string;
-        escCharCode?: number;
-        multiChars: Chars;
-        allowUnknown: boolean;
-    };
-    value: {
-        lex: boolean;
-        map: {
-            [src: string]: {
-                val: any;
-            };
-        };
-    };
-    comment: {
-        lex: boolean;
-        marker: {
-            line: boolean;
-            start: string;
-            end?: string;
-            lex: boolean;
-        }[];
-    };
-    map: {
-        extend: boolean;
-        merge?: (prev: any, curr: any) => any;
-    };
-    debug: {
-        get_console: () => any;
-        maxlen: number;
-        print: {
-            config: boolean;
-        };
-    };
-    error: {
-        [code: string]: string;
-    };
-    hint: any;
-    rePart: any;
-    re: any;
-    tI: number;
-    t: any;
-};
-declare type Context = {
-    uI: number;
-    opts: Options;
-    cfg: Config;
-    meta: Relate;
-    src: () => string;
-    root: () => any;
-    plgn: () => Plugin[];
-    rule: Rule;
-    xs: Tin;
-    v2: Token;
-    v1: Token;
-    t0: Token;
-    t1: Token;
-    tC: number;
-    rs: Rule[];
-    rsm: {
-        [name: string]: RuleSpec;
-    };
-    next: () => Token;
-    log?: (...rest: any) => undefined;
-    F: (s: any) => string;
-    use: Relate;
-};
 declare function configure(jsonic: any, incfg: Config | undefined, opts: Options): Config;
 declare function tokenize<R extends string | Tin, T extends (R extends Tin ? string : Tin)>(ref: R, cfg: Config, jsonic?: any): T;
 declare function mesc(s: string, _?: any): any;
@@ -186,8 +69,8 @@ declare function clone(class_instance: any): any;
 declare function charset(...parts: (string | object | boolean | undefined)[]): Chars;
 declare function clean<T>(o: T): T;
 declare function filterRules(rs: RuleSpec, cfg: Config): RuleSpec;
+declare function normalt(a: AltSpec): NormAltSpec;
 declare function parserwrap(parser: any): {
-    start: (src: string, jsonic: Jsonic, meta?: any, parent_ctx?: any) => any;
+    start: (src: string, jsonic: any, meta?: any, parent_ctx?: any) => any;
 };
-export type { Config, Context, };
-export { CLOSE, JsonicError, OPEN, S, assign, badlex, charset, clean, clone, configure, deep, defprop, entries, errdesc, errinject, escre, extract, filterRules, isarr, keys, makelog, mesc, omap, regexp, snip, srcfmt, tokenize, trimstk, parserwrap, };
+export { JsonicError, S, assign, badlex, charset, clean, clone, configure, deep, defprop, entries, errdesc, errinject, escre, extract, filterRules, isarr, keys, makelog, mesc, omap, regexp, snip, srcfmt, tokenize, trimstk, parserwrap, normalt, };

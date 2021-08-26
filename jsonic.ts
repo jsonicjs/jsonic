@@ -36,23 +36,43 @@
 
 
 import type {
-  Relate,
-  Tin,
-  Point,
-  Token,
-  StrMap,
-} from './types'
-
-import {
-} from './types'
-
-
-
-import {
   Config,
   Context,
-  JsonicError,
 
+  Counters,
+  Relate,
+  Tin,
+
+  Point,
+  Token,
+  Rule,
+  RuleSpec,
+  Lex,
+
+  RuleDefiner,
+  RuleState,
+  RuleSpecMap,
+
+  LexMatcher,
+  MakeLexMatcher,
+
+  AltSpec,
+  AltAction,
+  AltCond,
+  AltModifier,
+  AltError,
+
+  Options,
+  JsonicAPI,
+  JsonicParse,
+  Plugin,
+
+} from './types'
+
+
+
+import {
+  JsonicError,
   S,
   assign,
   badlex,
@@ -77,180 +97,17 @@ import {
 
 import { defaults } from './defaults'
 
-
-import type {
-  MakeLexMatcher,
-} from './lexer'
-
 import {
-  Lex,
   makePoint,
   makeToken,
+  makeLex,
 } from './lexer'
 
-
-import type {
-  AltAction,
-} from './parser'
-
 import {
-  Parser,
-  Rule,
-  RuleDefiner,
-  RuleSpec,
-  RuleSpecMap,
+  makeRule,
+  makeRuleSpec,
+  Parser
 } from './parser'
-
-
-// The full exported type.
-type Jsonic =
-  JsonicParse & // A function that parses.
-  JsonicAPI & // A utility with API methods.
-  { [prop: string]: any } // Extensible by plugin decoration.
-
-
-// The main top-level utility function. 
-type JsonicParse = (src: any, meta?: any, parent_ctx?: any) => any
-
-
-// The core API is exposed as methods on the main utility function.
-type JsonicAPI = {
-
-  // Explicit parse method. 
-  parse: JsonicParse
-
-  // Get and set partial option trees.
-  options: Options & ((change_options?: Relate) => Relate)
-
-  // Create a new Jsonic instance to customize.
-  make: (options?: Options) => Jsonic
-
-  // Use a plugin
-  use: (plugin: Plugin, plugin_options?: Relate) => Jsonic
-
-  // Get and set parser rules.
-  rule: (name?: string, define?: RuleDefiner) => RuleSpec | RuleSpecMap
-
-  // Provide new lex matcher.
-  lex: (matchmaker: MakeLexMatcher) => void
-
-  // Token get and set for plugins. Reference by either name or Tin.
-  token:
-  { [ref: string]: Tin } &
-  { [ref: number]: string } &
-  (<A extends string | Tin>(ref: A) => A extends string ? Tin : string)
-
-  // Fixed token src get and set for plugins. Reference by either src or Tin.
-  fixed:
-  { [ref: string]: Tin } &
-  { [ref: number]: string } &
-  (<A extends string | Tin>(ref: A) => A extends string ? Tin : string)
-
-  // Unique identifier string for each Jsonic instance.
-  id: string
-
-  // Provide identifier for string conversion.
-  toString: () => string
-
-  util: Relate
-}
-
-
-// Define a plugin to extend the provided Jsonic instance.
-type Plugin = ((jsonic: Jsonic, plugin_options?: any) => void | Jsonic) &
-{ defaults?: Relate }
-
-
-// Parsing options. See defaults for commentary.
-type Options = {
-  tag?: string
-  fixed?: {
-    lex?: boolean
-    token?: StrMap
-  }
-  tokenSet?: {
-    ignore?: string[]
-  }
-  space?: {
-    lex?: boolean
-    chars?: string
-  }
-  line?: {
-    lex?: boolean
-    chars?: string
-    rowChars?: string
-  },
-  text?: {
-    lex?: boolean
-  }
-  number?: {
-    lex?: boolean
-    hex?: boolean
-    oct?: boolean
-    bin?: boolean
-    sep?: string | null
-  }
-  comment?: {
-    lex?: boolean
-    marker?: {
-      line?: boolean
-      start?: string
-      end?: string
-      lex?: boolean
-    }[]
-  }
-  string?: {
-    lex?: boolean
-    chars?: string
-    multiChars?: string
-    escapeChar?: string
-    escape?: { [char: string]: string | null }
-    allowUnknown?: boolean
-  }
-  map?: {
-    extend?: boolean
-    merge?: (prev: any, curr: any) => any
-  }
-  value?: {
-    lex?: boolean
-    map?: { [src: string]: { val: any } }
-  }
-  plugin?: Relate
-  debug?: {
-    get_console?: () => any
-    maxlen?: number
-    print?: {
-      config?: boolean
-    }
-  }
-  error?: { [code: string]: string }
-  hint?: any
-  lex?: {
-    empty?: boolean
-    match?: MakeLexMatcher[]
-  }
-  rule?: {
-    start?: string
-    finish?: boolean
-    maxmul?: number
-    include?: string
-    exclude?: string
-  },
-  config?: {
-    modify?: { [plugin_name: string]: (config: Config, options: Options) => void }
-  },
-  parser?: {
-    start?: (
-      lexer: any, //Lexer,
-      src: string,
-      jsonic: any, //Jsonic,
-      meta?: any,
-      parent_ctx?: any
-    ) => any
-  }
-}
-
-
 
 
 // TODO: remove - too much for an API!
@@ -273,6 +130,15 @@ let util = {
   escre,
   regexp,
 }
+
+
+// The full library type.
+// NOTE: redeclared here so it can be exported as a type and instance.
+type Jsonic =
+  JsonicParse & // A function that parses.
+  JsonicAPI & // A utility with API methods.
+  { [prop: string]: any } // Extensible by plugin decoration.
+
 
 
 function make(param_options?: Relate, parent?: Jsonic): Jsonic {
@@ -317,15 +183,8 @@ function make(param_options?: Relate, parent?: Jsonic): Jsonic {
     if (null != change_options && S.object === typeof (change_options)) {
       deep(merged_options, change_options)
       configure(jsonic, internal.config, merged_options)
-      // for (let k in merged_options) {
-      //   jsonic.options[k] = merged_options[k]
-      // }
-      // assign(jsonic.token, internal.config?.t)
-
       let parser = jsonic.internal().parser
-      //if (parser) {
       internal.parser = parser.clone(merged_options, internal.config)
-      //}
     }
     return { ...jsonic.options }
   }
@@ -421,17 +280,6 @@ function make(param_options?: Relate, parent?: Jsonic): Jsonic {
     internal.parser.init()
   }
 
-
-
-
-  // As with options, provide direct access to tokens.
-  // assign(jsonic.token, internal.config.t)
-
-
-  // As with options, provide direct access to fixed token src strings.
-  // assign(jsonic.fixed, internal.config.fixed.ref)
-
-
   // Hide internals where you can still find them.
   defprop(jsonic, 'internal', { value: () => internal })
 
@@ -440,52 +288,77 @@ function make(param_options?: Relate, parent?: Jsonic): Jsonic {
 }
 
 
-let Jsonic: Jsonic = make()
+let root: any = undefined
+let Jsonic: Jsonic = root = make()
 
-// Keep global top level safe
-let top: any = Jsonic
-delete top.options
-delete top.use
-delete top.rule
-delete top.lex
-delete top.token
-delete top.fixed
+
+// The global root Jsonic instance cannot be modified.
+// use Jsonic.make() to create a modifiable instance.
+delete root.options
+delete root.use
+delete root.rule
+delete root.lex
+delete root.token
+delete root.fixed
 
 
 // Provide deconstruction export names
-Jsonic.Jsonic = Jsonic
-Jsonic.JsonicError = JsonicError
-Jsonic.Parser = Parser
-Jsonic.Rule = Rule
-Jsonic.RuleSpec = RuleSpec
-// Jsonic.Alt = Alt
-Jsonic.util = util
-Jsonic.make = make
+root.Jsonic = root
+root.JsonicError = JsonicError
+root.Parser = Parser
+root.makeLex = makeLex
+root.makeToken = makeToken
+root.makePoint = makePoint
+root.makeRule = makeRule
+root.makeRuleSpec = makeRuleSpec
+root.util = util
+root.make = make
 
 
 // Export most of the types for use by plugins.
 export type {
   Plugin,
-  Tin,
-  RuleSpecMap,
-  Context,
   Options,
-  AltAction,
-  Point,
+  Config,
+  Context,
+
   Token,
+  Point,
+  Rule,
+  RuleSpec,
+  Lex,
+
+  Counters,
+  Relate,
+  Tin,
+
+  MakeLexMatcher,
+  LexMatcher,
+
+  RuleDefiner,
+  RuleState,
+  RuleSpecMap,
+
+  AltSpec,
+  AltCond,
+  AltAction,
+  AltModifier,
+  AltError,
 }
 
 export {
-  Jsonic,
+  // Jsonic is both a type and a value.
+  Jsonic as Jsonic,
   JsonicError,
-  Lex,
   Parser,
-  Rule,
-  RuleSpec,
   util,
   make,
+
   makeToken,
   makePoint,
+  makeRule,
+  makeRuleSpec,
+  makeLex,
 }
 
 

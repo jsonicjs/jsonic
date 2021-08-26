@@ -1,14 +1,12 @@
-import type { Tin, Token, Point } from './types';
+import type { Tin, Token, Point, Lex, Rule, Config, Context, MakeLexMatcher, Relate } from './types';
 import { INSPECT } from './types';
-import type { Rule, Options } from './jsonic';
-import { Config, Context } from './utility';
 declare class PointImpl implements Point {
     len: number;
     sI: number;
     rI: number;
     cI: number;
     token: Token[];
-    end: Token | undefined;
+    end?: Token;
     constructor(len: number, sI?: number, rI?: number, cI?: number);
     toString(): string;
     [INSPECT](): string;
@@ -17,14 +15,14 @@ declare const makePoint: (len: number, sI?: number | undefined, rI?: number | un
 declare class TokenImpl implements Token {
     isToken: boolean;
     name: string;
-    tin: Tin;
-    val: any;
+    tin: number;
+    val: undefined;
     src: string;
     sI: number;
     rI: number;
     cI: number;
     len: number;
-    use?: any;
+    use?: Relate;
     err?: string;
     why?: string;
     constructor(name: string, tin: Tin, val: any, src: string, pnt: Point, use?: any, why?: string);
@@ -33,8 +31,6 @@ declare class TokenImpl implements Token {
     [INSPECT](): string;
 }
 declare const makeToken: (name: string, tin: number, val: any, src: string, pnt: Point, use?: any, why?: string | undefined) => TokenImpl;
-declare type MakeLexMatcher = (cfg: Config, opts: Options) => LexMatcher;
-declare type LexMatcher = (lex: Lex, rule: Rule) => Token | undefined;
 declare let makeFixedMatcher: MakeLexMatcher;
 declare let makeCommentMatcher: MakeLexMatcher;
 declare let makeTextMatcher: MakeLexMatcher;
@@ -42,16 +38,16 @@ declare let makeNumberMatcher: MakeLexMatcher;
 declare let makeStringMatcher: MakeLexMatcher;
 declare let makeLineMatcher: MakeLexMatcher;
 declare let makeSpaceMatcher: MakeLexMatcher;
-declare class Lex {
-    src: String;
+declare class LexImpl implements Lex {
+    src: string;
     ctx: Context;
     cfg: Config;
-    pnt: Point;
+    pnt: PointImpl;
     constructor(ctx: Context);
     token(ref: Tin | string, val: any, src: string, pnt?: Point, use?: any, why?: string): Token;
     next(rule: Rule): Token;
     tokenize<R extends string | Tin, T extends (R extends Tin ? string : Tin)>(ref: R): T;
     bad(why: string, pstart: number, pend: number): Token;
 }
-export type { MakeLexMatcher, LexMatcher, };
-export { Lex, makePoint, makeToken, makeFixedMatcher, makeSpaceMatcher, makeLineMatcher, makeStringMatcher, makeCommentMatcher, makeNumberMatcher, makeTextMatcher, };
+declare const makeLex: (ctx: Context) => LexImpl;
+export { makeLex, makePoint, makeToken, makeFixedMatcher, makeSpaceMatcher, makeLineMatcher, makeStringMatcher, makeCommentMatcher, makeNumberMatcher, makeTextMatcher, };

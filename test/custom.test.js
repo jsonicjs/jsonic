@@ -16,7 +16,7 @@ const expect = Code.expect
 
 const I = Util.inspect
 
-const { Jsonic, JsonicError, Lexer, Rule, RuleSpec } = require('..')
+const { Jsonic, JsonicError, makeRule, makeRuleSpec } = require('..')
 
 let j = Jsonic
 
@@ -82,7 +82,7 @@ describe('custom', function () {
 
     let AA = j.token.AA
     j.rule('top', () => {
-      return new RuleSpec({
+      return makeRuleSpec({
         open: [
           {
             s:[AA,AA],
@@ -119,7 +119,7 @@ describe('custom', function () {
 
     let AA = j.token.AA
     j.rule('top', () => {
-      let rs = new RuleSpec({
+      let rs = makeRuleSpec({
         open: [{s:[AA,AA]}],
         close:[{s:[AA,AA], m:(rule,ctx,alt)=>(rule.node=2222, undefined)}],
         bo: ()=>(b+='bo;'),
@@ -156,7 +156,7 @@ describe('custom', function () {
 
 
     j.rule('top', () => {
-      let rs = new RuleSpec({
+      let rs = makeRuleSpec({
         ...rsdef,
         // bo: ()=>({err:'unexpected', src:'BO'}),
         bo: (rule,ctx)=>ctx.t0.bad('foo',{bar:'BO'})
@@ -168,7 +168,7 @@ describe('custom', function () {
 
     
     j.rule('top', () => {
-      let rs = new RuleSpec({
+      let rs = makeRuleSpec({
         ...rsdef,
         // ao: ()=>({err:'unexpected', src:'AO'}),
         ao: (rule,ctx)=>ctx.t0.bad('foo',{bar:'AO'})
@@ -179,7 +179,7 @@ describe('custom', function () {
 
     
     j.rule('top', () => {
-      let rs = new RuleSpec({
+      let rs = makeRuleSpec({
         ...rsdef,
         // bc: ()=>({err:'unexpected', src:'BC'}),
         bc: (rule,ctx)=>ctx.t0.bad('foo',{bar:'BC'})
@@ -191,7 +191,7 @@ describe('custom', function () {
 
     
     j.rule('top', () => {
-      let rs = new RuleSpec({
+      let rs = makeRuleSpec({
         ...rsdef,
         // ac: ()=>({err:'unexpected', src:'AC'}),
         ac: (rule,ctx)=>ctx.t0.bad('foo',{bar:'AC'})
@@ -215,7 +215,7 @@ describe('custom', function () {
 
 
     j.rule('top', () => {
-      let rs = new RuleSpec({
+      let rs = makeRuleSpec({
         ...rsdef,
         bo: (rule)=>rule.node='BO',
       })
@@ -224,7 +224,7 @@ describe('custom', function () {
     expect(j('a')).equals('BO')
 
     j.rule('top', () => {
-      let rs = new RuleSpec({
+      let rs = makeRuleSpec({
         ...rsdef,
         bc: (rule)=>rule.node='BC',
       })
@@ -243,7 +243,7 @@ describe('custom', function () {
     let AA = j.token.AA
 
     j.rule('top', () => {
-      let rs = new RuleSpec({
+      let rs = makeRuleSpec({
         bo: ()=>({alt:{m:[{val:'WW'}],test$:1}}),
         ac: (rule,ctx)=>{
           rule.node=rule.open[0].val
@@ -254,7 +254,7 @@ describe('custom', function () {
     expect(j('a')).equals('WW')
 
     j.rule('top', () => {
-      let rs = new RuleSpec({
+      let rs = makeRuleSpec({
         bc: ()=>({alt:{m:[{val:'YY'}],test$:1}}),
         ac: (rule,ctx)=>{
           rule.node=rule.close[0].val
@@ -276,7 +276,7 @@ describe('custom', function () {
     let AA = j.token.AA
 
     j.rule('top', () => {
-      let rs = new RuleSpec({
+      let rs = makeRuleSpec({
         open: [{s:[AA,AA]}],
         bo: (rule)=>(rule.node=[]),
         ao: (rule,ctx)=>({
@@ -286,7 +286,7 @@ describe('custom', function () {
       return rs
     })
     j.rule('foo', () => {
-      return new RuleSpec({
+      return makeRuleSpec({
         open: [{s:[AA]}],
         ac: (rule)=>{
           rule.node[0] = 3333
@@ -309,7 +309,7 @@ describe('custom', function () {
     let AA = j.token.AA
 
     j.rule('top', () => {
-      return new RuleSpec({
+      return makeRuleSpec({
         open: [{s:[]}],
         close: [{s:[AA]}],
         bo: (rule)=>(rule.node=4444),
@@ -328,7 +328,7 @@ describe('custom', function () {
     let TX = j.token.TX
 
     j.rule('top', () => {
-      return new RuleSpec({
+      return makeRuleSpec({
         open: [{s:[AA,TX]}],
         ac: (rule)=>{
           rule.node = rule.open[0].val+rule.open[1].val
@@ -348,7 +348,7 @@ describe('custom', function () {
     let AA = j.token.AA
 
     j.rule('top', () => {
-      return new RuleSpec({
+      return makeRuleSpec({
         open: [{s:[AA]}],
         close: [{s:[AA]}],
         ac: (rule,ctx)=>(ctx.t0.bad('foo', {bar:'AAA'}))
@@ -378,7 +378,7 @@ describe('custom', function () {
     let Tc = j.token.Tc
        
     j.rule('top', ()=>{
-      return new RuleSpec({
+      return makeRuleSpec({
         open: [
           {s:[Ta,[Tb,Tc]]}
         ],
@@ -481,21 +481,21 @@ describe('custom', function () {
     let BT = j.token.B
     
     j.rule('top',(rs)=>{
-      return new RuleSpec({
+      return makeRuleSpec({
         open:[{p:'foo',c:{d:0}}],
         bo:(r)=>r.node={o:'T'},
       })
     })
 
     j.rule('foo',(rs)=>{
-      return new RuleSpec({
+      return makeRuleSpec({
         open:[{s:[FT],p:'bar',c:{d:1}}],
         ao:(r)=>r.node.o+='F',
       })
     })
 
     j.rule('bar',(rs)=>{
-      return new RuleSpec({
+      return makeRuleSpec({
         open:[{s:[BT],c:{d:2}}],
         ao:(r)=>r.node.o+='B'
       })
@@ -505,7 +505,7 @@ describe('custom', function () {
 
 
     j.rule('bar',(rs)=>{
-      return new RuleSpec({
+      return makeRuleSpec({
         open:[{s:[BT],c:{d:0}}],
         ao:(r)=>r.node.o+='B'
       })
@@ -528,21 +528,21 @@ describe('custom', function () {
     let BT = j.token.B
     
     j.rule('top',(rs)=>{
-      return new RuleSpec({
+      return makeRuleSpec({
         open:[{p:'foo',n:{x:1,y:2}}], // incr x=1,y=2
         bo:(r)=>r.node={o:'T'},
       })
     })
 
     j.rule('foo',(rs)=>{
-      return new RuleSpec({
+      return makeRuleSpec({
         open:[{s:[FT],p:'bar',c:{n:{x:1,y:2}}, n:{y:0}}], // (x <= 1, y <= 2) -> pass
         ao:(r)=>r.node.o+='F',
       })
     })
 
     j.rule('bar',(rs)=>{
-      return new RuleSpec({
+      return makeRuleSpec({
         open:[{s:[BT],c:{n:{x:1,y:0}}}], // (x <= 1, y <= 0) -> pass
         ao:(r)=>r.node.o+='B'
       })
@@ -552,7 +552,7 @@ describe('custom', function () {
 
 
     j.rule('bar',(rs)=>{
-      return new RuleSpec({
+      return makeRuleSpec({
         open:[{s:[BT],c:{n:{x:0}}}],  // !(x <= 0) -> fail
         ao:(r)=>r.node.o+='B'
       })

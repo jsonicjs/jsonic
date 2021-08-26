@@ -5,41 +5,29 @@
  */
 
 import type {
+  Context,
+  Config,
   Relate,
-  TokenMap,
   Chars,
   Token,
-} from './types'
-
-
-import {
-  OPEN,
-  CLOSE,
-  EMPTY,
-} from './types'
-
-
-import type {
-  Jsonic,
-  Tin,
-  Options,
-} from './jsonic'
-
-import type {
+  AltSpec,
+  NormAltSpec,
+  Lex,
   Rule,
   RuleSpec,
-} from './parser'
+  Tin,
+  Options,
+} from './types'
+
 
 import {
   NONE,
-} from './parser'
+  EMPTY,
+  STRING,
+} from './types'
 
-import type {
-  Lex,
-} from './lexer'
 
 import {
-  LexMatcher,
   makeToken,
   makePoint,
 } from './lexer'
@@ -136,143 +124,6 @@ class JsonicError extends SyntaxError {
     }
   }
 }
-
-
-// Internal clean configuration built from options by `configure` and LexMatchers.
-type Config = {
-
-  lex: {
-    match: LexMatcher[]
-    empty: boolean
-  }
-
-  rule: {
-    start: string
-    maxmul: number
-    finish: boolean
-    include: string[]
-    exclude: string[]
-  }
-
-  // Fixed tokens (punctuation, operators, keywords, etc.)
-  fixed: {
-    lex: boolean
-    token: TokenMap
-    ref: Record<string | Tin, Tin | string>
-  }
-
-  // Token sets.
-  tokenSet: {
-
-    // Tokens ignored by rules.
-    ignore: {
-      [name: number]: boolean
-    }
-  }
-
-  // Space characters.
-  space: {
-    lex: boolean
-    chars: Chars
-  }
-
-  // Line end characters.
-  line: {
-    lex: boolean
-    chars: Chars
-    rowChars: Chars // Row counting characters.
-  }
-
-  // Unquoted text
-  text: {
-    lex: boolean
-  }
-
-  // Numbers
-  number: {
-    lex: boolean
-    hex: boolean
-    oct: boolean
-    bin: boolean
-    sep: boolean
-    sepChar?: string | null
-  }
-
-  // String quote characters.
-  string: {
-    lex: boolean
-    quoteMap: Chars,
-    escMap: Relate,
-    escChar?: string,
-    escCharCode?: number,
-    multiChars: Chars,
-    allowUnknown: boolean,
-  }
-
-  // Literal values
-  value: {
-    lex: boolean
-    map: { [src: string]: { val: any } }
-  }
-
-  comment: {
-    lex: boolean
-    marker: {
-      line: boolean
-      start: string
-      end?: string
-      lex: boolean
-    }[]
-  }
-
-  map: {
-    extend: boolean
-    merge?: (prev: any, curr: any) => any
-  }
-
-  debug: {
-    get_console: () => any
-    maxlen: number
-    print: {
-      config: boolean
-    }
-  }
-
-  error: { [code: string]: string }
-  hint: any
-
-  rePart: any
-  re: any
-
-  tI: number // Token identifier index.
-  t: any // Token index map.
-}
-
-
-// Current parsing context.
-type Context = {
-  uI: number           // Rule index.
-  opts: Options        // Jsonic instance options.
-  cfg: Config          // Jsonic instance config.
-  meta: Relate             // Parse meta parameters.
-  src: () => string,   // source text to parse.
-  root: () => any,     // Root node.
-  plgn: () => Plugin[] // Jsonic instance plugins.
-  rule: Rule           // Current rule instance.
-  xs: Tin              // Lex state tin.
-  v2: Token            // Previous previous token.
-  v1: Token            // Previous token.
-  t0: Token            // Current token.
-  t1: Token            // Next token. 
-  tC: number           // Token count.
-  rs: Rule[]           // Rule stack.
-  rsm: { [name: string]: RuleSpec } // RuleSpec lookup map (by rule name).
-  next: () => Token    // Move to next token.
-  log?: (...rest: any) => undefined // Log parse/lex step (if defined).
-  F: (s: any) => string // Format arbitrary data as length-limited string.
-  use: Relate               // Custom meta data (for use by plugins)
-}
-
 
 
 // Idempotent normalization of options.
@@ -474,7 +325,7 @@ function tokenize<
   let tokenmap: any = cfg.t
   let token: string | Tin = tokenmap[ref]
 
-  if (null == token && S.string === typeof (ref)) {
+  if (null == token && STRING === typeof (ref)) {
     token = cfg.tI++
     tokenmap[token] = ref
     tokenmap[ref] = token
@@ -831,11 +682,54 @@ function filterRules(rs: RuleSpec, cfg: Config) {
 }
 
 
+// Normalize AltSpec (mutates).
+function normalt(a: AltSpec): NormAltSpec {
+  if (null != a.c) {
+
+    // Convert counter and depth abbrev condition into an actual function.
+    // c: { x:1 } -> rule.n.x <= c.x
+    // c: { d:0 } -> 0 === rule stack depth
+
+    let counters = (a.c as any).n
+    let depth = (a.c as any).d
+    if (null != counters || null != depth) {
+      a.c = (rule: Rule) => {
+        let pass = true
+
+        if (null! + counters) {
+          for (let cn in counters) {
+
+            // Pass if rule counter <= alt counter, (0 if undef).
+            pass = pass && (null == rule.n[cn] ||
+              (rule.n[cn] <= (null == counters[cn] ? 0 : counters[cn])))
+
+          }
+        }
+
+        if (null != depth) {
+          pass = pass && (rule.d <= depth)
+        }
+
+        return pass
+      }
+    }
+  }
+
+  // Ensure groups are a string[]
+  if (STRING === typeof (a.g)) {
+    a.g = (a as any).g.split(/\s*,\s*/)
+  }
+
+  return (a as NormAltSpec)
+}
+
+
 function parserwrap(parser: any) {
   return {
     start: function(
       src: string,
-      jsonic: Jsonic,
+      // jsonic: Jsonic,
+      jsonic: any,
       meta?: any,
       parent_ctx?: any
     ) {
@@ -909,16 +803,8 @@ function parserwrap(parser: any) {
 }
 
 
-
-export type {
-  Config,
-  Context,
-}
-
 export {
-  CLOSE,
   JsonicError,
-  OPEN,
   S,
   assign,
   badlex,
@@ -945,4 +831,5 @@ export {
   tokenize,
   trimstk,
   parserwrap,
+  normalt,
 }

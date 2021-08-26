@@ -9,6 +9,12 @@ import type {
   Tin,
   Token,
   Point,
+  Lex,
+  Rule,
+  Config,
+  Context,
+  MakeLexMatcher,
+  Relate,
 } from './types'
 
 
@@ -18,18 +24,16 @@ import {
 } from './types'
 
 
-
-
 import type {
-  Rule,
+  // Rule,
   Options,
 } from './jsonic'
 
 
 import {
   S,
-  Config,
-  Context,
+  // Config,
+  // Context,
   tokenize,
   snip,
   regexp,
@@ -41,12 +45,12 @@ import {
 
 
 class PointImpl implements Point {
-  len: number = -1
-  sI: number = 0
-  rI: number = 1
-  cI: number = 1
+  len = -1
+  sI = 0
+  rI = 1
+  cI = 1
   token: Token[] = []
-  end: Token | undefined = undefined
+  end?: Token
 
   constructor(len: number, sI?: number, rI?: number, cI?: number) {
     this.len = len
@@ -73,18 +77,18 @@ const makePoint = (...params: ConstructorParameters<typeof PointImpl>) =>
 
 // Tokens from the lexer.
 class TokenImpl implements Token {
-  isToken = true // Type guard.
-  name: string  // Token name.
-  tin: Tin      // Token identification number.
-  val: any      // Value of Token if literal (eg. number).
-  src: string   // Source text of Token.
-  sI: number    // Location of token index in source text.
-  rI: number    // Row location of token in source text.
-  cI: number    // Column location of token in source text.
-  len: number   // Length of Token source text.
-  use?: any     // Custom meta data from plugins goes here.
-  err?: string  // Error code.
-  why?: string  // Internal tracing.
+  isToken = true
+  name = EMPTY
+  tin = -1
+  val = undefined
+  src = EMPTY
+  sI = -1
+  rI = -1
+  cI = -1
+  len = -1
+  use?: Relate
+  err?: string
+  why?: string
 
   constructor(
     name: string,
@@ -143,16 +147,6 @@ class TokenImpl implements Token {
 
 const makeToken = (...params: ConstructorParameters<typeof TokenImpl>) =>
   new TokenImpl(...params)
-
-
-
-// Construct a lexing function based on configuration.
-type MakeLexMatcher = (cfg: Config, opts: Options) => LexMatcher
-
-
-// A lexing function that attempts to match tokens.
-type LexMatcher = (lex: Lex, rule: Rule) => Token | undefined
-
 
 
 
@@ -710,11 +704,11 @@ function subMatchFixed(
 }
 
 
-class Lex {
-  src: String
-  ctx: Context
-  cfg: Config
-  pnt: Point
+class LexImpl implements Lex {
+  src = EMPTY
+  ctx = ({} as Context)
+  cfg = ({} as Config)
+  pnt = makePoint(-1)
 
   constructor(ctx: Context) {
     this.ctx = ctx
@@ -835,14 +829,13 @@ class Lex {
   }
 }
 
+const makeLex = (...params: ConstructorParameters<typeof LexImpl>) =>
+  new LexImpl(...params)
 
-export type {
-  MakeLexMatcher,
-  LexMatcher,
-}
+
 
 export {
-  Lex,
+  makeLex,
   makePoint,
   makeToken,
   makeFixedMatcher,
