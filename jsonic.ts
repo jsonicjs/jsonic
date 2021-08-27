@@ -5,6 +5,7 @@
  */
 
 
+// TODO: put grammar in grammar.ts
 // TODO: Context provides current jsonic instance: { ..., jsonic: ()=>instance }
 // TODO: docs: ref https://wiki.alopex.li/OnParsers
 // TODO: docs: nice tree diagram of rules (generate?)
@@ -70,6 +71,13 @@ import type {
 } from './types'
 
 
+import {
+  OPEN,
+  CLOSE,
+  BEFORE,
+  AFTER,
+} from './types'
+
 
 import {
   JsonicError,
@@ -110,8 +118,12 @@ import {
 } from './parser'
 
 
+import {
+  grammar
+} from './grammar'
+
 // TODO: remove - too much for an API!
-let util = {
+const util = {
   tokenize,
   srcfmt,
   deep,
@@ -250,6 +262,9 @@ function make(param_options?: Relate, parent?: Jsonic): Jsonic {
   // Add API methods to the core utility function.
   assign(jsonic, api)
 
+  // Hide internals where you can still find them.
+  defprop(jsonic, 'internal', { value: () => internal })
+
 
   if (parent) {
     // Transfer extra parent properties (preserves plugin decorations, etc).
@@ -268,20 +283,15 @@ function make(param_options?: Relate, parent?: Jsonic): Jsonic {
     assign(jsonic.token, internal.config.t)
 
     internal.plugins = [...parent_internal.plugins]
-
     internal.parser = parent_internal.parser.clone(merged_options, internal.config)
   }
   else {
     internal.config = configure(jsonic, undefined, merged_options)
-
     internal.plugins = []
-
     internal.parser = new Parser(merged_options, internal.config)
-    internal.parser.init()
+    grammar(jsonic)
   }
 
-  // Hide internals where you can still find them.
-  defprop(jsonic, 'internal', { value: () => internal })
 
 
   return jsonic
@@ -359,6 +369,11 @@ export {
   makeRule,
   makeRuleSpec,
   makeLex,
+
+  OPEN,
+  CLOSE,
+  BEFORE,
+  AFTER,
 }
 
 

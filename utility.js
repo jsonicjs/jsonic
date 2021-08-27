@@ -55,7 +55,6 @@ const S = {
     parse: 'parse',
     error: 'error',
     none: 'none',
-    END_OF_SOURCE: 'END_OF_SOURCE',
     imp_map: 'imp,map',
     imp_list: 'imp,list',
     imp_null: 'imp,null',

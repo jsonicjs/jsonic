@@ -7,6 +7,8 @@
 
 export const OPEN: RuleState = 'o'
 export const CLOSE: RuleState = 'c'
+export const BEFORE: RuleStep = 'b'
+export const AFTER: RuleStep = 'a'
 export const EMPTY = ''
 export const INSPECT = Symbol.for('nodejs.util.inspect.custom')
 
@@ -299,6 +301,11 @@ export type StrMap = { [name: string]: string }
 export type RuleState = 'o' | 'c'
 
 
+// When executing a Rule state (attempting a match), an action can be
+// executed BEFORE ('b') or AFTER ('a') the match.
+export type RuleStep = 'b' | 'a'
+
+
 // A lexing function that attempts to match tokens.
 export type LexMatcher = (lex: Lex, rule: Rule) => Token | undefined
 
@@ -364,7 +371,7 @@ export interface AltSpec {
   c?: AltCond |
   {               // Condition convenience definitions (all must pass).
     d?: number    // - Match if rule stack depth <= d.
-    n: Counters   // - Match if rule counters <= respective given values.
+    n?: Counters  // - Match if rule counters <= respective given values.
   }
 
   n?: Counters    // Increment counters by specified amounts.
@@ -411,7 +418,7 @@ export interface Rule {
 
 
 export type RuleSpecMap = { [name: string]: RuleSpec }
-export type RuleDefiner = (rs: RuleSpec, rsm: RuleSpecMap) => RuleSpec
+export type RuleDefiner = (rs: RuleSpec, rsm: RuleSpecMap) => void | RuleSpec
 
 
 // Normalized parse-alternate.
@@ -429,8 +436,13 @@ export type AltCond = (rule: Rule, ctx: Context, alt: AltMatch) => boolean
 export type AltModifier = (rule: Rule, ctx: Context, alt: AltMatch, next: Rule) => AltMatch
 
 
-// Execute some action when alternate matches.
-export type AltAction = (rule: Rule, ctx: Context, alt: AltMatch) => void | Token
+// Execute an action when alternate matches.
+export type AltAction = (rule: Rule, ctx: Context, alt: AltMatch) => any
+
+
+// Execute an action for a given Rule state and step:
+// bo: BEFORE OPEN, ao: AFTER OPEN, bc: BEFORE CLOSE, ac: AFTER CLOSE.
+export type StateAction = (rule: Rule, ctx: Context) => any
 
 
 // Generate an error token (with an appropriate code).
@@ -453,6 +465,8 @@ export interface AltMatch {
   e?: Token       // Errored on this token.
 }
 
+
+// TODO: delete
 export type RuleDef = {
   // TODO: rename to `o`
   open?: any[]
@@ -468,26 +482,24 @@ export type RuleDef = {
 export interface RuleSpec {
   name: string
   def: any
-  bo: boolean
-  ao: boolean
-  bc: boolean
-  ac: boolean
 
   add(state: RuleState, a: AltSpec | AltSpec[], flags: any): RuleSpec
-
   open(a: AltSpec | AltSpec[], flags?: any): RuleSpec
-
   close(a: AltSpec | AltSpec[], flags?: any): RuleSpec
+  action(step: RuleStep, state: RuleState, action: StateAction): RuleSpec
+  bo(action: StateAction): RuleSpec
+  ao(action: StateAction): RuleSpec
+  bc(action: StateAction): RuleSpec
+  ac(action: StateAction): RuleSpec
 
   process(rule: Rule, ctx: Context, state: RuleState): Rule
 
-  // First match wins.
-  // NOTE: input AltSpecs are used to build the Alt output.
-  parse_alts(is_open: boolean, alts: NormAltSpec[], rule: Rule, ctx: Context): AltMatch
+  // First alternate to match token stream wins.
+  parse_alts(is_open: boolean, alts: NormAltSpec[], rule: Rule, ctx: Context):
+    AltMatch
 
   bad(tkn: Token, rule: Rule, ctx: Context, parse: { is_open: boolean }): Rule
 }
-
 
 
 // The main top-level utility function. 

@@ -27,7 +27,6 @@ declare const S: {
     parse: string;
     error: string;
     none: string;
-    END_OF_SOURCE: string;
     imp_map: string;
     imp_list: string;
     imp_null: string;

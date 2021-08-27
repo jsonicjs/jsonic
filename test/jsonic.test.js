@@ -646,19 +646,21 @@ describe('jsonic', function () {
 
 
   it('rule-spec', () => {
-    let rs0 = j.makeRuleSpec({})
+    let cfg = {}
+
+    let rs0 = j.makeRuleSpec(cfg,{})
     expect(rs0.name).equal('')
     expect(rs0.def.open).equal([])
     expect(rs0.def.close).equal([])
 
-    let rs1 = j.makeRuleSpec({
+    let rs1 = j.makeRuleSpec(cfg,{
       open:[{},{c:()=>true},{c:{n:{}}},{c:{}}]
     })
     expect(rs1.def.open[0].c).equals(undefined)
     expect(rs1.def.open[1].c).function()
     expect(rs1.def.open[2].c).function()
 
-    let rs2 = j.makeRuleSpec({
+    let rs2 = j.makeRuleSpec(cfg,{
       open:[{c:{n:{a:10,b:20}}}]
     })
     let c0 = rs2.def.open[0].c

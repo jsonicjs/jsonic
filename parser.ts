@@ -7,6 +7,8 @@
 
 import type {
   RuleState,
+  RuleStep,
+  StateAction,
   Tin,
   Token,
   Config,
@@ -31,6 +33,8 @@ import type {
 import {
   OPEN,
   CLOSE,
+  BEFORE,
+  AFTER,
   EMPTY,
   NONE,
 } from './types'
@@ -86,12 +90,11 @@ class RuleImpl implements Rule {
 
     this.node = node
     this.d = ctx.rs.length
-    this.bo = false !== spec.bo
-    this.ao = false !== spec.ao
-    this.bc = false !== spec.bc
-    this.ac = false !== spec.ac
+    this.bo = null != spec.def.bo
+    this.ao = null != spec.def.ao
+    this.bc = null != spec.def.bc
+    this.ac = null != spec.def.ac
   }
-
 
   process(ctx: Context): Rule {
     let rule = this.spec.process(this, ctx, this.state)
@@ -129,12 +132,10 @@ const EMPTY_ALT = makeAltMatch()
 class RuleSpecImpl implements RuleSpec {
   name = EMPTY
   def: any // TODO: hoist open, close
-  bo = true
-  ao = true
-  bc = true
-  ac = true
+  cfg: Config
 
-  constructor(def: any) {
+  constructor(cfg: Config, def: any) {
+    this.cfg = cfg
     this.def = def || {}
 
     // Null Alt entries are allowed and ignored as a convenience.
@@ -151,6 +152,7 @@ class RuleSpecImpl implements RuleSpec {
     let inject = flags?.last ? 'push' : 'unshift'
     let aa = ((isarr(a) ? a : [a]) as AltSpec[]).map(a => normalt(a))
     this.def[('o' === state ? 'open' : 'close')][inject](...aa)
+    filterRules(this, this.cfg)
     return this
   }
 
@@ -159,9 +161,33 @@ class RuleSpecImpl implements RuleSpec {
     return this.add('o', a, flags)
   }
 
+
   close(a: AltSpec | AltSpec[], flags?: any): RuleSpec {
     return this.add('c', a, flags)
   }
+
+
+  action(step: RuleStep, state: RuleState, action: StateAction): RuleSpec {
+    this.def[step + state] = action
+    return this
+  }
+
+  bo(action: StateAction) {
+    return this.action(BEFORE, OPEN, action)
+  }
+
+  ao(action: StateAction) {
+    return this.action(AFTER, OPEN, action)
+  }
+
+  bc(action: StateAction) {
+    return this.action(BEFORE, CLOSE, action)
+  }
+
+  ac(action: StateAction) {
+    return this.action(BEFORE, CLOSE, action)
+  }
+
 
 
   process(rule: Rule, ctx: Context, state: RuleState): Rule {
@@ -431,6 +457,7 @@ class Parser {
     this.cfg = cfg
   }
 
+  /*
   init() {
     let t = this.cfg.t
 
@@ -453,7 +480,7 @@ class Parser {
     let finish: AltError = (_rule: Rule, ctx: Context) => {
       if (!this.cfg.rule.finish) {
         // TODO: needs own error code
-        ctx.t0.src = S.END_OF_SOURCE
+        ctx.t0.src = 'END_OF_SOURCE'
         return ctx.t0
       }
     }
@@ -685,12 +712,12 @@ class Parser {
 
     // TODO: just create the RuleSpec directly
     this.rsm = keys(rules).reduce((rsm: any, rn: string) => {
-      rsm[rn] = filterRules(makeRuleSpec(rules[rn]), this.cfg)
+      rsm[rn] = filterRules(makeRuleSpec(this.cfg, rules[rn]), this.cfg)
       rsm[rn].name = rn
       return rsm
     }, {})
   }
-
+  */
 
 
   // Multi-functional get/set for rules.
@@ -711,6 +738,7 @@ class Parser {
 
     // Else add or redefine a rule by name.
     else if (undefined !== define) {
+      rs = this.rsm[name] = (this.rsm[name] || makeRuleSpec(this.cfg, {}))
       rs = this.rsm[name] = (define(this.rsm[name], this.rsm) || this.rsm[name])
       rs.name = name
 

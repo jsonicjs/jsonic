@@ -1,5 +1,7 @@
 export declare const OPEN: RuleState;
 export declare const CLOSE: RuleState;
+export declare const BEFORE: RuleStep;
+export declare const AFTER: RuleStep;
 export declare const EMPTY = "";
 export declare const INSPECT: unique symbol;
 export declare const NONE: Rule;
@@ -236,6 +238,7 @@ export declare type StrMap = {
     [name: string]: string;
 };
 export declare type RuleState = 'o' | 'c';
+export declare type RuleStep = 'b' | 'a';
 export declare type LexMatcher = (lex: Lex, rule: Rule) => Token | undefined;
 export declare type MakeLexMatcher = (cfg: Config, opts: Options) => LexMatcher;
 export interface Point {
@@ -268,7 +271,7 @@ export interface AltSpec {
     b?: number;
     c?: AltCond | {
         d?: number;
-        n: Counters;
+        n?: Counters;
     };
     n?: Counters;
     a?: AltAction;
@@ -302,14 +305,15 @@ export interface Rule {
 export declare type RuleSpecMap = {
     [name: string]: RuleSpec;
 };
-export declare type RuleDefiner = (rs: RuleSpec, rsm: RuleSpecMap) => RuleSpec;
+export declare type RuleDefiner = (rs: RuleSpec, rsm: RuleSpecMap) => void | RuleSpec;
 export interface NormAltSpec extends AltSpec {
     c?: AltCond;
     g?: string[];
 }
 export declare type AltCond = (rule: Rule, ctx: Context, alt: AltMatch) => boolean;
 export declare type AltModifier = (rule: Rule, ctx: Context, alt: AltMatch, next: Rule) => AltMatch;
-export declare type AltAction = (rule: Rule, ctx: Context, alt: AltMatch) => void | Token;
+export declare type AltAction = (rule: Rule, ctx: Context, alt: AltMatch) => any;
+export declare type StateAction = (rule: Rule, ctx: Context) => any;
 export declare type AltError = (rule: Rule, ctx: Context, alt: AltMatch) => Token | undefined;
 export interface AltMatch {
     m: Token[];
@@ -335,13 +339,14 @@ export declare type RuleDef = {
 export interface RuleSpec {
     name: string;
     def: any;
-    bo: boolean;
-    ao: boolean;
-    bc: boolean;
-    ac: boolean;
     add(state: RuleState, a: AltSpec | AltSpec[], flags: any): RuleSpec;
     open(a: AltSpec | AltSpec[], flags?: any): RuleSpec;
     close(a: AltSpec | AltSpec[], flags?: any): RuleSpec;
+    action(step: RuleStep, state: RuleState, action: StateAction): RuleSpec;
+    bo(action: StateAction): RuleSpec;
+    ao(action: StateAction): RuleSpec;
+    bc(action: StateAction): RuleSpec;
+    ac(action: StateAction): RuleSpec;
     process(rule: Rule, ctx: Context, state: RuleState): Rule;
     parse_alts(is_open: boolean, alts: NormAltSpec[], rule: Rule, ctx: Context): AltMatch;
     bad(tkn: Token, rule: Rule, ctx: Context, parse: {

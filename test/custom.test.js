@@ -79,10 +79,11 @@ describe('custom', function () {
   it('parser-handler-actives', () => {
     let b = ''
     let j = make_empty({rule:{start:'top'}})
-
+    let cfg = j.internal().config
+    
     let AA = j.token.AA
     j.rule('top', () => {
-      return makeRuleSpec({
+      return makeRuleSpec(cfg,{
         open: [
           {
             s:[AA,AA],
@@ -113,13 +114,15 @@ describe('custom', function () {
   })
 
 
+  /*
   it('parser-rulespec-actives', () => {
     let b = ''
     let j = make_empty({rule:{start:'top'}})
+    let cfg = j.internal().config
 
     let AA = j.token.AA
     j.rule('top', () => {
-      let rs = makeRuleSpec({
+      let rs = makeRuleSpec(cfg,{
         open: [{s:[AA,AA]}],
         close:[{s:[AA,AA], m:(rule,ctx,alt)=>(rule.node=2222, undefined)}],
         bo: ()=>(b+='bo;'),
@@ -141,11 +144,13 @@ describe('custom', function () {
     expect(j('a')).equal(2222)
     expect(b).equal('')
   })
-
+  */
+  
 
   it('parser-action-errors', () => {
     let b = ''
     let j = make_empty({rule:{start:'top'}})
+    let cfg = j.internal().config
 
     let AA = j.token.AA
 
@@ -156,7 +161,7 @@ describe('custom', function () {
 
 
     j.rule('top', () => {
-      let rs = makeRuleSpec({
+      let rs = makeRuleSpec(cfg,{
         ...rsdef,
         // bo: ()=>({err:'unexpected', src:'BO'}),
         bo: (rule,ctx)=>ctx.t0.bad('foo',{bar:'BO'})
@@ -168,7 +173,7 @@ describe('custom', function () {
 
     
     j.rule('top', () => {
-      let rs = makeRuleSpec({
+      let rs = makeRuleSpec(cfg,{
         ...rsdef,
         // ao: ()=>({err:'unexpected', src:'AO'}),
         ao: (rule,ctx)=>ctx.t0.bad('foo',{bar:'AO'})
@@ -179,7 +184,7 @@ describe('custom', function () {
 
     
     j.rule('top', () => {
-      let rs = makeRuleSpec({
+      let rs = makeRuleSpec(cfg,{
         ...rsdef,
         // bc: ()=>({err:'unexpected', src:'BC'}),
         bc: (rule,ctx)=>ctx.t0.bad('foo',{bar:'BC'})
@@ -191,7 +196,7 @@ describe('custom', function () {
 
     
     j.rule('top', () => {
-      let rs = makeRuleSpec({
+      let rs = makeRuleSpec(cfg,{
         ...rsdef,
         // ac: ()=>({err:'unexpected', src:'AC'}),
         ac: (rule,ctx)=>ctx.t0.bad('foo',{bar:'AC'})
@@ -205,6 +210,7 @@ describe('custom', function () {
   it('parser-before-node', () => {
     let b = ''
     let j = make_empty({rule:{start:'top'}})
+    let cfg = j.internal().config
 
     let AA = j.token.AA
 
@@ -215,7 +221,7 @@ describe('custom', function () {
 
 
     j.rule('top', () => {
-      let rs = makeRuleSpec({
+      let rs = makeRuleSpec(cfg,{
         ...rsdef,
         bo: (rule)=>rule.node='BO',
       })
@@ -224,7 +230,7 @@ describe('custom', function () {
     expect(j('a')).equals('BO')
 
     j.rule('top', () => {
-      let rs = makeRuleSpec({
+      let rs = makeRuleSpec(cfg,{
         ...rsdef,
         bc: (rule)=>rule.node='BC',
       })
@@ -305,11 +311,12 @@ describe('custom', function () {
   it('parser-empty-seq', () => {
     let b = ''
     let j = make_empty({rule:{start:'top'}})
+    let cfg = j.internal().config
 
     let AA = j.token.AA
 
     j.rule('top', () => {
-      return makeRuleSpec({
+      return makeRuleSpec(cfg,{
         open: [{s:[]}],
         close: [{s:[AA]}],
         bo: (rule)=>(rule.node=4444),
@@ -323,12 +330,13 @@ describe('custom', function () {
   it('parser-any-def', () => {
     let b = ''
     let j = make_empty({rule:{start:'top'}})
+    let cfg = j.internal().config
 
     let AA = j.token.AA
     let TX = j.token.TX
 
     j.rule('top', () => {
-      return makeRuleSpec({
+      return makeRuleSpec(cfg,{
         open: [{s:[AA,TX]}],
         ac: (rule)=>{
           rule.node = rule.open[0].val+rule.open[1].val
@@ -344,11 +352,12 @@ describe('custom', function () {
   it('parser-token-error-why', () => {
     let b = ''
     let j = make_empty({rule:{start:'top'}})
+    let cfg = j.internal().config
 
     let AA = j.token.AA
 
     j.rule('top', () => {
-      return makeRuleSpec({
+      return makeRuleSpec(cfg,{
         open: [{s:[AA]}],
         close: [{s:[AA]}],
         ac: (rule,ctx)=>(ctx.t0.bad('foo', {bar:'AAA'}))
@@ -363,6 +372,8 @@ describe('custom', function () {
     expect(Jsonic('a:1')).equals({a:1})
 
     let j = make_empty({rule:{start:'top'}})
+    let cfg = j.internal().config
+
     j.options({
       fixed: {
         token: {
@@ -378,7 +389,7 @@ describe('custom', function () {
     let Tc = j.token.Tc
        
     j.rule('top', ()=>{
-      return makeRuleSpec({
+      return makeRuleSpec(cfg,{
         open: [
           {s:[Ta,[Tb,Tc]]}
         ],
@@ -476,26 +487,27 @@ describe('custom', function () {
       fixed:{token:{'#F':'f','#B':'b'}},
       rule:{start:'top'}
     })
+    let cfg = j.internal().config
 
     let FT = j.token.F
     let BT = j.token.B
     
     j.rule('top',(rs)=>{
-      return makeRuleSpec({
+      return makeRuleSpec(cfg,{
         open:[{p:'foo',c:{d:0}}],
         bo:(r)=>r.node={o:'T'},
       })
     })
 
     j.rule('foo',(rs)=>{
-      return makeRuleSpec({
+      return makeRuleSpec(cfg,{
         open:[{s:[FT],p:'bar',c:{d:1}}],
         ao:(r)=>r.node.o+='F',
       })
     })
 
     j.rule('bar',(rs)=>{
-      return makeRuleSpec({
+      return makeRuleSpec(cfg,{
         open:[{s:[BT],c:{d:2}}],
         ao:(r)=>r.node.o+='B'
       })
@@ -505,7 +517,7 @@ describe('custom', function () {
 
 
     j.rule('bar',(rs)=>{
-      return makeRuleSpec({
+      return makeRuleSpec(cfg,{
         open:[{s:[BT],c:{d:0}}],
         ao:(r)=>r.node.o+='B'
       })
@@ -523,26 +535,27 @@ describe('custom', function () {
       fixed:{token:{'#F':'f','#B':'b'}},
       rule:{start:'top'}
     })
+    let cfg = j.internal().config
 
     let FT = j.token.F
     let BT = j.token.B
     
     j.rule('top',(rs)=>{
-      return makeRuleSpec({
+      return makeRuleSpec(cfg,{
         open:[{p:'foo',n:{x:1,y:2}}], // incr x=1,y=2
         bo:(r)=>r.node={o:'T'},
       })
     })
 
     j.rule('foo',(rs)=>{
-      return makeRuleSpec({
+      return makeRuleSpec(cfg,{
         open:[{s:[FT],p:'bar',c:{n:{x:1,y:2}}, n:{y:0}}], // (x <= 1, y <= 2) -> pass
         ao:(r)=>r.node.o+='F',
       })
     })
 
     j.rule('bar',(rs)=>{
-      return makeRuleSpec({
+      return makeRuleSpec(cfg,{
         open:[{s:[BT],c:{n:{x:1,y:0}}}], // (x <= 1, y <= 0) -> pass
         ao:(r)=>r.node.o+='B'
       })
@@ -552,7 +565,7 @@ describe('custom', function () {
 
 
     j.rule('bar',(rs)=>{
-      return makeRuleSpec({
+      return makeRuleSpec(cfg,{
         open:[{s:[BT],c:{n:{x:0}}}],  // !(x <= 0) -> fail
         ao:(r)=>r.node.o+='B'
       })

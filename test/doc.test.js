@@ -14,7 +14,16 @@ const describe = lab.describe
 const it = lab.it
 const expect = Code.expect
 
-const { Jsonic, Parser, JsonicError, makeRuleSpec, make } = require('..')
+const {
+  Jsonic,
+  Parser,
+  JsonicError,
+  OPEN,
+  CLOSE,
+  BEFORE,
+  AFTER,
+  make
+} = require('..')
 
 
 describe('docs', function () {
@@ -159,13 +168,19 @@ describe('docs', function () {
     })
 
     let HH = concat.token.HH
-    concat.rule('hundred', ()=>{
-      return makeRuleSpec({
-        ao: (rule)=>{
-          rule.node = 100
-        }
+    // concat.rule('hundred', ()=>{
+    //   return makeRuleSpec({
+    //     ao: (rule)=>{
+    //       rule.node = 100
+    //     }
+    //   })
+    // })
+    concat.rule('hundred', (rs)=>{
+      rs.action(AFTER, OPEN, (rule)=>{
+        rule.node = 100
       })
     })
+
     concat.rule('val', (rulespec)=>{
       rulespec.def.open.unshift({s:[HH],p:'hundred'})
     })
