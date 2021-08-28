@@ -18,38 +18,42 @@ const I = Util.inspect
 
 const { Jsonic, makeLex, JsonicError } = require('..')
 
-let j = Jsonic.make()
-let config = j.internal().config
-let t = j.token
-
-
-function lexall(src) {
-  let lex = lexstart(src)
-  let out = []
-  do {
-    // console.log(out[out.length-1])
-    out.push({...lex()})
-  }
-  while( t.ZZ != out[out.length-1].tin &&
-         t.BD != out[out.length-1].tin )
-  return out.map(t=>st(t))
-}
-
-function alleq(ta) {
-  for(let i = 0; i < ta.length; i+=2) {
-    expect(lexall(ta[i]),'case:'+(i/2)+' ['+ta[i]+']').equal(ta[i+1])
-  }
-}
-
-
-function lexstart(src) {
-  let lex = makeLex({src:()=>src, cfg:config, opts:j.options})
-  return lex.next.bind(lex)
-}
 
 describe('lex', function () {
 
+  let j,t,config
+
+  function lexall(src) {
+    let lex = lexstart(src)
+    let out = []
+    do {
+      // console.log(out[out.length-1])
+      out.push({...lex()})
+    }
+    while( t.ZZ != out[out.length-1].tin &&
+           t.BD != out[out.length-1].tin )
+    return out.map(t=>st(t))
+  }
+
+  function alleq(ta) {
+    for(let i = 0; i < ta.length; i+=2) {
+      expect(lexall(ta[i]),'case:'+(i/2)+' ['+ta[i]+']').equal(ta[i+1])
+    }
+  }
+
+
+  function lexstart(src) {
+    j = Jsonic.make()
+    config = j.internal().config
+    t = j.token
+
+    let lex = makeLex({src:()=>src, cfg:config, opts:j.options})
+    return lex.next.bind(lex)
+  }
+
+  
   it('jsonic-token', () => {
+    lexstart('')
     expect(j.token.OB).exists()
     expect(t.CB).exists()
   })
@@ -473,82 +477,84 @@ describe('lex', function () {
     expect(tens('a:1,b:%%,c:[%%%%]')).equals({a:1,b:20,c:[40]})
   })
 
+
+  function st(tkn) {
+    let out = []
+    
+    function m(s,v,t) {
+      return [s.substring(0,3),
+              t.sI,t.len,t.rI+'x'+t.cI,
+              v?(''+t.val):null]
+    }
+
+    switch(tkn.tin) {
+    case t.SP:
+      out = m('#SP',0,tkn)
+      break
+
+    case t.LN:
+      out = m('#LN',0,tkn)
+      break
+
+    case t.OB:
+      out = m('#OB{',0,tkn)
+      break
+
+    case t.CB:
+      out = m('#CB}',0,tkn)
+      break
+
+    case t.OS:
+      out = m('#OS[',0,tkn)
+      break
+
+    case t.CS:
+      out = m('#CS]',0,tkn)
+      break
+
+    case t.CL:
+      out = m('#CL:',0,tkn)
+      break
+
+    case t.CA:
+      out = m('#CA,',0,tkn)
+      break
+
+    case t.NR:
+      out = m('#NR',1,tkn)
+      break
+
+    case t.ST:
+      out = m('#ST',1,tkn)
+      break
+
+    case t.TX:
+      out = m('#TX',1,tkn)
+      break
+
+    case t.VL:
+      out = m('#VL',1,tkn)
+      break
+
+    case t.CM:
+      out = m('#CM',0,tkn)
+      break
+
+    case t.BD:
+      tkn.val =
+        (undefined===tkn.val?(undefined===tkn.src?'':tkn.src):tkn.val)+'~'+tkn.why
+      out = m('#BD',1,tkn)
+      break
+
+    case t.ZZ:
+      out = m('#ZZ',0,tkn)
+      break
+    }
+
+    return out.filter(x=>null!=x).join(';')
+  }
+
 })
 
 
 
-function st(tkn) {
-  let out = []
-  
-  function m(s,v,t) {
-    return [s.substring(0,3),
-            t.sI,t.len,t.rI+'x'+t.cI,
-            v?(''+t.val):null]
-  }
-
-  switch(tkn.tin) {
-  case t.SP:
-    out = m('#SP',0,tkn)
-    break
-
-  case t.LN:
-    out = m('#LN',0,tkn)
-    break
-
-  case t.OB:
-    out = m('#OB{',0,tkn)
-    break
-
-  case t.CB:
-    out = m('#CB}',0,tkn)
-    break
-
-  case t.OS:
-    out = m('#OS[',0,tkn)
-    break
-
-  case t.CS:
-    out = m('#CS]',0,tkn)
-    break
-
-  case t.CL:
-    out = m('#CL:',0,tkn)
-    break
-
-  case t.CA:
-    out = m('#CA,',0,tkn)
-    break
-
-  case t.NR:
-    out = m('#NR',1,tkn)
-    break
-
-  case t.ST:
-    out = m('#ST',1,tkn)
-    break
-
-  case t.TX:
-    out = m('#TX',1,tkn)
-    break
-
-  case t.VL:
-    out = m('#VL',1,tkn)
-    break
-
-  case t.CM:
-    out = m('#CM',0,tkn)
-    break
-
-  case t.BD:
-    tkn.val =
-      (undefined===tkn.val?(undefined===tkn.src?'':tkn.src):tkn.val)+'~'+tkn.why
-    out = m('#BD',1,tkn)
-    break
-
-  case t.ZZ:
-    out = m('#ZZ',0,tkn)
-    break
-  }
-
-  return out.filter(x=>null!=x).join(';')
-}

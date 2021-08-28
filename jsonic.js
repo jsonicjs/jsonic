@@ -1,7 +1,7 @@
 "use strict";
 /* Copyright (c) 2013-2021 Richard Rodger, MIT License */
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.AFTER = exports.BEFORE = exports.CLOSE = exports.OPEN = exports.makeLex = exports.makeRuleSpec = exports.makeRule = exports.makePoint = exports.makeToken = exports.make = exports.util = exports.Parser = exports.JsonicError = exports.Jsonic = void 0;
+exports.AFTER = exports.BEFORE = exports.CLOSE = exports.OPEN = exports.makeTextMatcher = exports.makeNumberMatcher = exports.makeCommentMatcher = exports.makeStringMatcher = exports.makeLineMatcher = exports.makeSpaceMatcher = exports.makeFixedMatcher = exports.makeLex = exports.makeRuleSpec = exports.makeRule = exports.makePoint = exports.makeToken = exports.make = exports.util = exports.Parser = exports.JsonicError = exports.Jsonic = void 0;
 const types_1 = require("./types");
 Object.defineProperty(exports, "OPEN", { enumerable: true, get: function () { return types_1.OPEN; } });
 Object.defineProperty(exports, "CLOSE", { enumerable: true, get: function () { return types_1.CLOSE; } });
@@ -14,6 +14,13 @@ const lexer_1 = require("./lexer");
 Object.defineProperty(exports, "makePoint", { enumerable: true, get: function () { return lexer_1.makePoint; } });
 Object.defineProperty(exports, "makeToken", { enumerable: true, get: function () { return lexer_1.makeToken; } });
 Object.defineProperty(exports, "makeLex", { enumerable: true, get: function () { return lexer_1.makeLex; } });
+Object.defineProperty(exports, "makeFixedMatcher", { enumerable: true, get: function () { return lexer_1.makeFixedMatcher; } });
+Object.defineProperty(exports, "makeSpaceMatcher", { enumerable: true, get: function () { return lexer_1.makeSpaceMatcher; } });
+Object.defineProperty(exports, "makeLineMatcher", { enumerable: true, get: function () { return lexer_1.makeLineMatcher; } });
+Object.defineProperty(exports, "makeStringMatcher", { enumerable: true, get: function () { return lexer_1.makeStringMatcher; } });
+Object.defineProperty(exports, "makeCommentMatcher", { enumerable: true, get: function () { return lexer_1.makeCommentMatcher; } });
+Object.defineProperty(exports, "makeNumberMatcher", { enumerable: true, get: function () { return lexer_1.makeNumberMatcher; } });
+Object.defineProperty(exports, "makeTextMatcher", { enumerable: true, get: function () { return lexer_1.makeTextMatcher; } });
 const parser_1 = require("./parser");
 Object.defineProperty(exports, "makeRule", { enumerable: true, get: function () { return parser_1.makeRule; } });
 Object.defineProperty(exports, "makeRuleSpec", { enumerable: true, get: function () { return parser_1.makeRuleSpec; } });
@@ -37,6 +44,7 @@ const util = {
     mesc: utility_1.mesc,
     escre: utility_1.escre,
     regexp: utility_1.regexp,
+    keys: utility_1.keys,
 };
 exports.util = util;
 function make(param_options, parent) {
@@ -47,12 +55,14 @@ function make(param_options, parent) {
         mark: Math.random()
     };
     // Merge options.
-    let merged_options = utility_1.deep({}, parent ? { ...parent.options } : defaults_1.defaults, param_options ? param_options : {});
+    let merged_options = utility_1.deep({}, parent ? { ...parent.options } :
+        false === (param_options === null || param_options === void 0 ? void 0 : param_options.defaults$) ? {} : defaults_1.defaults, param_options ? param_options : {});
     // Create primary parsing function
     let jsonic = function Jsonic(src, meta, parent_ctx) {
+        var _a;
         if (utility_1.S.string === typeof (src)) {
             let internal = jsonic.internal();
-            let parser = options.parser.start ?
+            let parser = ((_a = options.parser) === null || _a === void 0 ? void 0 : _a.start) ?
                 utility_1.parserwrap(options.parser) : internal.parser;
             return parser.start(src, jsonic, meta, parent_ctx);
         }
@@ -87,7 +97,7 @@ function make(param_options, parent) {
             return plugin(jsonic, full_plugin_options) || jsonic;
         },
         rule: (name, define) => {
-            return jsonic.internal().parser.rule(name, define);
+            return jsonic.internal().parser.rule(name, define) || jsonic;
         },
         lex: (matchmaker) => {
             let match = merged_options.lex.match;
@@ -99,10 +109,15 @@ function make(param_options, parent) {
         make: (options) => {
             return make(options, jsonic);
         },
+        empty: (options) => make({
+            defaults$: false,
+            grammar$: false,
+            ...(options || {})
+        }),
         id: 'Jsonic/' +
             Date.now() + '/' +
-            ('' + Math.random()).substring(2, 8).padEnd(6, '0') + '/' +
-            options.tag,
+            ('' + Math.random()).substring(2, 8).padEnd(6, '0') +
+            (null == options.tag ? '' : '/' + options.tag),
         toString: () => {
             return api.id;
         },
@@ -133,7 +148,9 @@ function make(param_options, parent) {
         internal.config = utility_1.configure(jsonic, undefined, merged_options);
         internal.plugins = [];
         internal.parser = new parser_1.Parser(merged_options, internal.config);
-        grammar_1.grammar(jsonic);
+        if (false !== merged_options.grammar$) {
+            grammar_1.grammar(jsonic);
+        }
     }
     return jsonic;
 }

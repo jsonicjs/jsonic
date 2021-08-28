@@ -65,6 +65,10 @@ class RuleSpecImpl {
             utility_1.normalt(alt);
         }
     }
+    // Convenience access to token Tins
+    tin(ref) {
+        return utility_1.tokenize(ref, this.cfg);
+    }
     add(state, a, flags) {
         let inject = (flags === null || flags === void 0 ? void 0 : flags.last) ? 'push' : 'unshift';
         let aa = (utility_1.isarr(a) ? a : [a]).map(a => utility_1.normalt(a));
@@ -93,6 +97,10 @@ class RuleSpecImpl {
     }
     ac(action) {
         return this.action(types_1.BEFORE, types_1.CLOSE, action);
+    }
+    clear() {
+        this.def = { open: [], close: [] };
+        return this;
     }
     process(rule, ctx, state) {
         let why = types_1.EMPTY;
@@ -265,12 +273,10 @@ class RuleSpecImpl {
         return out;
     }
     bad(tkn, rule, ctx, parse) {
-        let je = new utility_1.JsonicError(tkn.err || utility_1.S.unexpected, {
+        throw new utility_1.JsonicError(tkn.err || utility_1.S.unexpected, {
             ...tkn.use,
             state: parse.is_open ? utility_1.S.open : utility_1.S.close
         }, tkn, rule, ctx);
-        // console.log(je)
-        throw je;
     }
 }
 const makeRuleSpec = (...params) => new RuleSpecImpl(...params);
@@ -281,267 +287,6 @@ class Parser {
         this.options = options;
         this.cfg = cfg;
     }
-    /*
-    init() {
-      let t = this.cfg.t
-  
-      let OB = t.OB
-      let CB = t.CB
-      let OS = t.OS
-      let CS = t.CS
-      let CL = t.CL
-      let CA = t.CA
-  
-      let TX = t.TX
-      let NR = t.NR
-      let ST = t.ST
-      let VL = t.VL
-  
-      let ZZ = t.ZZ
-  
-      let VAL = [TX, NR, ST, VL]
-  
-      let finish: AltError = (_rule: Rule, ctx: Context) => {
-        if (!this.cfg.rule.finish) {
-          // TODO: needs own error code
-          ctx.t0.src = 'END_OF_SOURCE'
-          return ctx.t0
-        }
-      }
-  
-      // TODO: move to own file, use .rule() method, same as plugins
-  
-      let rules: any = {
-        val: {
-          bo: (r: Rule) => {
-            r.node = undefined
-          },
-          open: [
-            // A map: { ...
-            { s: [OB], p: S.map, b: 1, g: 'map,json' },
-  
-            // A list: [ ...
-            { s: [OS], p: S.list, b: 1, g: 'list,json' },
-  
-            // A pair key: a: ...
-            {
-              s: [VAL, CL], p: S.map, b: 2, n: { pk: 1 }, g: 'pair,json',
-            },
-  
-            // A plain value: x "x" 1 true.
-            { s: [VAL], g: 'val,json' },
-  
-            // Implicit ends `{a:}` -> {"a":null}, `[a:]` -> [{"a":null}]
-            { s: [[CB, CS]], b: 1, g: 'val,imp,null' },
-  
-            // Implicit list at top level: a,b.
-            {
-              s: [CA],
-              c: { n: { il: 0 } }, n: { il: 1 },
-              p: S.list,
-              b: 1,
-              g: 'list,imp'
-            },
-  
-            // Value is null when empty before commas.
-            { s: [CA], b: 1, g: 'list,val,imp,null' },
-          ],
-  
-          close: [
-            { s: [ZZ] },
-  
-            { s: [[CB, CS]], b: 1, g: 'val,json' },
-  
-            // Implicit list only allowed at top level: 1,2.
-            {
-              s: [CA],
-              c: { n: { il: 0, pk: 0 } }, n: { il: 1 },
-              r: S.elem,
-              a: (rule: Rule) => rule.node = [rule.node],
-              g: 'list,val,imp',
-            },
-  
-            {
-              c: { n: { il: 0, pk: 0 } }, n: { il: 1 },
-              r: S.elem,
-              a: (rule: Rule) => rule.node = [rule.node],
-              g: 'list,val,imp',
-              b: 1,
-            },
-  
-            // Close val, map, or list - there may be more elem or pairs.
-            { b: 1, g: 'val,json' },
-          ],
-          bc: (r: Rule) => {
-            // NOTE: val can be undefined when there is no value at all
-            // (eg. empty string, thus no matched opening token)
-            r.node =
-              undefined === r.node ?
-                undefined === r.child.node ?
-                  (null == r.open[0] ? undefined : r.open[0].val) :
-                  r.child.node :
-                r.node
-          },
-        },
-  
-  
-        map: {
-          bo: (rule: Rule) => {
-            // Implicit lists only at top level.
-            rule.n.il = 1 + (rule.n.il ? rule.n.il : 0)
-  
-            // Create a new empty map.
-            // return { node: {} }
-            rule.node = {}
-          },
-          open: [
-            // An empty map: {}.
-            { s: [OB, CB], g: 'map,json' },
-  
-            // Start matching map key-value pairs: a:1.
-            // OB `{` resets implicit map counter.
-            { s: [OB], p: S.pair, n: { pk: 0 }, g: 'map,json,pair' },
-  
-            // Pair from implicit map.
-            { s: [VAL, CL], p: S.pair, b: 2, g: 'pair,list,val,imp' },
-          ],
-          close: []
-        },
-  
-        list: {
-          bo: (rule: Rule) => {
-            // No implicit lists or maps inside lists.
-            rule.n.il = 1 + (rule.n.il ? rule.n.il : 0)
-            rule.n.pk = 1 + (rule.n.pk ? rule.n.pk : 0)
-  
-            // Create a new empty list.
-            // return { node: [] }
-            rule.node = []
-          },
-          open: [
-            // An empty list: [].
-            { s: [OS, CS], g: 'list,json' },
-  
-            // Start matching list elements: 1,2.
-            { s: [OS], p: S.elem, g: 'list,json,elem' },
-  
-            // Initial comma [, will insert null as [null,
-            { s: [CA], p: S.elem, b: 1, g: 'list,elem,val,imp' },
-  
-            // Another element.
-            { p: S.elem, g: 'list,elem' },
-          ],
-          close: [
-          ]
-        },
-  
-  
-        // sets key:val on node
-        pair: {
-          open: [
-            // Match key-colon start of pair.
-            { s: [VAL, CL], p: S.val, u: { key: true }, g: 'map,pair,key,json' },
-  
-            // Ignore initial comma: {,a:1.
-            { s: [CA], g: 'map,pair,comma' },
-          ],
-          close: [
-            // End of map, reset implicit depth counter so that
-            // a:b:c:1,d:2 -> {a:{b:{c:1}},d:2}
-            { s: [CB], c: { n: { pk: 0 } }, g: 'map,pair,json' },
-  
-            // Ignore trailing comma at end of map.
-            { s: [CA, CB], c: { n: { pk: 0 } }, g: 'map,pair,comma' },
-  
-            // Comma means a new pair at same level (unless implicit a:b:1,c:2).
-            { s: [CA], c: { n: { pk: 0 } }, r: S.pair, g: 'map,pair,json' },
-  
-            // Comma means a new pair if implicit top level map.
-            { s: [CA], c: { d: 2 }, r: S.pair, g: 'map,pair,json' },
-  
-            // Who needs commas anyway?
-            { s: [VAL], c: { n: { pk: 0 } }, r: S.pair, b: 1, g: 'map,pair,imp' },
-  
-            // Value means a new pair if implicit top level map.
-            { s: [VAL], c: { d: 2 }, r: S.pair, b: 1, g: 'map,pair,imp' },
-  
-            // End of implicit path a:b:1,.
-            { s: [[CB, CA, ...VAL]], b: 1, g: 'map,pair,imp,path' },
-  
-            // Close implicit single prop map inside list: [a:1]
-            { s: [CS], b: 1, g: 'list,pair,imp' },
-  
-            // Fail if auto-close option is false.
-            { s: [ZZ], e: finish, g: 'map,pair,json' },
-          ],
-          bc: (r: Rule, ctx: Context) => {
-            if (r.use.key) {
-              let key_token = r.open[0]
-              let key = ST === key_token.tin ? key_token.val : key_token.src
-              let val = r.child.node
-              let prev = r.node[key]
-  
-              // Convert undefined to null when there was no pair value
-              val = undefined === val ? null : val
-  
-              r.node[key] = null == prev ? val :
-                (ctx.cfg.map.merge ? ctx.cfg.map.merge(prev, val) :
-                  (ctx.cfg.map.extend ? deep(prev, val) : val))
-            }
-          },
-        },
-  
-  
-        // push onto node
-        elem: {
-          open: [
-            // Empty commas insert null elements.
-            // Note that close consumes a comma, so b:2 works.
-            {
-              s: [CA, CA], b: 2, a: (r: Rule) => r.node.push(null),
-              g: 'list,elem,imp,null',
-            },
-  
-            {
-              s: [CA], a: (r: Rule) => r.node.push(null),
-              g: 'list,elem,imp,null',
-            },
-  
-            // Anything else must a list element value.
-            { p: S.val, g: 'list,elem,val,json' },
-          ],
-          close: [
-            // Ignore trailing comma.
-            { s: [CA, CS], g: 'list,elem,comma' },
-  
-            // Next element.
-            { s: [CA], r: S.elem, g: 'list,elem,json' },
-  
-            // Who needs commas anyway?
-            { s: [[...VAL, OB, OS]], r: S.elem, b: 1, g: 'list,elem,imp' },
-  
-            // End of list.
-            { s: [CS], g: 'list,elem,json' },
-  
-            // Fail if auto-close option is false.
-            { s: [ZZ], e: finish, g: 'list,elem,json' },
-          ],
-          bc: (rule: Rule) => {
-            if (undefined !== rule.child.node) {
-              rule.node.push(rule.child.node)
-            }
-          },
-        }
-      }
-  
-      // TODO: just create the RuleSpec directly
-      this.rsm = keys(rules).reduce((rsm: any, rn: string) => {
-        rsm[rn] = filterRules(makeRuleSpec(this.cfg, rules[rn]), this.cfg)
-        rsm[rn].name = rn
-        return rsm
-      }, {})
-    }
-    */
     // Multi-functional get/set for rules.
     rule(name, define) {
         // If no name, get all the rules.
@@ -562,6 +307,7 @@ class Parser {
             for (let alt of [...rs.def.open, ...rs.def.close]) {
                 utility_1.normalt(alt);
             }
+            return undefined;
         }
         return rs;
     }

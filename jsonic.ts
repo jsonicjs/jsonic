@@ -100,15 +100,25 @@ import {
   configure,
   escre,
   parserwrap,
+  keys,
 } from './utility'
 
 
-import { defaults } from './defaults'
+import {
+  defaults
+} from './defaults'
 
 import {
   makePoint,
   makeToken,
   makeLex,
+  makeFixedMatcher,
+  makeSpaceMatcher,
+  makeLineMatcher,
+  makeStringMatcher,
+  makeCommentMatcher,
+  makeNumberMatcher,
+  makeTextMatcher,
 } from './lexer'
 
 import {
@@ -138,9 +148,9 @@ const util = {
   configure,
   parserwrap,
   mesc,
-
   escre,
   regexp,
+  keys,
 }
 
 
@@ -170,7 +180,8 @@ function make(param_options?: Relate, parent?: Jsonic): Jsonic {
   // Merge options.
   let merged_options = deep(
     {},
-    parent ? { ...parent.options } : defaults,
+    parent ? { ...parent.options } :
+      false === param_options?.defaults$ ? {} : defaults,
     param_options ? param_options : {},
   )
 
@@ -180,7 +191,7 @@ function make(param_options?: Relate, parent?: Jsonic): Jsonic {
     function Jsonic(src: any, meta?: any, parent_ctx?: any): any {
       if (S.string === typeof (src)) {
         let internal = jsonic.internal()
-        let parser = options.parser.start ?
+        let parser = options.parser?.start ?
           parserwrap(options.parser) : internal.parser
         return parser.start(src, jsonic, meta, parent_ctx)
       }
@@ -205,9 +216,11 @@ function make(param_options?: Relate, parent?: Jsonic): Jsonic {
   // Define the API
   let api: JsonicAPI = {
 
-    token: ((ref: string | Tin) => tokenize(ref, internal.config, jsonic)) as unknown as JsonicAPI['token'],
+    token: ((ref: string | Tin) =>
+      tokenize(ref, internal.config, jsonic)) as unknown as JsonicAPI['token'],
 
-    fixed: ((ref: string | Tin) => internal.config.fixed.ref[ref]) as unknown as JsonicAPI['fixed'],
+    fixed: ((ref: string | Tin) =>
+      internal.config.fixed.ref[ref]) as unknown as JsonicAPI['fixed'],
 
     options: deep(options, merged_options),
 
@@ -226,8 +239,8 @@ function make(param_options?: Relate, parent?: Jsonic): Jsonic {
       return plugin(jsonic, full_plugin_options) || jsonic
     },
 
-    rule: (name?: string, define?: RuleDefiner) => {
-      return jsonic.internal().parser.rule(name, define)
+    rule: (name?: string, define?: RuleDefiner | null) => {
+      return jsonic.internal().parser.rule(name, define) || jsonic
     },
 
     lex: (matchmaker: MakeLexMatcher) => {
@@ -242,10 +255,16 @@ function make(param_options?: Relate, parent?: Jsonic): Jsonic {
       return make(options, jsonic)
     },
 
+    empty: (options?: Options) => make({
+      defaults$: false,
+      grammar$: false,
+      ...(options || {})
+    }),
+
     id: 'Jsonic/' +
       Date.now() + '/' +
-      ('' + Math.random()).substring(2, 8).padEnd(6, '0') + '/' +
-      options.tag,
+      ('' + Math.random()).substring(2, 8).padEnd(6, '0') +
+      (null == options.tag ? '' : '/' + options.tag),
 
     toString: () => {
       return api.id
@@ -257,7 +276,6 @@ function make(param_options?: Relate, parent?: Jsonic): Jsonic {
 
   // Has to be done indirectly as we are in a fuction named `make`.
   defprop(api.make, S.name, { value: S.make })
-
 
   // Add API methods to the core utility function.
   assign(jsonic, api)
@@ -289,10 +307,10 @@ function make(param_options?: Relate, parent?: Jsonic): Jsonic {
     internal.config = configure(jsonic, undefined, merged_options)
     internal.plugins = []
     internal.parser = new Parser(merged_options, internal.config)
-    grammar(jsonic)
+    if (false !== merged_options.grammar$) {
+      grammar(jsonic)
+    }
   }
-
-
 
   return jsonic
 }
@@ -369,6 +387,14 @@ export {
   makeRule,
   makeRuleSpec,
   makeLex,
+
+  makeFixedMatcher,
+  makeSpaceMatcher,
+  makeLineMatcher,
+  makeStringMatcher,
+  makeCommentMatcher,
+  makeNumberMatcher,
+  makeTextMatcher,
 
   OPEN,
   CLOSE,

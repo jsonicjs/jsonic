@@ -16,10 +16,16 @@ const expect = Code.expect
 
 const I = Util.inspect
 
-const { Jsonic, JsonicError, makeRule, makeRuleSpec } = require('..')
+const {
+  Jsonic,
+  JsonicError,
+  makeRule,
+  makeRuleSpec, // TODO: remove
+  makeFixedMatcher,
+} = require('..')
 
 let j = Jsonic
-
+let { keys } = j.util
 
 
 describe('custom', function () {
@@ -67,24 +73,57 @@ describe('custom', function () {
   })
 
 
-  it('parser-empty', () => {
+  it('parser-empty-clean', () => {
     expect(Jsonic('a:1')).equals({a:1})
 
-    let j = make_empty()
+    let j = Jsonic.empty()
+    expect(keys({...j.token}).length).equal(0)
+    expect(keys({...j.fixed}).length).equal(0)
     expect(Object.keys(j.rule())).equal([])
     expect(j('a:1')).equals(undefined)
   })
 
 
+  it('parser-empty-fixed', () => {
+    expect(Jsonic('a:1')).equals({a:1})
+
+    let j = Jsonic
+        .empty({
+          fixed: {
+            lex: true,
+            token: {
+              '#T0': 't0'
+            }
+          },
+          rule: {
+            start: 'r0'
+          },
+          lex: {
+            match: [
+              makeFixedMatcher,
+            ]
+          }
+        })
+        .rule('r0', (rs) => {
+          rs
+            .open({s:[rs.tin('#T0')]})
+            .bc(r=>r.node='~T0~')
+        })
+
+    expect(j('t0')).equals('~T0~')
+  })
+
+  
+
   it('parser-handler-actives', () => {
     let b = ''
-    let j = make_empty({rule:{start:'top'}})
+    let j = make_norules({rule:{start:'top'}})
     let cfg = j.internal().config
     
     let AA = j.token.AA
-    j.rule('top', () => {
-      return makeRuleSpec(cfg,{
-        open: [
+    j.rule('top', (rs) => {
+      rs
+        .open([
           {
             s:[AA,AA],
             m: (rule,ctx,alt) => {
@@ -97,119 +136,53 @@ describe('custom', function () {
               return alt
             }
           }
-        ],
-        close:[
+        ])
+        .close([
           {s:[AA,AA]}
-        ],
-        bo: ()=>(b+='bo;'),
-        ao: ()=>(b+='ao;'),
-        bc: ()=>(b+='bc;'),
-        ac: ()=>(b+='ac;'),
-      })
+        ])
+        .bo(()=>(b+='bo;'))
+        .ao(()=>(b+='ao;'))
+        .bc(()=>(b+='bc;'))
+        .ac(()=>(b+='ac;'))
     })
 
     //expect(j('a b c d e f')).equal(1111)
     expect(j('a')).equal(1111)
     expect(b).equal('bo;') // m: is too late to avoid bo
   })
-
-
-  /*
-  it('parser-rulespec-actives', () => {
-    let b = ''
-    let j = make_empty({rule:{start:'top'}})
-    let cfg = j.internal().config
-
-    let AA = j.token.AA
-    j.rule('top', () => {
-      let rs = makeRuleSpec(cfg,{
-        open: [{s:[AA,AA]}],
-        close:[{s:[AA,AA], m:(rule,ctx,alt)=>(rule.node=2222, undefined)}],
-        bo: ()=>(b+='bo;'),
-        ao: ()=>(b+='ao;'),
-        bc: ()=>(b+='bc;'),
-        ac: ()=>(b+='ac;'),
-
-      })
-      rs.bo = false
-      rs.ao = false
-      rs.bc = false
-      rs.ac = false
-      return rs
-    })
-
-    
-    //console.log(j('a:1',{xlog:-1}))
-    //expect(j('a b c d e f')).equal(2222)
-    expect(j('a')).equal(2222)
-    expect(b).equal('')
-  })
-  */
   
 
   it('parser-action-errors', () => {
     let b = ''
-    let j = make_empty({rule:{start:'top'}})
-    let cfg = j.internal().config
+    let j = make_norules({rule:{start:'top'}})
 
     let AA = j.token.AA
 
-    let rsdef = {
-      open: [{s:[AA,AA]}],
-      close:[{s:[AA,AA]}],
-    }
+    let rsdef = (rs)=>rs.clear().open([{s:[AA,AA]}]).close([{s:[AA,AA]}])
 
 
-    j.rule('top', () => {
-      let rs = makeRuleSpec(cfg,{
-        ...rsdef,
-        // bo: ()=>({err:'unexpected', src:'BO'}),
-        bo: (rule,ctx)=>ctx.t0.bad('foo',{bar:'BO'})
-      })
-      return rs
-    })
-    // expect(()=>j('a')).throws('JsonicError', /unexpected.*BO/)
+
+    j.rule('top', (rs) => rsdef(rs)
+           .bo((rule,ctx)=>ctx.t0.bad('foo',{bar:'BO'})))
     expect(()=>j('a')).throws('JsonicError', /foo.*BO/s)
 
-    
-    j.rule('top', () => {
-      let rs = makeRuleSpec(cfg,{
-        ...rsdef,
-        // ao: ()=>({err:'unexpected', src:'AO'}),
-        ao: (rule,ctx)=>ctx.t0.bad('foo',{bar:'AO'})
-      })
-      return rs
-    })
+    j.rule('top', (rs) => rsdef(rs)
+           .ao((rule,ctx)=>ctx.t0.bad('foo',{bar:'AO'})))
     expect(()=>j('a')).throws('JsonicError', /foo.*AO/s)
 
-    
-    j.rule('top', () => {
-      let rs = makeRuleSpec(cfg,{
-        ...rsdef,
-        // bc: ()=>({err:'unexpected', src:'BC'}),
-        bc: (rule,ctx)=>ctx.t0.bad('foo',{bar:'BC'})
-      })
-      return rs
-    })
-    // expect(()=>j('a')).throws('JsonicError', /unexpected.*BC/)
+    j.rule('top', (rs) => rsdef(rs)
+           .bc((rule,ctx)=>ctx.t0.bad('foo',{bar:'BC'})))
     expect(()=>j('a')).throws('JsonicError', /foo.*BC/s)
 
-    
-    j.rule('top', () => {
-      let rs = makeRuleSpec(cfg,{
-        ...rsdef,
-        // ac: ()=>({err:'unexpected', src:'AC'}),
-        ac: (rule,ctx)=>ctx.t0.bad('foo',{bar:'AC'})
-      })
-      return rs
-    })
+    j.rule('top', (rs) => rsdef(rs)
+           .ac((rule,ctx)=>ctx.t0.bad('foo',{bar:'AC'})))
     expect(()=>j('a')).throws('JsonicError', /foo.*AC/s)
   })
 
 
   it('parser-before-node', () => {
     let b = ''
-    let j = make_empty({rule:{start:'top'}})
+    let j = make_norules({rule:{start:'top'}})
     let cfg = j.internal().config
 
     let AA = j.token.AA
@@ -244,7 +217,7 @@ describe('custom', function () {
   /*
   it('parser-before-alt', () => {
     let b = ''
-    let j = make_empty({rule:{start:'top'}})
+    let j = make_norules({rule:{start:'top'}})
 
     let AA = j.token.AA
 
@@ -277,7 +250,7 @@ describe('custom', function () {
   /*
   it('parser-after-next', () => {
     let b = ''
-    let j = make_empty({rule:{start:'top'}})
+    let j = make_norules({rule:{start:'top'}})
 
     let AA = j.token.AA
 
@@ -310,7 +283,7 @@ describe('custom', function () {
 
   it('parser-empty-seq', () => {
     let b = ''
-    let j = make_empty({rule:{start:'top'}})
+    let j = make_norules({rule:{start:'top'}})
     let cfg = j.internal().config
 
     let AA = j.token.AA
@@ -329,7 +302,7 @@ describe('custom', function () {
 
   it('parser-any-def', () => {
     let b = ''
-    let j = make_empty({rule:{start:'top'}})
+    let j = make_norules({rule:{start:'top'}})
     let cfg = j.internal().config
 
     let AA = j.token.AA
@@ -351,7 +324,7 @@ describe('custom', function () {
 
   it('parser-token-error-why', () => {
     let b = ''
-    let j = make_empty({rule:{start:'top'}})
+    let j = make_norules({rule:{start:'top'}})
     let cfg = j.internal().config
 
     let AA = j.token.AA
@@ -371,7 +344,7 @@ describe('custom', function () {
   it('parser-multi-alts', () => {
     expect(Jsonic('a:1')).equals({a:1})
 
-    let j = make_empty({rule:{start:'top'}})
+    let j = make_norules({rule:{start:'top'}})
     let cfg = j.internal().config
 
     j.options({
@@ -483,7 +456,7 @@ describe('custom', function () {
   it('parser-condition-depth', () => {
     expect(Jsonic('a:1')).equals({a:1})
 
-    let j = make_empty({
+    let j = make_norules({
       fixed:{token:{'#F':'f','#B':'b'}},
       rule:{start:'top'}
     })
@@ -531,7 +504,7 @@ describe('custom', function () {
   it('parser-condition-counter', () => {
     expect(Jsonic('a:1')).equals({a:1})
 
-    let j = make_empty({
+    let j = make_norules({
       fixed:{token:{'#F':'f','#B':'b'}},
       rule:{start:'top'}
     })
@@ -579,7 +552,7 @@ describe('custom', function () {
 })
 
 
-function make_empty(opts) {
+function make_norules(opts) {
   let j = Jsonic.make(opts)
   let rns = j.rule()
   Object.keys(rns).map(rn=>j.rule(rn,null))

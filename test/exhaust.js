@@ -5,13 +5,6 @@ const Util = require('util')
 const I = Util.inspect
 
 const { Jsonic, Lexer } = require('..')
-const j01 = Jsonic.make()
-
-const lexer = j01.internal().lexer
-const config = j01.internal().config
-const opts = j01.options
-
-const ZZ = j01.token.ZZ
 
 module.exports = exhaust
 
@@ -21,6 +14,14 @@ if (require.main === module) {
 }
 
 function exhaust(size,print) {
+  const j01 = Jsonic.make()
+
+  const config = j01.internal().config
+  const opts = j01.options
+  
+  const ZZ = j01.token.ZZ
+
+
   if(print) {
     console.log( '\n' )
     console.log( '# parse' )

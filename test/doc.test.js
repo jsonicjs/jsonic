@@ -217,7 +217,7 @@ describe('docs', function () {
 
 
   it('property-id', () => {
-    expect(Jsonic.id).match(/Jsonic.*-/)
+    expect(Jsonic.id).match(/Jsonic.*/)
     expect(Jsonic.make({tag:'foo'}).id).match(/Jsonic.*foo/)
   })
 

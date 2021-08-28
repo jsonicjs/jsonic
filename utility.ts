@@ -135,18 +135,20 @@ function configure(jsonic: any, incfg: Config | undefined, opts: Options): Confi
 
   const t = (tn: string) => tokenize(tn, cfg)
 
-  // Standard tokens. These names cannot be changed.
-  t('#BD') // BAD
-  t('#ZZ') // END
-  t('#UK') // UNKNOWN
-  t('#AA') // ANY
-  t('#SP') // SPACE
-  t('#LN') // LINE
-  t('#CM') // COMMENT
-  t('#NR') // NUMBER
-  t('#ST') // STRING
-  t('#TX') // TEXT
-  t('#VL') // VALUE
+  // Standard tokens. These names should not be changed.
+  if (false !== opts.grammar$) {
+    t('#BD') // BAD
+    t('#ZZ') // END
+    t('#UK') // UNKNOWN
+    t('#AA') // ANY
+    t('#SP') // SPACE
+    t('#LN') // LINE
+    t('#CM') // COMMENT
+    t('#NR') // NUMBER
+    t('#ST') // STRING
+    t('#TX') // TEXT
+    t('#VL') // VALUE
+  }
 
   cfg.fixed = {
     lex: !!opts.fixed?.lex,
@@ -414,11 +416,10 @@ function errinject(
   token: Token,
   rule: Rule,
   ctx: Context
-) {
+): string {
   let ref: Record<string, any> = { code, details, token, rule, ctx }
-  return s.replace(/\$([\w_]+)/g, (_m: any, name: string) => {
+  return null == s ? '' : s.replace(/\$([\w_]+)/g, (_m: any, name: string) => {
     let instr = JSON.stringify(
-      //'code' === name ? code : (
       null != ref[name] ? ref[name] : (
         null != details[name] ? details[name] : (
           (ctx.meta && null != ctx.meta[name]) ? ctx.meta[name] : (
@@ -429,7 +430,7 @@ function errinject(
                     null != (ctx as Relate)[name] ? (ctx as Relate)[name] :
                       '$' + name
                 )))))))
-    return instr
+    return null == instr ? '' : instr
   })
 }
 
@@ -507,11 +508,9 @@ function errdesc(
       extract(ctx.src(), errtxt, token),
       '',
       errinject(
-        (cfg.hint[code] || cfg.hint.unknown)
+        (cfg.hint[code] || cfg.hint.unknown || '')
           .trim()
-          // .replace(/^([^ ])/, '\n $1')
           .split('\n')
-          //.map((s: string, i: number) => (0 === i ? ' ' : '  ') + s).join('\n'),
           .map((s: string) => '  ' + s)
           .join('\n'),
         code, details, token, rule, ctx

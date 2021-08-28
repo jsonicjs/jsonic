@@ -98,6 +98,8 @@ export declare type Options = {
         src: string, jsonic: any, //Jsonic,
         meta?: any, parent_ctx?: any) => any;
     };
+    defaults$?: boolean;
+    grammar$?: boolean;
 };
 export declare type Context = {
     uI: number;
@@ -339,6 +341,7 @@ export declare type RuleDef = {
 export interface RuleSpec {
     name: string;
     def: any;
+    tin<R extends string | Tin, T extends (R extends Tin ? string : Tin)>(ref: R): T;
     add(state: RuleState, a: AltSpec | AltSpec[], flags: any): RuleSpec;
     open(a: AltSpec | AltSpec[], flags?: any): RuleSpec;
     close(a: AltSpec | AltSpec[], flags?: any): RuleSpec;
@@ -347,6 +350,7 @@ export interface RuleSpec {
     ao(action: StateAction): RuleSpec;
     bc(action: StateAction): RuleSpec;
     ac(action: StateAction): RuleSpec;
+    clear(): RuleSpec;
     process(rule: Rule, ctx: Context, state: RuleState): Rule;
     parse_alts(is_open: boolean, alts: NormAltSpec[], rule: Rule, ctx: Context): AltMatch;
     bad(tkn: Token, rule: Rule, ctx: Context, parse: {
@@ -359,8 +363,9 @@ export interface JsonicAPI {
     options: Options & ((change_options?: Relate) => Relate);
     make: (options?: Options) => Jsonic;
     use: (plugin: Plugin, plugin_options?: Relate) => Jsonic;
-    rule: (name?: string, define?: RuleDefiner) => RuleSpec | RuleSpecMap;
+    rule: (name?: string, define?: RuleDefiner | null) => Jsonic | RuleSpec | RuleSpecMap;
     lex: (matchmaker: MakeLexMatcher) => void;
+    empty: (options?: Options) => Jsonic;
     token: {
         [ref: string]: Tin;
     } & {

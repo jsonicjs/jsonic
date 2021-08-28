@@ -106,7 +106,9 @@ export type Options = {
       meta?: any,
       parent_ctx?: any
     ) => any
-  }
+  },
+  defaults$?: boolean
+  grammar$?: boolean
 }
 
 
@@ -483,6 +485,8 @@ export interface RuleSpec {
   name: string
   def: any
 
+  tin<R extends string | Tin, T extends (R extends Tin ? string : Tin)>(ref: R): T
+
   add(state: RuleState, a: AltSpec | AltSpec[], flags: any): RuleSpec
   open(a: AltSpec | AltSpec[], flags?: any): RuleSpec
   close(a: AltSpec | AltSpec[], flags?: any): RuleSpec
@@ -491,6 +495,7 @@ export interface RuleSpec {
   ao(action: StateAction): RuleSpec
   bc(action: StateAction): RuleSpec
   ac(action: StateAction): RuleSpec
+  clear(): RuleSpec
 
   process(rule: Rule, ctx: Context, state: RuleState): Rule
 
@@ -522,10 +527,13 @@ export interface JsonicAPI {
   use: (plugin: Plugin, plugin_options?: Relate) => Jsonic
 
   // Get and set parser rules.
-  rule: (name?: string, define?: RuleDefiner) => RuleSpec | RuleSpecMap
+  rule: (name?: string, define?: RuleDefiner | null) =>
+    Jsonic | RuleSpec | RuleSpecMap
 
   // Provide new lex matcher.
   lex: (matchmaker: MakeLexMatcher) => void
+
+  empty: (options?: Options) => Jsonic
 
   // Token get and set for plugins. Reference by either name or Tin.
   token:

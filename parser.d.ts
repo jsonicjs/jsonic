@@ -1,4 +1,4 @@
-import type { RuleState, RuleStep, StateAction, Token, Config, Context, Rule, RuleSpec, NormAltSpec, AltMatch, RuleSpecMap, RuleDefiner, AltSpec, Options } from './types';
+import type { RuleState, RuleStep, StateAction, Tin, Token, Config, Context, Rule, RuleSpec, NormAltSpec, AltMatch, RuleSpecMap, RuleDefiner, AltSpec, Options } from './types';
 declare class RuleImpl implements Rule {
     id: number;
     name: string;
@@ -26,6 +26,7 @@ declare class RuleSpecImpl implements RuleSpec {
     def: any;
     cfg: Config;
     constructor(cfg: Config, def: any);
+    tin<R extends string | Tin, T extends (R extends Tin ? string : Tin)>(ref: R): T;
     add(state: RuleState, a: AltSpec | AltSpec[], flags: any): RuleSpec;
     open(a: AltSpec | AltSpec[], flags?: any): RuleSpec;
     close(a: AltSpec | AltSpec[], flags?: any): RuleSpec;
@@ -34,6 +35,7 @@ declare class RuleSpecImpl implements RuleSpec {
     ao(action: StateAction): RuleSpec;
     bc(action: StateAction): RuleSpec;
     ac(action: StateAction): RuleSpec;
+    clear(): this;
     process(rule: Rule, ctx: Context, state: RuleState): Rule;
     parse_alts(is_open: boolean, alts: NormAltSpec[], rule: Rule, ctx: Context): AltMatch;
     bad(tkn: Token, rule: Rule, ctx: Context, parse: {
@@ -46,7 +48,7 @@ declare class Parser {
     cfg: Config;
     rsm: RuleSpecMap;
     constructor(options: Options, cfg: Config);
-    rule(name?: string, define?: RuleDefiner): RuleSpec | RuleSpecMap;
+    rule(name?: string, define?: RuleDefiner | null): RuleSpec | RuleSpecMap | undefined;
     start(src: string, jsonic: any, meta?: any, parent_ctx?: any): any;
     clone(options: Options, config: Config): Parser;
 }

@@ -96,18 +96,20 @@ function configure(jsonic, incfg, opts) {
     cfg.t = cfg.t || {};
     cfg.tI = cfg.tI || 1;
     const t = (tn) => tokenize(tn, cfg);
-    // Standard tokens. These names cannot be changed.
-    t('#BD'); // BAD
-    t('#ZZ'); // END
-    t('#UK'); // UNKNOWN
-    t('#AA'); // ANY
-    t('#SP'); // SPACE
-    t('#LN'); // LINE
-    t('#CM'); // COMMENT
-    t('#NR'); // NUMBER
-    t('#ST'); // STRING
-    t('#TX'); // TEXT
-    t('#VL'); // VALUE
+    // Standard tokens. These names should not be changed.
+    if (false !== opts.grammar$) {
+        t('#BD'); // BAD
+        t('#ZZ'); // END
+        t('#UK'); // UNKNOWN
+        t('#AA'); // ANY
+        t('#SP'); // SPACE
+        t('#LN'); // LINE
+        t('#CM'); // COMMENT
+        t('#NR'); // NUMBER
+        t('#ST'); // STRING
+        t('#TX'); // TEXT
+        t('#VL'); // VALUE
+    }
     cfg.fixed = {
         lex: !!((_a = opts.fixed) === null || _a === void 0 ? void 0 : _a.lex),
         //token: map(opts.fixed.token, ([name, src]: [string, string]) => [src, t(name)])
@@ -299,13 +301,11 @@ exports.deep = deep;
 // determined heuristically from the Token and Context.
 function errinject(s, code, details, token, rule, ctx) {
     let ref = { code, details, token, rule, ctx };
-    return s.replace(/\$([\w_]+)/g, (_m, name) => {
-        let instr = JSON.stringify(
-        //'code' === name ? code : (
-        null != ref[name] ? ref[name] : (null != details[name] ? details[name] : ((ctx.meta && null != ctx.meta[name]) ? ctx.meta[name] : (null != token[name] ? token[name] : (null != rule[name] ? rule[name] : (null != ctx.opts[name] ? ctx.opts[name] : (null != ctx.cfg[name] ? ctx.cfg[name] :
+    return null == s ? '' : s.replace(/\$([\w_]+)/g, (_m, name) => {
+        let instr = JSON.stringify(null != ref[name] ? ref[name] : (null != details[name] ? details[name] : ((ctx.meta && null != ctx.meta[name]) ? ctx.meta[name] : (null != token[name] ? token[name] : (null != rule[name] ? rule[name] : (null != ctx.opts[name] ? ctx.opts[name] : (null != ctx.cfg[name] ? ctx.cfg[name] :
             null != ctx[name] ? ctx[name] :
                 '$' + name)))))));
-        return instr;
+        return null == instr ? '' : instr;
     });
 }
 exports.errinject = errinject;
@@ -363,11 +363,9 @@ function errdesc(code, details, token, rule, ctx) {
                 ':' + token.rI + ':' + token.cI,
             extract(ctx.src(), errtxt, token),
             '',
-            errinject((cfg.hint[code] || cfg.hint.unknown)
+            errinject((cfg.hint[code] || cfg.hint.unknown || '')
                 .trim()
-                // .replace(/^([^ ])/, '\n $1')
                 .split('\n')
-                //.map((s: string, i: number) => (0 === i ? ' ' : '  ') + s).join('\n'),
                 .map((s) => '  ' + s)
                 .join('\n'), code, details, token, rule, ctx),
             '',

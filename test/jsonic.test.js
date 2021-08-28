@@ -681,13 +681,13 @@ describe('jsonic', function () {
 
   it('id-string', function(){
     let s0 = ''+Jsonic
-    expect(s0).match(/Jsonic.*-/)
+    expect(s0).match(/Jsonic.*/)
     expect(''+Jsonic).equal(s0)
     expect(''+Jsonic).equal(''+Jsonic)
 
     let j1 = Jsonic.make()
     let s1 = ''+j1
-    expect(s1).match(/Jsonic.*-/)
+    expect(s1).match(/Jsonic.*/)
     expect(''+j1).equal(s1)
     expect(''+j1).equal(''+j1)
     expect(s0).not.equal(s1)
