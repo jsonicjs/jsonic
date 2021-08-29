@@ -5,7 +5,8 @@
  */
 
 
-// TODO: put grammar in grammar.ts
+// TODO: implicit lists in pair values: "a:1,2 b:3" -> {a:[1,2], b:3} - pair key terminates (A)
+// TODO: string format for rule def: s:'ST,NR' -> s:[ST,NR], also "s:ST,NR,p:foo,..." - needs (A) - can only used post standard definition (thus not in grammar.ts)
 // TODO: Context provides current jsonic instance: { ..., jsonic: ()=>instance }
 // TODO: docs: ref https://wiki.alopex.li/OnParsers
 // TODO: docs: nice tree diagram of rules (generate?)

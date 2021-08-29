@@ -378,7 +378,7 @@ export interface AltSpec {
 
   n?: Counters    // Increment counters by specified amounts.
   a?: AltAction   // Perform an action if this alternate matches.
-  m?: AltModifier // Modify current Alt to customize parser.
+  h?: AltModifier // Modify current Alt to customize parser.
   u?: Relate      // Key-value custom data.
 
   g?: string |    // Named group tags for the alternate (allows filtering).

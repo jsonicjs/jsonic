@@ -406,7 +406,7 @@ class RuleSpecImpl implements RuleSpec {
       out.p = null != alt.p ? alt.p : out.p
       out.r = null != alt.r ? alt.r : out.r
       out.n = null != alt.n ? alt.n : out.n
-      out.h = null != alt.m ? alt.m : out.h
+      out.h = null != alt.h ? alt.h : out.h
       out.a = null != alt.a ? alt.a : out.a
       out.u = null != alt.u ? alt.u : out.u
     }

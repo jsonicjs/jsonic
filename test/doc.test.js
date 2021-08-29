@@ -168,18 +168,8 @@ describe('docs', function () {
     })
 
     let HH = concat.token.HH
-    // concat.rule('hundred', ()=>{
-    //   return makeRuleSpec({
-    //     ao: (rule)=>{
-    //       rule.node = 100
-    //     }
-    //   })
-    // })
-    concat.rule('hundred', (rs)=>{
-      rs.action(AFTER, OPEN, (rule)=>{
-        rule.node = 100
-      })
-    })
+
+    concat.rule('hundred', (rs)=>rs.ao(rule=>rule.node=100))
 
     concat.rule('val', (rulespec)=>{
       rulespec.def.open.unshift({s:[HH],p:'hundred'})

@@ -277,7 +277,7 @@ export interface AltSpec {
     };
     n?: Counters;
     a?: AltAction;
-    m?: AltModifier;
+    h?: AltModifier;
     u?: Relate;
     g?: string | // Named group tags for the alternate (allows filtering).
     string[];
