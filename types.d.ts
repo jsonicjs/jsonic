@@ -6,6 +6,37 @@ export declare const EMPTY = "";
 export declare const INSPECT: unique symbol;
 export declare const NONE: Rule;
 export declare const STRING = "string";
+export declare type JsonicParse = (src: any, meta?: any, parent_ctx?: any) => any;
+export interface JsonicAPI {
+    parse: JsonicParse;
+    options: Options & ((change_options?: Relate) => Relate);
+    make: (options?: Options) => Jsonic;
+    use: (plugin: Plugin, plugin_options?: Relate) => Jsonic;
+    rule: (name?: string, define?: RuleDefiner | null) => Jsonic | RuleSpec | RuleSpecMap;
+    lex: (matchmaker: MakeLexMatcher) => void;
+    empty: (options?: Options) => Jsonic;
+    token: {
+        [ref: string]: Tin;
+    } & {
+        [ref: number]: string;
+    } & (<A extends string | Tin>(ref: A) => A extends string ? Tin : string);
+    fixed: {
+        [ref: string]: Tin;
+    } & {
+        [ref: number]: string;
+    } & (<A extends string | Tin>(ref: A) => A extends string ? Tin : string);
+    id: string;
+    toString: () => string;
+    util: Relate;
+}
+export declare type Jsonic = JsonicParse & // A function that parses.
+JsonicAPI & // A utility with API methods.
+{
+    [prop: string]: any;
+};
+export declare type Plugin = ((jsonic: Jsonic, plugin_options?: any) => void | Jsonic) & {
+    defaults?: Relate;
+};
 export declare type Options = {
     tag?: string;
     fixed?: {
@@ -101,6 +132,53 @@ export declare type Options = {
     defaults$?: boolean;
     grammar$?: boolean;
 };
+export interface RuleSpec {
+    name: string;
+    def: {
+        open: AltSpec[];
+        close: AltSpec[];
+        bo?: StateAction;
+        ao?: StateAction;
+        bc?: StateAction;
+        ac?: StateAction;
+    };
+    tin<R extends string | Tin, T extends (R extends Tin ? string : Tin)>(ref: R): T;
+    add(state: RuleState, a: AltSpec | AltSpec[], flags: any): RuleSpec;
+    open(a: AltSpec | AltSpec[], flags?: any): RuleSpec;
+    close(a: AltSpec | AltSpec[], flags?: any): RuleSpec;
+    action(step: RuleStep, state: RuleState, action: StateAction): RuleSpec;
+    bo(action: StateAction): RuleSpec;
+    ao(action: StateAction): RuleSpec;
+    bc(action: StateAction): RuleSpec;
+    ac(action: StateAction): RuleSpec;
+    clear(): RuleSpec;
+    process(rule: Rule, ctx: Context, state: RuleState): Rule;
+    parse_alts(is_open: boolean, alts: NormAltSpec[], rule: Rule, ctx: Context): AltMatch;
+    bad(tkn: Token, rule: Rule, ctx: Context, parse: {
+        is_open: boolean;
+    }): Rule;
+}
+export interface Rule {
+    id: number;
+    name: string;
+    spec: RuleSpec;
+    node: any;
+    state: RuleState;
+    child: Rule;
+    parent: Rule;
+    prev: Rule;
+    open: Token[];
+    close: Token[];
+    n: Counters;
+    d: number;
+    use: Relate;
+    bo: boolean;
+    ao: boolean;
+    bc: boolean;
+    ac: boolean;
+    why?: string;
+    process(ctx: Context): Rule;
+}
 export declare type Context = {
     uI: number;
     opts: Options;
@@ -125,6 +203,16 @@ export declare type Context = {
     F: (s: any) => string;
     use: Relate;
 };
+export interface Lex {
+    src: String;
+    ctx: Context;
+    cfg: Config;
+    pnt: Point;
+    token(ref: Tin | string, val: any, src: string, pnt?: Point, use?: any, why?: string): Token;
+    next(rule: Rule): Token;
+    tokenize<R extends string | Tin, T extends (R extends Tin ? string : Tin)>(ref: R): T;
+    bad(why: string, pstart: number, pend: number): Token;
+}
 export declare type Config = {
     lex: {
         match: LexMatcher[];
@@ -213,36 +301,6 @@ export declare type Config = {
     tI: number;
     t: any;
 };
-export declare type Relate = {
-    [key: string]: any;
-};
-export declare type Counters = {
-    [key: string]: number;
-};
-export interface Lex {
-    src: String;
-    ctx: Context;
-    cfg: Config;
-    pnt: Point;
-    token(ref: Tin | string, val: any, src: string, pnt?: Point, use?: any, why?: string): Token;
-    next(rule: Rule): Token;
-    tokenize<R extends string | Tin, T extends (R extends Tin ? string : Tin)>(ref: R): T;
-    bad(why: string, pstart: number, pend: number): Token;
-}
-export declare type Tin = number;
-export declare type TokenMap = {
-    [name: string]: Tin;
-};
-export declare type Chars = {
-    [char: string]: number;
-};
-export declare type StrMap = {
-    [name: string]: string;
-};
-export declare type RuleState = 'o' | 'c';
-export declare type RuleStep = 'b' | 'a';
-export declare type LexMatcher = (lex: Lex, rule: Rule) => Token | undefined;
-export declare type MakeLexMatcher = (cfg: Config, opts: Options) => LexMatcher;
 export interface Point {
     len: number;
     sI: number;
@@ -283,40 +341,6 @@ export interface AltSpec {
     string[];
     e?: AltError;
 }
-export interface Rule {
-    id: number;
-    name: string;
-    spec: RuleSpec;
-    node: any;
-    state: RuleState;
-    child: Rule;
-    parent: Rule;
-    prev: Rule;
-    open: Token[];
-    close: Token[];
-    n: Counters;
-    d: number;
-    use: Relate;
-    bo: boolean;
-    ao: boolean;
-    bc: boolean;
-    ac: boolean;
-    why?: string;
-    process(ctx: Context): Rule;
-}
-export declare type RuleSpecMap = {
-    [name: string]: RuleSpec;
-};
-export declare type RuleDefiner = (rs: RuleSpec, rsm: RuleSpecMap) => void | RuleSpec;
-export interface NormAltSpec extends AltSpec {
-    c?: AltCond;
-    g?: string[];
-}
-export declare type AltCond = (rule: Rule, ctx: Context, alt: AltMatch) => boolean;
-export declare type AltModifier = (rule: Rule, ctx: Context, alt: AltMatch, next: Rule) => AltMatch;
-export declare type AltAction = (rule: Rule, ctx: Context, alt: AltMatch) => any;
-export declare type StateAction = (rule: Rule, ctx: Context) => any;
-export declare type AltError = (rule: Rule, ctx: Context, alt: AltMatch) => Token | undefined;
 export interface AltMatch {
     m: Token[];
     p: string;
@@ -330,61 +354,36 @@ export interface AltMatch {
     g?: string[];
     e?: Token;
 }
-export declare type RuleDef = {
-    open?: any[];
-    close?: any[];
-    bo?: (rule: Rule, ctx: Context) => any;
-    bc?: (rule: Rule, ctx: Context) => any;
-    ao?: (rule: Rule, ctx: Context, alt: AltMatch, next: Rule) => any;
-    ac?: (rule: Rule, ctx: Context, alt: AltMatch, next: Rule) => any;
+export declare type Relate = {
+    [key: string]: any;
 };
-export interface RuleSpec {
-    name: string;
-    def: any;
-    tin<R extends string | Tin, T extends (R extends Tin ? string : Tin)>(ref: R): T;
-    add(state: RuleState, a: AltSpec | AltSpec[], flags: any): RuleSpec;
-    open(a: AltSpec | AltSpec[], flags?: any): RuleSpec;
-    close(a: AltSpec | AltSpec[], flags?: any): RuleSpec;
-    action(step: RuleStep, state: RuleState, action: StateAction): RuleSpec;
-    bo(action: StateAction): RuleSpec;
-    ao(action: StateAction): RuleSpec;
-    bc(action: StateAction): RuleSpec;
-    ac(action: StateAction): RuleSpec;
-    clear(): RuleSpec;
-    process(rule: Rule, ctx: Context, state: RuleState): Rule;
-    parse_alts(is_open: boolean, alts: NormAltSpec[], rule: Rule, ctx: Context): AltMatch;
-    bad(tkn: Token, rule: Rule, ctx: Context, parse: {
-        is_open: boolean;
-    }): Rule;
+export declare type Counters = {
+    [key: string]: number;
+};
+export declare type Tin = number;
+export declare type TokenMap = {
+    [name: string]: Tin;
+};
+export declare type Chars = {
+    [char: string]: number;
+};
+export declare type StrMap = {
+    [name: string]: string;
+};
+export declare type RuleState = 'o' | 'c';
+export declare type RuleStep = 'b' | 'a';
+export declare type LexMatcher = (lex: Lex, rule: Rule) => Token | undefined;
+export declare type MakeLexMatcher = (cfg: Config, opts: Options) => LexMatcher;
+export declare type RuleSpecMap = {
+    [name: string]: RuleSpec;
+};
+export declare type RuleDefiner = (rs: RuleSpec, rsm: RuleSpecMap) => void | RuleSpec;
+export interface NormAltSpec extends AltSpec {
+    c?: AltCond;
+    g?: string[];
 }
-export declare type JsonicParse = (src: any, meta?: any, parent_ctx?: any) => any;
-export interface JsonicAPI {
-    parse: JsonicParse;
-    options: Options & ((change_options?: Relate) => Relate);
-    make: (options?: Options) => Jsonic;
-    use: (plugin: Plugin, plugin_options?: Relate) => Jsonic;
-    rule: (name?: string, define?: RuleDefiner | null) => Jsonic | RuleSpec | RuleSpecMap;
-    lex: (matchmaker: MakeLexMatcher) => void;
-    empty: (options?: Options) => Jsonic;
-    token: {
-        [ref: string]: Tin;
-    } & {
-        [ref: number]: string;
-    } & (<A extends string | Tin>(ref: A) => A extends string ? Tin : string);
-    fixed: {
-        [ref: string]: Tin;
-    } & {
-        [ref: number]: string;
-    } & (<A extends string | Tin>(ref: A) => A extends string ? Tin : string);
-    id: string;
-    toString: () => string;
-    util: Relate;
-}
-export declare type Jsonic = JsonicParse & // A function that parses.
-JsonicAPI & // A utility with API methods.
-{
-    [prop: string]: any;
-};
-export declare type Plugin = ((jsonic: Jsonic, plugin_options?: any) => void | Jsonic) & {
-    defaults?: Relate;
-};
+export declare type AltCond = (rule: Rule, ctx: Context, alt: AltMatch) => boolean;
+export declare type AltModifier = (rule: Rule, ctx: Context, alt: AltMatch, next: Rule) => AltMatch;
+export declare type AltAction = (rule: Rule, ctx: Context, alt: AltMatch) => any;
+export declare type StateAction = (rule: Rule, ctx: Context) => any;
+export declare type AltError = (rule: Rule, ctx: Context, alt: AltMatch) => Token | undefined;

@@ -489,14 +489,14 @@ function filterRules(rs, cfg) {
     for (let rsn of rsnames) {
         rs.def[rsn] = rs.def[rsn]
             // Convert comma separated rule group name list to string[]. 
-            .map((rs) => ((rs.g = 'string' === typeof rs.g ?
-            (rs.g || '').split(/\s*,+\s*/) :
-            (rs.g || [])),
-            rs))
+            .map((as) => ((as.g = 'string' === typeof as.g ?
+            (as.g || '').split(/\s*,+\s*/) :
+            (as.g || [])),
+            as))
             // Keep rule if any group name matches, or if there are no includes.
-            .filter((rs) => cfg.rule.include.reduce((a, g) => (a || (-1 !== rs.g.indexOf(g))), 0 === cfg.rule.include.length))
+            .filter((as) => cfg.rule.include.reduce((a, g) => (a || (null != as.g && -1 !== as.g.indexOf(g))), 0 === cfg.rule.include.length))
             // Drop rule if any group name matches, unless there are no excludes.
-            .filter((rs) => cfg.rule.exclude.reduce((a, g) => (a && (-1 === rs.g.indexOf(g))), true));
+            .filter((as) => cfg.rule.exclude.reduce((a, g) => (a && (null == as.g || -1 === as.g.indexOf(g))), true));
     }
     return rs;
 }

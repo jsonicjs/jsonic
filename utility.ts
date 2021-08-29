@@ -651,28 +651,30 @@ function clean<T>(o: T): T {
   return o
 }
 
+
 function filterRules(rs: RuleSpec, cfg: Config) {
-  let rsnames = ['open', 'close']
+  let rsnames: (keyof RuleSpec['def'])[] = ['open', 'close']
   for (let rsn of rsnames) {
-    rs.def[rsn] = rs.def[rsn]
+    (rs.def[rsn] as AltSpec[]) = (rs.def[rsn] as AltSpec[])
 
       // Convert comma separated rule group name list to string[]. 
-      .map((rs: any) => (
-        (rs.g = 'string' === typeof rs.g ?
-          (rs.g || '').split(/\s*,+\s*/) :
-          (rs.g || [])),
-        rs
+      .map((as: AltSpec) => (
+        (as.g = 'string' === typeof as.g ?
+          (as.g || '').split(/\s*,+\s*/) :
+          (as.g || [])),
+        as
       ))
 
       // Keep rule if any group name matches, or if there are no includes.
-      .filter((rs: any) =>
-        cfg.rule.include.reduce((a, g) =>
-          (a || (-1 !== rs.g.indexOf(g))), 0 === cfg.rule.include.length))
+      .filter((as: AltSpec) =>
+        cfg.rule.include.reduce((a: boolean, g) =>
+          (a || (null != as.g && -1 !== as.g.indexOf(g))),
+          0 === cfg.rule.include.length))
 
       // Drop rule if any group name matches, unless there are no excludes.
-      .filter((rs: any) =>
-        cfg.rule.exclude.reduce((a, g) =>
-          (a && (-1 === rs.g.indexOf(g))), true))
+      .filter((as: AltSpec) =>
+        cfg.rule.exclude.reduce((a: boolean, g) =>
+          (a && (null == as.g || -1 === as.g.indexOf(g))), true))
 
   }
 

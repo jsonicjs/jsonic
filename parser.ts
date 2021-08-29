@@ -20,7 +20,6 @@ import type {
   AltModifier,
   AltAction,
   AltMatch,
-  RuleDef,
   RuleSpecMap,
   RuleDefiner,
   AltSpec,
@@ -138,8 +137,8 @@ class RuleSpecImpl implements RuleSpec {
     this.def = def || {}
 
     // Null Alt entries are allowed and ignored as a convenience.
-    this.def.open = (this.def.open || []).filter((alt: AltMatch) => null != alt)
-    this.def.close = (this.def.close || []).filter((alt: AltMatch) => null != alt)
+    this.def.open = (this.def.open || []).filter((alt: AltSpec) => null != alt)
+    this.def.close = (this.def.close || []).filter((alt: AltSpec) => null != alt)
 
     for (let alt of [...this.def.open, ...this.def.close]) {
       normalt(alt)
@@ -205,7 +204,7 @@ class RuleSpecImpl implements RuleSpec {
     let is_open = state === 'o'
     let next = is_open ? rule : NONE
 
-    let def: RuleDef = this.def
+    let def = this.def
 
     // Match alternates for current state.
     let alts = (is_open ? def.open : def.close) as NormAltSpec[]

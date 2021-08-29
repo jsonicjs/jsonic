@@ -18,9 +18,69 @@ export const NONE = ({ name: 'none', state: OPEN } as Rule)
 export const STRING = 'string'
 
 
+// The main top-level utility function. 
+export type JsonicParse = (src: any, meta?: any, parent_ctx?: any) => any
 
 
-// Parsing options. See defaults for commentary.
+// The core API is exposed as methods on the main utility function.
+export interface JsonicAPI {
+
+  // Explicit parse method. 
+  parse: JsonicParse
+
+  // Get and set partial option trees.
+  options: Options & ((change_options?: Relate) => Relate)
+
+  // Create a new Jsonic instance to customize.
+  make: (options?: Options) => Jsonic
+
+  // Use a plugin
+  use: (plugin: Plugin, plugin_options?: Relate) => Jsonic
+
+  // Get and set parser rules.
+  rule: (name?: string, define?: RuleDefiner | null) =>
+    Jsonic | RuleSpec | RuleSpecMap
+
+  // Provide new lex matcher.
+  lex: (matchmaker: MakeLexMatcher) => void
+
+  empty: (options?: Options) => Jsonic
+
+  // Token get and set for plugins. Reference by either name or Tin.
+  token:
+  { [ref: string]: Tin } &
+  { [ref: number]: string } &
+  (<A extends string | Tin>(ref: A) => A extends string ? Tin : string)
+
+  // Fixed token src get and set for plugins. Reference by either src or Tin.
+  fixed:
+  { [ref: string]: Tin } &
+  { [ref: number]: string } &
+  (<A extends string | Tin>(ref: A) => A extends string ? Tin : string)
+
+  // Unique identifier string for each Jsonic instance.
+  id: string
+
+  // Provide identifier for string conversion.
+  toString: () => string
+
+  util: Relate
+}
+
+
+// The full library type.
+export type Jsonic =
+  JsonicParse & // A function that parses.
+  JsonicAPI & // A utility with API methods.
+  { [prop: string]: any } // Extensible by plugin decoration.
+
+
+// Define a plugin to extend the provided Jsonic instance.
+export type Plugin = ((jsonic: Jsonic, plugin_options?: any) => void | Jsonic) &
+{ defaults?: Relate }
+
+
+// Parsing options. See defaults.ts for commentary.
 export type Options = {
   tag?: string
   fixed?: {
@@ -112,6 +172,74 @@ export type Options = {
 }
 
 
+// Parsing rule specification. The rule OPEN and CLOSE state token
+// match alternates, and the associated actions, can be defined with a
+// chainable API.
+export interface RuleSpec {
+  name: string
+  def: {
+    open: AltSpec[],
+    close: AltSpec[],
+    bo?: StateAction,
+    ao?: StateAction,
+    bc?: StateAction,
+    ac?: StateAction,
+  }
+
+  tin<R extends string | Tin, T extends (R extends Tin ? string : Tin)>(ref: R): T
+
+  add(state: RuleState, a: AltSpec | AltSpec[], flags: any): RuleSpec
+  open(a: AltSpec | AltSpec[], flags?: any): RuleSpec
+  close(a: AltSpec | AltSpec[], flags?: any): RuleSpec
+  action(step: RuleStep, state: RuleState, action: StateAction): RuleSpec
+  bo(action: StateAction): RuleSpec
+  ao(action: StateAction): RuleSpec
+  bc(action: StateAction): RuleSpec
+  ac(action: StateAction): RuleSpec
+  clear(): RuleSpec
+
+  process(rule: Rule, ctx: Context, state: RuleState): Rule
+
+  // First alternate to match token stream wins.
+  parse_alts(is_open: boolean, alts: NormAltSpec[], rule: Rule, ctx: Context):
+    AltMatch
+
+  bad(tkn: Token, rule: Rule, ctx: Context, parse: { is_open: boolean }): Rule
+}
+
+
+// Represents the application of a parsing rule. An instance is created
+// for each attempt to match tokens based on the RuleSpec, and pushed
+// onto the main parser rule stack. A Rule can be in two states:
+// "open" when first placed on the stack, and "close" when it needs to be
+// removed from the stack.
+export interface Rule {
+  id: number         // Rule index (unique to parse).
+  name: string       // Rule name.
+  spec: RuleSpec     // RuleSpec for this rule.
+  node: any          // The parsed value, if any.
+  state: RuleState   // Open (`o`) or Close (`c`).
+  child: Rule        // The current child rule, created with the `p` command.
+  parent: Rule       // The parent rule, that pushed this rule onto the stack.
+  prev: Rule         // The previous sibling rule, that issued an `r` command.
+  open: Token[]      // The tokens than matched in the open state.
+  close: Token[]     // The tokens than matched in the close state.
+  n: Counters        // Named counter values.
+  d: number          // The current stack depth.   
+  use: Relate        // Custom key-value store. 
+  bo: boolean        // Flag: call bo (before-open).
+  ao: boolean        // Flag: call ao (after-open).
+  bc: boolean        // Flag: call bc (before-close).
+  ac: boolean        // Flag: call ac (after-close).
+  why?: string       // Internal tracing.
+
+  // Process the "open" or "close" state of the Rule, returning the
+  // next rule to process.
+  process(ctx: Context): Rule
+}
+
+
+// The current parse state and associated context.
 export type Context = {
   uI: number           // Rule index.
   opts: Options        // Jsonic instance options.
@@ -136,7 +264,35 @@ export type Context = {
 }
 
 
-// Internal clean configuration built from options by `configure` and LexMatchers.
+export interface Lex {
+  src: String
+  ctx: Context
+  cfg: Config
+  pnt: Point
+
+  token(
+    ref: Tin | string,
+    val: any,
+    src: string,
+    pnt?: Point,
+    use?: any,
+    why?: string,
+  ): Token
+
+
+  next(rule: Rule): Token
+
+  tokenize<
+    R extends string | Tin,
+    T extends (R extends Tin ? string : Tin)
+  >(ref: R): T
+
+  bad(why: string, pstart: number, pend: number): Token
+}
+
+
+// Internal clean configuration built from options by
+// `utility.configure` and LexMatchers.
 export type Config = {
 
   lex: {
@@ -247,77 +403,6 @@ export type Config = {
 }
 
 
-// General relation map.
-export type Relate = { [key: string]: any }
-
-
-// A set of named counters.
-export type Counters = { [key: string]: number }
-
-
-export interface Lex {
-  src: String
-  ctx: Context
-  cfg: Config
-  pnt: Point
-
-  token(
-    ref: Tin | string,
-    val: any,
-    src: string,
-    pnt?: Point,
-    use?: any,
-    why?: string,
-  ): Token
-
-
-  next(rule: Rule): Token
-
-  tokenize<
-    R extends string | Tin,
-    T extends (R extends Tin ? string : Tin)
-  >(ref: R): T
-
-  bad(why: string, pstart: number, pend: number): Token
-}
-
-
-// Unique token identification number (aka "tin").
-export type Tin = number
-
-
-// Map token name to Token index (Tin).
-export type TokenMap = { [name: string]: Tin }
-
-
-// Map character to code value.
-export type Chars = { [char: string]: number }
-
-
-// Map string to string value.
-export type StrMap = { [name: string]: string }
-
-
-// After rule stack push, Rules are in state OPEN ('o'),
-// after first process, awaiting pop, Rules are in state CLOSE ('c').
-export type RuleState = 'o' | 'c'
-
-
-// When executing a Rule state (attempting a match), an action can be
-// executed BEFORE ('b') or AFTER ('a') the match.
-export type RuleStep = 'b' | 'a'
-
-
-// A lexing function that attempts to match tokens.
-export type LexMatcher = (lex: Lex, rule: Rule) => Token | undefined
-
-
-// Construct a lexing function based on configuration.
-export type MakeLexMatcher = (cfg: Config, opts: Options) => LexMatcher
-
-
-
-
 // Current character position in source - the "point'. 
 export interface Point {
   len: number // Length of source (for convenience).
@@ -388,38 +473,67 @@ export interface AltSpec {
 }
 
 
-// Represents the application of a parsing rule. An instance is created
-// for each attempt to match tokens based on the RuleSpec, and pushed
-// onto the main parser rule stack. A Rule can be in two states:
-// "open" when first placed on the stack, and "close" when it needs to be
-// removed from the stack.
-export interface Rule {
-  id: number         // Rule index (unique to parse).
-  name: string       // Rule name.
-  spec: RuleSpec     // RuleSpec for this rule.
-  node: any          // The parsed value, if any.
-  state: RuleState   // Open (`o`) or Close (`c`).
-  child: Rule        // The current child rule, created with the `p` command.
-  parent: Rule       // The parent rule, that pushed this rule onto the stack.
-  prev: Rule         // The previous sibling rule, that issued an `r` command.
-  open: Token[]      // The tokens than matched in the open state.
-  close: Token[]     // The tokens than matched in the close state.
-  n: Counters        // Named counter values.
-  d: number          // The current stack depth.   
-  use: Relate        // Custom key-value store. 
-  bo: boolean        // Flag: call bo (before-open).
-  ao: boolean        // Flag: call ao (after-open).
-  bc: boolean        // Flag: call bc (before-close).
-  ac: boolean        // Flag: call ac (after-close).
-  why?: string       // Internal tracing.
-
-  // Process the "open" or "close" state of the Rule, returning the
-  // next rule to process.
-  process(ctx: Context): Rule
+// Parse-alternate match (built from current tokens and AltSpec).
+export interface AltMatch {
+  m: Token[]      // Matched Tokens (not Tins!).
+  p: string       // Push rule (by name).
+  r: string       // Replace rule (by name).
+  b: number       // Move token position backward.
+  c?: AltCond     // Custom alt match condition.
+  n?: Counters    // increment named counters.
+  a?: AltAction   // Match actions.
+  h?: AltModifier // Modify alternate match.
+  u?: any         // Custom properties to add to Rule.use.
+  g?: string[]    // Named group tags (allows plugins to find alts).
+  e?: Token       // Errored on this token.
 }
 
 
+// General relation map.
+export type Relate = { [key: string]: any }
+
+
+// A set of named counters.
+export type Counters = { [key: string]: number }
+
+
+// Unique token identification number (aka "tin").
+export type Tin = number
+
+
+// Map token name to Token index (Tin).
+export type TokenMap = { [name: string]: Tin }
+
+
+// Map character to code value.
+export type Chars = { [char: string]: number }
+
+
+// Map string to string value.
+export type StrMap = { [name: string]: string }
+
+
+// After rule stack push, Rules are in state OPEN ('o'),
+// after first process, awaiting pop, Rules are in state CLOSE ('c').
+export type RuleState = 'o' | 'c'
+
+
+// When executing a Rule state (attempting a match), an action can be
+// executed BEFORE ('b') or AFTER ('a') the match.
+export type RuleStep = 'b' | 'a'
+
+
+// A lexing function that attempts to match tokens.
+export type LexMatcher = (lex: Lex, rule: Rule) => Token | undefined
+
+
+// Construct a lexing function based on configuration.
+export type MakeLexMatcher = (cfg: Config, opts: Options) => LexMatcher
+
+
 export type RuleSpecMap = { [name: string]: RuleSpec }
+
+
 export type RuleDefiner = (rs: RuleSpec, rsm: RuleSpecMap) => void | RuleSpec
 
 
@@ -451,119 +565,3 @@ export type StateAction = (rule: Rule, ctx: Context) => any
 // NOTE: errors are specified using tokens in order to capture file row and col.
 export type AltError = (rule: Rule, ctx: Context, alt: AltMatch) => Token | undefined
 
-
-// Parse-alternate match (built from current tokens and AltSpec).
-export interface AltMatch {
-  m: Token[]      // Matched Tokens (not Tins!).
-  p: string       // Push rule (by name).
-  r: string       // Replace rule (by name).
-  b: number       // Move token position backward.
-  c?: AltCond     // Custom alt match condition.
-  n?: Counters    // increment named counters.
-  a?: AltAction   // Match actions.
-  h?: AltModifier // Modify alternate match.
-  u?: any         // Custom properties to add to Rule.use.
-  g?: string[]    // Named group tags (allows plugins to find alts).
-  e?: Token       // Errored on this token.
-}
-
-
-// TODO: delete
-export type RuleDef = {
-  // TODO: rename to `o`
-  open?: any[]
-  // TODO: rename to `c`
-  close?: any[]
-  bo?: (rule: Rule, ctx: Context) => any
-  bc?: (rule: Rule, ctx: Context) => any
-  ao?: (rule: Rule, ctx: Context, alt: AltMatch, next: Rule) => any
-  ac?: (rule: Rule, ctx: Context, alt: AltMatch, next: Rule) => any
-}
-
-
-export interface RuleSpec {
-  name: string
-  def: any
-
-  tin<R extends string | Tin, T extends (R extends Tin ? string : Tin)>(ref: R): T
-
-  add(state: RuleState, a: AltSpec | AltSpec[], flags: any): RuleSpec
-  open(a: AltSpec | AltSpec[], flags?: any): RuleSpec
-  close(a: AltSpec | AltSpec[], flags?: any): RuleSpec
-  action(step: RuleStep, state: RuleState, action: StateAction): RuleSpec
-  bo(action: StateAction): RuleSpec
-  ao(action: StateAction): RuleSpec
-  bc(action: StateAction): RuleSpec
-  ac(action: StateAction): RuleSpec
-  clear(): RuleSpec
-
-  process(rule: Rule, ctx: Context, state: RuleState): Rule
-
-  // First alternate to match token stream wins.
-  parse_alts(is_open: boolean, alts: NormAltSpec[], rule: Rule, ctx: Context):
-    AltMatch
-
-  bad(tkn: Token, rule: Rule, ctx: Context, parse: { is_open: boolean }): Rule
-}
-
-
-// The main top-level utility function. 
-export type JsonicParse = (src: any, meta?: any, parent_ctx?: any) => any
-
-
-// The core API is exposed as methods on the main utility function.
-export interface JsonicAPI {
-
-  // Explicit parse method. 
-  parse: JsonicParse
-
-  // Get and set partial option trees.
-  options: Options & ((change_options?: Relate) => Relate)
-
-  // Create a new Jsonic instance to customize.
-  make: (options?: Options) => Jsonic
-
-  // Use a plugin
-  use: (plugin: Plugin, plugin_options?: Relate) => Jsonic
-
-  // Get and set parser rules.
-  rule: (name?: string, define?: RuleDefiner | null) =>
-    Jsonic | RuleSpec | RuleSpecMap
-
-  // Provide new lex matcher.
-  lex: (matchmaker: MakeLexMatcher) => void
-
-  empty: (options?: Options) => Jsonic
-
-  // Token get and set for plugins. Reference by either name or Tin.
-  token:
-  { [ref: string]: Tin } &
-  { [ref: number]: string } &
-  (<A extends string | Tin>(ref: A) => A extends string ? Tin : string)
-
-  // Fixed token src get and set for plugins. Reference by either src or Tin.
-  fixed:
-  { [ref: string]: Tin } &
-  { [ref: number]: string } &
-  (<A extends string | Tin>(ref: A) => A extends string ? Tin : string)
-
-  // Unique identifier string for each Jsonic instance.
-  id: string
-
-  // Provide identifier for string conversion.
-  toString: () => string
-
-  util: Relate
-}
-
-
-// The full library type.
-export type Jsonic =
-  JsonicParse & // A function that parses.
-  JsonicAPI & // A utility with API methods.
-  { [prop: string]: any } // Extensible by plugin decoration.
-
-
-// Define a plugin to extend the provided Jsonic instance.
-export type Plugin = ((jsonic: Jsonic, plugin_options?: any) => void | Jsonic) &
-{ defaults?: Relate }
