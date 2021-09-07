@@ -158,6 +158,8 @@ let makeFixedMatcher: MakeLexMatcher = (cfg: Config, _opts: Options) => {
     ')'
   )
 
+  // console.log(fixed)
+
   return function fixedMatcher(lex: Lex) {
     let mcfg = cfg.fixed
     if (!mcfg.lex) return undefined
@@ -303,6 +305,8 @@ let makeTextMatcher: MakeLexMatcher = (cfg: Config, _opts: Options) => {
     '^(.*?)',
     ...cfg.rePart.ender
   )
+
+  // console.log(ender)
 
   return function textMatcher(lex: Lex) {
     let mcfg = cfg.text

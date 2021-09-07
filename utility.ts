@@ -152,8 +152,7 @@ function configure(jsonic: any, incfg: Config | undefined, opts: Options): Confi
 
   cfg.fixed = {
     lex: !!opts.fixed?.lex,
-    //token: map(opts.fixed.token, ([name, src]: [string, string]) => [src, t(name)])
-    token: opts.fixed ? omap(opts.fixed.token,
+    token: opts.fixed ? omap(clean(opts.fixed.token),
       ([name, src]: [string, string]) => [src, tokenize(name, cfg)]) : {},
     ref: (undefined as any)
   }
@@ -233,7 +232,7 @@ function configure(jsonic: any, incfg: Config | undefined, opts: Options): Confi
 
   let commentStartRE = opts.comment?.lex ? (opts.comment.marker || [])
     .filter(c => c.lex)
-    .map(c => '|' + escre(c.start)).join('')
+    .map(c => escre(c.start)).join('|')
     : ''
 
   // End-marker RE part
@@ -243,9 +242,16 @@ function configure(jsonic: any, incfg: Config | undefined, opts: Options): Confi
       cfg.space.lex && cfg.space.chars,
       cfg.line.lex && cfg.line.chars,
     )).join('')),
-    ']|',
+    ']',
+
+    ('string' === typeof (opts.ender) ? opts.ender.split('') :
+      Array.isArray(opts.ender) ? opts.ender : [])
+      .map((c: string) => '|' + escre(c)).join(''),
+
+    '' === fixedRE ? '' : '|',
     fixedRE,
 
+    '' === commentStartRE ? '' : '|',
     commentStartRE,
 
     '|$)', // EOF case

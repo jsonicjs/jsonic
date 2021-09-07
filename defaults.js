@@ -125,6 +125,8 @@ const defaults = {
             'null': { val: null },
         }
     },
+    // Additional text ending characters
+    ender: [],
     // Plugin custom options, (namespace by plugin name).
     plugin: {},
     // Debug settings

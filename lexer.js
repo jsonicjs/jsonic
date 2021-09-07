@@ -83,6 +83,7 @@ const makeToken = (...params) => new TokenImpl(...params);
 exports.makeToken = makeToken;
 let makeFixedMatcher = (cfg, _opts) => {
     let fixed = utility_1.regexp(null, '^(', cfg.rePart.fixed, ')');
+    // console.log(fixed)
     return function fixedMatcher(lex) {
         let mcfg = cfg.fixed;
         if (!mcfg.lex)
@@ -181,6 +182,7 @@ exports.makeCommentMatcher = makeCommentMatcher;
 // Text strings are terminated by end markers.
 let makeTextMatcher = (cfg, _opts) => {
     let ender = utility_1.regexp(cfg.line.lex ? null : 's', '^(.*?)', ...cfg.rePart.ender);
+    // console.log(ender)
     return function textMatcher(lex) {
         let mcfg = cfg.text;
         let pnt = lex.pnt;

@@ -112,8 +112,7 @@ function configure(jsonic, incfg, opts) {
     }
     cfg.fixed = {
         lex: !!((_a = opts.fixed) === null || _a === void 0 ? void 0 : _a.lex),
-        //token: map(opts.fixed.token, ([name, src]: [string, string]) => [src, t(name)])
-        token: opts.fixed ? omap(opts.fixed.token, ([name, src]) => [src, tokenize(name, cfg)]) : {},
+        token: opts.fixed ? omap(clean(opts.fixed.token), ([name, src]) => [src, tokenize(name, cfg)]) : {},
         ref: undefined
     };
     cfg.fixed.ref = omap(cfg.fixed.token, ([tin, src]) => [tin, src]);
@@ -170,14 +169,19 @@ function configure(jsonic, incfg, opts) {
     let fixedRE = fixedSorted.map(fixed => escre(fixed)).join('|');
     let commentStartRE = ((_0 = opts.comment) === null || _0 === void 0 ? void 0 : _0.lex) ? (opts.comment.marker || [])
         .filter(c => c.lex)
-        .map(c => '|' + escre(c.start)).join('')
+        .map(c => escre(c.start)).join('|')
         : '';
     // End-marker RE part
     let enderRE = [
         '([',
         escre(keys(charset(cfg.space.lex && cfg.space.chars, cfg.line.lex && cfg.line.chars)).join('')),
-        ']|',
+        ']',
+        ('string' === typeof (opts.ender) ? opts.ender.split('') :
+            Array.isArray(opts.ender) ? opts.ender : [])
+            .map((c) => '|' + escre(c)).join(''),
+        '' === fixedRE ? '' : '|',
         fixedRE,
+        '' === commentStartRE ? '' : '|',
         commentStartRE,
         '|$)', // EOF case
     ];

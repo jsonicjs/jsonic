@@ -96,6 +96,7 @@ export declare type Options = {
             };
         };
     };
+    ender?: string | string[];
     plugin?: Relate;
     debug?: {
         get_console?: () => any;

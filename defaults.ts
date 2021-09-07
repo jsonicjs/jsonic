@@ -188,6 +188,10 @@ const defaults: Options = {
   },
 
 
+  // Additional text ending characters
+  ender: [],
+
+
   // Plugin custom options, (namespace by plugin name).
   plugin: {},
 

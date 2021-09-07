@@ -134,6 +134,7 @@ export type Options = {
     lex?: boolean
     map?: { [src: string]: { val: any } }
   }
+  ender?: string | string[]
   plugin?: Relate
   debug?: {
     get_console?: () => any
