@@ -87,8 +87,8 @@ async function run(argv, console) {
     options.JSON =
         null == options.JSON || 'object' !== typeof (options.JSON) ? {} :
             options.JSON;
-    let replacer = jsonic_1.Jsonic(options.JSON.replacer);
-    let space = jsonic_1.Jsonic(options.JSON.space);
+    let replacer = (0, jsonic_1.Jsonic)(options.JSON.replacer);
+    let space = (0, jsonic_1.Jsonic)(options.JSON.space);
     replacer = Array.isArray(replacer) ? replacer :
         null == replacer ? null :
             [replacer];
@@ -118,7 +118,7 @@ function handle_props(propvals) {
     for (let propval of propvals) {
         let pv = propval.split(/=/);
         if ('' !== pv[0] && '' !== pv[1]) {
-            let val = jsonic_1.Jsonic(pv[1]);
+            let val = (0, jsonic_1.Jsonic)(pv[1]);
             set_prop(out, pv[0], val);
         }
     }

@@ -50,14 +50,14 @@
     "jsonic": "bin/jsonic"
   },
   "devDependencies": {
-    "@hapi/code": "^8.0.2",
-    "@hapi/lab": "^24.1.1",
+    "@hapi/code": "^8.0.3",
+    "@hapi/lab": "^24.3.2",
     "browserify": "^17.0.0",
     "hapi-lab-shim": "0.0.2",
     "lab-transform-typescript": "^3.0.1",
-    "prettier": "^2.2.1",
+    "prettier": "^2.3.2",
     "tinyify": "^3.0.0",
-    "typescript": "^4.2.3",
+    "typescript": "^4.4.2",
     "vuepress": "^1.8.2",
     "prismjs": "rjrodger/prismjs"
   }

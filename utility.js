@@ -561,9 +561,9 @@ function parserwrap(parser) {
                             cI--;
                         col = Math.max(src.substring(cI, loc).length, 0);
                     }
-                    let token = ex.token || lexer_1.makeToken('#UK', 
+                    let token = ex.token || (0, lexer_1.makeToken)('#UK', 
                     // tokenize('#UK', jsonic.config),
-                    tokenize('#UK', jsonic.internal().config), undefined, tsrc, lexer_1.makePoint(tsrc.length, loc, ex.lineNumber || row, ex.columnNumber || col));
+                    tokenize('#UK', jsonic.internal().config), undefined, tsrc, (0, lexer_1.makePoint)(tsrc.length, loc, ex.lineNumber || row, ex.columnNumber || col));
                     throw new JsonicError(ex.code || 'json', ex.details || {
                         msg: ex.message
                     }, token, {}, ex.ctx || {

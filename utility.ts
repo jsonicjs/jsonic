@@ -741,7 +741,7 @@ function parserwrap(parser: any) {
     ) {
       try {
         return parser.start(src, jsonic, meta, parent_ctx)
-      } catch (ex) {
+      } catch (ex: any) {
         if ('SyntaxError' === ex.name) {
           let loc = 0
           let row = 0

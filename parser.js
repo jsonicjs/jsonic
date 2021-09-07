@@ -62,18 +62,18 @@ class RuleSpecImpl {
         this.def.open = (this.def.open || []).filter((alt) => null != alt);
         this.def.close = (this.def.close || []).filter((alt) => null != alt);
         for (let alt of [...this.def.open, ...this.def.close]) {
-            utility_1.normalt(alt);
+            (0, utility_1.normalt)(alt);
         }
     }
     // Convenience access to token Tins
     tin(ref) {
-        return utility_1.tokenize(ref, this.cfg);
+        return (0, utility_1.tokenize)(ref, this.cfg);
     }
     add(state, a, flags) {
         let inject = (flags === null || flags === void 0 ? void 0 : flags.last) ? 'push' : 'unshift';
-        let aa = (utility_1.isarr(a) ? a : [a]).map(a => utility_1.normalt(a));
+        let aa = ((0, utility_1.isarr)(a) ? a : [a]).map(a => (0, utility_1.normalt)(a));
         this.def[('o' === state ? 'open' : 'close')][inject](...aa);
-        utility_1.filterRules(this, this.cfg);
+        (0, utility_1.filterRules)(this, this.cfg);
         return this;
     }
     open(a, flags) {
@@ -189,7 +189,7 @@ class RuleSpecImpl {
             return this.bad(aout, rule, ctx, { is_open });
         }
         next.why = why;
-        ctx.log && ctx.log(utility_1.S.node, rule.name + '~' + rule.id, rule.state, 'w=' + why, 'n:' + utility_1.entries(rule.n).map(n => n[0] + '=' + n[1]).join(';'), 'u:' + utility_1.entries(rule.use).map(u => u[0] + '=' + u[1]).join(';'), F(rule.node));
+        ctx.log && ctx.log(utility_1.S.node, rule.name + '~' + rule.id, rule.state, 'w=' + why, 'n:' + (0, utility_1.entries)(rule.n).map(n => n[0] + '=' + n[1]).join(';'), 'u:' + (0, utility_1.entries)(rule.use).map(u => u[0] + '=' + u[1]).join(';'), F(rule.node));
         // Lex next tokens (up to backtrack).
         let mI = 0;
         let rewind = alt.m.length - (alt.b || 0);
@@ -269,7 +269,7 @@ class RuleSpecImpl {
         }
         ctx.log && ctx.log(utility_1.S.parse, rule.name + '~' + rule.id, rule.state, altI < alts.length ? 'alt=' + altI : 'no-alt', altI < alts.length &&
             alt.s ?
-            '[' + alt.s.map((pin) => t[pin]).join(' ') + ']' : '[]', 'tc=' + ctx.tC, 'p=' + (out.p || types_1.EMPTY), 'r=' + (out.r || types_1.EMPTY), 'b=' + (out.b || types_1.EMPTY), out.m.map((tkn) => t[tkn.tin]).join(' '), ctx.F(out.m.map((tkn) => tkn.src)), 'c:' + ((alt && alt.c) ? cond : types_1.EMPTY), 'n:' + utility_1.entries(out.n).map(n => n[0] + '=' + n[1]).join(';'), 'u:' + utility_1.entries(out.u).map(u => u[0] + '=' + u[1]).join(';'), out);
+            '[' + alt.s.map((pin) => t[pin]).join(' ') + ']' : '[]', 'tc=' + ctx.tC, 'p=' + (out.p || types_1.EMPTY), 'r=' + (out.r || types_1.EMPTY), 'b=' + (out.b || types_1.EMPTY), out.m.map((tkn) => t[tkn.tin]).join(' '), ctx.F(out.m.map((tkn) => tkn.src)), 'c:' + ((alt && alt.c) ? cond : types_1.EMPTY), 'n:' + (0, utility_1.entries)(out.n).map(n => n[0] + '=' + n[1]).join(';'), 'u:' + (0, utility_1.entries)(out.u).map(u => u[0] + '=' + u[1]).join(';'), out);
         return out;
     }
     bad(tkn, rule, ctx, parse) {
@@ -305,7 +305,7 @@ class Parser {
             rs = this.rsm[name] = (define(this.rsm[name], this.rsm) || this.rsm[name]);
             rs.name = name;
             for (let alt of [...rs.def.open, ...rs.def.close]) {
-                utility_1.normalt(alt);
+                (0, utility_1.normalt)(alt);
             }
             return undefined;
         }
@@ -315,7 +315,7 @@ class Parser {
     //jsonic: Jsonic,
     jsonic, meta, parent_ctx) {
         let root;
-        let endtkn = lexer_1.makeToken('#ZZ', utility_1.tokenize('#ZZ', this.cfg), undefined, types_1.EMPTY, lexer_1.makePoint(-1));
+        let endtkn = (0, lexer_1.makeToken)('#ZZ', (0, utility_1.tokenize)('#ZZ', this.cfg), undefined, types_1.EMPTY, (0, lexer_1.makePoint)(-1));
         let ctx = {
             uI: 1,
             opts: this.options,
@@ -335,11 +335,11 @@ class Parser {
             rs: [],
             rsm: this.rsm,
             log: undefined,
-            F: utility_1.srcfmt(this.cfg),
+            F: (0, utility_1.srcfmt)(this.cfg),
             use: {}
         };
-        ctx = utility_1.deep(ctx, parent_ctx);
-        utility_1.makelog(ctx, meta);
+        ctx = (0, utility_1.deep)(ctx, parent_ctx);
+        (0, utility_1.makelog)(ctx, meta);
         // Special case - avoids extra per-token tests in main parser rules.
         if ('' === src) {
             if (this.cfg.lex.empty) {
@@ -349,8 +349,8 @@ class Parser {
                 throw new utility_1.JsonicError(utility_1.S.unexpected, { src }, ctx.t0, types_1.NONE, ctx);
             }
         }
-        let tn = (pin) => utility_1.tokenize(pin, this.cfg);
-        let lex = utility_1.badlex(lexer_1.makeLex(ctx), utility_1.tokenize('#BD', this.cfg), ctx);
+        let tn = (pin) => (0, utility_1.tokenize)(pin, this.cfg);
+        let lex = (0, utility_1.badlex)((0, lexer_1.makeLex)(ctx), (0, utility_1.tokenize)('#BD', this.cfg), ctx);
         // let startspec = this.rsm[this.options.rule.start]
         let startspec = this.rsm[this.cfg.rule.start];
         if (null == startspec) {
@@ -362,7 +362,7 @@ class Parser {
         // rule open and close, and for each rule on each char to be
         // virtual (like map, list), and double for safety margin (allows
         // lots of backtracking), and apply a multipler options as a get-out-of-jail.
-        let maxr = 2 * utility_1.keys(this.rsm).length * lex.src.length *
+        let maxr = 2 * (0, utility_1.keys)(this.rsm).length * lex.src.length *
             2 * ctx.cfg.rule.maxmul;
         let ignore = ctx.cfg.tokenSet.ignore;
         // Lex next token.
@@ -387,7 +387,7 @@ class Parser {
         // occurrences until there's none left.
         while (types_1.NONE !== rule && rI < maxr) {
             ctx.log &&
-                ctx.log(utility_1.S.rule, rule.name + '~' + rule.id, rule.state, 'd=' + ctx.rs.length, 'tc=' + ctx.tC, '[' + tn(ctx.t0.tin) + ' ' + tn(ctx.t1.tin) + ']', '[' + ctx.F(ctx.t0.src) + ' ' + ctx.F(ctx.t1.src) + ']', 'n:' + utility_1.entries(rule.n).map(n => n[0] + '=' + n[1]).join(';'), 'u:' + utility_1.entries(rule.use).map(u => u[0] + '=' + u[1]).join(';'), rule, ctx);
+                ctx.log(utility_1.S.rule, rule.name + '~' + rule.id, rule.state, 'd=' + ctx.rs.length, 'tc=' + ctx.tC, '[' + tn(ctx.t0.tin) + ' ' + tn(ctx.t1.tin) + ']', '[' + ctx.F(ctx.t0.src) + ' ' + ctx.F(ctx.t1.src) + ']', 'n:' + (0, utility_1.entries)(rule.n).map(n => n[0] + '=' + n[1]).join(';'), 'u:' + (0, utility_1.entries)(rule.use).map(u => u[0] + '=' + u[1]).join(';'), rule, ctx);
             ctx.rule = rule;
             rule = rule.process(ctx);
             ctx.log &&
@@ -395,7 +395,7 @@ class Parser {
             rI++;
         }
         // TODO: option to allow trailing content
-        if (utility_1.tokenize('#ZZ', this.cfg) !== ctx.t0.tin) {
+        if ((0, utility_1.tokenize)('#ZZ', this.cfg) !== ctx.t0.tin) {
             throw new utility_1.JsonicError(utility_1.S.unexpected, {}, ctx.t0, types_1.NONE, ctx);
         }
         // NOTE: by returning root, we get implicit closing of maps and lists.
@@ -406,7 +406,7 @@ class Parser {
         // Inherit rules from parent, filtered by config.rule
         parser.rsm = Object
             .keys(this.rsm)
-            .reduce((a, rn) => (a[rn] = utility_1.filterRules(this.rsm[rn], this.cfg), a), {});
+            .reduce((a, rn) => (a[rn] = (0, utility_1.filterRules)(this.rsm[rn], this.cfg), a), {});
         return parser;
     }
 }

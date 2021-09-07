@@ -55,7 +55,7 @@ function make(param_options, parent) {
         mark: Math.random()
     };
     // Merge options.
-    let merged_options = utility_1.deep({}, parent ? { ...parent.options } :
+    let merged_options = (0, utility_1.deep)({}, parent ? { ...parent.options } :
         false === (param_options === null || param_options === void 0 ? void 0 : param_options.defaults$) ? {} : defaults_1.defaults, param_options ? param_options : {});
     // Create primary parsing function
     let jsonic = function Jsonic(src, meta, parent_ctx) {
@@ -63,7 +63,7 @@ function make(param_options, parent) {
         if (utility_1.S.string === typeof (src)) {
             let internal = jsonic.internal();
             let parser = ((_a = options.parser) === null || _a === void 0 ? void 0 : _a.start) ?
-                utility_1.parserwrap(options.parser) : internal.parser;
+                (0, utility_1.parserwrap)(options.parser) : internal.parser;
             return parser.start(src, jsonic, meta, parent_ctx);
         }
         return src;
@@ -72,8 +72,8 @@ function make(param_options, parent) {
     // and set them as a funtion call.
     let options = (change_options) => {
         if (null != change_options && utility_1.S.object === typeof (change_options)) {
-            utility_1.deep(merged_options, change_options);
-            utility_1.configure(jsonic, internal.config, merged_options);
+            (0, utility_1.deep)(merged_options, change_options);
+            (0, utility_1.configure)(jsonic, internal.config, merged_options);
             let parser = jsonic.internal().parser;
             internal.parser = parser.clone(merged_options, internal.config);
         }
@@ -81,13 +81,13 @@ function make(param_options, parent) {
     };
     // Define the API
     let api = {
-        token: ((ref) => utility_1.tokenize(ref, internal.config, jsonic)),
+        token: ((ref) => (0, utility_1.tokenize)(ref, internal.config, jsonic)),
         fixed: ((ref) => internal.config.fixed.ref[ref]),
-        options: utility_1.deep(options, merged_options),
+        options: (0, utility_1.deep)(options, merged_options),
         parse: jsonic,
         // TODO: how to handle null plugin?
         use: function use(plugin, plugin_options) {
-            const full_plugin_options = utility_1.deep({}, plugin.defaults || {}, plugin_options || {});
+            const full_plugin_options = (0, utility_1.deep)({}, plugin.defaults || {}, plugin_options || {});
             jsonic.options({
                 plugin: {
                     [plugin.name]: full_plugin_options
@@ -124,11 +124,11 @@ function make(param_options, parent) {
         util,
     };
     // Has to be done indirectly as we are in a fuction named `make`.
-    utility_1.defprop(api.make, utility_1.S.name, { value: utility_1.S.make });
+    (0, utility_1.defprop)(api.make, utility_1.S.name, { value: utility_1.S.make });
     // Add API methods to the core utility function.
-    utility_1.assign(jsonic, api);
+    (0, utility_1.assign)(jsonic, api);
     // Hide internals where you can still find them.
-    utility_1.defprop(jsonic, 'internal', { value: () => internal });
+    (0, utility_1.defprop)(jsonic, 'internal', { value: () => internal });
     if (parent) {
         // Transfer extra parent properties (preserves plugin decorations, etc).
         for (let k in parent) {
@@ -138,18 +138,18 @@ function make(param_options, parent) {
         }
         jsonic.parent = parent;
         let parent_internal = parent.internal();
-        internal.config = utility_1.deep({}, parent_internal.config);
-        utility_1.configure(jsonic, internal.config, merged_options);
-        utility_1.assign(jsonic.token, internal.config.t);
+        internal.config = (0, utility_1.deep)({}, parent_internal.config);
+        (0, utility_1.configure)(jsonic, internal.config, merged_options);
+        (0, utility_1.assign)(jsonic.token, internal.config.t);
         internal.plugins = [...parent_internal.plugins];
         internal.parser = parent_internal.parser.clone(merged_options, internal.config);
     }
     else {
-        internal.config = utility_1.configure(jsonic, undefined, merged_options);
+        internal.config = (0, utility_1.configure)(jsonic, undefined, merged_options);
         internal.plugins = [];
         internal.parser = new parser_1.Parser(merged_options, internal.config);
         if (false !== merged_options.grammar$) {
-            grammar_1.grammar(jsonic);
+            (0, grammar_1.grammar)(jsonic);
         }
     }
     return jsonic;
@@ -180,6 +180,6 @@ root.make = make;
 exports.default = Jsonic;
 // Build process uncomments this to enable more natural Node.js requires.
 /* $lab:coverage:off$ */
-;('undefined' != typeof(module) && (module.exports = exports.Jsonic));
+//-NODE-MODULE-FIX;('undefined' != typeof(module) && (module.exports = exports.Jsonic));
 /* $lab:coverage:on$ */
 //# sourceMappingURL=jsonic.js.map

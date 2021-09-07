@@ -58,21 +58,21 @@ class TokenImpl {
     bad(err, details) {
         this.err = err;
         if (null != details) {
-            this.use = utility_1.deep(this.use || {}, details);
+            this.use = (0, utility_1.deep)(this.use || {}, details);
         }
         return this;
     }
     toString() {
         return 'Token[' +
             this.name + '=' + this.tin + ' ' +
-            utility_1.snip(this.src) +
+            (0, utility_1.snip)(this.src) +
             (undefined === this.val || '#ST' === this.name || '#TX' === this.name ? '' :
-                '=' + utility_1.snip(this.val)) + ' ' +
+                '=' + (0, utility_1.snip)(this.val)) + ' ' +
             [this.sI, this.rI, this.cI] +
             (null == this.use ? '' : ' ' +
-                utility_1.snip(('' + JSON.stringify(this.use).replace(/"/g, '')), 22)) +
+                (0, utility_1.snip)(('' + JSON.stringify(this.use).replace(/"/g, '')), 22)) +
             (null == this.err ? '' : ' ' + this.err) +
-            (null == this.why ? '' : ' ' + utility_1.snip('' + this.why, 22)) +
+            (null == this.why ? '' : ' ' + (0, utility_1.snip)('' + this.why, 22)) +
             ']';
     }
     [types_1.INSPECT]() {
@@ -82,7 +82,7 @@ class TokenImpl {
 const makeToken = (...params) => new TokenImpl(...params);
 exports.makeToken = makeToken;
 let makeFixedMatcher = (cfg, _opts) => {
-    let fixed = utility_1.regexp(null, '^(', cfg.rePart.fixed, ')');
+    let fixed = (0, utility_1.regexp)(null, '^(', cfg.rePart.fixed, ')');
     // console.log(fixed)
     return function fixedMatcher(lex) {
         let mcfg = cfg.fixed;
@@ -181,7 +181,7 @@ exports.makeCommentMatcher = makeCommentMatcher;
 // Match text, checking for literal values, optionally followed by a fixed token.
 // Text strings are terminated by end markers.
 let makeTextMatcher = (cfg, _opts) => {
-    let ender = utility_1.regexp(cfg.line.lex ? null : 's', '^(.*?)', ...cfg.rePart.ender);
+    let ender = (0, utility_1.regexp)(cfg.line.lex ? null : 's', '^(.*?)', ...cfg.rePart.ender);
     // console.log(ender)
     return function textMatcher(lex) {
         let mcfg = cfg.text;
@@ -223,7 +223,7 @@ let makeTextMatcher = (cfg, _opts) => {
 exports.makeTextMatcher = makeTextMatcher;
 let makeNumberMatcher = (cfg, _opts) => {
     let mcfg = cfg.number;
-    let ender = utility_1.regexp(null, [
+    let ender = (0, utility_1.regexp)(null, [
         '^([-+]?(0(',
         [
             mcfg.hex ? 'x[0-9a-fA-F_]+' : null,
@@ -235,8 +235,8 @@ let makeNumberMatcher = (cfg, _opts) => {
         '([eE][-+]?[0-9]+([0-9_]*[0-9])?)?',
     ]
         .join('')
-        .replace(/_/g, mcfg.sep ? utility_1.escre(mcfg.sepChar) : ''), ')', ...cfg.rePart.ender);
-    let numberSep = (mcfg.sep ? utility_1.regexp('g', utility_1.escre(mcfg.sepChar)) : undefined);
+        .replace(/_/g, mcfg.sep ? (0, utility_1.escre)(mcfg.sepChar) : ''), ')', ...cfg.rePart.ender);
+    let numberSep = (mcfg.sep ? (0, utility_1.regexp)('g', (0, utility_1.escre)(mcfg.sepChar)) : undefined);
     return function matchNumber(lex) {
         mcfg = cfg.number;
         if (!mcfg.lex)
@@ -278,9 +278,9 @@ let makeStringMatcher = (cfg, opts) => {
     let os = opts.string || {};
     cfg.string = {
         lex: !!(os === null || os === void 0 ? void 0 : os.lex),
-        quoteMap: utility_1.charset(os.chars),
-        multiChars: utility_1.charset(os.multiChars),
-        escMap: utility_1.clean({ ...os.escape }),
+        quoteMap: (0, utility_1.charset)(os.chars),
+        multiChars: (0, utility_1.charset)(os.multiChars),
+        escMap: (0, utility_1.clean)({ ...os.escape }),
         escChar: os.escapeChar,
         escCharCode: null == os.escapeChar ? undefined : os.escapeChar.charCodeAt(0),
         allowUnknown: !!os.allowUnknown,
@@ -494,11 +494,11 @@ class LexImpl {
         let name;
         if ('string' === typeof (ref)) {
             name = ref;
-            tin = utility_1.tokenize(name, this.cfg);
+            tin = (0, utility_1.tokenize)(name, this.cfg);
         }
         else {
             tin = ref;
-            name = utility_1.tokenize(ref, this.cfg);
+            name = (0, utility_1.tokenize)(ref, this.cfg);
         }
         let tkn = makeToken(name, tin, val, src, pnt || this.pnt, use, why);
         return tkn;
@@ -527,7 +527,7 @@ class LexImpl {
         }
         if (this.ctx.log) {
             this.ctx.log(utility_1.S.lex, // Log entry prefix.
-            utility_1.tokenize(tkn.tin, this.cfg), // Name of token from tin (token identification numer).
+            (0, utility_1.tokenize)(tkn.tin, this.cfg), // Name of token from tin (token identification numer).
             this.ctx.F(tkn.src), // Format token src for log.
             pnt.sI, // Current source index.
             pnt.rI + ':' + pnt.cI);
@@ -535,7 +535,7 @@ class LexImpl {
         return tkn;
     }
     tokenize(ref) {
-        return utility_1.tokenize(ref, this.cfg);
+        return (0, utility_1.tokenize)(ref, this.cfg);
     }
     bad(why, pstart, pend) {
         return this.token('#BD', undefined, 0 <= pstart && pstart <= pend ?

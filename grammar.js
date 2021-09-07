@@ -170,13 +170,11 @@ function grammar(jsonic) {
             // Empty commas insert null elements.
             // Note that close consumes a comma, so b:2 works.
             {
-                s: [CA, CA], b: 2,
-                a: (r) => r.node.push(null),
+                s: [CA, CA], b: 2, a: (r) => r.node.push(null),
                 g: 'list,elem,imp,null',
             },
             {
-                s: [CA],
-                a: (r) => r.node.push(null),
+                s: [CA], a: (r) => r.node.push(null),
                 g: 'list,elem,imp,null',
             },
             // Anything else must a list element value.

@@ -3,7 +3,7 @@ declare const keys: (x: any) => string[];
 declare const entries: (x: any) => [string, unknown][];
 declare const assign: (x: any, ...r: any[]) => any;
 declare const isarr: (x: any) => boolean;
-declare const defprop: (o: any, p: PropertyKey, attributes: PropertyDescriptor & ThisType<any>) => any;
+declare const defprop: <T>(o: T, p: PropertyKey, attributes: PropertyDescriptor & ThisType<any>) => T;
 declare const omap: (o: any, f: any) => any;
 declare const S: {
     object: string;
