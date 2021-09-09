@@ -2,20 +2,6 @@
 'use strict'
 
 
-const Util = require('util')
-
-let Lab = require('@hapi/lab')
-Lab = null != Lab.script ? Lab : require('hapi-lab-shim')
-
-const Code = require('@hapi/code')
-
-const lab = (exports.lab = Lab.script())
-const describe = lab.describe
-const it = lab.it
-const expect = Code.expect
-
-const I = Util.inspect
-
 const {
   Jsonic,
   JsonicError,
@@ -58,7 +44,7 @@ describe('custom', function () {
       )
     })
     let out = j('a:~,b:1,c:~,d:=>,e::-,f:##,g:///,h:a,i:# foo')
-    expect(out).equal({
+    expect(out).toEqual({
       a: '<not>',
       b: 1,
       c: '<not>',
@@ -73,18 +59,18 @@ describe('custom', function () {
 
 
   it('parser-empty-clean', () => {
-    expect(Jsonic('a:1')).equals({a:1})
+    expect(Jsonic('a:1')).toEqual({a:1})
 
     let j = Jsonic.empty()
-    expect(keys({...j.token}).length).equal(0)
-    expect(keys({...j.fixed}).length).equal(0)
-    expect(Object.keys(j.rule())).equal([])
-    expect(j('a:1')).equals(undefined)
+    expect(keys({...j.token}).length).toEqual(0)
+    expect(keys({...j.fixed}).length).toEqual(0)
+    expect(Object.keys(j.rule())).toEqual([])
+    expect(j('a:1')).toEqual(undefined)
   })
 
 
   it('parser-empty-fixed', () => {
-    expect(Jsonic('a:1')).equals({a:1})
+    expect(Jsonic('a:1')).toEqual({a:1})
 
     let j = Jsonic
         .empty({
@@ -109,7 +95,7 @@ describe('custom', function () {
             .bc(r=>r.node='~T0~')
         })
 
-    expect(j('t0')).equals('~T0~')
+    expect(j('t0')).toEqual('~T0~')
   })
 
   
@@ -145,9 +131,9 @@ describe('custom', function () {
         .ac(()=>(b+='ac;'))
     })
 
-    //expect(j('a b c d e f')).equal(1111)
-    expect(j('a')).equal(1111)
-    expect(b).equal('bo;') // m: is too late to avoid bo
+    //expect(j('a b c d e f')).toEqual(1111)
+    expect(j('a')).toEqual(1111)
+    expect(b).toEqual('bo;') // m: is too late to avoid bo
   })
   
 
@@ -163,19 +149,19 @@ describe('custom', function () {
 
     j.rule('top', (rs) => rsdef(rs)
            .bo((rule,ctx)=>ctx.t0.bad('foo',{bar:'BO'})))
-    expect(()=>j('a')).throws('JsonicError', /foo.*BO/s)
+    expect(()=>j('a')).toThrow(/foo.*BO/s)
 
     j.rule('top', (rs) => rsdef(rs)
            .ao((rule,ctx)=>ctx.t0.bad('foo',{bar:'AO'})))
-    expect(()=>j('a')).throws('JsonicError', /foo.*AO/s)
+    expect(()=>j('a')).toThrow(/foo.*AO/s)
 
     j.rule('top', (rs) => rsdef(rs)
            .bc((rule,ctx)=>ctx.t0.bad('foo',{bar:'BC'})))
-    expect(()=>j('a')).throws('JsonicError', /foo.*BC/s)
+    expect(()=>j('a')).toThrow(/foo.*BC/s)
 
     j.rule('top', (rs) => rsdef(rs)
            .ac((rule,ctx)=>ctx.t0.bad('foo',{bar:'AC'})))
-    expect(()=>j('a')).throws('JsonicError', /foo.*AC/s)
+    expect(()=>j('a')).toThrow(/foo.*AC/s)
   })
 
 
@@ -186,16 +172,16 @@ describe('custom', function () {
     let rsdef = (rs)=>rs.clear().open([{s:[AA,AA]}]).close([{s:[AA,AA]}])
 
     j.rule('top', (rs) => rsdef(rs).bo((rule)=>rule.node='BO'))
-    expect(j('a')).equals('BO')
+    expect(j('a')).toEqual('BO')
 
     j.rule('top', (rs) => rsdef(rs).ao((rule)=>rule.node='AO'))
-    expect(j('a')).equals('AO')
+    expect(j('a')).toEqual('AO')
 
     j.rule('top', (rs) => rsdef(rs).bc((rule)=>rule.node='BC'))
-    expect(j('a')).equals('BC')
+    expect(j('a')).toEqual('BC')
 
     j.rule('top', (rs) => rsdef(rs).ac((rule)=>rule.node='AC'))
-    expect(j('a')).equals('AC')
+    expect(j('a')).toEqual('AC')
   })
 
 
@@ -208,7 +194,7 @@ describe('custom', function () {
     
     j.rule('top', (rs) => rsdef(rs).bo((rule)=>(rule.node=4444)))
 
-    expect(j('a')).equals(4444)
+    expect(j('a')).toEqual(4444)
   })
 
 
@@ -221,8 +207,8 @@ describe('custom', function () {
 
     j.rule('top', (rs) => rsdef(rs).ac((rule)=>rule.node = rule.open[0].val+rule.open[1].val))
 
-    expect(j('a\nb')).equals('ab')
-    expect(()=>j('AAA,')).throws('JsonicError', /unexpected.*AAA/)
+    expect(j('a\nb')).toEqual('ab')
+    expect(()=>j('AAA,')).toThrow(/unexpected.*AAA/)
   })
 
 
@@ -237,12 +223,12 @@ describe('custom', function () {
            .close([{s:[AA]}])
            .ac((rule,ctx)=>(ctx.t0.bad('foo', {bar:'AAA'}))))
 
-    expect(()=>j('a')).throws('JsonicError',/foo.*AAA/s)
+    expect(()=>j('a')).toThrow(/foo.*AAA/s)
   })
 
 
   it('parser-multi-alts', () => {
-    expect(Jsonic('a:1')).equals({a:1})
+    expect(Jsonic('a:1')).toEqual({a:1})
 
     let j = make_norules({rule:{start:'top'}})
 
@@ -265,9 +251,9 @@ describe('custom', function () {
         .open([{s:[Ta,[Tb,Tc]]}])
            .ac((r)=>r.node = (r.open[0].src+r.open[1].src).toUpperCase()))
     
-    expect(j('ab')).equals('AB')
-    expect(j('ac')).equals('AC')
-    expect(()=>j('ad')).throws('JsonicError',/unexpected.*d/)
+    expect(j('ab')).toEqual('AB')
+    expect(j('ac')).toEqual('AC')
+    expect(()=>j('ad')).toThrow(/unexpected.*d/)
   })
   
   
@@ -282,13 +268,13 @@ describe('custom', function () {
       }
     })
 
-    expect(j('foo')).equals('FOO')
-    expect(j('bar')).equals('BAR')
+    expect(j('foo')).toEqual('FOO')
+    expect(j('bar')).toEqual('BAR')
   })
 
 
   it('parser-mixed-token', () => {
-    expect(Jsonic('a:1')).equals({a:1})
+    expect(Jsonic('a:1')).toEqual({a:1})
 
     let cs = [
       'Q',  // generic char
@@ -320,17 +306,17 @@ describe('custom', function () {
         })
       })
       
-      expect(j('['+c+'x'+c+'y]')).equals(['@x','@y'])
+      expect(j('['+c+'x'+c+'y]')).toEqual(['@x','@y'])
     }
   })
 
 
   it('merge', () => {
     // verify standard merges
-    expect(Jsonic('a:1,a:2')).equals({a:2})
-    expect(Jsonic('a:1,a:2,a:3')).equals({a:3})
-    expect(Jsonic('a:{x:1},a:{y:2}')).equals({a:{x:1,y:2}})
-    expect(Jsonic('a:{x:1},a:{y:2},a:{z:3}')).equals({a:{x:1,y:2,z:3}})
+    expect(Jsonic('a:1,a:2')).toEqual({a:2})
+    expect(Jsonic('a:1,a:2,a:3')).toEqual({a:3})
+    expect(Jsonic('a:{x:1},a:{y:2}')).toEqual({a:{x:1,y:2}})
+    expect(Jsonic('a:{x:1},a:{y:2},a:{z:3}')).toEqual({a:{x:1,y:2,z:3}})
 
     let b = ''
     let j = Jsonic.make({
@@ -341,13 +327,13 @@ describe('custom', function () {
       }
     })
 
-    expect(j('a:1,a:2')).equals({a:3})
-    expect(j('a:1,a:2,a:3')).equals({a:6})
+    expect(j('a:1,a:2')).toEqual({a:3})
+    expect(j('a:1,a:2,a:3')).toEqual({a:6})
   })
 
 
   it('parser-condition-depth', () => {
-    expect(Jsonic('a:1')).equals({a:1})
+    expect(Jsonic('a:1')).toEqual({a:1})
 
     let j = make_norules({
       fixed:{token:{'#F':'f','#B':'b'}},
@@ -369,7 +355,7 @@ describe('custom', function () {
            .open([{s:[BT],c:{d:2}}])
            .ao((r)=>r.node.o+='B'))
 
-    expect(j('fb')).equal({o:'TFB'})
+    expect(j('fb')).toEqual({o:'TFB'})
 
 
     j.rule('bar',(rs)=>rs
@@ -377,12 +363,12 @@ describe('custom', function () {
            .open([{s:[BT],c:{d:0}}])
            .ao((r)=>r.node.o+='B'))
 
-    expect(()=>j('fb')).throws(/unexpected/)    
+    expect(()=>j('fb')).toThrow(/unexpected/)    
   })
 
 
   it('parser-condition-counter', () => {
-    expect(Jsonic('a:1')).equals({a:1})
+    expect(Jsonic('a:1')).toEqual({a:1})
 
     let j = make_norules({
       fixed:{token:{'#F':'f','#B':'b'}},
@@ -405,7 +391,7 @@ describe('custom', function () {
            .open([{s:[BT],c:{n:{x:1,y:0}}}]) // (x <= 1, y <= 0) -> pass
            .ao((r)=>r.node.o+='B'))
 
-    expect(j('fb')).equal({o:'TFB'})
+    expect(j('fb')).toEqual({o:'TFB'})
 
 
     j.rule('bar',(rs)=>rs
@@ -413,7 +399,7 @@ describe('custom', function () {
            .open([{s:[BT],c:{n:{x:0}}}])  // !(x <= 0) -> fail
            .ao((r)=>r.node.o+='B'))
 
-    expect(()=>j('fb')).throws(/unexpected/)
+    expect(()=>j('fb')).toThrow(/unexpected/)
   })
 })
 

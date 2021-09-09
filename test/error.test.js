@@ -1,15 +1,15 @@
 /* Copyright (c) 2013-2020 Richard Rodger and other contributors, MIT License */
 'use strict'
 
-let Lab = require('@hapi/lab')
-Lab = null != Lab.script ? Lab : require('hapi-lab-shim')
+// let Lab = require('@hapi/lab')
+// Lab = null != Lab.script ? Lab : require('hapi-lab-shim')
 
-const Code = require('@hapi/code')
+// const Code = require('@hapi/code')
 
-const lab = (exports.lab = Lab.script())
-const describe = lab.describe
-const it = lab.it
-const expect = Code.expect
+// const lab = (exports.lab = Lab.script())
+// const describe = lab.describe
+// const it = lab.it
+// const expect = Code.expect
 
 const { Jsonic, JsonicError } = require('..')
 
@@ -23,7 +23,7 @@ describe('error', function () {
       Jsonic(src0)
     }
     catch(e) {
-      expect(e.message).equal(
+      expect(e.message).toEqual(
 `\u001b[31m[jsonic/invalid_unicode]:\u001b[0m invalid unicode escape: "\\\\u0000"
   \u001b[34m-->\u001b[0m <no-file>:10:6
 \u001b[34m   8 | \u001b[0m
@@ -78,7 +78,7 @@ describe('error', function () {
       k(src0)
     }
     catch(e) {
-      expect(e.message).equals(
+      expect(e.message).toEqual(
         '\u001b[31m[jsonic/foo]:\u001b[0m foo: "FOO"!\n' +
           '  \u001b[34m-->\u001b[0m <no-file>:2:3\n' +
           '\u001b[34m  1 | \u001b[0ma:1,\n' +
@@ -96,7 +96,7 @@ describe('error', function () {
     }
     
     expect(()=>k('a:1,\nb:FOO'))
-      .throws(JsonicError, /foo/)
+      .toThrow(/foo/)
   })
   
 
@@ -104,12 +104,12 @@ describe('error', function () {
     let src0 = '\n\n\n\n\n\n\n\n\n\n   "\\uQQQQ"'
     //je(src0)()
     expect(je(src0))
-      .throws(JsonicError, /invalid_unicode/)
+      .toThrow(/invalid_unicode/)
 
     let src1 = '\n\n\n\n\n\n\n\n\n\n   "\\u{QQQQQQ}"'
     //je(src1)()
     expect(je(src0))
-      .throws(JsonicError, /invalid_unicode/)
+      .toThrow(/invalid_unicode/)
   })
 
 
@@ -117,14 +117,14 @@ describe('error', function () {
     let src0 = '\n\n\n\n\n\n\n\n\n\n   "\\x!!"'
     // je(src0)()
     expect(je(src0))
-      .throws(JsonicError, /invalid_ascii/)
+      .toThrow(/invalid_ascii/)
   })
 
 
   it('lex-unprintable', () => {
     let src0 = '"\x00"'
     expect(je(src0))
-      .throws(JsonicError, /unprintable/)
+      .toThrow(/unprintable/)
   })
 
 
@@ -132,7 +132,7 @@ describe('error', function () {
     let src0 = '"a'
 
     expect(je(src0))
-      .throws(JsonicError, /unterminated/)
+      .toThrow(/unterminated/)
 
     /*
     try {
@@ -149,7 +149,7 @@ describe('error', function () {
     let src0 = '\n\n\n\n\n\n\n\n\n\n   }'
 
     expect(je(src0))
-      .throws(JsonicError, /unexpected/)
+      .toThrow(/unexpected/)
 
     /*
     try {
@@ -168,57 +168,57 @@ describe('error', function () {
     }
     catch(e) {
       // console.log(e)
-      expect(JSON.stringify(e))
+      expect(JSON.stringify(e)
         .includes('{"code":"unexpected","details":{},'+
-                  '"meta":{},"lineNumber":1,"columnNumber":1')
+                  '"meta":{},"lineNumber":1,"columnNumber":1')).toBeTruthy()
     } 
   })
 
 
   it('bad-syntax', () => {
     // TODO: unexpected end of src needs own case, otherwise incorrect explanation
-    // expect(je('{a')).throws(JsonicError, /incomplete/)
+    // expect(je('{a')).toThrow(/incomplete/)
 
     // TODO: should all be null
-    //expect(Jsonic('a:')).equals({a:undefined})
-    //expect(Jsonic('{a:')).equals({a:undefined})
-    //expect(Jsonic('{a:,b:')).equals({a:undefined,b:undefined})
-    //expect(Jsonic('a:,b:')).equals({a:undefined,b:undefined})
+    //expect(Jsonic('a:')).toEqual({a:undefined})
+    //expect(Jsonic('{a:')).toEqual({a:undefined})
+    //expect(Jsonic('{a:,b:')).toEqual({a:undefined,b:undefined})
+    //expect(Jsonic('a:,b:')).toEqual({a:undefined,b:undefined})
 
     // Invalid pair.
-    expect(je('{]')).throws(JsonicError, /unexpected/)
-    expect(je('[}')).throws(JsonicError, /unexpected/)
-    expect(je(':')).throws(JsonicError, /unexpected/)
-    expect(je(':a')).throws(JsonicError, /unexpected/)
-    expect(je(' : ')).throws(JsonicError, /unexpected/)
-    expect(je('{,]')).throws(JsonicError, /unexpected/)
-    expect(je('[,}')).throws(JsonicError, /unexpected/)
-    expect(je(',:')).throws(JsonicError, /unexpected/)
-    expect(je(',:a')).throws(JsonicError, /unexpected/)
-    expect(je('[:')).throws(JsonicError, /unexpected/)
-    expect(je('[:a')).throws(JsonicError, /unexpected/)
+    expect(je('{]')).toThrow(/unexpected/)
+    expect(je('[}')).toThrow(/unexpected/)
+    expect(je(':')).toThrow(/unexpected/)
+    expect(je(':a')).toThrow(/unexpected/)
+    expect(je(' : ')).toThrow(/unexpected/)
+    expect(je('{,]')).toThrow(/unexpected/)
+    expect(je('[,}')).toThrow(/unexpected/)
+    expect(je(',:')).toThrow(/unexpected/)
+    expect(je(',:a')).toThrow(/unexpected/)
+    expect(je('[:')).toThrow(/unexpected/)
+    expect(je('[:a')).toThrow(/unexpected/)
 
     
     // Unexpected close
-    expect(je(']')).throws(JsonicError, /unexpected/)
-    expect(je('}')).throws(JsonicError, /unexpected/)
-    expect(je(' ]')).throws(JsonicError, /unexpected/)
-    expect(je(' }')).throws(JsonicError, /unexpected/)
-    expect(je(',}')).throws(JsonicError, /unexpected/)
-    expect(je('a]')).throws(JsonicError, /unexpected/)
-    expect(je('a}')).throws(JsonicError, /unexpected/)
-    expect(je('{a]')).throws(JsonicError, /unexpected/)
-    expect(je('[a}')).throws(JsonicError, /unexpected/)
-    expect(je('{a}')).throws(JsonicError, /unexpected/)
-    expect(je('{a:1]')).throws(JsonicError, /unexpected/)
+    expect(je(']')).toThrow(/unexpected/)
+    expect(je('}')).toThrow(/unexpected/)
+    expect(je(' ]')).toThrow(/unexpected/)
+    expect(je(' }')).toThrow(/unexpected/)
+    expect(je(',}')).toThrow(/unexpected/)
+    expect(je('a]')).toThrow(/unexpected/)
+    expect(je('a}')).toThrow(/unexpected/)
+    expect(je('{a]')).toThrow(/unexpected/)
+    expect(je('[a}')).toThrow(/unexpected/)
+    expect(je('{a}')).toThrow(/unexpected/)
+    expect(je('{a:1]')).toThrow(/unexpected/)
 
     
     // These are actually OK
-    expect(Jsonic(',]')).equals([null])
-    expect(Jsonic('{a:}')).equals({a:null})
-    expect(Jsonic('{a:b:}')).equals({a:{b:null}})
-    expect(Jsonic('[a:1]')).equals([{a:1}])
-    expect(Jsonic('[a:]')).equals([{a:null}])
+    expect(Jsonic(',]')).toEqual([null])
+    expect(Jsonic('{a:}')).toEqual({a:null})
+    expect(Jsonic('{a:b:}')).toEqual({a:{b:null}})
+    expect(Jsonic('[a:1]')).toEqual([{a:1}])
+    expect(Jsonic('[a:]')).toEqual([{a:null}])
   })
 
 })

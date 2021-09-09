@@ -3,15 +3,15 @@
 
 const Util = require('util')
 
-let Lab = require('@hapi/lab')
-Lab = null != Lab.script ? Lab : require('hapi-lab-shim')
+// let Lab = require('@hapi/lab')
+// Lab = null != Lab.script ? Lab : require('hapi-lab-shim')
 
-const Code = require('@hapi/code')
+// const Code = require('@hapi/code')
 
-const lab = (exports.lab = Lab.script())
-const describe = lab.describe
-const it = lab.it
-const expect = Code.expect
+// const lab = (exports.lab = Lab.script())
+// const describe = lab.describe
+// const it = lab.it
+// const expect = Code.expect
 
 
 const {
@@ -52,12 +52,12 @@ describe('utility', () => {
   it('token', ()=>{
     let p0 = makePoint(1,2,3,4)
     let t0 = makeToken('a',1,'b','bs',p0,{x:1},'W')
-    expect(''+t0).equals('Token[a=1 bs=b 2,3,4 {x:1} W]')
+    expect(''+t0).toEqual('Token[a=1 bs=b 2,3,4 {x:1} W]')
 
     let t0e = t0.bad('foo')
     expect(t0===t0e)
-    expect(t0e.err).equals('foo')
-    expect(''+t0e).equals('Token[a=1 bs=b 2,3,4 {x:1} foo W]')
+    expect(t0e.err).toEqual('foo')
+    expect(''+t0e).toEqual('Token[a=1 bs=b 2,3,4 {x:1} foo W]')
   })
   
   it('configure', () => {
@@ -101,14 +101,14 @@ describe('utility', () => {
     }
 
     configure({},c,o0)
-    expect(Object.keys(c.t).length).above(0)
+    expect(Object.keys(c.t).length>0).toBeTruthy()
 
     
     c = {t:{},tI:1}
     let o1 = deep({fixed:{token:{'#Ta':'a'}}},o0)
     configure({},c,o1)
     // console.log(c)
-    expect(c.t.Ta).equal(12)
+    expect(c.t.Ta).toEqual(12)
   })
 
 
@@ -120,28 +120,28 @@ describe('utility', () => {
       t: {},
     }
 
-    expect(tokenize(null,config)).equals(undefined)
+    expect(tokenize(null,config)).toEqual(undefined)
     
     let s1 = tokenize('AA', config)
-    expect(s1).equals(s+1)
-    expect(config.t.AA).equals(s+1)
-    expect(config.t[s+1]).equals('AA')
-    expect(tokenize('AA', config)).equals(s+1)
-    expect(tokenize(s+1, config)).equals('AA')
+    expect(s1).toEqual(s+1)
+    expect(config.t.AA).toEqual(s+1)
+    expect(config.t[s+1]).toEqual('AA')
+    expect(tokenize('AA', config)).toEqual(s+1)
+    expect(tokenize(s+1, config)).toEqual('AA')
 
     let s1a = tokenize('AA', config)
-    expect(s1a).equals(s+1)
-    expect(config.t.AA).equals(s+1)
-    expect(config.t[s+1]).equals('AA')
-    expect(tokenize('AA', config)).equals(s+1)
-    expect(tokenize(s+1, config)).equals('AA')
+    expect(s1a).toEqual(s+1)
+    expect(config.t.AA).toEqual(s+1)
+    expect(config.t[s+1]).toEqual('AA')
+    expect(tokenize('AA', config)).toEqual(s+1)
+    expect(tokenize(s+1, config)).toEqual('AA')
 
     let s2 = tokenize('BB', config)
-    expect(s2).equals(s+2)
-    expect(config.t.BB).equals(s+2)
-    expect(config.t[s+2]).equals('BB')
-    expect(tokenize('BB', config)).equals(s+2)
-    expect(tokenize(s+2, config)).equals('BB')
+    expect(s2).toEqual(s+2)
+    expect(config.t.BB).toEqual(s+2)
+    expect(config.t[s+2]).toEqual('BB')
+    expect(tokenize('BB', config)).toEqual(s+2)
+    expect(tokenize(s+2, config)).toEqual('BB')
   })
 
   
@@ -149,136 +149,136 @@ describe('utility', () => {
     let fa = function a(){}
     let fb = function b(){}
     
-    expect(deep(fa)).equals(fa)
-    expect(deep(null,fa)).equals(fa)
-    expect(deep(fa,null)).equals(null)
-    expect(deep(undefined,fa)).equals(fa)
-    expect(deep(fa,undefined)).equals(fa)
-    expect(deep(fa,{})).equals(fa)
-    expect(deep({},fa)).equals(fa)
-    expect(deep(fa,[])).equals([])
-    expect(deep([],fa)).equals(fa)
-    expect(deep(fa,fb)).equals(fb)
+    expect(deep(fa)).toEqual(fa)
+    expect(deep(null,fa)).toEqual(fa)
+    expect(deep(fa,null)).toEqual(null)
+    expect(deep(undefined,fa)).toEqual(fa)
+    expect(deep(fa,undefined)).toEqual(fa)
+    expect(deep(fa,{})).toEqual(fa)
+    expect(deep({},fa)).toEqual(fa)
+    expect(deep(fa,[])).toEqual([])
+    expect(deep([],fa)).toEqual(fa)
+    expect(deep(fa,fb)).toEqual(fb)
 
-    expect(I(deep(fa,{x:1}))).equals('[Function: a] { x: 1 }')
+    expect(I(deep(fa,{x:1}))).toEqual('[Function: a] { x: 1 }')
     
-    expect(deep()).equals(undefined)
-    expect(deep(undefined)).equals(undefined)
-    expect(deep(undefined,undefined)).equals(undefined)
-    expect(deep(undefined,null)).equals(null)
-    expect(deep(null,undefined)).equals(null)
-    expect(deep(null)).equals(null)
-    expect(deep(null,null)).equals(null)
+    expect(deep()).toEqual(undefined)
+    expect(deep(undefined)).toEqual(undefined)
+    expect(deep(undefined,undefined)).toEqual(undefined)
+    expect(deep(undefined,null)).toEqual(null)
+    expect(deep(null,undefined)).toEqual(null)
+    expect(deep(null)).toEqual(null)
+    expect(deep(null,null)).toEqual(null)
 
-    expect(deep(1,undefined)).equals(1)
-    expect(deep(1,null)).equals(null)
+    expect(deep(1,undefined)).toEqual(1)
+    expect(deep(1,null)).toEqual(null)
     
-    expect(deep(1,2)).equals(2)
-    expect(deep(1,'a')).equals('a')
+    expect(deep(1,2)).toEqual(2)
+    expect(deep(1,'a')).toEqual('a')
     
-    expect(deep({})).equals({})
-    expect(deep(null,{})).equals({})
-    expect(deep({},null)).equals(null)
-    expect(deep(undefined,{})).equals({})
-    expect(deep({},undefined)).equals({})
+    expect(deep({})).toEqual({})
+    expect(deep(null,{})).toEqual({})
+    expect(deep({},null)).toEqual(null)
+    expect(deep(undefined,{})).toEqual({})
+    expect(deep({},undefined)).toEqual({})
 
-    expect(deep([])).equals([])
-    expect(deep(null,[])).equals([])
-    expect(deep([],null)).equals(null)
-    expect(deep(undefined,[])).equals([])
-    expect(deep([],undefined)).equals([])
+    expect(deep([])).toEqual([])
+    expect(deep(null,[])).toEqual([])
+    expect(deep([],null)).toEqual(null)
+    expect(deep(undefined,[])).toEqual([])
+    expect(deep([],undefined)).toEqual([])
 
     
-    expect(deep(1,{})).equals({})
-    expect(deep({},1)).equals(1)
-    expect(deep(1,[])).equals([])
-    expect(deep([],1)).equals(1)
+    expect(deep(1,{})).toEqual({})
+    expect(deep({},1)).toEqual(1)
+    expect(deep(1,[])).toEqual([])
+    expect(deep([],1)).toEqual(1)
 
-    expect(deep({a:1})).equals({a:1})
-    expect(deep(null,{a:1})).equals({a:1})
-    expect(deep({a:1},null)).equals(null)
-    expect(deep(undefined,{a:1})).equals({a:1})
-    expect(deep({a:1},undefined)).equals({a:1})
+    expect(deep({a:1})).toEqual({a:1})
+    expect(deep(null,{a:1})).toEqual({a:1})
+    expect(deep({a:1},null)).toEqual(null)
+    expect(deep(undefined,{a:1})).toEqual({a:1})
+    expect(deep({a:1},undefined)).toEqual({a:1})
 
-    expect(deep({a:1},{})).equals({a:1})
-    expect(deep({a:1},{b:2})).equals({a:1,b:2})
-    expect(deep({a:1},{b:2,a:3})).equals({a:3,b:2})
+    expect(deep({a:1},{})).toEqual({a:1})
+    expect(deep({a:1},{b:2})).toEqual({a:1,b:2})
+    expect(deep({a:1},{b:2,a:3})).toEqual({a:3,b:2})
 
-    expect(deep({a:1,b:{c:2}},{})).equals({a:1,b:{c:2}})
-    expect(deep({a:1,b:{c:2}},{a:3})).equals({a:3,b:{c:2}})
-    expect(deep({a:1,b:{c:2}},{a:3,b:{}})).equals({a:3,b:{c:2}})
-    expect(deep({a:1,b:{c:2}},{a:3,b:{d:4}})).equals({a:3,b:{c:2,d:4}})
-    expect(deep({a:1,b:{c:2}},{a:3,b:{c:5}})).equals({a:3,b:{c:5}})
-    expect(deep({a:1,b:{c:2}},{a:3,b:{c:5,e:6}})).equals({a:3,b:{c:5,e:6}})
+    expect(deep({a:1,b:{c:2}},{})).toEqual({a:1,b:{c:2}})
+    expect(deep({a:1,b:{c:2}},{a:3})).toEqual({a:3,b:{c:2}})
+    expect(deep({a:1,b:{c:2}},{a:3,b:{}})).toEqual({a:3,b:{c:2}})
+    expect(deep({a:1,b:{c:2}},{a:3,b:{d:4}})).toEqual({a:3,b:{c:2,d:4}})
+    expect(deep({a:1,b:{c:2}},{a:3,b:{c:5}})).toEqual({a:3,b:{c:5}})
+    expect(deep({a:1,b:{c:2}},{a:3,b:{c:5,e:6}})).toEqual({a:3,b:{c:5,e:6}})
 
 
-    expect(deep([1])).equals([1])
-    expect(deep(null,[1])).equals([1])
-    expect(deep([1],null)).equals(null)
-    expect(deep(undefined,[1])).equals([1])
-    expect(deep([1],undefined)).equals([1])
+    expect(deep([1])).toEqual([1])
+    expect(deep(null,[1])).toEqual([1])
+    expect(deep([1],null)).toEqual(null)
+    expect(deep(undefined,[1])).toEqual([1])
+    expect(deep([1],undefined)).toEqual([1])
 
-    expect(deep([1],[])).equals([1])
-    expect(deep([],[1])).equals([1])
-    expect(deep([1],[2])).equals([2])
-    expect(deep([1,3],[2])).equals([2,3])
-    expect(deep([1,2,3],[undefined,4])).equals([1, 4, 3])
+    expect(deep([1],[])).toEqual([1])
+    expect(deep([],[1])).toEqual([1])
+    expect(deep([1],[2])).toEqual([2])
+    expect(deep([1,3],[2])).toEqual([2,3])
+    expect(deep([1,2,3],[undefined,4])).toEqual([1, 4, 3])
 
-    expect(deep({a:1,b:[]})).equals({a:1,b:[]})
-    expect(deep({a:1,b:[2]})).equals({a:1,b:[2]})
-    expect(deep({a:1,b:[2],c:[{d:3}]})).equals({a:1,b:[2],c:[{d:3}]})
+    expect(deep({a:1,b:[]})).toEqual({a:1,b:[]})
+    expect(deep({a:1,b:[2]})).toEqual({a:1,b:[2]})
+    expect(deep({a:1,b:[2],c:[{d:3}]})).toEqual({a:1,b:[2],c:[{d:3}]})
     expect(deep({a:1,b:[2],c:[{d:3}]},{a:4,b:[5],c:[{d:6}]}))
-      .equals({a:4,b:[5],c:[{d:6}]})
+      .toEqual({a:4,b:[5],c:[{d:6}]})
 
-    expect(deep([],{})).equals({})
-    expect(deep({},[])).equals([])
+    expect(deep([],{})).toEqual({})
+    expect(deep({},[])).toEqual([])
 
-    expect(deep({a:[]},{a:{}})).equals({a:{}})
-    expect(deep({a:{}},{a:[]})).equals({a:[]})
+    expect(deep({a:[]},{a:{}})).toEqual({a:{}})
+    expect(deep({a:{}},{a:[]})).toEqual({a:[]})
 
-    expect(deep([[]],[{}])).equals([{}])
-    expect(deep([{}],[[]])).equals([[]])
+    expect(deep([[]],[{}])).toEqual([{}])
+    expect(deep([{}],[[]])).toEqual([[]])
 
-    expect(deep({a:1},{b:2},{c:3})).equals({a:1,b:2,c:3})
-    expect(deep({a:1},{a:2,b:4},{c:3})).equals({a:2,b:4,c:3})
-    expect(deep({a:1},{a:2,b:4},{a:3,c:5})).equals({a:3,b:4,c:5})
+    expect(deep({a:1},{b:2},{c:3})).toEqual({a:1,b:2,c:3})
+    expect(deep({a:1},{a:2,b:4},{c:3})).toEqual({a:2,b:4,c:3})
+    expect(deep({a:1},{a:2,b:4},{a:3,c:5})).toEqual({a:3,b:4,c:5})
 
-    expect(deep({a:1},{b:2},null)).equals(null)
-    expect(deep({a:1},null,{c:3})).equals({c:3})
-    expect(deep(null,{b:2},{c:3})).equals({b:2,c:3})
+    expect(deep({a:1},{b:2},null)).toEqual(null)
+    expect(deep({a:1},null,{c:3})).toEqual({c:3})
+    expect(deep(null,{b:2},{c:3})).toEqual({b:2,c:3})
 
     let a = {a:1}
     let b = {b:2}
     let c = {c:3}
     let x = deep({},a,b,c)
-    expect(x).equals({a:1,b:2,c:3})
-    expect(a).equals({a:1})
-    expect(b).equals({b:2})
-    expect(c).equals({c:3})
+    expect(x).toEqual({a:1,b:2,c:3})
+    expect(a).toEqual({a:1})
+    expect(b).toEqual({b:2})
+    expect(c).toEqual({c:3})
 
 
     let ga = ()=>{}; ga.a=1
     let gb = ()=>{}; gb.b=2
     let gc = ()=>{}; gc.c=3
     let gx = deep(()=>{},ga,gb,gc)
-    expect(I(gx)).equals('[Function: gc] { c: 3 }') // CORRECT!
-    expect(I(ga)).equals('[Function: ga] { a: 1 }')
-    expect(I(gb)).equals('[Function: gb] { b: 2 }')
-    expect(I(gc)).equals('[Function: gc] { c: 3 }')
+    expect(I(gx)).toEqual('[Function: gc] { c: 3 }') // CORRECT!
+    expect(I(ga)).toEqual('[Function: ga] { a: 1 }')
+    expect(I(gb)).toEqual('[Function: gb] { b: 2 }')
+    expect(I(gc)).toEqual('[Function: gc] { c: 3 }')
 
     let ha = ()=>{}; ha.a=1
     let hx = deep({},ha)
-    expect(I(hx)).equals('[Function: ha] { a: 1 }') // CORRECT!
-    expect(I(ha)).equals('[Function: ha] { a: 1 }')
+    expect(I(hx)).toEqual('[Function: ha] { a: 1 }') // CORRECT!
+    expect(I(ha)).toEqual('[Function: ha] { a: 1 }')
 
 
     let ka = ()=>{}; ka.a=1
     let kx = deep({},{...ka})
-    expect(I(ka)).equals('[Function: ka] { a: 1 }')
-    expect(I(kx)).equals('{ a: 1 }')
+    expect(I(ka)).toEqual('[Function: ka] { a: 1 }')
+    expect(I(kx)).toEqual('{ a: 1 }')
 
 
-    expect(I(deep({},{f:()=>{},a:1}))).equals('{ f: [Function: f], a: 1 }')
+    expect(I(deep({},{f:()=>{},a:1}))).toEqual('{ f: [Function: f], a: 1 }')
 
     class C0 {
       constructor(a) {
@@ -290,36 +290,36 @@ describe('utility', () => {
     }
 
     let c0 = new C0(1)
-    expect(c0.foo()).equal('FOO1')
+    expect(c0.foo()).toEqual('FOO1')
     
     let c00 = deep({},c0)
-    expect(c0.a).equal(c00.a)
-    expect(c00.foo).undefined()
+    expect(c0.a).toEqual(c00.a)
+    expect(c00.foo).toBeUndefined()
     
     let c0p = deep(Object.create(Object.getPrototypeOf(c0)),c0)
-    expect(c0.a).equal(c0p.a)
-    expect(c0.foo()).equal('FOO1')
-    expect(c0p.foo()).equal('FOO1')
+    expect(c0.a).toEqual(c0p.a)
+    expect(c0.foo()).toEqual('FOO1')
+    expect(c0p.foo()).toEqual('FOO1')
     c0p.a=2
-    expect(c0.a).equal(1)
-    expect(c0p.a).equal(2)
-    expect(c0.foo()).equal('FOO1')
-    expect(c0p.foo()).equal('FOO2')
+    expect(c0.a).toEqual(1)
+    expect(c0p.a).toEqual(2)
+    expect(c0.foo()).toEqual('FOO1')
+    expect(c0p.foo()).toEqual('FOO2')
 
     
     let d0 = {a:1}
     let d00 = deep(undefined,d0)
     d0.b = 2
-    expect(d0).equal({a:1,b:2})
-    expect(d00).equal({a:1})
-    expect(d0===d00).false()
+    expect(d0).toEqual({a:1,b:2})
+    expect(d00).toEqual({a:1})
+    expect(d0===d00).toBeFalsy()
 
     let d1 = [1]
     let d11 = deep(undefined,d1)
     d1[1] = 2
-    expect(d1).equal([1,2])
-    expect(d11).equal([1])
-    expect(d1===d11).false()
+    expect(d1).toEqual([1,2])
+    expect(d11).toEqual([1])
+    expect(d1===d11).toBeFalsy()
 
 
     let d2 = {a:{b:[1]}}
@@ -330,8 +330,8 @@ describe('utility', () => {
     d22.a.c=22
     d2.a.b.push(2)
     d22.a.b.push(22)
-    expect(d2).equal({ a: { b: [ 1, 2 ], c: 2 }, c: 2 } )
-    expect(d22).equal({ a: { b: [ 1, 22 ], c: 22 }, c: 22 })
+    expect(d2).toEqual({ a: { b: [ 1, 2 ], c: 2 }, c: 2 } )
+    expect(d22).toEqual({ a: { b: [ 1, 22 ], c: 22 }, c: 22 })
 
 
     /* TODO: handle cycles
@@ -361,41 +361,41 @@ describe('utility', () => {
     }
 
     let a0 = new A(1)
-    expect(a0.foo()).equal(1)
+    expect(a0.foo()).toEqual(1)
 
     let a00 = deep(a0)
     a00.x = 2
-    expect(a00.foo()).equal(2)
+    expect(a00.foo()).toEqual(2)
 
     //console.log(a0, a00)
 
     let a1 = deep(a0,{x:3})
     //console.log(a1)
-    expect(a1.x).equal(3)
+    expect(a1.x).toEqual(3)
     
     let a2 = deep({x:4},a0)
     //console.log(a2)
-    expect(a2.x).equal(3)
+    expect(a2.x).toEqual(3)
 
     // NOTE: undefined does not delete
-    expect(deep({a:1},{a:null})).equals({a:null})
-    expect(deep({a:undefined},{a:null})).equals({a:null})
-    expect(deep({a:1},{a:undefined})).equals({a:1})
+    expect(deep({a:1},{a:null})).toEqual({a:null})
+    expect(deep({a:undefined},{a:null})).toEqual({a:null})
+    expect(deep({a:1},{a:undefined})).toEqual({a:1})
   })
 
 
   it('errinject', () => {
     let args = ['c0',{a:1},{b:2},{c:3},{d:4,meta:{g:7},opts:{e:5},cfg:{f:6}}]
     expect(errinject('x $code $a $b $c $d $e $f $g $Z x',...args))
-      .equal('x "c0" 1 2 3 4 5 6 7 "$Z" x')
+      .toEqual('x "c0" 1 2 3 4 5 6 7 "$Z" x')
   })
 
 
   it('srcfmt', () => {
     let F = srcfmt({debug:{maxlen:4}})
-    expect(F('a')).equals('"a"')
-    expect(F('ab')).equals('"ab"')
-    expect(F('abc')).equals('"abc...')
+    expect(F('a')).toEqual('"a"')
+    expect(F('ab')).toEqual('"ab"')
+    expect(F('abc')).toEqual('"abc...')
   })
 
 
@@ -411,15 +411,15 @@ describe('utility', () => {
       badlex({next:()=>({tin:1})},1,ctx)({})
     }
     catch(e) {
-      expect(e.code).equals('unexpected')
+      expect(e.code).toEqual('unexpected')
     }
 
     try {
       badlex({next:()=>({tin:1,use:{x:1}})},1,ctx)({})
     }
     catch(e) {
-      expect(e.code).equals('unexpected')
-      expect(e.details).equals({ use: { x: 1 } })
+      expect(e.code).toEqual('unexpected')
+      expect(e.details).toEqual({ use: { x: 1 } })
     }
 
   })
@@ -431,9 +431,9 @@ describe('utility', () => {
 
 
   it('regexp', () => {
-    expect(regexp('','a')).equal(/a/)
-    expect(regexp('','a*')).equal(/a*/)
-    expect(regexp('',mesc('ab*'))).equal(/ab\*/)
+    expect(regexp('','a')).toEqual(/a/)
+    expect(regexp('','a*')).toEqual(/a*/)
+    expect(regexp('',mesc('ab*'))).toEqual(/ab\*/)
   })
 
 
@@ -458,26 +458,26 @@ describe('utility', () => {
     let g1 = makelog({cfg},{log:1})
     let g2 = makelog({cfg},{log:-1})
 
-    expect(g0).undefined()
+    expect(g0).toBeUndefined()
 
     log = []
     dir = []
     g1('A')
-    expect(log).equal([])
-    expect(dir).equal([['A']])
+    expect(log).toEqual([])
+    expect(dir).toEqual([['A']])
 
 
     log = []
     dir = []
     g2('B')
-    expect(log).equal(['B'])
-    expect(dir).equal([])
+    expect(log).toEqual(['B'])
+    expect(dir).toEqual([])
 
     log = []
     dir = []
     let j = Jsonic.make(cfg)
     j('a:1',{log:-1})
-    expect(dir[0].debug.print.config).true()
+    expect(dir[0].debug.print.config).toBeTruthy()
   })
 
 
@@ -486,7 +486,7 @@ describe('utility', () => {
     let log = []
     let j0 = Jsonic.make()
     j0('a:1',{log:(...r)=>log.push(r)})
-    expect(log.map(x=>x[0]+' '+x[1]+' '+x[2])).equals([
+    expect(log.map(x=>x[0]+' '+x[1]+' '+x[2])).toEqual([
       'lex #TX "a"',
       'lex #CL ":"',
       'rule val~1 o',
@@ -529,8 +529,8 @@ describe('utility', () => {
     ])
 
     log = []
-    expect(()=>j0('{{',{log:(...r)=>log.push(r)})).throws()
-    expect(log.map(x=>x[0]+' '+x[1]+' '+x[2])).equals([
+    expect(()=>j0('{{',{log:(...r)=>log.push(r)})).toThrow()
+    expect(log.map(x=>x[0]+' '+x[1]+' '+x[2])).toEqual([
   'lex #OB "{"',
   'lex #OB "{"',
   'rule val~1 o',
@@ -555,7 +555,7 @@ describe('utility', () => {
    *
    */
 `,{log:(...r)=>log.push(r)})
-    expect(d0).equals(['a', 16, 16, 16, true, 'b', ' c'])
+    expect(d0).toEqual(['a', 16, 16, 16, true, 'b', ' c'])
 
     log = []
     try {
@@ -563,8 +563,8 @@ describe('utility', () => {
       Code.fail()
     } catch(e) {
       // console.log(e)
-      expect(e.code).equal('unterminated_string')
-      expect(log.map(x=>x[0]+' '+x[1]+' '+x[2])).equals([
+      expect(e.code).toEqual('unterminated_string')
+      expect(log.map(x=>x[0]+' '+x[1]+' '+x[2])).toEqual([
         'lex #BD "\\""'
       ])
     }
@@ -620,8 +620,8 @@ describe('utility', () => {
     
     log = []
     let d1 = j1('a:<x\ny>',{log:(...r)=>log.push(r)})
-    expect(d1).equals({a:'X\nY'})
-    expect(log.map(x=>x[0]+' '+x[1]+' '+x[2])).equals([
+    expect(d1).toEqual({a:'X\nY'})
+    expect(log.map(x=>x[0]+' '+x[1]+' '+x[2])).toEqual([
       'lex #TX "a"',
       'lex #CL ":"',
       'rule val~1 o',
@@ -696,9 +696,9 @@ describe('utility', () => {
       ctx0
     )
     //console.log(d0)
-    expect(d0.code).equals('foo')
-    expect(d0.message).includes('foo-code')
-    expect(d0.message).includes('foo-hint')
+    expect(d0.code).toEqual('foo')
+    expect(d0.message.includes('foo-code')).toBeTruthy()
+    expect(d0.message.includes('foo-hint')).toBeTruthy()
 
     let d1 = errdesc(
       'not-a-code',
@@ -708,9 +708,9 @@ describe('utility', () => {
       {...ctx0, meta:{mode:'m0',fileName:'fn0'}}
     )
     //console.log(d1)
-    expect(d1.code).equals('not-a-code')
-    expect(d1.message).includes('unknown-code')
-    expect(d1.message).includes('unknown-hint')
+    expect(d1.code).toEqual('not-a-code')
+    expect(d1.message.includes('unknown-code')).toBeTruthy()
+    expect(d1.message.includes('unknown-hint')).toBeTruthy()
 
   })
 
@@ -733,15 +733,15 @@ describe('utility', () => {
     }
 
     expect(F(rs0, { include: [], exclude: []}))
-      .equals({ open: '1234', close: '' })
+      .toEqual({ open: '1234', close: '' })
     expect(F(rs0, { include: ['a0'], exclude: []}))
-      .equals({ open: '12', close: '' })
+      .toEqual({ open: '12', close: '' })
     expect(F(rs0, { include: ['a1'], exclude: []}))
-      .equals({ open: '13', close: '' })
+      .toEqual({ open: '13', close: '' })
     expect(F(rs0, { include: ['x0'], exclude: []}))
-      .equals({ open: '', close: '' })
+      .toEqual({ open: '', close: '' })
     expect(F(rs0, { include: ['a1','a2'], exclude: []}))
-      .equals({ open: '123', close: '' })
+      .toEqual({ open: '123', close: '' })
 
 
     let rs1 = {
@@ -757,15 +757,15 @@ describe('utility', () => {
     }
 
     expect(F(rs1, { include: [], exclude: []}))
-      .equals({ open: '1234', close: '' })
+      .toEqual({ open: '1234', close: '' })
     expect(F(rs1, { include: [], exclude: ['a0']}))
-      .equals({ open: '34', close: '' })
+      .toEqual({ open: '34', close: '' })
     expect(F(rs1, { include: [], exclude: ['a1']}))
-      .equals({ open: '24', close: '' })
+      .toEqual({ open: '24', close: '' })
     expect(F(rs1, { include: [], exclude: ['x0']}))
-      .equals({ open: '1234', close: '' })
+      .toEqual({ open: '1234', close: '' })
     expect(F(rs1, { include: [], exclude: ['a1','a2']}))
-      .equals({ open: '4', close: '' })
+      .toEqual({ open: '4', close: '' })
 
   }) 
 })

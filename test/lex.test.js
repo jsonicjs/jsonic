@@ -2,19 +2,19 @@
 'use strict'
 
 
-const Util = require('util')
+// const Util = require('util')
 
-let Lab = require('@hapi/lab')
-Lab = null != Lab.script ? Lab : require('hapi-lab-shim')
+// let Lab = require('@hapi/lab')
+// Lab = null != Lab.script ? Lab : require('hapi-lab-shim')
 
-const Code = require('@hapi/code')
+// const Code = require('@hapi/code')
 
-const lab = (exports.lab = Lab.script())
-const describe = lab.describe
-const it = lab.it
-const expect = Code.expect
+// const lab = (exports.lab = Lab.script())
+// const describe = lab.describe
+// const it = lab.it
+// const expect = Code.expect
 
-const I = Util.inspect
+// const I = Util.inspect
 
 const { Jsonic, makeLex, JsonicError } = require('..')
 
@@ -37,7 +37,8 @@ describe('lex', function () {
 
   function alleq(ta) {
     for(let i = 0; i < ta.length; i+=2) {
-      expect(lexall(ta[i]),'case:'+(i/2)+' ['+ta[i]+']').equal(ta[i+1])
+      let suffix = ' CASE:'+(i/2)+' ['+ta[i]+']'
+      expect(lexall(ta[i])+suffix).toEqual(ta[i+1]+suffix)
     }
   }
 
@@ -54,34 +55,34 @@ describe('lex', function () {
   
   it('jsonic-token', () => {
     lexstart('')
-    expect(j.token.OB).exists()
-    expect(t.CB).exists()
+    expect(j.token.OB).toBeDefined()
+    expect(t.CB).toBeDefined()
   })
 
   
   it('specials', () => {
     let lex0 = lexstart(' {123 ')
-    expect(''+lex0()).equals('Token[#SP=5   0,1,1]')
-    expect(''+lex0()).equals('Token[#OB=12 { 1,1,2]')
-    expect(''+lex0()).equals('Token[#NR=8 123=123 2,1,3]')
-    expect(''+lex0()).equals('Token[#SP=5   5,1,6]')
-    expect(''+lex0()).equals('Token[#ZZ=2  6,1,7]')
-    expect(''+lex0()).equals('Token[#ZZ=2  6,1,7]')
-    expect(''+lex0()).equals('Token[#ZZ=2  6,1,7]')
+    expect(''+lex0()).toEqual('Token[#SP=5   0,1,1]')
+    expect(''+lex0()).toEqual('Token[#OB=12 { 1,1,2]')
+    expect(''+lex0()).toEqual('Token[#NR=8 123=123 2,1,3]')
+    expect(''+lex0()).toEqual('Token[#SP=5   5,1,6]')
+    expect(''+lex0()).toEqual('Token[#ZZ=2  6,1,7]')
+    expect(''+lex0()).toEqual('Token[#ZZ=2  6,1,7]')
+    expect(''+lex0()).toEqual('Token[#ZZ=2  6,1,7]')
 
 
     let lex1 = lexstart('"\\u0040\\u{012345}"')
     let t0 = lex1()
-    expect(t0.val).equals('\u0040\u{012345}')
-    expect(t0.len).equals(18)
-    expect(''+t0).equals('Token[#ST=9 "\\u00 0,1,1]') // NOTE: truncated!
+    expect(t0.val).toEqual('\u0040\u{012345}')
+    expect(t0.len).toEqual(18)
+    expect(''+t0).toEqual('Token[#ST=9 "\\u00 0,1,1]') // NOTE: truncated!
 
 
-    expect(lexall(' {123')).equals([
+    expect(lexall(' {123')).toEqual([
       '#SP;0;1;1x1', '#OB;1;1;1x2', '#NR;2;3;1x3;123', '#ZZ;5;0;1x6'
     ])
 
-    expect(lexall(' {123%')).equals([
+    expect(lexall(' {123%')).toEqual([
       '#SP;0;1;1x1', '#OB;1;1;1x2', '#TX;2;4;1x3;123%', '#ZZ;6;0;1x7'
     ])
 
@@ -95,7 +96,7 @@ describe('lex', function () {
   
   it('space', () => {
     let lex0 = lexstart(' \t')
-    expect(''+lex0()).equals('Token[#SP=5  . 0,1,1]')
+    expect(''+lex0()).toEqual('Token[#SP=5  . 0,1,1]')
 
     alleq([
       ' ', ['#SP;0;1;1x1','#ZZ;1;0;1x2'],
@@ -191,7 +192,7 @@ describe('lex', function () {
 
   it('number', () => {
     let lex0 = lexstart('321')
-    expect(''+lex0()).equal('Token[#NR=8 321=321 0,1,1]')
+    expect(''+lex0()).toEqual('Token[#NR=8 321=321 0,1,1]')
 
     alleq([
       '0', ['#NR;0;1;1x1;0','#ZZ;1;0;1x2'],
@@ -373,7 +374,7 @@ describe('lex', function () {
 
 
     let s = m('1234')
-    expect(s).equal(['A', 'B', 'C', 'D' ])
+    expect(s).toEqual(['A', 'B', 'C', 'D' ])
 
     
     let log = []
@@ -381,7 +382,7 @@ describe('lex', function () {
       return {log:(...r)=>log.push(r)}
     }}})
     s = m0('1234',{log:-1})
-    expect(s).equal(['A', 'B', 'C', 'D' ])
+    expect(s).toEqual(['A', 'B', 'C', 'D' ])
 
     // debug logs name of lex function
     expect(log[0][0]).contains('m_ltp')
@@ -394,61 +395,61 @@ describe('lex', function () {
       return { sI:sI+1, rI, cI:cI+1, state: -1 }
     })
 
-    expect(()=>m1('1234')).throws(JsonicError,/invalid_lex_state/)
+    expect(()=>m1('1234')).toThrow(JsonicError,/invalid_lex_state/)
   })
   */
   
 
   it('lex-flags', () => {
     let no_comment = Jsonic.make({comment:{lex:false}})
-    expect(Jsonic('a:1#b')).equals({a:1})
-    expect(Jsonic('a,1#b')).equals(['a',1])
-    expect(no_comment('a:1#b')).equals({a:'1#b'})
-    expect(no_comment('a,1#b')).equals(['a','1#b'])
+    expect(Jsonic('a:1#b')).toEqual({a:1})
+    expect(Jsonic('a,1#b')).toEqual(['a',1])
+    expect(no_comment('a:1#b')).toEqual({a:'1#b'})
+    expect(no_comment('a,1#b')).toEqual(['a','1#b'])
 
     // space becomes text if turned off
     let no_space = Jsonic.make({space:{lex:false}})
-    expect(Jsonic('a : 1')).equals({'a':1})
-    expect(Jsonic('a , 1')).equals(['a',1])
-    expect(no_space('a :1')).equals({'a ':1})
-    expect(no_space('a ,1')).equals(['a ',1])
-    expect(no_space('a: 1')).equals({a:' 1'})
-    expect(no_space('a, 1')).equals(['a', ' 1'])
+    expect(Jsonic('a : 1')).toEqual({'a':1})
+    expect(Jsonic('a , 1')).toEqual(['a',1])
+    expect(no_space('a :1')).toEqual({'a ':1})
+    expect(no_space('a ,1')).toEqual(['a ',1])
+    expect(no_space('a: 1')).toEqual({a:' 1'})
+    expect(no_space('a, 1')).toEqual(['a', ' 1'])
 
     let no_number = Jsonic.make({number:{lex:false}})
-    expect(Jsonic('a:1')).equals({a:1})
-    expect(Jsonic('a,1')).equals(['a',1])
-    expect(no_number('a:1')).equals({a:'1'})
-    expect(no_number('a,1')).equals(['a','1'])
+    expect(Jsonic('a:1')).toEqual({a:1})
+    expect(Jsonic('a,1')).toEqual(['a',1])
+    expect(no_number('a:1')).toEqual({a:'1'})
+    expect(no_number('a,1')).toEqual(['a','1'])
 
     let no_string = Jsonic.make({string:{lex:false}})
-    expect(Jsonic('a:1')).equals({a:1})
-    expect(Jsonic('a,1')).equals(['a',1])
-    expect(Jsonic('a:"a"')).equals({a:'a'})
-    expect(Jsonic('"a",1')).equals(['a',1])
-    expect(no_string('a:1')).equals({a:1})
-    expect(no_string('a,1')).equals(['a',1])
-    expect(no_string('a:"a"')).equals({a:'"a"'})
-    expect(no_string('"a",1')).equals(['"a"',1])
+    expect(Jsonic('a:1')).toEqual({a:1})
+    expect(Jsonic('a,1')).toEqual(['a',1])
+    expect(Jsonic('a:"a"')).toEqual({a:'a'})
+    expect(Jsonic('"a",1')).toEqual(['a',1])
+    expect(no_string('a:1')).toEqual({a:1})
+    expect(no_string('a,1')).toEqual(['a',1])
+    expect(no_string('a:"a"')).toEqual({a:'"a"'})
+    expect(no_string('"a",1')).toEqual(['"a"',1])
 
     let no_text = Jsonic.make({text:{lex:false}})
-    expect(Jsonic('a:b')).equals({a:'b'})
-    expect(Jsonic('a, b ')).equals(['a','b'])
-    expect(()=>no_text('a:b c')).throws('JsonicError', /unexpected/)
-    expect(()=>no_text('a,b c')).throws('JsonicError', /unexpected/)
+    expect(Jsonic('a:b')).toEqual({a:'b'})
+    expect(Jsonic('a, b ')).toEqual(['a','b'])
+    expect(()=>no_text('a:b c')).toThrow(/unexpected/)
+    expect(()=>no_text('a,b c')).toThrow(/unexpected/)
 
     let no_value = Jsonic.make({value:{lex:false}})
-    expect(Jsonic('a:true')).equals({a:true})
-    expect(Jsonic('a,null')).equals(['a',null])
-    expect(no_value('a:true')).equals({a:'true'})
-    expect(no_value('a,null')).equals(['a','null'])
+    expect(Jsonic('a:true')).toEqual({a:true})
+    expect(Jsonic('a,null')).toEqual(['a',null])
+    expect(no_value('a:true')).toEqual({a:'true'})
+    expect(no_value('a,null')).toEqual(['a','null'])
     
     // line becomes text if turned off
     let no_line = Jsonic.make({line:{lex:false}})
-    expect(Jsonic('a:\n1')).equals({a:1})
-    expect(Jsonic('a,\n1')).equals(['a',1])
-    expect(no_line('a:\n1')).equals({a:'\n1'})
-    expect(no_line('a,\n1')).equals(['a','\n1'])
+    expect(Jsonic('a:\n1')).toEqual({a:1})
+    expect(Jsonic('a,\n1')).toEqual(['a',1])
+    expect(no_line('a:\n1')).toEqual({a:'\n1'})
+    expect(no_line('a,\n1')).toEqual(['a','\n1'])
   })
 
 
@@ -474,7 +475,7 @@ describe('lex', function () {
       lex:{match}
     })
     
-    expect(tens('a:1,b:%%,c:[%%%%]')).equals({a:1,b:20,c:[40]})
+    expect(tens('a:1,b:%%,c:[%%%%]')).toEqual({a:1,b:20,c:[40]})
   })
 
 
