@@ -224,12 +224,23 @@ describe('cli', function () {
     await jr([0,0,'-p','./test/pa-qa.js','-o','plugin.paqa.q=3','a:Q'],cn)
     expect(cn.d.log[0][0]).toEqual('{"a":3}')
 
-    // cn = make_cn()
-    // await jr([0,0,'-p','@jsonic/directive',
-    //           '-o','plugin.directive.name=constant',
-    //           '-o','plugin.directive.open=X',
-    //           'a:Q'],cn)
-    // expect(cn.d.log[0][0]).toEqual('{"a":4}')
+    cn = make_cn()
+    await jr([0,0,'-p','@jsonic/directive',
+              '-o','custom.x=4',
+              '-o','plugin.directive.name=constant',
+              '-o','plugin.directive.open=X',
+              '-o','plugin.directive.action=custom.x',
+              'a:X'],cn)
+    expect(cn.d.log[0][0]).toEqual('{"a":4}')
+
+    cn = make_cn()
+    await jr([0,0,'-p','directive',
+              '-o','custom.x=5',
+              '-o','plugin.directive.name=constant',
+              '-o','plugin.directive.open=X',
+              '-o','plugin.directive.action=custom.x',
+              'a:X'],cn)
+    expect(cn.d.log[0][0]).toEqual('{"a":5}')
 
   })
   

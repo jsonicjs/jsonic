@@ -1,5 +1,0 @@
-* Plugin candidates:
-** https://github.com/json-next/awesome-json-next
-** https://github.com/tj/mdconf
-** https://github.com/officetxt/awesome-txt
-

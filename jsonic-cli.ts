@@ -3,15 +3,13 @@
 
 import Fs from 'fs'
 
-import { Jsonic, util } from './jsonic'
+import { Jsonic, Relate, util } from './jsonic'
 
 
 // Make sure JsonicError is shown nicely.
 if (require.main === module) {
   run(process.argv, console).catch((e) => console.error(e))
 }
-
-type KV = { [name: string]: any }
 
 /* $lab:coverage:on$ */
 
@@ -122,21 +120,18 @@ async function read_stdin(console: Console) {
     return (console as any).test$
   }
 
-  /* $lab:coverage:off$ */
   if (process.stdin.isTTY) return ''
 
   let s = ''
   process.stdin.setEncoding('utf8')
   for await (const p of process.stdin) s += p;
   return s
-  /* $lab:coverage:on$ */
 }
 
 
-// TODO: FIX!!! this is very fragile and causes bizarro bugs!!!
-// perhaps construct a simplified rules Jsonic instance for this use case?
-// NOTE: uses vanilla Jsonic to parse arg vals, so you can set complex properties.
-function handle_props(propvals: string[]): KV {
+// NOTE: uses vanilla Jsonic to parse arg vals, so you can set complex
+// properties.  This will break if core Jsonic is broken.
+function handle_props(propvals: string[]): Relate {
   let out = {}
 
   for (let propval of propvals) {
@@ -150,8 +145,7 @@ function handle_props(propvals: string[]): KV {
 }
 
 
-// TODO: test lowercase and normalize, esp core plugins, eg. @jsonic/directive
-function handle_plugins(plugins: string[]): KV {
+function handle_plugins(plugins: string[]): Relate {
   let out: any = {}
   for (let name of plugins) {
     try {
@@ -160,15 +154,18 @@ function handle_plugins(plugins: string[]): KV {
     catch (e) {
       let err = e
 
-      // Might be builtin
-      try {
-        out[name] = require('./plugin/' + name)
-      }
-      catch (e) {
-        throw err // NOTE: throws original error
+      // Might be @jsonic plugin
+      if (!name.startsWith('@')) {
+        try {
+          out[name] = require('@jsonic/' + name)
+        }
+        catch (e) {
+          throw err // NOTE: throws original error
+        }
       }
     }
 
+    // Handle some variations in the way the plugin function is exported.
     if ('function' !== typeof (out[name])) {
       let refname = ((name as any).match(/([^.\\\/]+)($|\.[^.]+$)/) || [])[1]
       refname = null != refname ? refname.toLowerCase() : refname
@@ -193,9 +190,6 @@ function handle_plugins(plugins: string[]): KV {
       else {
         throw new Error('Plugin is not a function: ' + name)
       }
-    }
-    else {
-      // normalize name
     }
   }
 

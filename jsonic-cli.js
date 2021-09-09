@@ -100,7 +100,6 @@ async function read_stdin(console) {
     if ('string' === typeof (console.test$)) {
         return console.test$;
     }
-    /* $lab:coverage:off$ */
     if (process.stdin.isTTY)
         return '';
     let s = '';
@@ -108,11 +107,9 @@ async function read_stdin(console) {
     for await (const p of process.stdin)
         s += p;
     return s;
-    /* $lab:coverage:on$ */
 }
-// TODO: FIX!!! this is very fragile and causes bizarro bugs!!!
-// perhaps construct a simplified rules Jsonic instance for this use case?
-// NOTE: uses vanilla Jsonic to parse arg vals, so you can set complex properties.
+// NOTE: uses vanilla Jsonic to parse arg vals, so you can set complex
+// properties.  This will break if core Jsonic is broken.
 function handle_props(propvals) {
     let out = {};
     for (let propval of propvals) {
@@ -124,7 +121,6 @@ function handle_props(propvals) {
     }
     return out;
 }
-// TODO: test lowercase and normalize, esp core plugins, eg. @jsonic/directive
 function handle_plugins(plugins) {
     let out = {};
     for (let name of plugins) {
@@ -133,14 +129,17 @@ function handle_plugins(plugins) {
         }
         catch (e) {
             let err = e;
-            // Might be builtin
-            try {
-                out[name] = require('./plugin/' + name);
-            }
-            catch (e) {
-                throw err; // NOTE: throws original error
+            // Might be @jsonic plugin
+            if (!name.startsWith('@')) {
+                try {
+                    out[name] = require('@jsonic/' + name);
+                }
+                catch (e) {
+                    throw err; // NOTE: throws original error
+                }
             }
         }
+        // Handle some variations in the way the plugin function is exported.
         if ('function' !== typeof (out[name])) {
             let refname = (name.match(/([^.\\\/]+)($|\.[^.]+$)/) || [])[1];
             refname = null != refname ? refname.toLowerCase() : refname;
@@ -161,9 +160,6 @@ function handle_plugins(plugins) {
             else {
                 throw new Error('Plugin is not a function: ' + name);
             }
-        }
-        else {
-            // normalize name
         }
     }
     return out;
