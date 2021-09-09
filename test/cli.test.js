@@ -187,6 +187,52 @@ describe('cli', function () {
     
   })
 
+
+  it('plugin', async ()=>{
+    let cn = make_cn()
+    await jr([0,0,'-p','./test/p0','-o','plugin.p0.x=0','a:X'],cn)
+    expect(cn.d.log[0][0]).toEqual('{"a":0}')
+
+    
+    cn = make_cn()
+    await jr([0,0,'-p','./test/p0',
+              '-o','plugin.p0.x=0',
+              '-o','plugin.p0.s=W',
+              'a:W'],cn)
+    expect(cn.d.log[0][0]).toEqual('{"a":0}')
+
+    
+    cn = make_cn()
+    await jr([0,0,'-o','plugin.p1.y=1','-p','./test/p1','a:Y'],cn)
+    expect(cn.d.log[0][0]).toEqual('{"a":1}')
+
+    
+    cn = make_cn()
+    await jr([0,0,
+              '-o','plugin.p0.x=0',
+              '-p','./test/p0',
+              '-o','plugin.p1.y=1',
+              '-p','./test/p1',
+              'a:X,b:Y'],cn)
+    expect(cn.d.log[0][0]).toEqual('{"a":0,"b":1}')
+
+    cn = make_cn()
+    await jr([0,0,'-p','./test/p2','-o','plugin.p2.z=2','a:Z'],cn)
+    expect(cn.d.log[0][0]).toEqual('{"a":2}')
+
+    cn = make_cn()
+    await jr([0,0,'-p','./test/pa-qa.js','-o','plugin.paqa.q=3','a:Q'],cn)
+    expect(cn.d.log[0][0]).toEqual('{"a":3}')
+
+    // cn = make_cn()
+    // await jr([0,0,'-p','@jsonic/directive',
+    //           '-o','plugin.directive.name=constant',
+    //           '-o','plugin.directive.open=X',
+    //           'a:Q'],cn)
+    // expect(cn.d.log[0][0]).toEqual('{"a":4}')
+
+  })
+  
   
   it('stringify', async () => {
     let cn = make_cn()

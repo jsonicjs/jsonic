@@ -39,6 +39,8 @@ const {
   trimstk,
   configure,
   TIME,
+  prop,
+  str,
 } = util
 
 
@@ -49,6 +51,12 @@ const D = (o)=>console.dir(o,{depth:null})
 
 describe('utility', () => {
 
+  it('token', ()=>{
+    let p0 = makePoint(4,3,2,1)
+    expect(''+p0).toEqual('Point[3/4,2,1]')
+    expect(I(p0)).toEqual('Point[3/4,2,1]')
+  })
+  
   it('token', ()=>{
     let p0 = makePoint(1,2,3,4)
     let t0 = makeToken('a',1,'b','bs',p0,{x:1},'W')
@@ -436,6 +444,52 @@ describe('utility', () => {
     expect(regexp('',mesc('ab*'))).toEqual(/ab\*/)
   })
 
+
+
+  it('str', () => {
+    expect(str('12345',6)).toEqual('12345')
+    expect(str('12345',5)).toEqual('12345')
+    expect(str('12345',4)).toEqual('1...')
+    expect(str('12345',3)).toEqual('...')
+    expect(str('12345',2)).toEqual('..')
+    expect(str('12345',1)).toEqual('.')
+    expect(str('12345',0)).toEqual('')
+    expect(str('12345',-1)).toEqual('')
+
+    expect(str('123',4)).toEqual('123')
+    expect(str('123',3)).toEqual('123')
+    expect(str('123',2)).toEqual('..')
+    expect(str('123',1)).toEqual('.')
+    expect(str('123',0)).toEqual('')
+    expect(str('123',-1)).toEqual('')
+
+    expect(str(1)).toEqual('1')
+    expect(str(true)).toEqual('true')
+
+    expect(str({a:1})).toEqual('{"a":1}')
+    expect(str([1,2])).toEqual('[1,2]')
+    expect(str({a:1},7)).toEqual('{"a":1}')
+    expect(str([1,2],5)).toEqual('[1,2]')
+    expect(str({a:1},6)).toEqual('{"a...')
+    expect(str([1,2],4)).toEqual('[...')
+    
+    expect(str([1,2,3,4,5,6,7,8,9,0,1,2,3,4,5,6,7,8,9,0,1,2,3]))
+      .toEqual('[1,2,3,4,5,6,7,8,9,0,1,2,3,4,5,6,7,8,9,0,...')
+  })
+
+  
+  it('prop', () => {
+    let o0 = {}
+
+    expect(prop(o0,'a',1)).toEqual(1)
+    expect(o0).toEqual({a:1})
+
+    expect(prop(o0,'b.c',2)).toEqual(2)
+    expect(o0).toEqual({a:1,b:{c:2}})
+
+    expect(()=>prop(o0,'a.d',3))
+      .toThrow('Cannot set path a.d on object: {"a":1,"b":{"c":2}} to value: 3')
+  })
 
   
   it('makelog', () => {

@@ -45,6 +45,8 @@ const util = {
     escre: utility_1.escre,
     regexp: utility_1.regexp,
     keys: utility_1.keys,
+    prop: utility_1.prop,
+    str: utility_1.str,
 };
 exports.util = util;
 function make(param_options, parent) {
@@ -87,14 +89,18 @@ function make(param_options, parent) {
         parse: jsonic,
         // TODO: how to handle null plugin?
         use: function use(plugin, plugin_options) {
+            // Plugin name keys in options.plugin are the lower-cased plugin function name.
+            const plugin_name = plugin.name.toLowerCase();
             const full_plugin_options = (0, utility_1.deep)({}, plugin.defaults || {}, plugin_options || {});
             jsonic.options({
                 plugin: {
-                    [plugin.name]: full_plugin_options
+                    // [plugin.name]: full_plugin_options
+                    [plugin_name]: full_plugin_options
                 }
             });
+            let merged_plugin_options = jsonic.options.plugin[plugin_name];
             jsonic.internal().plugins.push(plugin);
-            return plugin(jsonic, full_plugin_options) || jsonic;
+            return plugin(jsonic, merged_plugin_options) || jsonic;
         },
         rule: (name, define) => {
             return jsonic.internal().parser.rule(name, define) || jsonic;

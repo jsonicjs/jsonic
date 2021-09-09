@@ -1,6 +1,6 @@
 import type { Config, Context, Counters, Relate, Tin, Point, Token, Rule, RuleSpec, Lex, RuleDefiner, RuleState, RuleSpecMap, LexMatcher, MakeLexMatcher, AltSpec, AltAction, AltCond, AltModifier, AltError, Options, JsonicAPI, JsonicParse, Plugin } from './types';
 import { OPEN, CLOSE, BEFORE, AFTER } from './types';
-import { JsonicError, badlex, deep, errdesc, errinject, extract, makelog, mesc, regexp, tokenize, trimstk, srcfmt, clone, charset, configure, escre, parserwrap } from './utility';
+import { JsonicError, badlex, deep, errdesc, errinject, extract, makelog, mesc, regexp, tokenize, trimstk, srcfmt, clone, charset, configure, escre, parserwrap, prop, str } from './utility';
 import { makePoint, makeToken, makeLex, makeFixedMatcher, makeSpaceMatcher, makeLineMatcher, makeStringMatcher, makeCommentMatcher, makeNumberMatcher, makeTextMatcher } from './lexer';
 import { makeRule, makeRuleSpec, Parser } from './parser';
 declare const util: {
@@ -21,6 +21,8 @@ declare const util: {
     escre: typeof escre;
     regexp: typeof regexp;
     keys: (x: any) => string[];
+    prop: typeof prop;
+    str: typeof str;
 };
 declare type Jsonic = JsonicParse & // A function that parses.
 JsonicAPI & // A utility with API methods.

@@ -6,6 +6,7 @@
 
 
 // TODO: implicit lists in pair values: "a:1,2 b:3" -> {a:[1,2], b:3} - pair key terminates (A)
+// TODO: [a:1] should set prop on array, not create [{a:1}]
 // TODO: string format for rule def: s:'ST,NR' -> s:[ST,NR], also "s:ST,NR,p:foo,..." - needs (A) - can only used post standard definition (thus not in grammar.ts)
 // TODO: Context provides current jsonic instance: { ..., jsonic: ()=>instance }
 // TODO: docs: ref https://wiki.alopex.li/OnParsers
@@ -102,6 +103,8 @@ import {
   escre,
   parserwrap,
   keys,
+  prop,
+  str,
 } from './utility'
 
 
@@ -152,6 +155,8 @@ const util = {
   escre,
   regexp,
   keys,
+  prop,
+  str,
 }
 
 
@@ -229,15 +234,19 @@ function make(param_options?: Relate, parent?: Jsonic): Jsonic {
 
     // TODO: how to handle null plugin?
     use: function use(plugin: Plugin, plugin_options?: Relate): Jsonic {
+      // Plugin name keys in options.plugin are the lower-cased plugin function name.
+      const plugin_name = plugin.name.toLowerCase()
       const full_plugin_options =
         deep({}, plugin.defaults || {}, plugin_options || {})
       jsonic.options({
         plugin: {
-          [plugin.name]: full_plugin_options
+          // [plugin.name]: full_plugin_options
+          [plugin_name]: full_plugin_options
         }
       })
+      let merged_plugin_options = jsonic.options.plugin[plugin_name]
       jsonic.internal().plugins.push(plugin)
-      return plugin(jsonic, full_plugin_options) || jsonic
+      return plugin(jsonic, merged_plugin_options) || jsonic
     },
 
     rule: (name?: string, define?: RuleDefiner | null) => {

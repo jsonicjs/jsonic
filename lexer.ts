@@ -60,7 +60,7 @@ class PointImpl implements Point {
   }
 
   toString() {
-    return 'Point[' + [this.sI, this.rI, this.cI] +
+    return 'Point[' + [this.sI + '/' + this.len, this.rI, this.cI] +
       (0 < this.token.length ? (' ' + this.token) : '') + ']'
   }
 

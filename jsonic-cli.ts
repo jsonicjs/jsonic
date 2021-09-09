@@ -143,13 +143,14 @@ function handle_props(propvals: string[]): KV {
     let pv = propval.split(/=/)
     if ('' !== pv[0] && '' !== pv[1]) {
       let val = Jsonic(pv[1])
-      set_prop(out, pv[0], val)
+      util.prop(out, pv[0], val)
     }
   }
   return out
 }
 
 
+// TODO: test lowercase and normalize, esp core plugins, eg. @jsonic/directive
 function handle_plugins(plugins: string[]): KV {
   let out: any = {}
   for (let name of plugins) {
@@ -169,38 +170,38 @@ function handle_plugins(plugins: string[]): KV {
     }
 
     if ('function' !== typeof (out[name])) {
-      let refname = (name as any).match(/([^.\\\/]+)($|\.[^.]+$)/)[1]
-      if ('function' == typeof (out[name][refname])) {
-        out[name] = out[name][refname]
-      }
-      else if ('function' == typeof (out[name].default)) {
+      let refname = ((name as any).match(/([^.\\\/]+)($|\.[^.]+$)/) || [])[1]
+      refname = null != refname ? refname.toLowerCase() : refname
+
+      // See test plugin test/p1.js
+      if ('function' == typeof (out[name].default)) {
         out[name] = out[name].default
       }
-      else if ('function' ==
-        typeof (out[name][(camel(refname) as string)])) {
+      else if (null != refname &&
+        'function' == typeof (out[name][(camel(refname) as string)])
+      ) {
         out[name] = out[name][(camel(refname) as string)]
+      }
+
+      // See test plugin test/p2.js
+      else if (null != refname &&
+        'function' == typeof (out[name][(refname as any)])
+      ) {
+        out[refname] = out[name][refname]
+        delete out[name]
       }
       else {
         throw new Error('Plugin is not a function: ' + name)
       }
+    }
+    else {
+      // normalize name
     }
   }
 
   return out
 }
 
-
-function set_prop(obj: any, path: string, val: any) {
-  let parts = path.split('.')
-  let pn: any
-  for (let pI = 0; pI < parts.length; pI++) {
-    pn = parts[pI]
-    if (pI < parts.length - 1) {
-      obj = (obj[pn] = (obj[pn] || {}))
-    }
-  }
-  obj[pn] = val
-}
 
 
 function camel(s: string) {

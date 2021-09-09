@@ -1,7 +1,7 @@
 "use strict";
 /* Copyright (c) 2013-2021 Richard Rodger, MIT License */
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.normalt = exports.parserwrap = exports.trimstk = exports.tokenize = exports.srcfmt = exports.snip = exports.regexp = exports.omap = exports.mesc = exports.makelog = exports.keys = exports.isarr = exports.filterRules = exports.extract = exports.escre = exports.errinject = exports.errdesc = exports.entries = exports.defprop = exports.deep = exports.configure = exports.clone = exports.clean = exports.charset = exports.badlex = exports.assign = exports.S = exports.JsonicError = void 0;
+exports.str = exports.prop = exports.normalt = exports.parserwrap = exports.trimstk = exports.tokenize = exports.srcfmt = exports.snip = exports.regexp = exports.omap = exports.mesc = exports.makelog = exports.keys = exports.isarr = exports.filterRules = exports.extract = exports.escre = exports.errinject = exports.errdesc = exports.entries = exports.defprop = exports.deep = exports.configure = exports.clone = exports.clean = exports.charset = exports.badlex = exports.assign = exports.S = exports.JsonicError = void 0;
 const types_1 = require("./types");
 const lexer_1 = require("./lexer");
 // Null-safe object and array utilities
@@ -460,6 +460,17 @@ function srcfmt(config) {
             (config.debug.maxlen < _.length ? '...' : types_1.EMPTY));
 }
 exports.srcfmt = srcfmt;
+function str(o, len = 44) {
+    let s;
+    try {
+        s = 'object' === typeof (o) ? JSON.stringify(o) : '' + o;
+    }
+    catch (e) {
+        s = '' + o;
+    }
+    return snip(len < s.length ? s.substring(0, len - 3) + '...' : s, len);
+}
+exports.str = str;
 function snip(s, len = 5) {
     return undefined === s ? '' : ('' + s).substring(0, len).replace(/[\r\n\t]/g, '.');
 }
@@ -537,6 +548,29 @@ function normalt(a) {
     return a;
 }
 exports.normalt = normalt;
+function prop(obj, path, val) {
+    let root = obj;
+    try {
+        let parts = path.split('.');
+        let pn;
+        for (let pI = 0; pI < parts.length; pI++) {
+            pn = parts[pI];
+            if (pI < parts.length - 1) {
+                obj = (obj[pn] = (obj[pn] || {}));
+            }
+        }
+        if (undefined !== val) {
+            obj[pn] = val;
+        }
+        return obj[pn];
+    }
+    catch (e) {
+        throw new Error('Cannot ' + (undefined === val ? 'get' : 'set') +
+            ' path ' + path + ' on object: ' + str(root) +
+            (undefined === val ? '' : ' to value: ' + str(val, 22)));
+    }
+}
+exports.prop = prop;
 function parserwrap(parser) {
     return {
         start: function (src, 

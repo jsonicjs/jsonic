@@ -119,11 +119,12 @@ function handle_props(propvals) {
         let pv = propval.split(/=/);
         if ('' !== pv[0] && '' !== pv[1]) {
             let val = (0, jsonic_1.Jsonic)(pv[1]);
-            set_prop(out, pv[0], val);
+            jsonic_1.util.prop(out, pv[0], val);
         }
     }
     return out;
 }
+// TODO: test lowercase and normalize, esp core plugins, eg. @jsonic/directive
 function handle_plugins(plugins) {
     let out = {};
     for (let name of plugins) {
@@ -141,34 +142,31 @@ function handle_plugins(plugins) {
             }
         }
         if ('function' !== typeof (out[name])) {
-            let refname = name.match(/([^.\\\/]+)($|\.[^.]+$)/)[1];
-            if ('function' == typeof (out[name][refname])) {
-                out[name] = out[name][refname];
-            }
-            else if ('function' == typeof (out[name].default)) {
+            let refname = (name.match(/([^.\\\/]+)($|\.[^.]+$)/) || [])[1];
+            refname = null != refname ? refname.toLowerCase() : refname;
+            // See test plugin test/p1.js
+            if ('function' == typeof (out[name].default)) {
                 out[name] = out[name].default;
             }
-            else if ('function' ==
-                typeof (out[name][camel(refname)])) {
+            else if (null != refname &&
+                'function' == typeof (out[name][camel(refname)])) {
                 out[name] = out[name][camel(refname)];
+            }
+            // See test plugin test/p2.js
+            else if (null != refname &&
+                'function' == typeof (out[name][refname])) {
+                out[refname] = out[name][refname];
+                delete out[name];
             }
             else {
                 throw new Error('Plugin is not a function: ' + name);
             }
         }
-    }
-    return out;
-}
-function set_prop(obj, path, val) {
-    let parts = path.split('.');
-    let pn;
-    for (let pI = 0; pI < parts.length; pI++) {
-        pn = parts[pI];
-        if (pI < parts.length - 1) {
-            obj = (obj[pn] = (obj[pn] || {}));
+        else {
+            // normalize name
         }
     }
-    obj[pn] = val;
+    return out;
 }
 function camel(s) {
     return s[0].toUpperCase() +

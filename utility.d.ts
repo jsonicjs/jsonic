@@ -63,13 +63,15 @@ declare function errdesc(code: string, details: Relate, token: Token, rule: Rule
 declare function badlex(lex: Lex, BD: Tin, ctx: Context): any;
 declare function makelog(ctx: Context, meta: any): ((...rest: any) => undefined) | undefined;
 declare function srcfmt(config: Config): (s: any, _?: any) => string;
+declare function str(o: any, len?: number): string;
 declare function snip(s: any, len?: number): string;
 declare function clone(class_instance: any): any;
 declare function charset(...parts: (string | object | boolean | undefined)[]): Chars;
 declare function clean<T>(o: T): T;
 declare function filterRules(rs: RuleSpec, cfg: Config): RuleSpec;
 declare function normalt(a: AltSpec): NormAltSpec;
+declare function prop(obj: any, path: string, val: any): any;
 declare function parserwrap(parser: any): {
     start: (src: string, jsonic: any, meta?: any, parent_ctx?: any) => any;
 };
-export { JsonicError, S, assign, badlex, charset, clean, clone, configure, deep, defprop, entries, errdesc, errinject, escre, extract, filterRules, isarr, keys, makelog, mesc, omap, regexp, snip, srcfmt, tokenize, trimstk, parserwrap, normalt, };
+export { JsonicError, S, assign, badlex, charset, clean, clone, configure, deep, defprop, entries, errdesc, errinject, escre, extract, filterRules, isarr, keys, makelog, mesc, omap, regexp, snip, srcfmt, tokenize, trimstk, parserwrap, normalt, prop, str, };

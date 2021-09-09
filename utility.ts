@@ -624,6 +624,18 @@ function srcfmt(config: Config) {
 }
 
 
+function str(o: any, len: number = 44) {
+  let s
+  try {
+    s = 'object' === typeof (o) ? JSON.stringify(o) : '' + o
+  }
+  catch (e: any) {
+    s = '' + o
+  }
+  return snip(len < s.length ? s.substring(0, len - 3) + '...' : s, len)
+}
+
+
 function snip(s: any, len: number = 5) {
   return undefined === s ? '' : ('' + s).substring(0, len).replace(/[\r\n\t]/g, '.')
 }
@@ -727,6 +739,30 @@ function normalt(a: AltSpec): NormAltSpec {
   }
 
   return (a as NormAltSpec)
+}
+
+
+function prop(obj: any, path: string, val: any): any {
+  let root = obj
+  try {
+    let parts = path.split('.')
+    let pn: any
+    for (let pI = 0; pI < parts.length; pI++) {
+      pn = parts[pI]
+      if (pI < parts.length - 1) {
+        obj = (obj[pn] = (obj[pn] || {}))
+      }
+    }
+    if (undefined !== val) {
+      obj[pn] = val
+    }
+    return obj[pn]
+  }
+  catch (e: any) {
+    throw new Error('Cannot ' + (undefined === val ? 'get' : 'set') +
+      ' path ' + path + ' on object: ' + str(root) +
+      (undefined === val ? '' : ' to value: ' + str(val, 22)))
+  }
 }
 
 
@@ -838,4 +874,6 @@ export {
   trimstk,
   parserwrap,
   normalt,
+  prop,
+  str,
 }
