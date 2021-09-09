@@ -484,7 +484,7 @@ export interface AltSpec {
 
 // Parse-alternate match (built from current tokens and AltSpec).
 export interface AltMatch {
-  m: Token[]      // Matched Tokens (not Tins!).
+  // m: Token[]      // Matched Tokens (not Tins!).
   p: string       // Push rule (by name).
   r: string       // Replace rule (by name).
   b: number       // Move token position backward.

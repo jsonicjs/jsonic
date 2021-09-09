@@ -349,7 +349,6 @@ export interface AltSpec {
     e?: AltError;
 }
 export interface AltMatch {
-    m: Token[];
     p: string;
     r: string;
     b: number;

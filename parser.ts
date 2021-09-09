@@ -113,7 +113,7 @@ const makeRule = (...params: ConstructorParameters<typeof RuleImpl>) =>
 
 // Parse-alternate match (built from current tokens and AltSpec).
 class AltMatchImpl implements AltMatch {
-  m: Token[] = [] // Matched Tokens (not Tins!).
+  // m: Token[] = [] // Matched Tokens (not Tins!).
   p = EMPTY       // Push rule (by name).
   r = EMPTY       // Replace rule (by name).
   b = 0           // Move token position backward.
@@ -237,7 +237,10 @@ class RuleSpecImpl implements RuleSpec {
     }
 
     // Expose match to handlers.
-    rule[is_open ? 'open' : 'close'] = alt.m
+    rule[is_open ? 'open' : 'close'] =
+      // alt.m
+      is_open ? [rule.o0, rule.o1].slice(0, rule.os) :
+        [rule.c0, rule.c1].slice(0, rule.cs)
 
     // Unconditional error.
     if (alt.e) {
@@ -339,7 +342,7 @@ class RuleSpecImpl implements RuleSpec {
   // NOTE: input AltSpecs are used to build the Alt output.
   parse_alts(is_open: boolean, alts: NormAltSpec[], rule: Rule, ctx: Context): AltMatch {
     let out = PALT
-    out.m = []          // Match 0, 1, or 2 tokens in order .
+    // out.m = []          // Match 0, 1, or 2 tokens in order .
     out.b = 0           // Backtrack n tokens.
     out.p = EMPTY          // Push named rule onto stack. 
     out.r = EMPTY          // Replace current rule with named rule.
@@ -381,7 +384,7 @@ class RuleSpecImpl implements RuleSpec {
             rule.cs = 1
           }
 
-          out.m = [ctx.t0]
+          // out.m = [ctx.t0]
           cond = true
         }
         else if (
@@ -400,12 +403,17 @@ class RuleSpecImpl implements RuleSpec {
             rule.cs = 2
           }
 
-          out.m = [ctx.t0, ctx.t1]
+          // out.m = [ctx.t0, ctx.t1]
           cond = true
         }
       }
 
-      rule[is_open ? 'open' : 'close'] = out.m
+      // rule[is_open ? 'open' : 'close'] = out.m
+
+      rule[is_open ? 'open' : 'close'] =
+        is_open ? [rule.o0, rule.o1].slice(0, rule.os) :
+          [rule.c0, rule.c1].slice(0, rule.cs)
+
 
       // Optional custom condition
       if (alt.c) {
@@ -419,10 +427,6 @@ class RuleSpecImpl implements RuleSpec {
         alt = null
       }
     }
-
-
-    // Expose match to error handler.
-    // rule[is_open ? 'open' : 'close'] = out.m
 
     if (null == alt && t.ZZ !== ctx.t0.tin) {
       out.e = ctx.t0
@@ -447,13 +451,20 @@ class RuleSpecImpl implements RuleSpec {
       altI < alts.length ? 'alt=' + altI : 'no-alt',
       altI < alts.length &&
         (alt as any).s ?
-        '[' + (alt as any).s.map((pin: Tin) => t[pin]).join(' ') + ']' : '[]',
+        '[' + (alt as any).s.map((pin: Tin) => (
+          Array.isArray(pin) ? pin.map((pin: Tin) => t[pin]).join('|') : t[pin]
+        )).join(' ') + ']' : '[]',
       'tc=' + ctx.tC,
       'p=' + (out.p || EMPTY),
       'r=' + (out.r || EMPTY),
       'b=' + (out.b || EMPTY),
-      out.m.map((tkn: Token) => t[tkn.tin]).join(' '),
-      ctx.F(out.m.map((tkn: Token) => tkn.src)),
+      // out.m.map((tkn: Token) => t[tkn.tin]).join(' '),
+      (OPEN === rule.state ?
+        ([rule.o0, rule.o1].slice(0, rule.os)) :
+        ([rule.c0, rule.c1].slice(0, rule.cs)))
+        //.map((tkn: Token) => t[tkn.tin]).join(' '),
+        .map((tkn: Token) => tkn.name + '=' + ctx.F(tkn.src)).join(' '),
+      // ctx.F(out.m.map((tkn: Token) => tkn.src)),
       'c:' + ((alt && alt.c) ? cond : EMPTY),
       'n:' + entries(out.n).map(n => n[0] + '=' + n[1]).join(';'),
       'u:' + entries(out.u).map(u => u[0] + '=' + u[1]).join(';'),

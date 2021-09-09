@@ -50,7 +50,7 @@ exports.makeRule = makeRule;
 // Parse-alternate match (built from current tokens and AltSpec).
 class AltMatchImpl {
     constructor() {
-        this.m = []; // Matched Tokens (not Tins!).
+        // m: Token[] = [] // Matched Tokens (not Tins!).
         this.p = types_1.EMPTY; // Push rule (by name).
         this.r = types_1.EMPTY; // Replace rule (by name).
         this.b = 0; // Move token position backward.
@@ -134,7 +134,10 @@ class RuleSpecImpl {
             why += 'H';
         }
         // Expose match to handlers.
-        rule[is_open ? 'open' : 'close'] = alt.m;
+        rule[is_open ? 'open' : 'close'] =
+            // alt.m
+            is_open ? [rule.o0, rule.o1].slice(0, rule.os) :
+                [rule.c0, rule.c1].slice(0, rule.cs);
         // Unconditional error.
         if (alt.e) {
             return this.bad(alt.e, rule, ctx, { is_open });
@@ -212,7 +215,7 @@ class RuleSpecImpl {
     // NOTE: input AltSpecs are used to build the Alt output.
     parse_alts(is_open, alts, rule, ctx) {
         let out = PALT;
-        out.m = []; // Match 0, 1, or 2 tokens in order .
+        // out.m = []          // Match 0, 1, or 2 tokens in order .
         out.b = 0; // Backtrack n tokens.
         out.p = types_1.EMPTY; // Push named rule onto stack. 
         out.r = types_1.EMPTY; // Replace current rule with named rule.
@@ -247,7 +250,7 @@ class RuleSpecImpl {
                         rule.c0 = ctx.t0;
                         rule.cs = 1;
                     }
-                    out.m = [ctx.t0];
+                    // out.m = [ctx.t0]
                     cond = true;
                 }
                 else if (alt.s[1] === ctx.t1.tin ||
@@ -263,11 +266,14 @@ class RuleSpecImpl {
                         rule.c1 = ctx.t1;
                         rule.cs = 2;
                     }
-                    out.m = [ctx.t0, ctx.t1];
+                    // out.m = [ctx.t0, ctx.t1]
                     cond = true;
                 }
             }
-            rule[is_open ? 'open' : 'close'] = out.m;
+            // rule[is_open ? 'open' : 'close'] = out.m
+            rule[is_open ? 'open' : 'close'] =
+                is_open ? [rule.o0, rule.o1].slice(0, rule.os) :
+                    [rule.c0, rule.c1].slice(0, rule.cs);
             // Optional custom condition
             if (alt.c) {
                 cond = cond && alt.c(rule, ctx, out);
@@ -279,8 +285,6 @@ class RuleSpecImpl {
                 alt = null;
             }
         }
-        // Expose match to error handler.
-        // rule[is_open ? 'open' : 'close'] = out.m
         if (null == alt && t.ZZ !== ctx.t0.tin) {
             out.e = ctx.t0;
         }
@@ -296,7 +300,15 @@ class RuleSpecImpl {
         }
         ctx.log && ctx.log(utility_1.S.parse, rule.name + '~' + rule.id, rule.state, altI < alts.length ? 'alt=' + altI : 'no-alt', altI < alts.length &&
             alt.s ?
-            '[' + alt.s.map((pin) => t[pin]).join(' ') + ']' : '[]', 'tc=' + ctx.tC, 'p=' + (out.p || types_1.EMPTY), 'r=' + (out.r || types_1.EMPTY), 'b=' + (out.b || types_1.EMPTY), out.m.map((tkn) => t[tkn.tin]).join(' '), ctx.F(out.m.map((tkn) => tkn.src)), 'c:' + ((alt && alt.c) ? cond : types_1.EMPTY), 'n:' + (0, utility_1.entries)(out.n).map(n => n[0] + '=' + n[1]).join(';'), 'u:' + (0, utility_1.entries)(out.u).map(u => u[0] + '=' + u[1]).join(';'), out);
+            '[' + alt.s.map((pin) => (Array.isArray(pin) ? pin.map((pin) => t[pin]).join('|') : t[pin])).join(' ') + ']' : '[]', 'tc=' + ctx.tC, 'p=' + (out.p || types_1.EMPTY), 'r=' + (out.r || types_1.EMPTY), 'b=' + (out.b || types_1.EMPTY), 
+        // out.m.map((tkn: Token) => t[tkn.tin]).join(' '),
+        (types_1.OPEN === rule.state ?
+            ([rule.o0, rule.o1].slice(0, rule.os)) :
+            ([rule.c0, rule.c1].slice(0, rule.cs)))
+            //.map((tkn: Token) => t[tkn.tin]).join(' '),
+            .map((tkn) => tkn.name + '=' + ctx.F(tkn.src)).join(' '), 
+        // ctx.F(out.m.map((tkn: Token) => tkn.src)),
+        'c:' + ((alt && alt.c) ? cond : types_1.EMPTY), 'n:' + (0, utility_1.entries)(out.n).map(n => n[0] + '=' + n[1]).join(';'), 'u:' + (0, utility_1.entries)(out.u).map(u => u[0] + '=' + u[1]).join(';'), out);
         return out;
     }
     bad(tkn, rule, ctx, parse) {
