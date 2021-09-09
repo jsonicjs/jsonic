@@ -224,8 +224,8 @@ export interface Rule {
   parent: Rule       // The parent rule, that pushed this rule onto the stack.
   prev: Rule         // The previous sibling rule, that issued an `r` command.
 
-  open: Token[]      // The tokens than matched in the open state.
-  close: Token[]     // The tokens than matched in the close state.
+  // open: Token[]      // The tokens than matched in the open state.
+  // close: Token[]     // The tokens than matched in the close state.
   os: number
   o0: Token
   o1: Token

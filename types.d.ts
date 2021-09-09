@@ -168,8 +168,6 @@ export interface Rule {
     child: Rule;
     parent: Rule;
     prev: Rule;
-    open: Token[];
-    close: Token[];
     os: number;
     o0: Token;
     o1: Token;

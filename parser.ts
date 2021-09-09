@@ -71,8 +71,8 @@ class RuleImpl implements Rule {
   child = NONE
   parent = NONE
   prev = NONE
-  open: Token[] = []
-  close: Token[] = []
+  // open: Token[] = []
+  // close: Token[] = []
   n = {}
   d = -1
   use = {}
@@ -237,10 +237,10 @@ class RuleSpecImpl implements RuleSpec {
     }
 
     // Expose match to handlers.
-    rule[is_open ? 'open' : 'close'] =
-      // alt.m
-      is_open ? [rule.o0, rule.o1].slice(0, rule.os) :
-        [rule.c0, rule.c1].slice(0, rule.cs)
+    // rule[is_open ? 'open' : 'close'] =
+    //   // alt.m
+    //   is_open ? [rule.o0, rule.o1].slice(0, rule.os) :
+    //     [rule.c0, rule.c1].slice(0, rule.cs)
 
     // Unconditional error.
     if (alt.e) {
@@ -410,9 +410,9 @@ class RuleSpecImpl implements RuleSpec {
 
       // rule[is_open ? 'open' : 'close'] = out.m
 
-      rule[is_open ? 'open' : 'close'] =
-        is_open ? [rule.o0, rule.o1].slice(0, rule.os) :
-          [rule.c0, rule.c1].slice(0, rule.cs)
+      // rule[is_open ? 'open' : 'close'] =
+      //   is_open ? [rule.o0, rule.o1].slice(0, rule.os) :
+      //     [rule.c0, rule.c1].slice(0, rule.cs)
 
 
       // Optional custom condition

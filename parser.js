@@ -15,8 +15,8 @@ class RuleImpl {
         this.child = types_1.NONE;
         this.parent = types_1.NONE;
         this.prev = types_1.NONE;
-        this.open = [];
-        this.close = [];
+        // open: Token[] = []
+        // close: Token[] = []
         this.n = {};
         this.d = -1;
         this.use = {};
@@ -134,10 +134,10 @@ class RuleSpecImpl {
             why += 'H';
         }
         // Expose match to handlers.
-        rule[is_open ? 'open' : 'close'] =
-            // alt.m
-            is_open ? [rule.o0, rule.o1].slice(0, rule.os) :
-                [rule.c0, rule.c1].slice(0, rule.cs);
+        // rule[is_open ? 'open' : 'close'] =
+        //   // alt.m
+        //   is_open ? [rule.o0, rule.o1].slice(0, rule.os) :
+        //     [rule.c0, rule.c1].slice(0, rule.cs)
         // Unconditional error.
         if (alt.e) {
             return this.bad(alt.e, rule, ctx, { is_open });
@@ -271,9 +271,9 @@ class RuleSpecImpl {
                 }
             }
             // rule[is_open ? 'open' : 'close'] = out.m
-            rule[is_open ? 'open' : 'close'] =
-                is_open ? [rule.o0, rule.o1].slice(0, rule.os) :
-                    [rule.c0, rule.c1].slice(0, rule.cs);
+            // rule[is_open ? 'open' : 'close'] =
+            //   is_open ? [rule.o0, rule.o1].slice(0, rule.os) :
+            //     [rule.c0, rule.c1].slice(0, rule.cs)
             // Optional custom condition
             if (alt.c) {
                 cond = cond && alt.c(rule, ctx, out);

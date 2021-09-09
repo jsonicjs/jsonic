@@ -752,8 +752,8 @@ function make_token_plugin(char, val) {
 
       let bc = rs.def.bc
       rs.def.bc = (rule) => {
-        if (rule.open[0] && TT === rule.open[0].tin) {
-          rule.open[0].val = val
+        if (rule.o0 && TT === rule.o0.tin) {
+          rule.o0.val = val
         }
         return bc(rule)
       }

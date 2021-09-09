@@ -106,7 +106,8 @@ function grammar(jsonic: Jsonic) {
         rule.node =
           undefined === rule.node ?
             undefined === rule.child.node ?
-              (null == rule.open[0] ? undefined : rule.open[0].val) :
+              // (null == rule.open[0] ? undefined : rule.open[0].val) :
+              (0 === rule.os ? undefined : rule.o0.val) :
               rule.child.node :
             rule.node
       })
@@ -176,7 +177,8 @@ function grammar(jsonic: Jsonic) {
       ])
       .bc((r: Rule, ctx: Context) => {
         if (r.use.key) {
-          const key_token = r.open[0]
+          // const key_token = r.open[0]
+          const key_token = r.o0
           const key = ST === key_token.tin ? key_token.val : key_token.src
           let val = r.child.node
           const prev = r.node[key]

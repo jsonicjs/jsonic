@@ -205,7 +205,7 @@ describe('custom', function () {
     let AA = j.token.AA
     let TX = j.token.TX
 
-    j.rule('top', (rs) => rsdef(rs).ac((rule)=>rule.node = rule.open[0].val+rule.open[1].val))
+    j.rule('top', (rs) => rsdef(rs).ac((rule)=>rule.node = rule.o0.val+rule.o1.val))
 
     expect(j('a\nb')).toEqual('ab')
     expect(()=>j('AAA,')).toThrow(/unexpected.*AAA/)
@@ -249,7 +249,7 @@ describe('custom', function () {
     j.rule('top', (rs)=>
       rs
         .open([{s:[Ta,[Tb,Tc]]}])
-           .ac((r)=>r.node = (r.open[0].src+r.open[1].src).toUpperCase()))
+           .ac((r)=>r.node = (r.o0.src+r.o1.src).toUpperCase()))
     
     expect(j('ab')).toEqual('AB')
     expect(j('ac')).toEqual('AC')
@@ -296,7 +296,7 @@ describe('custom', function () {
       
       j.rule('val', (rs)=>{
         rs.def.open.unshift({
-          s:[FS,TX], a:(r)=>r.open[0].val='@'+r.open[1].val
+          s:[FS,TX], a:(r)=>r.o0.val='@'+r.o1.val
         })
       })
       

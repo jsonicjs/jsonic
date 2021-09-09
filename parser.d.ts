@@ -8,8 +8,6 @@ declare class RuleImpl implements Rule {
     child: Rule;
     parent: Rule;
     prev: Rule;
-    open: Token[];
-    close: Token[];
     n: {};
     d: number;
     use: {};

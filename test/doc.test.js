@@ -156,7 +156,8 @@ describe('docs', function () {
     concat.rule('val', (rulespec)=>{
       rulespec.def.open.unshift({
         s:[ST,ST],
-        a:(rule,ctx)=>rule.node = ctx.t0.val + ctx.t1.val
+        // a:(rule,ctx)=>rule.node = ctx.t0.val + ctx.t1.val
+        a:(rule,ctx)=>rule.node = rule.o0.val + rule.o1.val
       })
     })
 
