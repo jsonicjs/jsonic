@@ -17,6 +17,12 @@ declare class RuleImpl implements Rule {
     ao: boolean;
     bc: boolean;
     ac: boolean;
+    os: number;
+    o0: Token;
+    o1: Token;
+    cs: number;
+    c0: Token;
+    c1: Token;
     constructor(spec: RuleSpec, ctx: Context, node?: any);
     process(ctx: Context): Rule;
 }

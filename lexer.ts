@@ -149,6 +149,15 @@ const makeToken = (...params: ConstructorParameters<typeof TokenImpl>) =>
   new TokenImpl(...params)
 
 
+const NOTOKEN = makeToken(
+  '',
+  -1,
+  undefined,
+  EMPTY,
+  makePoint(-1)
+)
+
+
 
 let makeFixedMatcher: MakeLexMatcher = (cfg: Config, _opts: Options) => {
   let fixed = regexp(
@@ -839,6 +848,7 @@ const makeLex = (...params: ConstructorParameters<typeof LexImpl>) =>
 
 
 export {
+  NOTOKEN,
   makeLex,
   makePoint,
   makeToken,

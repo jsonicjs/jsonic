@@ -55,6 +55,7 @@ import {
 
 
 import {
+  NOTOKEN,
   makeLex,
   makePoint,
   makeToken,
@@ -80,6 +81,12 @@ class RuleImpl implements Rule {
   bc = false
   ac = false
 
+  os = 0
+  o0: Token = NOTOKEN
+  o1: Token = NOTOKEN
+  cs = 0
+  c0: Token = NOTOKEN
+  c1: Token = NOTOKEN
 
   constructor(spec: RuleSpec, ctx: Context, node?: any) {
     this.id = ctx.uI++     // Rule ids are unique only to the parse run.
@@ -314,7 +321,7 @@ class RuleSpecImpl implements RuleSpec {
 
     // Lex next tokens (up to backtrack).
     let mI = 0
-    let rewind = alt.m.length - (alt.b || 0)
+    let rewind = rule[is_open ? 'os' : 'cs'] - (alt.b || 0)
     while (mI++ < rewind) {
       ctx.next()
     }
@@ -350,7 +357,6 @@ class RuleSpecImpl implements RuleSpec {
     // TODO: replace with lookup map
     let len = alts.length
     for (altI = 0; altI < len; altI++) {
-
       cond = false
       alt = alts[altI]
 
@@ -366,6 +372,15 @@ class RuleSpecImpl implements RuleSpec {
         (Array.isArray(alt.s[0]) && alt.s[0].includes(ctx.t0.tin))
       ) {
         if (1 === alt.s.length) {
+          if (is_open) {
+            rule.o0 = ctx.t0
+            rule.os = 1
+          }
+          else {
+            rule.c0 = ctx.t0
+            rule.cs = 1
+          }
+
           out.m = [ctx.t0]
           cond = true
         }
@@ -374,13 +389,28 @@ class RuleSpecImpl implements RuleSpec {
           alt.s[1] === t.AA ||
           (Array.isArray(alt.s[1]) && alt.s[1].includes(ctx.t1.tin))
         ) {
+          if (is_open) {
+            rule.o0 = ctx.t0
+            rule.o1 = ctx.t1
+            rule.os = 2
+          }
+          else {
+            rule.c0 = ctx.t0
+            rule.c1 = ctx.t1
+            rule.cs = 2
+          }
+
           out.m = [ctx.t0, ctx.t1]
           cond = true
         }
       }
 
+      rule[is_open ? 'open' : 'close'] = out.m
+
       // Optional custom condition
-      cond = cond && (alt.c ? alt.c(rule, ctx, out) : true)
+      if (alt.c) {
+        cond = cond && alt.c(rule, ctx, out)
+      }
 
       if (cond) {
         break
@@ -392,7 +422,7 @@ class RuleSpecImpl implements RuleSpec {
 
 
     // Expose match to error handler.
-    rule[is_open ? 'open' : 'close'] = out.m
+    // rule[is_open ? 'open' : 'close'] = out.m
 
     if (null == alt && t.ZZ !== ctx.t0.tin) {
       out.e = ctx.t0

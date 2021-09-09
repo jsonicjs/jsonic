@@ -170,6 +170,12 @@ export interface Rule {
     prev: Rule;
     open: Token[];
     close: Token[];
+    os: number;
+    o0: Token;
+    o1: Token;
+    cs: number;
+    c0: Token;
+    c1: Token;
     n: Counters;
     d: number;
     use: Relate;

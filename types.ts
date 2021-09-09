@@ -223,8 +223,16 @@ export interface Rule {
   child: Rule        // The current child rule, created with the `p` command.
   parent: Rule       // The parent rule, that pushed this rule onto the stack.
   prev: Rule         // The previous sibling rule, that issued an `r` command.
+
   open: Token[]      // The tokens than matched in the open state.
   close: Token[]     // The tokens than matched in the close state.
+  os: number
+  o0: Token
+  o1: Token
+  cs: number
+  c0: Token
+  c1: Token
+
   n: Counters        // Named counter values.
   d: number          // The current stack depth.   
   use: Relate        // Custom key-value store. 
@@ -550,7 +558,8 @@ export type AltCond = (rule: Rule, ctx: Context, alt: AltMatch) => boolean
 
 
 // Arbitrarily modify an alternate to customize parser.
-export type AltModifier = (rule: Rule, ctx: Context, alt: AltMatch, next: Rule) => AltMatch
+export type AltModifier =
+  (rule: Rule, ctx: Context, alt: AltMatch, next: Rule) => AltMatch
 
 
 // Execute an action when alternate matches.

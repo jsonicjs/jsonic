@@ -24,6 +24,12 @@ class RuleImpl {
         this.ao = false;
         this.bc = false;
         this.ac = false;
+        this.os = 0;
+        this.o0 = lexer_1.NOTOKEN;
+        this.o1 = lexer_1.NOTOKEN;
+        this.cs = 0;
+        this.c0 = lexer_1.NOTOKEN;
+        this.c1 = lexer_1.NOTOKEN;
         this.id = ctx.uI++; // Rule ids are unique only to the parse run.
         this.name = spec.name;
         this.spec = spec;
@@ -192,7 +198,7 @@ class RuleSpecImpl {
         ctx.log && ctx.log(utility_1.S.node, rule.name + '~' + rule.id, rule.state, 'w=' + why, 'n:' + (0, utility_1.entries)(rule.n).map(n => n[0] + '=' + n[1]).join(';'), 'u:' + (0, utility_1.entries)(rule.use).map(u => u[0] + '=' + u[1]).join(';'), F(rule.node));
         // Lex next tokens (up to backtrack).
         let mI = 0;
-        let rewind = alt.m.length - (alt.b || 0);
+        let rewind = rule[is_open ? 'os' : 'cs'] - (alt.b || 0);
         while (mI++ < rewind) {
             ctx.next();
         }
@@ -233,18 +239,39 @@ class RuleSpecImpl {
                 alt.s[0] === t.AA ||
                 (Array.isArray(alt.s[0]) && alt.s[0].includes(ctx.t0.tin))) {
                 if (1 === alt.s.length) {
+                    if (is_open) {
+                        rule.o0 = ctx.t0;
+                        rule.os = 1;
+                    }
+                    else {
+                        rule.c0 = ctx.t0;
+                        rule.cs = 1;
+                    }
                     out.m = [ctx.t0];
                     cond = true;
                 }
                 else if (alt.s[1] === ctx.t1.tin ||
                     alt.s[1] === t.AA ||
                     (Array.isArray(alt.s[1]) && alt.s[1].includes(ctx.t1.tin))) {
+                    if (is_open) {
+                        rule.o0 = ctx.t0;
+                        rule.o1 = ctx.t1;
+                        rule.os = 2;
+                    }
+                    else {
+                        rule.c0 = ctx.t0;
+                        rule.c1 = ctx.t1;
+                        rule.cs = 2;
+                    }
                     out.m = [ctx.t0, ctx.t1];
                     cond = true;
                 }
             }
+            rule[is_open ? 'open' : 'close'] = out.m;
             // Optional custom condition
-            cond = cond && (alt.c ? alt.c(rule, ctx, out) : true);
+            if (alt.c) {
+                cond = cond && alt.c(rule, ctx, out);
+            }
             if (cond) {
                 break;
             }
@@ -253,7 +280,7 @@ class RuleSpecImpl {
             }
         }
         // Expose match to error handler.
-        rule[is_open ? 'open' : 'close'] = out.m;
+        // rule[is_open ? 'open' : 'close'] = out.m
         if (null == alt && t.ZZ !== ctx.t0.tin) {
             out.e = ctx.t0;
         }
