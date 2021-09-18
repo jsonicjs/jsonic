@@ -149,7 +149,7 @@ const makeToken = (...params: ConstructorParameters<typeof TokenImpl>) =>
   new TokenImpl(...params)
 
 
-const NOTOKEN = makeToken(
+const makeNoToken = () => makeToken(
   '',
   -1,
   undefined,
@@ -848,7 +848,7 @@ const makeLex = (...params: ConstructorParameters<typeof LexImpl>) =>
 
 
 export {
-  NOTOKEN,
+  makeNoToken,
   makeLex,
   makePoint,
   makeToken,

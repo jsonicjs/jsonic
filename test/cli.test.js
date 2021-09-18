@@ -18,7 +18,7 @@ const jr = async (...rest) => await JsonicCli.run(...rest)
 describe('cli', function () {
 
 
-  it('happy', () => {
+  it('basic', () => {
     let cn = make_cn()
     jr([0,0,'a:1'],cn)
     expect(cn.d.log[0][0]).toEqual('{"a":1}')

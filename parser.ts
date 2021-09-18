@@ -34,7 +34,6 @@ import {
   BEFORE,
   AFTER,
   EMPTY,
-  NONE,
 } from './types'
 
 
@@ -55,7 +54,7 @@ import {
 
 
 import {
-  NOTOKEN,
+  makeNoToken,
   makeLex,
   makePoint,
   makeToken,
@@ -65,14 +64,8 @@ import {
 class RuleImpl implements Rule {
   id = -1
   name = EMPTY
-  spec = ({} as RuleSpec)
   node = null
   state = OPEN
-  child = NONE
-  parent = NONE
-  prev = NONE
-  // open: Token[] = []
-  // close: Token[] = []
   n = {}
   d = -1
   use = {}
@@ -82,16 +75,31 @@ class RuleImpl implements Rule {
   ac = false
 
   os = 0
-  o0: Token = NOTOKEN
-  o1: Token = NOTOKEN
   cs = 0
-  c0: Token = NOTOKEN
-  c1: Token = NOTOKEN
+
+  spec: RuleSpec
+  child: Rule
+  parent: Rule
+  prev: Rule
+  o0: Token
+  o1: Token
+  c0: Token
+  c1: Token
 
   constructor(spec: RuleSpec, ctx: Context, node?: any) {
     this.id = ctx.uI++     // Rule ids are unique only to the parse run.
     this.name = spec.name
     this.spec = spec
+
+    this.child = ctx.NORULE
+    this.parent = ctx.NORULE
+    this.prev = ctx.NORULE
+
+    this.o0 = ctx.NOTOKEN
+    this.o1 = ctx.NOTOKEN
+    this.c0 = ctx.NOTOKEN
+    this.c1 = ctx.NOTOKEN
+
 
     this.node = node
     this.d = ctx.rs.length
@@ -109,6 +117,12 @@ class RuleImpl implements Rule {
 
 const makeRule = (...params: ConstructorParameters<typeof RuleImpl>) =>
   new RuleImpl(...params)
+
+const makeNoRule = (ctx: Context) => makeRule(
+  makeRuleSpec(ctx.cfg, {}),
+  ctx,
+)
+
 
 
 // Parse-alternate match (built from current tokens and AltSpec).
@@ -135,7 +149,7 @@ const EMPTY_ALT = makeAltMatch()
 
 
 class RuleSpecImpl implements RuleSpec {
-  name = EMPTY
+  name = EMPTY // Set by Parser.rule
   def: any // TODO: hoist open, close
   cfg: Config
 
@@ -196,7 +210,7 @@ class RuleSpecImpl implements RuleSpec {
   }
 
   ac(action: StateAction) {
-    return this.action(BEFORE, CLOSE, action)
+    return this.action(AFTER, CLOSE, action)
   }
 
   clear() {
@@ -209,7 +223,7 @@ class RuleSpecImpl implements RuleSpec {
     let F = ctx.F
 
     let is_open = state === 'o'
-    let next = is_open ? rule : NONE
+    let next = is_open ? rule : ctx.NORULE
 
     let def = this.def
 
@@ -295,7 +309,7 @@ class RuleSpecImpl implements RuleSpec {
     // Pop closed rule off stack.
     else {
       if (!is_open) {
-        next = ctx.rs.pop() || NONE
+        next = ctx.rs.pop() || ctx.NORULE
       }
       why += 'Z'
     }
@@ -312,13 +326,13 @@ class RuleSpecImpl implements RuleSpec {
     next.why = why
 
     ctx.log && ctx.log(
-      S.node,
-      rule.name + '~' + rule.id,
-      rule.state,
+      'node  ' + rule.state.toUpperCase(),
+      rule.name + '~' + rule.id + ' ' +
+      (rule.prev.id + '/' + rule.parent.id + '/' + rule.child.id),
       'w=' + why,
       'n:' + entries(rule.n).map(n => n[0] + '=' + n[1]).join(';'),
       'u:' + entries(rule.use).map(u => u[0] + '=' + u[1]).join(';'),
-      F(rule.node)
+      '<' + F(rule.node) + '>'
     )
 
 
@@ -340,7 +354,12 @@ class RuleSpecImpl implements RuleSpec {
 
   // First match wins.
   // NOTE: input AltSpecs are used to build the Alt output.
-  parse_alts(is_open: boolean, alts: NormAltSpec[], rule: Rule, ctx: Context): AltMatch {
+  parse_alts(
+    is_open: boolean,
+    alts: NormAltSpec[],
+    rule: Rule,
+    ctx: Context
+  ): AltMatch {
     let out = PALT
     // out.m = []          // Match 0, 1, or 2 tokens in order .
     out.b = 0           // Backtrack n tokens.
@@ -384,7 +403,6 @@ class RuleSpecImpl implements RuleSpec {
             rule.cs = 1
           }
 
-          // out.m = [ctx.t0]
           cond = true
         }
         else if (
@@ -403,17 +421,9 @@ class RuleSpecImpl implements RuleSpec {
             rule.cs = 2
           }
 
-          // out.m = [ctx.t0, ctx.t1]
           cond = true
         }
       }
-
-      // rule[is_open ? 'open' : 'close'] = out.m
-
-      // rule[is_open ? 'open' : 'close'] =
-      //   is_open ? [rule.o0, rule.o1].slice(0, rule.os) :
-      //     [rule.c0, rule.c1].slice(0, rule.cs)
-
 
       // Optional custom condition
       if (alt.c) {
@@ -444,9 +454,11 @@ class RuleSpecImpl implements RuleSpec {
       out.u = null != alt.u ? alt.u : out.u
     }
 
+    // TODO: move to util function
     ctx.log && ctx.log(
-      S.parse,
-      rule.name + '~' + rule.id,
+      'parse ' + rule.state.toUpperCase(),
+      rule.name + '~' + rule.id + ' ' +
+      (rule.prev.id + '/' + rule.parent.id + '/' + rule.child.id),
       rule.state,
       altI < alts.length ? 'alt=' + altI : 'no-alt',
       altI < alts.length &&
@@ -458,13 +470,10 @@ class RuleSpecImpl implements RuleSpec {
       'p=' + (out.p || EMPTY),
       'r=' + (out.r || EMPTY),
       'b=' + (out.b || EMPTY),
-      // out.m.map((tkn: Token) => t[tkn.tin]).join(' '),
       (OPEN === rule.state ?
         ([rule.o0, rule.o1].slice(0, rule.os)) :
         ([rule.c0, rule.c1].slice(0, rule.cs)))
-        //.map((tkn: Token) => t[tkn.tin]).join(' '),
         .map((tkn: Token) => tkn.name + '=' + ctx.F(tkn.src)).join(' '),
-      // ctx.F(out.m.map((tkn: Token) => tkn.src)),
       'c:' + ((alt && alt.c) ? cond : EMPTY),
       'n:' + entries(out.n).map(n => n[0] + '=' + n[1]).join(';'),
       'u:' + entries(out.u).map(u => u[0] + '=' + u[1]).join(';'),
@@ -554,15 +563,17 @@ class Parser {
       makePoint(-1)
     )
 
+    let notoken = makeNoToken()
+
     let ctx: Context = {
-      uI: 1,
+      uI: 0,
       opts: this.options,
       cfg: this.cfg,
       meta: meta || {},
       src: () => src, // Avoid printing src
       root: () => root.node,
       plgn: () => jsonic.internal().plugins,
-      rule: NONE,
+      rule: ({} as Rule),
       xs: -1,
       v2: endtkn,
       v1: endtkn,
@@ -574,10 +585,16 @@ class Parser {
       rsm: this.rsm,
       log: undefined,
       F: srcfmt(this.cfg),
-      use: {}
+      use: {},
+      NOTOKEN: notoken,
+      NORULE: ({} as Rule),
     }
 
     ctx = deep(ctx, parent_ctx)
+
+    let norule = makeNoRule(ctx)
+    ctx.NORULE = norule
+    ctx.rule = norule
 
     makelog(ctx, meta)
 
@@ -588,7 +605,7 @@ class Parser {
         return undefined
       }
       else {
-        throw new JsonicError(S.unexpected, { src }, ctx.t0, NONE, ctx)
+        throw new JsonicError(S.unexpected, { src }, ctx.t0, norule, ctx)
       }
     }
 
@@ -596,7 +613,6 @@ class Parser {
 
     let tn = (pin: Tin): string => tokenize(pin, this.cfg)
     let lex = badlex(makeLex(ctx), tokenize('#BD', this.cfg), ctx)
-    // let startspec = this.rsm[this.options.rule.start]
     let startspec = this.rsm[this.cfg.rule.start]
 
     if (null == startspec) {
@@ -604,6 +620,7 @@ class Parser {
     }
 
     let rule = makeRule(startspec, ctx)
+    // console.log('\nSTART', rule)
 
     root = rule
 
@@ -642,9 +659,12 @@ class Parser {
 
     // This loop is the heart of the engine. Keep processing rule
     // occurrences until there's none left.
-    while (NONE !== rule && rI < maxr) {
+    while (norule !== rule && rI < maxr) {
       ctx.log &&
-        ctx.log(S.rule, rule.name + '~' + rule.id, rule.state,
+        ctx.log(
+          'rule  ' + rule.state.toUpperCase(),
+          rule.name + '~' + rule.id + ' ' +
+          (rule.prev.id + '/' + rule.parent.id + '/' + rule.child.id),
           'd=' + ctx.rs.length, 'tc=' + ctx.tC,
           '[' + tn(ctx.t0.tin) + ' ' + tn(ctx.t1.tin) + ']',
           '[' + ctx.F(ctx.t0.src) + ' ' + ctx.F(ctx.t1.src) + ']',
@@ -665,7 +685,7 @@ class Parser {
 
     // TODO: option to allow trailing content
     if (tokenize('#ZZ', this.cfg) !== ctx.t0.tin) {
-      throw new JsonicError(S.unexpected, {}, ctx.t0, NONE, ctx)
+      throw new JsonicError(S.unexpected, {}, ctx.t0, norule, ctx)
     }
 
     // NOTE: by returning root, we get implicit closing of maps and lists.

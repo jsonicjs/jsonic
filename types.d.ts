@@ -4,7 +4,6 @@ export declare const BEFORE: RuleStep;
 export declare const AFTER: RuleStep;
 export declare const EMPTY = "";
 export declare const INSPECT: unique symbol;
-export declare const NONE: Rule;
 export declare const STRING = "string";
 export declare type JsonicParse = (src: any, meta?: any, parent_ctx?: any) => any;
 export interface JsonicAPI {
@@ -207,6 +206,8 @@ export declare type Context = {
     log?: (...rest: any) => undefined;
     F: (s: any) => string;
     use: Relate;
+    NOTOKEN: Token;
+    NORULE: Rule;
 };
 export interface Lex {
     src: String;

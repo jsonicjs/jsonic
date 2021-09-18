@@ -2,12 +2,8 @@ import type { RuleState, RuleStep, StateAction, Tin, Token, Config, Context, Rul
 declare class RuleImpl implements Rule {
     id: number;
     name: string;
-    spec: RuleSpec;
     node: null;
     state: RuleState;
-    child: Rule;
-    parent: Rule;
-    prev: Rule;
     n: {};
     d: number;
     use: {};
@@ -16,9 +12,13 @@ declare class RuleImpl implements Rule {
     bc: boolean;
     ac: boolean;
     os: number;
+    cs: number;
+    spec: RuleSpec;
+    child: Rule;
+    parent: Rule;
+    prev: Rule;
     o0: Token;
     o1: Token;
-    cs: number;
     c0: Token;
     c1: Token;
     constructor(spec: RuleSpec, ctx: Context, node?: any);

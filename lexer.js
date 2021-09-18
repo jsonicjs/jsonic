@@ -1,7 +1,7 @@
 "use strict";
 /* Copyright (c) 2013-2021 Richard Rodger, MIT License */
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.makeTextMatcher = exports.makeNumberMatcher = exports.makeCommentMatcher = exports.makeStringMatcher = exports.makeLineMatcher = exports.makeSpaceMatcher = exports.makeFixedMatcher = exports.makeToken = exports.makePoint = exports.makeLex = exports.NOTOKEN = void 0;
+exports.makeTextMatcher = exports.makeNumberMatcher = exports.makeCommentMatcher = exports.makeStringMatcher = exports.makeLineMatcher = exports.makeSpaceMatcher = exports.makeFixedMatcher = exports.makeToken = exports.makePoint = exports.makeLex = exports.makeNoToken = void 0;
 const types_1 = require("./types");
 const utility_1 = require("./utility");
 class PointImpl {
@@ -81,8 +81,8 @@ class TokenImpl {
 }
 const makeToken = (...params) => new TokenImpl(...params);
 exports.makeToken = makeToken;
-const NOTOKEN = makeToken('', -1, undefined, types_1.EMPTY, makePoint(-1));
-exports.NOTOKEN = NOTOKEN;
+const makeNoToken = () => makeToken('', -1, undefined, types_1.EMPTY, makePoint(-1));
+exports.makeNoToken = makeNoToken;
 let makeFixedMatcher = (cfg, _opts) => {
     let fixed = (0, utility_1.regexp)(null, '^(', cfg.rePart.fixed, ')');
     // console.log(fixed)

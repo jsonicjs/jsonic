@@ -5,6 +5,8 @@
  */
 
 
+// TODO: define explicitly: p in close, r in open, behaviour
+// TODO: is s:[] needed?
 // TODO: implicit lists in pair values: "a:1,2 b:3" -> {a:[1,2], b:3} - pair key terminates (A)
 // TODO: [a:1] should set prop on array, not create [{a:1}]
 // TODO: string format for rule def: s:'ST,NR' -> s:[ST,NR], also "s:ST,NR,p:foo,..." - needs (A) - can only used post standard definition (thus not in grammar.ts)

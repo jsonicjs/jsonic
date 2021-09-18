@@ -610,7 +610,7 @@ function parserwrap(parser) {
                         src: () => src,
                         root: () => undefined,
                         plgn: () => jsonic.internal().plugins,
-                        rule: types_1.NONE,
+                        rule: { name: 'no-rule' },
                         xs: -1,
                         v2: token,
                         v1: token,
@@ -624,6 +624,8 @@ function parserwrap(parser) {
                         log: meta ? meta.log : undefined,
                         F: srcfmt(jsonic.internal().config),
                         use: {},
+                        NORULE: { name: 'no-rule' },
+                        NOTOKEN: { name: 'no-token' },
                     });
                 }
                 else {

@@ -31,7 +31,7 @@ declare class TokenImpl implements Token {
     [INSPECT](): string;
 }
 declare const makeToken: (name: string, tin: number, val: any, src: string, pnt: Point, use?: any, why?: string | undefined) => TokenImpl;
-declare const NOTOKEN: TokenImpl;
+declare const makeNoToken: () => TokenImpl;
 declare let makeFixedMatcher: MakeLexMatcher;
 declare let makeCommentMatcher: MakeLexMatcher;
 declare let makeTextMatcher: MakeLexMatcher;
@@ -51,4 +51,4 @@ declare class LexImpl implements Lex {
     bad(why: string, pstart: number, pend: number): Token;
 }
 declare const makeLex: (ctx: Context) => LexImpl;
-export { NOTOKEN, makeLex, makePoint, makeToken, makeFixedMatcher, makeSpaceMatcher, makeLineMatcher, makeStringMatcher, makeCommentMatcher, makeNumberMatcher, makeTextMatcher, };
+export { makeNoToken, makeLex, makePoint, makeToken, makeFixedMatcher, makeSpaceMatcher, makeLineMatcher, makeStringMatcher, makeCommentMatcher, makeNumberMatcher, makeTextMatcher, };

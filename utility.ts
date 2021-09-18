@@ -21,7 +21,6 @@ import type {
 
 
 import {
-  NONE,
   EMPTY,
   STRING,
 } from './types'
@@ -819,7 +818,7 @@ function parserwrap(parser: any) {
               src: () => src,
               root: () => undefined,
               plgn: () => jsonic.internal().plugins,
-              rule: NONE,
+              rule: ({ name: 'no-rule' } as Rule),
               xs: -1,
               v2: token,
               v1: token,
@@ -833,6 +832,8 @@ function parserwrap(parser: any) {
               log: meta ? meta.log : undefined,
               F: srcfmt(jsonic.internal().config),
               use: {},
+              NORULE: ({ name: 'no-rule' } as Rule),
+              NOTOKEN: ({ name: 'no-token' } as Token),
             } as Context,
           )
         }

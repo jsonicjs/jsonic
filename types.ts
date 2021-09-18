@@ -13,7 +13,7 @@ export const EMPTY = ''
 export const INSPECT = Symbol.for('nodejs.util.inspect.custom')
 
 // Empty rule used as a no-value placeholder.
-export const NONE = ({ name: 'none', state: OPEN } as Rule)
+// export const NONE = ({ name: 'none', state: OPEN } as Rule)
 
 export const STRING = 'string'
 
@@ -250,26 +250,28 @@ export interface Rule {
 
 // The current parse state and associated context.
 export type Context = {
-  uI: number           // Rule index.
-  opts: Options        // Jsonic instance options.
-  cfg: Config          // Jsonic instance config.
-  meta: Relate         // Parse meta parameters.
-  src: () => string,   // source text to parse.
-  root: () => any,     // Root node.
-  plgn: () => Plugin[] // Jsonic instance plugins.
-  rule: Rule           // Current rule instance.
-  xs: Tin              // Lex state tin.
-  v2: Token            // Previous previous token.
-  v1: Token            // Previous token.
-  t0: Token            // Current token.
-  t1: Token            // Next token. 
-  tC: number           // Token count.
-  rs: Rule[]           // Rule stack.
+  uI: number            // Rule index.
+  opts: Options         // Jsonic instance options.
+  cfg: Config           // Jsonic instance config.
+  meta: Relate          // Parse meta parameters.
+  src: () => string,    // source text to parse.
+  root: () => any,      // Root node.
+  plgn: () => Plugin[]  // Jsonic instance plugins.
+  rule: Rule            // Current rule instance.
+  xs: Tin               // Lex state tin.
+  v2: Token             // Previous previous token.
+  v1: Token             // Previous token.
+  t0: Token             // Current token.
+  t1: Token             // Next token. 
+  tC: number            // Token count.
+  rs: Rule[]            // Rule stack.
   rsm: { [name: string]: RuleSpec } // RuleSpec lookup map (by rule name).
-  next: () => Token    // Move to next token.
+  next: () => Token     // Move to next token.
   log?: (...rest: any) => undefined // Log parse/lex step (if defined).
   F: (s: any) => string // Format arbitrary data as length-limited string.
-  use: Relate               // Custom meta data (for use by plugins)
+  use: Relate           // Custom meta data (for use by plugins)
+  NOTOKEN: Token        // Per parse "null" Token
+  NORULE: Rule          // Per parse "null" Rule
 }
 
 
