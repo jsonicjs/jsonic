@@ -23,6 +23,7 @@ declare const util: {
     keys: (x: any) => string[];
     prop: typeof prop;
     str: typeof str;
+    omap: (o: any, f: any) => any;
 };
 declare type Jsonic = JsonicParse & // A function that parses.
 JsonicAPI & // A utility with API methods.

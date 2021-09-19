@@ -5,6 +5,8 @@
  */
 
 
+// TODO: error if rule name not found when parsing
+// TODO: error if fixed tokens clash
 // TODO: define explicitly: p in close, r in open, behaviour
 // TODO: is s:[] needed?
 // TODO: implicit lists in pair values: "a:1,2 b:3" -> {a:[1,2], b:3} - pair key terminates (A)
@@ -107,6 +109,7 @@ import {
   keys,
   prop,
   str,
+  omap,
 } from './utility'
 
 
@@ -159,6 +162,9 @@ const util = {
   keys,
   prop,
   str,
+
+  // TODO: validated to include in util API:
+  omap,
 }
 
 

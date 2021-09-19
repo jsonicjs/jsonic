@@ -128,6 +128,7 @@ describe('utility', () => {
       t: {},
     }
 
+    expect(tokenize(undefined,config)).toEqual(undefined)
     expect(tokenize(null,config)).toEqual(undefined)
     
     let s1 = tokenize('AA', config)
@@ -719,9 +720,6 @@ describe('utility', () => {
       'lex #ZZ ""',
       'stack 0 '
     ])
-
-
-
   })
 
 
