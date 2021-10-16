@@ -294,7 +294,7 @@ class RuleSpecImpl implements RuleSpec {
       next = rule.child = makeRule(ctx.rsm[alt.p], ctx, rule.node)
       next.parent = rule
       next.n = { ...rule.n }
-      why += 'U'
+      why += 'P(' + alt.p + ')'
     }
 
     // ...or replace with a new rule.
@@ -303,7 +303,7 @@ class RuleSpecImpl implements RuleSpec {
       next.parent = rule.parent
       next.prev = rule
       next.n = { ...rule.n }
-      why += 'R'
+      why += 'R(' + alt.r + ')'
     }
 
     // Pop closed rule off stack.
@@ -327,8 +327,8 @@ class RuleSpecImpl implements RuleSpec {
 
     ctx.log && ctx.log(
       'node  ' + rule.state.toUpperCase(),
-      rule.name + '~' + rule.id + ' ' +
       (rule.prev.id + '/' + rule.parent.id + '/' + rule.child.id),
+      rule.name + '~' + rule.id,
       'w=' + why,
       'n:' + entries(rule.n).map(n => n[0] + '=' + n[1]).join(';'),
       'u:' + entries(rule.use).map(u => u[0] + '=' + u[1]).join(';'),
@@ -379,6 +379,20 @@ class RuleSpecImpl implements RuleSpec {
     // TODO: replace with lookup map
     let len = alts.length
     for (altI = 0; altI < len; altI++) {
+
+      // Rule attributes are set for use by condition checks.
+      // Unset for each alt.
+      if (is_open) {
+        rule.o0 = ctx.NOTOKEN
+        rule.o1 = ctx.NOTOKEN
+        rule.os = 0
+      }
+      else {
+        rule.c0 = ctx.NOTOKEN
+        rule.c1 = ctx.NOTOKEN
+        rule.cs = 0
+      }
+
       cond = false
       alt = alts[altI]
 
@@ -452,24 +466,24 @@ class RuleSpecImpl implements RuleSpec {
       out.h = null != alt.h ? alt.h : out.h
       out.a = null != alt.a ? alt.a : out.a
       out.u = null != alt.u ? alt.u : out.u
+      out.g = null != alt.g ? alt.g : out.g
     }
 
     // TODO: move to util function
     ctx.log && ctx.log(
       'parse ' + rule.state.toUpperCase(),
-      rule.name + '~' + rule.id + ' ' +
       (rule.prev.id + '/' + rule.parent.id + '/' + rule.child.id),
-      rule.state,
+
+      rule.name + '~' + rule.id,
+
       altI < alts.length ? 'alt=' + altI : 'no-alt',
-      altI < alts.length &&
-        (alt as any).s ?
-        '[' + (alt as any).s.map((pin: Tin) => (
-          Array.isArray(pin) ? pin.map((pin: Tin) => t[pin]).join('|') : t[pin]
-        )).join(' ') + ']' : '[]',
-      'tc=' + ctx.tC,
-      'p=' + (out.p || EMPTY),
-      'r=' + (out.r || EMPTY),
-      'b=' + (out.b || EMPTY),
+
+      (out.g && 'g=' + out.g + ' '),
+
+      (out.p && 'p=' + out.p + ' ') +
+      (out.r && 'r=' + out.r + ' ') +
+      (out.b && 'b=' + out.b + ' '),
+
       (OPEN === rule.state ?
         ([rule.o0, rule.o1].slice(0, rule.os)) :
         ([rule.c0, rule.c1].slice(0, rule.cs)))
@@ -477,6 +491,14 @@ class RuleSpecImpl implements RuleSpec {
       'c:' + ((alt && alt.c) ? cond : EMPTY),
       'n:' + entries(out.n).map(n => n[0] + '=' + n[1]).join(';'),
       'u:' + entries(out.u).map(u => u[0] + '=' + u[1]).join(';'),
+
+      altI < alts.length &&
+        (alt as any).s ?
+        '[' + (alt as any).s.map((pin: Tin) => (
+          Array.isArray(pin) ? pin.map((pin: Tin) => t[pin]).join('|') : t[pin]
+        )).join(' ') + ']' : '[]',
+
+      // 'tc=' + ctx.tC,
       out)
 
     return out
@@ -663,13 +685,15 @@ class Parser {
       ctx.log &&
         ctx.log(
           'rule  ' + rule.state.toUpperCase(),
-          rule.name + '~' + rule.id + ' ' +
           (rule.prev.id + '/' + rule.parent.id + '/' + rule.child.id),
-          'd=' + ctx.rs.length, 'tc=' + ctx.tC,
-          '[' + tn(ctx.t0.tin) + ' ' + tn(ctx.t1.tin) + ']',
+          rule.name + '~' + rule.id,
           '[' + ctx.F(ctx.t0.src) + ' ' + ctx.F(ctx.t1.src) + ']',
           'n:' + entries(rule.n).map(n => n[0] + '=' + n[1]).join(';'),
           'u:' + entries(rule.use).map(u => u[0] + '=' + u[1]).join(';'),
+
+          // 'd=' + ctx.rs.length, 'tc=' + ctx.tC,
+          '[' + tn(ctx.t0.tin) + ' ' + tn(ctx.t1.tin) + ']',
+
           rule, ctx)
 
       ctx.rule = rule
@@ -677,7 +701,8 @@ class Parser {
       rule = rule.process(ctx)
 
       ctx.log &&
-        ctx.log(S.stack, ctx.rs.length,
+        ctx.log(
+          'stack',
           ctx.rs.map((r: Rule) => r.name + '~' + r.id).join('/'),
           rule, ctx)
       rI++
@@ -689,6 +714,8 @@ class Parser {
     }
 
     // NOTE: by returning root, we get implicit closing of maps and lists.
+
+    // console.log('JSONIC FINAL', root.id)
     return root.node
   }
 

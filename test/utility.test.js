@@ -344,19 +344,19 @@ describe('utility', () => {
 
 
     /* TODO: handle cycles
-    let d3 = {a:{b:{x:1}}}
-    d3.a.b.c=d3.a
-    let d33 = deep({},d3)
-    d3.a.y=1
-    d33.a.y=2
-    console.log(d3,d33)
+       let d3 = {a:{b:{x:1}}}
+       d3.a.b.c=d3.a
+       let d33 = deep({},d3)
+       d3.a.y=1
+       d33.a.y=2
+       console.log(d3,d33)
 
-    let d4 = {a:{x:1}}
-    d4.a.b=d4
-    let d44 = deep({},d4)
-    d4.y=1
-    d44.y=2
-    console.log(d4,d44)
+       let d4 = {a:{x:1}}
+       d4.a.b=d4
+       let d44 = deep({},d4)
+       d4.y=1
+       d44.y=2
+       console.log(d4,d44)
     */
 
 
@@ -543,65 +543,64 @@ describe('utility', () => {
     j0('a:1',{log:(...r)=>log.push(r)})
 
     expect(log.map(x=>x[0]+' '+x[1]+' '+x[2])).toEqual([
-      'lex #TX "a"',
-      'lex #CL ":"',
-      'rule  O val~1 0/0/0 d=0',
-      'parse O val~1 0/0/0 o',
-      'node  O val~1 0/0/2 w=U',
-      'stack 1 val~1',
-      'rule  O map~2 0/1/0 d=1',
-      'parse O map~2 0/1/0 o',
-      'node  O map~2 0/1/3 w=U',
-      'stack 2 val~1/map~2',
-      'rule  O pair~3 0/2/0 d=2',
-      'parse O pair~3 0/2/0 o',
-      'node  O pair~3 0/2/4 w=U',
-      'lex #NR "1"',
-      'lex #ZZ ""',
-      'stack 3 val~1/map~2/pair~3',
-      'rule  O val~4 0/3/0 d=3',
-      'parse O val~4 0/3/0 o',
-      'node  O val~4 0/3/0 w=Z',
-      'lex #ZZ ""',
-      'stack 3 val~1/map~2/pair~3',
-      'rule  C val~4 0/3/0 d=3',
-      'parse C val~4 0/3/0 c',
-      'node  C val~4 0/3/0 w=Z',
-      'lex #ZZ ""',
-      'stack 2 val~1/map~2',
-      'rule  C pair~3 0/2/4 d=2',
-      'parse C pair~3 0/2/4 c',
-      'node  C pair~3 0/2/4 w=Z',
-      'lex #ZZ ""',
-      'stack 1 val~1',
-      'rule  C map~2 0/1/3 d=1',
-      'node  C map~2 0/1/3 w=Z',
-      'stack 0 ',
-      'rule  C val~1 0/0/2 d=0',
-      'parse C val~1 0/0/2 c',
-      'node  C val~1 0/0/2 w=Z',
-      'lex #ZZ ""',
-      'stack 0 '
+      'lex #TX \"a\"',
+      'lex #CL \":\"',
+      'rule  O 0/0/0 val~1',
+      'parse O 0/0/0 val~1',
+      'node  O 0/0/2 val~1',
+      'stack val~1 [object Object]',
+      'rule  O 0/1/0 map~2',
+      'parse O 0/1/0 map~2',
+      'node  O 0/1/3 map~2',
+      'stack val~1/map~2 [object Object]',
+      'rule  O 0/2/0 pair~3',
+      'parse O 0/2/0 pair~3',
+      'node  O 0/2/4 pair~3',
+      'lex #NR \"1\"',
+      'lex #ZZ \"\"',
+      'stack val~1/map~2/pair~3 [object Object]',
+      'rule  O 0/3/0 val~4',
+      'parse O 0/3/0 val~4',
+      'node  O 0/3/0 val~4',
+      'lex #ZZ \"\"',
+      'stack val~1/map~2/pair~3 [object Object]',
+      'rule  C 0/3/0 val~4',
+      'parse C 0/3/0 val~4',
+      'node  C 0/3/0 val~4',
+      'lex #ZZ \"\"',
+      'stack val~1/map~2 [object Object]',
+      'rule  C 0/2/4 pair~3',
+      'parse C 0/2/4 pair~3',
+      'node  C 0/2/4 pair~3',
+      'lex #ZZ \"\"',
+      'stack val~1 [object Object]',
+      'rule  C 0/1/3 map~2',
+      'node  C 0/1/3 map~2',
+      'stack  [object Object]',
+      'rule  C 0/0/2 val~1',
+      'parse C 0/0/2 val~1',
+      'node  C 0/0/2 val~1',
+      'lex #ZZ \"\"',
+      'stack  [object Object]',      
     ])
 
     log = []
     expect(()=>j0('{{',{log:(...r)=>log.push(r)})).toThrow()
 
     expect(log.map(x=>x[0]+' '+x[1]+' '+x[2])).toEqual([
-      'lex #OB "{"',
-      'lex #OB "{"',
-      'rule  O val~1 0/0/0 d=0',
-      'parse O val~1 0/0/0 o',
-      'node  O val~1 0/0/2 w=U',
-      'stack 1 val~1',
-      'rule  O map~2 0/1/0 d=1',
-      'parse O map~2 0/1/0 o',
-      'node  O map~2 0/1/3 w=U',
-      'lex #ZZ ""',
-      'stack 2 val~1/map~2',
-      'rule  O pair~3 0/2/0 d=2',
-      'parse O pair~3 0/2/0 o'
-    ])
+      'lex #OB \"{\"',
+      'lex #OB \"{\"',
+      'rule  O 0/0/0 val~1',
+      'parse O 0/0/0 val~1',
+      'node  O 0/0/2 val~1',
+      'stack val~1 [object Object]',
+      'rule  O 0/1/0 map~2',
+      'parse O 0/1/0 map~2',
+      'node  O 0/1/3 map~2',
+      'lex #ZZ \"\"',
+      'stack val~1/map~2 [object Object]',
+      'rule  O 0/2/0 pair~3',
+      'parse O 0/2/0 pair~3',    ])
     
     log = []
     let d0 = j0(`
@@ -680,45 +679,45 @@ describe('utility', () => {
     expect(d1).toEqual({a:'X\nY'})
 
     expect(log.map(x=>x[0]+' '+x[1]+' '+x[2])).toEqual([
-      'lex #TX "a"',
-      'lex #CL ":"',
-      'rule  O val~1 0/0/0 d=0',
-      'parse O val~1 0/0/0 o',
-      'node  O val~1 0/0/2 w=U',
-      'stack 1 val~1',
-      'rule  O map~2 0/1/0 d=1',
-      'parse O map~2 0/1/0 o',
-      'node  O map~2 0/1/3 w=U',
-      'stack 2 val~1/map~2',
-      'rule  O pair~3 0/2/0 d=2',
-      'parse O pair~3 0/2/0 o',
-      'node  O pair~3 0/2/4 w=U',
-      'lex #TX "<x\\ny>"',
-      'lex #ZZ ""',
-      'stack 3 val~1/map~2/pair~3',
-      'rule  O val~4 0/3/0 d=3',
-      'parse O val~4 0/3/0 o',
-      'node  O val~4 0/3/0 w=Z',
-      'lex #ZZ ""',
-      'stack 3 val~1/map~2/pair~3',
-      'rule  C val~4 0/3/0 d=3',
-      'parse C val~4 0/3/0 c',
-      'node  C val~4 0/3/0 w=Z',
-      'lex #ZZ ""',
-      'stack 2 val~1/map~2',
-      'rule  C pair~3 0/2/4 d=2',
-      'parse C pair~3 0/2/4 c',
-      'node  C pair~3 0/2/4 w=Z',
-      'lex #ZZ ""',
-      'stack 1 val~1',
-      'rule  C map~2 0/1/3 d=1',
-      'node  C map~2 0/1/3 w=Z',
-      'stack 0 ',
-      'rule  C val~1 0/0/2 d=0',
-      'parse C val~1 0/0/2 c',
-      'node  C val~1 0/0/2 w=Z',
-      'lex #ZZ ""',
-      'stack 0 '
+      'lex #TX \"a\"',
+      'lex #CL \":\"',
+      'rule  O 0/0/0 val~1',
+      'parse O 0/0/0 val~1',
+      'node  O 0/0/2 val~1',
+      'stack val~1 [object Object]',
+      'rule  O 0/1/0 map~2',
+      'parse O 0/1/0 map~2',
+      'node  O 0/1/3 map~2',
+      'stack val~1/map~2 [object Object]',
+      'rule  O 0/2/0 pair~3',
+      'parse O 0/2/0 pair~3',
+      'node  O 0/2/4 pair~3',
+      'lex #TX \"<x\\ny>\"',
+      'lex #ZZ \"\"',
+      'stack val~1/map~2/pair~3 [object Object]',
+      'rule  O 0/3/0 val~4',
+      'parse O 0/3/0 val~4',
+      'node  O 0/3/0 val~4',
+      'lex #ZZ \"\"',
+      'stack val~1/map~2/pair~3 [object Object]',
+      'rule  C 0/3/0 val~4',
+      'parse C 0/3/0 val~4',
+      'node  C 0/3/0 val~4',
+      'lex #ZZ \"\"',
+      'stack val~1/map~2 [object Object]',
+      'rule  C 0/2/4 pair~3',
+      'parse C 0/2/4 pair~3',
+      'node  C 0/2/4 pair~3',
+      'lex #ZZ \"\"',
+      'stack val~1 [object Object]',
+      'rule  C 0/1/3 map~2',
+      'node  C 0/1/3 map~2',
+      'stack  [object Object]',
+      'rule  C 0/0/2 val~1',
+      'parse C 0/0/2 val~1',
+      'node  C 0/0/2 val~1',
+      'lex #ZZ \"\"',
+      'stack  [object Object]',
     ])
   })
 

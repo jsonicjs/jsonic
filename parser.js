@@ -170,7 +170,7 @@ class RuleSpecImpl {
             next = rule.child = makeRule(ctx.rsm[alt.p], ctx, rule.node);
             next.parent = rule;
             next.n = { ...rule.n };
-            why += 'U';
+            why += 'P(' + alt.p + ')';
         }
         // ...or replace with a new rule.
         else if (alt.r) {
@@ -178,7 +178,7 @@ class RuleSpecImpl {
             next.parent = rule.parent;
             next.prev = rule;
             next.n = { ...rule.n };
-            why += 'R';
+            why += 'R(' + alt.r + ')';
         }
         // Pop closed rule off stack.
         else {
@@ -196,8 +196,7 @@ class RuleSpecImpl {
             return this.bad(aout, rule, ctx, { is_open });
         }
         next.why = why;
-        ctx.log && ctx.log('node  ' + rule.state.toUpperCase(), rule.name + '~' + rule.id + ' ' +
-            (rule.prev.id + '/' + rule.parent.id + '/' + rule.child.id), 'w=' + why, 'n:' + (0, utility_1.entries)(rule.n).map(n => n[0] + '=' + n[1]).join(';'), 'u:' + (0, utility_1.entries)(rule.use).map(u => u[0] + '=' + u[1]).join(';'), '<' + F(rule.node) + '>');
+        ctx.log && ctx.log('node  ' + rule.state.toUpperCase(), (rule.prev.id + '/' + rule.parent.id + '/' + rule.child.id), rule.name + '~' + rule.id, 'w=' + why, 'n:' + (0, utility_1.entries)(rule.n).map(n => n[0] + '=' + n[1]).join(';'), 'u:' + (0, utility_1.entries)(rule.use).map(u => u[0] + '=' + u[1]).join(';'), '<' + F(rule.node) + '>');
         // Lex next tokens (up to backtrack).
         let mI = 0;
         let rewind = rule[is_open ? 'os' : 'cs'] - (alt.b || 0);
@@ -230,6 +229,18 @@ class RuleSpecImpl {
         // TODO: replace with lookup map
         let len = alts.length;
         for (altI = 0; altI < len; altI++) {
+            // Rule attributes are set for use by condition checks.
+            // Unset for each alt.
+            if (is_open) {
+                rule.o0 = ctx.NOTOKEN;
+                rule.o1 = ctx.NOTOKEN;
+                rule.os = 0;
+            }
+            else {
+                rule.c0 = ctx.NOTOKEN;
+                rule.c1 = ctx.NOTOKEN;
+                rule.cs = 0;
+            }
             cond = false;
             alt = alts[altI];
             // No tokens to match.
@@ -290,15 +301,19 @@ class RuleSpecImpl {
             out.h = null != alt.h ? alt.h : out.h;
             out.a = null != alt.a ? alt.a : out.a;
             out.u = null != alt.u ? alt.u : out.u;
+            out.g = null != alt.g ? alt.g : out.g;
         }
         // TODO: move to util function
-        ctx.log && ctx.log('parse ' + rule.state.toUpperCase(), rule.name + '~' + rule.id + ' ' +
-            (rule.prev.id + '/' + rule.parent.id + '/' + rule.child.id), rule.state, altI < alts.length ? 'alt=' + altI : 'no-alt', altI < alts.length &&
-            alt.s ?
-            '[' + alt.s.map((pin) => (Array.isArray(pin) ? pin.map((pin) => t[pin]).join('|') : t[pin])).join(' ') + ']' : '[]', 'tc=' + ctx.tC, 'p=' + (out.p || types_1.EMPTY), 'r=' + (out.r || types_1.EMPTY), 'b=' + (out.b || types_1.EMPTY), (types_1.OPEN === rule.state ?
+        ctx.log && ctx.log('parse ' + rule.state.toUpperCase(), (rule.prev.id + '/' + rule.parent.id + '/' + rule.child.id), rule.name + '~' + rule.id, altI < alts.length ? 'alt=' + altI : 'no-alt', (out.g && 'g=' + out.g + ' '), (out.p && 'p=' + out.p + ' ') +
+            (out.r && 'r=' + out.r + ' ') +
+            (out.b && 'b=' + out.b + ' '), (types_1.OPEN === rule.state ?
             ([rule.o0, rule.o1].slice(0, rule.os)) :
             ([rule.c0, rule.c1].slice(0, rule.cs)))
-            .map((tkn) => tkn.name + '=' + ctx.F(tkn.src)).join(' '), 'c:' + ((alt && alt.c) ? cond : types_1.EMPTY), 'n:' + (0, utility_1.entries)(out.n).map(n => n[0] + '=' + n[1]).join(';'), 'u:' + (0, utility_1.entries)(out.u).map(u => u[0] + '=' + u[1]).join(';'), out);
+            .map((tkn) => tkn.name + '=' + ctx.F(tkn.src)).join(' '), 'c:' + ((alt && alt.c) ? cond : types_1.EMPTY), 'n:' + (0, utility_1.entries)(out.n).map(n => n[0] + '=' + n[1]).join(';'), 'u:' + (0, utility_1.entries)(out.u).map(u => u[0] + '=' + u[1]).join(';'), altI < alts.length &&
+            alt.s ?
+            '[' + alt.s.map((pin) => (Array.isArray(pin) ? pin.map((pin) => t[pin]).join('|') : t[pin])).join(' ') + ']' : '[]', 
+        // 'tc=' + ctx.tC,
+        out);
         return out;
     }
     bad(tkn, rule, ctx, parse) {
@@ -422,12 +437,13 @@ class Parser {
         // occurrences until there's none left.
         while (norule !== rule && rI < maxr) {
             ctx.log &&
-                ctx.log('rule  ' + rule.state.toUpperCase(), rule.name + '~' + rule.id + ' ' +
-                    (rule.prev.id + '/' + rule.parent.id + '/' + rule.child.id), 'd=' + ctx.rs.length, 'tc=' + ctx.tC, '[' + tn(ctx.t0.tin) + ' ' + tn(ctx.t1.tin) + ']', '[' + ctx.F(ctx.t0.src) + ' ' + ctx.F(ctx.t1.src) + ']', 'n:' + (0, utility_1.entries)(rule.n).map(n => n[0] + '=' + n[1]).join(';'), 'u:' + (0, utility_1.entries)(rule.use).map(u => u[0] + '=' + u[1]).join(';'), rule, ctx);
+                ctx.log('rule  ' + rule.state.toUpperCase(), (rule.prev.id + '/' + rule.parent.id + '/' + rule.child.id), rule.name + '~' + rule.id, '[' + ctx.F(ctx.t0.src) + ' ' + ctx.F(ctx.t1.src) + ']', 'n:' + (0, utility_1.entries)(rule.n).map(n => n[0] + '=' + n[1]).join(';'), 'u:' + (0, utility_1.entries)(rule.use).map(u => u[0] + '=' + u[1]).join(';'), 
+                // 'd=' + ctx.rs.length, 'tc=' + ctx.tC,
+                '[' + tn(ctx.t0.tin) + ' ' + tn(ctx.t1.tin) + ']', rule, ctx);
             ctx.rule = rule;
             rule = rule.process(ctx);
             ctx.log &&
-                ctx.log(utility_1.S.stack, ctx.rs.length, ctx.rs.map((r) => r.name + '~' + r.id).join('/'), rule, ctx);
+                ctx.log('stack', ctx.rs.map((r) => r.name + '~' + r.id).join('/'), rule, ctx);
             rI++;
         }
         // TODO: option to allow trailing content
@@ -435,6 +451,7 @@ class Parser {
             throw new utility_1.JsonicError(utility_1.S.unexpected, {}, ctx.t0, norule, ctx);
         }
         // NOTE: by returning root, we get implicit closing of maps and lists.
+        // console.log('JSONIC FINAL', root.id)
         return root.node;
     }
     clone(options, config) {

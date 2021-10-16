@@ -75,7 +75,6 @@ function grammar(jsonic) {
             rule.node =
                 undefined === rule.node ?
                     undefined === rule.child.node ?
-                        // (null == rule.open[0] ? undefined : rule.open[0].val) :
                         (0 === rule.os ? undefined : rule.o0.val) :
                         rule.child.node :
                     rule.node;
@@ -151,10 +150,12 @@ function grammar(jsonic) {
             { s: [CA, CB], c: { n: { pk: 0 } }, g: 'map,pair,comma' },
             // Comma means a new pair at same level (unless implicit a:b:1,c:2).
             { s: [CA], c: { n: { pk: 0 } }, r: 'pair', g: 'map,pair,json' },
+            // TODO: try CA VAL ? works anywhere?
             // Comma means a new pair if implicit top level map.
             { s: [CA], c: { d: 2 }, r: 'pair', g: 'map,pair,json' },
             // Who needs commas anyway?
             { s: [VAL], c: { n: { pk: 0 } }, r: 'pair', b: 1, g: 'map,pair,imp' },
+            // TODO: try VAL CL ? works anywhere?
             // Value means a new pair if implicit top level map.
             { s: [VAL], c: { d: 2 }, r: 'pair', b: 1, g: 'map,pair,imp' },
             // End of implicit path a:b:1,.

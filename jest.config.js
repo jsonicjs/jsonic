@@ -6,4 +6,7 @@ module.exports = {
   testTimeout: 9999,
   // collectCoverageFrom: ['*.js'],
   coveragePathIgnorePatterns: ['test'],
+  transform: {
+    "^.+\\.tsx?$": ["esbuild-jest",{sourcemap:true}]
+  },
 };

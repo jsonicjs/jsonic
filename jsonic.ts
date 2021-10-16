@@ -5,6 +5,7 @@
  */
 
 
+// TODO: http://seriot.ch/projects/parsing_json.html
 // TODO: error if rule name not found when parsing
 // TODO: error if fixed tokens clash
 // TODO: define explicitly: p in close, r in open, behaviour
