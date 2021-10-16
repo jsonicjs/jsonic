@@ -51,6 +51,13 @@ const omap = (o: any, f: any) => {
       }
       else {
         o[me[0]] = me[1]
+
+        // Additional pairs set additional keys.
+        let i = 2
+        while (undefined !== me[i]) {
+          o[me[i]] = me[i + 1]
+          i += 2
+        }
       }
       return o
     }, {})

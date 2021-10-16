@@ -16,7 +16,6 @@ const Util = require('util')
 
 const {
   filterRules,
-  omap,
 } = require('../utility')
 
 const {
@@ -41,6 +40,9 @@ const {
   TIME,
   prop,
   str,
+
+  // TODO: validated as util API
+  omap,
 } = util
 
 
@@ -50,6 +52,53 @@ const D = (o)=>console.dir(o,{depth:null})
 
 
 describe('utility', () => {
+
+  it('omap', () => {
+    let o0 = {x:1,y:2}
+
+    // Modify.
+    expect(omap(o0,([k,v])=>[k,v*2])).toMatchObject({x:2,y:4})
+
+    // Delete.
+    expect(omap(o0,([k,v])=>['x'===k?undefined:k,v])).toMatchObject({y:2})
+
+    // Add.
+    expect(omap(o0,([k,v])=>[k,v,'z'+k,v*2])).toMatchObject({x:1,y:2,zx:2,zy:4})
+
+  })
+
+
+  it('str', () => {
+    expect(str('12345',6)).toEqual('12345')
+    expect(str('12345',5)).toEqual('12345')
+    expect(str('12345',4)).toEqual('1...')
+    expect(str('12345',3)).toEqual('...')
+    expect(str('12345',2)).toEqual('..')
+    expect(str('12345',1)).toEqual('.')
+    expect(str('12345',0)).toEqual('')
+    expect(str('12345',-1)).toEqual('')
+
+    expect(str('123',4)).toEqual('123')
+    expect(str('123',3)).toEqual('123')
+    expect(str('123',2)).toEqual('..')
+    expect(str('123',1)).toEqual('.')
+    expect(str('123',0)).toEqual('')
+    expect(str('123',-1)).toEqual('')
+
+    expect(str(1)).toEqual('1')
+    expect(str(true)).toEqual('true')
+
+    expect(str({a:1})).toEqual('{"a":1}')
+    expect(str([1,2])).toEqual('[1,2]')
+    expect(str({a:1},7)).toEqual('{"a":1}')
+    expect(str([1,2],5)).toEqual('[1,2]')
+    expect(str({a:1},6)).toEqual('{"a...')
+    expect(str([1,2],4)).toEqual('[...')
+    
+    expect(str([1,2,3,4,5,6,7,8,9,0,1,2,3,4,5,6,7,8,9,0,1,2,3]))
+      .toEqual('[1,2,3,4,5,6,7,8,9,0,1,2,3,4,5,6,7,8,9,0,...')
+  })
+
 
   it('token', ()=>{
     let p0 = makePoint(4,3,2,1)
@@ -443,39 +492,6 @@ describe('utility', () => {
     expect(regexp('','a')).toEqual(/a/)
     expect(regexp('','a*')).toEqual(/a*/)
     expect(regexp('',mesc('ab*'))).toEqual(/ab\*/)
-  })
-
-
-
-  it('str', () => {
-    expect(str('12345',6)).toEqual('12345')
-    expect(str('12345',5)).toEqual('12345')
-    expect(str('12345',4)).toEqual('1...')
-    expect(str('12345',3)).toEqual('...')
-    expect(str('12345',2)).toEqual('..')
-    expect(str('12345',1)).toEqual('.')
-    expect(str('12345',0)).toEqual('')
-    expect(str('12345',-1)).toEqual('')
-
-    expect(str('123',4)).toEqual('123')
-    expect(str('123',3)).toEqual('123')
-    expect(str('123',2)).toEqual('..')
-    expect(str('123',1)).toEqual('.')
-    expect(str('123',0)).toEqual('')
-    expect(str('123',-1)).toEqual('')
-
-    expect(str(1)).toEqual('1')
-    expect(str(true)).toEqual('true')
-
-    expect(str({a:1})).toEqual('{"a":1}')
-    expect(str([1,2])).toEqual('[1,2]')
-    expect(str({a:1},7)).toEqual('{"a":1}')
-    expect(str([1,2],5)).toEqual('[1,2]')
-    expect(str({a:1},6)).toEqual('{"a...')
-    expect(str([1,2],4)).toEqual('[...')
-    
-    expect(str([1,2,3,4,5,6,7,8,9,0,1,2,3,4,5,6,7,8,9,0,1,2,3]))
-      .toEqual('[1,2,3,4,5,6,7,8,9,0,1,2,3,4,5,6,7,8,9,0,...')
   })
 
   
