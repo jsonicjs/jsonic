@@ -41,21 +41,27 @@ function grammar(jsonic: Jsonic) {
   }
 
 
+  // Counters.
+  // * pk (pair-key): depth of the pair-key path
+  // * il (implicit list): only allow at top level
+  // * im (implicit map): only allow at top level
+
+
   jsonic.rule('val', (rs: RuleSpec) => {
     rs
       .bo((rule: Rule) => rule.node = undefined)
 
       .open([
-        // A map: { ...
+        // A map: `{ ...`
         { s: [OB], p: 'map', b: 1, g: 'map,json' },
 
-        // A list: [ ...
+        // A list: `[ ...`
         { s: [OS], p: 'list', b: 1, g: 'list,json' },
 
-        // A pair key: a: ...
+        // A pair key: `a: ...`
         { s: [VAL, CL], p: 'map', b: 2, n: { pk: 1 }, g: 'pair,json', },
 
-        // A plain value: x "x" 1 true.
+        // A plain value: `x` `"x"` `1` `true` ....
         { s: [VAL], g: 'val,json' },
 
         // Implicit ends `{a:}` -> {"a":null}, `[a:]` -> [{"a":null}]
@@ -64,7 +70,7 @@ function grammar(jsonic: Jsonic) {
         // Implicit list at top level: a,b.
         {
           s: [CA],
-          c: { n: { il: 0 } }, n: { il: 1 },
+          c: { n: { il: 0 } },
           p: 'list',
           b: 1,
           g: 'list,imp'
@@ -119,6 +125,8 @@ function grammar(jsonic: Jsonic) {
         // Implicit lists only at top level.
         rule.n.il = 1 + (rule.n.il ? rule.n.il : 0)
 
+        rule.n.im = 1 + (rule.n.im ? rule.n.im : 0)
+
         // Create a new empty map.
         rule.node = {}
       })
@@ -142,6 +150,8 @@ function grammar(jsonic: Jsonic) {
         // No implicit lists or maps inside lists.
         rule.n.il = 1 + (rule.n.il ? rule.n.il : 0)
         rule.n.pk = 1 + (rule.n.pk ? rule.n.pk : 0)
+
+        rule.n.im = 1 + (rule.n.im ? rule.n.im : 0)
 
         // Create a new empty list.
         // return { node: [] }
@@ -176,7 +186,6 @@ function grammar(jsonic: Jsonic) {
       ])
       .bc((r: Rule, ctx: Context) => {
         if (r.use.key) {
-          // const key_token = r.open[0]
           const key_token = r.o0
           const key = ST === key_token.tin ? key_token.val : key_token.src
           let val = r.child.node
@@ -198,21 +207,23 @@ function grammar(jsonic: Jsonic) {
         // Ignore trailing comma at end of map.
         { s: [CA, CB], c: { n: { pk: 0 } }, g: 'map,pair,comma' },
 
-        // Comma means a new pair at same level (unless implicit a:b:1,c:2).
+        // Comma means a new pair at same pair-key level.
         { s: [CA], c: { n: { pk: 0 } }, r: 'pair', g: 'map,pair,json' },
 
         // TODO: try CA VAL ? works anywhere?
         // Comma means a new pair if implicit top level map.
-        { s: [CA], c: { d: 2 }, r: 'pair', g: 'map,pair,json' },
+        // { s: [CA], c: { d: 2 }, r: 'pair', g: 'map,pair,json' },
+        { s: [CA], c: { n: { im: 1 } }, r: 'pair', g: 'map,pair,json' },
 
         // Who needs commas anyway?
         { s: [VAL], c: { n: { pk: 0 } }, r: 'pair', b: 1, g: 'map,pair,imp' },
 
         // TODO: try VAL CL ? works anywhere?
         // Value means a new pair if implicit top level map.
-        { s: [VAL], c: { d: 2 }, r: 'pair', b: 1, g: 'map,pair,imp' },
+        // { s: [VAL], c: { d: 2 }, r: 'pair', b: 1, g: 'map,pair,imp' },
+        { s: [VAL], c: { n: { im: 1 } }, r: 'pair', b: 1, g: 'map,pair,imp' },
 
-        // End of implicit path a:b:1,.
+        // End of implicit path (eg. a:b:1), keep closing until pk=0.
         { s: [[CB, CA, ...VAL]], b: 1, g: 'map,pair,imp,path' },
 
         // Close implicit single prop map inside list: [a:1]
