@@ -53,8 +53,8 @@ function grammar(jsonic) {
             { s: [CA], b: 1, g: 'list,val,imp,null' },
         ])
             .close([
-            { s: [ZZ] },
-            { s: [[CB, CS]], b: 1, g: 'val,json' },
+            { s: [ZZ], g: 'end' },
+            { s: [[CB, CS]], b: 1, g: 'val,json,close' },
             // Implicit list only allowed at top level: 1,2.
             {
                 s: [CA],
@@ -70,8 +70,8 @@ function grammar(jsonic) {
                 g: 'list,val,imp,space',
                 b: 1,
             },
-            // Close val, map, or list - there may be more elem or pairs.
-            { b: 1, g: 'val,json' },
+            // There may be another elem or pair.
+            { b: 1, g: 'val,json,more' },
         ])
             .bc((rule) => {
             // NOTE: val can be undefined when there is no value at all
