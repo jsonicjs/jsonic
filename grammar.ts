@@ -85,14 +85,14 @@ function grammar(jsonic: Jsonic) {
           c: { n: { il: 0, pk: 0 } }, n: { il: 1 },
           r: 'elem',
           a: (rule: Rule) => rule.node = [rule.node],
-          g: 'list,val,imp',
+          g: 'list,val,imp,comma',
         },
 
         {
           c: { n: { il: 0, pk: 0 } }, n: { il: 1 },
           r: 'elem',
           a: (rule: Rule) => rule.node = [rule.node],
-          g: 'list,val,imp',
+          g: 'list,val,imp,space',
           b: 1,
         },
 

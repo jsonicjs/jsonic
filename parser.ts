@@ -469,6 +469,8 @@ class RuleSpecImpl implements RuleSpec {
       out.g = null != alt.g ? alt.g : out.g
     }
 
+    let match = altI < alts.length
+
     // TODO: move to util function
     ctx.log && ctx.log(
       'parse ' + rule.state.toUpperCase(),
@@ -476,18 +478,19 @@ class RuleSpecImpl implements RuleSpec {
 
       rule.name + '~' + rule.id,
 
-      altI < alts.length ? 'alt=' + altI : 'no-alt',
+      match ? 'alt=' + altI : 'no-alt',
 
-      (out.g && 'g=' + out.g + ' '),
+      (match && out.g ? 'g:' + out.g + ' ' : ''),
 
-      (out.p && 'p=' + out.p + ' ') +
-      (out.r && 'r=' + out.r + ' ') +
-      (out.b && 'b=' + out.b + ' '),
+      (match && out.p ? 'p:' + out.p + ' ' : '') +
+      (match && out.r ? 'r:' + out.r + ' ' : '') +
+      (match && out.b ? 'b:' + out.b + ' ' : ''),
 
       (OPEN === rule.state ?
         ([rule.o0, rule.o1].slice(0, rule.os)) :
         ([rule.c0, rule.c1].slice(0, rule.cs)))
         .map((tkn: Token) => tkn.name + '=' + ctx.F(tkn.src)).join(' '),
+
       'c:' + ((alt && alt.c) ? cond : EMPTY),
       'n:' + entries(out.n).map(n => n[0] + '=' + n[1]).join(';'),
       'u:' + entries(out.u).map(u => u[0] + '=' + u[1]).join(';'),
@@ -498,7 +501,6 @@ class RuleSpecImpl implements RuleSpec {
           Array.isArray(pin) ? pin.map((pin: Tin) => t[pin]).join('|') : t[pin]
         )).join(' ') + ']' : '[]',
 
-      // 'tc=' + ctx.tC,
       out)
 
     return out

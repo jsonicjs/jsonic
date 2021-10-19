@@ -49,6 +49,7 @@ const util = {
     str: utility_1.str,
     // TODO: validated to include in util API:
     omap: utility_1.omap,
+    entries: utility_1.entries,
 };
 exports.util = util;
 function make(param_options, parent) {

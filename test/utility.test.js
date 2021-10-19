@@ -65,6 +65,10 @@ describe('utility', () => {
     // Add.
     expect(omap(o0,([k,v])=>[k,v,'z'+k,v*2])).toMatchObject({x:1,y:2,zx:2,zy:4})
 
+    // Delete and Add.
+    expect(omap(o0,([k,v])=>[undefined,undefined,'z'+k,v*2]))
+      .toMatchObject({zx:2,zy:4})
+
   })
 
 

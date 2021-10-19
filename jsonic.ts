@@ -110,7 +110,10 @@ import {
   keys,
   prop,
   str,
+
+  // Exported with jsonic.util
   omap,
+  entries,
 } from './utility'
 
 
@@ -166,6 +169,7 @@ const util = {
 
   // TODO: validated to include in util API:
   omap,
+  entries,
 }
 
 

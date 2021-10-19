@@ -303,17 +303,16 @@ class RuleSpecImpl {
             out.u = null != alt.u ? alt.u : out.u;
             out.g = null != alt.g ? alt.g : out.g;
         }
+        let match = altI < alts.length;
         // TODO: move to util function
-        ctx.log && ctx.log('parse ' + rule.state.toUpperCase(), (rule.prev.id + '/' + rule.parent.id + '/' + rule.child.id), rule.name + '~' + rule.id, altI < alts.length ? 'alt=' + altI : 'no-alt', (out.g && 'g=' + out.g + ' '), (out.p && 'p=' + out.p + ' ') +
-            (out.r && 'r=' + out.r + ' ') +
-            (out.b && 'b=' + out.b + ' '), (types_1.OPEN === rule.state ?
+        ctx.log && ctx.log('parse ' + rule.state.toUpperCase(), (rule.prev.id + '/' + rule.parent.id + '/' + rule.child.id), rule.name + '~' + rule.id, match ? 'alt=' + altI : 'no-alt', (match && out.g ? 'g:' + out.g + ' ' : ''), (match && out.p ? 'p:' + out.p + ' ' : '') +
+            (match && out.r ? 'r:' + out.r + ' ' : '') +
+            (match && out.b ? 'b:' + out.b + ' ' : ''), (types_1.OPEN === rule.state ?
             ([rule.o0, rule.o1].slice(0, rule.os)) :
             ([rule.c0, rule.c1].slice(0, rule.cs)))
             .map((tkn) => tkn.name + '=' + ctx.F(tkn.src)).join(' '), 'c:' + ((alt && alt.c) ? cond : types_1.EMPTY), 'n:' + (0, utility_1.entries)(out.n).map(n => n[0] + '=' + n[1]).join(';'), 'u:' + (0, utility_1.entries)(out.u).map(u => u[0] + '=' + u[1]).join(';'), altI < alts.length &&
             alt.s ?
-            '[' + alt.s.map((pin) => (Array.isArray(pin) ? pin.map((pin) => t[pin]).join('|') : t[pin])).join(' ') + ']' : '[]', 
-        // 'tc=' + ctx.tC,
-        out);
+            '[' + alt.s.map((pin) => (Array.isArray(pin) ? pin.map((pin) => t[pin]).join('|') : t[pin])).join(' ') + ']' : '[]', out);
         return out;
     }
     bad(tkn, rule, ctx, parse) {

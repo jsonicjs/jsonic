@@ -57,13 +57,13 @@ function grammar(jsonic) {
                 c: { n: { il: 0, pk: 0 } }, n: { il: 1 },
                 r: 'elem',
                 a: (rule) => rule.node = [rule.node],
-                g: 'list,val,imp',
+                g: 'list,val,imp,comma',
             },
             {
                 c: { n: { il: 0, pk: 0 } }, n: { il: 1 },
                 r: 'elem',
                 a: (rule) => rule.node = [rule.node],
-                g: 'list,val,imp',
+                g: 'list,val,imp,space',
                 b: 1,
             },
             // Close val, map, or list - there may be more elem or pairs.
