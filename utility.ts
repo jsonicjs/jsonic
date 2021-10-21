@@ -608,7 +608,7 @@ function makelog(ctx: Context, meta: any) {
             .filter((item: any) => S.object != typeof (item))
             .map((item: any) => S.function == typeof (item) ? item.name : item)
             .join('\t')
-          ctx.cfg.debug.get_console().log(logstr + ('stack' === rest[0] ? '\n' : ''))
+          ctx.cfg.debug.get_console().log(logstr) // + ('stack' === rest[0] ? '\n' : ''))
         }
         else {
           ctx.cfg.debug.get_console().dir(rest, { depth: logdepth })

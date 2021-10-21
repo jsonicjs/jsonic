@@ -686,6 +686,14 @@ class Parser {
     while (norule !== rule && rI < maxr) {
       ctx.log &&
         ctx.log(
+          '\nstack',
+          ctx.rs.map((r: Rule) => r.name + '~' + r.id).join('/'),
+          ctx.rs.map((r: Rule) => '<' + ctx.F(r.node) + '>').join(' '),
+
+          rule, ctx, '\n')
+
+      ctx.log &&
+        ctx.log(
           'rule  ' + rule.state.toUpperCase(),
           (rule.prev.id + '/' + rule.parent.id + '/' + rule.child.id),
           rule.name + '~' + rule.id,
@@ -702,11 +710,11 @@ class Parser {
 
       rule = rule.process(ctx)
 
-      ctx.log &&
-        ctx.log(
-          'stack',
-          ctx.rs.map((r: Rule) => r.name + '~' + r.id).join('/'),
-          rule, ctx)
+      // ctx.log &&
+      //   ctx.log(
+      //     'stack',
+      //     ctx.rs.map((r: Rule) => r.name + '~' + r.id).join('/'),
+      //     rule, ctx)
       rI++
     }
 

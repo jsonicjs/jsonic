@@ -436,13 +436,18 @@ class Parser {
         // occurrences until there's none left.
         while (norule !== rule && rI < maxr) {
             ctx.log &&
+                ctx.log('\nstack', ctx.rs.map((r) => r.name + '~' + r.id).join('/'), ctx.rs.map((r) => '<' + ctx.F(r.node) + '>').join(' '), rule, ctx, '\n');
+            ctx.log &&
                 ctx.log('rule  ' + rule.state.toUpperCase(), (rule.prev.id + '/' + rule.parent.id + '/' + rule.child.id), rule.name + '~' + rule.id, '[' + ctx.F(ctx.t0.src) + ' ' + ctx.F(ctx.t1.src) + ']', 'n:' + (0, utility_1.entries)(rule.n).map(n => n[0] + '=' + n[1]).join(';'), 'u:' + (0, utility_1.entries)(rule.use).map(u => u[0] + '=' + u[1]).join(';'), 
                 // 'd=' + ctx.rs.length, 'tc=' + ctx.tC,
                 '[' + tn(ctx.t0.tin) + ' ' + tn(ctx.t1.tin) + ']', rule, ctx);
             ctx.rule = rule;
             rule = rule.process(ctx);
-            ctx.log &&
-                ctx.log('stack', ctx.rs.map((r) => r.name + '~' + r.id).join('/'), rule, ctx);
+            // ctx.log &&
+            //   ctx.log(
+            //     'stack',
+            //     ctx.rs.map((r: Rule) => r.name + '~' + r.id).join('/'),
+            //     rule, ctx)
             rI++;
         }
         // TODO: option to allow trailing content

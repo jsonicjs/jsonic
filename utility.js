@@ -447,7 +447,7 @@ function makelog(ctx, meta) {
                         .filter((item) => S.object != typeof (item))
                         .map((item) => S.function == typeof (item) ? item.name : item)
                         .join('\t');
-                    ctx.cfg.debug.get_console().log(logstr + ('stack' === rest[0] ? '\n' : ''));
+                    ctx.cfg.debug.get_console().log(logstr); // + ('stack' === rest[0] ? '\n' : ''))
                 }
                 else {
                     ctx.cfg.debug.get_console().dir(rest, { depth: logdepth });
