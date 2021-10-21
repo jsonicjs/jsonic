@@ -8,6 +8,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.run = void 0;
 const fs_1 = __importDefault(require("fs"));
 const jsonic_1 = require("./jsonic");
+const debug_1 = require("./debug");
 // Make sure JsonicError is shown nicely.
 if (require.main === module) {
     run(process.argv, console).catch((e) => console.error(e));
@@ -23,6 +24,7 @@ async function run(argv, console) {
         meta: [],
         plugins: [],
     };
+    let plugins = {};
     let accept_args = true;
     for (let aI = 2; aI < argv.length; aI++) {
         let arg = argv[aI];
@@ -43,6 +45,7 @@ async function run(argv, console) {
                 args.meta.push(argv[++aI]);
             }
             else if ('--debug' === arg || '-d' === arg) {
+                plugins.debug = debug_1.debug;
                 args.meta.push('log=-1');
             }
             else if ('--help' === arg || '-h' === arg) {
@@ -64,12 +67,16 @@ async function run(argv, console) {
     }
     let options = handle_props(args.options);
     let meta = handle_props(args.meta);
-    let plugins = handle_plugins(args.plugins);
+    // let plugins: any = handle_plugins(args.plugins)
+    plugins = { ...plugins, ...handle_plugins(args.plugins) };
     options.debug = options.debug || {};
     options.debug.get_console = () => console;
     let jsonic = jsonic_1.Jsonic.make(options);
     for (let pn in plugins) {
         jsonic.use(plugins[pn]);
+    }
+    if (plugins.debug) {
+        console.log(jsonic.describe() + '\n\nParse:');
     }
     let data = { val: null };
     for (let fp of args.files) {

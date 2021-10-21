@@ -35,6 +35,7 @@ import {
 
 // Null-safe object and array utilities
 const keys = (x: any) => null == x ? [] : Object.keys(x)
+const values = (x: any) => null == x ? [] : Object.values(x)
 const entries = (x: any) => null == x ? [] : Object.entries(x)
 const assign = (x: any, ...r: any[]) => Object.assign(null == x ? {} : x, ...r)
 const isarr = (x: any) => Array.isArray(x)
@@ -718,10 +719,11 @@ function normalt(a: AltSpec): NormAltSpec {
     let counters = (a.c as any).n
     let depth = (a.c as any).d
     if (null != counters || null != depth) {
-      a.c = (rule: Rule) => {
+      a.c = function(rule: Rule) {
         let pass = true
 
-        if (null! + counters) {
+        //if (null! + counters) {
+        if (null != counters) {
           for (let cn in counters) {
 
             // Pass if rule counter <= alt counter, (0 if undef).
@@ -736,6 +738,13 @@ function normalt(a: AltSpec): NormAltSpec {
         }
 
         return pass
+      }
+
+      if (null != counters) {
+        (a.c as any).n = counters
+      }
+      if (null != depth) {
+        (a.c as any).d = depth
       }
     }
   }
@@ -872,10 +881,9 @@ export {
   extract,
   filterRules,
   isarr,
-  keys,
+
   makelog,
   mesc,
-  omap,
   regexp,
   snip,
   srcfmt,
@@ -885,4 +893,8 @@ export {
   normalt,
   prop,
   str,
+
+  omap,
+  keys,
+  values,
 }

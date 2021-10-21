@@ -5,6 +5,8 @@
  */
 
 
+// TODO: debug log should be in plugin
+// TODO: error msgs for bad names - eg mispelled rule name
 // TODO: http://seriot.ch/projects/parsing_json.html
 // TODO: error if rule name not found when parsing
 // TODO: error if fixed tokens clash
@@ -107,13 +109,14 @@ import {
   configure,
   escre,
   parserwrap,
-  keys,
   prop,
   str,
 
   // Exported with jsonic.util
   omap,
   entries,
+  values,
+  keys,
 } from './utility'
 
 
@@ -163,12 +166,13 @@ const util = {
   mesc,
   escre,
   regexp,
-  keys,
   prop,
   str,
 
   // TODO: validated to include in util API:
   omap,
+  keys,
+  values,
   entries,
 }
 

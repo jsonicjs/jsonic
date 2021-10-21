@@ -223,6 +223,23 @@ describe('plugin', function () {
     expect(j.internal().config.fixed.token['#QQ']).toEqual(99)
   })
 
+
+  it('decorate', () => {
+    const j = make()
+
+    let jp0 = j.use(function foo(jsonic) {
+      jsonic.foo = ()=>'FOO'
+    })
+    expect(jp0.foo()).toEqual('FOO')
+
+    let jp1 = jp0.use(function bar(jsonic) {
+      jsonic.bar = ()=>'BAR'
+    })
+    expect(jp1.bar()).toEqual('BAR')
+    expect(jp1.foo()).toEqual('FOO')
+    expect(jp0.foo()).toEqual('FOO')
+  })
+
   
 /*
   it('dynamic-basic', () => {

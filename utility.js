@@ -1,12 +1,14 @@
 "use strict";
 /* Copyright (c) 2013-2021 Richard Rodger, MIT License */
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.str = exports.prop = exports.normalt = exports.parserwrap = exports.trimstk = exports.tokenize = exports.srcfmt = exports.snip = exports.regexp = exports.omap = exports.mesc = exports.makelog = exports.keys = exports.isarr = exports.filterRules = exports.extract = exports.escre = exports.errinject = exports.errdesc = exports.entries = exports.defprop = exports.deep = exports.configure = exports.clone = exports.clean = exports.charset = exports.badlex = exports.assign = exports.S = exports.JsonicError = void 0;
+exports.values = exports.keys = exports.omap = exports.str = exports.prop = exports.normalt = exports.parserwrap = exports.trimstk = exports.tokenize = exports.srcfmt = exports.snip = exports.regexp = exports.mesc = exports.makelog = exports.isarr = exports.filterRules = exports.extract = exports.escre = exports.errinject = exports.errdesc = exports.entries = exports.defprop = exports.deep = exports.configure = exports.clone = exports.clean = exports.charset = exports.badlex = exports.assign = exports.S = exports.JsonicError = void 0;
 const types_1 = require("./types");
 const lexer_1 = require("./lexer");
 // Null-safe object and array utilities
 const keys = (x) => null == x ? [] : Object.keys(x);
 exports.keys = keys;
+const values = (x) => null == x ? [] : Object.values(x);
+exports.values = values;
 const entries = (x) => null == x ? [] : Object.entries(x);
 exports.entries = entries;
 const assign = (x, ...r) => Object.assign(null == x ? {} : x, ...r);
@@ -531,9 +533,10 @@ function normalt(a) {
         let counters = a.c.n;
         let depth = a.c.d;
         if (null != counters || null != depth) {
-            a.c = (rule) => {
+            a.c = function (rule) {
                 let pass = true;
-                if (null + counters) {
+                //if (null! + counters) {
+                if (null != counters) {
                     for (let cn in counters) {
                         // Pass if rule counter <= alt counter, (0 if undef).
                         pass = pass && (null == rule.n[cn] ||
@@ -545,6 +548,12 @@ function normalt(a) {
                 }
                 return pass;
             };
+            if (null != counters) {
+                a.c.n = counters;
+            }
+            if (null != depth) {
+                a.c.d = depth;
+            }
         }
     }
     // Ensure groups are a string[]

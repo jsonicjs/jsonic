@@ -1,5 +1,6 @@
 import type { Context, Config, Relate, Chars, Token, AltSpec, NormAltSpec, Lex, Rule, RuleSpec, Tin, Options } from './types';
 declare const keys: (x: any) => string[];
+declare const values: (x: any) => unknown[];
 declare const entries: (x: any) => [string, unknown][];
 declare const assign: (x: any, ...r: any[]) => any;
 declare const isarr: (x: any) => boolean;
@@ -74,4 +75,4 @@ declare function prop(obj: any, path: string, val: any): any;
 declare function parserwrap(parser: any): {
     start: (src: string, jsonic: any, meta?: any, parent_ctx?: any) => any;
 };
-export { JsonicError, S, assign, badlex, charset, clean, clone, configure, deep, defprop, entries, errdesc, errinject, escre, extract, filterRules, isarr, keys, makelog, mesc, omap, regexp, snip, srcfmt, tokenize, trimstk, parserwrap, normalt, prop, str, };
+export { JsonicError, S, assign, badlex, charset, clean, clone, configure, deep, defprop, entries, errdesc, errinject, escre, extract, filterRules, isarr, makelog, mesc, regexp, snip, srcfmt, tokenize, trimstk, parserwrap, normalt, prop, str, omap, keys, values, };

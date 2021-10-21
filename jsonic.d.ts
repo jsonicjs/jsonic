@@ -20,10 +20,11 @@ declare const util: {
     mesc: typeof mesc;
     escre: typeof escre;
     regexp: typeof regexp;
-    keys: (x: any) => string[];
     prop: typeof prop;
     str: typeof str;
     omap: (o: any, f: any) => any;
+    keys: (x: any) => string[];
+    values: (x: any) => unknown[];
     entries: (x: any) => [string, unknown][];
 };
 declare type Jsonic = JsonicParse & // A function that parses.

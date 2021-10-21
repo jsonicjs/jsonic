@@ -44,11 +44,12 @@ const util = {
     mesc: utility_1.mesc,
     escre: utility_1.escre,
     regexp: utility_1.regexp,
-    keys: utility_1.keys,
     prop: utility_1.prop,
     str: utility_1.str,
     // TODO: validated to include in util API:
     omap: utility_1.omap,
+    keys: utility_1.keys,
+    values: utility_1.values,
     entries: utility_1.entries,
 };
 exports.util = util;

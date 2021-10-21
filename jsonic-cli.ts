@@ -3,7 +3,9 @@
 
 import Fs from 'fs'
 
-import { Jsonic, Relate, util } from './jsonic'
+import { Jsonic, Plugin, Relate, util } from './jsonic'
+
+import { debug } from './debug'
 
 
 // Make sure JsonicError is shown nicely.
@@ -24,6 +26,8 @@ export async function run(argv: string[], console: Console) {
     meta: ([] as string[]),
     plugins: ([] as string[]),
   }
+
+  let plugins: { [name: string]: Plugin } = {}
 
   let accept_args = true
   for (let aI = 2; aI < argv.length; aI++) {
@@ -46,6 +50,7 @@ export async function run(argv: string[], console: Console) {
         args.meta.push(argv[++aI])
       }
       else if ('--debug' === arg || '-d' === arg) {
+        plugins.debug = debug
         args.meta.push('log=-1')
       }
       else if ('--help' === arg || '-h' === arg) {
@@ -69,7 +74,8 @@ export async function run(argv: string[], console: Console) {
 
   let options: any = handle_props(args.options)
   let meta: any = handle_props(args.meta)
-  let plugins: any = handle_plugins(args.plugins)
+  // let plugins: any = handle_plugins(args.plugins)
+  plugins = { ...plugins, ...handle_plugins(args.plugins) }
 
   options.debug = options.debug || {}
   options.debug.get_console = () => console
@@ -79,6 +85,11 @@ export async function run(argv: string[], console: Console) {
   for (let pn in plugins) {
     jsonic.use(plugins[pn])
   }
+
+  if (plugins.debug) {
+    console.log(jsonic.describe() + '\n\nParse:')
+  }
+
 
   let data = { val: null }
 
