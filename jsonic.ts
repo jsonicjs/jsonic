@@ -5,6 +5,7 @@
  */
 
 
+// TODO: err if plugin arg is not a plugin
 // TODO: debug log should be in plugin
 // TODO: error msgs for bad names - eg mispelled rule name
 // TODO: http://seriot.ch/projects/parsing_json.html

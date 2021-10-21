@@ -12,26 +12,28 @@ import {
 } from './jsonic'
 
 
-const { values, entries } = util
+const { keys, values, entries, omap } = util
 
 
-const debug: Plugin = (jsonic: Jsonic) => {
+const Debug: Plugin = (jsonic: Jsonic) => {
   jsonic.describe = function(): string {
     let rules = this.rule()
     return [
-      'Rules:',
+      '=== ALTS ===',
       values(rules)
         .map((rs: any) =>
           '  ' + rs.name + ':\n' +
           descAlt(jsonic, rs, 'open') +
           descAlt(jsonic, rs, 'close')
-        ).join('\n\n')
+        ).join('\n\n'),
+      '=== RULES ===',
+      ruleTree(keys(rules), rules),
     ].join('\n')
   }
 }
 
 function descAlt(jsonic: Jsonic, rs: RuleSpec, kind: 'open' | 'close') {
-  return '    ' + kind.toUpperCase() + ' ALTS:\n' +
+  return '    ' + kind.toUpperCase() + ':\n' +
     (0 === rs.def[kind].length ? '      NONE' :
       rs.def[kind].map((a: any, i: number) =>
         '      ' + ('' + i).padStart(5, ' ') + ' ' +
@@ -57,7 +59,23 @@ function descAlt(jsonic: Jsonic, rs: RuleSpec, kind: 'open' | 'close') {
 }
 
 
+function ruleTree(rn: string[], rsm: any) {
+  return rn
+    .reduce(
+      (a: any, n: string) => (
+        a += '  ' + n + ':\n    ' + values(omap({
+          op: [...new Set(rsm[n].def.open.filter((alt: any) => alt.p).map((alt: any) => alt.p))].join(' '),
+          or: [...new Set(rsm[n].def.open.filter((alt: any) => alt.r).map((alt: any) => alt.r))].join(' '),
+          cp: [...new Set(rsm[n].def.close.filter((alt: any) => alt.p).map((alt: any) => alt.p))].join(' '),
+          cr: [...new Set(rsm[n].def.close.filter((alt: any) => alt.r).map((alt: any) => alt.r))].join(' '),
+        }, (([n, d]: [string, string]) => [1 < d.length ? n : undefined, n + ': ' + d]))).join('\n    ') +
+        '\n',
+        a
+      ),
+      '')
+}
+
 
 export {
-  debug
+  Debug
 }

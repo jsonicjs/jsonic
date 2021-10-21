@@ -5,7 +5,7 @@ import Fs from 'fs'
 
 import { Jsonic, Plugin, Relate, util } from './jsonic'
 
-import { debug } from './debug'
+import { Debug } from './debug'
 
 
 // Make sure JsonicError is shown nicely.
@@ -50,7 +50,7 @@ export async function run(argv: string[], console: Console) {
         args.meta.push(argv[++aI])
       }
       else if ('--debug' === arg || '-d' === arg) {
-        plugins.debug = debug
+        plugins.debug = Debug
         args.meta.push('log=-1')
       }
       else if ('--help' === arg || '-h' === arg) {
@@ -87,7 +87,7 @@ export async function run(argv: string[], console: Console) {
   }
 
   if (plugins.debug) {
-    console.log(jsonic.describe() + '\n\nParse:')
+    console.log(jsonic.describe() + '\n=== PARSE ===')
   }
 
 

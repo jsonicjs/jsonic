@@ -45,7 +45,7 @@ async function run(argv, console) {
                 args.meta.push(argv[++aI]);
             }
             else if ('--debug' === arg || '-d' === arg) {
-                plugins.debug = debug_1.debug;
+                plugins.debug = debug_1.Debug;
                 args.meta.push('log=-1');
             }
             else if ('--help' === arg || '-h' === arg) {
@@ -76,7 +76,7 @@ async function run(argv, console) {
         jsonic.use(plugins[pn]);
     }
     if (plugins.debug) {
-        console.log(jsonic.describe() + '\n\nParse:');
+        console.log(jsonic.describe() + '\n=== PARSE ===');
     }
     let data = { val: null };
     for (let fp of args.files) {

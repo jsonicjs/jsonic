@@ -1,27 +1,29 @@
 "use strict";
 /* Copyright (c) 2021 Richard Rodger, MIT License */
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.debug = void 0;
+exports.Debug = void 0;
 /*  debug.ts
  *  Debug tools
  */
 const jsonic_1 = require("./jsonic");
-const { values, entries } = jsonic_1.util;
-const debug = (jsonic) => {
+const { keys, values, entries, omap } = jsonic_1.util;
+const Debug = (jsonic) => {
     jsonic.describe = function () {
         let rules = this.rule();
         return [
-            'Rules:',
+            '=== ALTS ===',
             values(rules)
                 .map((rs) => '  ' + rs.name + ':\n' +
                 descAlt(jsonic, rs, 'open') +
-                descAlt(jsonic, rs, 'close')).join('\n\n')
+                descAlt(jsonic, rs, 'close')).join('\n\n'),
+            '=== RULES ===',
+            ruleTree(keys(rules), rules),
         ].join('\n');
     };
 };
-exports.debug = debug;
+exports.Debug = Debug;
 function descAlt(jsonic, rs, kind) {
-    return '    ' + kind.toUpperCase() + ' ALTS:\n' +
+    return '    ' + kind.toUpperCase() + ':\n' +
         (0 === rs.def[kind].length ? '      NONE' :
             rs.def[kind].map((a, i) => {
                 var _a, _b;
@@ -44,5 +46,16 @@ function descAlt(jsonic, rs, kind) {
                     (null == ((_b = a.c) === null || _b === void 0 ? void 0 : _b.d) ? '' : ' CD=' + a.c.d) +
                     (a.g ? '\tg=' + a.g : '');
             }).join('\n') + '\n');
+}
+function ruleTree(rn, rsm) {
+    return rn
+        .reduce((a, n) => (a += '  ' + n + ':\n    ' + values(omap({
+        op: [...new Set(rsm[n].def.open.filter((alt) => alt.p).map((alt) => alt.p))].join(' '),
+        or: [...new Set(rsm[n].def.open.filter((alt) => alt.r).map((alt) => alt.r))].join(' '),
+        cp: [...new Set(rsm[n].def.close.filter((alt) => alt.p).map((alt) => alt.p))].join(' '),
+        cr: [...new Set(rsm[n].def.close.filter((alt) => alt.r).map((alt) => alt.r))].join(' '),
+    }, (([n, d]) => [1 < d.length ? n : undefined, n + ': ' + d]))).join('\n    ') +
+        '\n',
+        a), '');
 }
 //# sourceMappingURL=debug.js.map
