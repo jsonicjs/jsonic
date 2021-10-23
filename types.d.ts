@@ -199,6 +199,7 @@ export declare type Context = {
     t1: Token;
     tC: number;
     rs: Rule[];
+    rsI: number;
     rsm: {
         [name: string]: RuleSpec;
     };
@@ -331,7 +332,7 @@ export interface Token {
     bad(err: string, details?: any): Token;
 }
 export interface AltSpec {
-    s?: (Tin | Tin[] | null | undefined)[];
+    s?: (Tin | Tin[] | null | undefined)[] | null;
     p?: string;
     r?: string;
     b?: number;
@@ -384,6 +385,9 @@ export declare type RuleSpecMap = {
 };
 export declare type RuleDefiner = (rs: RuleSpec, rsm: RuleSpecMap) => void | RuleSpec;
 export interface NormAltSpec extends AltSpec {
+    s: (Tin | Tin[] | null | undefined)[];
+    S0: number[] | null;
+    S1: number[] | null;
     c?: AltCond;
     g?: string[];
 }

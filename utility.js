@@ -560,6 +560,52 @@ function normalt(a) {
     if (types_1.STRING === typeof (a.g)) {
         a.g = a.g.split(/\s*,\s*/);
     }
+    if (!a.s || 0 === a.s.length) {
+        a.s = null;
+    }
+    else {
+        // (a as any).S0 =
+        //   ([a.s[0]].flat().filter(tin => 'number' === typeof (tin)) as number[])
+        //     .reduce((bits: BigInt, tin: number) =>
+        //       ((BigInt(1) << BigInt(tin - 1)) | (bits as any)),
+        //       BigInt(0));
+        // (a as any).S1 = null == a.s[1] ? null :
+        //   ([a.s[1]].flat().filter(tin => 'number' === typeof (tin)) as number[])
+        //     .reduce((bits: BigInt, tin: number) =>
+        //       ((BigInt(1) << BigInt(tin - 1)) | (bits as any)),
+        //       BigInt(0));
+        const tinsify = (s) => s.flat().filter(tin => 'number' === typeof (tin));
+        const partify = (tins, part) => tins.filter(tin => (31 * part) <= tin && tin < (31 * (part + 1)));
+        const bitify = (s, part) => s.reduce((bits, tin) => (1 << (tin - (31 * part + 1))) | bits, 0);
+        const tins0 = tinsify([a.s[0]]);
+        const tins1 = tinsify([a.s[1]]);
+        const aa = a;
+        // Create as many bit fields as needed, each of size 31 bits.
+        aa.S0 = 0 < tins0.length ?
+            new Array(Math.max(...tins0.map(tin => 1 + (tin / 31) | 0)))
+                .fill(null).map((_, i) => i)
+                .map(part => bitify(partify(tins0, part), part))
+            : null;
+        aa.S1 = 0 < tins1.length ?
+            new Array(Math.max(...tins1.map(tin => 1 + (tin / 31) | 0)))
+                .fill(null).map((_, i) => i)
+                .map(part => bitify(partify(tins1, part), part))
+            : null;
+        // aa.S1 = [0, 1, 2, 3].map(part => bitify(partify(tins1, part), part))
+        // console.log(aa.S0, aa.S1)
+        // aa.S1 = bitify(partify(tins1, 0), 0)
+        // (a as any).S0 =
+        //   ([a.s[0]].flat().filter(tin => 'number' === typeof (tin)) as number[])
+        //     .reduce((bits: number, tin: number) =>
+        //       ((1 << (tin - 1)) | (bits as any)),
+        //       0);
+        // (a as any).S1 = null == a.s[1] ? null :
+        //   ([a.s[1]].flat().filter(tin => 'number' === typeof (tin)) as number[])
+        //     .reduce((bits: number, tin: number) =>
+        //       ((1 << (tin - 1)) | (bits as any)),
+        //       0);
+        // console.log(a)
+    }
     return a;
 }
 exports.normalt = normalt;
@@ -633,6 +679,7 @@ function parserwrap(parser) {
                         t1: token,
                         tC: -1,
                         rs: [],
+                        rsI: 0,
                         next: () => token,
                         rsm: {},
                         n: {},

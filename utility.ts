@@ -754,6 +754,73 @@ function normalt(a: AltSpec): NormAltSpec {
     a.g = (a as any).g.split(/\s*,\s*/)
   }
 
+  if (!a.s || 0 === a.s.length) {
+    a.s = null
+  }
+  else {
+    // (a as any).S0 =
+    //   ([a.s[0]].flat().filter(tin => 'number' === typeof (tin)) as number[])
+    //     .reduce((bits: BigInt, tin: number) =>
+    //       ((BigInt(1) << BigInt(tin - 1)) | (bits as any)),
+    //       BigInt(0));
+    // (a as any).S1 = null == a.s[1] ? null :
+    //   ([a.s[1]].flat().filter(tin => 'number' === typeof (tin)) as number[])
+    //     .reduce((bits: BigInt, tin: number) =>
+    //       ((BigInt(1) << BigInt(tin - 1)) | (bits as any)),
+    //       BigInt(0));
+
+
+    const tinsify = (s: any[]): Tin[] =>
+      s.flat().filter(tin => 'number' === typeof (tin))
+
+    const partify = (tins: Tin[], part: number) =>
+      tins.filter(tin => (31 * part) <= tin && tin < (31 * (part + 1)))
+
+    const bitify = (s: Tin[], part: number) =>
+      s.reduce((bits: number, tin: Tin) =>
+        (1 << (tin - (31 * part + 1))) | bits, 0)
+
+    const tins0: Tin[] = tinsify([a.s[0]])
+    const tins1: Tin[] = tinsify([a.s[1]])
+
+    const aa = (a as any)
+
+    // Create as many bit fields as needed, each of size 31 bits.
+    aa.S0 = 0 < tins0.length ?
+      new Array(Math.max(...tins0.map(tin => 1 + (tin / 31) | 0)))
+        .fill(null).map((_, i) => i)
+        .map(part => bitify(partify(tins0, part), part))
+      : null
+
+    aa.S1 = 0 < tins1.length ?
+      new Array(Math.max(...tins1.map(tin => 1 + (tin / 31) | 0)))
+        .fill(null).map((_, i) => i)
+        .map(part => bitify(partify(tins1, part), part))
+      : null
+
+
+    // aa.S1 = [0, 1, 2, 3].map(part => bitify(partify(tins1, part), part))
+
+    // console.log(aa.S0, aa.S1)
+
+    // aa.S1 = bitify(partify(tins1, 0), 0)
+
+    // (a as any).S0 =
+    //   ([a.s[0]].flat().filter(tin => 'number' === typeof (tin)) as number[])
+    //     .reduce((bits: number, tin: number) =>
+    //       ((1 << (tin - 1)) | (bits as any)),
+    //       0);
+    // (a as any).S1 = null == a.s[1] ? null :
+    //   ([a.s[1]].flat().filter(tin => 'number' === typeof (tin)) as number[])
+    //     .reduce((bits: number, tin: number) =>
+    //       ((1 << (tin - 1)) | (bits as any)),
+    //       0);
+
+    // console.log(a)
+  }
+
+
+
   return (a as NormAltSpec)
 }
 
@@ -843,6 +910,7 @@ function parserwrap(parser: any) {
               t1: token, // TODO: should be end token
               tC: -1,
               rs: [],
+              rsI: 0,
               next: () => token, // TODO: should be end token
               rsm: {},
               n: {},

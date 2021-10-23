@@ -102,7 +102,8 @@ class RuleImpl implements Rule {
 
 
     this.node = node
-    this.d = ctx.rs.length
+    // this.d = ctx.rs.length
+    this.d = ctx.rsI
     this.bo = null != spec.def.bo
     this.ao = null != spec.def.ao
     this.bc = null != spec.def.bc
@@ -290,7 +291,9 @@ class RuleSpecImpl implements RuleSpec {
 
     // Push a new rule onto the stack...
     if (alt.p) {
-      ctx.rs.push(rule)
+      // ctx.rs.push(rule)
+      ctx.rs[ctx.rsI++] = rule
+
       next = rule.child = makeRule(ctx.rsm[alt.p], ctx, rule.node)
       next.parent = rule
       next.n = { ...rule.n }
@@ -309,7 +312,8 @@ class RuleSpecImpl implements RuleSpec {
     // Pop closed rule off stack.
     else {
       if (!is_open) {
-        next = ctx.rs.pop() || ctx.NORULE
+        // next = ctx.rs.pop() || ctx.NORULE
+        next = ctx.rs[--ctx.rsI] || ctx.NORULE
       }
       why += 'Z'
     }
@@ -361,7 +365,6 @@ class RuleSpecImpl implements RuleSpec {
     ctx: Context
   ): AltMatch {
     let out = PALT
-    // out.m = []          // Match 0, 1, or 2 tokens in order .
     out.b = 0           // Backtrack n tokens.
     out.p = EMPTY          // Push named rule onto stack. 
     out.r = EMPTY          // Replace current rule with named rule.
@@ -375,6 +378,8 @@ class RuleSpecImpl implements RuleSpec {
     let altI = 0
     let t = ctx.cfg.t
     let cond
+
+    let bitAA = (1 << (t.AA - 1))
 
     // TODO: replace with lookup map
     let len = alts.length
@@ -393,21 +398,26 @@ class RuleSpecImpl implements RuleSpec {
         rule.cs = 0
       }
 
-      cond = false
+      // cond = false
       alt = alts[altI]
 
-      // No tokens to match.
-      if (null == alt.s || 0 === alt.s.length) {
-        cond = true
-      }
+      let tin0 = ctx.t0.tin
 
-      // Match 1 or 2 tokens in sequence.
-      else if (
-        alt.s[0] === ctx.t0.tin ||
-        alt.s[0] === t.AA ||
-        (Array.isArray(alt.s[0]) && alt.s[0].includes(ctx.t0.tin))
-      ) {
-        if (1 === alt.s.length) {
+      // cond = alt.S0 &&
+      //   (alt.S0[(tin0 / 31) | 0] & ((1 << ((tin0 % 31) - 1)) | bitAA))
+
+      // Match 1 or 2 tokens in sequence, using Tin bit fields.
+      // See utility.normalt for construction.
+      //if (!cond && (alt.S0[(tin0 / 31) | 0] & ((1 << ((tin0 % 31) - 1)) | bitAA))) {
+      //if (1 === alt.s.length) {
+
+
+      cond = true
+
+      if (null != alt.S0) {
+        cond = ((alt.S0[(tin0 / 31) | 0] & ((1 << ((tin0 % 31) - 1)) | bitAA)))
+
+        if (cond) {
           if (is_open) {
             rule.o0 = ctx.t0
             rule.os = 1
@@ -417,30 +427,28 @@ class RuleSpecImpl implements RuleSpec {
             rule.cs = 1
           }
 
-          cond = true
-        }
-        else if (
-          alt.s[1] === ctx.t1.tin ||
-          alt.s[1] === t.AA ||
-          (Array.isArray(alt.s[1]) && alt.s[1].includes(ctx.t1.tin))
-        ) {
-          if (is_open) {
-            rule.o0 = ctx.t0
-            rule.o1 = ctx.t1
-            rule.os = 2
-          }
-          else {
-            rule.c0 = ctx.t0
-            rule.c1 = ctx.t1
-            rule.cs = 2
-          }
+          if (null != alt.S1) {
+            let tin1 = ctx.t1.tin
+            cond = (alt.S1[(tin1 / 31) | 0] & ((1 << ((tin1 % 31) - 1)) | bitAA))
 
-          cond = true
+            if (cond) {
+              if (is_open) {
+                rule.o0 = ctx.t0
+                rule.o1 = ctx.t1
+                rule.os = 2
+              }
+              else {
+                rule.c0 = ctx.t0
+                rule.c1 = ctx.t1
+                rule.cs = 2
+              }
+            }
+          }
         }
       }
 
       // Optional custom condition
-      if (alt.c) {
+      if (cond && alt.c) {
         cond = cond && alt.c(rule, ctx, out)
       }
 
@@ -606,6 +614,7 @@ class Parser {
       tC: -2,  // Prepare count for 2-token lookahead.
       next,
       rs: [],
+      rsI: 0,
       rsm: this.rsm,
       log: undefined,
       F: srcfmt(this.cfg),
@@ -687,8 +696,8 @@ class Parser {
       ctx.log &&
         ctx.log(
           '\nstack',
-          ctx.rs.map((r: Rule) => r.name + '~' + r.id).join('/'),
-          ctx.rs.map((r: Rule) => '<' + ctx.F(r.node) + '>').join(' '),
+          ctx.rs.slice(0, ctx.rsI).map((r: Rule) => r.name + '~' + r.id).join('/'),
+          ctx.rs.slice(0, ctx.rsI).map((r: Rule) => '<' + ctx.F(r.node) + '>').join(' '),
 
           rule, ctx, '\n')
 
@@ -701,7 +710,6 @@ class Parser {
           'n:' + entries(rule.n).map(n => n[0] + '=' + n[1]).join(';'),
           'u:' + entries(rule.use).map(u => u[0] + '=' + u[1]).join(';'),
 
-          // 'd=' + ctx.rs.length, 'tc=' + ctx.tC,
           '[' + tn(ctx.t0.tin) + ' ' + tn(ctx.t1.tin) + ']',
 
           rule, ctx)
@@ -710,11 +718,6 @@ class Parser {
 
       rule = rule.process(ctx)
 
-      // ctx.log &&
-      //   ctx.log(
-      //     'stack',
-      //     ctx.rs.map((r: Rule) => r.name + '~' + r.id).join('/'),
-      //     rule, ctx)
       rI++
     }
 

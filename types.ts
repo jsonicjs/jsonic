@@ -265,6 +265,7 @@ export type Context = {
   t1: Token             // Next token. 
   tC: number            // Token count.
   rs: Rule[]            // Rule stack.
+  rsI: number
   rsm: { [name: string]: RuleSpec } // RuleSpec lookup map (by rule name).
   next: () => Token     // Move to next token.
   log?: (...rest: any) => undefined // Log parse/lex step (if defined).
@@ -458,7 +459,7 @@ export interface Token {
 export interface AltSpec {
 
   // Token Tin sequence to match (0,1,2 Tins, or a subset of Tins; nulls filterd out).
-  s?: (Tin | Tin[] | null | undefined)[]
+  s?: (Tin | Tin[] | null | undefined)[] | null
 
   p?: string      // Push named Rule onto stack (create child).
   r?: string      // Replace current rule with named Rule on stack (create sibling).
@@ -550,6 +551,9 @@ export type RuleDefiner = (rs: RuleSpec, rsm: RuleSpecMap) => void | RuleSpec
 
 // Normalized parse-alternate.
 export interface NormAltSpec extends AltSpec {
+  s: (Tin | Tin[] | null | undefined)[]
+  S0: number[] | null
+  S1: number[] | null
   c?: AltCond  // Convenience definition reduce to function for processing.
   g?: string[] // Named group tags
 }

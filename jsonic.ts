@@ -5,6 +5,7 @@
  */
 
 
+// TODO: support BigInt numbers: 123n
 // TODO: err if plugin arg is not a plugin
 // TODO: debug log should be in plugin
 // TODO: error msgs for bad names - eg mispelled rule name
