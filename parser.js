@@ -224,7 +224,7 @@ class RuleSpecImpl {
         out.a = undefined; // Rule action.
         out.u = undefined; // Custom rule properties.
         out.e = undefined; // Error token.
-        let alt;
+        let alt = null;
         let altI = 0;
         let t = ctx.cfg.t;
         let cond;
@@ -232,18 +232,18 @@ class RuleSpecImpl {
         // TODO: replace with lookup map
         let len = alts.length;
         for (altI = 0; altI < len; altI++) {
-            // Rule attributes are set for use by condition checks.
-            // Unset for each alt.
-            if (is_open) {
-                rule.o0 = ctx.NOTOKEN;
-                rule.o1 = ctx.NOTOKEN;
-                rule.os = 0;
-            }
-            else {
-                rule.c0 = ctx.NOTOKEN;
-                rule.c1 = ctx.NOTOKEN;
-                rule.cs = 0;
-            }
+            // // Rule attributes are set for use by condition checks.
+            // // Unset for each alt.
+            // if (is_open) {
+            //   rule.o0 = ctx.NOTOKEN
+            //   rule.o1 = ctx.NOTOKEN
+            //   rule.os = 0
+            // }
+            // else {
+            //   rule.c0 = ctx.NOTOKEN
+            //   rule.c1 = ctx.NOTOKEN
+            //   rule.cs = 0
+            // }
             // cond = false
             alt = alts[altI];
             let tin0 = ctx.t0.tin;
@@ -253,35 +253,50 @@ class RuleSpecImpl {
             // See utility.normalt for construction.
             //if (!cond && (alt.S0[(tin0 / 31) | 0] & ((1 << ((tin0 % 31) - 1)) | bitAA))) {
             //if (1 === alt.s.length) {
+            let has0 = false;
+            let has1 = false;
             cond = true;
-            if (null != alt.S0) {
+            if (alt.S0) {
+                has0 = true;
                 cond = ((alt.S0[(tin0 / 31) | 0] & ((1 << ((tin0 % 31) - 1)) | bitAA)));
                 if (cond) {
-                    if (is_open) {
-                        rule.o0 = ctx.t0;
-                        rule.os = 1;
-                    }
-                    else {
-                        rule.c0 = ctx.t0;
-                        rule.cs = 1;
-                    }
-                    if (null != alt.S1) {
+                    // if (is_open) {
+                    //   rule.o0 = ctx.t0
+                    //   rule.os = 1
+                    // }
+                    // else {
+                    //   rule.c0 = ctx.t0
+                    //   rule.cs = 1
+                    // }
+                    has1 = null != alt.S1;
+                    if (alt.S1) {
+                        has1 = true;
                         let tin1 = ctx.t1.tin;
                         cond = (alt.S1[(tin1 / 31) | 0] & ((1 << ((tin1 % 31) - 1)) | bitAA));
-                        if (cond) {
-                            if (is_open) {
-                                rule.o0 = ctx.t0;
-                                rule.o1 = ctx.t1;
-                                rule.os = 2;
-                            }
-                            else {
-                                rule.c0 = ctx.t0;
-                                rule.c1 = ctx.t1;
-                                rule.cs = 2;
-                            }
-                        }
+                        // if (cond) {
+                        //   if (is_open) {
+                        //     rule.o0 = ctx.t0
+                        //     rule.o1 = ctx.t1
+                        //     rule.os = 2
+                        //   }
+                        //   else {
+                        //     rule.c0 = ctx.t0
+                        //     rule.c1 = ctx.t1
+                        //     rule.cs = 2
+                        //   }
+                        // }
                     }
                 }
+            }
+            if (is_open) {
+                rule.o0 = has0 ? ctx.t0 : ctx.NOTOKEN;
+                rule.o1 = has1 ? ctx.t1 : ctx.NOTOKEN;
+                rule.os = (has0 ? 1 : 0) + (has1 ? 1 : 0);
+            }
+            else {
+                rule.c0 = has0 ? ctx.t0 : ctx.NOTOKEN;
+                rule.c1 = has1 ? ctx.t1 : ctx.NOTOKEN;
+                rule.cs = (has0 ? 1 : 0) + (has1 ? 1 : 0);
             }
             // Optional custom condition
             if (cond && alt.c) {
@@ -294,10 +309,11 @@ class RuleSpecImpl {
                 alt = null;
             }
         }
-        if (null == alt && t.ZZ !== ctx.t0.tin) {
+        // if (null == alt && t.ZZ !== ctx.t0.tin) {
+        if (!cond && t.ZZ !== ctx.t0.tin) {
             out.e = ctx.t0;
         }
-        if (null != alt) {
+        if (alt) {
             out.e = alt.e && alt.e(rule, ctx, out) || undefined;
             out.b = null != alt.b ? alt.b : out.b;
             out.p = null != alt.p ? alt.p : out.p;
