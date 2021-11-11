@@ -5,6 +5,9 @@
  */
 
 
+// TODO: option for sparse arrays: https://dmitripavlutin.com/javascript-sparse-dense-arrays/
+// TODO: YAML quoted strings: https://yaml-multiline.info/ - via options
+// TODO: line continuation ("\" at end) should be a feature of standard JSONIC strings
 // TODO: support BigInt numbers: 123n
 // TODO: err if plugin arg is not a plugin
 // TODO: debug log should be in plugin
@@ -69,6 +72,7 @@ import type {
   MakeLexMatcher,
 
   AltSpec,
+  AltMatch,
   AltAction,
   AltCond,
   AltModifier,
@@ -397,6 +401,7 @@ export type {
   RuleSpecMap,
 
   AltSpec,
+  AltMatch,
   AltCond,
   AltAction,
   AltModifier,

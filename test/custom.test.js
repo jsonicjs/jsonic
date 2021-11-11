@@ -302,7 +302,7 @@ describe('custom', function () {
       
       j.rule('elem', (rs)=>{
         rs.def.close.unshift({
-          s:[FS,TX], r:'elem', b:2
+          s:[FS,TX], r:()=>'elem', b:2
         })
       })
       

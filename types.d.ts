@@ -333,8 +333,8 @@ export interface Token {
 }
 export interface AltSpec {
     s?: (Tin | Tin[] | null | undefined)[] | null;
-    p?: string;
-    r?: string;
+    p?: string | AltNext;
+    r?: string | AltNext;
     b?: number;
     c?: AltCond | {
         d?: number;
@@ -394,5 +394,6 @@ export interface NormAltSpec extends AltSpec {
 export declare type AltCond = (rule: Rule, ctx: Context, alt: AltMatch) => boolean;
 export declare type AltModifier = (rule: Rule, ctx: Context, alt: AltMatch, next: Rule) => AltMatch;
 export declare type AltAction = (rule: Rule, ctx: Context, alt: AltMatch) => any;
+export declare type AltNext = (rule: Rule, ctx: Context, alt: AltMatch) => string;
 export declare type StateAction = (rule: Rule, ctx: Context) => any;
 export declare type AltError = (rule: Rule, ctx: Context, alt: AltMatch) => Token | undefined;

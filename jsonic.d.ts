@@ -1,4 +1,4 @@
-import type { Config, Context, Counters, Relate, Tin, Point, Token, Rule, RuleSpec, Lex, RuleDefiner, RuleState, RuleSpecMap, LexMatcher, MakeLexMatcher, AltSpec, AltAction, AltCond, AltModifier, AltError, Options, JsonicAPI, JsonicParse, Plugin } from './types';
+import type { Config, Context, Counters, Relate, Tin, Point, Token, Rule, RuleSpec, Lex, RuleDefiner, RuleState, RuleSpecMap, LexMatcher, MakeLexMatcher, AltSpec, AltMatch, AltAction, AltCond, AltModifier, AltError, Options, JsonicAPI, JsonicParse, Plugin } from './types';
 import { OPEN, CLOSE, BEFORE, AFTER } from './types';
 import { JsonicError, badlex, deep, errdesc, errinject, extract, makelog, mesc, regexp, tokenize, trimstk, srcfmt, clone, charset, configure, escre, parserwrap, prop, str } from './utility';
 import { makePoint, makeToken, makeLex, makeFixedMatcher, makeSpaceMatcher, makeLineMatcher, makeStringMatcher, makeCommentMatcher, makeNumberMatcher, makeTextMatcher } from './lexer';
@@ -22,7 +22,7 @@ declare const util: {
     regexp: typeof regexp;
     prop: typeof prop;
     str: typeof str;
-    omap: (o: any, f: any) => any;
+    omap: (o: any, f?: ((e: any) => any) | undefined) => any;
     keys: (x: any) => string[];
     values: (x: any) => unknown[];
     entries: (x: any) => [string, unknown][];
@@ -34,6 +34,6 @@ JsonicAPI & // A utility with API methods.
 };
 declare function make(param_options?: Relate, parent?: Jsonic): Jsonic;
 declare let Jsonic: Jsonic;
-export type { Plugin, Options, Config, Context, Token, Point, Rule, RuleSpec, Lex, Counters, Relate, Tin, MakeLexMatcher, LexMatcher, RuleDefiner, RuleState, RuleSpecMap, AltSpec, AltCond, AltAction, AltModifier, AltError, };
+export type { Plugin, Options, Config, Context, Token, Point, Rule, RuleSpec, Lex, Counters, Relate, Tin, MakeLexMatcher, LexMatcher, RuleDefiner, RuleState, RuleSpecMap, AltSpec, AltMatch, AltCond, AltAction, AltModifier, AltError, };
 export { Jsonic as Jsonic, JsonicError, Parser, util, make, makeToken, makePoint, makeRule, makeRuleSpec, makeLex, makeFixedMatcher, makeSpaceMatcher, makeLineMatcher, makeStringMatcher, makeCommentMatcher, makeNumberMatcher, makeTextMatcher, OPEN, CLOSE, BEFORE, AFTER, };
 export default Jsonic;

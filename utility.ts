@@ -42,7 +42,7 @@ const isarr = (x: any) => Array.isArray(x)
 const defprop = Object.defineProperty
 
 // Map object properties using entries.
-const omap = (o: any, f: any) => {
+const omap = (o: any, f?: (e: any) => any) => {
   return Object
     .entries(o || {})
     .reduce((o: any, e: any) => {

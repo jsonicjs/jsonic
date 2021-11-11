@@ -461,8 +461,13 @@ export interface AltSpec {
   // Token Tin sequence to match (0,1,2 Tins, or a subset of Tins; nulls filterd out).
   s?: (Tin | Tin[] | null | undefined)[] | null
 
-  p?: string      // Push named Rule onto stack (create child).
-  r?: string      // Replace current rule with named Rule on stack (create sibling).
+  // Push named Rule onto stack (create child).
+  p?: string | AltNext
+
+  // Replace current rule with named Rule on stack (create sibling).
+  r?: string | AltNext
+
+  // TODO: AltBack as per AltNext?
   b?: number      // Move token pointer back by indicated number of steps.
 
   // Condition function, return true to match alternate.
@@ -570,6 +575,10 @@ export type AltModifier =
 
 // Execute an action when alternate matches.
 export type AltAction = (rule: Rule, ctx: Context, alt: AltMatch) => any
+
+
+// Determine next rule name (for AltSpec r or p properties). 
+export type AltNext = (rule: Rule, ctx: Context, alt: AltMatch) => string
 
 
 // Execute an action for a given Rule state and step:

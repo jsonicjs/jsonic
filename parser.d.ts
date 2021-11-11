@@ -45,6 +45,7 @@ declare class RuleSpecImpl implements RuleSpec {
     bad(tkn: Token, rule: Rule, ctx: Context, parse: {
         is_open: boolean;
     }): Rule;
+    unknownRule(tkn: Token, name: string): Token;
 }
 declare const makeRuleSpec: (cfg: Config, def: any) => RuleSpecImpl;
 declare class Parser {

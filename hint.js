@@ -54,6 +54,10 @@ become corrupted.`,
 
   unterminated_comment:
   ` This comment is never closed.`,
+
+  unknown_rule:
+  ` No rule named $rulename is defined. This is probably an error in the
+grammar of a plugin.`,
 }
 
 

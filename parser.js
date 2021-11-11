@@ -76,7 +76,9 @@ class RuleSpecImpl {
     }
     add(state, a, flags) {
         let inject = (flags === null || flags === void 0 ? void 0 : flags.last) ? 'push' : 'unshift';
-        let aa = ((0, utility_1.isarr)(a) ? a : [a]).map(a => (0, utility_1.normalt)(a));
+        let aa = ((0, utility_1.isarr)(a) ? a : [a])
+            .filter((alt) => null != alt)
+            .map(a => (0, utility_1.normalt)(a));
         this.def[('o' === state ? 'open' : 'close')][inject](...aa);
         (0, utility_1.filterRules)(this, this.cfg);
         return this;
@@ -132,11 +134,6 @@ class RuleSpecImpl {
             alt = alt.h(rule, ctx, alt, next) || alt;
             why += 'H';
         }
-        // Expose match to handlers.
-        // rule[is_open ? 'open' : 'close'] =
-        //   // alt.m
-        //   is_open ? [rule.o0, rule.o1].slice(0, rule.os) :
-        //     [rule.c0, rule.c1].slice(0, rule.cs)
         // Unconditional error.
         if (alt.e) {
             return this.bad(alt.e, rule, ctx, { is_open });
@@ -169,18 +166,28 @@ class RuleSpecImpl {
         if (alt.p) {
             // ctx.rs.push(rule)
             ctx.rs[ctx.rsI++] = rule;
-            next = rule.child = makeRule(ctx.rsm[alt.p], ctx, rule.node);
-            next.parent = rule;
-            next.n = { ...rule.n };
-            why += 'P(' + alt.p + ')';
+            let rulespec = ctx.rsm[alt.p];
+            if (rulespec) {
+                next = rule.child = makeRule(rulespec, ctx, rule.node);
+                next.parent = rule;
+                next.n = { ...rule.n };
+                why += '@p:' + alt.p;
+            }
+            else
+                return this.bad(this.unknownRule(ctx.t0, alt.p), rule, ctx, { is_open });
         }
         // ...or replace with a new rule.
         else if (alt.r) {
-            next = makeRule(ctx.rsm[alt.r], ctx, rule.node);
-            next.parent = rule.parent;
-            next.prev = rule;
-            next.n = { ...rule.n };
-            why += 'R(' + alt.r + ')';
+            let rulespec = ctx.rsm[alt.r];
+            if (rulespec) {
+                next = makeRule(rulespec, ctx, rule.node);
+                next.parent = rule.parent;
+                next.prev = rule;
+                next.n = { ...rule.n };
+                why += '@r:' + alt.r;
+            }
+            else
+                return this.bad(this.unknownRule(ctx.t0, alt.r), rule, ctx, { is_open });
         }
         // Pop closed rule off stack.
         else {
@@ -232,27 +239,9 @@ class RuleSpecImpl {
         // TODO: replace with lookup map
         let len = alts.length;
         for (altI = 0; altI < len; altI++) {
-            // // Rule attributes are set for use by condition checks.
-            // // Unset for each alt.
-            // if (is_open) {
-            //   rule.o0 = ctx.NOTOKEN
-            //   rule.o1 = ctx.NOTOKEN
-            //   rule.os = 0
-            // }
-            // else {
-            //   rule.c0 = ctx.NOTOKEN
-            //   rule.c1 = ctx.NOTOKEN
-            //   rule.cs = 0
-            // }
             // cond = false
             alt = alts[altI];
             let tin0 = ctx.t0.tin;
-            // cond = alt.S0 &&
-            //   (alt.S0[(tin0 / 31) | 0] & ((1 << ((tin0 % 31) - 1)) | bitAA))
-            // Match 1 or 2 tokens in sequence, using Tin bit fields.
-            // See utility.normalt for construction.
-            //if (!cond && (alt.S0[(tin0 / 31) | 0] & ((1 << ((tin0 % 31) - 1)) | bitAA))) {
-            //if (1 === alt.s.length) {
             let has0 = false;
             let has1 = false;
             cond = true;
@@ -260,31 +249,11 @@ class RuleSpecImpl {
                 has0 = true;
                 cond = ((alt.S0[(tin0 / 31) | 0] & ((1 << ((tin0 % 31) - 1)) | bitAA)));
                 if (cond) {
-                    // if (is_open) {
-                    //   rule.o0 = ctx.t0
-                    //   rule.os = 1
-                    // }
-                    // else {
-                    //   rule.c0 = ctx.t0
-                    //   rule.cs = 1
-                    // }
                     has1 = null != alt.S1;
                     if (alt.S1) {
                         has1 = true;
                         let tin1 = ctx.t1.tin;
                         cond = (alt.S1[(tin1 / 31) | 0] & ((1 << ((tin1 % 31) - 1)) | bitAA));
-                        // if (cond) {
-                        //   if (is_open) {
-                        //     rule.o0 = ctx.t0
-                        //     rule.o1 = ctx.t1
-                        //     rule.os = 2
-                        //   }
-                        //   else {
-                        //     rule.c0 = ctx.t0
-                        //     rule.c1 = ctx.t1
-                        //     rule.cs = 2
-                        //   }
-                        // }
                     }
                 }
             }
@@ -314,15 +283,19 @@ class RuleSpecImpl {
             out.e = ctx.t0;
         }
         if (alt) {
-            out.e = alt.e && alt.e(rule, ctx, out) || undefined;
             out.b = null != alt.b ? alt.b : out.b;
-            out.p = null != alt.p ? alt.p : out.p;
-            out.r = null != alt.r ? alt.r : out.r;
             out.n = null != alt.n ? alt.n : out.n;
             out.h = null != alt.h ? alt.h : out.h;
             out.a = null != alt.a ? alt.a : out.a;
             out.u = null != alt.u ? alt.u : out.u;
             out.g = null != alt.g ? alt.g : out.g;
+            out.e = alt.e && alt.e(rule, ctx, out) || undefined;
+            out.p = null != alt.p ?
+                ('string' === typeof (alt.p) ? alt.p : alt.p(rule, ctx, out)) :
+                out.p;
+            out.r = null != alt.r ?
+                ('string' === typeof (alt.r) ? alt.r : alt.r(rule, ctx, out)) :
+                out.r;
         }
         let match = altI < alts.length;
         // TODO: move to util function
@@ -341,6 +314,12 @@ class RuleSpecImpl {
             ...tkn.use,
             state: parse.is_open ? utility_1.S.open : utility_1.S.close
         }, tkn, rule, ctx);
+    }
+    unknownRule(tkn, name) {
+        tkn.err = 'unknown_rule';
+        tkn.use = tkn.use || {};
+        tkn.use.rulename = name;
+        return tkn;
     }
 }
 const makeRuleSpec = (...params) => new RuleSpecImpl(...params);
