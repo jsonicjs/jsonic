@@ -58,13 +58,15 @@ function grammar(jsonic) {
             // Implicit list only allowed at top level: 1,2.
             {
                 s: [CA],
-                c: { n: { il: 0, pk: 0 } }, n: { il: 1 },
+                c: { n: { il: 0, pk: 0 } },
+                n: { il: 1 },
                 r: 'elem',
                 a: (rule) => rule.node = [rule.node],
                 g: 'list,val,imp,comma',
             },
             {
-                c: { n: { il: 0, pk: 0 } }, n: { il: 1 },
+                c: { n: { il: 0, pk: 0 } },
+                n: { il: 1 },
                 r: 'elem',
                 a: (rule) => rule.node = [rule.node],
                 g: 'list,val,imp,space',

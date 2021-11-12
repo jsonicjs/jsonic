@@ -307,6 +307,9 @@ class RuleSpecImpl implements RuleSpec {
         next = makeRule(rulespec, ctx, rule.node)
         next.parent = rule.parent
         next.prev = rule
+
+        // console.log('PROC R', rule.name, rule.n)
+
         next.n = { ...rule.n }
         why += '@r:' + alt.r
       }
@@ -685,6 +688,7 @@ class Parser {
       ctx.log &&
         ctx.log(
           '\nstack',
+          '<<' + ctx.F(root.node) + '>>',
           ctx.rs.slice(0, ctx.rsI).map((r: Rule) => r.name + '~' + r.id).join('/'),
           ctx.rs.slice(0, ctx.rsI).map((r: Rule) => '<' + ctx.F(r.node) + '>').join(' '),
 
