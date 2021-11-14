@@ -4,7 +4,7 @@
  *  Entry point and API.
  */
 
-
+// TODO: remove c: { n: } and c: { d: } conditionals - just use funcs
 // TODO: option for sparse arrays: https://dmitripavlutin.com/javascript-sparse-dense-arrays/
 // TODO: YAML quoted strings: https://yaml-multiline.info/ - via options
 // TODO: line continuation ("\" at end) should be a feature of standard JSONIC strings

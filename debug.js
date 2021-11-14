@@ -9,8 +9,12 @@ const jsonic_1 = require("./jsonic");
 const { keys, values, entries, omap } = jsonic_1.util;
 const Debug = (jsonic) => {
     jsonic.describe = function () {
+        var _a, _b;
         let rules = this.rule();
         return [
+            '=== LEXER ===',
+            '  ' + (((_b = (_a = this.options.lex) === null || _a === void 0 ? void 0 : _a.match) === null || _b === void 0 ? void 0 : _b.map(m => m.name)) || []).join('\n  '),
+            '\n',
             '=== ALTS ===',
             values(rules)
                 .map((rs) => '  ' + rs.name + ':\n' +

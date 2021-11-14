@@ -19,6 +19,9 @@ const Debug: Plugin = (jsonic: Jsonic) => {
   jsonic.describe = function(): string {
     let rules = this.rule()
     return [
+      '=== LEXER ===',
+      '  ' + (this.options.lex?.match?.map(m => m.name) || []).join('\n  '),
+      '\n',
       '=== ALTS ===',
       values(rules)
         .map((rs: any) =>

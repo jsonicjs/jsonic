@@ -23,7 +23,7 @@ export interface JsonicAPI {
         [ref: string]: Tin;
     } & {
         [ref: number]: string;
-    } & (<A extends string | Tin>(ref: A) => A extends string ? Tin : string);
+    } & (<A extends string | Tin>(ref: A) => undefined | (A extends string ? Tin : string));
     id: string;
     toString: () => string;
     util: Relate;

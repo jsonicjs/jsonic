@@ -102,7 +102,6 @@ class RuleImpl implements Rule {
 
 
     this.node = node
-    // this.d = ctx.rs.length
     this.d = ctx.rsI
     this.bo = null != spec.def.bo
     this.ao = null != spec.def.ao
@@ -722,7 +721,10 @@ class Parser {
     // NOTE: by returning root, we get implicit closing of maps and lists.
 
     // console.log('JSONIC FINAL', root.id)
-    return root.node
+    // return root.node
+
+    // console.log('ROOT', ctx.root())
+    return ctx.root()
   }
 
 

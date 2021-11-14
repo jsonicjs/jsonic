@@ -56,7 +56,7 @@ export interface JsonicAPI {
   fixed:
   { [ref: string]: Tin } &
   { [ref: number]: string } &
-  (<A extends string | Tin>(ref: A) => A extends string ? Tin : string)
+  (<A extends string | Tin>(ref: A) => undefined | (A extends string ? Tin : string))
 
   // Unique identifier string for each Jsonic instance.
   id: string
