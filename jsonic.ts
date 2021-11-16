@@ -4,6 +4,8 @@
  *  Entry point and API.
  */
 
+// TODO: document standard g names: open, close, step, start, end, imp, top, val, map, etc
+// TODO: Rule.use should be Rule.u for consistency
 // TODO: remove c: { n: } and c: { d: } conditionals - just use funcs
 // TODO: option for sparse arrays: https://dmitripavlutin.com/javascript-sparse-dense-arrays/
 // TODO: YAML quoted strings: https://yaml-multiline.info/ - via options

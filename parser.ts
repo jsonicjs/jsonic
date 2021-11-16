@@ -340,7 +340,7 @@ class RuleSpecImpl implements RuleSpec {
       (rule.prev.id + '/' + rule.parent.id + '/' + rule.child.id),
       rule.name + '~' + rule.id,
       'w=' + why,
-      'n:' + entries(rule.n).map(n => n[0] + '=' + n[1]).join(';'),
+      'n:' + entries(rule.n).filter(n => n[1]).map(n => n[0] + '=' + n[1]).join(';'),
       'u:' + entries(rule.use).map(u => u[0] + '=' + u[1]).join(';'),
       '<' + F(rule.node) + '>'
     )
@@ -699,7 +699,9 @@ class Parser {
           (rule.prev.id + '/' + rule.parent.id + '/' + rule.child.id),
           rule.name + '~' + rule.id,
           '[' + ctx.F(ctx.t0.src) + ' ' + ctx.F(ctx.t1.src) + ']',
-          'n:' + entries(rule.n).map(n => n[0] + '=' + n[1]).join(';'),
+          'n:' + entries(rule.n)
+            .filter(n => n[1])
+            .map(n => n[0] + '=' + n[1]).join(';'),
           'u:' + entries(rule.use).map(u => u[0] + '=' + u[1]).join(';'),
 
           '[' + tn(ctx.t0.tin) + ' ' + tn(ctx.t1.tin) + ']',

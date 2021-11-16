@@ -34,6 +34,8 @@ import {
 
 
 // Null-safe object and array utilities
+// TODO: should use proper types:
+// https://github.com/microsoft/TypeScript/tree/main/src/lib
 const keys = (x: any) => null == x ? [] : Object.keys(x)
 const values = (x: any) => null == x ? [] : Object.values(x)
 const entries = (x: any) => null == x ? [] : Object.entries(x)
@@ -67,6 +69,7 @@ const omap = (o: any, f?: (e: any) => any) => {
 
 
 
+// TODO: remove!
 // A bit pedantic, but let's be strict about strings.
 // Also improves minification a little.
 const S = {
@@ -171,8 +174,6 @@ function configure(jsonic: any, incfg: Config | undefined, opts: Options): Confi
     cfg.fixed.ref, omap(cfg.fixed.ref,
       ([tin, src]: [string, string]) => [src, tin]))
 
-
-  // console.log('CFG FIXED', cfg.fixed)
 
   cfg.tokenSet = {
     ignore: Object.fromEntries((opts.tokenSet?.ignore || []).map(tn => [t(tn), true]))
@@ -317,9 +318,6 @@ function configure(jsonic: any, incfg: Config | undefined, opts: Options): Confi
   assign(jsonic.options, opts)
   assign(jsonic.token, cfg.t)
   assign(jsonic.fixed, cfg.fixed.ref)
-
-  // console.log('QQQ', cfg.t)
-  // console.log('WWW', jsonic)
 
   return cfg
 }
@@ -608,7 +606,7 @@ function makelog(ctx: Context, meta: any) {
             .filter((item: any) => S.object != typeof (item))
             .map((item: any) => S.function == typeof (item) ? item.name : item)
             .join('\t')
-          ctx.cfg.debug.get_console().log(logstr) // + ('stack' === rest[0] ? '\n' : ''))
+          ctx.cfg.debug.get_console().log(logstr)
         }
         else {
           ctx.cfg.debug.get_console().dir(rest, { depth: logdepth })
@@ -797,26 +795,6 @@ function normalt(a: AltSpec): NormAltSpec {
         .fill(null).map((_, i) => i)
         .map(part => bitify(partify(tins1, part), part))
       : null
-
-
-    // aa.S1 = [0, 1, 2, 3].map(part => bitify(partify(tins1, part), part))
-
-    // console.log(aa.S0, aa.S1)
-
-    // aa.S1 = bitify(partify(tins1, 0), 0)
-
-    // (a as any).S0 =
-    //   ([a.s[0]].flat().filter(tin => 'number' === typeof (tin)) as number[])
-    //     .reduce((bits: number, tin: number) =>
-    //       ((1 << (tin - 1)) | (bits as any)),
-    //       0);
-    // (a as any).S1 = null == a.s[1] ? null :
-    //   ([a.s[1]].flat().filter(tin => 'number' === typeof (tin)) as number[])
-    //     .reduce((bits: number, tin: number) =>
-    //       ((1 << (tin - 1)) | (bits as any)),
-    //       0);
-
-    // console.log(a)
   }
 
 

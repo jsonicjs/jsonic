@@ -36,12 +36,13 @@ function descAlt(jsonic, rs, kind) {
                         (a.s || []).map((tin) => 'number' === typeof (tin) ? jsonic.token[tin] :
                             '[' + tin.map((t) => jsonic.token[t]) + ']').join(' ') +
                         '] ').padEnd(32, ' ') +
-                    (a.r ? ' r=' + a.r : '') +
-                    (a.p ? ' p=' + a.p : '') +
+                    (a.r ? ' r=' + ('string' === typeof (a.r) ? a.r : '<F>') : '') +
+                    (a.p ? ' p=' + ('string' === typeof (a.p) ? a.p : '<F>') : '') +
                     (!a.r && !a.p ? '\t' : '') +
                     '\t' +
                     (null == a.b ? '' : 'b=' + a.b) + '\t' +
-                    (null == a.n ? '' : 'n=' + entries(a.n).map(([k, v]) => k + ':' + v)) + '\t' +
+                    (null == a.n ? '' : 'n=' +
+                        entries(a.n).map(([k, v]) => k + ':' + v)) + '\t' +
                     (null == a.a ? '' : 'A') +
                     (null == a.c ? '' : 'C') +
                     (null == a.h ? '' : 'H') +
@@ -54,12 +55,24 @@ function descAlt(jsonic, rs, kind) {
 function ruleTree(rn, rsm) {
     return rn
         .reduce((a, n) => (a += '  ' + n + ':\n    ' + values(omap({
-        op: [...new Set(rsm[n].def.open.filter((alt) => alt.p).map((alt) => alt.p))].join(' '),
-        or: [...new Set(rsm[n].def.open.filter((alt) => alt.r).map((alt) => alt.r))].join(' '),
-        cp: [...new Set(rsm[n].def.close.filter((alt) => alt.p).map((alt) => alt.p))].join(' '),
-        cr: [...new Set(rsm[n].def.close.filter((alt) => alt.r).map((alt) => alt.r))].join(' '),
+        op: ruleTreeStep(rsm, n, 'open', 'p'),
+        or: ruleTreeStep(rsm, n, 'open', 'r'),
+        cp: ruleTreeStep(rsm, n, 'close', 'p'),
+        cr: ruleTreeStep(rsm, n, 'close', 'r'),
+        // op: [...new Set(rsm[n].def.open.filter((alt: any) => alt.p).map((alt: any) => alt.p))].join(' '),
+        // or: [...new Set(rsm[n].def.open.filter((alt: any) => alt.r).map((alt: any) => alt.r))].join(' '),
+        // cp: [...new Set(rsm[n].def.close.filter((alt: any) => alt.p).map((alt: any) => alt.p))].join(' '),
+        // cr: [...new Set(rsm[n].def.close.filter((alt: any) => alt.r).map((alt: any) => alt.r))].join(' '),
     }, (([n, d]) => [1 < d.length ? n : undefined, n + ': ' + d]))).join('\n    ') +
         '\n',
         a), '');
+}
+function ruleTreeStep(rsm, name, state, step) {
+    return [
+        ...new Set(rsm[name].def[state]
+            .filter((alt) => alt[step])
+            .map((alt) => alt[step])
+            .map((step) => 'string' === typeof (step) ? step : '<F>'))
+    ].join(' ');
 }
 //# sourceMappingURL=debug.js.map

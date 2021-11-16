@@ -206,7 +206,7 @@ class RuleSpecImpl {
             return this.bad(aout, rule, ctx, { is_open });
         }
         next.why = why;
-        ctx.log && ctx.log('node  ' + rule.state.toUpperCase(), (rule.prev.id + '/' + rule.parent.id + '/' + rule.child.id), rule.name + '~' + rule.id, 'w=' + why, 'n:' + (0, utility_1.entries)(rule.n).map(n => n[0] + '=' + n[1]).join(';'), 'u:' + (0, utility_1.entries)(rule.use).map(u => u[0] + '=' + u[1]).join(';'), '<' + F(rule.node) + '>');
+        ctx.log && ctx.log('node  ' + rule.state.toUpperCase(), (rule.prev.id + '/' + rule.parent.id + '/' + rule.child.id), rule.name + '~' + rule.id, 'w=' + why, 'n:' + (0, utility_1.entries)(rule.n).filter(n => n[1]).map(n => n[0] + '=' + n[1]).join(';'), 'u:' + (0, utility_1.entries)(rule.use).map(u => u[0] + '=' + u[1]).join(';'), '<' + F(rule.node) + '>');
         // Lex next tokens (up to backtrack).
         let mI = 0;
         let rewind = rule[is_open ? 'os' : 'cs'] - (alt.b || 0);
@@ -439,7 +439,9 @@ class Parser {
             ctx.log &&
                 ctx.log('\nstack', '<<' + ctx.F(root.node) + '>>', ctx.rs.slice(0, ctx.rsI).map((r) => r.name + '~' + r.id).join('/'), ctx.rs.slice(0, ctx.rsI).map((r) => '<' + ctx.F(r.node) + '>').join(' '), rule, ctx, '\n');
             ctx.log &&
-                ctx.log('rule  ' + rule.state.toUpperCase(), (rule.prev.id + '/' + rule.parent.id + '/' + rule.child.id), rule.name + '~' + rule.id, '[' + ctx.F(ctx.t0.src) + ' ' + ctx.F(ctx.t1.src) + ']', 'n:' + (0, utility_1.entries)(rule.n).map(n => n[0] + '=' + n[1]).join(';'), 'u:' + (0, utility_1.entries)(rule.use).map(u => u[0] + '=' + u[1]).join(';'), '[' + tn(ctx.t0.tin) + ' ' + tn(ctx.t1.tin) + ']', rule, ctx);
+                ctx.log('rule  ' + rule.state.toUpperCase(), (rule.prev.id + '/' + rule.parent.id + '/' + rule.child.id), rule.name + '~' + rule.id, '[' + ctx.F(ctx.t0.src) + ' ' + ctx.F(ctx.t1.src) + ']', 'n:' + (0, utility_1.entries)(rule.n)
+                    .filter(n => n[1])
+                    .map(n => n[0] + '=' + n[1]).join(';'), 'u:' + (0, utility_1.entries)(rule.use).map(u => u[0] + '=' + u[1]).join(';'), '[' + tn(ctx.t0.tin) + ' ' + tn(ctx.t1.tin) + ']', rule, ctx);
             ctx.rule = rule;
             rule = rule.process(ctx);
             rI++;

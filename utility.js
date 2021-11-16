@@ -5,6 +5,8 @@ exports.values = exports.keys = exports.omap = exports.str = exports.prop = expo
 const types_1 = require("./types");
 const lexer_1 = require("./lexer");
 // Null-safe object and array utilities
+// TODO: should use proper types:
+// https://github.com/microsoft/TypeScript/tree/main/src/lib
 const keys = (x) => null == x ? [] : Object.keys(x);
 exports.keys = keys;
 const values = (x) => null == x ? [] : Object.values(x);
@@ -39,6 +41,7 @@ const omap = (o, f) => {
     }, {});
 };
 exports.omap = omap;
+// TODO: remove!
 // A bit pedantic, but let's be strict about strings.
 // Also improves minification a little.
 const S = {
@@ -125,7 +128,6 @@ function configure(jsonic, incfg, opts) {
     };
     cfg.fixed.ref = omap(cfg.fixed.token, ([tin, src]) => [tin, src]);
     cfg.fixed.ref = Object.assign(cfg.fixed.ref, omap(cfg.fixed.ref, ([tin, src]) => [src, tin]));
-    // console.log('CFG FIXED', cfg.fixed)
     cfg.tokenSet = {
         ignore: Object.fromEntries((((_b = opts.tokenSet) === null || _b === void 0 ? void 0 : _b.ignore) || []).map(tn => [t(tn), true]))
     };
@@ -231,8 +233,6 @@ function configure(jsonic, incfg, opts) {
     assign(jsonic.options, opts);
     assign(jsonic.token, cfg.t);
     assign(jsonic.fixed, cfg.fixed.ref);
-    // console.log('QQQ', cfg.t)
-    // console.log('WWW', jsonic)
     return cfg;
 }
 exports.configure = configure;
@@ -447,7 +447,7 @@ function makelog(ctx, meta) {
                         .filter((item) => S.object != typeof (item))
                         .map((item) => S.function == typeof (item) ? item.name : item)
                         .join('\t');
-                    ctx.cfg.debug.get_console().log(logstr); // + ('stack' === rest[0] ? '\n' : ''))
+                    ctx.cfg.debug.get_console().log(logstr);
                 }
                 else {
                     ctx.cfg.debug.get_console().dir(rest, { depth: logdepth });
@@ -591,20 +591,6 @@ function normalt(a) {
                 .fill(null).map((_, i) => i)
                 .map(part => bitify(partify(tins1, part), part))
             : null;
-        // aa.S1 = [0, 1, 2, 3].map(part => bitify(partify(tins1, part), part))
-        // console.log(aa.S0, aa.S1)
-        // aa.S1 = bitify(partify(tins1, 0), 0)
-        // (a as any).S0 =
-        //   ([a.s[0]].flat().filter(tin => 'number' === typeof (tin)) as number[])
-        //     .reduce((bits: number, tin: number) =>
-        //       ((1 << (tin - 1)) | (bits as any)),
-        //       0);
-        // (a as any).S1 = null == a.s[1] ? null :
-        //   ([a.s[1]].flat().filter(tin => 'number' === typeof (tin)) as number[])
-        //     .reduce((bits: number, tin: number) =>
-        //       ((1 << (tin - 1)) | (bits as any)),
-        //       0);
-        // console.log(a)
     }
     return a;
 }
