@@ -468,7 +468,7 @@ export interface AltSpec {
   r?: string | AltNext
 
   // TODO: AltBack as per AltNext?
-  b?: number      // Move token pointer back by indicated number of steps.
+  b?: number | AltBack     // Move token pointer back by indicated number of steps.
 
   // Condition function, return true to match alternate.
   // NOTE: Token sequence (s) must also match.
@@ -579,6 +579,10 @@ export type AltAction = (rule: Rule, ctx: Context, alt: AltMatch) => any
 
 // Determine next rule name (for AltSpec r or p properties). 
 export type AltNext = (rule: Rule, ctx: Context, alt: AltMatch) => string
+
+
+// Determine token push back.
+export type AltBack = (rule: Rule, ctx: Context, alt: AltMatch) => number
 
 
 // Execute an action for a given Rule state and step:

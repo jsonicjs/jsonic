@@ -283,7 +283,6 @@ class RuleSpecImpl {
             out.e = ctx.t0;
         }
         if (alt) {
-            out.b = null != alt.b ? alt.b : out.b;
             out.n = null != alt.n ? alt.n : out.n;
             out.h = null != alt.h ? alt.h : out.h;
             out.a = null != alt.a ? alt.a : out.a;
@@ -296,6 +295,9 @@ class RuleSpecImpl {
             out.r = null != alt.r ?
                 ('string' === typeof (alt.r) ? alt.r : alt.r(rule, ctx, out)) :
                 out.r;
+            out.b = null != alt.b ?
+                ('number' === typeof (alt.b) ? alt.b : alt.b(rule, ctx, out)) :
+                out.b;
         }
         let match = altI < alts.length;
         // TODO: move to util function

@@ -335,7 +335,7 @@ export interface AltSpec {
     s?: (Tin | Tin[] | null | undefined)[] | null;
     p?: string | AltNext;
     r?: string | AltNext;
-    b?: number;
+    b?: number | AltBack;
     c?: AltCond | {
         d?: number;
         n?: Counters;
@@ -395,5 +395,6 @@ export declare type AltCond = (rule: Rule, ctx: Context, alt: AltMatch) => boole
 export declare type AltModifier = (rule: Rule, ctx: Context, alt: AltMatch, next: Rule) => AltMatch;
 export declare type AltAction = (rule: Rule, ctx: Context, alt: AltMatch) => any;
 export declare type AltNext = (rule: Rule, ctx: Context, alt: AltMatch) => string;
+export declare type AltBack = (rule: Rule, ctx: Context, alt: AltMatch) => number;
 export declare type StateAction = (rule: Rule, ctx: Context) => any;
 export declare type AltError = (rule: Rule, ctx: Context, alt: AltMatch) => Token | undefined;
