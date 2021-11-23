@@ -140,7 +140,8 @@ export type Options = {
     get_console?: () => any
     maxlen?: number
     print?: {
-      config?: boolean
+      config?: boolean,
+      src?: (x: any) => string,
     }
   }
   error?: { [code: string]: string }
@@ -400,7 +401,8 @@ export type Config = {
     get_console: () => any
     maxlen: number
     print: {
-      config: boolean
+      config: boolean,
+      src?: (x: any) => string,
     }
   }
 
@@ -436,7 +438,6 @@ export interface Point {
 // of parser errors, as they capture the position of the error in the
 // source.
 export interface Token {
-  isToken: boolean // Type guard.
   name: string     // Token name.
   tin: Tin         // Token identification number.
   val: any         // Value of Token if literal (eg. number).

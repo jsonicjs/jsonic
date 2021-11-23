@@ -295,7 +295,8 @@ function configure(jsonic: any, incfg: Config | undefined, opts: Options): Confi
     get_console: opts.debug?.get_console || (() => console),
     maxlen: null == opts.debug?.maxlen ? 99 : opts.debug.maxlen,
     print: {
-      config: !!opts.debug?.print?.config
+      config: !!opts.debug?.print?.config,
+      src: opts.debug?.print?.src,
     },
   }
 
@@ -622,11 +623,11 @@ function makelog(ctx: Context, meta: any) {
 }
 
 
-function srcfmt(config: Config) {
-  return (s: any, _?: any) =>
-    null == s ? EMPTY : (_ = JSON.stringify(s),
+function srcfmt(config: Config): ((s: any) => string) {
+  return 'function' === typeof (config.debug.print.src) ? config.debug.print.src :
+    ((s: any, _?: any) => null == s ? EMPTY : (_ = JSON.stringify(s),
       _.substring(0, config.debug.maxlen) +
-      (config.debug.maxlen < _.length ? '...' : EMPTY))
+      (config.debug.maxlen < _.length ? '...' : EMPTY)))
 }
 
 

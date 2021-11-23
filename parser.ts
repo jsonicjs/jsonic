@@ -574,7 +574,6 @@ class Parser {
 
   start(
     src: string,
-    //jsonic: Jsonic,
     jsonic: any,
     meta?: any,
     parent_ctx?: any

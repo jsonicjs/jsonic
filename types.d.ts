@@ -102,6 +102,7 @@ export declare type Options = {
         maxlen?: number;
         print?: {
             config?: boolean;
+            src?: (x: any) => string;
         };
     };
     error?: {
@@ -297,6 +298,7 @@ export declare type Config = {
         maxlen: number;
         print: {
             config: boolean;
+            src?: (x: any) => string;
         };
     };
     error: {
@@ -317,7 +319,6 @@ export interface Point {
     end?: Token;
 }
 export interface Token {
-    isToken: boolean;
     name: string;
     tin: Tin;
     val: any;

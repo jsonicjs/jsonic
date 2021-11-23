@@ -454,7 +454,7 @@ describe('utility', () => {
 
 
   it('srcfmt', () => {
-    let F = srcfmt({debug:{maxlen:4}})
+    let F = srcfmt({debug:{maxlen:4,print:{}}})
     expect(F('a')).toEqual('"a"')
     expect(F('ab')).toEqual('"ab"')
     expect(F('abc')).toEqual('"abc...')

@@ -102,7 +102,7 @@ exports.JsonicError = JsonicError;
 // Idempotent normalization of options.
 // See Config type for commentary.
 function configure(jsonic, incfg, opts) {
-    var _a, _b, _c, _d, _e, _f, _g, _h, _j, _k, _l, _o, _p, _q, _r, _s, _t, _u, _v, _w, _x, _y, _z, _0, _1, _2, _3, _4, _5, _6, _7, _8, _9;
+    var _a, _b, _c, _d, _e, _f, _g, _h, _j, _k, _l, _o, _p, _q, _r, _s, _t, _u, _v, _w, _x, _y, _z, _0, _1, _2, _3, _4, _5, _6, _7, _8, _9, _10, _11;
     const cfg = incfg || {};
     cfg.t = cfg.t || {};
     cfg.tI = cfg.tI || 1;
@@ -216,13 +216,14 @@ function configure(jsonic, incfg, opts) {
         get_console: ((_5 = opts.debug) === null || _5 === void 0 ? void 0 : _5.get_console) || (() => console),
         maxlen: null == ((_6 = opts.debug) === null || _6 === void 0 ? void 0 : _6.maxlen) ? 99 : opts.debug.maxlen,
         print: {
-            config: !!((_8 = (_7 = opts.debug) === null || _7 === void 0 ? void 0 : _7.print) === null || _8 === void 0 ? void 0 : _8.config)
+            config: !!((_8 = (_7 = opts.debug) === null || _7 === void 0 ? void 0 : _7.print) === null || _8 === void 0 ? void 0 : _8.config),
+            src: (_10 = (_9 = opts.debug) === null || _9 === void 0 ? void 0 : _9.print) === null || _10 === void 0 ? void 0 : _10.src,
         },
     };
     cfg.error = opts.error || {};
     cfg.hint = opts.hint || {};
     // Apply any config modifiers (probably from plugins).
-    if ((_9 = opts.config) === null || _9 === void 0 ? void 0 : _9.modify) {
+    if ((_11 = opts.config) === null || _11 === void 0 ? void 0 : _11.modify) {
         keys(opts.config.modify)
             .forEach((modifer) => opts.config.modify[modifer](cfg, opts));
     }
@@ -463,9 +464,10 @@ function makelog(ctx, meta) {
 }
 exports.makelog = makelog;
 function srcfmt(config) {
-    return (s, _) => null == s ? types_1.EMPTY : (_ = JSON.stringify(s),
-        _.substring(0, config.debug.maxlen) +
-            (config.debug.maxlen < _.length ? '...' : types_1.EMPTY));
+    return 'function' === typeof (config.debug.print.src) ? config.debug.print.src :
+        ((s, _) => null == s ? types_1.EMPTY : (_ = JSON.stringify(s),
+            _.substring(0, config.debug.maxlen) +
+                (config.debug.maxlen < _.length ? '...' : types_1.EMPTY)));
 }
 exports.srcfmt = srcfmt;
 function str(o, len = 44) {

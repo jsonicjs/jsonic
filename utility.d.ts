@@ -63,7 +63,7 @@ declare function extract(src: string, errtxt: string, token: Token): string;
 declare function errdesc(code: string, details: Relate, token: Token, rule: Rule, ctx: Context): Relate;
 declare function badlex(lex: Lex, BD: Tin, ctx: Context): any;
 declare function makelog(ctx: Context, meta: any): ((...rest: any) => undefined) | undefined;
-declare function srcfmt(config: Config): (s: any, _?: any) => string;
+declare function srcfmt(config: Config): ((s: any) => string);
 declare function str(o: any, len?: number): string;
 declare function snip(s: any, len?: number): string;
 declare function clone(class_instance: any): any;

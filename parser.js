@@ -356,9 +356,7 @@ class Parser {
         }
         return rs;
     }
-    start(src, 
-    //jsonic: Jsonic,
-    jsonic, meta, parent_ctx) {
+    start(src, jsonic, meta, parent_ctx) {
         let root;
         let endtkn = (0, lexer_1.makeToken)('#ZZ', (0, utility_1.tokenize)('#ZZ', this.cfg), undefined, types_1.EMPTY, (0, lexer_1.makePoint)(-1));
         let notoken = (0, lexer_1.makeNoToken)();

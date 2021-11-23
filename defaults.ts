@@ -208,8 +208,11 @@ const defaults: Options = {
     print: {
 
       // Print config built from options.
-      config: false
-    }
+      config: false,
+
+      // Custom string formatter for src and node values.
+      src: undefined,
+    },
   },
 
 
