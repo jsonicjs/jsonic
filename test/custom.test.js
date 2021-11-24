@@ -58,6 +58,50 @@ describe('custom', function () {
   })
 
 
+  it('string-replace', () => {
+    expect(Jsonic('a:1')).toEqual({a:1})
+
+    let j0 = Jsonic.make({
+      string: {
+        replace: {
+          'A': 'B',
+          'D': '',
+        }
+      }
+    })
+
+    expect(j0('"aAc"')).toEqual('aBc')
+    expect(j0('"aAcDe"')).toEqual('aBce')
+    expect(()=>j0('x:\n "Ac\n"')).toThrow(/unprintable.*2:6/s)
+
+
+    let j1 = Jsonic.make({
+      string: {
+        replace: {
+          'A': 'B',
+          '\n': 'X'
+        }
+      }
+    })
+
+    expect(j1('"aAc\n"')).toEqual('aBcX')
+    expect(()=>j1('x:\n "ac\n\r"')).toThrow(/unprintable.*2:7/s)
+
+
+    let j2 = Jsonic.make({
+      string: {
+        replace: {
+          'A': 'B',
+          '\n': ''
+        }
+      }
+    })
+
+    expect(j2('"aAc\n"')).toEqual('aBc')
+    expect(()=>j2('x:\n "ac\n\r"')).toThrow(/unprintable.*2:7/s)
+  })
+
+  
   it('parser-empty-clean', () => {
     expect(Jsonic('a:1')).toEqual({a:1})
 

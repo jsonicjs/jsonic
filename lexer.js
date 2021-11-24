@@ -182,16 +182,14 @@ let makeCommentMatcher = (cfg, opts) => {
 exports.makeCommentMatcher = makeCommentMatcher;
 // Match text, checking for literal values, optionally followed by a fixed token.
 // Text strings are terminated by end markers.
-let makeTextMatcher = (cfg, _opts) => {
+let makeTextMatcher = (cfg, opts) => {
     let ender = (0, utility_1.regexp)(cfg.line.lex ? null : 's', '^(.*?)', ...cfg.rePart.ender);
-    // console.log(ender)
     return function textMatcher(lex) {
         let mcfg = cfg.text;
         let pnt = lex.pnt;
         let fwd = lex.src.substring(pnt.sI);
         let vm = cfg.value.map;
         let m = fwd.match(ender);
-        // console.log('TXM', ender, m, fwd)
         if (m) {
             let msrc = m[1];
             let tsrc = m[2];
@@ -217,7 +215,12 @@ let makeTextMatcher = (cfg, _opts) => {
             if (out) {
                 out = subMatchFixed(lex, out, tsrc);
             }
-            // console.log('TX out', out)
+            if (out && 0 < cfg.text.modify.length) {
+                const modify = cfg.text.modify;
+                for (let mI = 0; mI < modify.length; mI++) {
+                    out.val = modify[mI](out.val, lex, cfg, opts);
+                }
+            }
             return out;
         }
     };
@@ -232,8 +235,8 @@ let makeNumberMatcher = (cfg, _opts) => {
             mcfg.oct ? 'o[0-7_]+' : null,
             mcfg.bin ? 'b[01_]+' : null,
         ].filter(s => null != s).join('|'),
-        ')|[0-9]+([0-9_]*[0-9])?)',
-        '(\\.[0-9]+([0-9_]*[0-9])?)?',
+        ')|[.0-9]+([0-9_]*[0-9])?)',
+        '(\\.[0-9]?([0-9_]*[0-9])?)?',
         '([eE][-+]?[0-9]+([0-9_]*[0-9])?)?',
     ]
         .join('')
@@ -261,6 +264,13 @@ let makeNumberMatcher = (cfg, _opts) => {
                     else {
                         let nstr = numberSep ? msrc.replace(numberSep, '') : msrc;
                         let num = +(nstr);
+                        // Special case: +- prefix of 0x... format
+                        if (isNaN(num)) {
+                            let first = nstr[0];
+                            if ('-' === first || '+' === first) {
+                                num = ('-' === first ? -1 : 1) * +(nstr.substring(1));
+                            }
+                        }
                         if (!isNaN(num)) {
                             out = lex.token('#NR', num, msrc, pnt);
                             pnt.sI += mlen;
@@ -277,8 +287,11 @@ let makeNumberMatcher = (cfg, _opts) => {
 };
 exports.makeNumberMatcher = makeNumberMatcher;
 let makeStringMatcher = (cfg, opts) => {
+    // TODO: does `clean` make sense here? 
     let os = opts.string || {};
-    cfg.string = {
+    cfg.string = (cfg.string || {});
+    // TODO: compose with earlier config - do this in other makeFooMatchers?
+    cfg.string = (0, utility_1.deep)(cfg.string, {
         lex: !!(os === null || os === void 0 ? void 0 : os.lex),
         quoteMap: (0, utility_1.charset)(os.chars),
         multiChars: (0, utility_1.charset)(os.multiChars),
@@ -286,12 +299,15 @@ let makeStringMatcher = (cfg, opts) => {
         escChar: os.escapeChar,
         escCharCode: null == os.escapeChar ? undefined : os.escapeChar.charCodeAt(0),
         allowUnknown: !!os.allowUnknown,
-    };
+        replaceCodeMap: (0, utility_1.omap)((0, utility_1.clean)({ ...os.replace }), ([c, r]) => [c.charCodeAt(0), r]),
+        hasReplace: false
+    });
+    cfg.string.hasReplace = 0 < (0, utility_1.keys)(cfg.string.replaceCodeMap).length;
     return function stringMatcher(lex) {
         let mcfg = cfg.string;
         if (!mcfg.lex)
             return undefined;
-        let { quoteMap, escMap, escChar, escCharCode, multiChars, allowUnknown, } = mcfg;
+        let { quoteMap, escMap, escChar, escCharCode, multiChars, allowUnknown, replaceCodeMap, hasReplace, } = mcfg;
         let { pnt, src } = lex;
         let { sI, rI, cI } = pnt;
         let srclen = src.length;
@@ -303,17 +319,13 @@ let makeStringMatcher = (cfg, opts) => {
             ++sI;
             ++cI;
             let s = [];
+            let rs;
             for (sI; sI < srclen; sI++) {
                 cI++;
                 let c = src[sI];
+                rs = undefined;
                 // Quote char.
                 if (q === c) {
-                    // TODO: PLUGIN csv
-                    // if (doubleEsc && q === src[sI + 1]) {
-                    //   s.push(src[sI])
-                    //   sI++
-                    // }
-                    // else {
                     sI++;
                     break; // String finished.
                 }
@@ -368,18 +380,24 @@ let makeStringMatcher = (cfg, opts) => {
                         return lex.bad(utility_1.S.unexpected, sI, sI + 1);
                     }
                 }
+                else if (hasReplace &&
+                    undefined !== (rs = replaceCodeMap[src.charCodeAt(sI)])) {
+                    s.push(rs);
+                    cI++;
+                }
                 // Body part of string.
                 else {
                     let bI = sI;
                     // TODO: move to cfgx
                     let qc = q.charCodeAt(0);
                     let cc = src.charCodeAt(sI);
-                    while (sI < srclen && 32 <= cc && qc !== cc && escCharCode !== cc) {
+                    while ((!hasReplace || (undefined === (rs = replaceCodeMap[cc]))) &&
+                        sI < srclen && 32 <= cc && qc !== cc && escCharCode !== cc) {
                         cc = src.charCodeAt(++sI);
                         cI++;
                     }
                     cI--;
-                    if (cc < 32) {
+                    if (undefined === rs && cc < 32) {
                         if (isMultiLine && cfg.line.chars[src[sI]]) {
                             if (cfg.line.rowChars[src[sI]]) {
                                 pnt.rI = ++rI;
@@ -388,6 +406,8 @@ let makeStringMatcher = (cfg, opts) => {
                             s.push(src.substring(bI, sI + 1));
                         }
                         else {
+                            pnt.sI = sI;
+                            pnt.cI = cI;
                             return lex.bad(utility_1.S.unprintable, sI, sI + 1);
                         }
                     }

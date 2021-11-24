@@ -100,7 +100,8 @@ export type Options = {
     rowChars?: string
   },
   text?: {
-    lex?: boolean
+    lex?: boolean,
+    modify?: ValModifier | ValModifier[],
   }
   number?: {
     lex?: boolean
@@ -125,6 +126,7 @@ export type Options = {
     escapeChar?: string
     escape?: { [char: string]: string | null }
     allowUnknown?: boolean
+    replace?: { [char: string]: string | null }
   }
   map?: {
     extend?: boolean
@@ -352,7 +354,8 @@ export type Config = {
 
   // Unquoted text
   text: {
-    lex: boolean
+    lex: boolean,
+    modify: ValModifier[],
   }
 
   // Numbers
@@ -374,6 +377,8 @@ export type Config = {
     escCharCode?: number,
     multiChars: Chars,
     allowUnknown: boolean,
+    replaceCodeMap: { [charCode: number]: string },
+    hasReplace: boolean,
   }
 
   // Literal values
@@ -595,3 +600,6 @@ export type StateAction = (rule: Rule, ctx: Context) => any
 // NOTE: errors are specified using tokens in order to capture file row and col.
 export type AltError = (rule: Rule, ctx: Context, alt: AltMatch) => Token | undefined
 
+
+export type ValModifier =
+  (val: any, lex: Lex, cfg: Config, opts: Options) => string

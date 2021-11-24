@@ -56,6 +56,7 @@ export declare type Options = {
     };
     text?: {
         lex?: boolean;
+        modify?: ValModifier | ValModifier[];
     };
     number?: {
         lex?: boolean;
@@ -82,6 +83,9 @@ export declare type Options = {
             [char: string]: string | null;
         };
         allowUnknown?: boolean;
+        replace?: {
+            [char: string]: string | null;
+        };
     };
     map?: {
         extend?: boolean;
@@ -254,6 +258,7 @@ export declare type Config = {
     };
     text: {
         lex: boolean;
+        modify: ValModifier[];
     };
     number: {
         lex: boolean;
@@ -271,6 +276,10 @@ export declare type Config = {
         escCharCode?: number;
         multiChars: Chars;
         allowUnknown: boolean;
+        replaceCodeMap: {
+            [charCode: number]: string;
+        };
+        hasReplace: boolean;
     };
     value: {
         lex: boolean;
@@ -399,3 +408,4 @@ export declare type AltNext = (rule: Rule, ctx: Context, alt: AltMatch) => strin
 export declare type AltBack = (rule: Rule, ctx: Context, alt: AltMatch) => number;
 export declare type StateAction = (rule: Rule, ctx: Context) => any;
 export declare type AltError = (rule: Rule, ctx: Context, alt: AltMatch) => Token | undefined;
+export declare type ValModifier = (val: any, lex: Lex, cfg: Config, opts: Options) => string;

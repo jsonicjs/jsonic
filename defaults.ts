@@ -52,7 +52,8 @@ const defaults: Options = {
     // Recognize space in the Lexer.
     lex: true,
 
-    // Space characters.
+    // Space characters are kept to a minimal set.
+    // Add more from https://en.wikipedia.org/wiki/Whitespace_character as needed.
     chars: ' \t',
   },
 
@@ -159,9 +160,6 @@ const defaults: Options = {
     // Allow unknown escape characters - they are copied to output: '\w' -> 'w'.
     allowUnknown: true,
 
-    // TODO: PLUGIN csv
-    // CSV-style double quote escape.
-    // doubleEscape: false,
   },
 
 

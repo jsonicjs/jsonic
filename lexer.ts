@@ -41,6 +41,8 @@ import {
   charset,
   clean,
   deep,
+  keys,
+  omap,
 } from './utility'
 
 
@@ -307,15 +309,13 @@ let makeCommentMatcher: MakeLexMatcher = (cfg: Config, opts: Options) => {
 
 // Match text, checking for literal values, optionally followed by a fixed token.
 // Text strings are terminated by end markers.
-let makeTextMatcher: MakeLexMatcher = (cfg: Config, _opts: Options) => {
+let makeTextMatcher: MakeLexMatcher = (cfg: Config, opts: Options) => {
 
   let ender = regexp(
     cfg.line.lex ? null : 's',
     '^(.*?)',
     ...cfg.rePart.ender
   )
-
-  // console.log(ender)
 
   return function textMatcher(lex: Lex) {
     let mcfg = cfg.text
@@ -324,8 +324,6 @@ let makeTextMatcher: MakeLexMatcher = (cfg: Config, _opts: Options) => {
     let vm = cfg.value.map
 
     let m = fwd.match(ender)
-
-    // console.log('TXM', ender, m, fwd)
 
     if (m) {
       let msrc = m[1]
@@ -357,7 +355,12 @@ let makeTextMatcher: MakeLexMatcher = (cfg: Config, _opts: Options) => {
         out = subMatchFixed(lex, out, tsrc)
       }
 
-      // console.log('TX out', out)
+      if (out && 0 < cfg.text.modify.length) {
+        const modify = cfg.text.modify
+        for (let mI = 0; mI < modify.length; mI++) {
+          out.val = modify[mI](out.val, lex, cfg, opts)
+        }
+      }
 
       return out
     }
@@ -377,8 +380,8 @@ let makeNumberMatcher: MakeLexMatcher = (cfg: Config, _opts: Options) => {
         mcfg.oct ? 'o[0-7_]+' : null,
         mcfg.bin ? 'b[01_]+' : null,
       ].filter(s => null != s).join('|'),
-      ')|[0-9]+([0-9_]*[0-9])?)',
-      '(\\.[0-9]+([0-9_]*[0-9])?)?',
+      ')|[.0-9]+([0-9_]*[0-9])?)',
+      '(\\.[0-9]?([0-9_]*[0-9])?)?',
       '([eE][-+]?[0-9]+([0-9_]*[0-9])?)?',
     ]
       .join('')
@@ -418,6 +421,14 @@ let makeNumberMatcher: MakeLexMatcher = (cfg: Config, _opts: Options) => {
             let nstr = numberSep ? msrc.replace(numberSep, '') : msrc
             let num = +(nstr)
 
+            // Special case: +- prefix of 0x... format
+            if (isNaN(num)) {
+              let first = nstr[0]
+              if ('-' === first || '+' === first) {
+                num = ('-' === first ? -1 : 1) * +(nstr.substring(1))
+              }
+            }
+
             if (!isNaN(num)) {
               out = lex.token('#NR', num, msrc, pnt)
               pnt.sI += mlen
@@ -438,8 +449,13 @@ let makeNumberMatcher: MakeLexMatcher = (cfg: Config, _opts: Options) => {
 
 let makeStringMatcher: MakeLexMatcher = (cfg: Config, opts: Options) => {
 
+  // TODO: does `clean` make sense here? 
+
   let os = opts.string || {}
-  cfg.string = {
+  cfg.string = (cfg.string || {})
+
+  // TODO: compose with earlier config - do this in other makeFooMatchers?
+  cfg.string = deep(cfg.string, {
     lex: !!os?.lex,
     quoteMap: charset(os.chars),
     multiChars: charset(os.multiChars),
@@ -447,7 +463,12 @@ let makeStringMatcher: MakeLexMatcher = (cfg: Config, opts: Options) => {
     escChar: os.escapeChar,
     escCharCode: null == os.escapeChar ? undefined : os.escapeChar.charCodeAt(0),
     allowUnknown: !!os.allowUnknown,
-  }
+    replaceCodeMap: omap(clean({ ...os.replace }), ([c, r]) => [c.charCodeAt(0), r]),
+    hasReplace: false
+  })
+
+  cfg.string.hasReplace = 0 < keys(cfg.string.replaceCodeMap).length
+
 
   return function stringMatcher(lex: Lex) {
     let mcfg = cfg.string
@@ -460,6 +481,8 @@ let makeStringMatcher: MakeLexMatcher = (cfg: Config, opts: Options) => {
       escCharCode,
       multiChars,
       allowUnknown,
+      replaceCodeMap,
+      hasReplace,
     } = mcfg
 
     let { pnt, src } = lex
@@ -475,20 +498,15 @@ let makeStringMatcher: MakeLexMatcher = (cfg: Config, opts: Options) => {
       ++cI
 
       let s: string[] = []
+      let rs: string | undefined
 
       for (sI; sI < srclen; sI++) {
         cI++
         let c = src[sI]
+        rs = undefined
 
         // Quote char.
         if (q === c) {
-
-          // TODO: PLUGIN csv
-          // if (doubleEsc && q === src[sI + 1]) {
-          //   s.push(src[sI])
-          //   sI++
-          // }
-          // else {
 
           sI++
           break // String finished.
@@ -559,6 +577,13 @@ let makeStringMatcher: MakeLexMatcher = (cfg: Config, opts: Options) => {
           }
         }
 
+        else if (hasReplace &&
+          undefined !== (rs = replaceCodeMap[src.charCodeAt(sI)])
+        ) {
+          s.push(rs)
+          cI++
+        }
+
         // Body part of string.
         else {
           let bI = sI
@@ -567,13 +592,16 @@ let makeStringMatcher: MakeLexMatcher = (cfg: Config, opts: Options) => {
           let qc = q.charCodeAt(0)
           let cc = src.charCodeAt(sI)
 
-          while (sI < srclen && 32 <= cc && qc !== cc && escCharCode !== cc) {
+          while (
+            (!hasReplace || (undefined === (rs = replaceCodeMap[cc]))) &&
+            sI < srclen && 32 <= cc && qc !== cc && escCharCode !== cc
+          ) {
             cc = src.charCodeAt(++sI)
             cI++
           }
           cI--
 
-          if (cc < 32) {
+          if (undefined === rs && cc < 32) {
             if (isMultiLine && cfg.line.chars[src[sI]]) {
               if (cfg.line.rowChars[src[sI]]) {
                 pnt.rI = ++rI
@@ -583,6 +611,8 @@ let makeStringMatcher: MakeLexMatcher = (cfg: Config, opts: Options) => {
               s.push(src.substring(bI, sI + 1))
             }
             else {
+              pnt.sI = sI
+              pnt.cI = cI
               return lex.bad(S.unprintable, sI, sI + 1)
             }
           }

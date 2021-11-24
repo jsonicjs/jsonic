@@ -197,7 +197,9 @@ function grammar(jsonic: Jsonic) {
       .bc((r: Rule, ctx: Context) => {
         if (r.use.key) {
           const key_token = r.o0
-          const key = ST === key_token.tin ? key_token.val : key_token.src
+          const key =
+            (ST === key_token.tin || TX === key_token.tin) ? key_token.val :
+              key_token.src
           let val = r.child.node
           const prev = r.node[key]
 

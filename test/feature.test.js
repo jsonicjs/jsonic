@@ -171,6 +171,17 @@ describe('feature', function () {
     expect(j('-1')).toEqual(-1)
     expect(j('+1')).toEqual(1)
     expect(j('0')).toEqual(0)
+
+    expect(j('1.')).toEqual(1)
+    expect(j('-1.')).toEqual(-1)
+    expect(j('+1.')).toEqual(1)
+    expect(j('0.')).toEqual(0)
+
+    expect(j('.1')).toEqual(0.1)
+    expect(j('-.1')).toEqual(-0.1)
+    expect(j('+.1')).toEqual(0.1)
+    expect(j('.0')).toEqual(0)
+
     expect(j('0.9')).toEqual(0.9)
     expect(j('-0.9')).toEqual(-0.9)
     expect(j('[1]')).toEqual([1])
@@ -186,8 +197,15 @@ describe('feature', function () {
     expect(j('-10_0')).toEqual(-100)
     expect(j('1e+2')).toEqual(100)
     expect(j('1e-2')).toEqual(0.01)
+
     expect(j('0xA')).toEqual(10)
     expect(j('0xa')).toEqual(10)
+    expect(j('+0xA')).toEqual(10)
+    expect(j('+0xa')).toEqual(10)
+    expect(j('-0xA')).toEqual(-10)
+    expect(j('-0xa')).toEqual(-10)
+
+    
     expect(j('0o12')).toEqual(10)
     expect(j('0b1010')).toEqual(10)
     expect(j('0x_A')).toEqual(10)
@@ -237,8 +255,8 @@ describe('feature', function () {
 
     // partial numbers are converted to text
     expect(j('-')).toEqual('-')
-    expect(j('.0')).toEqual('.0')
-    
+    expect(j('+')).toEqual('+')
+    expect(j('1a')).toEqual('1a')
     
     
     let jn = j.make({ number: { lex: false } })

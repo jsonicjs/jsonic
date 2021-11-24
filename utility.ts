@@ -17,6 +17,7 @@ import type {
   RuleSpec,
   Tin,
   Options,
+  ValModifier,
 } from './types'
 
 
@@ -190,9 +191,11 @@ function configure(jsonic: any, incfg: Config | undefined, opts: Options): Confi
     rowChars: charset(opts.line?.rowChars),
   }
 
-
   cfg.text = {
     lex: !!opts.text?.lex,
+    modify: (cfg.text?.modify || [])
+      .concat(([opts.text?.modify] || []).flat() as ValModifier[])
+      .filter(m => null != m)
   }
 
   cfg.number = {
@@ -290,6 +293,7 @@ function configure(jsonic: any, incfg: Config | undefined, opts: Options): Confi
     match: opts.lex?.match ?
       opts.lex.match.map((maker: any) => maker(cfg, opts)) : [],
   }
+
 
   cfg.debug = {
     get_console: opts.debug?.get_console || (() => console),

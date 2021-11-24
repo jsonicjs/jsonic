@@ -19,6 +19,7 @@
 
 const { Jsonic, JsonicError, makeRule, makeRuleSpec } = require('..')
 const Exhaust = require('./exhaust')
+const Large = require('./large')
 const JsonStandard = require('./json-standard')
 
 let j = Jsonic
@@ -696,9 +697,7 @@ describe('jsonic', function () {
 
   // Test against all combinations of chars up to `len`
   // NOTE: coverage tracing slows this down - a lot!
-  it('exhaust',
-     // {timeout:33333},
-     function() {
+  it('exhaust-perf', function() {
     let len = 2
     
     // Use this env var for debug-code-test loop to avoid
@@ -709,11 +708,11 @@ describe('jsonic', function () {
       // NOTE: if parse algo changes then these may change.
       // But if *not intended* changes here indicate unexpected effects.
       expect(out).toMatchObject({
-        rmc: 62734,
-        emc: 2292,
+        rmc: 62732,
+        emc: 2294,
         ecc: {
           unprintable: 91,
-          unexpected: 1499,
+          unexpected: 1501,
           unterminated_string: 701,
           unterminated_comment: 1
         }
@@ -721,6 +720,26 @@ describe('jsonic', function () {
     }
   })
 
+
+  it('large-perf', function() {
+    let len = 12345 // Coverage really nerfs this test sadly
+    // let len = 520000 // Pretty much the V8 string length limit
+    
+    // Use this env var for debug-code-test loop to avoid
+    // slowing things down. Do run this test for builds!
+    if(null == process.env.JSONIC_TEST_SKIP_PERF) {
+      let out = Large(len)
+
+      // NOTE: if parse algo changes then these may change.
+      // But if *not intended* changes here indicate unexpected effects.
+      expect(out).toMatchObject({
+        ok: true,
+        len: len * 1000
+      })
+    }
+  })
+
+  
 
   // Validate pure JSON to ensure Jsonic is always a superset.
   it('json-standard', function(){

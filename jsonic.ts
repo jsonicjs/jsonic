@@ -4,6 +4,8 @@
  *  Entry point and API.
  */
 
+// TODO: Option switch to tunr Debug plugin off when loaded
+// TODO: refactor S. strings to normal strings
 // TODO: document standard g names: open, close, step, start, end, imp, top, val, map, etc
 // TODO: Rule.use should be Rule.u for consistency
 // TODO: remove c: { n: } and c: { d: } conditionals - just use funcs

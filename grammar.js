@@ -144,7 +144,8 @@ function grammar(jsonic) {
             .bc((r, ctx) => {
             if (r.use.key) {
                 const key_token = r.o0;
-                const key = ST === key_token.tin ? key_token.val : key_token.src;
+                const key = (ST === key_token.tin || TX === key_token.tin) ? key_token.val :
+                    key_token.src;
                 let val = r.child.node;
                 const prev = r.node[key];
                 // Convert undefined to null when there was no pair value
