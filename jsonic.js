@@ -896,7 +896,7 @@ var jsonic_parser = (function() {
             s0 = peg$parsearray();
             if (s0 === peg$FAILED) {
               s0 = peg$currPos;
-              if (input.substr(peg$currPos, 4) === peg$c24) {
+              if (input.substr(peg$currPos, 4).toLowerCase() === peg$c24) {
                 s1 = peg$c24;
                 peg$currPos += 4;
               } else {
@@ -919,7 +919,7 @@ var jsonic_parser = (function() {
               }
               if (s0 === peg$FAILED) {
                 s0 = peg$currPos;
-                if (input.substr(peg$currPos, 5) === peg$c27) {
+                if (input.substr(peg$currPos, 5).toLowerCase() === peg$c27) {
                   s1 = peg$c27;
                   peg$currPos += 5;
                 } else {
@@ -942,7 +942,7 @@ var jsonic_parser = (function() {
                 }
                 if (s0 === peg$FAILED) {
                   s0 = peg$currPos;
-                  if (input.substr(peg$currPos, 4) === peg$c30) {
+                  if (input.substr(peg$currPos, 4).toLowerCase() === peg$c30) {
                     s1 = peg$c30;
                     peg$currPos += 4;
                   } else {
