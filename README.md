@@ -106,7 +106,7 @@ The options are:
 
 ## How it Works
 
-The parser uses [PEG.js](http://pegjs.majda.cz/) and is an extension of the example JSON parser included in that project.
+The parser uses [PEG.js](https://pegjs.org/) and is an extension of the example JSON parser included in that project.
 
 [npm-badge]: https://badge.fury.io/js/jsonic.svg
 [npm-url]: https://badge.fury.io/js/jsonic
