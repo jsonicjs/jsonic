@@ -70,6 +70,7 @@ JSONIC format is just standard JSON, with a few rule relaxations:
    * You _do_ need to quote strings if they contain a comma or closing brace or square bracket: <code>icky:"_,}]_"</code>
    * You can use single quotes for strings: <code>Jules:'Cry "Havoc," and let slip the dogs of war!'</code>
    * You can have trailing commas: <code>foo:bar, red:255, </code>
+   * You can have true, false, and null be any case: <code>foo: True</code>
 
 
 # Stringify
