@@ -58,9 +58,9 @@ value
   / single
   / object
   / array
-  / "true" _  { return true;  }
-  / "false" _ { return false; }
-  / "null" _  { return null_; }
+  / "true"i _  { return true;  }
+  / "false"i _ { return false; }
+  / "null"i _  { return null_; }
   / number
   / lit:literal { return lit.join('').trim() }
 
