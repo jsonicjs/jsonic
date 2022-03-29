@@ -302,18 +302,53 @@ describe('custom', function () {
   
   
   it('parser-value', () => {
-    let b = ''
+    function Car() {this.m = true}
+    let c0 = new Car()
+    expect(c0 instanceof Car).toEqual(true)
+    
+    let o0 = {x:1}
+    let f1 = ()=>'F1'
+    
     let j = Jsonic.make({
       value: {
         map: {
           foo: {val:'FOO'},
           bar: {val:'BAR'},
+          zed: {val:123},
+          qaz: {val:false},
+          obj: {val:o0},
+
+          // This won't work - cloning removes constructor
+          car: {val:c0},
+
+          // Functions build values dynamically, or prevent cloning
+          fun: {val:()=>'f0'},
+          high: {val:()=>f1},
+          ferry: {val:()=>new Car()},
         }
       }
     })
 
     expect(j('foo')).toEqual('FOO')
     expect(j('bar')).toEqual('BAR')
+    expect(j('zed')).toEqual(123)
+    expect(j('qaz')).toEqual(false)
+
+    // Options get copied, so `obj` should remain {x:1}
+    o0.x = 2
+    expect(j('obj')).toEqual({x:1})
+
+    // Instance properties are copied, but not constructor
+    expect(j('car')).toEqual({m:true})
+    expect(j('car') instanceof Car ).toEqual(false)
+    
+    expect(j('fun')).toEqual('f0')
+    expect(j('high')).toEqual(f1)
+
+    // constructor is protected
+    expect(j('ferry')).toEqual({m:true})
+    expect(j('ferry') instanceof Car).toEqual(true)
+
   })
 
 

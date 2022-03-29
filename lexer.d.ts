@@ -26,6 +26,7 @@ declare class TokenImpl implements Token {
     err?: string;
     why?: string;
     constructor(name: string, tin: Tin, val: any, src: string, pnt: Point, use?: any, why?: string);
+    resolveVal(rule: Rule, ctx: Context): any;
     bad(err: string, details?: any): Token;
     toString(): string;
     [INSPECT](): string;

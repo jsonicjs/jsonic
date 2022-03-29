@@ -55,6 +55,12 @@ class TokenImpl {
         this.why = why;
         this.len = null == src ? 0 : src.length;
     }
+    resolveVal(rule, ctx) {
+        let out = 'function' === typeof this.val ?
+            this.val(rule, ctx) :
+            this.val;
+        return out;
+    }
     bad(err, details) {
         this.err = err;
         if (null != details) {

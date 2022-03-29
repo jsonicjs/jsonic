@@ -227,14 +227,12 @@ export interface Rule {
   parent: Rule       // The parent rule, that pushed this rule onto the stack.
   prev: Rule         // The previous sibling rule, that issued an `r` command.
 
-  // open: Token[]      // The tokens than matched in the open state.
-  // close: Token[]     // The tokens than matched in the close state.
-  os: number
-  o0: Token
-  o1: Token
-  cs: number
-  c0: Token
-  c1: Token
+  os: number         // Number of open state tokens (# 'opens').
+  o0: Token          // First open state token.
+  o1: Token          // Second open state token.
+  cs: number         // Number of close state tokens (# 'closes').
+  c0: Token          // First close state token.  
+  c1: Token          // Second close state token. 
 
   n: Counters        // Named counter values.
   d: number          // The current stack depth.   
@@ -457,6 +455,8 @@ export interface Token {
 
   // Convert into an error Token.
   bad(err: string, details?: any): Token
+
+  resolveVal(rule: Rule, ctx: Context): any
 }
 
 

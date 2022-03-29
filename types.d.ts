@@ -340,6 +340,7 @@ export interface Token {
     err?: string;
     why?: string;
     bad(err: string, details?: any): Token;
+    resolveVal(rule: Rule, ctx: Context): any;
 }
 export interface AltSpec {
     s?: (Tin | Tin[] | null | undefined)[] | null;

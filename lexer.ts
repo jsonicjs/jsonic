@@ -114,6 +114,15 @@ class TokenImpl implements Token {
     this.len = null == src ? 0 : src.length
   }
 
+
+  resolveVal(rule: Rule, ctx: Context): any {
+    let out = 'function' === typeof this.val ?
+      (this.val as any)(rule, ctx) :
+      this.val
+    return out
+  }
+
+
   bad(err: string, details?: any): Token {
     this.err = err
     if (null != details) {

@@ -75,14 +75,15 @@ function grammar(jsonic) {
             // There may be another elem or pair.
             { b: 1, g: 'val,json,more' },
         ])
-            .bc((rule) => {
+            .bc((rule, ctx) => {
             // console.log('VAL BC A', rule.node, rule.o0.val, rule.os, rule.child.node)
             // NOTE: val can be undefined when there is no value at all
             // (eg. empty string, thus no matched opening token)
             rule.node =
                 undefined === rule.node ?
                     undefined === rule.child.node ?
-                        (0 === rule.os ? undefined : rule.o0.val) :
+                        // (0 === rule.os ? undefined : rule.o0.val) :
+                        (0 === rule.os ? undefined : rule.o0.resolveVal(rule, ctx)) :
                         rule.child.node :
                     rule.node;
             // console.log('VAL BC B', rule.node)
