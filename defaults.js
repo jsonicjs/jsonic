@@ -112,6 +112,7 @@ const defaults = {
         // Later duplicates extend earlier ones, rather than replacing them.
         extend: true,
         // Custom merge function for duplicates (optional).
+        // TODO: needs function signature
         merge: undefined,
     },
     // Keyword values.

@@ -171,6 +171,7 @@ const defaults: Options = {
     extend: true,
 
     // Custom merge function for duplicates (optional).
+    // TODO: needs function signature
     merge: undefined,
   },
 
