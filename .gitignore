@@ -24,3 +24,5 @@ trial
 test/coverage.html
 
 coverage
+
+package-lock.json
