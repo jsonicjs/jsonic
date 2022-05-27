@@ -23,8 +23,10 @@ class PointImpl {
         }
     }
     toString() {
-        return 'Point[' + [this.sI + '/' + this.len, this.rI, this.cI] +
-            (0 < this.token.length ? (' ' + this.token) : '') + ']';
+        return ('Point[' +
+            [this.sI + '/' + this.len, this.rI, this.cI] +
+            (0 < this.token.length ? ' ' + this.token : '') +
+            ']');
     }
     [types_1.INSPECT]() {
         return this.toString();
@@ -56,9 +58,7 @@ class TokenImpl {
         this.len = null == src ? 0 : src.length;
     }
     resolveVal(rule, ctx) {
-        let out = 'function' === typeof this.val ?
-            this.val(rule, ctx) :
-            this.val;
+        let out = 'function' === typeof this.val ? this.val(rule, ctx) : this.val;
         return out;
     }
     bad(err, details) {
@@ -69,17 +69,23 @@ class TokenImpl {
         return this;
     }
     toString() {
-        return 'Token[' +
-            this.name + '=' + this.tin + ' ' +
+        return ('Token[' +
+            this.name +
+            '=' +
+            this.tin +
+            ' ' +
             (0, utility_1.snip)(this.src) +
-            (undefined === this.val || '#ST' === this.name || '#TX' === this.name ? '' :
-                '=' + (0, utility_1.snip)(this.val)) + ' ' +
+            (undefined === this.val || '#ST' === this.name || '#TX' === this.name
+                ? ''
+                : '=' + (0, utility_1.snip)(this.val)) +
+            ' ' +
             [this.sI, this.rI, this.cI] +
-            (null == this.use ? '' : ' ' +
-                (0, utility_1.snip)(('' + JSON.stringify(this.use).replace(/"/g, '')), 22)) +
+            (null == this.use
+                ? ''
+                : ' ' + (0, utility_1.snip)('' + JSON.stringify(this.use).replace(/"/g, ''), 22)) +
             (null == this.err ? '' : ' ' + this.err) +
             (null == this.why ? '' : ' ' + (0, utility_1.snip)('' + this.why, 22)) +
-            ']';
+            ']');
     }
     [types_1.INSPECT]() {
         return this.toString();
@@ -120,15 +126,19 @@ let makeCommentMatcher = (cfg, opts) => {
     let oc = opts.comment;
     cfg.comment = {
         lex: oc ? !!oc.lex : false,
-        marker: ((oc === null || oc === void 0 ? void 0 : oc.marker) || []).map(om => ({
+        marker: ((oc === null || oc === void 0 ? void 0 : oc.marker) || []).map((om) => ({
             start: om.start,
             end: om.end,
             line: !!om.line,
             lex: !!om.lex,
-        }))
+        })),
     };
-    let lineComments = cfg.comment.lex ? cfg.comment.marker.filter(c => c.lex && c.line) : [];
-    let blockComments = cfg.comment.lex ? cfg.comment.marker.filter(c => c.lex && !c.line) : [];
+    let lineComments = cfg.comment.lex
+        ? cfg.comment.marker.filter((c) => c.lex && c.line)
+        : [];
+    let blockComments = cfg.comment.lex
+        ? cfg.comment.marker.filter((c) => c.lex && !c.line)
+        : [];
     return function matchComment(lex) {
         let mcfg = cfg.comment;
         if (!mcfg.lex)
@@ -179,7 +189,7 @@ let makeCommentMatcher = (cfg, opts) => {
                     return tkn;
                 }
                 else {
-                    return lex.bad(utility_1.S.unterminated_comment, pnt.sI, pnt.sI + (9 * mc.start.length));
+                    return lex.bad(utility_1.S.unterminated_comment, pnt.sI, pnt.sI + 9 * mc.start.length);
                 }
             }
         }
@@ -240,14 +250,18 @@ let makeNumberMatcher = (cfg, _opts) => {
             mcfg.hex ? 'x[0-9a-fA-F_]+' : null,
             mcfg.oct ? 'o[0-7_]+' : null,
             mcfg.bin ? 'b[01_]+' : null,
-        ].filter(s => null != s).join('|'),
+        ]
+            .filter((s) => null != s)
+            .join('|'),
         ')|[.0-9]+([0-9_]*[0-9])?)',
         '(\\.[0-9]?([0-9_]*[0-9])?)?',
         '([eE][-+]?[0-9]+([0-9_]*[0-9])?)?',
     ]
         .join('')
         .replace(/_/g, mcfg.sep ? (0, utility_1.escre)(mcfg.sepChar) : ''), ')', ...cfg.rePart.ender);
-    let numberSep = (mcfg.sep ? (0, utility_1.regexp)('g', (0, utility_1.escre)(mcfg.sepChar)) : undefined);
+    let numberSep = mcfg.sep
+        ? (0, utility_1.regexp)('g', (0, utility_1.escre)(mcfg.sepChar))
+        : undefined;
     return function matchNumber(lex) {
         mcfg = cfg.number;
         if (!mcfg.lex)
@@ -269,12 +283,12 @@ let makeNumberMatcher = (cfg, _opts) => {
                     }
                     else {
                         let nstr = numberSep ? msrc.replace(numberSep, '') : msrc;
-                        let num = +(nstr);
+                        let num = +nstr;
                         // Special case: +- prefix of 0x... format
                         if (isNaN(num)) {
                             let first = nstr[0];
                             if ('-' === first || '+' === first) {
-                                num = ('-' === first ? -1 : 1) * +(nstr.substring(1));
+                                num = ('-' === first ? -1 : 1) * +nstr.substring(1);
                             }
                         }
                         if (!isNaN(num)) {
@@ -293,9 +307,9 @@ let makeNumberMatcher = (cfg, _opts) => {
 };
 exports.makeNumberMatcher = makeNumberMatcher;
 let makeStringMatcher = (cfg, opts) => {
-    // TODO: does `clean` make sense here? 
+    // TODO: does `clean` make sense here?
     let os = opts.string || {};
-    cfg.string = (cfg.string || {});
+    cfg.string = cfg.string || {};
     // TODO: compose with earlier config - do this in other makeFooMatchers?
     cfg.string = (0, utility_1.deep)(cfg.string, {
         lex: !!(os === null || os === void 0 ? void 0 : os.lex),
@@ -305,8 +319,11 @@ let makeStringMatcher = (cfg, opts) => {
         escChar: os.escapeChar,
         escCharCode: null == os.escapeChar ? undefined : os.escapeChar.charCodeAt(0),
         allowUnknown: !!os.allowUnknown,
-        replaceCodeMap: (0, utility_1.omap)((0, utility_1.clean)({ ...os.replace }), ([c, r]) => [c.charCodeAt(0), r]),
-        hasReplace: false
+        replaceCodeMap: (0, utility_1.omap)((0, utility_1.clean)({ ...os.replace }), ([c, r]) => [
+            c.charCodeAt(0),
+            r,
+        ]),
+        hasReplace: false,
     });
     cfg.string.hasReplace = 0 < (0, utility_1.keys)(cfg.string.replaceCodeMap).length;
     return function stringMatcher(lex) {
@@ -335,7 +352,7 @@ let makeStringMatcher = (cfg, opts) => {
                     sI++;
                     break; // String finished.
                 }
-                // Escape char. 
+                // Escape char.
                 else if (escChar === c) {
                     sI++;
                     cI++;
@@ -374,7 +391,7 @@ let makeStringMatcher = (cfg, opts) => {
                         }
                         let us = String.fromCodePoint(cc);
                         s.push(us);
-                        sI += (ulen - 1) + ux; // Loop increments sI.
+                        sI += ulen - 1 + ux; // Loop increments sI.
                         cI += ulen + ux;
                     }
                     else if (allowUnknown) {
@@ -397,8 +414,11 @@ let makeStringMatcher = (cfg, opts) => {
                     // TODO: move to cfgx
                     let qc = q.charCodeAt(0);
                     let cc = src.charCodeAt(sI);
-                    while ((!hasReplace || (undefined === (rs = replaceCodeMap[cc]))) &&
-                        sI < srclen && 32 <= cc && qc !== cc && escCharCode !== cc) {
+                    while ((!hasReplace || undefined === (rs = replaceCodeMap[cc])) &&
+                        sI < srclen &&
+                        32 <= cc &&
+                        qc !== cc &&
+                        escCharCode !== cc) {
                         cc = src.charCodeAt(++sI);
                         cI++;
                     }
@@ -445,7 +465,7 @@ let makeLineMatcher = (cfg, _opts) => {
         let { pnt, src } = lex;
         let { sI, rI } = pnt;
         while (chars[src[sI]]) {
-            rI += (rowChars[src[sI]] ? 1 : 0);
+            rI += rowChars[src[sI]] ? 1 : 0;
             sI++;
         }
         if (pnt.sI < sI) {
@@ -520,7 +540,7 @@ class LexImpl {
     token(ref, val, src, pnt, use, why) {
         let tin;
         let name;
-        if ('string' === typeof (ref)) {
+        if ('string' === typeof ref) {
             name = ref;
             tin = (0, utility_1.tokenize)(name, this.cfg);
         }
@@ -547,18 +567,23 @@ class LexImpl {
         else {
             //for (let mat of this.mat) {
             for (let mat of this.cfg.lex.match) {
-                if (tkn = mat(this, rule)) {
+                if ((tkn = mat(this, rule))) {
                     break;
                 }
             }
-            tkn = tkn || this.token('#BD', undefined, this.src[pnt.sI], pnt, undefined, 'unexpected');
+            tkn =
+                tkn ||
+                    this.token('#BD', undefined, this.src[pnt.sI], pnt, undefined, 'unexpected');
         }
         if (this.ctx.log) {
             this.ctx.log(utility_1.S.lex, // Log entry prefix.
             (0, utility_1.tokenize)(tkn.tin, this.cfg), // Name of token from tin (token identification numer).
             this.ctx.F(tkn.src), // Format token src for log.
             pnt.sI, // Current source index.
-            pnt.rI + ':' + pnt.cI);
+            pnt.rI + ':' + pnt.cI // Row and column.
+            // { ...tkn },  // Copy of the token.
+            //...rest)       // Context-specific additional entries.
+            );
         }
         return tkn;
     }
@@ -566,9 +591,9 @@ class LexImpl {
         return (0, utility_1.tokenize)(ref, this.cfg);
     }
     bad(why, pstart, pend) {
-        return this.token('#BD', undefined, 0 <= pstart && pstart <= pend ?
-            this.src.substring(pstart, pend) :
-            this.src[this.pnt.sI], undefined, undefined, why);
+        return this.token('#BD', undefined, 0 <= pstart && pstart <= pend
+            ? this.src.substring(pstart, pend)
+            : this.src[this.pnt.sI], undefined, undefined, why);
     }
 }
 const makeLex = (...params) => new LexImpl(...params);

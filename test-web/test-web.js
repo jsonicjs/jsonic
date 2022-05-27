@@ -1,4384 +1,68 @@
 (function(f){if(typeof exports==="object"&&typeof module!=="undefined"){module.exports=f()}else if(typeof define==="function"&&define.amd){define([],f)}else{var g;if(typeof window!=="undefined"){g=window}else if(typeof global!=="undefined"){g=global}else if(typeof self!=="undefined"){g=self}else{g=this}g.All = f()}})(function(){var define,module,exports;return (function(){function r(e,n,t){function o(i,f){if(!n[i]){if(!e[i]){var c="function"==typeof require&&require;if(!f&&c)return c(i,!0);if(u)return u(i,!0);var a=new Error("Cannot find module '"+i+"'");throw a.code="MODULE_NOT_FOUND",a}var p=n[i]={exports:{}};e[i][0].call(p.exports,function(r){var n=e[i][1][r];return o(n||r)},p,p.exports,r,e,n,t)}return n[i].exports}for(var u="function"==typeof require&&require,i=0;i<t.length;i++)o(t[i]);return o}return r})()({1:[function(require,module,exports){
 (function (global){(function (){
-!function(e){if("object"==typeof exports&&"undefined"!=typeof module)module.exports=e();else if("function"==typeof define&&define.amd)define([],e);else{("undefined"!=typeof window?window:"undefined"!=typeof global?global:"undefined"!=typeof self?self:this).Jsonic=e()}}((function(){var e={exports:{}};Object.defineProperty(e.exports,"__esModule",{value:!0}),e.exports.make=e.exports.util=e.exports.RuleSpec=e.exports.Rule=e.exports.Parser=e.exports.Lexer=e.exports.JsonicError=e.exports.Jsonic=void 0;const n="object",t="string",r="function",s="unexpected",o="map",l="list",i="elem",c="pair",a="val",u="node";class p extends SyntaxError{constructor(e,n,t,r,s){n=k.deep({},n);let o=k.deep({},{rI:s.rI,opts:s.opts,config:s.config,meta:s.meta,src:()=>s.src(),root:()=>s.root(),plugins:()=>s.plugins(),node:s.node,t0:s.t0,t1:s.t1,tI:s.tI,next:()=>s.next(),log:s.log,use:s.use}),l=p.make_desc(e,n,t,r,o);super(l.message),Object.assign(this,l),this.stack&&(this.stack=this.stack.split("\n").filter(e=>!e.includes("jsonic/jsonic")).map(e=>e.replace(/    at /,"at ")).join("\n"))}static make_desc(e,n,t,s,o){t={...t};let l=o.opts,i=o.meta,c=k.errinject(l.error[e]||l.error.unknown,e,n,t,s,o);r===typeof l.hint&&(l.hint={...l.hint(),...l.hint});let a=["[31m[jsonic/"+e+"]:[0m "+(i&&i.mode?"[35m[mode:"+i.mode+"]:[0m ":"")+c,"  [34m--\x3e[0m "+(i.fileName||"<no-file>")+":"+t.row+":"+t.col,k.extract(o.src(),c,t),k.errinject((l.hint[e]||l.hint.unknown).split("\n").map((e,n)=>(0===n?" ":"  ")+e).join("\n"),e,n,t,s,o),"  [2mhttps://jsonic.richardrodger.com[0m","  [2m--internal: rule="+s.name+"~"+m[s.state]+"; token="+o.config.token[t.pin]+"; plugins="+o.plugins().map(e=>e.name).join(",")+"--[0m\n"].join("\n"),u={internal:{token:t,ctx:o}};return{...Object.create(u),message:a,code:e,details:n,meta:i,fileName:i.fileName,lineNumber:t.row,columnNumber:t.col}}toJSON(){return{...this,__error:!0,name:this.name,message:this.message,stack:this.stack}}}e.exports.JsonicError=p;class d{constructor(e){this.match={},this.match[k.token("@LTP",e)]=[],this.match[k.token("@LTX",e)]=[],this.match[k.token("@LCS",e)]=[],this.match[k.token("@LML",e)]=[],this.end={pin:k.token("#ZZ",e),loc:0,len:0,row:0,col:0,val:void 0,src:void 0}}start(e){const n=e.opts,t=e.config;let r=e=>k.token(e,t),s=e=>k.token(e,t),o=e.F,l=r("@LTP"),i=r("@LTX"),c=r("@LCS"),a=r("@LML"),u=r("#ZZ"),p=r("#SP"),d=r("#CM"),m=r("#NR"),h=r("#ST"),f=r("#TX"),g=r("#VL");r("#LN");let b={pin:u,loc:0,row:0,col:0,len:0,val:void 0,src:void 0},v=0,x=0,_=0,y=e.src(),C=y.length,w=null!=e&&null!=e.log?(...n)=>e.log("lex",...n):void 0,S=this;function j(n,t,r,s){return S.bad(e,w,n,b,v,t,x,_,r,r,s)}function N(n,t){let r=S.match[n];if(null!=r){b.loc=v;for(let n of r){let r=n(v,y,b,e,t,j);if(r)return v=r.sI,x=r.rD?x+r.rD:x,_=r.cD?_+r.cD:_,w&&w(s(b.pin),o(b.src),{...b}),b}}}let A=function(e){b.len=0,b.val=void 0,b.src=void 0,b.row=x;let r=l,k=null,S="",A=0,I=[],T=-1;e:for(;v<C;){let u=y[v],L=y.charCodeAt(v);if(l!==r){if(i===r){if(N(i,e))return b;let r=n.text.hoover?t.hoover_ender:t.text_ender;for(;null!=y[A]&&(!r.includes(y[A])||t.cmk0.includes(y[A])&&!t.cmk1.includes(y[A+1]));)_++,A++;if(b.len=A-v,b.pin=f,b.val=y.substring(v,A),b.src=b.val,n.text.hoover&&t.multi.SP.includes(b.val[b.val.length-1])){let e=b.val.length-2;for(;0<e&&t.multi.SP.includes(b.val[e]);)e--;b.val=b.val.substring(0,e+1),b.src=b.val,_-=b.len-e-1,b.len=b.val.length,v+=b.len}else v=A;return w&&w(s(b.pin),o(b.src),{...b}),b}if(c===r){if(N(c,e))return b;for(A=v;A<C&&!S.includes(y[A]);)A++,_++;return b.val+=y.substring(v,A),b.src=b.val,b.len=b.val.length,v=A,r=l,w&&w(s(b.pin),o(b.src),{...b}),b}if(a===r){if(N(a,e))return b;A=v;let i=1,c=k[0],u=k[1],p=n.balance[k[2]],d=!!k[3],m="",h=c.length,f=u.length;if(d){let e=v-1;for(;-1<e&&t.multi.SP.includes(y[e--]););m=t.multi.SP[0].repeat(v-e-2)}for(A+=c.length;A<C&&0<i;)u[0]===y[A]&&u===y.substring(A,A+f)?(A+=f,_+=f,i--):p&&c[0]===y[A]&&c===y.substring(A,A+h)?(A+=h,_+=f,i++):(n.char.row===y[A]?(x++,_=0):_++,A++);return b.val=y.substring(v,A),b.src=b.val,b.len=b.val.length,d&&(b.val=b.val.substring(h,b.val.length-f),b.val=b.val.replace(new RegExp(n.char.row+m,"g"),"\n"),b.val=b.val.substring(1,b.val.length-1)),v=A,r=l,w&&w(s(b.pin),o(b.src),{...b}),b}}else{if(N(l,e))return b;if(t.start.SP.includes(L)){for(b.pin=p,b.loc=v,b.col=_++,A=v+1;t.multi.SP.includes(y[A]);)_++,A++;return b.len=A-v,b.val=y.substring(v,A),b.src=b.val,v=A,w&&w(s(b.pin),o(b.src),{...b}),b}if(t.start.LN.includes(L)){for(b.pin=t.lex.core.LN,b.loc=v,b.col=_,A=v,_=0;t.multi.LN.includes(y[A]);)x+=n.char.row===y[A]?1:0,A++;return b.len=A-v,b.val=y.substring(v,A),b.src=b.val,v=A,w&&w(s(b.pin),o(b.src),{...b}),b}if(null!=t.single[L])return b.pin=t.single[L],b.loc=v,b.col=_++,b.len=1,b.src=u,v++,w&&w(s(b.pin),o(b.src),{...b}),b;if(t.start.NR.includes(L)){for(b.pin=m,b.loc=v,b.col=_,A=v;n.number.digital.includes(y[++A]););if((null==y[A]||t.value_ender.includes(y[A]))&&(b.len=A-v,1<b.len&&"0"===y[v]&&"x"!=y[v+1]?(b.val=void 0,A--):(b.val=+y.substring(v,A),n.number.underscore&&isNaN(b.val)&&(b.val=+y.substring(v,A).replace(/_/g,"")),isNaN(b.val)&&(b.val=void 0,A--))),null!=b.val)return b.src=y.substring(v,A),_+=b.len,v=A,w&&w(s(b.pin),o(b.src),{...b}),b}if(t.start_bm.includes(L)){let e=y.substring(v,v+t.bmk_maxlen);for(let s of t.bmk)if(e.startsWith(s)){b.pin=h,b.loc=v,b.col=_,r=a,k=[s,n.string.block[s],null,!0];continue e}}if(t.start.ST.includes(L)){b.pin=h,b.loc=v,b.col=_++;let e=u.charCodeAt(0),r=n.string.multiline.includes(u);for(I=[],T=-1,A=v+1;A<C;A++)if(_++,e===(T=y.charCodeAt(A))){if(!n.string.escapedouble||e!==y.charCodeAt(A+1)){A++;break}I.push(y[A]),A++}else if(92===T){let e=y.charCodeAt(++A);_++;let r=t.escape[e];if(null!=r)I.push(r);else if(120===e){A++;let e=String.fromCharCode("0x"+y.substring(A,A+2));if(n.char.bad_unicode===e)return j("invalid_ascii",A,y.substring(A-2,A+2));I.push(e),A+=1,_+=2}else if(117===e){A++;let e=String.fromCharCode("0x"+y.substring(A,A+4));if(n.char.bad_unicode===e)return j("invalid_unicode",A,y.substring(A-2,A+4));I.push(e),A+=3,_+=4}else I.push(y[A])}else if(T<32){if(!r||!t.start.LN.includes(T))return j("unprintable",A,"char-code="+y[A].charCodeAt(0));I.push(y[A])}else{let n=A;do{T=y.charCodeAt(++A),_++}while(32<=T&&e!==T&&92!==T);_--,I.push(y.substring(n,A)),A--}return e!==T?(_=v,j("unterminated",A-1,I.join(""))):(b.val=I.join(""),b.src=y.substring(v,A),b.len=A-v,v=A,w&&w(s(b.pin),o(b.src),{...b}),b)}if(t.start_cm.includes(L)){let e=t.cm_single.includes(u),s=y.substring(v,v+t.cmk_maxlen);for(let o of t.cmk)if(s.startsWith(o)){if(!0!==n.comment[o]){b.pin=d,b.loc=v,b.col=_,b.val="",r=a,k=[o,n.comment[o],"comment"];continue e}e=!0;break}if(e){b.pin=d,b.loc=v,b.col=_,b.val="",r=c,S=t.multi.LN;continue e}}b.loc=v,b.col=_,A=v;do{_++,A++}while(null!=y[A]&&!t.value_ender.includes(y[A]));let f=y.substring(v,A),O=n.value[f];if(void 0!==O)return b.pin=g,b.val=O,b.src=f,b.len=A-v,v=A,w&&w(s(b.pin),o(b.src),{...b}),b;r=i}}return b.pin=u,b.loc=C,b.col=_,w&&w(s(b.pin),o(b.src),{...b}),b};return A.src=y,A}bad(e,n,t,r,s,o,l,i,c,a,u){return r.why=t,r.pin=k.token("#BD",e.config),r.loc=o,r.row=l,r.col=i,r.len=o-s+1,r.val=c,r.src=a,r.use=u,n&&n(k.token(r.pin,e.config),e.F(r.src),{...r},"error",t),r}lex(e,n){if(null==e&&null==n)return this.match;if(null==this.match[e])throw new Error("jsonic: unknown lex state:"+e);return null!=n&&this.match[e].push(n),this.match[e]}clone(e){let n=new d(e);return k.deep(n.match,this.match),n}}var m;e.exports.Lexer=d,function(e){e[e.open=0]="open",e[e.close=1]="close"}(m||(m={}));class h{constructor(e,n,t){this.id=n.rI++,this.name=e.name,this.spec=e,this.node=t,this.state=m.open,this.child=f,this.open=[],this.close=[],this.n={}}process(e){let n=f;return m.open===this.state?n=this.spec.open(this,e):m.close===this.state&&(n=this.spec.close(this,e)),n}}e.exports.Rule=h;let f={id:0,spec:{name:"norule"}};class g{constructor(e,n){function t(e){return"object"==typeof e&&e.n?(n,t,r)=>{let s=!0;for(let o in e.n)s=s&&(null==t.n[o]||t.n[o]<=e.n[o]);return s}:e}this.name=e,this.def=n;for(let r of this.def.open)null!=r.c&&(r.c=t(r.c));for(let r of this.def.close)null!=r.c&&(r.c=t(r.c))}open(e,n){let t,r=e,o="",l=n.F;this.def.before_open&&(t=this.def.before_open.call(this,e,n),e.node=t&&t.node||e.node);let i=null!=t&&t.done?{m:[]}:this.parse_alts(this.def.open,e,n);if(i.e)throw new p(s,{open:!0},i.e,e,n);if(e.open=i.m,i.n)for(let s in i.n)e.n[s]=0===i.n[s]?0:(null==e.n[s]?0:e.n[s])+i.n[s],e.n[s]=0<e.n[s]?e.n[s]:0;return i.p?(n.rs.push(e),(r=e.child=new h(n.rsm[i.p],n,e.node)).parent=e,r.n={...e.n},o+="U"):i.r?((r=new h(n.rsm[i.r],n,e.node)).parent=e.parent,r.n={...e.n},o+="R"):o+="Z",this.def.after_open&&this.def.after_open.call(this,e,n,r),n.log&&n.log(u,e.name+"/"+e.id,m[e.state],o,l(e.node)),e.state=m.close,r}close(e,n){let t=f,r="";this.def.before_close&&this.def.before_close.call(this,e,n);let o=0<this.def.close.length?this.parse_alts(this.def.close,e,n):{};if(o.e)throw new p(s,{close:!0},o.e,e,n);if(o.n)for(let s in o.n)e.n[s]=0===o.n[s]?0:(null==e.n[s]?0:e.n[s])+o.n[s],e.n[s]=0<e.n[s]?e.n[s]:0;return o.h&&(t=o.h(this,e,n)||t,r+="H"),o.p?(n.rs.push(e),(t=e.child=new h(n.rsm[o.p],n,e.node)).parent=e,t.n={...e.n},r+="U"):o.r?((t=new h(n.rsm[o.r],n,e.node)).parent=e.parent,t.n={...e.n},r+="R"):(t=n.rs.pop()||f,r+="O"),this.def.after_close&&this.def.after_close.call(this,e,n,t),t.why=r,n.log&&n.log(u,e.name+"/"+e.id,m[e.state],r,n.F(e.node)),t}parse_alts(e,n,t){let r,s=void 0,o=0,l=t.config.token;if(l.ZZ===t.t0.pin)s={m:[]};else if(0<e.length){for(o=0;o<e.length;o++)if(!(r=e[o]).c||r.c(r,n,t)){if(null==r.s||0===r.s.length){s={...r,m:[]};break}if(r.s[0]===t.t0.pin){if(1===r.s.length){s={...r,m:[t.t0]};break}if(r.s[1]===t.t1.pin){s={...r,m:[t.t0,t.t1]};break}}else if(l.AA===r.s[0]){s={...r,m:[t.t0]};break}}s=s||{e:t.t0,m:[]}}if(s=s||{m:[]},t.log&&t.log("parse",n.name+"/"+n.id,m[n.state],o<e.length?"alt="+o:"no-alt",o<e.length&&r&&r.s?"["+r.s.map(e=>l[e]).join(" ")+"]":"[]",t.tI,"p="+(s.p||""),"r="+(s.r||""),"b="+(s.b||""),s.m.map(e=>l[e.pin]).join(" "),t.F(s.m.map(e=>e.src)),"n:"+Object.entries(n.n).join(";"),s),s.m){let e=0,n=s.m.length-(s.b||0);for(;e++<n;)t.next()}return s}}e.exports.RuleSpec=g;class b{constructor(e,n){this.rsm={},this.opts=e,this.config=n}init(){let e=this.config.token,n=e.OB,t=e.CB,r=e.OS,s=e.CS,u=e.CL,p=e.CA,d=e.TX,m=e.NR,h=e.ST,f=e.VL,b=e.AA,v={val:{open:[{s:[n,p],p:o,n:{im:0}},{s:[n],p:o,n:{im:0}},{s:[r],p:l},{s:[p],p:l,b:1},{s:[d,u],p:o,b:2,n:{im:1}},{s:[h,u],p:o,b:2,n:{im:1}},{s:[m,u],p:o,b:2,n:{im:1}},{s:[f,u],p:o,b:2,n:{im:1}},{s:[d]},{s:[m]},{s:[h]},{s:[f]}],close:[{s:[p],c:(e,n,t)=>0===t.rs.length,r:i,h:(e,n,t)=>{n.node=[n.node]}},{s:[b],b:1}],before_close:e=>{var n,t;e.node=null!==(n=e.child.node)&&void 0!==n?n:null===(t=e.open[0])||void 0===t?void 0:t.val}},map:{before_open:()=>({node:{}}),open:[{s:[t]},{p:c}],close:[]},list:{before_open:()=>({node:[]}),open:[{s:[s]},{p:i}],close:[]},pair:{open:[{s:[h,u],p:a},{s:[d,u],p:a},{s:[m,u],p:a},{s:[f,u],p:a},{s:[t],b:1}],close:[{s:[t]},{s:[p],c:{n:{im:1}},r:c},{s:[p],n:{im:-1},b:1},{s:[h,u],c:{n:{im:1}},r:c,b:2},{s:[d,u],c:{n:{im:1}},r:c,b:2},{s:[m,u],c:{n:{im:1}},r:c,b:2},{s:[f,u],c:{n:{im:1}},r:c,b:2},{s:[h,u],n:{im:-1},b:2},{s:[d,u],n:{im:-1},b:2},{s:[m,u],n:{im:-1},b:2},{s:[f,u],n:{im:-1},b:2}],before_close:(e,n)=>{let r=e.open[0];if(r&&t!==r.pin){let t=h===r.pin?r.val:r.src,s=e.node[t];e.node[t]=null==s?e.child.node:n.opts.object.extend?k.deep(s,e.child.node):e.child.node}}},elem:{open:[{s:[n],p:o,n:{im:0}},{s:[r],p:l},{s:[d]},{s:[m]},{s:[h]},{s:[f]},{s:[p,p],b:2},{s:[p]}],close:[{s:[p,s]},{s:[p],r:i},{s:[s]},{s:[n],p:o,n:{im:0}},{s:[r],p:l},{s:[d,u],p:o,n:{im:0},b:2},{s:[m,u],p:o,n:{im:0},b:2},{s:[h,u],p:o,n:{im:0},b:2},{s:[f,u],p:o,n:{im:0},b:2},{s:[d],r:i,b:1},{s:[m],r:i,b:1},{s:[h],r:i,b:1},{s:[f],r:i,b:1}],after_open:(e,n,t)=>{if(e===t&&e.open[0]){let n=e.open[0].val;e.node.push(null!=n?n:null)}},before_close:e=>{e.child.node&&e.node.push(e.child.node)}}};this.rsm=Object.keys(v).reduce((e,n)=>(e[n]=new g(n,v[n]),e),{})}rule(e,n){return this.rsm[e]=null==n?this.rsm[e]:n(this.rsm[e],this.rsm)||this.rsm[e],this.rsm[e]}start(e,n,t,r,s){let o,l=this.opts,i=this.config,c={rI:1,opts:l,config:i,meta:r||{},src:()=>n,root:()=>o.node,plugins:()=>t.internal().plugins,node:void 0,u2:e.end,u1:e.end,t0:e.end,t1:e.end,tI:-2,next:g,rs:[],rsm:this.rsm,log:r&&r.log||void 0,F:k.make_src_format(i),use:{}};null!=s&&(c=k.deep(c,s)),k.make_log(c);let a=e=>k.token(e,this.config),u=k.wrap_bad_lex(e.start(c),k.token("#BD",this.config),c),p=new h(this.rsm.val,c);o=p;let d=2*Object.keys(this.rsm).length*u.src.length*2*l.rule.maxmul;function g(e=!0){let n;c.u2=c.u1,c.u1=c.t0,c.t0=c.t1;do{n=u(p),c.tI++}while(e&&i.tokenset.IGNORE.includes(n.pin));return c.t1={...n},c.t0}g(),g();let b=0;for(;f!==p&&b<d;)c.log&&c.log("rule",p.name+"/"+p.id,m[p.state],c.rs.length,c.tI,"["+a(c.t0.pin)+" "+a(c.t1.pin)+"]","["+c.F(c.t0.src)+" "+c.F(c.t1.src)+"]",p,c),p=p.process(c),c.log&&c.log("stack",c.rs.length,c.rs.map(e=>e.name+"/"+e.id).join(";"),p,c),b++;return o.node}clone(e,n){let t=new b(e,n);return t.rsm=Object.keys(this.rsm).reduce((e,n)=>(e[n]=k.clone(this.rsm[n]),e),{}),t}}e.exports.Parser=b;let k={token:function(e,n,r){let s=n.token,o=s[e];return null==o&&t===typeof e&&(o=n.tokenI++,s[o]=e,s[e]=o,s[e.substring(1)]=o,null!=r&&Object.assign(r.token,n.token)),o},deep:function(e,...t){let s=r===typeof e,o=null!=e&&(n===typeof e||s);for(let l of t){let t=r===typeof l,i=null!=l&&(n===typeof l||t);if(o&&i&&!t&&Array.isArray(e)===Array.isArray(l))for(let n in l)e[n]=k.deep(e[n],l[n]);else e=void 0===l?e:t?l:i?k.deep(Array.isArray(l)?[]:{},l):l,s=r===typeof e,o=null!=e&&(n===typeof e||s)}return e},clone:function(e){return k.deep(Object.create(Object.getPrototypeOf(e)),e)},s2cca:function(e){return e.split("").map(e=>e.charCodeAt(0))},longest:e=>e.reduce((e,n)=>e<n.length?n.length:e,0),make_src_format:e=>(n,t)=>null==n?"":(t=JSON.stringify(n)).substring(0,e.debug.maxlen)+(e.debug.maxlen<t.length?"...":""),make_log:e=>{if("number"==typeof e.log){let t=!1,r=e.log;-1===r&&(r=1,t=!0),e.log=(...s)=>{if(t){let t=s.filter(e=>n!=typeof e).join("\t");e.opts.debug.get_console().log(t)}else e.opts.debug.get_console().dir(s,{depth:r})}}},wrap_bad_lex:(e,n,t)=>{let r=r=>{let o=e(r);if(n===o.pin){let e={};throw null!=o.use&&(e.use=o.use),new p(o.why||s,e,o,r,t)}return o};return r.src=e.src,r},errinject:(e,n,t,r,s,o)=>e.replace(/\$([\w_]+)/g,(e,l)=>JSON.stringify("code"===l?n:t[l]||o.meta[l]||r[l]||s[l]||o[l]||o.opts[l]||o.config[l]||"$"+l)),extract:(e,n,t)=>{let r=0<t.loc?t.loc:0,s=0<t.row?t.row:0,o=0<t.col?t.col:0,l=null==t.src?"":t.src,i=e.substring(Math.max(0,r-333),r).split("\n"),c=e.substring(r,r+333).split("\n"),a=2+(""+(s+2)).length,u=s<2?0:s-2,p=e=>"[34m"+(""+u++).padStart(a," ")+" | [0m"+(null==e?"":e),d=i.length;return[2<d?p(i[d-3]):null,1<d?p(i[d-2]):null,p(i[d-1]+c[0])," ".repeat(a)+"   "+" ".repeat(o)+"[31m"+"^".repeat(l.length||1)+" "+n+"[0m",p(c[1]),p(c[2])].filter(e=>null!=e).join("\n")},handle_meta_mode:(e,n,t)=>{let s=e.options;if(r!==typeof s.mode[t.mode])return[!1];try{return s.mode[t.mode].call(e,n,t)}catch(o){if("SyntaxError"===o.name){let r=0,l=0,i=0,c="",a=o.message.match(/^Unexpected token (.) .*position\s+(\d+)/i);if(a){c=a[1],r=parseInt(a[2]),l=n.substring(0,r).replace(/[^\n]/g,"").length;let e=r-1;for(;-1<e&&"\n"!==n.charAt(e);)e--;i=e<r?n.substring(e,r).length-1:0}let u=o.token||{pin:e.token.UK,loc:r,len:c.length,row:o.lineNumber||l,col:o.columnNumber||i,val:void 0,src:c};throw new p(o.code||"json",o.details||{msg:o.message},u,{},o.ctx||{rI:-1,opts:s,config:{token:{}},token:{},meta:t,src:()=>n,root:()=>{},plugins:()=>[],node:void 0,u2:u,u1:u,t0:u,t1:u,tI:-1,rs:[],next:()=>u,rsm:{},n:{},log:t.log,F:k.make_src_format(e.internal().config),use:{}})}throw o}},build_config_from_options:function(e,n){let r=Object.keys(n.token);r.forEach(n=>k.token(n,e));let s=r.filter(e=>null!=n.token[e].c);e.single=s.reduce((t,r)=>{return t[(s=n.token[r].c,s.charCodeAt(0))]=e.token[r],t;var s},[]);let o=r.filter(e=>t===typeof n.token[e]);e.start=o.reduce((e,t)=>(e[t.substring(1)]=k.s2cca(n.token[t]),e),{}),e.multi=o.reduce((e,t)=>(e[t.substring(1)]=n.token[t],e),{});let l=r.filter(e=>null!=n.token[e].s);if(e.tokenset=l.reduce((t,r)=>(t[r.substring(1)]=n.token[r].s.split(",").map(n=>e.token[n]),t),{}),n.escape=n.escape||{},e.escape=Object.keys(n.escape).reduce((e,t)=>(e[t.charCodeAt(0)]=n.escape[t],e),[]),e.start_cm=[],e.cm_single="",e.cmk=[],e.cmk0="",e.cmk1="",n.comment){let t=Object.keys(n.comment);t.forEach(n=>{1===n.length?(e.start_cm.push(n.charCodeAt(0)),e.cm_single+=n):(e.start_cm.push(n.charCodeAt(0)),e.cmk.push(n),e.cmk0+=n[0],e.cmk1+=n[1])}),e.cmk_maxlen=k.longest(t)}e.start_cm_char=e.start_cm.map(e=>String.fromCharCode(e)).join(""),e.start_bm=[],e.bmk=[];let i=Object.keys(n.string.block);i.forEach(n=>{e.start_bm.push(n.charCodeAt(0)),e.bmk.push(n)}),e.bmk_maxlen=k.longest(i),e.single_char=e.single.map((e,n)=>String.fromCharCode(n)).join(""),e.value_ender=e.multi.SP+e.multi.LN+e.single_char+e.start_cm_char,e.text_ender=e.value_ender,e.hoover_ender=e.multi.LN+e.single_char+e.start_cm_char,e.lex={core:{LN:k.token(n.lex.core.LN,e)}},e.debug=n.debug}};function v(e,s){let o,l,i,c,a=e;r===typeof e&&(a={},s=e);let u=k.deep({},s?{...s.options}:{escape:{b:"\b",f:"\f",n:"\n",r:"\r",t:"\t"},char:{row:"\n",bad_unicode:String.fromCharCode("0x0000")},comment:{"#":!0,"//":!0,"/*":"*/"},balance:{comment:!0},number:{digital:"-1023456789._xeEaAbBcCdDfF+",underscore:!0},string:{multiline:"`",block:{"'''":"'''"},escapedouble:!1},text:{hoover:!0,endofline:!1},object:{extend:!0},value:{null:null,true:!0,false:!1},mode:{},plugin:{},debug:{get_console:()=>console,maxlen:33},error:{unknown:"unknown error: $code",unexpected:"unexpected character(s): $src",invalid_unicode:"invalid unicode escape: $src",invalid_ascii:"invalid ascii escape: $src",unprintable:"unprintable character: $src",unterminated:"unterminated string: $src"},hint:x,token:{"#OB":{c:"{"},"#CB":{c:"}"},"#OS":{c:"["},"#CS":{c:"]"},"#CL":{c:":"},"#CA":{c:","},"#SP":" \t","#LN":"\n\r","#CM":!0,"#NR":"-0123456789","#ST":"\"'`","#TX":!0,"#VL":!0,"#BD":!0,"#ZZ":!0,"#UK":!0,"#AA":!0,"#IGNORE":{s:"#SP,#LN,#CM"}},lex:{core:{LN:"#LN"}},rule:{maxmul:3}},a),p=function(e,n,r){if(t===typeof e){let t=p.internal(),[s,o]=null!=n&&null!=n.mode?k.handle_meta_mode(p,e,n):[!1];return s||(o=t.parser.start(t.lexer,e,p,n,r)),o}return e};if(p.token=function(e){return k.token(e,i,p)},s){for(let n in s)p[n]=s[n];p.parent=s;let e=s.internal();i=k.deep({},e.config),k.build_config_from_options(i,u),Object.assign(p.token,i.token),c=[...e.plugins],o=e.lexer.clone(i),l=e.parser.clone(u,i)}else i={tokenI:1,token:{}},k.build_config_from_options(i,u),c=[],o=new d(i),(l=new b(u,i)).init();return Object.assign(p.token,i.token),p.internal=()=>({lexer:o,parser:l,config:i,plugins:c}),p.options=k.deep(e=>{if(null!=e&&n===typeof e){k.build_config_from_options(i,k.deep(u,e));for(let e in u)p.options[e]=u[e]}return p},u),p.parse=p,p.use=function(e,n){return p.options({plugin:{[e.name]:n||{}}}),p.internal().plugins.push(e),e(p)||p},p.rule=function(e,n){let t=p.internal().parser.rule(e,n);return null==n?t:p},p.lex=function(e,n){let t=p.internal().lexer.lex(e,n);return null==n?t:p},p.make=function(e){return v(e,p)},Object.defineProperty(p.make,"name",{value:"make"}),p}function x(e=((e,n="replace")=>e[n](/[A-Z]/g,e=>" "+e.toLowerCase())[n](/[~%][a-z]/g,e=>("~"==e[0]?" ":"")+e[1].toUpperCase())),n="~sinceTheErrorIsUnknown,ThisIsProbablyABugInsideJsonic\nitself.~pleaseConsiderPostingAGithubIssue -Thanks!|~theCharacter(s) $srcShouldNotOccurAtThisPointAsItIsNot\nvalid %j%s%o%nSyntax,EvenUnderTheRelaxedJsonicRules.~ifItIs\nnotObviouslyWrong,TheActualSyntaxErrorMayBeElsewhere.~try\ncommentingOutLargerAreasAroundThisPointUntilYouGetNoErrors,\nthenRemoveTheCommentsInSmallSectionsUntilYouFindThe\noffendingSyntax.~n%o%t%e:~alsoCheckIfAnyPluginsOrModesYouAre\nusingExpectDifferentSyntaxInThisCase.|~theEscapeSequence $srcDoesNotEncodeAValidUnicodeCodePoint\nnumber.~youMayNeedToValidateYourStringDataManuallyUsingTest\ncodeToSeeHow~javaScriptWillInterpretIt.~alsoConsiderThatYour\ndataMayHaveBecomeCorrupted,OrTheEscapeSequenceHasNotBeen\ngeneratedCorrectly.|~theEscapeSequence $srcDoesNotEncodeAValid~a%s%c%i%iCharacter.~you\nmayNeedToValidateYourStringDataManuallyUsingTestCodeToSee\nhow~javaScriptWillInterpretIt.~alsoConsiderThatYourDataMay\nhaveBecomeCorrupted,OrTheEscapeSequenceHasNotBeenGenerated\ncorrectly.|~stringValuesCannotContainUnprintableCharacters (characterCodes\nbelow 32).~theCharacter $srcIsUnprintable.~youMayNeedToRemove\ntheseCharactersFromYourSourceData.~alsoCheckThatItHasNot\nbecomeCorrupted.|~stringValuesCannotBeMissingTheirFinalQuoteCharacter,Which\nshouldMatchTheirInitialQuoteCharacter.".split("|")){return"unknown|unexpected|invalid_unicode|invalid_ascii|unprintable|unterminated".split("|").reduce((t,r,s)=>(t[r]=e(n[s]),t),{})}e.exports.util=k,e.exports.make=v;let _=v();return e.exports.Jsonic=_,_.Jsonic=_,_.JsonicError=p,_.Lexer=d,_.Parser=b,_.Rule=h,_.RuleSpec=g,_.util=k,_.make=v,e.exports.default=_,e.exports=e.exports.Jsonic,e=e.exports}));
+!function(e){if("object"==typeof exports&&"undefined"!=typeof module)module.exports=e();else if("function"==typeof define&&define.amd)define([],e);else{("undefined"!=typeof window?window:"undefined"!=typeof global?global:"undefined"!=typeof self?self:this).Jsonic=e()}}((function(){var e=function(e){var t;return function(n){return t||e(t={exports:{},parent:n},t.exports),t.exports}},t=e((function(e,t){"use strict";Object.defineProperty(t,"__esModule",{value:!0}),t.values=t.keys=t.omap=t.str=t.prop=t.normalt=t.parserwrap=t.trimstk=t.tokenize=t.srcfmt=t.snip=t.regexp=t.mesc=t.makelog=t.isarr=t.filterRules=t.extract=t.escre=t.errinject=t.errdesc=t.entries=t.defprop=t.deep=t.configure=t.clone=t.clean=t.charset=t.badlex=t.assign=t.S=t.JsonicError=void 0;const i=n({}),s=e=>null==e?[]:Object.keys(e);t.keys=s,t.values=e=>null==e?[]:Object.values(e),t.entries=e=>null==e?[]:Object.entries(e);const l=(e,...t)=>Object.assign(null==e?{}:e,...t);t.assign=l,t.isarr=e=>Array.isArray(e);const o=Object.defineProperty;t.defprop=o;const a=(e,t)=>Object.entries(e||{}).reduce((e,n)=>{let r=t?t(n):n;void 0===r[0]?delete e[n[0]]:e[r[0]]=r[1];let i=2;for(;void 0!==r[i];)e[r[i]]=r[i+1],i+=2;return e},{});t.omap=a;const c={object:"object",string:"string",function:"function",unexpected:"unexpected",map:"map",list:"list",elem:"elem",pair:"pair",val:"val",node:"node",no_re_flags:r.EMPTY,unprintable:"unprintable",invalid_ascii:"invalid_ascii",invalid_unicode:"invalid_unicode",invalid_lex_state:"invalid_lex_state",unterminated_string:"unterminated_string",unterminated_comment:"unterminated_comment",lex:"lex",parse:"parse",error:"error",none:"none",imp_map:"imp,map",imp_list:"imp,list",imp_null:"imp,null",end:"end",open:"open",close:"close",rule:"rule",stack:"stack",nUll:"null",name:"name",make:"make"};t.S=c;class u extends SyntaxError{constructor(e,t,n,r,i){let s=x(e,t=h({},t),n,r,i);super(s.message),l(this,s),g(this)}toJSON(){return{...this,__error:!0,name:this.name,message:this.message,stack:this.stack}}}function p(e,t,n){let i=t.t,s=i[e];return null==s&&r.STRING===typeof e&&(i[s=t.tI++]=e,i[e]=s,i[e.substring(1)]=s,null!=n&&l(n.token,t.t)),s}function d(e,...t){return new RegExp(t.map(e=>e.esc?m(e.toString()):e).join(r.EMPTY),null==e?"":e)}function m(e){return null==e?"":e.replace(/[-\\|\]{}()[^$+*?.!=]/g,"\\$&").replace(/\t/g,"\\t").replace(/\r/g,"\\r").replace(/\n/g,"\\n")}function h(e,...t){let n=c.function===typeof e,r=null!=e&&(c.object===typeof e||n);for(let i of t){let t=c.function===typeof i,s=null!=i&&(c.object===typeof i||t);if(r&&s&&!t&&Array.isArray(e)===Array.isArray(i))for(let n in i)e[n]=h(e[n],i[n]);else e=void 0===i?e:t?i:s?h(Array.isArray(i)?[]:{},i):i,n=c.function===typeof e,r=null!=e&&(c.object===typeof e||n)}return e}function f(e,t,n,r,i,s){let l={code:t,details:n,token:r,rule:i,ctx:s};return null==e?"":e.replace(/\$([\w_]+)/g,(e,t)=>{let o=JSON.stringify(null!=l[t]?l[t]:null!=n[t]?n[t]:s.meta&&null!=s.meta[t]?s.meta[t]:null!=r[t]?r[t]:null!=i[t]?i[t]:null!=s.opts[t]?s.opts[t]:null!=s.cfg[t]?s.cfg[t]:null!=s[t]?s[t]:"$"+t);return null==o?"":o})}function g(e){e.stack&&(e.stack=e.stack.split("\n").filter(e=>!e.includes("jsonic/jsonic")).map(e=>e.replace(/    at /,"at ")).join("\n"))}function k(e,t,n){let i=0<n.sI?n.sI:0,s=0<n.rI?n.rI:1,l=0<n.cI?n.cI:1,o=null==n.src?r.EMPTY:n.src,a=e.substring(Math.max(0,i-333),i).split("\n"),c=e.substring(i,i+333).split("\n"),u=2+(r.EMPTY+(s+2)).length,p=s<3?1:s-2,d=e=>"\x1b[34m"+(r.EMPTY+p++).padStart(u," ")+" | \x1b[0m"+(null==e?r.EMPTY:e),m=a.length;return[2<m?d(a[m-3]):null,1<m?d(a[m-2]):null,d(a[m-1]+c[0])," ".repeat(u)+"   "+" ".repeat(l-1)+"\x1b[31m"+"^".repeat(o.length||1)+" "+t+"\x1b[0m",d(c[1]),d(c[2])].filter(e=>null!=e).join("\n")}function x(e,t,n,r,i){try{let s=i.cfg,l=i.meta,o=f(s.error[e]||s.error.unknown,e,t,n,r,i);c.function===typeof s.hint&&(s.hint={...s.hint(),...s.hint});let a=["\x1b[31m[jsonic/"+e+"]:\x1b[0m "+o,"  \x1b[34m--\x3e\x1b[0m "+(l&&l.fileName||"<no-file>")+":"+n.rI+":"+n.cI,k(i.src(),o,n),"",f((s.hint[e]||s.hint.unknown||"").trim().split("\n").map(e=>"  "+e).join("\n"),e,t,n,r,i),"","  \x1b[2mhttps://jsonic.senecajs.org\x1b[0m","  \x1b[2m--internal: rule="+r.name+"~"+r.state+"; token="+p(n.tin,i.cfg)+(null==n.why?"":"~"+n.why)+"; plugins="+i.plgn().map(e=>e.name).join(",")+"--\x1b[0m\n"].join("\n"),u={internal:{token:n,ctx:i}};return u={...Object.create(u),message:a,code:e,details:t,meta:l,fileName:l?l.fileName:void 0,lineNumber:n.rI,columnNumber:n.cI}}catch(s){return console.log(s),{}}}function v(e){return"function"==typeof e.debug.print.src?e.debug.print.src:(t,n)=>null==t?r.EMPTY:(n=JSON.stringify(t)).substring(0,e.debug.maxlen)+(e.debug.maxlen<n.length?"...":r.EMPTY)}function b(e,t=44){let n;try{n="object"==typeof e?JSON.stringify(e):""+e}catch(r){n=""+e}return y(t<n.length?n.substring(0,t-3)+"...":n,t)}function y(e,t=5){return void 0===e?"":(""+e).substring(0,t).replace(/[\r\n\t]/g,".")}function I(...e){return null==e?{}:e.filter(e=>!1!==e).map(e=>"object"==typeof e?s(e).join(r.EMPTY):e).join(r.EMPTY).split(r.EMPTY).reduce((e,t)=>(e[t]=t.charCodeAt(0),e),{})}function E(e){for(let t in e)null==e[t]&&delete e[t];return e}t.JsonicError=u,t.configure=function(e,t,n){var r,i,o,c,u,h,f,g,k,x,v,b,y,S,M,O,T,j,P,C,N,w,_,R,A,L,Y,F,U,$,J,B,z,Z,D,K,V;const W=t||{};W.t=W.t||{},W.tI=W.tI||1;const G=e=>p(e,W);!1!==n.grammar$&&(G("#BD"),G("#ZZ"),G("#UK"),G("#AA"),G("#SP"),G("#LN"),G("#CM"),G("#NR"),G("#ST"),G("#TX"),G("#VL")),W.fixed={lex:!!(null===(r=n.fixed)||void 0===r?void 0:r.lex),token:n.fixed?a(E(n.fixed.token),([e,t])=>[t,p(e,W)]):{},ref:void 0},W.fixed.ref=a(W.fixed.token,([e,t])=>[e,t]),W.fixed.ref=Object.assign(W.fixed.ref,a(W.fixed.ref,([e,t])=>[t,e])),W.tokenSet={ignore:Object.fromEntries(((null===(i=n.tokenSet)||void 0===i?void 0:i.ignore)||[]).map(e=>[G(e),!0]))},W.space={lex:!!(null===(o=n.space)||void 0===o?void 0:o.lex),chars:I(null===(c=n.space)||void 0===c?void 0:c.chars)},W.line={lex:!!(null===(u=n.line)||void 0===u?void 0:u.lex),chars:I(null===(h=n.line)||void 0===h?void 0:h.chars),rowChars:I(null===(f=n.line)||void 0===f?void 0:f.rowChars)},W.text={lex:!!(null===(g=n.text)||void 0===g?void 0:g.lex),modify:((null===(k=W.text)||void 0===k?void 0:k.modify)||[]).concat(([null===(x=n.text)||void 0===x?void 0:x.modify]||[]).flat()).filter(e=>null!=e)},W.number={lex:!!(null===(v=n.number)||void 0===v?void 0:v.lex),hex:!!(null===(b=n.number)||void 0===b?void 0:b.hex),oct:!!(null===(y=n.number)||void 0===y?void 0:y.oct),bin:!!(null===(S=n.number)||void 0===S?void 0:S.bin),sep:null!=(null===(M=n.number)||void 0===M?void 0:M.sep)&&""!==n.number.sep,sepChar:null===(O=n.number)||void 0===O?void 0:O.sep},W.value={lex:!!(null===(T=n.value)||void 0===T?void 0:T.lex),map:(null===(j=n.value)||void 0===j?void 0:j.map)||{}},W.rule={start:null==(null===(P=n.rule)||void 0===P?void 0:P.start)?"val":n.rule.start,maxmul:null==(null===(C=n.rule)||void 0===C?void 0:C.maxmul)?3:n.rule.maxmul,finish:!!(null===(N=n.rule)||void 0===N?void 0:N.finish),include:(null===(w=n.rule)||void 0===w?void 0:w.include)?n.rule.include.split(/\s*,+\s*/).filter(e=>""!==e):[],exclude:(null===(_=n.rule)||void 0===_?void 0:_.exclude)?n.rule.exclude.split(/\s*,+\s*/).filter(e=>""!==e):[]},W.map={extend:!!(null===(R=n.map)||void 0===R?void 0:R.extend),merge:null===(A=n.map)||void 0===A?void 0:A.merge};let H=Object.keys(W.fixed.token).sort((e,t)=>t.length-e.length).map(e=>m(e)).join("|"),q=(null===(L=n.comment)||void 0===L?void 0:L.lex)?(n.comment.marker||[]).filter(e=>e.lex).map(e=>m(e.start)).join("|"):"",X=["([",m(s(I(W.space.lex&&W.space.chars,W.line.lex&&W.line.chars)).join("")),"]",("string"==typeof n.ender?n.ender.split(""):Array.isArray(n.ender)?n.ender:[]).map(e=>"|"+m(e)).join(""),""===H?"":"|",H,""===q?"":"|",q,"|$)"];return W.rePart={fixed:H,ender:X,commentStart:q},W.re={ender:d(null,...X),rowChars:d(null,m(null===(Y=n.line)||void 0===Y?void 0:Y.rowChars)),columns:d(null,"["+m(null===(F=n.line)||void 0===F?void 0:F.chars)+"]","(.*)$")},W.lex={empty:!!(null===(U=n.lex)||void 0===U?void 0:U.empty),match:(null===($=n.lex)||void 0===$?void 0:$.match)?n.lex.match.map(e=>e(W,n)):[]},W.debug={get_console:(null===(J=n.debug)||void 0===J?void 0:J.get_console)||(()=>console),maxlen:null==(null===(B=n.debug)||void 0===B?void 0:B.maxlen)?99:n.debug.maxlen,print:{config:!!(null===(Z=null===(z=n.debug)||void 0===z?void 0:z.print)||void 0===Z?void 0:Z.config),src:null===(K=null===(D=n.debug)||void 0===D?void 0:D.print)||void 0===K?void 0:K.src}},W.error=n.error||{},W.hint=n.hint||{},(null===(V=n.config)||void 0===V?void 0:V.modify)&&s(n.config.modify).forEach(e=>n.config.modify[e](W,n)),W.debug.print.config&&W.debug.get_console().dir(W,{depth:null}),l(e.options,n),l(e.token,W.t),l(e.fixed,W.fixed.ref),W},t.tokenize=p,t.mesc=function(e,t){return(t=new String(e)).esc=!0,t},t.regexp=d,t.escre=m,t.deep=h,t.errinject=f,t.trimstk=g,t.extract=k,t.errdesc=x,t.badlex=function(e,t,n){let r=r=>{let i=e.next(r);if(t===i.tin){let e={};throw null!=i.use&&(e.use=i.use),new u(i.why||c.unexpected,e,i,r,n)}return i};return r.src=e.src,r},t.makelog=function(e,t){if(t)if("number"==typeof t.log){let n=!1,r=t.log;-1===r&&(r=1,n=!0),e.log=(...t)=>{if(n){let n=t.filter(e=>c.object!=typeof e).map(e=>c.function==typeof e?e.name:e).join("\t");e.cfg.debug.get_console().log(n)}else e.cfg.debug.get_console().dir(t,{depth:r})}}else"function"==typeof t.log&&(e.log=t.log);return e.log},t.srcfmt=v,t.str=b,t.snip=y,t.clone=function(e){return h(Object.create(Object.getPrototypeOf(e)),e)},t.charset=I,t.clean=E,t.filterRules=function(e,t){let n=["open","close"];for(let r of n)e.def[r]=e.def[r].map(e=>(e.g="string"==typeof e.g?(e.g||"").split(/\s*,+\s*/):e.g||[],e)).filter(e=>t.rule.include.reduce((t,n)=>t||null!=e.g&&-1!==e.g.indexOf(n),0===t.rule.include.length)).filter(e=>t.rule.exclude.reduce((t,n)=>t&&(null==e.g||-1===e.g.indexOf(n)),!0));return e},t.normalt=function(e){if(null!=e.c){let t=e.c.n,n=e.c.d;null==t&&null==n||(e.c=function(e){let r=!0;if(null!=t)for(let n in t)r=r&&(null==e.n[n]||e.n[n]<=(null==t[n]?0:t[n]));return null!=n&&(r=r&&e.d<=n),r},null!=t&&(e.c.n=t),null!=n&&(e.c.d=n))}if(r.STRING===typeof e.g&&(e.g=e.g.split(/\s*,\s*/)),e.s&&0!==e.s.length){const t=e=>e.flat().filter(e=>"number"==typeof e),n=(e,t)=>e.filter(e=>31*t<=e&&e<31*(t+1)),r=(e,t)=>e.reduce((e,n)=>1<<n-(31*t+1)|e,0),i=t([e.s[0]]),s=t([e.s[1]]),l=e;l.S0=0<i.length?new Array(Math.max(...i.map(e=>1+e/31|0))).fill(null).map((e,t)=>t).map(e=>r(n(i,e),e)):null,l.S1=0<s.length?new Array(Math.max(...s.map(e=>1+e/31|0))).fill(null).map((e,t)=>t).map(e=>r(n(s,e),e)):null}else e.s=null;return e},t.prop=function(e,t,n){let r=e;try{let r,i=t.split(".");for(let t=0;t<i.length;t++)r=i[t],t<i.length-1&&(e=e[r]=e[r]||{});return void 0!==n&&(e[r]=n),e[r]}catch(i){throw new Error("Cannot "+(void 0===n?"get":"set")+" path "+t+" on object: "+b(r)+(void 0===n?"":" to value: "+b(n,22)))}},t.parserwrap=function(e){return{start:function(t,n,s,l){try{return e.start(t,n,s,l)}catch(o){if("SyntaxError"===o.name){let e=0,l=0,a=0,c=r.EMPTY,d=o.message.match(/^Unexpected token (.) .*position\s+(\d+)/i);if(d){c=d[1],e=parseInt(d[2]),l=t.substring(0,e).replace(/[^\n]/g,r.EMPTY).length;let n=e-1;for(;-1<n&&"\n"!==t.charAt(n);)n--;a=Math.max(t.substring(n,e).length,0)}let m=o.token||(0,i.makeToken)("#UK",p("#UK",n.internal().config),void 0,c,(0,i.makePoint)(c.length,e,o.lineNumber||l,o.columnNumber||a));throw new u(o.code||"json",o.details||{msg:o.message},m,{},o.ctx||{uI:-1,opts:n.options,cfg:n.internal().config,token:m,meta:s,src:()=>t,root:()=>{},plgn:()=>n.internal().plugins,rule:{name:"no-rule"},xs:-1,v2:m,v1:m,t0:m,t1:m,tC:-1,rs:[],rsI:0,next:()=>m,rsm:{},n:{},log:s?s.log:void 0,F:v(n.internal().config),use:{},NORULE:{name:"no-rule"},NOTOKEN:{name:"no-token"}})}throw o}}}}})),n=e((function(e,n){"use strict";Object.defineProperty(n,"__esModule",{value:!0}),n.makeTextMatcher=n.makeNumberMatcher=n.makeCommentMatcher=n.makeStringMatcher=n.makeLineMatcher=n.makeSpaceMatcher=n.makeFixedMatcher=n.makeToken=n.makePoint=n.makeLex=n.makeNoToken=void 0;const i=t({});class s{constructor(e,t,n,r){this.len=-1,this.sI=0,this.rI=1,this.cI=1,this.token=[],this.len=e,null!=t&&(this.sI=t),null!=n&&(this.rI=n),null!=r&&(this.cI=r)}toString(){return"Point["+[this.sI+"/"+this.len,this.rI,this.cI]+(0<this.token.length?" "+this.token:"")+"]"}[r.INSPECT](){return this.toString()}}const l=(...e)=>new s(...e);n.makePoint=l;class o{constructor(e,t,n,i,s,l,o){this.isToken=!0,this.name=r.EMPTY,this.tin=-1,this.val=void 0,this.src=r.EMPTY,this.sI=-1,this.rI=-1,this.cI=-1,this.len=-1,this.name=e,this.tin=t,this.src=i,this.val=n,this.sI=s.sI,this.rI=s.rI,this.cI=s.cI,this.use=l,this.why=o,this.len=null==i?0:i.length}resolveVal(e,t){return"function"==typeof this.val?this.val(e,t):this.val}bad(e,t){return this.err=e,null!=t&&(this.use=(0,i.deep)(this.use||{},t)),this}toString(){return"Token["+this.name+"="+this.tin+" "+(0,i.snip)(this.src)+(void 0===this.val||"#ST"===this.name||"#TX"===this.name?"":"="+(0,i.snip)(this.val))+" "+[this.sI,this.rI,this.cI]+(null==this.use?"":" "+(0,i.snip)(""+JSON.stringify(this.use).replace(/"/g,""),22))+(null==this.err?"":" "+this.err)+(null==this.why?"":" "+(0,i.snip)(""+this.why,22))+"]"}[r.INSPECT](){return this.toString()}}const a=(...e)=>new o(...e);function c(e,t,n){let r=e.pnt,i=t;if(e.cfg.fixed.lex&&null!=n&&0<n.length){let s=void 0,l=e.cfg.fixed.token[n];null!=l&&(s=e.token(l,void 0,n,r)),null!=s&&(r.sI+=s.src.length,r.cI+=s.src.length,null==t?i=s:r.token.push(s))}return i}n.makeToken=a,n.makeNoToken=()=>a("",-1,void 0,r.EMPTY,l(-1)),n.makeFixedMatcher=(e,t)=>{let n=(0,i.regexp)(null,"^(",e.rePart.fixed,")");return function(t){let r=e.fixed;if(!r.lex)return;let i=t.pnt,s=t.src.substring(i.sI).match(n);if(s){let e=s[1],n=e.length;if(0<n){let s=void 0,l=r.token[e];return null!=l&&(s=t.token(l,void 0,e,i),i.sI+=n,i.cI+=n),s}}}},n.makeCommentMatcher=(e,t)=>{let n=t.comment;e.comment={lex:!!n&&!!n.lex,marker:((null==n?void 0:n.marker)||[]).map(e=>({start:e.start,end:e.end,line:!!e.line,lex:!!e.lex}))};let r=e.comment.lex?e.comment.marker.filter(e=>e.lex&&e.line):[],s=e.comment.lex?e.comment.marker.filter(e=>e.lex&&!e.line):[];return function(t){if(!e.comment.lex)return;let n=t.pnt,l=t.src.substring(n.sI),o=n.rI,a=n.cI;for(let i of r)if(l.startsWith(i.start)){let r=l.length,s=i.start.length;for(a+=i.start.length;s<r&&!e.line.chars[l[s]];)a++,s++;let o=l.substring(0,s),c=t.token("#CM",void 0,o,n);return n.sI+=o.length,n.cI=a,c}for(let r of s)if(l.startsWith(r.start)){let s=l.length,c=r.start.length,u=r.end;for(a+=r.start.length;c<s&&!l.substring(c).startsWith(u);)e.line.rowChars[l[c]]&&(o++,a=0),a++,c++;if(l.substring(c).startsWith(u)){a+=u.length;let e=l.substring(0,c+u.length),r=t.token("#CM",void 0,e,n);return n.sI+=e.length,n.rI=o,n.cI=a,r}return t.bad(i.S.unterminated_comment,n.sI,n.sI+9*r.start.length)}}},n.makeTextMatcher=(e,t)=>{let n=(0,i.regexp)(e.line.lex?null:"s","^(.*?)",...e.rePart.ender);return function(r){let i=e.text,s=r.pnt,l=r.src.substring(s.sI),o=e.value.map,a=l.match(n);if(a){let n=a[1],l=a[2],u=void 0;if(null!=n){let t=n.length;if(0<t){let l=void 0;e.value.lex&&void 0!==(l=o[n])?(u=r.token("#VL",l.val,n,s),s.sI+=t,s.cI+=t):i.lex&&(u=r.token("#TX",n,n,s),s.sI+=t,s.cI+=t)}}if(u&&(u=c(r,u,l)),u&&0<e.text.modify.length){const n=e.text.modify;for(let i=0;i<n.length;i++)u.val=n[i](u.val,r,e,t)}return u}}},n.makeNumberMatcher=(e,t)=>{let n=e.number,r=(0,i.regexp)(null,["^([-+]?(0(",[n.hex?"x[0-9a-fA-F_]+":null,n.oct?"o[0-7_]+":null,n.bin?"b[01_]+":null].filter(e=>null!=e).join("|"),")|[.0-9]+([0-9_]*[0-9])?)","(\\.[0-9]?([0-9_]*[0-9])?)?","([eE][-+]?[0-9]+([0-9_]*[0-9])?)?"].join("").replace(/_/g,n.sep?(0,i.escre)(n.sepChar):""),")",...e.rePart.ender),s=n.sep?(0,i.regexp)("g",(0,i.escre)(n.sepChar)):void 0;return function(t){if(!(n=e.number).lex)return;let i=t.pnt,l=t.src.substring(i.sI),o=e.value.map,a=l.match(r);if(a){let n=a[1],r=a[9],l=void 0;if(null!=n){let r=n.length;if(0<r){let a=void 0;if(e.value.lex&&void 0!==(a=o[n]))l=t.token("#VL",a.val,n,i);else{let e=s?n.replace(s,""):n,o=+e;if(isNaN(o)){let t=e[0];"-"!==t&&"+"!==t||(o=("-"===t?-1:1)*+e.substring(1))}isNaN(o)||(l=t.token("#NR",o,n,i),i.sI+=r,i.cI+=r)}}}return l=c(t,l,r)}}},n.makeStringMatcher=(e,t)=>{let n=t.string||{};return e.string=e.string||{},e.string=(0,i.deep)(e.string,{lex:!!(null==n?void 0:n.lex),quoteMap:(0,i.charset)(n.chars),multiChars:(0,i.charset)(n.multiChars),escMap:(0,i.clean)({...n.escape}),escChar:n.escapeChar,escCharCode:null==n.escapeChar?void 0:n.escapeChar.charCodeAt(0),allowUnknown:!!n.allowUnknown,replaceCodeMap:(0,i.omap)((0,i.clean)({...n.replace}),([e,t])=>[e.charCodeAt(0),t]),hasReplace:!1}),e.string.hasReplace=0<(0,i.keys)(e.string.replaceCodeMap).length,function(t){let n=e.string;if(!n.lex)return;let{quoteMap:s,escMap:l,escChar:o,escCharCode:a,multiChars:c,allowUnknown:u,replaceCodeMap:p,hasReplace:d}=n,{pnt:m,src:h}=t,{sI:f,rI:g,cI:k}=m,x=h.length;if(s[h[f]]){const n=h[f],s=f,v=g,b=c[n];++f,++k;let y,I=[];for(;f<x;f++){k++;let r=h[f];if(y=void 0,n===r){f++;break}if(o===r){k++;let e=l[h[++f]];if(null!=e)I.push(e);else if("x"===h[f]){f++;let e=parseInt(h.substring(f,f+2),16);if(isNaN(e))return f-=2,k-=2,m.sI=f,m.cI=k,t.bad(i.S.invalid_ascii,f,f+4);let n=String.fromCharCode(e);I.push(n),f+=1,k+=2}else if("u"===h[f]){let e="{"===h[++f]?(f++,1):0,n=e?6:4,r=parseInt(h.substring(f,f+n),16);if(isNaN(r))return f=f-2-e,k-=2,m.sI=f,m.cI=k,t.bad(i.S.invalid_unicode,f,f+n+2+2*e);let s=String.fromCodePoint(r);I.push(s),f+=n-1+e,k+=n+e}else{if(!u)return m.sI=f,m.cI=k-1,t.bad(i.S.unexpected,f,f+1);I.push(h[f])}}else if(d&&void 0!==(y=p[h.charCodeAt(f)]))I.push(y),k++;else{let r=f,s=n.charCodeAt(0),l=h.charCodeAt(f);for(;(!d||void 0===(y=p[l]))&&f<x&&32<=l&&s!==l&&a!==l;)l=h.charCodeAt(++f),k++;if(k--,void 0===y&&l<32){if(!b||!e.line.chars[h[f]])return m.sI=f,m.cI=k,t.bad(i.S.unprintable,f,f+1);e.line.rowChars[h[f]]&&(m.rI=++g),k=1,I.push(h.substring(r,f+1))}else I.push(h.substring(r,f)),f--}}if(h[f-1]!==n||m.sI===f-1)return m.rI=v,t.bad(i.S.unterminated_string,s,f);const E=t.token("#ST",I.join(r.EMPTY),h.substring(m.sI,f),m);return m.sI=f,m.rI=g,m.cI=k,E}}},n.makeLineMatcher=(e,t)=>function(t){if(!e.line.lex)return;let{chars:n,rowChars:r}=e.line,{pnt:i,src:s}=t,{sI:l,rI:o}=i;for(;n[s[l]];)o+=r[s[l]]?1:0,l++;if(i.sI<l){let e=s.substring(i.sI,l);const n=t.token("#LN",void 0,e,i);return i.sI+=e.length,i.rI=o,i.cI=1,n}},n.makeSpaceMatcher=(e,t)=>function(t){if(!e.space.lex)return;let{chars:n}=e.space,{pnt:r,src:i}=t,{sI:s,cI:l}=r;for(;n[i[s]];)s++,l++;if(r.sI<s){let e=i.substring(r.sI,s);const n=t.token("#SP",void 0,e,r);return r.sI+=e.length,r.cI=l,n}};class u{constructor(e){this.src=r.EMPTY,this.ctx={},this.cfg={},this.pnt=l(-1),this.ctx=e,this.src=e.src(),this.cfg=e.cfg,this.pnt=l(this.src.length)}token(e,t,n,r,s,l){let o,c;return"string"==typeof e?(c=e,o=(0,i.tokenize)(c,this.cfg)):(o=e,c=(0,i.tokenize)(e,this.cfg)),a(c,o,t,n,r||this.pnt,s,l)}next(e){let t,n=this.pnt;if(n.end)t=n.end;else if(0<n.token.length)t=n.token.shift();else if(n.len<=n.sI)n.end=this.token("#ZZ",void 0,"",n),t=n.end;else{for(let n of this.cfg.lex.match)if(t=n(this,e))break;t=t||this.token("#BD",void 0,this.src[n.sI],n,void 0,"unexpected")}return this.ctx.log&&this.ctx.log(i.S.lex,(0,i.tokenize)(t.tin,this.cfg),this.ctx.F(t.src),n.sI,n.rI+":"+n.cI),t}tokenize(e){return(0,i.tokenize)(e,this.cfg)}bad(e,t,n){return this.token("#BD",void 0,0<=t&&t<=n?this.src.substring(t,n):this.src[this.pnt.sI],void 0,void 0,e)}}n.makeLex=(...e)=>new u(...e)})),r={};Object.defineProperty(r,"__esModule",{value:!0}),r.STRING=r.INSPECT=r.EMPTY=r.AFTER=r.BEFORE=r.CLOSE=r.OPEN=void 0,r.OPEN="o",r.CLOSE="c",r.BEFORE="b",r.AFTER="a",r.EMPTY="",r.INSPECT=Symbol.for("nodejs.util.inspect.custom"),r.STRING="string";var i={};Object.defineProperty(i,"__esModule",{value:!0}),i.defaults=void 0;const s=n({}),l={tag:"-",fixed:{lex:!0,token:{"#OB":"{","#CB":"}","#OS":"[","#CS":"]","#CL":":","#CA":","}},tokenSet:{ignore:["#SP","#LN","#CM"]},space:{lex:!0,chars:" \t"},line:{lex:!0,chars:"\r\n",rowChars:"\n"},text:{lex:!0},number:{lex:!0,hex:!0,oct:!0,bin:!0,sep:"_"},comment:{lex:!0,marker:[{line:!0,start:"#",lex:!0},{line:!0,start:"//",lex:!0},{line:!1,start:"/*",end:"*/",lex:!0}]},string:{lex:!0,chars:"'\"`",multiChars:"`",escapeChar:"\\",escape:{b:"\b",f:"\f",n:"\n",r:"\r",t:"\t",v:"\v",'"':'"',"'":"'","`":"`","\\":"\\","/":"/"},allowUnknown:!0},map:{extend:!0,merge:void 0},value:{lex:!0,map:{true:{val:!0},false:{val:!1},null:{val:null}}},ender:[],plugin:{},debug:{get_console:()=>console,maxlen:99,print:{config:!1,src:void 0}},error:{unknown:"unknown error: $code",unexpected:"unexpected character(s): $src",invalid_unicode:"invalid unicode escape: $src",invalid_ascii:"invalid ascii escape: $src",unprintable:"unprintable character: $src",unterminated_string:"unterminated string: $src",unterminated_comment:"unterminated comment: $src",unknown_rule:"unknown rule: $rulename"},hint:function(e=((e,t="replace")=>e[t](/[A-Z]/g,e=>" "+e.toLowerCase())[t](/[~%][a-z]/g,e=>("~"==e[0]?" ":"")+e[1].toUpperCase())),t="~sinceTheErrorIsUnknown,ThisIsProbablyABugInsideJsonic\nitself,OrAPlugin.~pleaseConsiderPostingAGithubIssue -Thanks!\n\n~code: $code,~details: \n$details|~theCharacter(s) $srcWereNotExpectedAtThisPointAsTheyDoNot\nmatchTheExpectedSyntax,EvenUnderTheRelaxedJsonicRules.~ifIt\nisNotObviouslyWrong,TheActualSyntaxErrorMayBeElsewhere.~try\ncommentingOutLargerAreasAroundThisPointUntilYouGetNoErrors,\nthenRemoveTheCommentsInSmallSectionsUntilYouFindThe\noffendingSyntax.~n%o%t%e:~alsoCheckIfAnyPluginsYouAreUsing\nexpectDifferentSyntaxInThisCase.|~theEscapeSequence $srcDoesNotEncodeAValidUnicodeCodePoint\nnumber.~youMayNeedToValidateYourStringDataManuallyUsingTest\ncodeToSeeHow~javaScriptWillInterpretIt.~alsoConsiderThatYour\ndataMayHaveBecomeCorrupted,OrTheEscapeSequenceHasNotBeen\ngeneratedCorrectly.|~theEscapeSequence $srcDoesNotEncodeAValid~a%s%c%i%iCharacter.~you\nmayNeedToValidateYourStringDataManuallyUsingTestCodeToSee\nhow~javaScriptWillInterpretIt.~alsoConsiderThatYourDataMay\nhaveBecomeCorrupted,OrTheEscapeSequenceHasNotBeenGenerated\ncorrectly.|~stringValuesCannotContainUnprintableCharacters (characterCodes\nbelow 32).~theCharacter $srcIsUnprintable.~youMayNeedToRemove\ntheseCharactersFromYourSourceData.~alsoCheckThatItHasNot\nbecomeCorrupted.|~thisStringHasNoEndQuote.|~thisCommentIsNeverClosed.|~noRuleNamed $rulenameIsDefined.~thisIsProbablyAnErrorInThe\ngrammarOfAPlugin.".split("|")){return"unknown|unexpected|invalid_unicode|invalid_ascii|unprintable|unterminated_string|unterminated_comment|unknown_rule".split("|").reduce((n,r,i)=>(n[r]=e(t[i]),n),{})},lex:{match:[s.makeFixedMatcher,s.makeSpaceMatcher,s.makeLineMatcher,s.makeStringMatcher,s.makeCommentMatcher,s.makeNumberMatcher,s.makeTextMatcher],empty:!0},rule:{start:"val",finish:!0,maxmul:3,include:"",exclude:""},config:{modify:{}},parser:{start:void 0}};i.defaults=l;var o={};Object.defineProperty(o,"__esModule",{value:!0}),o.Parser=o.makeRuleSpec=o.makeRule=void 0;const a=t({}),c=n({});class u{constructor(e,t,n){this.id=-1,this.name=r.EMPTY,this.node=null,this.state=r.OPEN,this.n={},this.d=-1,this.use={},this.bo=!1,this.ao=!1,this.bc=!1,this.ac=!1,this.os=0,this.cs=0,this.id=t.uI++,this.name=e.name,this.spec=e,this.child=t.NORULE,this.parent=t.NORULE,this.prev=t.NORULE,this.o0=t.NOTOKEN,this.o1=t.NOTOKEN,this.c0=t.NOTOKEN,this.c1=t.NOTOKEN,this.node=n,this.d=t.rsI,this.bo=null!=e.def.bo,this.ao=null!=e.def.ao,this.bc=null!=e.def.bc,this.ac=null!=e.def.ac}process(e){return this.spec.process(this,e,this.state)}}const p=(...e)=>new u(...e);o.makeRule=p;class d{constructor(){this.p=r.EMPTY,this.r=r.EMPTY,this.b=0}}const m=(...e)=>new d(...e),h=m(),f=m();class g{constructor(e,t){this.name=r.EMPTY,this.cfg=e,this.def=t||{},this.def.open=(this.def.open||[]).filter(e=>null!=e),this.def.close=(this.def.close||[]).filter(e=>null!=e);for(let n of[...this.def.open,...this.def.close])(0,a.normalt)(n)}tin(e){return(0,a.tokenize)(e,this.cfg)}add(e,t,n){let r=(null==n?void 0:n.last)?"push":"unshift",i=((0,a.isarr)(t)?t:[t]).filter(e=>null!=e).map(e=>(0,a.normalt)(e));return this.def["o"===e?"open":"close"][r](...i),(0,a.filterRules)(this,this.cfg),this}open(e,t){return this.add("o",e,t)}close(e,t){return this.add("c",e,t)}action(e,t,n){return this.def[e+t]=n,this}bo(e){return this.action(r.BEFORE,r.OPEN,e)}ao(e){return this.action(r.AFTER,r.OPEN,e)}bc(e){return this.action(r.BEFORE,r.CLOSE,e)}ac(e){return this.action(r.AFTER,r.CLOSE,e)}clear(){return this.def={open:[],close:[]},this}process(e,t,n){let i=r.EMPTY,s=t.F,l="o"===n,o=l?e:t.NORULE,c=this.def,u=l?c.open:c.close,d=l?e.bo&&c.bo:e.bc&&c.bc,m=d&&d.call(this,e,t);if(m&&m.isToken&&null!=m.err)return this.bad(m,e,t,{is_open:l});let h=0<u.length?this.parse_alts(l,u,e,t):f;if(h.h&&(h=h.h(e,t,h,o)||h,i+="H"),h.e)return this.bad(h.e,e,t,{is_open:l});if(h.n)for(let r in h.n)e.n[r]=0===h.n[r]?0:(null==e.n[r]?0:e.n[r])+h.n[r];if(h.u&&(e.use=Object.assign(e.use,h.u)),h.a){i+="A";let n=h.a.call(this,e,t,h);if(n&&n.isToken&&n.err)return this.bad(n,e,t,{is_open:l})}if(h.p){t.rs[t.rsI++]=e;let n=t.rsm[h.p];if(!n)return this.bad(this.unknownRule(t.t0,h.p),e,t,{is_open:l});(o=e.child=p(n,t,e.node)).parent=e,o.n={...e.n},i+="@p:"+h.p}else if(h.r){let n=t.rsm[h.r];if(!n)return this.bad(this.unknownRule(t.t0,h.r),e,t,{is_open:l});(o=p(n,t,e.node)).parent=e.parent,o.prev=e,o.n={...e.n},i+="@r:"+h.r}else l||(o=t.rs[--t.rsI]||t.NORULE),i+="Z";let g=l?e.ao&&c.ao:e.ac&&c.ac,k=g&&g.call(this,e,t,h,o);if(k&&k.isToken&&null!=k.err)return this.bad(k,e,t,{is_open:l});o.why=i,t.log&&t.log("node  "+e.state.toUpperCase(),e.prev.id+"/"+e.parent.id+"/"+e.child.id,e.name+"~"+e.id,"w="+i,"n:"+(0,a.entries)(e.n).filter(e=>e[1]).map(e=>e[0]+"="+e[1]).join(";"),"u:"+(0,a.entries)(e.use).map(e=>e[0]+"="+e[1]).join(";"),"<"+s(e.node)+">");let x=0,v=e[l?"os":"cs"]-(h.b||0);for(;x++<v;)t.next();return r.OPEN===e.state&&(e.state=r.CLOSE),o}parse_alts(e,t,n,i){let s=h;s.b=0,s.p=r.EMPTY,s.r=r.EMPTY,s.n=void 0,s.h=void 0,s.a=void 0,s.u=void 0,s.e=void 0;let l,o=null,c=0,u=i.cfg.t,p=1<<u.AA-1,d=t.length;for(c=0;c<d;c++){o=t[c];let r=i.t0.tin,a=!1,u=!1;if(l=!0,o.S0&&(a=!0,(l=o.S0[r/31|0]&(1<<r%31-1|p))&&(u=null!=o.S1,o.S1))){u=!0;let e=i.t1.tin;l=o.S1[e/31|0]&(1<<e%31-1|p)}if(e?(n.o0=a?i.t0:i.NOTOKEN,n.o1=u?i.t1:i.NOTOKEN,n.os=(a?1:0)+(u?1:0)):(n.c0=a?i.t0:i.NOTOKEN,n.c1=u?i.t1:i.NOTOKEN,n.cs=(a?1:0)+(u?1:0)),l&&o.c&&(l=l&&o.c(n,i,s)),l)break;o=null}l||u.ZZ===i.t0.tin||(s.e=i.t0),o&&(s.n=null!=o.n?o.n:s.n,s.h=null!=o.h?o.h:s.h,s.a=null!=o.a?o.a:s.a,s.u=null!=o.u?o.u:s.u,s.g=null!=o.g?o.g:s.g,s.e=o.e&&o.e(n,i,s)||void 0,s.p=null!=o.p?"string"==typeof o.p?o.p:o.p(n,i,s):s.p,s.r=null!=o.r?"string"==typeof o.r?o.r:o.r(n,i,s):s.r,s.b=null!=o.b?"number"==typeof o.b?o.b:o.b(n,i,s):s.b);let m=c<t.length;return i.log&&i.log("parse "+n.state.toUpperCase(),n.prev.id+"/"+n.parent.id+"/"+n.child.id,n.name+"~"+n.id,m?"alt="+c:"no-alt",m&&s.g?"g:"+s.g+" ":"",(m&&s.p?"p:"+s.p+" ":"")+(m&&s.r?"r:"+s.r+" ":"")+(m&&s.b?"b:"+s.b+" ":""),(r.OPEN===n.state?[n.o0,n.o1].slice(0,n.os):[n.c0,n.c1].slice(0,n.cs)).map(e=>e.name+"="+i.F(e.src)).join(" "),"c:"+(o&&o.c?l:r.EMPTY),"n:"+(0,a.entries)(s.n).map(e=>e[0]+"="+e[1]).join(";"),"u:"+(0,a.entries)(s.u).map(e=>e[0]+"="+e[1]).join(";"),c<t.length&&o.s?"["+o.s.map(e=>Array.isArray(e)?e.map(e=>u[e]).join("|"):u[e]).join(" ")+"]":"[]",s),s}bad(e,t,n,r){throw new a.JsonicError(e.err||a.S.unexpected,{...e.use,state:r.is_open?a.S.open:a.S.close},e,t,n)}unknownRule(e,t){return e.err="unknown_rule",e.use=e.use||{},e.use.rulename=t,e}}const k=(...e)=>new g(...e);o.makeRuleSpec=k;class x{constructor(e,t){this.rsm={},this.options=e,this.cfg=t}rule(e,t){if(null==e)return this.rsm;let n=this.rsm[e];if(null===t)delete this.rsm[e];else if(void 0!==t){n=this.rsm[e]=this.rsm[e]||k(this.cfg,{}),(n=this.rsm[e]=t(this.rsm[e],this.rsm)||this.rsm[e]).name=e;for(let e of[...n.def.open,...n.def.close])(0,a.normalt)(e);return}return n}start(e,t,n,i){let s,l=(0,c.makeToken)("#ZZ",(0,a.tokenize)("#ZZ",this.cfg),void 0,r.EMPTY,(0,c.makePoint)(-1)),o=(0,c.makeNoToken)(),u={uI:0,opts:this.options,cfg:this.cfg,meta:n||{},src:()=>e,root:()=>s.node,plgn:()=>t.internal().plugins,rule:{},xs:-1,v2:l,v1:l,t0:l,t1:l,tC:-2,next:b,rs:[],rsI:0,rsm:this.rsm,log:void 0,F:(0,a.srcfmt)(this.cfg),use:{},NOTOKEN:o,NORULE:{}};u=(0,a.deep)(u,i);let d=(e=>p(k(e.cfg,{}),e))(u);if(u.NORULE=d,u.rule=d,(0,a.makelog)(u,n),""===e){if(this.cfg.lex.empty)return;throw new a.JsonicError(a.S.unexpected,{src:e},u.t0,d,u)}let m=e=>(0,a.tokenize)(e,this.cfg),h=(0,a.badlex)((0,c.makeLex)(u),(0,a.tokenize)("#BD",this.cfg),u),f=this.rsm[this.cfg.rule.start];if(null==f)return;let g=p(f,u);s=g;let x=2*(0,a.keys)(this.rsm).length*h.src.length*2*u.cfg.rule.maxmul,v=u.cfg.tokenSet.ignore;function b(){let e;u.v2=u.v1,u.v1=u.t0,u.t0=u.t1;do{e=h(g),u.tC++}while(v[e.tin]);return u.t1=e,u.t0}b(),b();let y=0;for(;d!==g&&y<x;)u.log&&u.log("\nstack","<<"+u.F(s.node)+">>",u.rs.slice(0,u.rsI).map(e=>e.name+"~"+e.id).join("/"),u.rs.slice(0,u.rsI).map(e=>"<"+u.F(e.node)+">").join(" "),g,u,"\n"),u.log&&u.log("rule  "+g.state.toUpperCase(),g.prev.id+"/"+g.parent.id+"/"+g.child.id,g.name+"~"+g.id,"["+u.F(u.t0.src)+" "+u.F(u.t1.src)+"]","n:"+(0,a.entries)(g.n).filter(e=>e[1]).map(e=>e[0]+"="+e[1]).join(";"),"u:"+(0,a.entries)(g.use).map(e=>e[0]+"="+e[1]).join(";"),"["+m(u.t0.tin)+" "+m(u.t1.tin)+"]",g,u),u.rule=g,g=g.process(u),y++;if((0,a.tokenize)("#ZZ",this.cfg)!==u.t0.tin)throw new a.JsonicError(a.S.unexpected,{},u.t0,d,u);return u.root()}clone(e,t){let n=new x(e,t);return n.rsm=Object.keys(this.rsm).reduce((e,t)=>(e[t]=(0,a.filterRules)(this.rsm[t],this.cfg),e),{}),n}}o.Parser=x;var v={};Object.defineProperty(v,"__esModule",{value:!0}),v.grammar=void 0,v.grammar=function(e){const t=e.token.OB,n=e.token.CB,r=e.token.OS,i=e.token.CS,s=e.token.CL,l=e.token.CA,o=e.token.TX,a=e.token.NR,c=e.token.ST,u=e.token.VL,p=e.token.ZZ,d=[o,a,c,u],m=e.util.deep,h=(e,t)=>{if(!t.cfg.rule.finish)return t.t0.src="END_OF_SOURCE",t.t0};e.rule("val",e=>{e.bo(e=>e.node=void 0).open([{s:[t],p:"map",b:1,g:"map,json"},{s:[r],p:"list",b:1,g:"list,json"},{s:[d,s],p:"map",b:2,n:{pk:1},g:"pair,json"},{s:[d],g:"val,json"},{s:[[n,i]],b:1,g:"val,imp,null"},{s:[l],c:{n:{il:0}},p:"list",b:1,g:"list,imp"},{s:[l],b:1,g:"list,val,imp,null"}]).close([{s:[p],g:"end"},{s:[[n,i]],b:1,g:"val,json,close"},{s:[l],c:{n:{il:0,pk:0}},n:{il:1},r:"elem",a:e=>e.node=[e.node],g:"list,val,imp,comma"},{c:{n:{il:0,pk:0}},n:{il:1},r:"elem",a:e=>e.node=[e.node],g:"list,val,imp,space",b:1},{b:1,g:"val,json,more"}]).bc((e,t)=>{e.node=void 0===e.node?void 0===e.child.node?0===e.os?void 0:e.o0.resolveVal(e,t):e.child.node:e.node})}),e.rule("map",e=>{e.bo(e=>{e.n.il=1+(e.n.il?e.n.il:0),e.n.im=1+(e.n.im?e.n.im:0),e.node={}}).open([{s:[t,n],g:"map,json"},{s:[t],p:"pair",n:{pk:0},g:"map,json,pair"},{s:[d,s],p:"pair",b:2,g:"pair,list,val,imp"}])}),e.rule("list",e=>{e.bo(e=>{e.n.il=1+(e.n.il?e.n.il:0),e.n.pk=1+(e.n.pk?e.n.pk:0),e.n.im=1+(e.n.im?e.n.im:0),e.node=[]}).open([{s:[r,i],g:"list,json"},{s:[r],p:"elem",g:"list,json,elem"},{s:[l],p:"elem",b:1,g:"list,elem,val,imp"},{p:"elem",g:"list,elem"}])}),e.rule("pair",e=>{e.open([{s:[d,s],p:"val",u:{key:!0},g:"map,pair,key,json"},{s:[l],g:"map,pair,comma"}]).bc((e,t)=>{if(e.use.key){const n=e.o0,r=c===n.tin||o===n.tin?n.val:n.src;let i=e.child.node;const s=e.node[r];i=void 0===i?null:i,e.node[r]=null==s?i:t.cfg.map.merge?t.cfg.map.merge(s,i):t.cfg.map.extend?m(s,i):i}}).close([{s:[n],c:{n:{pk:0}},g:"map,pair,json"},{s:[l,n],c:{n:{pk:0}},g:"map,pair,comma"},{s:[l],c:{n:{pk:0}},r:"pair",g:"map,pair,json"},{s:[l],c:{n:{im:1}},r:"pair",g:"map,pair,json"},{s:[d],c:{n:{pk:0}},r:"pair",b:1,g:"map,pair,imp"},{s:[d],c:{n:{im:1}},r:"pair",b:1,g:"map,pair,imp"},{s:[[n,l,...d]],b:1,g:"map,pair,imp,path"},{s:[i],b:1,g:"list,pair,imp"},{s:[p],e:h,g:"map,pair,json"}])}),e.rule("elem",e=>{e.open([{s:[l,l],b:2,a:e=>e.node.push(null),g:"list,elem,imp,null"},{s:[l],a:e=>e.node.push(null),g:"list,elem,imp,null"},{p:"val",g:"list,elem,val,json"}]).bc(e=>{void 0!==e.child.node&&e.node.push(e.child.node)}).close([{s:[l,i],g:"list,elem,comma"},{s:[l],r:"elem",g:"list,elem,json"},{s:[[...d,t,r]],r:"elem",b:1,g:"list,elem,imp"},{s:[i],g:"list,elem,json"},{s:[p],e:h,g:"list,elem,json"}])})};var b={exports:{}};Object.defineProperty(b.exports,"__esModule",{value:!0}),b.exports.AFTER=b.exports.BEFORE=b.exports.CLOSE=b.exports.OPEN=b.exports.makeTextMatcher=b.exports.makeNumberMatcher=b.exports.makeCommentMatcher=b.exports.makeStringMatcher=b.exports.makeLineMatcher=b.exports.makeSpaceMatcher=b.exports.makeFixedMatcher=b.exports.makeLex=b.exports.makeRuleSpec=b.exports.makeRule=b.exports.makePoint=b.exports.makeToken=b.exports.make=b.exports.util=b.exports.Parser=b.exports.JsonicError=b.exports.Jsonic=void 0,Object.defineProperty(b.exports,"OPEN",{enumerable:!0,get:function(){return r.OPEN}}),Object.defineProperty(b.exports,"CLOSE",{enumerable:!0,get:function(){return r.CLOSE}}),Object.defineProperty(b.exports,"BEFORE",{enumerable:!0,get:function(){return r.BEFORE}}),Object.defineProperty(b.exports,"AFTER",{enumerable:!0,get:function(){return r.AFTER}});const y=t({});Object.defineProperty(b.exports,"JsonicError",{enumerable:!0,get:function(){return y.JsonicError}});const I=n({});Object.defineProperty(b.exports,"makePoint",{enumerable:!0,get:function(){return I.makePoint}}),Object.defineProperty(b.exports,"makeToken",{enumerable:!0,get:function(){return I.makeToken}}),Object.defineProperty(b.exports,"makeLex",{enumerable:!0,get:function(){return I.makeLex}}),Object.defineProperty(b.exports,"makeFixedMatcher",{enumerable:!0,get:function(){return I.makeFixedMatcher}}),Object.defineProperty(b.exports,"makeSpaceMatcher",{enumerable:!0,get:function(){return I.makeSpaceMatcher}}),Object.defineProperty(b.exports,"makeLineMatcher",{enumerable:!0,get:function(){return I.makeLineMatcher}}),Object.defineProperty(b.exports,"makeStringMatcher",{enumerable:!0,get:function(){return I.makeStringMatcher}}),Object.defineProperty(b.exports,"makeCommentMatcher",{enumerable:!0,get:function(){return I.makeCommentMatcher}}),Object.defineProperty(b.exports,"makeNumberMatcher",{enumerable:!0,get:function(){return I.makeNumberMatcher}}),Object.defineProperty(b.exports,"makeTextMatcher",{enumerable:!0,get:function(){return I.makeTextMatcher}}),Object.defineProperty(b.exports,"makeRule",{enumerable:!0,get:function(){return o.makeRule}}),Object.defineProperty(b.exports,"makeRuleSpec",{enumerable:!0,get:function(){return o.makeRuleSpec}}),Object.defineProperty(b.exports,"Parser",{enumerable:!0,get:function(){return o.Parser}});const E={tokenize:y.tokenize,srcfmt:y.srcfmt,deep:y.deep,clone:y.clone,charset:y.charset,trimstk:y.trimstk,makelog:y.makelog,badlex:y.badlex,extract:y.extract,errinject:y.errinject,errdesc:y.errdesc,configure:y.configure,parserwrap:y.parserwrap,mesc:y.mesc,escre:y.escre,regexp:y.regexp,prop:y.prop,str:y.str,omap:y.omap,keys:y.keys,values:y.values,entries:y.entries};function S(e,t){let n={parser:{},config:{},plugins:[],mark:Math.random()},r=(0,y.deep)({},t?{...t.options}:!1===(null==e?void 0:e.defaults$)?{}:i.defaults,e||{}),s=function(e,t,n){var r;if(y.S.string===typeof e){let i=s.internal();return((null===(r=l.parser)||void 0===r?void 0:r.start)?(0,y.parserwrap)(l.parser):i.parser).start(e,s,t,n)}return e},l=e=>{if(null!=e&&y.S.object===typeof e){(0,y.deep)(r,e),(0,y.configure)(s,n.config,r);let t=s.internal().parser;n.parser=t.clone(r,n.config)}return{...s.options}},a={token:e=>(0,y.tokenize)(e,n.config,s),fixed:e=>n.config.fixed.ref[e],options:(0,y.deep)(l,r),parse:s,use:function(e,t){const n=e.name.toLowerCase(),r=(0,y.deep)({},e.defaults||{},t||{});s.options({plugin:{[n]:r}});let i=s.options.plugin[n];return s.internal().plugins.push(e),e(s,i)||s},rule:(e,t)=>s.internal().parser.rule(e,t)||s,lex:e=>{let t=r.lex.match;t.unshift(e),s.options({lex:{match:t}})},make:e=>S(e,s),empty:e=>S({defaults$:!1,grammar$:!1,...e||{}}),id:"Jsonic/"+Date.now()+"/"+(""+Math.random()).substring(2,8).padEnd(6,"0")+(null==l.tag?"":"/"+l.tag),toString:()=>a.id,util:E};if((0,y.defprop)(a.make,y.S.name,{value:y.S.make}),(0,y.assign)(s,a),(0,y.defprop)(s,"internal",{value:()=>n}),t){for(let n in t)void 0===s[n]&&(s[n]=t[n]);s.parent=t;let e=t.internal();n.config=(0,y.deep)({},e.config),(0,y.configure)(s,n.config,r),(0,y.assign)(s.token,n.config.t),n.plugins=[...e.plugins],n.parser=e.parser.clone(r,n.config)}else n.config=(0,y.configure)(s,void 0,r),n.plugins=[],n.parser=new o.Parser(r,n.config),!1!==r.grammar$&&(0,v.grammar)(s);return s}b.exports.util=E,b.exports.make=S;let M=void 0,O=M=S();return b.exports.Jsonic=O,delete M.options,delete M.use,delete M.rule,delete M.lex,delete M.token,delete M.fixed,M.Jsonic=M,M.JsonicError=y.JsonicError,M.Parser=o.Parser,M.makeLex=I.makeLex,M.makeToken=I.makeToken,M.makePoint=I.makePoint,M.makeRule=o.makeRule,M.makeRuleSpec=o.makeRuleSpec,M.makeFixedMatcher=I.makeFixedMatcher,M.makeSpaceMatcher=I.makeSpaceMatcher,M.makeLineMatcher=I.makeLineMatcher,M.makeStringMatcher=I.makeStringMatcher,M.makeCommentMatcher=I.makeCommentMatcher,M.makeNumberMatcher=I.makeNumberMatcher,M.makeTextMatcher=I.makeTextMatcher,M.util=E,M.make=S,b.exports.default=O,b.exports=b.exports.Jsonic,b=b.exports}));
 }).call(this)}).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
 },{}],2:[function(require,module,exports){
-(function (Buffer,__dirname){(function (){
-'use strict';
-
-const Util = require('util');
-
-const Hoek = require('@hapi/hoek');
-
-
-const internals = {
-    flags: ['not', 'once', 'only', 'part', 'shallow'],
-    grammar: ['a', 'an', 'and', 'at', 'be', 'have', 'in', 'to'],
-    locations: {},
-    count: 0
-};
-
-
-// Global settings
-
-exports.settings = {
-    truncateMessages: false,
-    comparePrototypes: false
-};
-
-
-// Utilities
-
-exports.fail = function (message) {
-
-    throw new Error(message);
-};
-
-
-exports.count = function () {
-
-    return internals.count;
-};
-
-
-exports.incomplete = function () {
-
-    const locations = Object.keys(internals.locations);
-    return locations.length ? locations : null;
-};
-
-
-internals.atNamedRx = /^\s*at (?:async )?[^(/]*\(?(.+)\:(\d+)\:(\d+)\)?$/;
-
-
-internals.atUnnamedRx = /^\s*at (?:async )?(.+)\:(\d+)\:(\d+)\)?$/;
-
-
-exports.thrownAt = function (error) {
-
-    error = error || new Error();
-    const stack = typeof error.stack === 'string' ? error.stack : '';
-    const frame = stack.replace(error.toString(), '').split('\n').slice(1).filter(internals.filterLocal)[0] || '';
-    const at = frame.match(frame.includes('(') ? internals.atNamedRx : internals.atUnnamedRx);
-    return Array.isArray(at) ? {
-        filename: at[1],
-        line: at[2],
-        column: at[3]
-    } : undefined;
-};
-
-
-internals.filterLocal = function (line) {
-
-    return line.indexOf(__dirname) === -1;
-};
-
-
-// Expect interface
-
-exports.expect = function (value, prefix) {
-
-    const at = exports.thrownAt();
-    const location = at.filename + ':' + at.line + '.' + at.column;
-    internals.locations[location] = true;
-    ++internals.count;
-    return new internals.Assertion(value, prefix, location, at);
-};
-
-
-internals.Assertion = function (ref, prefix, location, at) {
-
-    this._ref = ref;
-    this._prefix = prefix || '';
-    this._location = location;
-    this._at = at;
-    this._flags = {};
-};
-
-
-internals.Assertion.prototype.assert = function (result, verb, actual, expected) {
-
-    delete internals.locations[this._location];
-
-    if (this._flags.not ? !result : result) {
-        this._flags = {};
-        return this;
-    }
-
-    if (verb === 'exist' &&
-        this._flags.not &&
-        this._ref instanceof Error) {
-
-        const original = this._ref;
-        original.at = exports.thrownAt();
-
-        throw original;
-    }
-
-    let message = '';
-
-    if (this._prefix) {
-        message += this._prefix + ': ';
-    }
-
-    message += 'Expected ' + internals.display(this._ref) + ' to ';
-
-    if (this._flags.not) {
-        message += 'not ';
-    }
-
-    message += verb;
-
-    if (this._flags.once) {
-        message += ' once';
-    }
-
-    if (arguments.length === 3) {           // 'actual' without 'expected'
-        message += ' but got ' + internals.display(actual);
-    }
-
-    const error = new Error(message);
-    Error.captureStackTrace(error, this.assert);
-    error.actual = actual;
-    error.expected = expected;
-    error.at = exports.thrownAt(error) || this._at;
-    throw error;
-};
-
-
-internals.flags.forEach((word) => {
-
-    Object.defineProperty(internals.Assertion.prototype, word, {
-        get: function () {
-
-            this._flags[word] = !this._flags[word];
-            return this;
-        },
-        configurable: true
-    });
-});
-
-
-internals.grammar.forEach((word) => {
-
-    Object.defineProperty(internals.Assertion.prototype, word, {
-        get: function () {
-
-            return this;
-        },
-        configurable: true
-    });
-});
-
-
-internals.addMethod = function (names, fn) {
-
-    const method = function (name) {
-
-        internals.Assertion.prototype[name] = fn;
-    };
-
-    names = [].concat(names);
-    names.forEach(method);
-};
-
-
-['arguments', 'array', 'boolean', 'buffer', 'date', 'function', 'number', 'regexp', 'string', 'object'].forEach((word) => {
-
-    const article = ['a', 'e', 'i', 'o', 'u'].indexOf(word[0]) !== -1 ? 'an ' : 'a ';
-    const method = function () {
-
-        const type = internals.type(this._ref);
-        return this.assert(type === word, 'be ' + article + word, type);
-    };
-
-    internals.addMethod(word, method);
-});
-
-
-internals.addMethod('error', function (...args /* type, message */) {
-
-    const type = args.length && typeof args[0] !== 'string' && !(args[0] instanceof RegExp) ? args[0] : Error;
-    const lastArg = args[1] || args[0];
-    const message = typeof lastArg === 'string' || lastArg instanceof RegExp ? lastArg : null;
-    const err = this._ref;
-
-    if (!this._flags.not ||
-        message === null) {
-
-        this.assert(err instanceof type, 'be an error with ' + (type.name || 'provided') + ' type');
-    }
-
-    if (message !== null) {
-        const error = err.message || '';
-        this.assert(typeof message === 'string' ? error === message : error.match(message), 'be an error with specified message', error, message);
-    }
-});
-
-
-[true, false, null, undefined].forEach((value) => {
-
-    const name = Util.inspect(value);
-    const method = function () {
-
-        return this.assert(this._ref === value, 'be ' + name);
-    };
-
-    internals.addMethod(name, method);
-});
-
-
-internals.nan = function () {
-
-    return this.assert(Number.isNaN(this._ref), 'be NaN');
-};
-
-internals.addMethod('NaN', internals.nan);
-
-
-internals.include = function (value) {
-
-    internals.assert(this, arguments.length === 1, 'Can only assert include with a single parameter');
-
-    this._flags.deep = !this._flags.shallow;
-    this._flags.part = this._flags.hasOwnProperty('part') ? this._flags.part : false;
-    return this.assert(Hoek.contain(this._ref, value, this._flags), 'include ' + internals.display(value));
-};
-
-internals.addMethod(['include', 'includes', 'contain', 'contains'], internals.include);
-
-
-internals.endWith = function (value) {
-
-    internals.assert(this, typeof this._ref === 'string' && typeof value === 'string', 'Can only assert endsWith on a string, with a string');
-
-    const comparator = this._ref.slice(-value.length);
-    return this.assert(comparator === value, 'endWith ' + internals.display(value));
-};
-
-internals.addMethod(['endWith', 'endsWith'], internals.endWith);
-
-
-internals.startWith = function (value) {
-
-    internals.assert(this, typeof this._ref === 'string' && typeof value === 'string', 'Can only assert startsWith on a string, with a string');
-
-    const comparator = this._ref.slice(0, value.length);
-    return this.assert(comparator === value, 'startWith ' + internals.display(value));
-};
-
-internals.addMethod(['startWith', 'startsWith'], internals.startWith);
-
-
-internals.exist = function () {
-
-    return this.assert(this._ref !== null && this._ref !== undefined, 'exist');
-};
-
-internals.addMethod(['exist', 'exists'], internals.exist);
-
-
-internals.empty = function () {
-
-    internals.assert(this, typeof this._ref === 'object' || typeof this._ref === 'string', 'Can only assert empty on object, array or string');
-
-    const length = this._ref.length !== undefined ? this._ref.length : Object.keys(this._ref).length;
-    return this.assert(!length, 'be empty');
-};
-
-internals.addMethod('empty', internals.empty);
-
-
-internals.length = function (size) {
-
-    internals.assert(this, (typeof this._ref === 'object' && this._ref !== null) || typeof this._ref === 'string', 'Can only assert length on object, array or string');
-
-    const length = this._ref.length !== undefined ? this._ref.length : Object.keys(this._ref).length;
-    return this.assert(length === size, 'have a length of ' + size, length);
-};
-
-internals.addMethod('length', internals.length);
-
-
-internals.equal = function (value, options) {
-
-    options = options || {};
-    const settings = Hoek.applyToDefaults({ prototype: exports.settings.comparePrototypes, deepFunction: true }, options);
-
-    const compare = this._flags.shallow ? (a, b) => a === b
-        : (a, b) => Hoek.deepEqual(a, b, settings);
-
-    return this.assert(compare(this._ref, value), `equal specified value: ${internals.display(value)}`, this._ref, value);
-};
-
-internals.addMethod(['equal', 'equals'], internals.equal);
-
-
-internals.above = function (value) {
-
-    return this.assert(this._ref > value, 'be above ' + value);
-};
-
-internals.addMethod(['above', 'greaterThan'], internals.above);
-
-
-internals.least = function (value) {
-
-    return this.assert(this._ref >= value, 'be at least ' + value);
-};
-
-internals.addMethod(['least', 'min'], internals.least);
-
-
-internals.below = function (value) {
-
-    return this.assert(this._ref < value, 'be below ' + value);
-};
-
-internals.addMethod(['below', 'lessThan'], internals.below);
-
-
-internals.most = function (value) {
-
-    return this.assert(this._ref <= value, 'be at most ' + value);
-};
-
-internals.addMethod(['most', 'max'], internals.most);
-
-
-internals.within = function (from, to) {
-
-    return this.assert(this._ref >= from && this._ref <= to, 'be within ' + from + '..' + to);
-};
-
-internals.addMethod(['within', 'range'], internals.within);
-
-
-internals.between = function (from, to) {
-
-    return this.assert(this._ref > from && this._ref < to, 'be between ' + from + '..' + to);
-};
-
-internals.addMethod('between', internals.between);
-
-
-internals.above = function (value, delta) {
-
-    internals.assert(this, internals.type(this._ref) === 'number', 'Can only assert about on numbers');
-    internals.assert(this, internals.type(value) === 'number' && internals.type(delta) === 'number', 'About assertion requires two number arguments');
-
-    return this.assert(Math.abs(this._ref - value) <= delta, 'be about ' + value + ' \u00b1' + delta);
-};
-
-internals.addMethod('about', internals.above);
-
-
-internals.instanceof = function (type) {
-
-    return this.assert(this._ref instanceof type, 'be an instance of ' + (type.name || 'provided type'));
-};
-
-internals.addMethod(['instanceof', 'instanceOf'], internals.instanceof);
-
-
-internals.match = function (regex) {
-
-    return this.assert(regex.exec(this._ref), 'match ' + regex);
-};
-
-internals.addMethod(['match', 'matches'], internals.match);
-
-
-internals.satisfy = function (validator) {
-
-    return this.assert(validator(this._ref), 'satisfy rule');
-};
-
-internals.addMethod(['satisfy', 'satisfies'], internals.satisfy);
-
-
-internals.throw = function (...args /* type, message */) {
-
-    internals.assert(this, typeof this._ref === 'function', 'Can only assert throw on functions');
-    internals.assert(this, !this._flags.not || !args.length, 'Cannot specify arguments when expecting not to throw');
-
-    const type = args.length && typeof args[0] !== 'string' && !(args[0] instanceof RegExp) ? args[0] : null;
-    const lastArg = args[1] || args[0];
-    const message = typeof lastArg === 'string' || lastArg instanceof RegExp ? lastArg : null;
-
-    let thrown = false;
-
-    try {
-        this._ref();
-    }
-    catch (err) {
-        thrown = true;
-
-        if (type) {
-            this.assert(err instanceof type, 'throw ' + (type.name || 'provided type'));
-        }
-
-        if (message !== null) {
-            const error = err.message || '';
-            this.assert(typeof message === 'string' ? error === message : error.match(message), 'throw an error with specified message', error, message);
-        }
-
-        this.assert(thrown, 'throw an error', err);
-        return err;
-    }
-
-    return this.assert(thrown, 'throw an error');
-};
-
-internals.addMethod(['throw', 'throws'], internals.throw);
-
-
-internals.reject = async function (...args/* type, message */) {
-
-    try {
-        internals.assert(this, internals.isPromise(this._ref), 'Can only assert reject on promises');
-
-        const type = args.length && typeof args[0] !== 'string' && !(args[0] instanceof RegExp) ? args[0] : null;
-        const lastArg = args[1] || args[0];
-        const message = typeof lastArg === 'string' || lastArg instanceof RegExp ? lastArg : null;
-
-        let thrown = null;
-        try {
-            await this._ref;
-        }
-        catch (err) {
-            thrown = err;
-        }
-
-        internals.assert(this, !this._flags.not || !arguments.length, 'Cannot specify arguments when expecting not to reject');
-
-        if (thrown) {
-
-            internals.assert(this, arguments.length < 2 || message, 'Can not assert with invalid message argument type');
-            internals.assert(this, arguments.length < 1 || message !== null || typeof type === 'function', 'Can not assert with invalid type argument');
-
-            if (type) {
-                this.assert(thrown instanceof type, 'reject with ' + (type.name || 'provided type'));
-            }
-
-            if (message !== null) {
-                const error = thrown.message || '';
-                this.assert(typeof message === 'string' ? error === message : error.match(message), 'reject with an error with specified message', error, message);
-            }
-
-            this.assert(thrown, 'reject with an error', thrown);
-        }
-
-        this.assert(thrown, 'reject with an error');
-        return thrown;
-    }
-    catch (err) {
-        return new Promise((resolve, reject) => {
-
-            reject(err);
-        });
-    }
-};
-
-internals.addMethod(['reject', 'rejects'], internals.reject);
-
-
-internals.isPromise = function (promise) {
-
-    return promise && typeof promise.then === 'function';
-};
-
-
-internals.display = function (value) {
-
-    const string = value instanceof Error
-        ? `[${value.toString()}]`
-        : internals.isPromise(value)
-            ? '[Promise]'
-            : typeof value === 'function'
-                ? '[Function]'
-                : Util.inspect(value);
-
-    if (!exports.settings.truncateMessages ||
-        string.length <= 40) {
-
-        return string;
-    }
-
-    if (Array.isArray(value)) {
-        return '[Array(' + value.length + ')]';
-    }
-
-    if (typeof value === 'object') {
-        const keys = Object.keys(value);
-        return '{ Object (' + (keys.length > 2 ? (keys.splice(0, 2).join(', ') + ', ...') : keys.join(', ')) + ') }';
-    }
-
-    return string.slice(0, 40) + '...\'';
-};
-
-
-internals.natives = {
-    '[object Arguments]': 'arguments',
-    '[object Array]': 'array',
-    '[object AsyncFunction]': 'function',
-    '[object Date]': 'date',
-    '[object Function]': 'function',
-    '[object Number]': 'number',
-    '[object RegExp]': 'regexp',
-    '[object String]': 'string'
-};
-
-
-internals.type = function (value) {
-
-    if (value === null) {
-        return 'null';
-    }
-
-    if (value === undefined) {
-        return 'undefined';
-    }
-
-    if (Buffer.isBuffer(value)) {
-        return 'buffer';
-    }
-
-    const name = Object.prototype.toString.call(value);
-    if (internals.natives[name]) {
-        return internals.natives[name];
-    }
-
-    if (value === Object(value)) {
-        return 'object';
-    }
-
-    return typeof value;
-};
-
-
-internals.assert = function (assertion, condition, error) {
-
-    if (!condition) {
-        delete internals.locations[assertion._location];
-        Hoek.assert(condition, error);
-    }
-};
-
-}).call(this)}).call(this,{"isBuffer":require("../../../is-buffer/index.js")},"/node_modules/@hapi/code/lib")
-},{"../../../is-buffer/index.js":46,"@hapi/hoek":17,"util":52}],3:[function(require,module,exports){
-'use strict';
-
-const Assert = require('./assert');
-const Clone = require('./clone');
-const Merge = require('./merge');
-const Reach = require('./reach');
-
-
-const internals = {};
-
-
-module.exports = function (defaults, source, options = {}) {
-
-    Assert(defaults && typeof defaults === 'object', 'Invalid defaults value: must be an object');
-    Assert(!source || source === true || typeof source === 'object', 'Invalid source value: must be true, falsy or an object');
-    Assert(typeof options === 'object', 'Invalid options: must be an object');
-
-    if (!source) {                                                  // If no source, return null
-        return null;
-    }
-
-    if (options.shallow) {
-        return internals.applyToDefaultsWithShallow(defaults, source, options);
-    }
-
-    const copy = Clone(defaults);
-
-    if (source === true) {                                          // If source is set to true, use defaults
-        return copy;
-    }
-
-    const nullOverride = options.nullOverride !== undefined ? options.nullOverride : false;
-    return Merge(copy, source, { nullOverride, mergeArrays: false });
-};
-
-
-internals.applyToDefaultsWithShallow = function (defaults, source, options) {
-
-    const keys = options.shallow;
-    Assert(Array.isArray(keys), 'Invalid keys');
-
-    const seen = new Map();
-    const merge = source === true ? null : new Set();
-
-    for (let key of keys) {
-        key = Array.isArray(key) ? key : key.split('.');            // Pre-split optimization
-
-        const ref = Reach(defaults, key);
-        if (ref &&
-            typeof ref === 'object') {
-
-            seen.set(ref, merge && Reach(source, key) || ref);
-        }
-        else if (merge) {
-            merge.add(key);
-        }
-    }
-
-    const copy = Clone(defaults, {}, seen);
-
-    if (!merge) {
-        return copy;
-    }
-
-    for (const key of merge) {
-        internals.reachCopy(copy, source, key);
-    }
-
-    return Merge(copy, source, { mergeArrays: false, nullOverride: false });
-};
-
-
-internals.reachCopy = function (dst, src, path) {
-
-    for (const segment of path) {
-        if (!(segment in src)) {
-            return;
-        }
-
-        src = src[segment];
-    }
-
-    const value = src;
-    let ref = dst;
-    for (let i = 0; i < path.length - 1; ++i) {
-        const segment = path[i];
-        if (typeof ref[segment] !== 'object') {
-            ref[segment] = {};
-        }
-
-        ref = ref[segment];
-    }
-
-    ref[path[path.length - 1]] = value;
-};
-
-},{"./assert":4,"./clone":7,"./merge":20,"./reach":22}],4:[function(require,module,exports){
-'use strict';
-
-const AssertError = require('./error');
-
-const internals = {};
-
-
-module.exports = function (condition, ...args) {
-
-    if (condition) {
-        return;
-    }
-
-    if (args.length === 1 &&
-        args[0] instanceof Error) {
-
-        throw args[0];
-    }
-
-    throw new AssertError(args);
-};
-
-},{"./error":10}],5:[function(require,module,exports){
-(function (process){(function (){
-'use strict';
-
-const internals = {};
-
-
-module.exports = internals.Bench = class {
-
-    constructor() {
-
-        this.ts = 0;
-        this.reset();
-    }
-
-    reset() {
-
-        this.ts = internals.Bench.now();
-    }
-
-    elapsed() {
-
-        return internals.Bench.now() - this.ts;
-    }
-
-    static now() {
-
-        const ts = process.hrtime();
-        return (ts[0] * 1e3) + (ts[1] / 1e6);
-    }
-};
-
-}).call(this)}).call(this,require('_process'))
-},{"_process":49}],6:[function(require,module,exports){
-'use strict';
-
-const Ignore = require('./ignore');
-
-
-const internals = {};
-
-
-module.exports = function () {
-
-    return new Promise(Ignore);
-};
-
-},{"./ignore":16}],7:[function(require,module,exports){
-(function (Buffer){(function (){
-'use strict';
-
-const Reach = require('./reach');
-const Types = require('./types');
-const Utils = require('./utils');
-
-
-const internals = {
-    needsProtoHack: new Set([Types.set, Types.map, Types.weakSet, Types.weakMap])
-};
-
-
-module.exports = internals.clone = function (obj, options = {}, _seen = null) {
-
-    if (typeof obj !== 'object' ||
-        obj === null) {
-
-        return obj;
-    }
-
-    let clone = internals.clone;
-    let seen = _seen;
-
-    if (options.shallow) {
-        if (options.shallow !== true) {
-            return internals.cloneWithShallow(obj, options);
-        }
-
-        clone = (value) => value;
-    }
-    else if (seen) {
-        const lookup = seen.get(obj);
-        if (lookup) {
-            return lookup;
-        }
-    }
-    else {
-        seen = new Map();
-    }
-
-    // Built-in object types
-
-    const baseProto = Types.getInternalProto(obj);
-    if (baseProto === Types.buffer) {
-        return Buffer && Buffer.from(obj);              // $lab:coverage:ignore$
-    }
-
-    if (baseProto === Types.date) {
-        return new Date(obj.getTime());
-    }
-
-    if (baseProto === Types.regex) {
-        return new RegExp(obj);
-    }
-
-    // Generic objects
-
-    const newObj = internals.base(obj, baseProto, options);
-    if (newObj === obj) {
-        return obj;
-    }
-
-    if (seen) {
-        seen.set(obj, newObj);                              // Set seen, since obj could recurse
-    }
-
-    if (baseProto === Types.set) {
-        for (const value of obj) {
-            newObj.add(clone(value, options, seen));
-        }
-    }
-    else if (baseProto === Types.map) {
-        for (const [key, value] of obj) {
-            newObj.set(key, clone(value, options, seen));
-        }
-    }
-
-    const keys = Utils.keys(obj, options);
-    for (const key of keys) {
-        if (key === '__proto__') {
-            continue;
-        }
-
-        if (baseProto === Types.array &&
-            key === 'length') {
-
-            newObj.length = obj.length;
-            continue;
-        }
-
-        const descriptor = Object.getOwnPropertyDescriptor(obj, key);
-        if (descriptor) {
-            if (descriptor.get ||
-                descriptor.set) {
-
-                Object.defineProperty(newObj, key, descriptor);
-            }
-            else if (descriptor.enumerable) {
-                newObj[key] = clone(obj[key], options, seen);
-            }
-            else {
-                Object.defineProperty(newObj, key, { enumerable: false, writable: true, configurable: true, value: clone(obj[key], options, seen) });
-            }
-        }
-        else {
-            Object.defineProperty(newObj, key, {
-                enumerable: true,
-                writable: true,
-                configurable: true,
-                value: clone(obj[key], options, seen)
-            });
-        }
-    }
-
-    return newObj;
-};
-
-
-internals.cloneWithShallow = function (source, options) {
-
-    const keys = options.shallow;
-    options = Object.assign({}, options);
-    options.shallow = false;
-
-    const seen = new Map();
-
-    for (const key of keys) {
-        const ref = Reach(source, key);
-        if (typeof ref === 'object' ||
-            typeof ref === 'function') {
-
-            seen.set(ref, ref);
-        }
-    }
-
-    return internals.clone(source, options, seen);
-};
-
-
-internals.base = function (obj, baseProto, options) {
-
-    if (options.prototype === false) {                  // Defaults to true
-        if (internals.needsProtoHack.has(baseProto)) {
-            return new baseProto.constructor();
-        }
-
-        return baseProto === Types.array ? [] : {};
-    }
-
-    const proto = Object.getPrototypeOf(obj);
-    if (proto &&
-        proto.isImmutable) {
-
-        return obj;
-    }
-
-    if (baseProto === Types.array) {
-        const newObj = [];
-        if (proto !== baseProto) {
-            Object.setPrototypeOf(newObj, proto);
-        }
-
-        return newObj;
-    }
-
-    if (internals.needsProtoHack.has(baseProto)) {
-        const newObj = new proto.constructor();
-        if (proto !== baseProto) {
-            Object.setPrototypeOf(newObj, proto);
-        }
-
-        return newObj;
-    }
-
-    return Object.create(proto);
-};
-
-}).call(this)}).call(this,require("buffer").Buffer)
-},{"./reach":22,"./types":25,"./utils":26,"buffer":32}],8:[function(require,module,exports){
-'use strict';
-
-const Assert = require('./assert');
-const DeepEqual = require('./deepEqual');
-const EscapeRegex = require('./escapeRegex');
-const Utils = require('./utils');
-
-
-const internals = {};
-
-
-module.exports = function (ref, values, options = {}) {        // options: { deep, once, only, part, symbols }
-
-    /*
-        string -> string(s)
-        array -> item(s)
-        object -> key(s)
-        object -> object (key:value)
-    */
-
-    if (typeof values !== 'object') {
-        values = [values];
-    }
-
-    Assert(!Array.isArray(values) || values.length, 'Values array cannot be empty');
-
-    // String
-
-    if (typeof ref === 'string') {
-        return internals.string(ref, values, options);
-    }
-
-    // Array
-
-    if (Array.isArray(ref)) {
-        return internals.array(ref, values, options);
-    }
-
-    // Object
-
-    Assert(typeof ref === 'object', 'Reference must be string or an object');
-    return internals.object(ref, values, options);
-};
-
-
-internals.array = function (ref, values, options) {
-
-    if (!Array.isArray(values)) {
-        values = [values];
-    }
-
-    if (!ref.length) {
-        return false;
-    }
-
-    if (options.only &&
-        options.once &&
-        ref.length !== values.length) {
-
-        return false;
-    }
-
-    let compare;
-
-    // Map values
-
-    const map = new Map();
-    for (const value of values) {
-        if (!options.deep ||
-            !value ||
-            typeof value !== 'object') {
-
-            const existing = map.get(value);
-            if (existing) {
-                ++existing.allowed;
-            }
-            else {
-                map.set(value, { allowed: 1, hits: 0 });
-            }
-        }
-        else {
-            compare = compare || internals.compare(options);
-
-            let found = false;
-            for (const [key, existing] of map.entries()) {
-                if (compare(key, value)) {
-                    ++existing.allowed;
-                    found = true;
-                    break;
-                }
-            }
-
-            if (!found) {
-                map.set(value, { allowed: 1, hits: 0 });
-            }
-        }
-    }
-
-    // Lookup values
-
-    let hits = 0;
-    for (const item of ref) {
-        let match;
-        if (!options.deep ||
-            !item ||
-            typeof item !== 'object') {
-
-            match = map.get(item);
-        }
-        else {
-            compare = compare || internals.compare(options);
-
-            for (const [key, existing] of map.entries()) {
-                if (compare(key, item)) {
-                    match = existing;
-                    break;
-                }
-            }
-        }
-
-        if (match) {
-            ++match.hits;
-            ++hits;
-
-            if (options.once &&
-                match.hits > match.allowed) {
-
-                return false;
-            }
-        }
-    }
-
-    // Validate results
-
-    if (options.only &&
-        hits !== ref.length) {
-
-        return false;
-    }
-
-    for (const match of map.values()) {
-        if (match.hits === match.allowed) {
-            continue;
-        }
-
-        if (match.hits < match.allowed &&
-            !options.part) {
-
-            return false;
-        }
-    }
-
-    return !!hits;
-};
-
-
-internals.object = function (ref, values, options) {
-
-    Assert(options.once === undefined, 'Cannot use option once with object');
-
-    const keys = Utils.keys(ref, options);
-    if (!keys.length) {
-        return false;
-    }
-
-    // Keys list
-
-    if (Array.isArray(values)) {
-        return internals.array(keys, values, options);
-    }
-
-    // Key value pairs
-
-    const symbols = Object.getOwnPropertySymbols(values).filter((sym) => values.propertyIsEnumerable(sym));
-    const targets = [...Object.keys(values), ...symbols];
-
-    const compare = internals.compare(options);
-    const set = new Set(targets);
-
-    for (const key of keys) {
-        if (!set.has(key)) {
-            if (options.only) {
-                return false;
-            }
-
-            continue;
-        }
-
-        if (!compare(values[key], ref[key])) {
-            return false;
-        }
-
-        set.delete(key);
-    }
-
-    if (set.size) {
-        return options.part ? set.size < targets.length : false;
-    }
-
-    return true;
-};
-
-
-internals.string = function (ref, values, options) {
-
-    // Empty string
-
-    if (ref === '') {
-        return values.length === 1 && values[0] === '' ||               // '' contains ''
-            !options.once && !values.some((v) => v !== '');             // '' contains multiple '' if !once
-    }
-
-    // Map values
-
-    const map = new Map();
-    const patterns = [];
-
-    for (const value of values) {
-        Assert(typeof value === 'string', 'Cannot compare string reference to non-string value');
-
-        if (value) {
-            const existing = map.get(value);
-            if (existing) {
-                ++existing.allowed;
-            }
-            else {
-                map.set(value, { allowed: 1, hits: 0 });
-                patterns.push(EscapeRegex(value));
-            }
-        }
-        else if (options.once ||
-            options.only) {
-
-            return false;
-        }
-    }
-
-    if (!patterns.length) {                     // Non-empty string contains unlimited empty string
-        return true;
-    }
-
-    // Match patterns
-
-    const regex = new RegExp(`(${patterns.join('|')})`, 'g');
-    const leftovers = ref.replace(regex, ($0, $1) => {
-
-        ++map.get($1).hits;
-        return '';                              // Remove from string
-    });
-
-    // Validate results
-
-    if (options.only &&
-        leftovers) {
-
-        return false;
-    }
-
-    let any = false;
-    for (const match of map.values()) {
-        if (match.hits) {
-            any = true;
-        }
-
-        if (match.hits === match.allowed) {
-            continue;
-        }
-
-        if (match.hits < match.allowed &&
-            !options.part) {
-
-            return false;
-        }
-
-        // match.hits > match.allowed
-
-        if (options.once) {
-            return false;
-        }
-    }
-
-    return !!any;
-};
-
-
-internals.compare = function (options) {
-
-    if (!options.deep) {
-        return internals.shallow;
-    }
-
-    const hasOnly = options.only !== undefined;
-    const hasPart = options.part !== undefined;
-
-    const flags = {
-        prototype: hasOnly ? options.only : hasPart ? !options.part : false,
-        part: hasOnly ? !options.only : hasPart ? options.part : false
-    };
-
-    return (a, b) => DeepEqual(a, b, flags);
-};
-
-
-internals.shallow = function (a, b) {
-
-    return a === b;
-};
-
-},{"./assert":4,"./deepEqual":9,"./escapeRegex":14,"./utils":26}],9:[function(require,module,exports){
-(function (Buffer){(function (){
-'use strict';
-
-const Types = require('./types');
-
-
-const internals = {
-    mismatched: null
-};
-
-
-module.exports = function (obj, ref, options) {
-
-    options = Object.assign({ prototype: true }, options);
-
-    return !!internals.isDeepEqual(obj, ref, options, []);
-};
-
-
-internals.isDeepEqual = function (obj, ref, options, seen) {
-
-    if (obj === ref) {                                                      // Copied from Deep-eql, copyright(c) 2013 Jake Luer, jake@alogicalparadox.com, MIT Licensed, https://github.com/chaijs/deep-eql
-        return obj !== 0 || 1 / obj === 1 / ref;
-    }
-
-    const type = typeof obj;
-
-    if (type !== typeof ref) {
-        return false;
-    }
-
-    if (obj === null ||
-        ref === null) {
-
-        return false;
-    }
-
-    if (type === 'function') {
-        if (!options.deepFunction ||
-            obj.toString() !== ref.toString()) {
-
-            return false;
-        }
-
-        // Continue as object
-    }
-    else if (type !== 'object') {
-        return obj !== obj && ref !== ref;                                  // NaN
-    }
-
-    const instanceType = internals.getSharedType(obj, ref, !!options.prototype);
-    switch (instanceType) {
-        case Types.buffer:
-            return Buffer && Buffer.prototype.equals.call(obj, ref);        // $lab:coverage:ignore$
-        case Types.promise:
-            return obj === ref;
-        case Types.regex:
-            return obj.toString() === ref.toString();
-        case internals.mismatched:
-            return false;
-    }
-
-    for (let i = seen.length - 1; i >= 0; --i) {
-        if (seen[i].isSame(obj, ref)) {
-            return true;                                                    // If previous comparison failed, it would have stopped execution
-        }
-    }
-
-    seen.push(new internals.SeenEntry(obj, ref));
-
-    try {
-        return !!internals.isDeepEqualObj(instanceType, obj, ref, options, seen);
-    }
-    finally {
-        seen.pop();
-    }
-};
-
-
-internals.getSharedType = function (obj, ref, checkPrototype) {
-
-    if (checkPrototype) {
-        if (Object.getPrototypeOf(obj) !== Object.getPrototypeOf(ref)) {
-            return internals.mismatched;
-        }
-
-        return Types.getInternalProto(obj);
-    }
-
-    const type = Types.getInternalProto(obj);
-    if (type !== Types.getInternalProto(ref)) {
-        return internals.mismatched;
-    }
-
-    return type;
-};
-
-
-internals.valueOf = function (obj) {
-
-    const objValueOf = obj.valueOf;
-    if (objValueOf === undefined) {
-        return obj;
-    }
-
-    try {
-        return objValueOf.call(obj);
-    }
-    catch (err) {
-        return err;
-    }
-};
-
-
-internals.hasOwnEnumerableProperty = function (obj, key) {
-
-    return Object.prototype.propertyIsEnumerable.call(obj, key);
-};
-
-
-internals.isSetSimpleEqual = function (obj, ref) {
-
-    for (const entry of Set.prototype.values.call(obj)) {
-        if (!Set.prototype.has.call(ref, entry)) {
-            return false;
-        }
-    }
-
-    return true;
-};
-
-
-internals.isDeepEqualObj = function (instanceType, obj, ref, options, seen) {
-
-    const { isDeepEqual, valueOf, hasOwnEnumerableProperty } = internals;
-    const { keys, getOwnPropertySymbols } = Object;
-
-    if (instanceType === Types.array) {
-        if (options.part) {
-
-            // Check if any index match any other index
-
-            for (const objValue of obj) {
-                for (const refValue of ref) {
-                    if (isDeepEqual(objValue, refValue, options, seen)) {
-                        return true;
-                    }
-                }
-            }
-        }
-        else {
-            if (obj.length !== ref.length) {
-                return false;
-            }
-
-            for (let i = 0; i < obj.length; ++i) {
-                if (!isDeepEqual(obj[i], ref[i], options, seen)) {
-                    return false;
-                }
-            }
-
-            return true;
-        }
-    }
-    else if (instanceType === Types.set) {
-        if (obj.size !== ref.size) {
-            return false;
-        }
-
-        if (!internals.isSetSimpleEqual(obj, ref)) {
-
-            // Check for deep equality
-
-            const ref2 = new Set(Set.prototype.values.call(ref));
-            for (const objEntry of Set.prototype.values.call(obj)) {
-                if (ref2.delete(objEntry)) {
-                    continue;
-                }
-
-                let found = false;
-                for (const refEntry of ref2) {
-                    if (isDeepEqual(objEntry, refEntry, options, seen)) {
-                        ref2.delete(refEntry);
-                        found = true;
-                        break;
-                    }
-                }
-
-                if (!found) {
-                    return false;
-                }
-            }
-        }
-    }
-    else if (instanceType === Types.map) {
-        if (obj.size !== ref.size) {
-            return false;
-        }
-
-        for (const [key, value] of Map.prototype.entries.call(obj)) {
-            if (value === undefined && !Map.prototype.has.call(ref, key)) {
-                return false;
-            }
-
-            if (!isDeepEqual(value, Map.prototype.get.call(ref, key), options, seen)) {
-                return false;
-            }
-        }
-    }
-    else if (instanceType === Types.error) {
-
-        // Always check name and message
-
-        if (obj.name !== ref.name ||
-            obj.message !== ref.message) {
-
-            return false;
-        }
-    }
-
-    // Check .valueOf()
-
-    const valueOfObj = valueOf(obj);
-    const valueOfRef = valueOf(ref);
-    if ((obj !== valueOfObj || ref !== valueOfRef) &&
-        !isDeepEqual(valueOfObj, valueOfRef, options, seen)) {
-
-        return false;
-    }
-
-    // Check properties
-
-    const objKeys = keys(obj);
-    if (!options.part &&
-        objKeys.length !== keys(ref).length &&
-        !options.skip) {
-
-        return false;
-    }
-
-    let skipped = 0;
-    for (const key of objKeys) {
-        if (options.skip &&
-            options.skip.includes(key)) {
-
-            if (ref[key] === undefined) {
-                ++skipped;
-            }
-
-            continue;
-        }
-
-        if (!hasOwnEnumerableProperty(ref, key)) {
-            return false;
-        }
-
-        if (!isDeepEqual(obj[key], ref[key], options, seen)) {
-            return false;
-        }
-    }
-
-    if (!options.part &&
-        objKeys.length - skipped !== keys(ref).length) {
-
-        return false;
-    }
-
-    // Check symbols
-
-    if (options.symbols !== false) {                                // Defaults to true
-        const objSymbols = getOwnPropertySymbols(obj);
-        const refSymbols = new Set(getOwnPropertySymbols(ref));
-
-        for (const key of objSymbols) {
-            if (!options.skip ||
-                !options.skip.includes(key)) {
-
-                if (hasOwnEnumerableProperty(obj, key)) {
-                    if (!hasOwnEnumerableProperty(ref, key)) {
-                        return false;
-                    }
-
-                    if (!isDeepEqual(obj[key], ref[key], options, seen)) {
-                        return false;
-                    }
-                }
-                else if (hasOwnEnumerableProperty(ref, key)) {
-                    return false;
-                }
-            }
-
-            refSymbols.delete(key);
-        }
-
-        for (const key of refSymbols) {
-            if (hasOwnEnumerableProperty(ref, key)) {
-                return false;
-            }
-        }
-    }
-
-    return true;
-};
-
-
-internals.SeenEntry = class {
-
-    constructor(obj, ref) {
-
-        this.obj = obj;
-        this.ref = ref;
-    }
-
-    isSame(obj, ref) {
-
-        return this.obj === obj && this.ref === ref;
-    }
-};
-
-}).call(this)}).call(this,require("buffer").Buffer)
-},{"./types":25,"buffer":32}],10:[function(require,module,exports){
-'use strict';
-
-const Stringify = require('./stringify');
-
-
-const internals = {};
-
-
-module.exports = class extends Error {
-
-    constructor(args) {
-
-        const msgs = args
-            .filter((arg) => arg !== '')
-            .map((arg) => {
-
-                return typeof arg === 'string' ? arg : arg instanceof Error ? arg.message : Stringify(arg);
-            });
-
-        super(msgs.join(' ') || 'Unknown error');
-
-        if (typeof Error.captureStackTrace === 'function') {            // $lab:coverage:ignore$
-            Error.captureStackTrace(this, exports.assert);
-        }
-    }
-};
-
-},{"./stringify":24}],11:[function(require,module,exports){
-'use strict';
-
-const Assert = require('./assert');
-
-
-const internals = {};
-
-
-module.exports = function (attribute) {
-
-    // Allowed value characters: !#$%&'()*+,-./:;<=>?@[]^_`{|}~ and space, a-z, A-Z, 0-9, \, "
-
-    Assert(/^[ \w\!#\$%&'\(\)\*\+,\-\.\/\:;<\=>\?@\[\]\^`\{\|\}~\"\\]*$/.test(attribute), 'Bad attribute value (' + attribute + ')');
-
-    return attribute.replace(/\\/g, '\\\\').replace(/\"/g, '\\"');                             // Escape quotes and slash
-};
-
-},{"./assert":4}],12:[function(require,module,exports){
-'use strict';
-
-const internals = {};
-
-
-module.exports = function (input) {
-
-    if (!input) {
-        return '';
-    }
-
-    let escaped = '';
-
-    for (let i = 0; i < input.length; ++i) {
-
-        const charCode = input.charCodeAt(i);
-
-        if (internals.isSafe(charCode)) {
-            escaped += input[i];
-        }
-        else {
-            escaped += internals.escapeHtmlChar(charCode);
-        }
-    }
-
-    return escaped;
-};
-
-
-internals.escapeHtmlChar = function (charCode) {
-
-    const namedEscape = internals.namedHtml[charCode];
-    if (typeof namedEscape !== 'undefined') {
-        return namedEscape;
-    }
-
-    if (charCode >= 256) {
-        return '&#' + charCode + ';';
-    }
-
-    const hexValue = charCode.toString(16).padStart(2, '0');
-    return `&#x${hexValue};`;
-};
-
-
-internals.isSafe = function (charCode) {
-
-    return (typeof internals.safeCharCodes[charCode] !== 'undefined');
-};
-
-
-internals.namedHtml = {
-    '38': '&amp;',
-    '60': '&lt;',
-    '62': '&gt;',
-    '34': '&quot;',
-    '160': '&nbsp;',
-    '162': '&cent;',
-    '163': '&pound;',
-    '164': '&curren;',
-    '169': '&copy;',
-    '174': '&reg;'
-};
-
-
-internals.safeCharCodes = (function () {
-
-    const safe = {};
-
-    for (let i = 32; i < 123; ++i) {
-
-        if ((i >= 97) ||                    // a-z
-            (i >= 65 && i <= 90) ||         // A-Z
-            (i >= 48 && i <= 57) ||         // 0-9
-            i === 32 ||                     // space
-            i === 46 ||                     // .
-            i === 44 ||                     // ,
-            i === 45 ||                     // -
-            i === 58 ||                     // :
-            i === 95) {                     // _
-
-            safe[i] = null;
-        }
-    }
-
-    return safe;
-}());
-
-},{}],13:[function(require,module,exports){
-'use strict';
-
-const internals = {};
-
-
-module.exports = function (input) {
-
-    if (!input) {
-        return '';
-    }
-
-    const lessThan = 0x3C;
-    const greaterThan = 0x3E;
-    const andSymbol = 0x26;
-    const lineSeperator = 0x2028;
-
-    // replace method
-    let charCode;
-    return input.replace(/[<>&\u2028\u2029]/g, (match) => {
-
-        charCode = match.charCodeAt(0);
-
-        if (charCode === lessThan) {
-            return '\\u003c';
-        }
-
-        if (charCode === greaterThan) {
-            return '\\u003e';
-        }
-
-        if (charCode === andSymbol) {
-            return '\\u0026';
-        }
-
-        if (charCode === lineSeperator) {
-            return '\\u2028';
-        }
-
-        return '\\u2029';
-    });
-};
-
-},{}],14:[function(require,module,exports){
-'use strict';
-
-const internals = {};
-
-
-module.exports = function (string) {
-
-    // Escape ^$.*+-?=!:|\/()[]{},
-
-    return string.replace(/[\^\$\.\*\+\-\?\=\!\:\|\\\/\(\)\[\]\{\}\,]/g, '\\$&');
-};
-
-},{}],15:[function(require,module,exports){
-'use strict';
-
-const internals = {};
-
-
-module.exports = internals.flatten = function (array, target) {
-
-    const result = target || [];
-
-    for (let i = 0; i < array.length; ++i) {
-        if (Array.isArray(array[i])) {
-            internals.flatten(array[i], result);
-        }
-        else {
-            result.push(array[i]);
-        }
-    }
-
-    return result;
-};
-
-},{}],16:[function(require,module,exports){
-'use strict';
-
-const internals = {};
-
-
-module.exports = function () { };
-
-},{}],17:[function(require,module,exports){
-'use strict';
-
-const internals = {};
-
-
-module.exports = {
-    applyToDefaults: require('./applyToDefaults'),
-    assert: require('./assert'),
-    Bench: require('./bench'),
-    block: require('./block'),
-    clone: require('./clone'),
-    contain: require('./contain'),
-    deepEqual: require('./deepEqual'),
-    Error: require('./error'),
-    escapeHeaderAttribute: require('./escapeHeaderAttribute'),
-    escapeHtml: require('./escapeHtml'),
-    escapeJson: require('./escapeJson'),
-    escapeRegex: require('./escapeRegex'),
-    flatten: require('./flatten'),
-    ignore: require('./ignore'),
-    intersect: require('./intersect'),
-    isPromise: require('./isPromise'),
-    merge: require('./merge'),
-    once: require('./once'),
-    reach: require('./reach'),
-    reachTemplate: require('./reachTemplate'),
-    stringify: require('./stringify'),
-    wait: require('./wait')
-};
-
-},{"./applyToDefaults":3,"./assert":4,"./bench":5,"./block":6,"./clone":7,"./contain":8,"./deepEqual":9,"./error":10,"./escapeHeaderAttribute":11,"./escapeHtml":12,"./escapeJson":13,"./escapeRegex":14,"./flatten":15,"./ignore":16,"./intersect":18,"./isPromise":19,"./merge":20,"./once":21,"./reach":22,"./reachTemplate":23,"./stringify":24,"./wait":27}],18:[function(require,module,exports){
-'use strict';
-
-const internals = {};
-
-
-module.exports = function (array1, array2, options = {}) {
-
-    if (!array1 ||
-        !array2) {
-
-        return (options.first ? null : []);
-    }
-
-    const common = [];
-    const hash = (Array.isArray(array1) ? new Set(array1) : array1);
-    const found = new Set();
-    for (const value of array2) {
-        if (internals.has(hash, value) &&
-            !found.has(value)) {
-
-            if (options.first) {
-                return value;
-            }
-
-            common.push(value);
-            found.add(value);
-        }
-    }
-
-    return (options.first ? null : common);
-};
-
-
-internals.has = function (ref, key) {
-
-    if (typeof ref.has === 'function') {
-        return ref.has(key);
-    }
-
-    return ref[key] !== undefined;
-};
-
-},{}],19:[function(require,module,exports){
-'use strict';
-
-const internals = {};
-
-
-module.exports = function (promise) {
-
-    return !!promise && typeof promise.then === 'function';
-};
-
-},{}],20:[function(require,module,exports){
-(function (Buffer){(function (){
-'use strict';
-
-const Assert = require('./assert');
-const Clone = require('./clone');
-const Utils = require('./utils');
-
-
-const internals = {};
-
-
-module.exports = internals.merge = function (target, source, options) {
-
-    Assert(target && typeof target === 'object', 'Invalid target value: must be an object');
-    Assert(source === null || source === undefined || typeof source === 'object', 'Invalid source value: must be null, undefined, or an object');
-
-    if (!source) {
-        return target;
-    }
-
-    options = Object.assign({ nullOverride: true, mergeArrays: true }, options);
-
-    if (Array.isArray(source)) {
-        Assert(Array.isArray(target), 'Cannot merge array onto an object');
-        if (!options.mergeArrays) {
-            target.length = 0;                                                          // Must not change target assignment
-        }
-
-        for (let i = 0; i < source.length; ++i) {
-            target.push(Clone(source[i], { symbols: options.symbols }));
-        }
-
-        return target;
-    }
-
-    const keys = Utils.keys(source, options);
-    for (let i = 0; i < keys.length; ++i) {
-        const key = keys[i];
-        if (key === '__proto__' ||
-            !Object.prototype.propertyIsEnumerable.call(source, key)) {
-
-            continue;
-        }
-
-        const value = source[key];
-        if (value &&
-            typeof value === 'object') {
-
-            if (target[key] === value) {
-                continue;                                           // Can occur for shallow merges
-            }
-
-            if (!target[key] ||
-                typeof target[key] !== 'object' ||
-                (Array.isArray(target[key]) !== Array.isArray(value)) ||
-                value instanceof Date ||
-                (Buffer && Buffer.isBuffer(value)) ||               // $lab:coverage:ignore$
-                value instanceof RegExp) {
-
-                target[key] = Clone(value, { symbols: options.symbols });
-            }
-            else {
-                internals.merge(target[key], value, options);
-            }
-        }
-        else {
-            if (value !== null &&
-                value !== undefined) {                              // Explicit to preserve empty strings
-
-                target[key] = value;
-            }
-            else if (options.nullOverride) {
-                target[key] = value;
-            }
-        }
-    }
-
-    return target;
-};
-
-}).call(this)}).call(this,require("buffer").Buffer)
-},{"./assert":4,"./clone":7,"./utils":26,"buffer":32}],21:[function(require,module,exports){
-'use strict';
-
-const internals = {};
-
-
-module.exports = function (method) {
-
-    if (method._hoekOnce) {
-        return method;
-    }
-
-    let once = false;
-    const wrapped = function (...args) {
-
-        if (!once) {
-            once = true;
-            method(...args);
-        }
-    };
-
-    wrapped._hoekOnce = true;
-    return wrapped;
-};
-
-},{}],22:[function(require,module,exports){
-'use strict';
-
-const Assert = require('./assert');
-
-
-const internals = {};
-
-
-module.exports = function (obj, chain, options) {
-
-    if (chain === false ||
-        chain === null ||
-        chain === undefined) {
-
-        return obj;
-    }
-
-    options = options || {};
-    if (typeof options === 'string') {
-        options = { separator: options };
-    }
-
-    const isChainArray = Array.isArray(chain);
-
-    Assert(!isChainArray || !options.separator, 'Separator option no valid for array-based chain');
-
-    const path = isChainArray ? chain : chain.split(options.separator || '.');
-    let ref = obj;
-    for (let i = 0; i < path.length; ++i) {
-        let key = path[i];
-        const type = options.iterables && internals.iterables(ref);
-
-        if (Array.isArray(ref) ||
-            type === 'set') {
-
-            const number = Number(key);
-            if (Number.isInteger(number)) {
-                key = number < 0 ? ref.length + number : number;
-            }
-        }
-
-        if (!ref ||
-            typeof ref === 'function' && options.functions === false ||         // Defaults to true
-            !type && ref[key] === undefined) {
-
-            Assert(!options.strict || i + 1 === path.length, 'Missing segment', key, 'in reach path ', chain);
-            Assert(typeof ref === 'object' || options.functions === true || typeof ref !== 'function', 'Invalid segment', key, 'in reach path ', chain);
-            ref = options.default;
-            break;
-        }
-
-        if (!type) {
-            ref = ref[key];
-        }
-        else if (type === 'set') {
-            ref = [...ref][key];
-        }
-        else {  // type === 'map'
-            ref = ref.get(key);
-        }
-    }
-
-    return ref;
-};
-
-
-internals.iterables = function (ref) {
-
-    if (ref instanceof Set) {
-        return 'set';
-    }
-
-    if (ref instanceof Map) {
-        return 'map';
-    }
-};
-
-},{"./assert":4}],23:[function(require,module,exports){
-'use strict';
-
-const Reach = require('./reach');
-
-
-const internals = {};
-
-
-module.exports = function (obj, template, options) {
-
-    return template.replace(/{([^}]+)}/g, ($0, chain) => {
-
-        const value = Reach(obj, chain, options);
-        return (value === undefined || value === null ? '' : value);
-    });
-};
-
-},{"./reach":22}],24:[function(require,module,exports){
-'use strict';
-
-const internals = {};
-
-
-module.exports = function (...args) {
-
-    try {
-        return JSON.stringify.apply(null, args);
-    }
-    catch (err) {
-        return '[Cannot display object: ' + err.message + ']';
-    }
-};
-
-},{}],25:[function(require,module,exports){
-(function (Buffer){(function (){
-'use strict';
-
-const internals = {};
-
-
-exports = module.exports = {
-    array: Array.prototype,
-    buffer: Buffer && Buffer.prototype,             // $lab:coverage:ignore$
-    date: Date.prototype,
-    error: Error.prototype,
-    generic: Object.prototype,
-    map: Map.prototype,
-    promise: Promise.prototype,
-    regex: RegExp.prototype,
-    set: Set.prototype,
-    weakMap: WeakMap.prototype,
-    weakSet: WeakSet.prototype
-};
-
-
-internals.typeMap = new Map([
-    ['[object Error]', exports.error],
-    ['[object Map]', exports.map],
-    ['[object Promise]', exports.promise],
-    ['[object Set]', exports.set],
-    ['[object WeakMap]', exports.weakMap],
-    ['[object WeakSet]', exports.weakSet]
-]);
-
-
-exports.getInternalProto = function (obj) {
-
-    if (Array.isArray(obj)) {
-        return exports.array;
-    }
-
-    if (Buffer && obj instanceof Buffer) {          // $lab:coverage:ignore$
-        return exports.buffer;
-    }
-
-    if (obj instanceof Date) {
-        return exports.date;
-    }
-
-    if (obj instanceof RegExp) {
-        return exports.regex;
-    }
-
-    if (obj instanceof Error) {
-        return exports.error;
-    }
-
-    const objName = Object.prototype.toString.call(obj);
-    return internals.typeMap.get(objName) || exports.generic;
-};
-
-}).call(this)}).call(this,require("buffer").Buffer)
-},{"buffer":32}],26:[function(require,module,exports){
-'use strict';
-
-const internals = {};
-
-
-exports.keys = function (obj, options = {}) {
-
-    return options.symbols !== false ? Reflect.ownKeys(obj) : Object.getOwnPropertyNames(obj);  // Defaults to true
-};
-
-},{}],27:[function(require,module,exports){
-'use strict';
-
-const internals = {};
-
-
-module.exports = function (timeout, returnValue) {
-
-    if (typeof timeout !== 'number' && timeout !== undefined) {
-        throw new TypeError('Timeout must be a number');
-    }
-
-    return new Promise((resolve) => setTimeout(resolve, timeout, returnValue));
-};
-
-},{}],28:[function(require,module,exports){
-
-/**
- * Array#filter.
- *
- * @param {Array} arr
- * @param {Function} fn
- * @param {Object=} self
- * @return {Array}
- * @throw TypeError
- */
-
-module.exports = function (arr, fn, self) {
-  if (arr.filter) return arr.filter(fn, self);
-  if (void 0 === arr || null === arr) throw new TypeError;
-  if ('function' != typeof fn) throw new TypeError;
-  var ret = [];
-  for (var i = 0; i < arr.length; i++) {
-    if (!hasOwn.call(arr, i)) continue;
-    var val = arr[i];
-    if (fn.call(self, val, i, arr)) ret.push(val);
-  }
-  return ret;
-};
-
-var hasOwn = Object.prototype.hasOwnProperty;
-
-},{}],29:[function(require,module,exports){
 (function (global){(function (){
 'use strict';
 
-var filter = require('array-filter');
+var possibleNames = [
+	'BigInt64Array',
+	'BigUint64Array',
+	'Float32Array',
+	'Float64Array',
+	'Int16Array',
+	'Int32Array',
+	'Int8Array',
+	'Uint16Array',
+	'Uint32Array',
+	'Uint8Array',
+	'Uint8ClampedArray'
+];
+
+var g = typeof globalThis === 'undefined' ? global : globalThis;
 
 module.exports = function availableTypedArrays() {
-	return filter([
-		'BigInt64Array',
-		'BigUint64Array',
-		'Float32Array',
-		'Float64Array',
-		'Int16Array',
-		'Int32Array',
-		'Int8Array',
-		'Uint16Array',
-		'Uint32Array',
-		'Uint8Array',
-		'Uint8ClampedArray'
-	], function (typedArray) {
-		return typeof global[typedArray] === 'function';
-	});
+	var out = [];
+	for (var i = 0; i < possibleNames.length; i++) {
+		if (typeof g[possibleNames[i]] === 'function') {
+			out[out.length] = possibleNames[i];
+		}
+	}
+	return out;
 };
 
 }).call(this)}).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"array-filter":28}],30:[function(require,module,exports){
-'use strict'
-
-exports.byteLength = byteLength
-exports.toByteArray = toByteArray
-exports.fromByteArray = fromByteArray
-
-var lookup = []
-var revLookup = []
-var Arr = typeof Uint8Array !== 'undefined' ? Uint8Array : Array
-
-var code = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/'
-for (var i = 0, len = code.length; i < len; ++i) {
-  lookup[i] = code[i]
-  revLookup[code.charCodeAt(i)] = i
-}
-
-// Support decoding URL-safe base64 strings, as Node.js does.
-// See: https://en.wikipedia.org/wiki/Base64#URL_applications
-revLookup['-'.charCodeAt(0)] = 62
-revLookup['_'.charCodeAt(0)] = 63
-
-function getLens (b64) {
-  var len = b64.length
-
-  if (len % 4 > 0) {
-    throw new Error('Invalid string. Length must be a multiple of 4')
-  }
-
-  // Trim off extra bytes after placeholder bytes are found
-  // See: https://github.com/beatgammit/base64-js/issues/42
-  var validLen = b64.indexOf('=')
-  if (validLen === -1) validLen = len
-
-  var placeHoldersLen = validLen === len
-    ? 0
-    : 4 - (validLen % 4)
-
-  return [validLen, placeHoldersLen]
-}
-
-// base64 is 4/3 + up to two characters of the original data
-function byteLength (b64) {
-  var lens = getLens(b64)
-  var validLen = lens[0]
-  var placeHoldersLen = lens[1]
-  return ((validLen + placeHoldersLen) * 3 / 4) - placeHoldersLen
-}
-
-function _byteLength (b64, validLen, placeHoldersLen) {
-  return ((validLen + placeHoldersLen) * 3 / 4) - placeHoldersLen
-}
-
-function toByteArray (b64) {
-  var tmp
-  var lens = getLens(b64)
-  var validLen = lens[0]
-  var placeHoldersLen = lens[1]
-
-  var arr = new Arr(_byteLength(b64, validLen, placeHoldersLen))
-
-  var curByte = 0
-
-  // if there are placeholders, only get up to the last complete 4 chars
-  var len = placeHoldersLen > 0
-    ? validLen - 4
-    : validLen
-
-  var i
-  for (i = 0; i < len; i += 4) {
-    tmp =
-      (revLookup[b64.charCodeAt(i)] << 18) |
-      (revLookup[b64.charCodeAt(i + 1)] << 12) |
-      (revLookup[b64.charCodeAt(i + 2)] << 6) |
-      revLookup[b64.charCodeAt(i + 3)]
-    arr[curByte++] = (tmp >> 16) & 0xFF
-    arr[curByte++] = (tmp >> 8) & 0xFF
-    arr[curByte++] = tmp & 0xFF
-  }
-
-  if (placeHoldersLen === 2) {
-    tmp =
-      (revLookup[b64.charCodeAt(i)] << 2) |
-      (revLookup[b64.charCodeAt(i + 1)] >> 4)
-    arr[curByte++] = tmp & 0xFF
-  }
-
-  if (placeHoldersLen === 1) {
-    tmp =
-      (revLookup[b64.charCodeAt(i)] << 10) |
-      (revLookup[b64.charCodeAt(i + 1)] << 4) |
-      (revLookup[b64.charCodeAt(i + 2)] >> 2)
-    arr[curByte++] = (tmp >> 8) & 0xFF
-    arr[curByte++] = tmp & 0xFF
-  }
-
-  return arr
-}
-
-function tripletToBase64 (num) {
-  return lookup[num >> 18 & 0x3F] +
-    lookup[num >> 12 & 0x3F] +
-    lookup[num >> 6 & 0x3F] +
-    lookup[num & 0x3F]
-}
-
-function encodeChunk (uint8, start, end) {
-  var tmp
-  var output = []
-  for (var i = start; i < end; i += 3) {
-    tmp =
-      ((uint8[i] << 16) & 0xFF0000) +
-      ((uint8[i + 1] << 8) & 0xFF00) +
-      (uint8[i + 2] & 0xFF)
-    output.push(tripletToBase64(tmp))
-  }
-  return output.join('')
-}
-
-function fromByteArray (uint8) {
-  var tmp
-  var len = uint8.length
-  var extraBytes = len % 3 // if we have 1 byte left, pad 2 bytes
-  var parts = []
-  var maxChunkLength = 16383 // must be multiple of 3
-
-  // go through the array every three bytes, we'll deal with trailing stuff later
-  for (var i = 0, len2 = len - extraBytes; i < len2; i += maxChunkLength) {
-    parts.push(encodeChunk(uint8, i, (i + maxChunkLength) > len2 ? len2 : (i + maxChunkLength)))
-  }
-
-  // pad the end with zeros, but make sure to not forget the extra bytes
-  if (extraBytes === 1) {
-    tmp = uint8[len - 1]
-    parts.push(
-      lookup[tmp >> 2] +
-      lookup[(tmp << 4) & 0x3F] +
-      '=='
-    )
-  } else if (extraBytes === 2) {
-    tmp = (uint8[len - 2] << 8) + uint8[len - 1]
-    parts.push(
-      lookup[tmp >> 10] +
-      lookup[(tmp >> 4) & 0x3F] +
-      lookup[(tmp << 2) & 0x3F] +
-      '='
-    )
-  }
-
-  return parts.join('')
-}
-
-},{}],31:[function(require,module,exports){
-
-},{}],32:[function(require,module,exports){
-(function (Buffer){(function (){
-/*!
- * The buffer module from node.js, for the browser.
- *
- * @author   Feross Aboukhadijeh <https://feross.org>
- * @license  MIT
- */
-/* eslint-disable no-proto */
-
-'use strict'
-
-var base64 = require('base64-js')
-var ieee754 = require('ieee754')
-
-exports.Buffer = Buffer
-exports.SlowBuffer = SlowBuffer
-exports.INSPECT_MAX_BYTES = 50
-
-var K_MAX_LENGTH = 0x7fffffff
-exports.kMaxLength = K_MAX_LENGTH
-
-/**
- * If `Buffer.TYPED_ARRAY_SUPPORT`:
- *   === true    Use Uint8Array implementation (fastest)
- *   === false   Print warning and recommend using `buffer` v4.x which has an Object
- *               implementation (most compatible, even IE6)
- *
- * Browsers that support typed arrays are IE 10+, Firefox 4+, Chrome 7+, Safari 5.1+,
- * Opera 11.6+, iOS 4.2+.
- *
- * We report that the browser does not support typed arrays if the are not subclassable
- * using __proto__. Firefox 4-29 lacks support for adding new properties to `Uint8Array`
- * (See: https://bugzilla.mozilla.org/show_bug.cgi?id=695438). IE 10 lacks support
- * for __proto__ and has a buggy typed array implementation.
- */
-Buffer.TYPED_ARRAY_SUPPORT = typedArraySupport()
-
-if (!Buffer.TYPED_ARRAY_SUPPORT && typeof console !== 'undefined' &&
-    typeof console.error === 'function') {
-  console.error(
-    'This browser lacks typed array (Uint8Array) support which is required by ' +
-    '`buffer` v5.x. Use `buffer` v4.x if you require old browser support.'
-  )
-}
-
-function typedArraySupport () {
-  // Can typed array instances can be augmented?
-  try {
-    var arr = new Uint8Array(1)
-    arr.__proto__ = { __proto__: Uint8Array.prototype, foo: function () { return 42 } }
-    return arr.foo() === 42
-  } catch (e) {
-    return false
-  }
-}
-
-Object.defineProperty(Buffer.prototype, 'parent', {
-  enumerable: true,
-  get: function () {
-    if (!Buffer.isBuffer(this)) return undefined
-    return this.buffer
-  }
-})
-
-Object.defineProperty(Buffer.prototype, 'offset', {
-  enumerable: true,
-  get: function () {
-    if (!Buffer.isBuffer(this)) return undefined
-    return this.byteOffset
-  }
-})
-
-function createBuffer (length) {
-  if (length > K_MAX_LENGTH) {
-    throw new RangeError('The value "' + length + '" is invalid for option "size"')
-  }
-  // Return an augmented `Uint8Array` instance
-  var buf = new Uint8Array(length)
-  buf.__proto__ = Buffer.prototype
-  return buf
-}
-
-/**
- * The Buffer constructor returns instances of `Uint8Array` that have their
- * prototype changed to `Buffer.prototype`. Furthermore, `Buffer` is a subclass of
- * `Uint8Array`, so the returned instances will have all the node `Buffer` methods
- * and the `Uint8Array` methods. Square bracket notation works as expected -- it
- * returns a single octet.
- *
- * The `Uint8Array` prototype remains unmodified.
- */
-
-function Buffer (arg, encodingOrOffset, length) {
-  // Common case.
-  if (typeof arg === 'number') {
-    if (typeof encodingOrOffset === 'string') {
-      throw new TypeError(
-        'The "string" argument must be of type string. Received type number'
-      )
-    }
-    return allocUnsafe(arg)
-  }
-  return from(arg, encodingOrOffset, length)
-}
-
-// Fix subarray() in ES2016. See: https://github.com/feross/buffer/pull/97
-if (typeof Symbol !== 'undefined' && Symbol.species != null &&
-    Buffer[Symbol.species] === Buffer) {
-  Object.defineProperty(Buffer, Symbol.species, {
-    value: null,
-    configurable: true,
-    enumerable: false,
-    writable: false
-  })
-}
-
-Buffer.poolSize = 8192 // not used by this implementation
-
-function from (value, encodingOrOffset, length) {
-  if (typeof value === 'string') {
-    return fromString(value, encodingOrOffset)
-  }
-
-  if (ArrayBuffer.isView(value)) {
-    return fromArrayLike(value)
-  }
-
-  if (value == null) {
-    throw TypeError(
-      'The first argument must be one of type string, Buffer, ArrayBuffer, Array, ' +
-      'or Array-like Object. Received type ' + (typeof value)
-    )
-  }
-
-  if (isInstance(value, ArrayBuffer) ||
-      (value && isInstance(value.buffer, ArrayBuffer))) {
-    return fromArrayBuffer(value, encodingOrOffset, length)
-  }
-
-  if (typeof value === 'number') {
-    throw new TypeError(
-      'The "value" argument must not be of type number. Received type number'
-    )
-  }
-
-  var valueOf = value.valueOf && value.valueOf()
-  if (valueOf != null && valueOf !== value) {
-    return Buffer.from(valueOf, encodingOrOffset, length)
-  }
-
-  var b = fromObject(value)
-  if (b) return b
-
-  if (typeof Symbol !== 'undefined' && Symbol.toPrimitive != null &&
-      typeof value[Symbol.toPrimitive] === 'function') {
-    return Buffer.from(
-      value[Symbol.toPrimitive]('string'), encodingOrOffset, length
-    )
-  }
-
-  throw new TypeError(
-    'The first argument must be one of type string, Buffer, ArrayBuffer, Array, ' +
-    'or Array-like Object. Received type ' + (typeof value)
-  )
-}
-
-/**
- * Functionally equivalent to Buffer(arg, encoding) but throws a TypeError
- * if value is a number.
- * Buffer.from(str[, encoding])
- * Buffer.from(array)
- * Buffer.from(buffer)
- * Buffer.from(arrayBuffer[, byteOffset[, length]])
- **/
-Buffer.from = function (value, encodingOrOffset, length) {
-  return from(value, encodingOrOffset, length)
-}
-
-// Note: Change prototype *after* Buffer.from is defined to workaround Chrome bug:
-// https://github.com/feross/buffer/pull/148
-Buffer.prototype.__proto__ = Uint8Array.prototype
-Buffer.__proto__ = Uint8Array
-
-function assertSize (size) {
-  if (typeof size !== 'number') {
-    throw new TypeError('"size" argument must be of type number')
-  } else if (size < 0) {
-    throw new RangeError('The value "' + size + '" is invalid for option "size"')
-  }
-}
-
-function alloc (size, fill, encoding) {
-  assertSize(size)
-  if (size <= 0) {
-    return createBuffer(size)
-  }
-  if (fill !== undefined) {
-    // Only pay attention to encoding if it's a string. This
-    // prevents accidentally sending in a number that would
-    // be interpretted as a start offset.
-    return typeof encoding === 'string'
-      ? createBuffer(size).fill(fill, encoding)
-      : createBuffer(size).fill(fill)
-  }
-  return createBuffer(size)
-}
-
-/**
- * Creates a new filled Buffer instance.
- * alloc(size[, fill[, encoding]])
- **/
-Buffer.alloc = function (size, fill, encoding) {
-  return alloc(size, fill, encoding)
-}
-
-function allocUnsafe (size) {
-  assertSize(size)
-  return createBuffer(size < 0 ? 0 : checked(size) | 0)
-}
-
-/**
- * Equivalent to Buffer(num), by default creates a non-zero-filled Buffer instance.
- * */
-Buffer.allocUnsafe = function (size) {
-  return allocUnsafe(size)
-}
-/**
- * Equivalent to SlowBuffer(num), by default creates a non-zero-filled Buffer instance.
- */
-Buffer.allocUnsafeSlow = function (size) {
-  return allocUnsafe(size)
-}
-
-function fromString (string, encoding) {
-  if (typeof encoding !== 'string' || encoding === '') {
-    encoding = 'utf8'
-  }
-
-  if (!Buffer.isEncoding(encoding)) {
-    throw new TypeError('Unknown encoding: ' + encoding)
-  }
-
-  var length = byteLength(string, encoding) | 0
-  var buf = createBuffer(length)
-
-  var actual = buf.write(string, encoding)
-
-  if (actual !== length) {
-    // Writing a hex string, for example, that contains invalid characters will
-    // cause everything after the first invalid character to be ignored. (e.g.
-    // 'abxxcd' will be treated as 'ab')
-    buf = buf.slice(0, actual)
-  }
-
-  return buf
-}
-
-function fromArrayLike (array) {
-  var length = array.length < 0 ? 0 : checked(array.length) | 0
-  var buf = createBuffer(length)
-  for (var i = 0; i < length; i += 1) {
-    buf[i] = array[i] & 255
-  }
-  return buf
-}
-
-function fromArrayBuffer (array, byteOffset, length) {
-  if (byteOffset < 0 || array.byteLength < byteOffset) {
-    throw new RangeError('"offset" is outside of buffer bounds')
-  }
-
-  if (array.byteLength < byteOffset + (length || 0)) {
-    throw new RangeError('"length" is outside of buffer bounds')
-  }
-
-  var buf
-  if (byteOffset === undefined && length === undefined) {
-    buf = new Uint8Array(array)
-  } else if (length === undefined) {
-    buf = new Uint8Array(array, byteOffset)
-  } else {
-    buf = new Uint8Array(array, byteOffset, length)
-  }
-
-  // Return an augmented `Uint8Array` instance
-  buf.__proto__ = Buffer.prototype
-  return buf
-}
-
-function fromObject (obj) {
-  if (Buffer.isBuffer(obj)) {
-    var len = checked(obj.length) | 0
-    var buf = createBuffer(len)
-
-    if (buf.length === 0) {
-      return buf
-    }
-
-    obj.copy(buf, 0, 0, len)
-    return buf
-  }
-
-  if (obj.length !== undefined) {
-    if (typeof obj.length !== 'number' || numberIsNaN(obj.length)) {
-      return createBuffer(0)
-    }
-    return fromArrayLike(obj)
-  }
-
-  if (obj.type === 'Buffer' && Array.isArray(obj.data)) {
-    return fromArrayLike(obj.data)
-  }
-}
-
-function checked (length) {
-  // Note: cannot use `length < K_MAX_LENGTH` here because that fails when
-  // length is NaN (which is otherwise coerced to zero.)
-  if (length >= K_MAX_LENGTH) {
-    throw new RangeError('Attempt to allocate Buffer larger than maximum ' +
-                         'size: 0x' + K_MAX_LENGTH.toString(16) + ' bytes')
-  }
-  return length | 0
-}
-
-function SlowBuffer (length) {
-  if (+length != length) { // eslint-disable-line eqeqeq
-    length = 0
-  }
-  return Buffer.alloc(+length)
-}
-
-Buffer.isBuffer = function isBuffer (b) {
-  return b != null && b._isBuffer === true &&
-    b !== Buffer.prototype // so Buffer.isBuffer(Buffer.prototype) will be false
-}
-
-Buffer.compare = function compare (a, b) {
-  if (isInstance(a, Uint8Array)) a = Buffer.from(a, a.offset, a.byteLength)
-  if (isInstance(b, Uint8Array)) b = Buffer.from(b, b.offset, b.byteLength)
-  if (!Buffer.isBuffer(a) || !Buffer.isBuffer(b)) {
-    throw new TypeError(
-      'The "buf1", "buf2" arguments must be one of type Buffer or Uint8Array'
-    )
-  }
-
-  if (a === b) return 0
-
-  var x = a.length
-  var y = b.length
-
-  for (var i = 0, len = Math.min(x, y); i < len; ++i) {
-    if (a[i] !== b[i]) {
-      x = a[i]
-      y = b[i]
-      break
-    }
-  }
-
-  if (x < y) return -1
-  if (y < x) return 1
-  return 0
-}
-
-Buffer.isEncoding = function isEncoding (encoding) {
-  switch (String(encoding).toLowerCase()) {
-    case 'hex':
-    case 'utf8':
-    case 'utf-8':
-    case 'ascii':
-    case 'latin1':
-    case 'binary':
-    case 'base64':
-    case 'ucs2':
-    case 'ucs-2':
-    case 'utf16le':
-    case 'utf-16le':
-      return true
-    default:
-      return false
-  }
-}
-
-Buffer.concat = function concat (list, length) {
-  if (!Array.isArray(list)) {
-    throw new TypeError('"list" argument must be an Array of Buffers')
-  }
-
-  if (list.length === 0) {
-    return Buffer.alloc(0)
-  }
-
-  var i
-  if (length === undefined) {
-    length = 0
-    for (i = 0; i < list.length; ++i) {
-      length += list[i].length
-    }
-  }
-
-  var buffer = Buffer.allocUnsafe(length)
-  var pos = 0
-  for (i = 0; i < list.length; ++i) {
-    var buf = list[i]
-    if (isInstance(buf, Uint8Array)) {
-      buf = Buffer.from(buf)
-    }
-    if (!Buffer.isBuffer(buf)) {
-      throw new TypeError('"list" argument must be an Array of Buffers')
-    }
-    buf.copy(buffer, pos)
-    pos += buf.length
-  }
-  return buffer
-}
-
-function byteLength (string, encoding) {
-  if (Buffer.isBuffer(string)) {
-    return string.length
-  }
-  if (ArrayBuffer.isView(string) || isInstance(string, ArrayBuffer)) {
-    return string.byteLength
-  }
-  if (typeof string !== 'string') {
-    throw new TypeError(
-      'The "string" argument must be one of type string, Buffer, or ArrayBuffer. ' +
-      'Received type ' + typeof string
-    )
-  }
-
-  var len = string.length
-  var mustMatch = (arguments.length > 2 && arguments[2] === true)
-  if (!mustMatch && len === 0) return 0
-
-  // Use a for loop to avoid recursion
-  var loweredCase = false
-  for (;;) {
-    switch (encoding) {
-      case 'ascii':
-      case 'latin1':
-      case 'binary':
-        return len
-      case 'utf8':
-      case 'utf-8':
-        return utf8ToBytes(string).length
-      case 'ucs2':
-      case 'ucs-2':
-      case 'utf16le':
-      case 'utf-16le':
-        return len * 2
-      case 'hex':
-        return len >>> 1
-      case 'base64':
-        return base64ToBytes(string).length
-      default:
-        if (loweredCase) {
-          return mustMatch ? -1 : utf8ToBytes(string).length // assume utf8
-        }
-        encoding = ('' + encoding).toLowerCase()
-        loweredCase = true
-    }
-  }
-}
-Buffer.byteLength = byteLength
-
-function slowToString (encoding, start, end) {
-  var loweredCase = false
-
-  // No need to verify that "this.length <= MAX_UINT32" since it's a read-only
-  // property of a typed array.
-
-  // This behaves neither like String nor Uint8Array in that we set start/end
-  // to their upper/lower bounds if the value passed is out of range.
-  // undefined is handled specially as per ECMA-262 6th Edition,
-  // Section 13.3.3.7 Runtime Semantics: KeyedBindingInitialization.
-  if (start === undefined || start < 0) {
-    start = 0
-  }
-  // Return early if start > this.length. Done here to prevent potential uint32
-  // coercion fail below.
-  if (start > this.length) {
-    return ''
-  }
-
-  if (end === undefined || end > this.length) {
-    end = this.length
-  }
-
-  if (end <= 0) {
-    return ''
-  }
-
-  // Force coersion to uint32. This will also coerce falsey/NaN values to 0.
-  end >>>= 0
-  start >>>= 0
-
-  if (end <= start) {
-    return ''
-  }
-
-  if (!encoding) encoding = 'utf8'
-
-  while (true) {
-    switch (encoding) {
-      case 'hex':
-        return hexSlice(this, start, end)
-
-      case 'utf8':
-      case 'utf-8':
-        return utf8Slice(this, start, end)
-
-      case 'ascii':
-        return asciiSlice(this, start, end)
-
-      case 'latin1':
-      case 'binary':
-        return latin1Slice(this, start, end)
-
-      case 'base64':
-        return base64Slice(this, start, end)
-
-      case 'ucs2':
-      case 'ucs-2':
-      case 'utf16le':
-      case 'utf-16le':
-        return utf16leSlice(this, start, end)
-
-      default:
-        if (loweredCase) throw new TypeError('Unknown encoding: ' + encoding)
-        encoding = (encoding + '').toLowerCase()
-        loweredCase = true
-    }
-  }
-}
-
-// This property is used by `Buffer.isBuffer` (and the `is-buffer` npm package)
-// to detect a Buffer instance. It's not possible to use `instanceof Buffer`
-// reliably in a browserify context because there could be multiple different
-// copies of the 'buffer' package in use. This method works even for Buffer
-// instances that were created from another copy of the `buffer` package.
-// See: https://github.com/feross/buffer/issues/154
-Buffer.prototype._isBuffer = true
-
-function swap (b, n, m) {
-  var i = b[n]
-  b[n] = b[m]
-  b[m] = i
-}
-
-Buffer.prototype.swap16 = function swap16 () {
-  var len = this.length
-  if (len % 2 !== 0) {
-    throw new RangeError('Buffer size must be a multiple of 16-bits')
-  }
-  for (var i = 0; i < len; i += 2) {
-    swap(this, i, i + 1)
-  }
-  return this
-}
-
-Buffer.prototype.swap32 = function swap32 () {
-  var len = this.length
-  if (len % 4 !== 0) {
-    throw new RangeError('Buffer size must be a multiple of 32-bits')
-  }
-  for (var i = 0; i < len; i += 4) {
-    swap(this, i, i + 3)
-    swap(this, i + 1, i + 2)
-  }
-  return this
-}
-
-Buffer.prototype.swap64 = function swap64 () {
-  var len = this.length
-  if (len % 8 !== 0) {
-    throw new RangeError('Buffer size must be a multiple of 64-bits')
-  }
-  for (var i = 0; i < len; i += 8) {
-    swap(this, i, i + 7)
-    swap(this, i + 1, i + 6)
-    swap(this, i + 2, i + 5)
-    swap(this, i + 3, i + 4)
-  }
-  return this
-}
-
-Buffer.prototype.toString = function toString () {
-  var length = this.length
-  if (length === 0) return ''
-  if (arguments.length === 0) return utf8Slice(this, 0, length)
-  return slowToString.apply(this, arguments)
-}
-
-Buffer.prototype.toLocaleString = Buffer.prototype.toString
-
-Buffer.prototype.equals = function equals (b) {
-  if (!Buffer.isBuffer(b)) throw new TypeError('Argument must be a Buffer')
-  if (this === b) return true
-  return Buffer.compare(this, b) === 0
-}
-
-Buffer.prototype.inspect = function inspect () {
-  var str = ''
-  var max = exports.INSPECT_MAX_BYTES
-  str = this.toString('hex', 0, max).replace(/(.{2})/g, '$1 ').trim()
-  if (this.length > max) str += ' ... '
-  return '<Buffer ' + str + '>'
-}
-
-Buffer.prototype.compare = function compare (target, start, end, thisStart, thisEnd) {
-  if (isInstance(target, Uint8Array)) {
-    target = Buffer.from(target, target.offset, target.byteLength)
-  }
-  if (!Buffer.isBuffer(target)) {
-    throw new TypeError(
-      'The "target" argument must be one of type Buffer or Uint8Array. ' +
-      'Received type ' + (typeof target)
-    )
-  }
-
-  if (start === undefined) {
-    start = 0
-  }
-  if (end === undefined) {
-    end = target ? target.length : 0
-  }
-  if (thisStart === undefined) {
-    thisStart = 0
-  }
-  if (thisEnd === undefined) {
-    thisEnd = this.length
-  }
-
-  if (start < 0 || end > target.length || thisStart < 0 || thisEnd > this.length) {
-    throw new RangeError('out of range index')
-  }
-
-  if (thisStart >= thisEnd && start >= end) {
-    return 0
-  }
-  if (thisStart >= thisEnd) {
-    return -1
-  }
-  if (start >= end) {
-    return 1
-  }
-
-  start >>>= 0
-  end >>>= 0
-  thisStart >>>= 0
-  thisEnd >>>= 0
-
-  if (this === target) return 0
-
-  var x = thisEnd - thisStart
-  var y = end - start
-  var len = Math.min(x, y)
-
-  var thisCopy = this.slice(thisStart, thisEnd)
-  var targetCopy = target.slice(start, end)
-
-  for (var i = 0; i < len; ++i) {
-    if (thisCopy[i] !== targetCopy[i]) {
-      x = thisCopy[i]
-      y = targetCopy[i]
-      break
-    }
-  }
-
-  if (x < y) return -1
-  if (y < x) return 1
-  return 0
-}
-
-// Finds either the first index of `val` in `buffer` at offset >= `byteOffset`,
-// OR the last index of `val` in `buffer` at offset <= `byteOffset`.
-//
-// Arguments:
-// - buffer - a Buffer to search
-// - val - a string, Buffer, or number
-// - byteOffset - an index into `buffer`; will be clamped to an int32
-// - encoding - an optional encoding, relevant is val is a string
-// - dir - true for indexOf, false for lastIndexOf
-function bidirectionalIndexOf (buffer, val, byteOffset, encoding, dir) {
-  // Empty buffer means no match
-  if (buffer.length === 0) return -1
-
-  // Normalize byteOffset
-  if (typeof byteOffset === 'string') {
-    encoding = byteOffset
-    byteOffset = 0
-  } else if (byteOffset > 0x7fffffff) {
-    byteOffset = 0x7fffffff
-  } else if (byteOffset < -0x80000000) {
-    byteOffset = -0x80000000
-  }
-  byteOffset = +byteOffset // Coerce to Number.
-  if (numberIsNaN(byteOffset)) {
-    // byteOffset: it it's undefined, null, NaN, "foo", etc, search whole buffer
-    byteOffset = dir ? 0 : (buffer.length - 1)
-  }
-
-  // Normalize byteOffset: negative offsets start from the end of the buffer
-  if (byteOffset < 0) byteOffset = buffer.length + byteOffset
-  if (byteOffset >= buffer.length) {
-    if (dir) return -1
-    else byteOffset = buffer.length - 1
-  } else if (byteOffset < 0) {
-    if (dir) byteOffset = 0
-    else return -1
-  }
-
-  // Normalize val
-  if (typeof val === 'string') {
-    val = Buffer.from(val, encoding)
-  }
-
-  // Finally, search either indexOf (if dir is true) or lastIndexOf
-  if (Buffer.isBuffer(val)) {
-    // Special case: looking for empty string/buffer always fails
-    if (val.length === 0) {
-      return -1
-    }
-    return arrayIndexOf(buffer, val, byteOffset, encoding, dir)
-  } else if (typeof val === 'number') {
-    val = val & 0xFF // Search for a byte value [0-255]
-    if (typeof Uint8Array.prototype.indexOf === 'function') {
-      if (dir) {
-        return Uint8Array.prototype.indexOf.call(buffer, val, byteOffset)
-      } else {
-        return Uint8Array.prototype.lastIndexOf.call(buffer, val, byteOffset)
-      }
-    }
-    return arrayIndexOf(buffer, [ val ], byteOffset, encoding, dir)
-  }
-
-  throw new TypeError('val must be string, number or Buffer')
-}
-
-function arrayIndexOf (arr, val, byteOffset, encoding, dir) {
-  var indexSize = 1
-  var arrLength = arr.length
-  var valLength = val.length
-
-  if (encoding !== undefined) {
-    encoding = String(encoding).toLowerCase()
-    if (encoding === 'ucs2' || encoding === 'ucs-2' ||
-        encoding === 'utf16le' || encoding === 'utf-16le') {
-      if (arr.length < 2 || val.length < 2) {
-        return -1
-      }
-      indexSize = 2
-      arrLength /= 2
-      valLength /= 2
-      byteOffset /= 2
-    }
-  }
-
-  function read (buf, i) {
-    if (indexSize === 1) {
-      return buf[i]
-    } else {
-      return buf.readUInt16BE(i * indexSize)
-    }
-  }
-
-  var i
-  if (dir) {
-    var foundIndex = -1
-    for (i = byteOffset; i < arrLength; i++) {
-      if (read(arr, i) === read(val, foundIndex === -1 ? 0 : i - foundIndex)) {
-        if (foundIndex === -1) foundIndex = i
-        if (i - foundIndex + 1 === valLength) return foundIndex * indexSize
-      } else {
-        if (foundIndex !== -1) i -= i - foundIndex
-        foundIndex = -1
-      }
-    }
-  } else {
-    if (byteOffset + valLength > arrLength) byteOffset = arrLength - valLength
-    for (i = byteOffset; i >= 0; i--) {
-      var found = true
-      for (var j = 0; j < valLength; j++) {
-        if (read(arr, i + j) !== read(val, j)) {
-          found = false
-          break
-        }
-      }
-      if (found) return i
-    }
-  }
-
-  return -1
-}
-
-Buffer.prototype.includes = function includes (val, byteOffset, encoding) {
-  return this.indexOf(val, byteOffset, encoding) !== -1
-}
-
-Buffer.prototype.indexOf = function indexOf (val, byteOffset, encoding) {
-  return bidirectionalIndexOf(this, val, byteOffset, encoding, true)
-}
-
-Buffer.prototype.lastIndexOf = function lastIndexOf (val, byteOffset, encoding) {
-  return bidirectionalIndexOf(this, val, byteOffset, encoding, false)
-}
-
-function hexWrite (buf, string, offset, length) {
-  offset = Number(offset) || 0
-  var remaining = buf.length - offset
-  if (!length) {
-    length = remaining
-  } else {
-    length = Number(length)
-    if (length > remaining) {
-      length = remaining
-    }
-  }
-
-  var strLen = string.length
-
-  if (length > strLen / 2) {
-    length = strLen / 2
-  }
-  for (var i = 0; i < length; ++i) {
-    var parsed = parseInt(string.substr(i * 2, 2), 16)
-    if (numberIsNaN(parsed)) return i
-    buf[offset + i] = parsed
-  }
-  return i
-}
-
-function utf8Write (buf, string, offset, length) {
-  return blitBuffer(utf8ToBytes(string, buf.length - offset), buf, offset, length)
-}
-
-function asciiWrite (buf, string, offset, length) {
-  return blitBuffer(asciiToBytes(string), buf, offset, length)
-}
-
-function latin1Write (buf, string, offset, length) {
-  return asciiWrite(buf, string, offset, length)
-}
-
-function base64Write (buf, string, offset, length) {
-  return blitBuffer(base64ToBytes(string), buf, offset, length)
-}
-
-function ucs2Write (buf, string, offset, length) {
-  return blitBuffer(utf16leToBytes(string, buf.length - offset), buf, offset, length)
-}
-
-Buffer.prototype.write = function write (string, offset, length, encoding) {
-  // Buffer#write(string)
-  if (offset === undefined) {
-    encoding = 'utf8'
-    length = this.length
-    offset = 0
-  // Buffer#write(string, encoding)
-  } else if (length === undefined && typeof offset === 'string') {
-    encoding = offset
-    length = this.length
-    offset = 0
-  // Buffer#write(string, offset[, length][, encoding])
-  } else if (isFinite(offset)) {
-    offset = offset >>> 0
-    if (isFinite(length)) {
-      length = length >>> 0
-      if (encoding === undefined) encoding = 'utf8'
-    } else {
-      encoding = length
-      length = undefined
-    }
-  } else {
-    throw new Error(
-      'Buffer.write(string, encoding, offset[, length]) is no longer supported'
-    )
-  }
-
-  var remaining = this.length - offset
-  if (length === undefined || length > remaining) length = remaining
-
-  if ((string.length > 0 && (length < 0 || offset < 0)) || offset > this.length) {
-    throw new RangeError('Attempt to write outside buffer bounds')
-  }
-
-  if (!encoding) encoding = 'utf8'
-
-  var loweredCase = false
-  for (;;) {
-    switch (encoding) {
-      case 'hex':
-        return hexWrite(this, string, offset, length)
-
-      case 'utf8':
-      case 'utf-8':
-        return utf8Write(this, string, offset, length)
-
-      case 'ascii':
-        return asciiWrite(this, string, offset, length)
-
-      case 'latin1':
-      case 'binary':
-        return latin1Write(this, string, offset, length)
-
-      case 'base64':
-        // Warning: maxLength not taken into account in base64Write
-        return base64Write(this, string, offset, length)
-
-      case 'ucs2':
-      case 'ucs-2':
-      case 'utf16le':
-      case 'utf-16le':
-        return ucs2Write(this, string, offset, length)
-
-      default:
-        if (loweredCase) throw new TypeError('Unknown encoding: ' + encoding)
-        encoding = ('' + encoding).toLowerCase()
-        loweredCase = true
-    }
-  }
-}
-
-Buffer.prototype.toJSON = function toJSON () {
-  return {
-    type: 'Buffer',
-    data: Array.prototype.slice.call(this._arr || this, 0)
-  }
-}
-
-function base64Slice (buf, start, end) {
-  if (start === 0 && end === buf.length) {
-    return base64.fromByteArray(buf)
-  } else {
-    return base64.fromByteArray(buf.slice(start, end))
-  }
-}
-
-function utf8Slice (buf, start, end) {
-  end = Math.min(buf.length, end)
-  var res = []
-
-  var i = start
-  while (i < end) {
-    var firstByte = buf[i]
-    var codePoint = null
-    var bytesPerSequence = (firstByte > 0xEF) ? 4
-      : (firstByte > 0xDF) ? 3
-        : (firstByte > 0xBF) ? 2
-          : 1
-
-    if (i + bytesPerSequence <= end) {
-      var secondByte, thirdByte, fourthByte, tempCodePoint
-
-      switch (bytesPerSequence) {
-        case 1:
-          if (firstByte < 0x80) {
-            codePoint = firstByte
-          }
-          break
-        case 2:
-          secondByte = buf[i + 1]
-          if ((secondByte & 0xC0) === 0x80) {
-            tempCodePoint = (firstByte & 0x1F) << 0x6 | (secondByte & 0x3F)
-            if (tempCodePoint > 0x7F) {
-              codePoint = tempCodePoint
-            }
-          }
-          break
-        case 3:
-          secondByte = buf[i + 1]
-          thirdByte = buf[i + 2]
-          if ((secondByte & 0xC0) === 0x80 && (thirdByte & 0xC0) === 0x80) {
-            tempCodePoint = (firstByte & 0xF) << 0xC | (secondByte & 0x3F) << 0x6 | (thirdByte & 0x3F)
-            if (tempCodePoint > 0x7FF && (tempCodePoint < 0xD800 || tempCodePoint > 0xDFFF)) {
-              codePoint = tempCodePoint
-            }
-          }
-          break
-        case 4:
-          secondByte = buf[i + 1]
-          thirdByte = buf[i + 2]
-          fourthByte = buf[i + 3]
-          if ((secondByte & 0xC0) === 0x80 && (thirdByte & 0xC0) === 0x80 && (fourthByte & 0xC0) === 0x80) {
-            tempCodePoint = (firstByte & 0xF) << 0x12 | (secondByte & 0x3F) << 0xC | (thirdByte & 0x3F) << 0x6 | (fourthByte & 0x3F)
-            if (tempCodePoint > 0xFFFF && tempCodePoint < 0x110000) {
-              codePoint = tempCodePoint
-            }
-          }
-      }
-    }
-
-    if (codePoint === null) {
-      // we did not generate a valid codePoint so insert a
-      // replacement char (U+FFFD) and advance only 1 byte
-      codePoint = 0xFFFD
-      bytesPerSequence = 1
-    } else if (codePoint > 0xFFFF) {
-      // encode to utf16 (surrogate pair dance)
-      codePoint -= 0x10000
-      res.push(codePoint >>> 10 & 0x3FF | 0xD800)
-      codePoint = 0xDC00 | codePoint & 0x3FF
-    }
-
-    res.push(codePoint)
-    i += bytesPerSequence
-  }
-
-  return decodeCodePointsArray(res)
-}
-
-// Based on http://stackoverflow.com/a/22747272/680742, the browser with
-// the lowest limit is Chrome, with 0x10000 args.
-// We go 1 magnitude less, for safety
-var MAX_ARGUMENTS_LENGTH = 0x1000
-
-function decodeCodePointsArray (codePoints) {
-  var len = codePoints.length
-  if (len <= MAX_ARGUMENTS_LENGTH) {
-    return String.fromCharCode.apply(String, codePoints) // avoid extra slice()
-  }
-
-  // Decode in chunks to avoid "call stack size exceeded".
-  var res = ''
-  var i = 0
-  while (i < len) {
-    res += String.fromCharCode.apply(
-      String,
-      codePoints.slice(i, i += MAX_ARGUMENTS_LENGTH)
-    )
-  }
-  return res
-}
-
-function asciiSlice (buf, start, end) {
-  var ret = ''
-  end = Math.min(buf.length, end)
-
-  for (var i = start; i < end; ++i) {
-    ret += String.fromCharCode(buf[i] & 0x7F)
-  }
-  return ret
-}
-
-function latin1Slice (buf, start, end) {
-  var ret = ''
-  end = Math.min(buf.length, end)
-
-  for (var i = start; i < end; ++i) {
-    ret += String.fromCharCode(buf[i])
-  }
-  return ret
-}
-
-function hexSlice (buf, start, end) {
-  var len = buf.length
-
-  if (!start || start < 0) start = 0
-  if (!end || end < 0 || end > len) end = len
-
-  var out = ''
-  for (var i = start; i < end; ++i) {
-    out += toHex(buf[i])
-  }
-  return out
-}
-
-function utf16leSlice (buf, start, end) {
-  var bytes = buf.slice(start, end)
-  var res = ''
-  for (var i = 0; i < bytes.length; i += 2) {
-    res += String.fromCharCode(bytes[i] + (bytes[i + 1] * 256))
-  }
-  return res
-}
-
-Buffer.prototype.slice = function slice (start, end) {
-  var len = this.length
-  start = ~~start
-  end = end === undefined ? len : ~~end
-
-  if (start < 0) {
-    start += len
-    if (start < 0) start = 0
-  } else if (start > len) {
-    start = len
-  }
-
-  if (end < 0) {
-    end += len
-    if (end < 0) end = 0
-  } else if (end > len) {
-    end = len
-  }
-
-  if (end < start) end = start
-
-  var newBuf = this.subarray(start, end)
-  // Return an augmented `Uint8Array` instance
-  newBuf.__proto__ = Buffer.prototype
-  return newBuf
-}
-
-/*
- * Need to make sure that buffer isn't trying to write out of bounds.
- */
-function checkOffset (offset, ext, length) {
-  if ((offset % 1) !== 0 || offset < 0) throw new RangeError('offset is not uint')
-  if (offset + ext > length) throw new RangeError('Trying to access beyond buffer length')
-}
-
-Buffer.prototype.readUIntLE = function readUIntLE (offset, byteLength, noAssert) {
-  offset = offset >>> 0
-  byteLength = byteLength >>> 0
-  if (!noAssert) checkOffset(offset, byteLength, this.length)
-
-  var val = this[offset]
-  var mul = 1
-  var i = 0
-  while (++i < byteLength && (mul *= 0x100)) {
-    val += this[offset + i] * mul
-  }
-
-  return val
-}
-
-Buffer.prototype.readUIntBE = function readUIntBE (offset, byteLength, noAssert) {
-  offset = offset >>> 0
-  byteLength = byteLength >>> 0
-  if (!noAssert) {
-    checkOffset(offset, byteLength, this.length)
-  }
-
-  var val = this[offset + --byteLength]
-  var mul = 1
-  while (byteLength > 0 && (mul *= 0x100)) {
-    val += this[offset + --byteLength] * mul
-  }
-
-  return val
-}
-
-Buffer.prototype.readUInt8 = function readUInt8 (offset, noAssert) {
-  offset = offset >>> 0
-  if (!noAssert) checkOffset(offset, 1, this.length)
-  return this[offset]
-}
-
-Buffer.prototype.readUInt16LE = function readUInt16LE (offset, noAssert) {
-  offset = offset >>> 0
-  if (!noAssert) checkOffset(offset, 2, this.length)
-  return this[offset] | (this[offset + 1] << 8)
-}
-
-Buffer.prototype.readUInt16BE = function readUInt16BE (offset, noAssert) {
-  offset = offset >>> 0
-  if (!noAssert) checkOffset(offset, 2, this.length)
-  return (this[offset] << 8) | this[offset + 1]
-}
-
-Buffer.prototype.readUInt32LE = function readUInt32LE (offset, noAssert) {
-  offset = offset >>> 0
-  if (!noAssert) checkOffset(offset, 4, this.length)
-
-  return ((this[offset]) |
-      (this[offset + 1] << 8) |
-      (this[offset + 2] << 16)) +
-      (this[offset + 3] * 0x1000000)
-}
-
-Buffer.prototype.readUInt32BE = function readUInt32BE (offset, noAssert) {
-  offset = offset >>> 0
-  if (!noAssert) checkOffset(offset, 4, this.length)
-
-  return (this[offset] * 0x1000000) +
-    ((this[offset + 1] << 16) |
-    (this[offset + 2] << 8) |
-    this[offset + 3])
-}
-
-Buffer.prototype.readIntLE = function readIntLE (offset, byteLength, noAssert) {
-  offset = offset >>> 0
-  byteLength = byteLength >>> 0
-  if (!noAssert) checkOffset(offset, byteLength, this.length)
-
-  var val = this[offset]
-  var mul = 1
-  var i = 0
-  while (++i < byteLength && (mul *= 0x100)) {
-    val += this[offset + i] * mul
-  }
-  mul *= 0x80
-
-  if (val >= mul) val -= Math.pow(2, 8 * byteLength)
-
-  return val
-}
-
-Buffer.prototype.readIntBE = function readIntBE (offset, byteLength, noAssert) {
-  offset = offset >>> 0
-  byteLength = byteLength >>> 0
-  if (!noAssert) checkOffset(offset, byteLength, this.length)
-
-  var i = byteLength
-  var mul = 1
-  var val = this[offset + --i]
-  while (i > 0 && (mul *= 0x100)) {
-    val += this[offset + --i] * mul
-  }
-  mul *= 0x80
-
-  if (val >= mul) val -= Math.pow(2, 8 * byteLength)
-
-  return val
-}
-
-Buffer.prototype.readInt8 = function readInt8 (offset, noAssert) {
-  offset = offset >>> 0
-  if (!noAssert) checkOffset(offset, 1, this.length)
-  if (!(this[offset] & 0x80)) return (this[offset])
-  return ((0xff - this[offset] + 1) * -1)
-}
-
-Buffer.prototype.readInt16LE = function readInt16LE (offset, noAssert) {
-  offset = offset >>> 0
-  if (!noAssert) checkOffset(offset, 2, this.length)
-  var val = this[offset] | (this[offset + 1] << 8)
-  return (val & 0x8000) ? val | 0xFFFF0000 : val
-}
-
-Buffer.prototype.readInt16BE = function readInt16BE (offset, noAssert) {
-  offset = offset >>> 0
-  if (!noAssert) checkOffset(offset, 2, this.length)
-  var val = this[offset + 1] | (this[offset] << 8)
-  return (val & 0x8000) ? val | 0xFFFF0000 : val
-}
-
-Buffer.prototype.readInt32LE = function readInt32LE (offset, noAssert) {
-  offset = offset >>> 0
-  if (!noAssert) checkOffset(offset, 4, this.length)
-
-  return (this[offset]) |
-    (this[offset + 1] << 8) |
-    (this[offset + 2] << 16) |
-    (this[offset + 3] << 24)
-}
-
-Buffer.prototype.readInt32BE = function readInt32BE (offset, noAssert) {
-  offset = offset >>> 0
-  if (!noAssert) checkOffset(offset, 4, this.length)
-
-  return (this[offset] << 24) |
-    (this[offset + 1] << 16) |
-    (this[offset + 2] << 8) |
-    (this[offset + 3])
-}
-
-Buffer.prototype.readFloatLE = function readFloatLE (offset, noAssert) {
-  offset = offset >>> 0
-  if (!noAssert) checkOffset(offset, 4, this.length)
-  return ieee754.read(this, offset, true, 23, 4)
-}
-
-Buffer.prototype.readFloatBE = function readFloatBE (offset, noAssert) {
-  offset = offset >>> 0
-  if (!noAssert) checkOffset(offset, 4, this.length)
-  return ieee754.read(this, offset, false, 23, 4)
-}
-
-Buffer.prototype.readDoubleLE = function readDoubleLE (offset, noAssert) {
-  offset = offset >>> 0
-  if (!noAssert) checkOffset(offset, 8, this.length)
-  return ieee754.read(this, offset, true, 52, 8)
-}
-
-Buffer.prototype.readDoubleBE = function readDoubleBE (offset, noAssert) {
-  offset = offset >>> 0
-  if (!noAssert) checkOffset(offset, 8, this.length)
-  return ieee754.read(this, offset, false, 52, 8)
-}
-
-function checkInt (buf, value, offset, ext, max, min) {
-  if (!Buffer.isBuffer(buf)) throw new TypeError('"buffer" argument must be a Buffer instance')
-  if (value > max || value < min) throw new RangeError('"value" argument is out of bounds')
-  if (offset + ext > buf.length) throw new RangeError('Index out of range')
-}
-
-Buffer.prototype.writeUIntLE = function writeUIntLE (value, offset, byteLength, noAssert) {
-  value = +value
-  offset = offset >>> 0
-  byteLength = byteLength >>> 0
-  if (!noAssert) {
-    var maxBytes = Math.pow(2, 8 * byteLength) - 1
-    checkInt(this, value, offset, byteLength, maxBytes, 0)
-  }
-
-  var mul = 1
-  var i = 0
-  this[offset] = value & 0xFF
-  while (++i < byteLength && (mul *= 0x100)) {
-    this[offset + i] = (value / mul) & 0xFF
-  }
-
-  return offset + byteLength
-}
-
-Buffer.prototype.writeUIntBE = function writeUIntBE (value, offset, byteLength, noAssert) {
-  value = +value
-  offset = offset >>> 0
-  byteLength = byteLength >>> 0
-  if (!noAssert) {
-    var maxBytes = Math.pow(2, 8 * byteLength) - 1
-    checkInt(this, value, offset, byteLength, maxBytes, 0)
-  }
-
-  var i = byteLength - 1
-  var mul = 1
-  this[offset + i] = value & 0xFF
-  while (--i >= 0 && (mul *= 0x100)) {
-    this[offset + i] = (value / mul) & 0xFF
-  }
-
-  return offset + byteLength
-}
-
-Buffer.prototype.writeUInt8 = function writeUInt8 (value, offset, noAssert) {
-  value = +value
-  offset = offset >>> 0
-  if (!noAssert) checkInt(this, value, offset, 1, 0xff, 0)
-  this[offset] = (value & 0xff)
-  return offset + 1
-}
-
-Buffer.prototype.writeUInt16LE = function writeUInt16LE (value, offset, noAssert) {
-  value = +value
-  offset = offset >>> 0
-  if (!noAssert) checkInt(this, value, offset, 2, 0xffff, 0)
-  this[offset] = (value & 0xff)
-  this[offset + 1] = (value >>> 8)
-  return offset + 2
-}
-
-Buffer.prototype.writeUInt16BE = function writeUInt16BE (value, offset, noAssert) {
-  value = +value
-  offset = offset >>> 0
-  if (!noAssert) checkInt(this, value, offset, 2, 0xffff, 0)
-  this[offset] = (value >>> 8)
-  this[offset + 1] = (value & 0xff)
-  return offset + 2
-}
-
-Buffer.prototype.writeUInt32LE = function writeUInt32LE (value, offset, noAssert) {
-  value = +value
-  offset = offset >>> 0
-  if (!noAssert) checkInt(this, value, offset, 4, 0xffffffff, 0)
-  this[offset + 3] = (value >>> 24)
-  this[offset + 2] = (value >>> 16)
-  this[offset + 1] = (value >>> 8)
-  this[offset] = (value & 0xff)
-  return offset + 4
-}
-
-Buffer.prototype.writeUInt32BE = function writeUInt32BE (value, offset, noAssert) {
-  value = +value
-  offset = offset >>> 0
-  if (!noAssert) checkInt(this, value, offset, 4, 0xffffffff, 0)
-  this[offset] = (value >>> 24)
-  this[offset + 1] = (value >>> 16)
-  this[offset + 2] = (value >>> 8)
-  this[offset + 3] = (value & 0xff)
-  return offset + 4
-}
-
-Buffer.prototype.writeIntLE = function writeIntLE (value, offset, byteLength, noAssert) {
-  value = +value
-  offset = offset >>> 0
-  if (!noAssert) {
-    var limit = Math.pow(2, (8 * byteLength) - 1)
-
-    checkInt(this, value, offset, byteLength, limit - 1, -limit)
-  }
-
-  var i = 0
-  var mul = 1
-  var sub = 0
-  this[offset] = value & 0xFF
-  while (++i < byteLength && (mul *= 0x100)) {
-    if (value < 0 && sub === 0 && this[offset + i - 1] !== 0) {
-      sub = 1
-    }
-    this[offset + i] = ((value / mul) >> 0) - sub & 0xFF
-  }
-
-  return offset + byteLength
-}
-
-Buffer.prototype.writeIntBE = function writeIntBE (value, offset, byteLength, noAssert) {
-  value = +value
-  offset = offset >>> 0
-  if (!noAssert) {
-    var limit = Math.pow(2, (8 * byteLength) - 1)
-
-    checkInt(this, value, offset, byteLength, limit - 1, -limit)
-  }
-
-  var i = byteLength - 1
-  var mul = 1
-  var sub = 0
-  this[offset + i] = value & 0xFF
-  while (--i >= 0 && (mul *= 0x100)) {
-    if (value < 0 && sub === 0 && this[offset + i + 1] !== 0) {
-      sub = 1
-    }
-    this[offset + i] = ((value / mul) >> 0) - sub & 0xFF
-  }
-
-  return offset + byteLength
-}
-
-Buffer.prototype.writeInt8 = function writeInt8 (value, offset, noAssert) {
-  value = +value
-  offset = offset >>> 0
-  if (!noAssert) checkInt(this, value, offset, 1, 0x7f, -0x80)
-  if (value < 0) value = 0xff + value + 1
-  this[offset] = (value & 0xff)
-  return offset + 1
-}
-
-Buffer.prototype.writeInt16LE = function writeInt16LE (value, offset, noAssert) {
-  value = +value
-  offset = offset >>> 0
-  if (!noAssert) checkInt(this, value, offset, 2, 0x7fff, -0x8000)
-  this[offset] = (value & 0xff)
-  this[offset + 1] = (value >>> 8)
-  return offset + 2
-}
-
-Buffer.prototype.writeInt16BE = function writeInt16BE (value, offset, noAssert) {
-  value = +value
-  offset = offset >>> 0
-  if (!noAssert) checkInt(this, value, offset, 2, 0x7fff, -0x8000)
-  this[offset] = (value >>> 8)
-  this[offset + 1] = (value & 0xff)
-  return offset + 2
-}
-
-Buffer.prototype.writeInt32LE = function writeInt32LE (value, offset, noAssert) {
-  value = +value
-  offset = offset >>> 0
-  if (!noAssert) checkInt(this, value, offset, 4, 0x7fffffff, -0x80000000)
-  this[offset] = (value & 0xff)
-  this[offset + 1] = (value >>> 8)
-  this[offset + 2] = (value >>> 16)
-  this[offset + 3] = (value >>> 24)
-  return offset + 4
-}
-
-Buffer.prototype.writeInt32BE = function writeInt32BE (value, offset, noAssert) {
-  value = +value
-  offset = offset >>> 0
-  if (!noAssert) checkInt(this, value, offset, 4, 0x7fffffff, -0x80000000)
-  if (value < 0) value = 0xffffffff + value + 1
-  this[offset] = (value >>> 24)
-  this[offset + 1] = (value >>> 16)
-  this[offset + 2] = (value >>> 8)
-  this[offset + 3] = (value & 0xff)
-  return offset + 4
-}
-
-function checkIEEE754 (buf, value, offset, ext, max, min) {
-  if (offset + ext > buf.length) throw new RangeError('Index out of range')
-  if (offset < 0) throw new RangeError('Index out of range')
-}
-
-function writeFloat (buf, value, offset, littleEndian, noAssert) {
-  value = +value
-  offset = offset >>> 0
-  if (!noAssert) {
-    checkIEEE754(buf, value, offset, 4, 3.4028234663852886e+38, -3.4028234663852886e+38)
-  }
-  ieee754.write(buf, value, offset, littleEndian, 23, 4)
-  return offset + 4
-}
-
-Buffer.prototype.writeFloatLE = function writeFloatLE (value, offset, noAssert) {
-  return writeFloat(this, value, offset, true, noAssert)
-}
-
-Buffer.prototype.writeFloatBE = function writeFloatBE (value, offset, noAssert) {
-  return writeFloat(this, value, offset, false, noAssert)
-}
-
-function writeDouble (buf, value, offset, littleEndian, noAssert) {
-  value = +value
-  offset = offset >>> 0
-  if (!noAssert) {
-    checkIEEE754(buf, value, offset, 8, 1.7976931348623157E+308, -1.7976931348623157E+308)
-  }
-  ieee754.write(buf, value, offset, littleEndian, 52, 8)
-  return offset + 8
-}
-
-Buffer.prototype.writeDoubleLE = function writeDoubleLE (value, offset, noAssert) {
-  return writeDouble(this, value, offset, true, noAssert)
-}
-
-Buffer.prototype.writeDoubleBE = function writeDoubleBE (value, offset, noAssert) {
-  return writeDouble(this, value, offset, false, noAssert)
-}
-
-// copy(targetBuffer, targetStart=0, sourceStart=0, sourceEnd=buffer.length)
-Buffer.prototype.copy = function copy (target, targetStart, start, end) {
-  if (!Buffer.isBuffer(target)) throw new TypeError('argument should be a Buffer')
-  if (!start) start = 0
-  if (!end && end !== 0) end = this.length
-  if (targetStart >= target.length) targetStart = target.length
-  if (!targetStart) targetStart = 0
-  if (end > 0 && end < start) end = start
-
-  // Copy 0 bytes; we're done
-  if (end === start) return 0
-  if (target.length === 0 || this.length === 0) return 0
-
-  // Fatal error conditions
-  if (targetStart < 0) {
-    throw new RangeError('targetStart out of bounds')
-  }
-  if (start < 0 || start >= this.length) throw new RangeError('Index out of range')
-  if (end < 0) throw new RangeError('sourceEnd out of bounds')
-
-  // Are we oob?
-  if (end > this.length) end = this.length
-  if (target.length - targetStart < end - start) {
-    end = target.length - targetStart + start
-  }
-
-  var len = end - start
-
-  if (this === target && typeof Uint8Array.prototype.copyWithin === 'function') {
-    // Use built-in when available, missing from IE11
-    this.copyWithin(targetStart, start, end)
-  } else if (this === target && start < targetStart && targetStart < end) {
-    // descending copy from end
-    for (var i = len - 1; i >= 0; --i) {
-      target[i + targetStart] = this[i + start]
-    }
-  } else {
-    Uint8Array.prototype.set.call(
-      target,
-      this.subarray(start, end),
-      targetStart
-    )
-  }
-
-  return len
-}
-
-// Usage:
-//    buffer.fill(number[, offset[, end]])
-//    buffer.fill(buffer[, offset[, end]])
-//    buffer.fill(string[, offset[, end]][, encoding])
-Buffer.prototype.fill = function fill (val, start, end, encoding) {
-  // Handle string cases:
-  if (typeof val === 'string') {
-    if (typeof start === 'string') {
-      encoding = start
-      start = 0
-      end = this.length
-    } else if (typeof end === 'string') {
-      encoding = end
-      end = this.length
-    }
-    if (encoding !== undefined && typeof encoding !== 'string') {
-      throw new TypeError('encoding must be a string')
-    }
-    if (typeof encoding === 'string' && !Buffer.isEncoding(encoding)) {
-      throw new TypeError('Unknown encoding: ' + encoding)
-    }
-    if (val.length === 1) {
-      var code = val.charCodeAt(0)
-      if ((encoding === 'utf8' && code < 128) ||
-          encoding === 'latin1') {
-        // Fast path: If `val` fits into a single byte, use that numeric value.
-        val = code
-      }
-    }
-  } else if (typeof val === 'number') {
-    val = val & 255
-  }
-
-  // Invalid ranges are not set to a default, so can range check early.
-  if (start < 0 || this.length < start || this.length < end) {
-    throw new RangeError('Out of range index')
-  }
-
-  if (end <= start) {
-    return this
-  }
-
-  start = start >>> 0
-  end = end === undefined ? this.length : end >>> 0
-
-  if (!val) val = 0
-
-  var i
-  if (typeof val === 'number') {
-    for (i = start; i < end; ++i) {
-      this[i] = val
-    }
-  } else {
-    var bytes = Buffer.isBuffer(val)
-      ? val
-      : Buffer.from(val, encoding)
-    var len = bytes.length
-    if (len === 0) {
-      throw new TypeError('The value "' + val +
-        '" is invalid for argument "value"')
-    }
-    for (i = 0; i < end - start; ++i) {
-      this[i + start] = bytes[i % len]
-    }
-  }
-
-  return this
-}
-
-// HELPER FUNCTIONS
-// ================
-
-var INVALID_BASE64_RE = /[^+/0-9A-Za-z-_]/g
-
-function base64clean (str) {
-  // Node takes equal signs as end of the Base64 encoding
-  str = str.split('=')[0]
-  // Node strips out invalid characters like \n and \t from the string, base64-js does not
-  str = str.trim().replace(INVALID_BASE64_RE, '')
-  // Node converts strings with length < 2 to ''
-  if (str.length < 2) return ''
-  // Node allows for non-padded base64 strings (missing trailing ===), base64-js does not
-  while (str.length % 4 !== 0) {
-    str = str + '='
-  }
-  return str
-}
-
-function toHex (n) {
-  if (n < 16) return '0' + n.toString(16)
-  return n.toString(16)
-}
-
-function utf8ToBytes (string, units) {
-  units = units || Infinity
-  var codePoint
-  var length = string.length
-  var leadSurrogate = null
-  var bytes = []
-
-  for (var i = 0; i < length; ++i) {
-    codePoint = string.charCodeAt(i)
-
-    // is surrogate component
-    if (codePoint > 0xD7FF && codePoint < 0xE000) {
-      // last char was a lead
-      if (!leadSurrogate) {
-        // no lead yet
-        if (codePoint > 0xDBFF) {
-          // unexpected trail
-          if ((units -= 3) > -1) bytes.push(0xEF, 0xBF, 0xBD)
-          continue
-        } else if (i + 1 === length) {
-          // unpaired lead
-          if ((units -= 3) > -1) bytes.push(0xEF, 0xBF, 0xBD)
-          continue
-        }
-
-        // valid lead
-        leadSurrogate = codePoint
-
-        continue
-      }
-
-      // 2 leads in a row
-      if (codePoint < 0xDC00) {
-        if ((units -= 3) > -1) bytes.push(0xEF, 0xBF, 0xBD)
-        leadSurrogate = codePoint
-        continue
-      }
-
-      // valid surrogate pair
-      codePoint = (leadSurrogate - 0xD800 << 10 | codePoint - 0xDC00) + 0x10000
-    } else if (leadSurrogate) {
-      // valid bmp char, but last char was a lead
-      if ((units -= 3) > -1) bytes.push(0xEF, 0xBF, 0xBD)
-    }
-
-    leadSurrogate = null
-
-    // encode utf8
-    if (codePoint < 0x80) {
-      if ((units -= 1) < 0) break
-      bytes.push(codePoint)
-    } else if (codePoint < 0x800) {
-      if ((units -= 2) < 0) break
-      bytes.push(
-        codePoint >> 0x6 | 0xC0,
-        codePoint & 0x3F | 0x80
-      )
-    } else if (codePoint < 0x10000) {
-      if ((units -= 3) < 0) break
-      bytes.push(
-        codePoint >> 0xC | 0xE0,
-        codePoint >> 0x6 & 0x3F | 0x80,
-        codePoint & 0x3F | 0x80
-      )
-    } else if (codePoint < 0x110000) {
-      if ((units -= 4) < 0) break
-      bytes.push(
-        codePoint >> 0x12 | 0xF0,
-        codePoint >> 0xC & 0x3F | 0x80,
-        codePoint >> 0x6 & 0x3F | 0x80,
-        codePoint & 0x3F | 0x80
-      )
-    } else {
-      throw new Error('Invalid code point')
-    }
-  }
-
-  return bytes
-}
-
-function asciiToBytes (str) {
-  var byteArray = []
-  for (var i = 0; i < str.length; ++i) {
-    // Node's code seems to be doing this and not & 0x7F..
-    byteArray.push(str.charCodeAt(i) & 0xFF)
-  }
-  return byteArray
-}
-
-function utf16leToBytes (str, units) {
-  var c, hi, lo
-  var byteArray = []
-  for (var i = 0; i < str.length; ++i) {
-    if ((units -= 2) < 0) break
-
-    c = str.charCodeAt(i)
-    hi = c >> 8
-    lo = c % 256
-    byteArray.push(lo)
-    byteArray.push(hi)
-  }
-
-  return byteArray
-}
-
-function base64ToBytes (str) {
-  return base64.toByteArray(base64clean(str))
-}
-
-function blitBuffer (src, dst, offset, length) {
-  for (var i = 0; i < length; ++i) {
-    if ((i + offset >= dst.length) || (i >= src.length)) break
-    dst[i + offset] = src[i]
-  }
-  return i
-}
-
-// ArrayBuffer or Uint8Array objects from other contexts (i.e. iframes) do not pass
-// the `instanceof` check but they should be treated as of that type.
-// See: https://github.com/feross/buffer/issues/166
-function isInstance (obj, type) {
-  return obj instanceof type ||
-    (obj != null && obj.constructor != null && obj.constructor.name != null &&
-      obj.constructor.name === type.name)
-}
-function numberIsNaN (obj) {
-  // For IE11 support
-  return obj !== obj // eslint-disable-line no-self-compare
-}
-
-}).call(this)}).call(this,require("buffer").Buffer)
-},{"base64-js":30,"buffer":32,"ieee754":43}],33:[function(require,module,exports){
+},{}],3:[function(require,module,exports){
 'use strict';
 
-/* globals
-	Atomics,
-	SharedArrayBuffer,
-*/
+var GetIntrinsic = require('get-intrinsic');
 
-var undefined;
+var callBind = require('./');
 
-var $TypeError = TypeError;
+var $indexOf = callBind(GetIntrinsic('String.prototype.indexOf'));
 
-var $gOPD = Object.getOwnPropertyDescriptor;
-if ($gOPD) {
-	try {
-		$gOPD({}, '');
-	} catch (e) {
-		$gOPD = null; // this is IE 8, which has a broken gOPD
+module.exports = function callBoundIntrinsic(name, allowMissing) {
+	var intrinsic = GetIntrinsic(name, !!allowMissing);
+	if (typeof intrinsic === 'function' && $indexOf(name, '.prototype.') > -1) {
+		return callBind(intrinsic);
 	}
-}
-
-var throwTypeError = function () { throw new $TypeError(); };
-var ThrowTypeError = $gOPD
-	? (function () {
-		try {
-			// eslint-disable-next-line no-unused-expressions, no-caller, no-restricted-properties
-			arguments.callee; // IE 8 does not throw here
-			return throwTypeError;
-		} catch (calleeThrows) {
-			try {
-				// IE 8 throws on Object.getOwnPropertyDescriptor(arguments, '')
-				return $gOPD(arguments, 'callee').get;
-			} catch (gOPDthrows) {
-				return throwTypeError;
-			}
-		}
-	}())
-	: throwTypeError;
-
-var hasSymbols = require('has-symbols')();
-
-var getProto = Object.getPrototypeOf || function (x) { return x.__proto__; }; // eslint-disable-line no-proto
-
-var generator; // = function * () {};
-var generatorFunction = generator ? getProto(generator) : undefined;
-var asyncFn; // async function() {};
-var asyncFunction = asyncFn ? asyncFn.constructor : undefined;
-var asyncGen; // async function * () {};
-var asyncGenFunction = asyncGen ? getProto(asyncGen) : undefined;
-var asyncGenIterator = asyncGen ? asyncGen() : undefined;
-
-var TypedArray = typeof Uint8Array === 'undefined' ? undefined : getProto(Uint8Array);
-
-var INTRINSICS = {
-	'%Array%': Array,
-	'%ArrayBuffer%': typeof ArrayBuffer === 'undefined' ? undefined : ArrayBuffer,
-	'%ArrayBufferPrototype%': typeof ArrayBuffer === 'undefined' ? undefined : ArrayBuffer.prototype,
-	'%ArrayIteratorPrototype%': hasSymbols ? getProto([][Symbol.iterator]()) : undefined,
-	'%ArrayPrototype%': Array.prototype,
-	'%ArrayProto_entries%': Array.prototype.entries,
-	'%ArrayProto_forEach%': Array.prototype.forEach,
-	'%ArrayProto_keys%': Array.prototype.keys,
-	'%ArrayProto_values%': Array.prototype.values,
-	'%AsyncFromSyncIteratorPrototype%': undefined,
-	'%AsyncFunction%': asyncFunction,
-	'%AsyncFunctionPrototype%': asyncFunction ? asyncFunction.prototype : undefined,
-	'%AsyncGenerator%': asyncGen ? getProto(asyncGenIterator) : undefined,
-	'%AsyncGeneratorFunction%': asyncGenFunction,
-	'%AsyncGeneratorPrototype%': asyncGenFunction ? asyncGenFunction.prototype : undefined,
-	'%AsyncIteratorPrototype%': asyncGenIterator && hasSymbols && Symbol.asyncIterator ? asyncGenIterator[Symbol.asyncIterator]() : undefined,
-	'%Atomics%': typeof Atomics === 'undefined' ? undefined : Atomics,
-	'%Boolean%': Boolean,
-	'%BooleanPrototype%': Boolean.prototype,
-	'%DataView%': typeof DataView === 'undefined' ? undefined : DataView,
-	'%DataViewPrototype%': typeof DataView === 'undefined' ? undefined : DataView.prototype,
-	'%Date%': Date,
-	'%DatePrototype%': Date.prototype,
-	'%decodeURI%': decodeURI,
-	'%decodeURIComponent%': decodeURIComponent,
-	'%encodeURI%': encodeURI,
-	'%encodeURIComponent%': encodeURIComponent,
-	'%Error%': Error,
-	'%ErrorPrototype%': Error.prototype,
-	'%eval%': eval, // eslint-disable-line no-eval
-	'%EvalError%': EvalError,
-	'%EvalErrorPrototype%': EvalError.prototype,
-	'%Float32Array%': typeof Float32Array === 'undefined' ? undefined : Float32Array,
-	'%Float32ArrayPrototype%': typeof Float32Array === 'undefined' ? undefined : Float32Array.prototype,
-	'%Float64Array%': typeof Float64Array === 'undefined' ? undefined : Float64Array,
-	'%Float64ArrayPrototype%': typeof Float64Array === 'undefined' ? undefined : Float64Array.prototype,
-	'%Function%': Function,
-	'%FunctionPrototype%': Function.prototype,
-	'%Generator%': generator ? getProto(generator()) : undefined,
-	'%GeneratorFunction%': generatorFunction,
-	'%GeneratorPrototype%': generatorFunction ? generatorFunction.prototype : undefined,
-	'%Int8Array%': typeof Int8Array === 'undefined' ? undefined : Int8Array,
-	'%Int8ArrayPrototype%': typeof Int8Array === 'undefined' ? undefined : Int8Array.prototype,
-	'%Int16Array%': typeof Int16Array === 'undefined' ? undefined : Int16Array,
-	'%Int16ArrayPrototype%': typeof Int16Array === 'undefined' ? undefined : Int8Array.prototype,
-	'%Int32Array%': typeof Int32Array === 'undefined' ? undefined : Int32Array,
-	'%Int32ArrayPrototype%': typeof Int32Array === 'undefined' ? undefined : Int32Array.prototype,
-	'%isFinite%': isFinite,
-	'%isNaN%': isNaN,
-	'%IteratorPrototype%': hasSymbols ? getProto(getProto([][Symbol.iterator]())) : undefined,
-	'%JSON%': typeof JSON === 'object' ? JSON : undefined,
-	'%JSONParse%': typeof JSON === 'object' ? JSON.parse : undefined,
-	'%Map%': typeof Map === 'undefined' ? undefined : Map,
-	'%MapIteratorPrototype%': typeof Map === 'undefined' || !hasSymbols ? undefined : getProto(new Map()[Symbol.iterator]()),
-	'%MapPrototype%': typeof Map === 'undefined' ? undefined : Map.prototype,
-	'%Math%': Math,
-	'%Number%': Number,
-	'%NumberPrototype%': Number.prototype,
-	'%Object%': Object,
-	'%ObjectPrototype%': Object.prototype,
-	'%ObjProto_toString%': Object.prototype.toString,
-	'%ObjProto_valueOf%': Object.prototype.valueOf,
-	'%parseFloat%': parseFloat,
-	'%parseInt%': parseInt,
-	'%Promise%': typeof Promise === 'undefined' ? undefined : Promise,
-	'%PromisePrototype%': typeof Promise === 'undefined' ? undefined : Promise.prototype,
-	'%PromiseProto_then%': typeof Promise === 'undefined' ? undefined : Promise.prototype.then,
-	'%Promise_all%': typeof Promise === 'undefined' ? undefined : Promise.all,
-	'%Promise_reject%': typeof Promise === 'undefined' ? undefined : Promise.reject,
-	'%Promise_resolve%': typeof Promise === 'undefined' ? undefined : Promise.resolve,
-	'%Proxy%': typeof Proxy === 'undefined' ? undefined : Proxy,
-	'%RangeError%': RangeError,
-	'%RangeErrorPrototype%': RangeError.prototype,
-	'%ReferenceError%': ReferenceError,
-	'%ReferenceErrorPrototype%': ReferenceError.prototype,
-	'%Reflect%': typeof Reflect === 'undefined' ? undefined : Reflect,
-	'%RegExp%': RegExp,
-	'%RegExpPrototype%': RegExp.prototype,
-	'%Set%': typeof Set === 'undefined' ? undefined : Set,
-	'%SetIteratorPrototype%': typeof Set === 'undefined' || !hasSymbols ? undefined : getProto(new Set()[Symbol.iterator]()),
-	'%SetPrototype%': typeof Set === 'undefined' ? undefined : Set.prototype,
-	'%SharedArrayBuffer%': typeof SharedArrayBuffer === 'undefined' ? undefined : SharedArrayBuffer,
-	'%SharedArrayBufferPrototype%': typeof SharedArrayBuffer === 'undefined' ? undefined : SharedArrayBuffer.prototype,
-	'%String%': String,
-	'%StringIteratorPrototype%': hasSymbols ? getProto(''[Symbol.iterator]()) : undefined,
-	'%StringPrototype%': String.prototype,
-	'%Symbol%': hasSymbols ? Symbol : undefined,
-	'%SymbolPrototype%': hasSymbols ? Symbol.prototype : undefined,
-	'%SyntaxError%': SyntaxError,
-	'%SyntaxErrorPrototype%': SyntaxError.prototype,
-	'%ThrowTypeError%': ThrowTypeError,
-	'%TypedArray%': TypedArray,
-	'%TypedArrayPrototype%': TypedArray ? TypedArray.prototype : undefined,
-	'%TypeError%': $TypeError,
-	'%TypeErrorPrototype%': $TypeError.prototype,
-	'%Uint8Array%': typeof Uint8Array === 'undefined' ? undefined : Uint8Array,
-	'%Uint8ArrayPrototype%': typeof Uint8Array === 'undefined' ? undefined : Uint8Array.prototype,
-	'%Uint8ClampedArray%': typeof Uint8ClampedArray === 'undefined' ? undefined : Uint8ClampedArray,
-	'%Uint8ClampedArrayPrototype%': typeof Uint8ClampedArray === 'undefined' ? undefined : Uint8ClampedArray.prototype,
-	'%Uint16Array%': typeof Uint16Array === 'undefined' ? undefined : Uint16Array,
-	'%Uint16ArrayPrototype%': typeof Uint16Array === 'undefined' ? undefined : Uint16Array.prototype,
-	'%Uint32Array%': typeof Uint32Array === 'undefined' ? undefined : Uint32Array,
-	'%Uint32ArrayPrototype%': typeof Uint32Array === 'undefined' ? undefined : Uint32Array.prototype,
-	'%URIError%': URIError,
-	'%URIErrorPrototype%': URIError.prototype,
-	'%WeakMap%': typeof WeakMap === 'undefined' ? undefined : WeakMap,
-	'%WeakMapPrototype%': typeof WeakMap === 'undefined' ? undefined : WeakMap.prototype,
-	'%WeakSet%': typeof WeakSet === 'undefined' ? undefined : WeakSet,
-	'%WeakSetPrototype%': typeof WeakSet === 'undefined' ? undefined : WeakSet.prototype
+	return intrinsic;
 };
 
-var bind = require('function-bind');
-var $replace = bind.call(Function.call, String.prototype.replace);
-
-/* adapted from https://github.com/lodash/lodash/blob/4.17.15/dist/lodash.js#L6735-L6744 */
-var rePropName = /[^%.[\]]+|\[(?:(-?\d+(?:\.\d+)?)|(["'])((?:(?!\2)[^\\]|\\.)*?)\2)\]|(?=(?:\.|\[\])(?:\.|\[\]|%$))/g;
-var reEscapeChar = /\\(\\)?/g; /** Used to match backslashes in property paths. */
-var stringToPath = function stringToPath(string) {
-	var result = [];
-	$replace(string, rePropName, function (match, number, quote, subString) {
-		result[result.length] = quote ? $replace(subString, reEscapeChar, '$1') : (number || match);
-	});
-	return result;
-};
-/* end adaptation */
-
-var getBaseIntrinsic = function getBaseIntrinsic(name, allowMissing) {
-	if (!(name in INTRINSICS)) {
-		throw new SyntaxError('intrinsic ' + name + ' does not exist!');
-	}
-
-	// istanbul ignore if // hopefully this is impossible to test :-)
-	if (typeof INTRINSICS[name] === 'undefined' && !allowMissing) {
-		throw new $TypeError('intrinsic ' + name + ' exists, but is not available. Please file an issue!');
-	}
-
-	return INTRINSICS[name];
-};
-
-module.exports = function GetIntrinsic(name, allowMissing) {
-	if (typeof name !== 'string' || name.length === 0) {
-		throw new TypeError('intrinsic name must be a non-empty string');
-	}
-	if (arguments.length > 1 && typeof allowMissing !== 'boolean') {
-		throw new TypeError('"allowMissing" argument must be a boolean');
-	}
-
-	var parts = stringToPath(name);
-
-	var value = getBaseIntrinsic('%' + (parts.length > 0 ? parts[0] : '') + '%', allowMissing);
-	for (var i = 1; i < parts.length; i += 1) {
-		if (value != null) {
-			if ($gOPD && (i + 1) >= parts.length) {
-				var desc = $gOPD(value, parts[i]);
-				if (!allowMissing && !(parts[i] in value)) {
-					throw new $TypeError('base intrinsic for ' + name + ' exists, but the property is not available.');
-				}
-				// By convention, when a data property is converted to an accessor
-				// property to emulate a data property that does not suffer from
-				// the override mistake, that accessor's getter is marked with
-				// an `originalValue` property. Here, when we detect this, we
-				// uphold the illusion by pretending to see that original data
-				// property, i.e., returning the value rather than the getter
-				// itself.
-				value = desc && 'get' in desc && !('originalValue' in desc.get) ? desc.get : value[parts[i]];
-			} else {
-				value = value[parts[i]];
-			}
-		}
-	}
-	return value;
-};
-
-},{"function-bind":39,"has-symbols":41}],34:[function(require,module,exports){
+},{"./":4,"get-intrinsic":9}],4:[function(require,module,exports){
 'use strict';
 
 var bind = require('function-bind');
-
-var GetIntrinsic = require('../GetIntrinsic');
+var GetIntrinsic = require('get-intrinsic');
 
 var $apply = GetIntrinsic('%Function.prototype.apply%');
 var $call = GetIntrinsic('%Function.prototype.call%');
 var $reflectApply = GetIntrinsic('%Reflect.apply%', true) || bind.call($call, $apply);
 
+var $gOPD = GetIntrinsic('%Object.getOwnPropertyDescriptor%', true);
 var $defineProperty = GetIntrinsic('%Object.defineProperty%', true);
+var $max = GetIntrinsic('%Math.max%');
 
 if ($defineProperty) {
 	try {
@@ -4389,8 +73,20 @@ if ($defineProperty) {
 	}
 }
 
-module.exports = function callBind() {
-	return $reflectApply(bind, $call, arguments);
+module.exports = function callBind(originalFunction) {
+	var func = $reflectApply(bind, $call, arguments);
+	if ($gOPD && $defineProperty) {
+		var desc = $gOPD(func, 'length');
+		if (desc.configurable) {
+			// original length, plus the receiver, minus any additional arguments (after the receiver)
+			$defineProperty(
+				func,
+				'length',
+				{ value: 1 + $max(0, originalFunction.length - (arguments.length - 1)) }
+			);
+		}
+	}
+	return func;
 };
 
 var applyBind = function applyBind() {
@@ -4403,29 +99,12 @@ if ($defineProperty) {
 	module.exports.apply = applyBind;
 }
 
-},{"../GetIntrinsic":33,"function-bind":39}],35:[function(require,module,exports){
+},{"function-bind":8,"get-intrinsic":9}],5:[function(require,module,exports){
 'use strict';
 
-var GetIntrinsic = require('../GetIntrinsic');
+var GetIntrinsic = require('get-intrinsic');
 
-var callBind = require('./callBind');
-
-var $indexOf = callBind(GetIntrinsic('String.prototype.indexOf'));
-
-module.exports = function callBoundIntrinsic(name, allowMissing) {
-	var intrinsic = GetIntrinsic(name, !!allowMissing);
-	if (typeof intrinsic === 'function' && $indexOf(name, '.prototype.')) {
-		return callBind(intrinsic);
-	}
-	return intrinsic;
-};
-
-},{"../GetIntrinsic":33,"./callBind":34}],36:[function(require,module,exports){
-'use strict';
-
-var GetIntrinsic = require('../GetIntrinsic');
-
-var $gOPD = GetIntrinsic('%Object.getOwnPropertyDescriptor%');
+var $gOPD = GetIntrinsic('%Object.getOwnPropertyDescriptor%', true);
 if ($gOPD) {
 	try {
 		$gOPD([], 'length');
@@ -4437,31 +116,71 @@ if ($gOPD) {
 
 module.exports = $gOPD;
 
-},{"../GetIntrinsic":33}],37:[function(require,module,exports){
+},{"get-intrinsic":9}],6:[function(require,module,exports){
+'use strict';
 
-var hasOwn = Object.prototype.hasOwnProperty;
-var toString = Object.prototype.toString;
+var isCallable = require('is-callable');
 
-module.exports = function forEach (obj, fn, ctx) {
-    if (toString.call(fn) !== '[object Function]') {
-        throw new TypeError('iterator must be a function');
-    }
-    var l = obj.length;
-    if (l === +l) {
-        for (var i = 0; i < l; i++) {
-            fn.call(ctx, obj[i], i, obj);
-        }
-    } else {
-        for (var k in obj) {
-            if (hasOwn.call(obj, k)) {
-                fn.call(ctx, obj[k], k, obj);
+var toStr = Object.prototype.toString;
+var hasOwnProperty = Object.prototype.hasOwnProperty;
+
+var forEachArray = function forEachArray(array, iterator, receiver) {
+    for (var i = 0, len = array.length; i < len; i++) {
+        if (hasOwnProperty.call(array, i)) {
+            if (receiver == null) {
+                iterator(array[i], i, array);
+            } else {
+                iterator.call(receiver, array[i], i, array);
             }
         }
     }
 };
 
+var forEachString = function forEachString(string, iterator, receiver) {
+    for (var i = 0, len = string.length; i < len; i++) {
+        // no such thing as a sparse string.
+        if (receiver == null) {
+            iterator(string.charAt(i), i, string);
+        } else {
+            iterator.call(receiver, string.charAt(i), i, string);
+        }
+    }
+};
 
-},{}],38:[function(require,module,exports){
+var forEachObject = function forEachObject(object, iterator, receiver) {
+    for (var k in object) {
+        if (hasOwnProperty.call(object, k)) {
+            if (receiver == null) {
+                iterator(object[k], k, object);
+            } else {
+                iterator.call(receiver, object[k], k, object);
+            }
+        }
+    }
+};
+
+var forEach = function forEach(list, iterator, thisArg) {
+    if (!isCallable(iterator)) {
+        throw new TypeError('iterator must be a function');
+    }
+
+    var receiver;
+    if (arguments.length >= 3) {
+        receiver = thisArg;
+    }
+
+    if (toStr.call(list) === '[object Array]') {
+        forEachArray(list, iterator, receiver);
+    } else if (typeof list === 'string') {
+        forEachString(list, iterator, receiver);
+    } else {
+        forEachObject(list, iterator, receiver);
+    }
+};
+
+module.exports = forEach;
+
+},{"is-callable":16}],7:[function(require,module,exports){
 'use strict';
 
 /* eslint no-invalid-this: 1 */
@@ -4515,79 +234,349 @@ module.exports = function bind(that) {
     return bound;
 };
 
-},{}],39:[function(require,module,exports){
+},{}],8:[function(require,module,exports){
 'use strict';
 
 var implementation = require('./implementation');
 
 module.exports = Function.prototype.bind || implementation;
 
-},{"./implementation":38}],40:[function(require,module,exports){
-/* Copyright (c) 2020 Richard Rodger, MIT License */
-'use strict'
-
-var tests = []
-var print =
-  'undefined' === typeof document
-    ? console.log
-    : function (s, nl) {
-        var out = document.querySelector('#test-results') // eslint-disable-line
-        out.innerHTML = out.innerHTML + s + (false === nl ? ' ' : '<br>')
-      }
-
-var Lab = {
-  script: function () {
-    return {
-      it: web_it,
-      describe: web_describe,
-    }
-  },
-}
-
-function web_it(name, opts, fn) {
-  tests.push({ name: name, opts: opts, fn: fn || opts })
-}
-
-function web_describe(name, testdef) {
-  print(name)
-  testdef()
-
-  runtest(tests.shift())
-}
-
-function runtest(test) {
-  if (null == test) return
-
-  print(test.name, false)
-
-  try {
-    var res = test.fn(function () {})
-
-    if (res) {
-      res.then(function (err) {
-        if (err) {
-          print('fail ' + err)
-        } else {
-          print('pass')
-        }
-        runtest(tests.shift())
-      })
-    } else {
-      print('pass')
-      runtest(tests.shift())
-    }
-  } catch (err) {
-    print('fail ' + err)
-  }
-}
-
-module.exports = Lab
-
-},{}],41:[function(require,module,exports){
-(function (global){(function (){
+},{"./implementation":7}],9:[function(require,module,exports){
 'use strict';
 
-var origSymbol = global.Symbol;
+var undefined;
+
+var $SyntaxError = SyntaxError;
+var $Function = Function;
+var $TypeError = TypeError;
+
+// eslint-disable-next-line consistent-return
+var getEvalledConstructor = function (expressionSyntax) {
+	try {
+		return $Function('"use strict"; return (' + expressionSyntax + ').constructor;')();
+	} catch (e) {}
+};
+
+var $gOPD = Object.getOwnPropertyDescriptor;
+if ($gOPD) {
+	try {
+		$gOPD({}, '');
+	} catch (e) {
+		$gOPD = null; // this is IE 8, which has a broken gOPD
+	}
+}
+
+var throwTypeError = function () {
+	throw new $TypeError();
+};
+var ThrowTypeError = $gOPD
+	? (function () {
+		try {
+			// eslint-disable-next-line no-unused-expressions, no-caller, no-restricted-properties
+			arguments.callee; // IE 8 does not throw here
+			return throwTypeError;
+		} catch (calleeThrows) {
+			try {
+				// IE 8 throws on Object.getOwnPropertyDescriptor(arguments, '')
+				return $gOPD(arguments, 'callee').get;
+			} catch (gOPDthrows) {
+				return throwTypeError;
+			}
+		}
+	}())
+	: throwTypeError;
+
+var hasSymbols = require('has-symbols')();
+
+var getProto = Object.getPrototypeOf || function (x) { return x.__proto__; }; // eslint-disable-line no-proto
+
+var needsEval = {};
+
+var TypedArray = typeof Uint8Array === 'undefined' ? undefined : getProto(Uint8Array);
+
+var INTRINSICS = {
+	'%AggregateError%': typeof AggregateError === 'undefined' ? undefined : AggregateError,
+	'%Array%': Array,
+	'%ArrayBuffer%': typeof ArrayBuffer === 'undefined' ? undefined : ArrayBuffer,
+	'%ArrayIteratorPrototype%': hasSymbols ? getProto([][Symbol.iterator]()) : undefined,
+	'%AsyncFromSyncIteratorPrototype%': undefined,
+	'%AsyncFunction%': needsEval,
+	'%AsyncGenerator%': needsEval,
+	'%AsyncGeneratorFunction%': needsEval,
+	'%AsyncIteratorPrototype%': needsEval,
+	'%Atomics%': typeof Atomics === 'undefined' ? undefined : Atomics,
+	'%BigInt%': typeof BigInt === 'undefined' ? undefined : BigInt,
+	'%Boolean%': Boolean,
+	'%DataView%': typeof DataView === 'undefined' ? undefined : DataView,
+	'%Date%': Date,
+	'%decodeURI%': decodeURI,
+	'%decodeURIComponent%': decodeURIComponent,
+	'%encodeURI%': encodeURI,
+	'%encodeURIComponent%': encodeURIComponent,
+	'%Error%': Error,
+	'%eval%': eval, // eslint-disable-line no-eval
+	'%EvalError%': EvalError,
+	'%Float32Array%': typeof Float32Array === 'undefined' ? undefined : Float32Array,
+	'%Float64Array%': typeof Float64Array === 'undefined' ? undefined : Float64Array,
+	'%FinalizationRegistry%': typeof FinalizationRegistry === 'undefined' ? undefined : FinalizationRegistry,
+	'%Function%': $Function,
+	'%GeneratorFunction%': needsEval,
+	'%Int8Array%': typeof Int8Array === 'undefined' ? undefined : Int8Array,
+	'%Int16Array%': typeof Int16Array === 'undefined' ? undefined : Int16Array,
+	'%Int32Array%': typeof Int32Array === 'undefined' ? undefined : Int32Array,
+	'%isFinite%': isFinite,
+	'%isNaN%': isNaN,
+	'%IteratorPrototype%': hasSymbols ? getProto(getProto([][Symbol.iterator]())) : undefined,
+	'%JSON%': typeof JSON === 'object' ? JSON : undefined,
+	'%Map%': typeof Map === 'undefined' ? undefined : Map,
+	'%MapIteratorPrototype%': typeof Map === 'undefined' || !hasSymbols ? undefined : getProto(new Map()[Symbol.iterator]()),
+	'%Math%': Math,
+	'%Number%': Number,
+	'%Object%': Object,
+	'%parseFloat%': parseFloat,
+	'%parseInt%': parseInt,
+	'%Promise%': typeof Promise === 'undefined' ? undefined : Promise,
+	'%Proxy%': typeof Proxy === 'undefined' ? undefined : Proxy,
+	'%RangeError%': RangeError,
+	'%ReferenceError%': ReferenceError,
+	'%Reflect%': typeof Reflect === 'undefined' ? undefined : Reflect,
+	'%RegExp%': RegExp,
+	'%Set%': typeof Set === 'undefined' ? undefined : Set,
+	'%SetIteratorPrototype%': typeof Set === 'undefined' || !hasSymbols ? undefined : getProto(new Set()[Symbol.iterator]()),
+	'%SharedArrayBuffer%': typeof SharedArrayBuffer === 'undefined' ? undefined : SharedArrayBuffer,
+	'%String%': String,
+	'%StringIteratorPrototype%': hasSymbols ? getProto(''[Symbol.iterator]()) : undefined,
+	'%Symbol%': hasSymbols ? Symbol : undefined,
+	'%SyntaxError%': $SyntaxError,
+	'%ThrowTypeError%': ThrowTypeError,
+	'%TypedArray%': TypedArray,
+	'%TypeError%': $TypeError,
+	'%Uint8Array%': typeof Uint8Array === 'undefined' ? undefined : Uint8Array,
+	'%Uint8ClampedArray%': typeof Uint8ClampedArray === 'undefined' ? undefined : Uint8ClampedArray,
+	'%Uint16Array%': typeof Uint16Array === 'undefined' ? undefined : Uint16Array,
+	'%Uint32Array%': typeof Uint32Array === 'undefined' ? undefined : Uint32Array,
+	'%URIError%': URIError,
+	'%WeakMap%': typeof WeakMap === 'undefined' ? undefined : WeakMap,
+	'%WeakRef%': typeof WeakRef === 'undefined' ? undefined : WeakRef,
+	'%WeakSet%': typeof WeakSet === 'undefined' ? undefined : WeakSet
+};
+
+var doEval = function doEval(name) {
+	var value;
+	if (name === '%AsyncFunction%') {
+		value = getEvalledConstructor('async function () {}');
+	} else if (name === '%GeneratorFunction%') {
+		value = getEvalledConstructor('function* () {}');
+	} else if (name === '%AsyncGeneratorFunction%') {
+		value = getEvalledConstructor('async function* () {}');
+	} else if (name === '%AsyncGenerator%') {
+		var fn = doEval('%AsyncGeneratorFunction%');
+		if (fn) {
+			value = fn.prototype;
+		}
+	} else if (name === '%AsyncIteratorPrototype%') {
+		var gen = doEval('%AsyncGenerator%');
+		if (gen) {
+			value = getProto(gen.prototype);
+		}
+	}
+
+	INTRINSICS[name] = value;
+
+	return value;
+};
+
+var LEGACY_ALIASES = {
+	'%ArrayBufferPrototype%': ['ArrayBuffer', 'prototype'],
+	'%ArrayPrototype%': ['Array', 'prototype'],
+	'%ArrayProto_entries%': ['Array', 'prototype', 'entries'],
+	'%ArrayProto_forEach%': ['Array', 'prototype', 'forEach'],
+	'%ArrayProto_keys%': ['Array', 'prototype', 'keys'],
+	'%ArrayProto_values%': ['Array', 'prototype', 'values'],
+	'%AsyncFunctionPrototype%': ['AsyncFunction', 'prototype'],
+	'%AsyncGenerator%': ['AsyncGeneratorFunction', 'prototype'],
+	'%AsyncGeneratorPrototype%': ['AsyncGeneratorFunction', 'prototype', 'prototype'],
+	'%BooleanPrototype%': ['Boolean', 'prototype'],
+	'%DataViewPrototype%': ['DataView', 'prototype'],
+	'%DatePrototype%': ['Date', 'prototype'],
+	'%ErrorPrototype%': ['Error', 'prototype'],
+	'%EvalErrorPrototype%': ['EvalError', 'prototype'],
+	'%Float32ArrayPrototype%': ['Float32Array', 'prototype'],
+	'%Float64ArrayPrototype%': ['Float64Array', 'prototype'],
+	'%FunctionPrototype%': ['Function', 'prototype'],
+	'%Generator%': ['GeneratorFunction', 'prototype'],
+	'%GeneratorPrototype%': ['GeneratorFunction', 'prototype', 'prototype'],
+	'%Int8ArrayPrototype%': ['Int8Array', 'prototype'],
+	'%Int16ArrayPrototype%': ['Int16Array', 'prototype'],
+	'%Int32ArrayPrototype%': ['Int32Array', 'prototype'],
+	'%JSONParse%': ['JSON', 'parse'],
+	'%JSONStringify%': ['JSON', 'stringify'],
+	'%MapPrototype%': ['Map', 'prototype'],
+	'%NumberPrototype%': ['Number', 'prototype'],
+	'%ObjectPrototype%': ['Object', 'prototype'],
+	'%ObjProto_toString%': ['Object', 'prototype', 'toString'],
+	'%ObjProto_valueOf%': ['Object', 'prototype', 'valueOf'],
+	'%PromisePrototype%': ['Promise', 'prototype'],
+	'%PromiseProto_then%': ['Promise', 'prototype', 'then'],
+	'%Promise_all%': ['Promise', 'all'],
+	'%Promise_reject%': ['Promise', 'reject'],
+	'%Promise_resolve%': ['Promise', 'resolve'],
+	'%RangeErrorPrototype%': ['RangeError', 'prototype'],
+	'%ReferenceErrorPrototype%': ['ReferenceError', 'prototype'],
+	'%RegExpPrototype%': ['RegExp', 'prototype'],
+	'%SetPrototype%': ['Set', 'prototype'],
+	'%SharedArrayBufferPrototype%': ['SharedArrayBuffer', 'prototype'],
+	'%StringPrototype%': ['String', 'prototype'],
+	'%SymbolPrototype%': ['Symbol', 'prototype'],
+	'%SyntaxErrorPrototype%': ['SyntaxError', 'prototype'],
+	'%TypedArrayPrototype%': ['TypedArray', 'prototype'],
+	'%TypeErrorPrototype%': ['TypeError', 'prototype'],
+	'%Uint8ArrayPrototype%': ['Uint8Array', 'prototype'],
+	'%Uint8ClampedArrayPrototype%': ['Uint8ClampedArray', 'prototype'],
+	'%Uint16ArrayPrototype%': ['Uint16Array', 'prototype'],
+	'%Uint32ArrayPrototype%': ['Uint32Array', 'prototype'],
+	'%URIErrorPrototype%': ['URIError', 'prototype'],
+	'%WeakMapPrototype%': ['WeakMap', 'prototype'],
+	'%WeakSetPrototype%': ['WeakSet', 'prototype']
+};
+
+var bind = require('function-bind');
+var hasOwn = require('has');
+var $concat = bind.call(Function.call, Array.prototype.concat);
+var $spliceApply = bind.call(Function.apply, Array.prototype.splice);
+var $replace = bind.call(Function.call, String.prototype.replace);
+var $strSlice = bind.call(Function.call, String.prototype.slice);
+
+/* adapted from https://github.com/lodash/lodash/blob/4.17.15/dist/lodash.js#L6735-L6744 */
+var rePropName = /[^%.[\]]+|\[(?:(-?\d+(?:\.\d+)?)|(["'])((?:(?!\2)[^\\]|\\.)*?)\2)\]|(?=(?:\.|\[\])(?:\.|\[\]|%$))/g;
+var reEscapeChar = /\\(\\)?/g; /** Used to match backslashes in property paths. */
+var stringToPath = function stringToPath(string) {
+	var first = $strSlice(string, 0, 1);
+	var last = $strSlice(string, -1);
+	if (first === '%' && last !== '%') {
+		throw new $SyntaxError('invalid intrinsic syntax, expected closing `%`');
+	} else if (last === '%' && first !== '%') {
+		throw new $SyntaxError('invalid intrinsic syntax, expected opening `%`');
+	}
+	var result = [];
+	$replace(string, rePropName, function (match, number, quote, subString) {
+		result[result.length] = quote ? $replace(subString, reEscapeChar, '$1') : number || match;
+	});
+	return result;
+};
+/* end adaptation */
+
+var getBaseIntrinsic = function getBaseIntrinsic(name, allowMissing) {
+	var intrinsicName = name;
+	var alias;
+	if (hasOwn(LEGACY_ALIASES, intrinsicName)) {
+		alias = LEGACY_ALIASES[intrinsicName];
+		intrinsicName = '%' + alias[0] + '%';
+	}
+
+	if (hasOwn(INTRINSICS, intrinsicName)) {
+		var value = INTRINSICS[intrinsicName];
+		if (value === needsEval) {
+			value = doEval(intrinsicName);
+		}
+		if (typeof value === 'undefined' && !allowMissing) {
+			throw new $TypeError('intrinsic ' + name + ' exists, but is not available. Please file an issue!');
+		}
+
+		return {
+			alias: alias,
+			name: intrinsicName,
+			value: value
+		};
+	}
+
+	throw new $SyntaxError('intrinsic ' + name + ' does not exist!');
+};
+
+module.exports = function GetIntrinsic(name, allowMissing) {
+	if (typeof name !== 'string' || name.length === 0) {
+		throw new $TypeError('intrinsic name must be a non-empty string');
+	}
+	if (arguments.length > 1 && typeof allowMissing !== 'boolean') {
+		throw new $TypeError('"allowMissing" argument must be a boolean');
+	}
+
+	var parts = stringToPath(name);
+	var intrinsicBaseName = parts.length > 0 ? parts[0] : '';
+
+	var intrinsic = getBaseIntrinsic('%' + intrinsicBaseName + '%', allowMissing);
+	var intrinsicRealName = intrinsic.name;
+	var value = intrinsic.value;
+	var skipFurtherCaching = false;
+
+	var alias = intrinsic.alias;
+	if (alias) {
+		intrinsicBaseName = alias[0];
+		$spliceApply(parts, $concat([0, 1], alias));
+	}
+
+	for (var i = 1, isOwn = true; i < parts.length; i += 1) {
+		var part = parts[i];
+		var first = $strSlice(part, 0, 1);
+		var last = $strSlice(part, -1);
+		if (
+			(
+				(first === '"' || first === "'" || first === '`')
+				|| (last === '"' || last === "'" || last === '`')
+			)
+			&& first !== last
+		) {
+			throw new $SyntaxError('property names with quotes must have matching quotes');
+		}
+		if (part === 'constructor' || !isOwn) {
+			skipFurtherCaching = true;
+		}
+
+		intrinsicBaseName += '.' + part;
+		intrinsicRealName = '%' + intrinsicBaseName + '%';
+
+		if (hasOwn(INTRINSICS, intrinsicRealName)) {
+			value = INTRINSICS[intrinsicRealName];
+		} else if (value != null) {
+			if (!(part in value)) {
+				if (!allowMissing) {
+					throw new $TypeError('base intrinsic for ' + name + ' exists, but the property is not available.');
+				}
+				return void undefined;
+			}
+			if ($gOPD && (i + 1) >= parts.length) {
+				var desc = $gOPD(value, part);
+				isOwn = !!desc;
+
+				// By convention, when a data property is converted to an accessor
+				// property to emulate a data property that does not suffer from
+				// the override mistake, that accessor's getter is marked with
+				// an `originalValue` property. Here, when we detect this, we
+				// uphold the illusion by pretending to see that original data
+				// property, i.e., returning the value rather than the getter
+				// itself.
+				if (isOwn && 'get' in desc && !('originalValue' in desc.get)) {
+					value = desc.get;
+				} else {
+					value = value[part];
+				}
+			} else {
+				isOwn = hasOwn(value, part);
+				value = value[part];
+			}
+
+			if (isOwn && !skipFurtherCaching) {
+				INTRINSICS[intrinsicRealName] = value;
+			}
+		}
+	}
+	return value;
+};
+
+},{"function-bind":8,"has":13,"has-symbols":10}],10:[function(require,module,exports){
+'use strict';
+
+var origSymbol = typeof Symbol !== 'undefined' && Symbol;
 var hasSymbolSham = require('./shams');
 
 module.exports = function hasNativeSymbols() {
@@ -4599,8 +588,7 @@ module.exports = function hasNativeSymbols() {
 	return hasSymbolSham();
 };
 
-}).call(this)}).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"./shams":42}],42:[function(require,module,exports){
+},{"./shams":11}],11:[function(require,module,exports){
 'use strict';
 
 /* eslint complexity: [2, 18], max-statements: [2, 33] */
@@ -4626,7 +614,7 @@ module.exports = function hasSymbols() {
 
 	var symVal = 42;
 	obj[sym] = symVal;
-	for (sym in obj) { return false; } // eslint-disable-line no-restricted-syntax
+	for (sym in obj) { return false; } // eslint-disable-line no-restricted-syntax, no-unreachable-loop
 	if (typeof Object.keys === 'function' && Object.keys(obj).length !== 0) { return false; }
 
 	if (typeof Object.getOwnPropertyNames === 'function' && Object.getOwnPropertyNames(obj).length !== 0) { return false; }
@@ -4644,94 +632,23 @@ module.exports = function hasSymbols() {
 	return true;
 };
 
-},{}],43:[function(require,module,exports){
-/*! ieee754. BSD-3-Clause License. Feross Aboukhadijeh <https://feross.org/opensource> */
-exports.read = function (buffer, offset, isLE, mLen, nBytes) {
-  var e, m
-  var eLen = (nBytes * 8) - mLen - 1
-  var eMax = (1 << eLen) - 1
-  var eBias = eMax >> 1
-  var nBits = -7
-  var i = isLE ? (nBytes - 1) : 0
-  var d = isLE ? -1 : 1
-  var s = buffer[offset + i]
+},{}],12:[function(require,module,exports){
+'use strict';
 
-  i += d
+var hasSymbols = require('has-symbols/shams');
 
-  e = s & ((1 << (-nBits)) - 1)
-  s >>= (-nBits)
-  nBits += eLen
-  for (; nBits > 0; e = (e * 256) + buffer[offset + i], i += d, nBits -= 8) {}
+module.exports = function hasToStringTagShams() {
+	return hasSymbols() && !!Symbol.toStringTag;
+};
 
-  m = e & ((1 << (-nBits)) - 1)
-  e >>= (-nBits)
-  nBits += mLen
-  for (; nBits > 0; m = (m * 256) + buffer[offset + i], i += d, nBits -= 8) {}
+},{"has-symbols/shams":11}],13:[function(require,module,exports){
+'use strict';
 
-  if (e === 0) {
-    e = 1 - eBias
-  } else if (e === eMax) {
-    return m ? NaN : ((s ? -1 : 1) * Infinity)
-  } else {
-    m = m + Math.pow(2, mLen)
-    e = e - eBias
-  }
-  return (s ? -1 : 1) * m * Math.pow(2, e - mLen)
-}
+var bind = require('function-bind');
 
-exports.write = function (buffer, value, offset, isLE, mLen, nBytes) {
-  var e, m, c
-  var eLen = (nBytes * 8) - mLen - 1
-  var eMax = (1 << eLen) - 1
-  var eBias = eMax >> 1
-  var rt = (mLen === 23 ? Math.pow(2, -24) - Math.pow(2, -77) : 0)
-  var i = isLE ? 0 : (nBytes - 1)
-  var d = isLE ? 1 : -1
-  var s = value < 0 || (value === 0 && 1 / value < 0) ? 1 : 0
+module.exports = bind.call(Function.call, Object.prototype.hasOwnProperty);
 
-  value = Math.abs(value)
-
-  if (isNaN(value) || value === Infinity) {
-    m = isNaN(value) ? 1 : 0
-    e = eMax
-  } else {
-    e = Math.floor(Math.log(value) / Math.LN2)
-    if (value * (c = Math.pow(2, -e)) < 1) {
-      e--
-      c *= 2
-    }
-    if (e + eBias >= 1) {
-      value += rt / c
-    } else {
-      value += rt * Math.pow(2, 1 - eBias)
-    }
-    if (value * c >= 2) {
-      e++
-      c /= 2
-    }
-
-    if (e + eBias >= eMax) {
-      m = 0
-      e = eMax
-    } else if (e + eBias >= 1) {
-      m = ((value * c) - 1) * Math.pow(2, mLen)
-      e = e + eBias
-    } else {
-      m = value * Math.pow(2, eBias - 1) * Math.pow(2, mLen)
-      e = 0
-    }
-  }
-
-  for (; mLen >= 8; buffer[offset + i] = m & 0xff, i += d, m /= 256, mLen -= 8) {}
-
-  e = (e << mLen) | m
-  eLen += mLen
-  for (; eLen > 0; buffer[offset + i] = e & 0xff, i += d, e /= 256, eLen -= 8) {}
-
-  buffer[offset + i - d] |= s * 128
-}
-
-},{}],44:[function(require,module,exports){
+},{"function-bind":8}],14:[function(require,module,exports){
 if (typeof Object.create === 'function') {
   // implementation from standard node.js 'util' module
   module.exports = function inherits(ctor, superCtor) {
@@ -4760,17 +677,19 @@ if (typeof Object.create === 'function') {
   }
 }
 
-},{}],45:[function(require,module,exports){
+},{}],15:[function(require,module,exports){
 'use strict';
 
-var hasToStringTag = typeof Symbol === 'function' && typeof Symbol.toStringTag === 'symbol';
-var toStr = Object.prototype.toString;
+var hasToStringTag = require('has-tostringtag/shams')();
+var callBound = require('call-bind/callBound');
+
+var $toString = callBound('Object.prototype.toString');
 
 var isStandardArguments = function isArguments(value) {
 	if (hasToStringTag && value && typeof value === 'object' && Symbol.toStringTag in value) {
 		return false;
 	}
-	return toStr.call(value) === '[object Arguments]';
+	return $toString(value) === '[object Arguments]';
 };
 
 var isLegacyArguments = function isArguments(value) {
@@ -4781,8 +700,8 @@ var isLegacyArguments = function isArguments(value) {
 		typeof value === 'object' &&
 		typeof value.length === 'number' &&
 		value.length >= 0 &&
-		toStr.call(value) !== '[object Array]' &&
-		toStr.call(value.callee) === '[object Function]';
+		$toString(value) !== '[object Array]' &&
+		$toString(value.callee) === '[object Function]';
 };
 
 var supportsStandardArguments = (function () {
@@ -4793,36 +712,89 @@ isStandardArguments.isLegacyArguments = isLegacyArguments; // for tests
 
 module.exports = supportsStandardArguments ? isStandardArguments : isLegacyArguments;
 
-},{}],46:[function(require,module,exports){
-/*!
- * Determine if an object is a Buffer
- *
- * @author   Feross Aboukhadijeh <https://feross.org>
- * @license  MIT
- */
+},{"call-bind/callBound":3,"has-tostringtag/shams":12}],16:[function(require,module,exports){
+'use strict';
 
-// The _isBuffer check is for Safari 5-7 support, because it's missing
-// Object.prototype.constructor. Remove this eventually
-module.exports = function (obj) {
-  return obj != null && (isBuffer(obj) || isSlowBuffer(obj) || !!obj._isBuffer)
+var fnToStr = Function.prototype.toString;
+var reflectApply = typeof Reflect === 'object' && Reflect !== null && Reflect.apply;
+var badArrayLike;
+var isCallableMarker;
+if (typeof reflectApply === 'function' && typeof Object.defineProperty === 'function') {
+	try {
+		badArrayLike = Object.defineProperty({}, 'length', {
+			get: function () {
+				throw isCallableMarker;
+			}
+		});
+		isCallableMarker = {};
+		// eslint-disable-next-line no-throw-literal
+		reflectApply(function () { throw 42; }, null, badArrayLike);
+	} catch (_) {
+		if (_ !== isCallableMarker) {
+			reflectApply = null;
+		}
+	}
+} else {
+	reflectApply = null;
 }
 
-function isBuffer (obj) {
-  return !!obj.constructor && typeof obj.constructor.isBuffer === 'function' && obj.constructor.isBuffer(obj)
-}
+var constructorRegex = /^\s*class\b/;
+var isES6ClassFn = function isES6ClassFunction(value) {
+	try {
+		var fnStr = fnToStr.call(value);
+		return constructorRegex.test(fnStr);
+	} catch (e) {
+		return false; // not a function
+	}
+};
 
-// For Node v0.10 support. Remove this eventually.
-function isSlowBuffer (obj) {
-  return typeof obj.readFloatLE === 'function' && typeof obj.slice === 'function' && isBuffer(obj.slice(0, 0))
-}
+var tryFunctionObject = function tryFunctionToStr(value) {
+	try {
+		if (isES6ClassFn(value)) { return false; }
+		fnToStr.call(value);
+		return true;
+	} catch (e) {
+		return false;
+	}
+};
+var toStr = Object.prototype.toString;
+var fnClass = '[object Function]';
+var genClass = '[object GeneratorFunction]';
+var hasToStringTag = typeof Symbol === 'function' && !!Symbol.toStringTag; // better: use `has-tostringtag`
+/* globals document: false */
+var documentDotAll = typeof document === 'object' && typeof document.all === 'undefined' && document.all !== undefined ? document.all : {};
 
-},{}],47:[function(require,module,exports){
+module.exports = reflectApply
+	? function isCallable(value) {
+		if (value === documentDotAll) { return true; }
+		if (!value) { return false; }
+		if (typeof value !== 'function' && typeof value !== 'object') { return false; }
+		if (typeof value === 'function' && !value.prototype) { return true; }
+		try {
+			reflectApply(value, null, badArrayLike);
+		} catch (e) {
+			if (e !== isCallableMarker) { return false; }
+		}
+		return !isES6ClassFn(value);
+	}
+	: function isCallable(value) {
+		if (value === documentDotAll) { return true; }
+		if (!value) { return false; }
+		if (typeof value !== 'function' && typeof value !== 'object') { return false; }
+		if (typeof value === 'function' && !value.prototype) { return true; }
+		if (hasToStringTag) { return tryFunctionObject(value); }
+		if (isES6ClassFn(value)) { return false; }
+		var strClass = toStr.call(value);
+		return strClass === fnClass || strClass === genClass;
+	};
+
+},{}],17:[function(require,module,exports){
 'use strict';
 
 var toStr = Object.prototype.toString;
 var fnToStr = Function.prototype.toString;
 var isFnRegex = /^\s*(?:function)?\*/;
-var hasToStringTag = typeof Symbol === 'function' && typeof Symbol.toStringTag === 'symbol';
+var hasToStringTag = require('has-tostringtag/shams')();
 var getProto = Object.getPrototypeOf;
 var getGeneratorFunc = function () { // eslint-disable-line consistent-return
 	if (!hasToStringTag) {
@@ -4833,8 +805,7 @@ var getGeneratorFunc = function () { // eslint-disable-line consistent-return
 	} catch (e) {
 	}
 };
-var generatorFunc = getGeneratorFunc();
-var GeneratorFunction = generatorFunc ? getProto(generatorFunc) : {};
+var GeneratorFunction;
 
 module.exports = function isGeneratorFunction(fn) {
 	if (typeof fn !== 'function') {
@@ -4847,21 +818,28 @@ module.exports = function isGeneratorFunction(fn) {
 		var str = toStr.call(fn);
 		return str === '[object GeneratorFunction]';
 	}
+	if (!getProto) {
+		return false;
+	}
+	if (typeof GeneratorFunction === 'undefined') {
+		var generatorFunc = getGeneratorFunc();
+		GeneratorFunction = generatorFunc ? getProto(generatorFunc) : false;
+	}
 	return getProto(fn) === GeneratorFunction;
 };
 
-},{}],48:[function(require,module,exports){
+},{"has-tostringtag/shams":12}],18:[function(require,module,exports){
 (function (global){(function (){
 'use strict';
 
-var forEach = require('foreach');
+var forEach = require('for-each');
 var availableTypedArrays = require('available-typed-arrays');
-var callBound = require('es-abstract/helpers/callBound');
+var callBound = require('call-bind/callBound');
 
 var $toString = callBound('Object.prototype.toString');
-var hasSymbols = require('has-symbols')();
-var hasToStringTag = hasSymbols && typeof Symbol.toStringTag === 'symbol';
+var hasToStringTag = require('has-tostringtag/shams')();
 
+var g = typeof globalThis === 'undefined' ? global : globalThis;
 var typedArrays = availableTypedArrays();
 
 var $indexOf = callBound('Array.prototype.indexOf', true) || function indexOf(array, value) {
@@ -4878,17 +856,16 @@ var gOPD = require('es-abstract/helpers/getOwnPropertyDescriptor');
 var getPrototypeOf = Object.getPrototypeOf; // require('getprototypeof');
 if (hasToStringTag && gOPD && getPrototypeOf) {
 	forEach(typedArrays, function (typedArray) {
-		var arr = new global[typedArray]();
-		if (!(Symbol.toStringTag in arr)) {
-			throw new EvalError('this engine has support for Symbol.toStringTag, but ' + typedArray + ' does not have the property! Please report this.');
+		var arr = new g[typedArray]();
+		if (Symbol.toStringTag in arr) {
+			var proto = getPrototypeOf(arr);
+			var descriptor = gOPD(proto, Symbol.toStringTag);
+			if (!descriptor) {
+				var superProto = getPrototypeOf(proto);
+				descriptor = gOPD(superProto, Symbol.toStringTag);
+			}
+			toStrTags[typedArray] = descriptor.get;
 		}
-		var proto = getPrototypeOf(arr);
-		var descriptor = gOPD(proto, Symbol.toStringTag);
-		if (!descriptor) {
-			var superProto = getPrototypeOf(proto);
-			descriptor = gOPD(superProto, Symbol.toStringTag);
-		}
-		toStrTags[typedArray] = descriptor.get;
 	});
 }
 
@@ -4906,7 +883,7 @@ var tryTypedArrays = function tryAllTypedArrays(value) {
 
 module.exports = function isTypedArray(value) {
 	if (!value || typeof value !== 'object') { return false; }
-	if (!hasToStringTag) {
+	if (!hasToStringTag || !(Symbol.toStringTag in value)) {
 		var tag = $slice($toString(value), 8, -1);
 		return $indexOf(typedArrays, tag) > -1;
 	}
@@ -4915,7 +892,7 @@ module.exports = function isTypedArray(value) {
 };
 
 }).call(this)}).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"available-typed-arrays":29,"es-abstract/helpers/callBound":35,"es-abstract/helpers/getOwnPropertyDescriptor":36,"foreach":37,"has-symbols":41}],49:[function(require,module,exports){
+},{"available-typed-arrays":2,"call-bind/callBound":3,"es-abstract/helpers/getOwnPropertyDescriptor":5,"for-each":6,"has-tostringtag/shams":12}],19:[function(require,module,exports){
 // shim for using process in browser
 var process = module.exports = {};
 
@@ -5101,14 +1078,14 @@ process.chdir = function (dir) {
 };
 process.umask = function() { return 0; };
 
-},{}],50:[function(require,module,exports){
+},{}],20:[function(require,module,exports){
 module.exports = function isBuffer(arg) {
   return arg && typeof arg === 'object'
     && typeof arg.copy === 'function'
     && typeof arg.fill === 'function'
     && typeof arg.readUInt8 === 'function';
 }
-},{}],51:[function(require,module,exports){
+},{}],21:[function(require,module,exports){
 // Currently in sync with Node.js lib/internal/util/types.js
 // https://github.com/nodejs/node/commit/112cc7c27551254aa2b17098fb774867f05ed0d9
 
@@ -5346,21 +1323,23 @@ function isDataView(value) {
 }
 exports.isDataView = isDataView;
 
+// Store a copy of SharedArrayBuffer in case it's deleted elsewhere
+var SharedArrayBufferCopy = typeof SharedArrayBuffer !== 'undefined' ? SharedArrayBuffer : undefined;
 function isSharedArrayBufferToString(value) {
   return ObjectToString(value) === '[object SharedArrayBuffer]';
 }
-isSharedArrayBufferToString.working = (
-  typeof SharedArrayBuffer !== 'undefined' &&
-  isSharedArrayBufferToString(new SharedArrayBuffer())
-);
 function isSharedArrayBuffer(value) {
-  if (typeof SharedArrayBuffer === 'undefined') {
+  if (typeof SharedArrayBufferCopy === 'undefined') {
     return false;
+  }
+
+  if (typeof isSharedArrayBufferToString.working === 'undefined') {
+    isSharedArrayBufferToString.working = isSharedArrayBufferToString(new SharedArrayBufferCopy());
   }
 
   return isSharedArrayBufferToString.working
     ? isSharedArrayBufferToString(value)
-    : value instanceof SharedArrayBuffer;
+    : value instanceof SharedArrayBufferCopy;
 }
 exports.isSharedArrayBuffer = isSharedArrayBuffer;
 
@@ -5442,7 +1421,7 @@ exports.isAnyArrayBuffer = isAnyArrayBuffer;
   });
 });
 
-},{"is-arguments":45,"is-generator-function":47,"is-typed-array":48,"which-typed-array":53}],52:[function(require,module,exports){
+},{"is-arguments":15,"is-generator-function":17,"is-typed-array":18,"which-typed-array":23}],22:[function(require,module,exports){
 (function (process){(function (){
 // Copyright Joyent, Inc. and other Node contributors.
 //
@@ -6161,18 +2140,18 @@ function callbackify(original) {
 exports.callbackify = callbackify;
 
 }).call(this)}).call(this,require('_process'))
-},{"./support/isBuffer":50,"./support/types":51,"_process":49,"inherits":44}],53:[function(require,module,exports){
+},{"./support/isBuffer":20,"./support/types":21,"_process":19,"inherits":14}],23:[function(require,module,exports){
 (function (global){(function (){
 'use strict';
 
-var forEach = require('foreach');
+var forEach = require('for-each');
 var availableTypedArrays = require('available-typed-arrays');
-var callBound = require('es-abstract/helpers/callBound');
+var callBound = require('call-bind/callBound');
 
 var $toString = callBound('Object.prototype.toString');
-var hasSymbols = require('has-symbols')();
-var hasToStringTag = hasSymbols && typeof Symbol.toStringTag === 'symbol';
+var hasToStringTag = require('has-tostringtag/shams')();
 
+var g = typeof globalThis === 'undefined' ? global : globalThis;
 var typedArrays = availableTypedArrays();
 
 var $slice = callBound('String.prototype.slice');
@@ -6181,18 +2160,17 @@ var gOPD = require('es-abstract/helpers/getOwnPropertyDescriptor');
 var getPrototypeOf = Object.getPrototypeOf; // require('getprototypeof');
 if (hasToStringTag && gOPD && getPrototypeOf) {
 	forEach(typedArrays, function (typedArray) {
-		if (typeof global[typedArray] === 'function') {
-			var arr = new global[typedArray]();
-			if (!(Symbol.toStringTag in arr)) {
-				throw new EvalError('this engine has support for Symbol.toStringTag, but ' + typedArray + ' does not have the property! Please report this.');
+		if (typeof g[typedArray] === 'function') {
+			var arr = new g[typedArray]();
+			if (Symbol.toStringTag in arr) {
+				var proto = getPrototypeOf(arr);
+				var descriptor = gOPD(proto, Symbol.toStringTag);
+				if (!descriptor) {
+					var superProto = getPrototypeOf(proto);
+					descriptor = gOPD(superProto, Symbol.toStringTag);
+				}
+				toStrTags[typedArray] = descriptor.get;
 			}
-			var proto = getPrototypeOf(arr);
-			var descriptor = gOPD(proto, Symbol.toStringTag);
-			if (!descriptor) {
-				var superProto = getPrototypeOf(proto);
-				descriptor = gOPD(superProto, Symbol.toStringTag);
-			}
-			toStrTags[typedArray] = descriptor.get;
 		}
 	});
 }
@@ -6216,1527 +2194,5247 @@ var isTypedArray = require('is-typed-array');
 
 module.exports = function whichTypedArray(value) {
 	if (!isTypedArray(value)) { return false; }
-	if (!hasToStringTag) { return $slice($toString(value), 8, -1); }
+	if (!hasToStringTag || !(Symbol.toStringTag in value)) { return $slice($toString(value), 8, -1); }
 	return tryTypedArrays(value);
 };
 
 }).call(this)}).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"available-typed-arrays":29,"es-abstract/helpers/callBound":35,"es-abstract/helpers/getOwnPropertyDescriptor":36,"foreach":37,"has-symbols":41,"is-typed-array":48}],54:[function(require,module,exports){
-/* Copyright (c) 2013-2020 Richard Rodger and other contributors, MIT License */
-'use strict'
-
-let Lab = require('@hapi/lab')
-Lab = null != Lab.script ? Lab : require('hapi-lab-shim')
-
-const Code = require('@hapi/code')
-
-const lab = (exports.lab = Lab.script())
-const describe = lab.describe
-const it = lab.it
-const expect = Code.expect
-
-const { Jsonic } = require('..')
-
-const j = Jsonic
-
-
-describe('feature', function () {
-  it('test-util-match', () => {
-    expect(match(1,1)).undefined()
-    expect(match([],[1])).equal('$[0]/val:undefined!=1')
-    expect(match([],[])).undefined()
-    expect(match([1],[1])).undefined()
-    expect(match([[]],[[]])).undefined()
-    expect(match([1],[2])).equal('$[0]/val:1!=2')
-    expect(match([[1]],[[2]])).equal('$[0][0]/val:1!=2')
-    expect(match({},{})).undefined()
-    expect(match({a:1},{a:1})).undefined()
-    expect(match({a:1},{a:2})).equal('$.a/val:1!=2')
-    expect(match({a:{b:1}},{a:{b:1}})).undefined()
-    expect(match({a:1},{a:1,b:2})).equal('$.b/val:undefined!=2')
-    expect(match({a:1},{b:1})).equal('$.b/val:undefined!=1')
-    expect(match({a:{b:1}},{a:{b:2}})).equal('$.a.b/val:1!=2')    
-    expect(match({a:1,b:2},{a:1})).undefined()
-    expect(match({a:1,b:2},{a:1},{miss:false})).equal('$/key:{a,b}!={a}')
-    expect(match([1],[])).undefined()
-    expect(match([],[1])).equals('$[0]/val:undefined!=1')
-    expect(match([2,1],[undefined,1],{miss:false})).equal('$[0]/val:2!=undefined')
-    expect(match([2,1],[undefined,1])).undefined()
-  })
-
-  it('single-comment-line', () => {
-    expect(j('#a:1')).equals(undefined)
-    expect(j('#a:1\nb:2')).equals({b:2})
-    expect(j('b:2\n#a:1')).equals({b:2})
-    expect(j('b:2,\n#a:1\nc:3')).equals({b:2,c:3})
-  })
-
-
-  it('string-comment-line', () => {
-    expect(j('//a:1')).equals(undefined)
-    expect(j('//a:1\nb:2')).equals({b:2})
-    expect(j('b:2\n//a:1')).equals({b:2})
-    expect(j('b:2,\n//a:1\nc:3')).equals({b:2,c:3})
-  })
-
-
-  it('multi-comment', () => {
-    expect(j('/*a:1*/')).equals(undefined)
-    expect(j('/*a:1*/\nb:2')).equals({b:2})
-    expect(j('/*a:1\n*/b:2')).equals({b:2})
-    expect(j('b:2\n/*a:1*/')).equals({b:2})
-    expect(j('b:2,\n/*\na:1,\n*/\nc:3')).equals({b:2,c:3})
-
-    // Balanced multiline comments!
-    expect(j('/*/*/*a:1*/*/*/b:2')).equals({b:2})
-    expect(j('b:2,/*a:1,/*c:3,*/*/d:4')).equals({b:2,d:4})
-    expect(j('\nb:2\n/*\na:1\n/*\nc:3\n*/\n*/\n,d:4')).equals({b:2,d:4})
-
-    // Implicit close
-    expect(j('b:2\n/*a:1')).equals({b:2})
-    expect(j('b:2\n/*/*/*a:1')).equals({b:2})
-
-    // Correct row and column count
-    try {
-      j('a:1/*\n\n*/{')
-    }
-    catch(e) {
-      expect(e.lineNumber).equal(2)
-      expect(e.columnNumber).equal(2)
-    }
-  })
-
-
-  it('balanced-multi-comment', () => {
-    // Active by default
-    expect(j('/*/*/*a:1*/*/*/b:2')).equals({b:2})
-
-    
-    let nobal = Jsonic.make({balance:{comment:false}})
-    expect(nobal.options.balance.comment).false()
-
-    // NOTE: comment markers inside text are active!
-    expect(nobal('/*/*/*a:1*/*/*/,b:2')).equal({ '*a': '1*', b: 2 })
-
-
-    // Custom multiline comments
-    let coffee = Jsonic.make({comment:{'###':'###'}})
-    expect(coffee('\n###a:1\nb:2\n###\nc:3')).equals({c:3})
-
-    // NOTE: no balancing if open === close
-    expect(coffee('\n###a:1\n###b:2\n###\nc:3\n###\nd:4')).equals({b:2,d:4})
-  })
-
-
-  it('feature-number', () => {
-    expect(j('1')).equals(1)
-    expect(j('[1]')).equals([1])
-    expect(j('a:1')).equals({a:1})
-    expect(j('1:a')).equals({'1':'a'})
-    expect(j('{a:1}')).equals({a:1})
-    expect(j('{1:a}')).equals({'1':'a'})
-    expect(j('+1')).equals('+1') // NOTE: not considered a number!
-    expect(j('-1')).equals(-1)
-    expect(j('1.2')).equals(1.2)
-    expect(j('1e2')).equals(100)
-    expect(j('10_0')).equals(100)
-    expect(j('-1.2')).equals(-1.2)
-    expect(j('-1e2')).equals(-100)
-    expect(j('-10_0')).equals(-100)
-    expect(j('1e+2')).equals(100)
-    expect(j('1e-2')).equals(0.01)
-    expect(j('0xA')).equals(10)
-    expect(j('0xa')).equals(10)
-    expect(j('1e6:a')).equals({'1e6':'a'}) // NOTE: "1e6" not "1000000"
-  })
-
-
-  /* TODO
-  it('feature-log', () => {
-    let t = j.options // token symbols
-    let b = []
-    let log = (...rest) => b.push(rest)
-    let tlog = (s,v,p,d)=>{
-      b = []
-      expect(j(s,{log}),s).equals(v)
-      if(d) {
-        console.dir(b.map(e=>e.filter(x=>'object'!=typeof x)),{depth:d})
-      }
-      expect(match(b,p),s).undefined()
-    }
-
-    tlog('1',1,[
-      ['lex','#NR', '1', {pin:t.NR,val:1}],
-      ['lex','#ZZ', undefined, {pin:t.ZZ}],
-      ['rule','open',0,'value/1',0,'#NR #ZZ',{node:undefined}],
-      ['parse','alts','#NR', 0, '#NR', '1', {s:[t.NR],m:[{pin:t.NR}]}],
-      ['lex','#ZZ', undefined,{pin:t.ZZ}],
-      ['rule','close',0,'value/1',1,'#ZZ #ZZ',{node:1}],
-    ]) // ],1) to print
-
-    tlog('a','a',[
-      ['lex','#TX', 'a', {pin:t.TX,val:'a'}],
-      ['lex','#ZZ', undefined,{pin:t.ZZ}],
-      ['rule','open',0,'value/1',0,'#TX #ZZ',{node:'a'}],
-      ['parse','alts','#TX', 0, '#TX', 'a' , {s:[t.TX],m:[{pin:t.TX}]}],
-      ['lex','#ZZ', undefined,{pin:t.ZZ}],
-      ['rule','close',0,'value/1',1,'#ZZ #ZZ',{node:'a'}],
-    ]) // ],1) to print
-
-    tlog('[1]',[1],[
-      ['lex', '#OS[', '[', {pin:t.OS} ],
-      ['lex', '#NR', '1', {pin:t.NR,val:1} ],
-      ['rule', 'open',0,'value/1',0,'#OS[ #NR',{node:undefined}],
-      ['parse','alts','#OS[', 0, '#OS[', '[', {p:'list',s:[t.OS],m:[{pin:t.OS}]}],
-      ['lex', '#CS]', ']', {pin:t.CS} ],
-      ['rule', 'open',1,'list/2',1,'#NR #CS]',{node:[]}],
-      ['parse','alts', '', 1, '', '', {p:'elem'}],
-      ['rule', 'open',2,'elem/3',1,'#NR #CS]',{node:[1]}],
-      ['parse','alts','#NR', 1, '#NR', '1',{s:[t.NR],m:[{pin:t.NR}]}],
-      ['lex','#ZZ', undefined,{pin:t.ZZ}],
-      ['rule', 'close',2,'elem/3',2,'#CS] #ZZ',{node:[1]}],
-      ['parse','alts','#CS]', 2, '#CS]', ']', {s:[t.CS],m:[{pin:t.CS}]}],
-      ['lex','#ZZ', undefined,{pin:t.ZZ}],
-      ['rule', 'close',1,'list/2',3,'#ZZ #ZZ',{node:[1]}],
-      ['rule', 'close',0,'value/1',3,'#ZZ #ZZ',{node:[1]}],
-    ]) // ],1) to print
-  })
-  */
-  
-  
-  it('value', () => {
-    expect(j('')).equal(undefined)
-
-    expect(j('true')).equals(true)
-    expect(j('false')).equals(false)
-    expect(j('null')).equals(null)
-
-    expect(j('true\n')).equals(true)
-    expect(j('false\n')).equals(false)
-    expect(j('null\n')).equals(null)
-    
-    expect(j('true#')).equals(true)
-    expect(j('false#')).equals(false)
-    expect(j('null#')).equals(null)
-
-    expect(j('true//')).equals(true)
-    expect(j('false//')).equals(false)
-    expect(j('null//')).equals(null)
-
-    expect(j('{a:true}')).equals({a:true})
-    expect(j('{a:false}')).equals({a:false})
-    expect(j('{a:null}')).equals({a:null})
-
-    expect(j('{true:1}')).equals({'true':1})
-    expect(j('{false:1}')).equals({'false':1})
-    expect(j('{null:1}')).equals({'null':1})
-
-    
-    expect(j('a:true')).equals({a:true})
-    expect(j('a:false')).equals({a:false})
-    expect(j('a:null')).equals({a:null})
-
-    expect(j('true,')).equals([true])
-    expect(j('false,')).equals([false])
-    expect(j('null,')).equals([null])
-
-    expect(j(
-      'a:true,b:false,c:null,d:{e:true,f:false,g:null},h:[true,false,null]'))
-      .equals({a:true,b:false,c:null,d:{e:true,f:false,g:null},h:[true,false,null]})
-  })
-
-
-  it('value-text', () => {
-    expect(j('a')).equals('a')
-    expect(j('a/b')).equals('a/b')
-    expect(j('a#b')).equals('a')
-    expect(j('a//b')).equals('a')
-    expect(j('a/*b*/')).equals('a')
-    expect(j('a\\n')).equals('a\\n')
-    expect(j('\\s+')).equals('\\s+')
-
-    expect(j('x:a')).equals({x:'a'})
-    expect(j('x:a/b')).equals({x:'a/b'})
-    expect(j('x:a#b')).equals({x:'a'})
-    expect(j('x:a//b')).equals({x:'a'})
-    expect(j('x:a/*b*/')).equals({x:'a'})
-    expect(j('x:a\\n')).equals({x:'a\\n'})
-    expect(j('x:\\s+')).equals({x:'\\s+'})
-
-    expect(j('[a]')).equals(['a'])
-    expect(j('[a/b]')).equals(['a/b'])
-    expect(j('[a#b]')).equals(['a'])
-    expect(j('[a//b]')).equals(['a'])
-    expect(j('[a/*b*/]')).equals(['a'])
-    expect(j('[a\\n]')).equals(['a\\n'])
-    expect(j('[\\s+]')).equals(['\\s+'])
-  })
-
-  
-  it('value-string', () => {
-    expect(j('\'\'')).equals('')
-    expect(j('""')).equals('')
-    expect(j('``')).equals('')
-
-    expect(j('\'a\'')).equals('a')
-    expect(j('"a"')).equals('a')
-    expect(j('`a`')).equals('a')
-
-    expect(j('\'a b\'')).equals('a b')
-    expect(j('"a b"')).equals('a b')
-    expect(j('`a b`')).equals('a b')
-
-    expect(j('\'a\\tb\'')).equals('a\tb')
-    expect(j('"a\\tb"')).equals('a\tb')
-    expect(j('`a\\tb`')).equals('a\tb')
-
-    // NOTE: backslash inside string is always removed
-    expect(j('`a\\qb`')).equals('aqb')
-
-    expect(j('\'a\\\'b"`c\'')).equals('a\'b"`c')
-    expect(j('"a\\"b`\'c"')).equals('a"b`\'c')
-    expect(j('`a\\`b"\'c`')).equals('a`b"\'c')
-
-    expect(j('"\\u0061"')).equals('a')
-    expect(j('"\\x61"')).equals('a')
-    
-    let k = j.make({string:{escapedouble:true}})
-    expect(k('"a""b"')).equals('a"b')
-    expect(k('`a``b`')).equals('a`b')
-    expect(k('\'a\'\'b\'')).equals('a\'b')
-  })
-  
-
-  it('multiline-string', () => {
-    expect(j('`a`')).equals('a')
-    expect(j('`a\n`')).equals('a\n')
-    expect(j('`\na`')).equals('\na')
-    expect(j('`\na\n`')).equals('\na\n')
-    expect(j('`a\nb`')).equals('a\nb')
-    expect(j('`a\n\nb`')).equals('a\n\nb')
-    expect(j('`a\nc\nb`')).equals('a\nc\nb')
-    expect(j('`a\r\n\r\nb`')).equals('a\r\n\r\nb')
-  })
-
-
-  it('hoover-text', () => {
-    expect(j('a b')).equals('a b')
-    expect(j('a: b c')).equals({a:'b c'})
-    expect(j('{a: {b: c d}}')).equals({a:{b:'c d'}})
-    expect(j(' x , y z ')).equal(['x', 'y z'])
-    expect(j('a: x , b: y z ')).equal({a:'x', b:'y z'})
-  })
-  
-
-  it('optional-comma', () => {
-    expect(j('[1,]')).equals([1])
-    expect(j('[,1]')).equals([null,1])
-    expect(j('[1,,]')).equals([1,null])
-    expect(j('[1,,,]')).equals([1,null,null])
-    expect(j('[1,,,,]')).equals([1,null,null,null])
-    expect(j('[1,,,,,]')).equals([1,null,null,null,null])
-    expect(j('[1\n2]')).equals([1,2])
-    expect(j('{a:1},')).equals([{a:1}])
-
-    // NOTE: these are not implicit lists!
-    expect(j('a:1,')).equals({a:1}) 
-    expect(j('a:b:1,')).equals({a:{b:1}})
-
-
-    expect(j('{a:1\nb:2}')).equals({a:1,b:2})
-    expect(j('{,a:1}')).equals({a:1})
-    expect(j('{a:1,}')).equals({a:1})
-    expect(j('{,a:1,}')).equals({a:1})
-    expect(j('{a:1,b:2,}')).equals({a:1,b:2})
-  })
-
-
-  it('implicit-list', () => {
-    
-    // implicit null element preceeds empty comma
-    expect(j(',')).equals([null])
-    expect(j(',a')).equals([null,'a'])
-    expect(j(',"a"')).equals([null,'a'])
-    expect(j(',1')).equals([null,1])
-    expect(j(',true')).equals([null,true])
-    expect(j(',[]')).equals([null,[]])
-    expect(j(',{}')).equals([null,{}])
-    expect(j(',[1]')).equals([null,[1]])
-    expect(j(',{a:1}')).equals([null,{a:1}])
-    expect(j(',a:1')).equals([null,{a:1}])
-
-    // Top level comma imlies list; ignore trailing comma
-    expect(j('a,')).equals(['a'])
-    expect(j('"a",')).equals(['a'])
-    expect(j('1,')).equals([1])
-    expect(j('true,')).equals([true])
-    expect(j('[],')).equals([[]])
-    expect(j('{},')).equals([{}])
-    expect(j('[1],')).equals([[1]])
-    expect(j('{a:1},')).equals([{a:1}])
-
-    // NOTE: special case, this is considered a map pair
-    expect(j('a:1,')).equals({a:1})
-
-    
-    expect(j('a,')).equals(['a'])
-    expect(j('"a",')).equals(['a'])
-    expect(j('true,')).equals([true])
-    expect(j('1,')).equals([1])
-    expect(j('a,1')).equals(['a',1])
-    expect(j('"a",1')).equals(['a',1])
-    expect(j('true,1')).equals([true,1])
-    expect(j('1,1')).equals([1,1])
-
-    expect(j('a,b')).equals(['a','b'])
-    expect(j('{a:1},')).equals([{a:1}])
-    expect(j('[1],')).equals([[1]])
-  })
-
-
-  it('implicit-map', () => {
-    expect(j('a:1')).equals({a:1})
-    expect(j('a:1,b:2')).equals({a:1,b:2})
-    expect(j('a:b:1')).equals({a:{b:1}})
-    expect(j('a:b:c:1')).equals({a:{b:{c:1}}})
-    expect(j('a:b:1,d:2')).equals({a:{b:1},d:2})
-    expect(j('a:b:c:1,d:2')).equals({a:{b:{c:1}},d:2})
-    expect(j('{a:b:1}')).equals({a:{b:1}})
-    expect(j('a:{b:c:1}')).equals({a:{b:{c:1}}})
-  })
-
-  
-  it('extension', () => {
-    expect(j('a:{b:1,c:2},a:{c:3,e:4}'))
-      .equals({ a: { b: 1, c: 3, e: 4 } })
-
-    expect(j('a:{b:1,x:1},a:{b:2,y:2},a:{b:3,z:3}'))
-      .equals({ a: { b: 3, x: 1, y: 2, z: 3} })
-
-    expect(j('a:[{b:1,x:1}],a:[{b:2,y:2}],a:[{b:3,z:3}]'))
-      .equals({ a: [{ b: 3, x: 1, y: 2, z: 3}] })
-
-    expect(j('a:[{b:1},{x:1}],a:[{b:2},{y:2}],a:[{b:3},{z:3}]'))
-      .equals({ a: [{ b: 3}, {x: 1, y: 2, z: 3}] })
-
-    let k = j.make({object:{extend:false}})
-    expect(k('a:{b:1,c:2},a:{c:3,e:4}'))
-      .equals({ a: { c: 3, e: 4 } })
-  })
-
-
-  it('property-dive', () => {
-    expect(j('{a:1,b:2}',{xlog:-1})).equals({a:1,b:2})
-    expect(j('{a:1,b:{c:2}}',{xlog:-1})).equals({a:1,b:{c:2}})
-    expect(j('{a:1,b:{c:2},d:3}',{xlog:-1})).equals({a:1,b:{c:2},d:3})
-    expect(j('{b:{c:2,e:4},d:3}',{xlog:-1})).equals({b:{c:2,e:4},d:3})
-    
-    expect(j('{a:{b:{c:1,d:2},e:3},f:4}',{xlog:-1})).equals({a:{b:{c:1,d:2},e:3},f:4})
-    expect(j('a:b:c',{xlog:-1})).equals({a:{b:'c'}})
-
-    expect(j('a:b:c,d:e',{xlog:-1})).equals({a:{b:'c'},d:'e'})
-    expect(j('a:b:c:1,d:e',{xlog:-1})).equals({a:{b:{c:1}},d:'e'})
-    expect(j('a:b:c:f:{g:1},d:e',{xlog:-1})).equals({a:{b:{c:{f:{g:1}}}},d:'e'})
-    expect(j('c:f:{g:1,h:2},d:e',{xlog:-1})).equals({c:{f:{g:1,h:2}},d:'e'})
-    expect(j('c:f:[{g:1,h:2}],d:e',{xlog:-1})).equals({c:{f:[{g:1,h:2}]},d:'e'})
-
-    expect(j('a:b:c:1\nd:e',{xlog:-1})).equals({a:{b:{c:1}},d:'e'})
-  })
-
-  
-  
-  it('plugin-token', () => {
-    Jsonic.use((jsonic)=>{
-      
-    })
-  })
-
-})
-
-
-
-function match(src,pat,ctx) {
-  ctx = ctx || {}
-  ctx.loc = ctx.loc || '$'
-
-  if(src===pat) return
-  if(false !== ctx.miss && undefined === pat) return
-
-  if(Array.isArray(src) && Array.isArray(pat)) {
-    if(false === ctx.miss && src.length !== pat.length) {
-      return ctx.loc+'/len:'+src.length+'!='+pat.length
-    }
-
-    let m = undefined
-    for(let i = 0; i < pat.length; i++) {
-      m = match(src[i],pat[i],{...ctx,loc:ctx.loc+'['+i+']'})
-      if(m) {
-        return m
-      }
-    }
-
-    return
-  }
-  else if('object' === typeof(src) && 'object' === typeof(pat) ) {
-    let ksrc = Object.keys(src).sort()
-    let kpat = Object.keys(pat).sort()
-
-    if(false === ctx.miss && ksrc.length !== kpat.length) {
-      return ctx.loc+'/key:{'+ksrc+'}!={'+kpat+'}'
-    }
-    
-    for(let i = 0; i < kpat.length; i++) {
-      if(false === ctx.miss && ksrc[i] !== kpat[i]) return ctx.loc+'/key:'+kpat[i]
-
-      let m = match(src[kpat[i]],pat[kpat[i]],{...ctx,loc:ctx.loc+'.'+kpat[i]})
-      if(m) {
-        return m
-      }
-    }
-    
-    return
-  }
-
-  return ctx.loc+'/val:'+src+'!='+pat
-}
-
-},{"..":1,"@hapi/code":2,"@hapi/lab":31,"hapi-lab-shim":40}],55:[function(require,module,exports){
-/* Copyright (c) 2013-2021 Richard Rodger and other contributors, MIT License */
-'use strict'
-
+},{"available-typed-arrays":2,"call-bind/callBound":3,"es-abstract/helpers/getOwnPropertyDescriptor":5,"for-each":6,"has-tostringtag/shams":12,"is-typed-array":18}],24:[function(require,module,exports){
+(function (process){(function (){
+// Fuzz test; measure memory usage.
 
 const Util = require('util')
-
-let Lab = require('@hapi/lab')
-Lab = null != Lab.script ? Lab : require('hapi-lab-shim')
-
-const Code = require('@hapi/code')
-
-const lab = (exports.lab = Lab.script())
-const describe = lab.describe
-const it = lab.it
-const expect = Code.expect
-
 const I = Util.inspect
 
 const { Jsonic, Lexer } = require('..')
-const pv_perf = require('./pv-perf')
 
-let j = Jsonic
-
-
-
-describe('jsonic', function () {
-  it('happy', () => {
-    expect(Jsonic('{a:1}')).equals({a: 1})
-    expect(Jsonic('{a:1,b:2}')).equals({a: 1, b: 2})
-    expect(Jsonic('a:1')).equals({a: 1})
-    expect(Jsonic('a:1,b:2')).equals({a: 1, b: 2})
-    expect(Jsonic('{a:q}')).equals({a: 'q'})
-    expect(Jsonic('{"a":1}')).equals({a: 1})
-    expect(Jsonic('a,')).equals(['a'])
-    expect(Jsonic('a,1')).equals(['a',1])
-    expect(Jsonic('[a]')).equals(['a'])
-    expect(Jsonic('[a,1]')).equals(['a',1])
-    expect(Jsonic('["a",1]')).equals(['a',1])
-  })
-
-  
-  it('token-gen', () => {
-    let suffix = Math.random()
-    let s = Jsonic.token('__'+suffix)
-    
-    let s1 = Jsonic.token('AA'+suffix)
-    expect(s1).equals(s+1)
-    expect(Jsonic.token['AA'+suffix]).equals(s+1)
-    expect(Jsonic.token[s+1]).equals('AA'+suffix)
-    expect(Jsonic.token('AA'+suffix)).equals(s+1)
-    expect(Jsonic.token(s+1)).equals('AA'+suffix)
-
-    let s1a = Jsonic.token('AA'+suffix)
-    expect(s1a).equals(s+1)
-    expect(Jsonic.token['AA'+suffix]).equals(s+1)
-    expect(Jsonic.token[s+1]).equals('AA'+suffix)
-    expect(Jsonic.token('AA'+suffix)).equals(s+1)
-    expect(Jsonic.token(s+1)).equals('AA'+suffix)
-
-    let s2 = Jsonic.token('BB'+suffix)
-    expect(s2).equals(s+2)
-    expect(Jsonic.token['BB'+suffix]).equals(s+2)
-    expect(Jsonic.token[s+2]).equals('BB'+suffix)
-    expect(Jsonic.token('BB'+suffix)).equals(s+2)
-    expect(Jsonic.token(s+2)).equals('BB'+suffix)
-  })
-
-  
-  it('basic-json', () => {
-    expect(Jsonic('"a"')).equals('a')
-    expect(Jsonic('{"a":1}')).equals({a: 1})
-    expect(Jsonic('{"a":"1"}')).equals({a: '1'})
-    expect(Jsonic('{"a":1,"b":"2"}')).equals({a: 1, b:'2'})
-    expect(Jsonic('{"a":{"b":1}}')).equals({a: {b: 1}})
-
-    expect(Jsonic('[1]')).equals([1])
-    expect(Jsonic('[1,"2"]')).equals([1,'2'])
-    expect(Jsonic('[1,[2]]')).equals([1,[2]])
-
-    expect(Jsonic('{"a":[1]}')).equals({a: [1]})
-    expect(Jsonic('{"a":[1,{"b":2}]}')).equals({a: [1, {b: 2}]})
-
-    expect(Jsonic(' { "a" : 1 } ')).equals({a: 1})
-    expect(Jsonic(' [ 1 , "2" ] ')).equals([1,'2'])
-    expect(Jsonic(' { "a" : [ 1 ] }')).equals({a: [1]})
-    expect(Jsonic(' { "a" : [ 1 , { "b" : 2 } ] } ')).equals({a: [1, {b: 2}]})
-
-    expect(Jsonic('{"a":true,"b":false,"c":null}')).equals({a:true,b:false,c:null})
-    expect(Jsonic('[true,false,null]')).equals([true,false,null])
-  })
-
-  
-  it('basic-object-tree', () => {
-    expect(Jsonic('{}')).equals({})
-    expect(Jsonic('{a:{}}')).equals({a: {}})
-    expect(Jsonic('{a:{b:{}}}')).equals({a: {b: {}}})
-    expect(Jsonic('{a:{b:{c:{}}}}')).equals({a: {b: {c: {}}}})
-
-    expect(Jsonic('{a:1}')).equals({a: 1})
-    expect(Jsonic('{a:1,b:2}')).equals({a:1,b:2})
-    expect(Jsonic('{a:1,b:2,c:3}')).equals({a:1,b:2,c:3})
-
-    expect(Jsonic('{a:{b:2}}')).equals({a:{b:2}})
-    expect(Jsonic('{a:{b:{c:2}}}')).equals({a:{b:{c:2}}})
-    expect(Jsonic('{a:{b:{c:{d:2}}}}')).equals({a:{b:{c:{d:2}}}})
-
-    expect(Jsonic('{x:10,a:{b:2}}')).equals({x:10,a:{b:2}})
-    expect(Jsonic('{x:10,a:{b:{c:2}}}')).equals({x:10,a:{b:{c:2}}})
-    expect(Jsonic('{x:10,a:{b:{c:{d:2}}}}')).equals({x:10,a:{b:{c:{d:2}}}})
-
-    expect(Jsonic('{a:{b:2},y:20}')).equals({a:{b:2},y:20})
-    expect(Jsonic('{a:{b:{c:2}},y:20}')).equals({a:{b:{c:2}},y:20})
-    expect(Jsonic('{a:{b:{c:{d:2}}},y:20}')).equals({a:{b:{c:{d:2}}},y:20})
-
-    expect(Jsonic('{x:10,a:{b:2},y:20}')).equals({x:10,a:{b:2},y:20})
-    expect(Jsonic('{x:10,a:{b:{c:2}},y:20}')).equals({x:10,a:{b:{c:2}},y:20})
-    expect(Jsonic('{x:10,a:{b:{c:{d:2}}},y:20}')).equals({x:10,a:{b:{c:{d:2}}},y:20})
-
-    expect(Jsonic('{a:{b:2,c:3}}')).equals({a:{b:2,c:3}})
-    expect(Jsonic('{a:{b:2,c:3,d:4}}')).equals({a:{b:2,c:3,d:4}})
-    expect(Jsonic('{a:{b:{e:2},c:3,d:4}}')).equals({a:{b:{e:2},c:3,d:4}})
-    expect(Jsonic('{a:{b:2,c:{e:3},d:4}}')).equals({a:{b:2,c:{e:3},d:4}})
-    expect(Jsonic('{a:{b:2,c:3,d:{e:4}}}')).equals({a:{b:2,c:3,d:{e:4}}})
-    
-    expect(Jsonic('{a:{b:{c:2,d:3}}}')).equals({a:{b:{c:2,d:3}}})
-    expect(Jsonic('{a:{b:{c:2,d:3,e:4}}}')).equals({a:{b:{c:2,d:3,e:4}}})
-    expect(Jsonic('{a:{b:{c:{f:2},d:3,e:4}}}')).equals({a:{b:{c:{f:2},d:3,e:4}}})
-    expect(Jsonic('{a:{b:{c:2,d:{f:3},e:4}}}')).equals({a:{b:{c:2,d:{f:3},e:4}}})
-    expect(Jsonic('{a:{b:{c:2,d:3,e:{f:4}}}}')).equals({a:{b:{c:2,d:3,e:{f:4}}}})
-
-    // NOTE: important feature!!!
-    expect(Jsonic('a:b:1')).equals({ a: { b: 1 } })
-    expect(Jsonic('a:b:c:1')).equals({ a: { b: {c: 1} } })
-    expect(Jsonic('a:b:1,c:2')).equals({ a: { b: 1 }, c: 2 })
-
-  })
-
-  
-  it('basic-array-tree', () => {
-    expect(Jsonic('[]')).equals([])
-    expect(Jsonic('[0]')).equals([0])
-    expect(Jsonic('[0,1]')).equals([0,1])
-    expect(Jsonic('[0,1,2]')).equals([0,1,2])
-
-    expect(Jsonic('[[]]')).equals([[]])
-    expect(Jsonic('[0,[]]')).equals([0,[]])
-    expect(Jsonic('[[],1]')).equals([[],1])
-    expect(Jsonic('[0,[],1]')).equals([0,[],1])
-    expect(Jsonic('[[],0,[],1]')).equals([[],0,[],1])
-    expect(Jsonic('[0,[],1,[]]')).equals([0,[],1,[]])
-    expect(Jsonic('[[],0,[],1,[]]')).equals([[],0,[],1,[]])
-
-    expect(Jsonic('[[2]]')).equals([[2]])
-    expect(Jsonic('[0,[2]]')).equals([0,[2]])
-    expect(Jsonic('[[2],1]')).equals([[2],1])
-    expect(Jsonic('[0,[2],1]')).equals([0,[2],1])
-    expect(Jsonic('[[2],0,[3],1]')).equals([[2],0,[3],1])
-    expect(Jsonic('[0,[3],1,[2]]')).equals([0,[3],1,[2]])
-    expect(Jsonic('[[2],0,[4],1,[3]]')).equals([[2],0,[4],1,[3]])
-
-    expect(Jsonic('[[2,9]]')).equals([[2,9]])
-    expect(Jsonic('[0,[2,9]]')).equals([0,[2,9]])
-    expect(Jsonic('[[2,9],1]')).equals([[2,9],1])
-    expect(Jsonic('[0,[2,9],1]')).equals([0,[2,9],1])
-    expect(Jsonic('[[2,9],0,[3,9],1]')).equals([[2,9],0,[3,9],1])
-    expect(Jsonic('[0,[3,9],1,[2,9]]')).equals([0,[3,9],1,[2,9]])
-    expect(Jsonic('[[2,9],0,[4,9],1,[3,9]]')).equals([[2,9],0,[4,9],1,[3,9]])
-
-    expect(Jsonic('[[[[]]]]')).equals([[[[]]]])
-    expect(Jsonic('[[[[0]]]]')).equals([[[[0]]]])
-    expect(Jsonic('[[[1,[0]]]]')).equals([[[1,[0]]]])
-    expect(Jsonic('[[[1,[0],2]]]')).equals([[[1,[0],2]]])
-    expect(Jsonic('[[3,[1,[0],2]]]')).equals([[3,[1,[0],2]]])
-    expect(Jsonic('[[3,[1,[0],2],4]]')).equals([[3,[1,[0],2],4]])
-    expect(Jsonic('[5,[3,[1,[0],2],4]]')).equals([5,[3,[1,[0],2],4]])
-    expect(Jsonic('[5,[3,[1,[0],2],4],6]')).equals([5,[3,[1,[0],2],4],6])
-  })
-
-
-  it('basic-mixed-tree', () => {
-    expect(Jsonic('[{}]')).equals([{}])
-    expect(Jsonic('{a:[]}')).equals({a:[]})
-
-    expect(Jsonic('[{a:[]}]')).equals([{a:[]}])
-    expect(Jsonic('{a:[{}]}')).equals({a:[{}]})
-
-    expect(Jsonic('[{a:[{}]}]')).equals([{a:[{}]}])
-    expect(Jsonic('{a:[{b:[]}]}')).equals({a:[{b:[]}]})
-  })
-  
-  
-
-
-  it('syntax-errors', () => {
-    // TODO: validate errors
-    
-    // pairs not valid inside list
-    expect(()=>j('[a:1]')).throws()
-
-    // top level already a map
-    expect(()=>j('a:1,2')).throws() 
-
-    // can't mix pairs and values list
-    expect(()=>j('x:[a:1,2,b:3]')).throws() 
-
-    // values not valid inside map
-    expect(()=>j('x:{1,2}') ).throws()
-
-  })
-  
-
-  it('process-scalars', () => {
-    expect(j('')).equal(undefined)
-    expect(j('null')).equal(null)
-    expect(j('true')).equal(true)
-    expect(j('false')).equal(false)
-    expect(j('123')).equal(123)
-    expect(j('"a"')).equal('a')
-    expect(j('\'b\'')).equal('b')
-    expect(j('q')).equal('q')
-    expect(j('x')).equal('x')
-  })
-
-
-  it('process-text', () => {
-    expect(j('{x y:1}')).equal({'x y':1})
-    expect(j('x y:1')).equal({'x y':1})
-    expect(j('[{x y:1}]')).equal([{'x y':1}])
-    
-    expect(j('q')).equal('q')
-    expect(j('q w')).equal('q w')
-    expect(j('a:q w')).equal({a:'q w'})
-    expect(j('a:q w, b:1')).equal({a:'q w', b:1})
-    expect(j('a: q w , b:1')).equal({a:'q w', b:1})
-    expect(j('[q w]')).equal(['q w'])
-    expect(j('[ q w ]')).equal(['q w'])
-    expect(j('[ q w, 1 ]')).equal(['q w', 1])
-    expect(j('[ q w , 1 ]')).equal(['q w', 1])
-    expect(j('p:[q w]}')).equal({p:['q w']})
-    expect(j('p:[ q w ]')).equal({p:['q w']})
-    expect(j('p:[ q w, 1 ]')).equal({p:['q w', 1]})
-    expect(j('p:[ q w , 1 ]')).equal({p:['q w', 1]})
-    expect(j('p:[ q w , 1 ]')).equal({p:['q w', 1]})
-    expect(j('[ qq ]')).equal(['qq'])
-    expect(j('[ q ]')).equal(['q'])
-    expect(j('[ c ]')).equal(['c'])
-    expect(j('c:[ c ]')).equal({c:['c']})
-    expect(j('c:[ c , cc ]')).equal({c:['c', 'cc']})
-  })
-
-  
-  it('process-implicit-object', () => {
-    expect(j('a:1')).equal({a:1})
-    expect(j('a:1,b:2')).equal({a:1, b:2})
-  })
-
-
-  it('process-object-tree', () => {
-    expect(j('{}')).equal({})
-    expect(j('{a:1}')).equal({a:1})
-    expect(j('{a:1,b:q}')).equal({a:1,b:'q'})
-    expect(j('{a:1,b:q,c:"w"}')).equal({a:1,b:'q',c:'w'})
-    
-    expect(j('a:1,b:{c:2}')).equal({a:1, b:{c:2}})
-    expect(j('a:1,d:3,b:{c:2}')).equal({a:1, d:3, b:{c:2}})
-    expect(j('a:1,b:{c:2},d:3')).equal({a:1, d:3, b:{c:2}})
-    expect(j('a:1,b:{c:2},e:{f:4}')).equal({a:1, b:{c:2}, e:{f:4}})
-    expect(j('a:1,b:{c:2},d:3,e:{f:4}')).equal({a:1, d:3, b:{c:2}, e:{f:4}})
-    expect(j('a:1,b:{c:2},d:3,e:{f:4},g:5'))
-      .equal({a:1, d:3, b:{c:2}, e:{f:4}, g:5})
-
-    expect(j('a:{b:1}')).equal({a:{b:1}})
-
-
-    expect(j('{a:{b:1}}')).equal({a:{b:1}})
-    expect(j('a:{b:1}')).equal({a:{b:1}})
-
-    expect(j('{a:{b:{c:1}}}')).equal({a:{b:{c:1}}})
-    expect(j('a:{b:{c:1}}')).equal({a:{b:{c:1}}})
-
-    expect(j('a:1,b:{c:2},d:{e:{f:3}}'))
-      .equal({a:1, b:{c:2}, d:{e:{f:3}}})
-    expect(j('a:1,b:{c:2},d:{e:{f:3}},g:4'))
-      .equal({a:1, b:{c:2}, d:{e:{f:3}}, g:4})
-    expect(j('a:1,b:{c:2},d:{e:{f:3}},h:{i:5},g:4'))
-      .equal({a:1, b:{c:2}, d:{e:{f:3}}, g:4, h:{i:5}})
-
-    // PN002
-    expect(j('a:1,b:{c:2}d:3')).equal({ a: 1, b: { c: 2 }, d: 3 })
-  })
-
-  
-  it('process-array', () => {
-    expect(j('[a]')).equal(['a'])
-    expect(j('[a,]')).equal(['a'])
-    expect(j('[a,,]')).equal(['a',null])
-    expect(j('[,a]')).equal([null,'a'])
-    expect(j('[,a,]')).equal([null,'a'])
-    expect(j('[,,a]')).equal([null,null,'a'])
-    expect(j('[,,a,]')).equal([null,null,'a'])
-    expect(j('[,,a,,]')).equal([null,null,'a',null])
-
-    expect(j(' [ a ] ')).equal( ['a'])
-    expect(j(' [ a , ] ')).equal(['a'])
-    expect(j(' [ a , , ] ')).equal(['a',null])
-    expect(j(' [ , a ] ')).equal([null,'a'])
-    expect(j(' [ , a , ] ')).equal([null,'a'])
-    expect(j(' [ , , a ] ')).equal([null,null,'a'])
-    expect(j(' [ , , a , ] ')).equal([null,null,'a'])
-    expect(j(' [ , , a , , ] ')).equal([null,null,'a',null])
-
-    expect(j(',')).equal([null])
-    expect(j(',,')).equal([null, null])
-    expect(j('1,')).equal([1])
-    expect(j('0,')).equal([0])
-    expect(j(',1')).equal([null,1])
-    expect(j(',0')).equal([null,0])
-    expect(j(',1,')).equal([null,1])
-    expect(j(',0,')).equal([null,0])
-    expect(j(',1,,')).equal([null,1,null])
-    expect(j(',0,,')).equal([null,0,null])
-
-    expect(j('[]')).equal([])
-    expect(j('[,]')).equal([null])
-    expect(j('[,,]')).equal([null,null])
-    
-    expect(j('[0]')).equal([0])
-    expect(j('[0,1]')).equal([0,1])
-    expect(j('[0,1,2]')).equal([0,1,2])
-    expect(j('[0,]')).equal([0])
-    expect(j('[0,1,]')).equal([0,1])
-    expect(j('[0,1,2,]')).equal([0,1,2])
-
-    expect(j('[q]')).equal(['q'])
-    expect(j('[q,"w"]')).equal(['q',"w"])
-    expect(j('[q,"w",false]')).equal(['q',"w",false])
-    expect(j('[q,"w",false,0x,0x1]')).equal(['q',"w",false,'0x',1])
-    expect(j('[q,"w",false,0x,0x1,$]')).equal(['q',"w",false,'0x',1,'$'])
-    expect(j('[q,]')).equal(['q'])
-    expect(j('[q,"w",]')).equal(['q',"w"])
-    expect(j('[q,"w",false,]')).equal(['q',"w",false])
-    expect(j('[q,"w",false,0x,0x1,$,]')).equal(['q',"w",false,'0x',1,'$'])
-
-    expect(j('0,1')).equal([0,1])
-
-    // PN006
-    expect(j('0,1,')).equal([0,1])
-    
-    expect(j('a:{b:1}')).equal({a:{b:1}})
-    expect(j('a:[1]')).equal({a:[1]})
-    expect(j('a:[0,1]')).equal({a:[0,1]})
-    expect(j('a:[0,1,2]')).equal({a:[0,1,2]})
-    expect(j('{a:[0,1,2]}')).equal({a:[0,1,2]})
-
-    expect(j('a:[1],b:[2,3]')).equal({a:[1],b:[2,3]})
-
-    expect(j('[[]]')).equal([[]])
-    expect(j('[[],]')).equal([[]])
-    expect(j('[[],[]]')).equal([[],[]])
-    expect(j('[[[]],[]]')).equal([[[]],[]])
-    expect(j('[[[],[]],[]]')).equal([[[],[]],[]])
-    expect(j('[[[],[[]]],[]]')).equal([[[],[[]]],[]])
-    expect(j('[[[],[[],[]]],[]]')).equal([[[],[[],[]]],[]])
-  })
-
-  
-  it('process-mixed-nodes', () => {
-    expect(j('a:[{b:1}]')).equal({a:[{b:1}]})
-    expect(j('{a:[{b:1}]}')).equal({a:[{b:1}]})
-
-    expect(j('[{a:1}]')).equal([{a:1}])
-    expect(j('[{a:1},{b:2}]')).equal([{a:1},{b:2}])
-
-    expect(j('[[{a:1}]]')).equal([[{a:1}]])
-    expect(j('[[{a:1},{b:2}]]')).equal([[{a:1},{b:2}]])
-
-    expect(j('[[[{a:1}]]]')).equal([[[{a:1}]]])
-    expect(j('[[[{a:1},{b:2}]]]')).equal([[[{a:1},{b:2}]]])
-
-    expect(j('[{a:[1]}]')).equal([{a:[1]}])
-    expect(j('[{a:[{b:1}]}]')).equal([{a:[{b:1}]}])
-    expect(j('[{a:{b:[1]}}]')).equal([{a:{b:[1]}}])
-    expect(j('[{a:{b:[{c:1}]}}]')).equal([{a:{b:[{c:1}]}}])
-    expect(j('[{a:{b:{c:[1]}}}]')).equal([{a:{b:{c:[1]}}}])
-
-    expect(j('[{},{a:[1]}]')).equal([{},{a:[1]}])
-    expect(j('[{},{a:[{b:1}]}]')).equal([{},{a:[{b:1}]}])
-    expect(j('[{},{a:{b:[1]}}]')).equal([{},{a:{b:[1]}}])
-    expect(j('[{},{a:{b:[{c:1}]}}]')).equal([{},{a:{b:[{c:1}]}}])
-    expect(j('[{},{a:{b:{c:[1]}}}]')).equal([{},{a:{b:{c:[1]}}}])
-
-    expect(j('[[],{a:[1]}]')).equal([[],{a:[1]}])
-    expect(j('[[],{a:[{b:1}]}]')).equal([[],{a:[{b:1}]}])
-    expect(j('[[],{a:{b:[1]}}]')).equal([[],{a:{b:[1]}}])
-    expect(j('[[],{a:{b:[{c:1}]}}]')).equal([[],{a:{b:[{c:1}]}}])
-    expect(j('[[],{a:{b:{c:[1]}}}]')).equal([[],{a:{b:{c:[1]}}}])
-
-    expect(j('[{a:[1]},{a:[1]}]')).equal([{a:[1]},{a:[1]}])
-    expect(j('[{a:[{b:1}]},{a:[{b:1}]}]')).equal([{a:[{b:1}]},{a:[{b:1}]}])
-    expect(j('[{a:{b:[1]}},{a:{b:[1]}}]')).equal([{a:{b:[1]}},{a:{b:[1]}}])
-    expect(j('[{a:{b:[{c:1}]}},{a:{b:[{c:1}]}}]'))
-      .equal([{a:{b:[{c:1}]}},{a:{b:[{c:1}]}}])
-    expect(j('[{a:{b:{c:[1]}}},{a:{b:{c:[1]}}}]'))
-      .equal([{a:{b:{c:[1]}}},{a:{b:{c:[1]}}}])
-  })
-
-
-  it('process-comment', () => {
-    expect(j('a:q\nb:w #X\nc:r \n\nd:t\n\n#')).equal({a:'q',b:'w',c:'r',d:'t'})
-  })
-  
-  
-  it('process-whitespace', () => {
-    expect(j('[0,1]')).equal([0,1])
-    expect(j('[0, 1]')).equal([0,1])
-    expect(j('[0 ,1]')).equal([0,1])
-    expect(j('[0 ,1 ]')).equal([0,1])
-    expect(j('[0,1 ]')).equal([0,1])
-    expect(j('[ 0,1]')).equal([0,1])
-    expect(j('[ 0,1 ]')).equal([0,1])
-    return 
-    
-    expect(j('{a: 1}')).equal({a:1})
-    expect(j('{a : 1}')).equal({a:1})
-    expect(j('{a: 1,b: 2}')).equal({a:1,b:2})
-    expect(j('{a : 1,b : 2}')).equal({a:1,b:2})
-
-    expect(j('{a:\n1}')).equal({a:1})
-    expect(j('{a\n:\n1}')).equal({a:1})
-    expect(j('{a:\n1,b:\n2}')).equal({a:1,b:2})
-    expect(j('{a\n:\n1,b\n:\n2}')).equal({a:1,b:2})
-
-    expect(j('{a:\r\n1}')).equal({a:1})
-    expect(j('{a\r\n:\r\n1}')).equal({a:1})
-    expect(j('{a:\r\n1,b:\r\n2}')).equal({a:1,b:2})
-    expect(j('{a\r\n:\r\n1,b\r\n:\r\n2}')).equal({a:1,b:2})
-
-    
-    expect(j(' { a: 1 } ')).equal({a:1})
-    expect(j(' { a : 1 } ')).equal({a:1})
-    expect(j(' { a: 1 , b: 2 } ')).equal({a:1,b:2})
-    expect(j(' { a : 1 , b : 2 } ')).equal({a:1,b:2})
-
-    expect(j('  {  a:  1  }  ')).equal({a:1})
-    expect(j('  {  a  :  1  }  ')).equal({a:1})
-    expect(j('  {  a:  1  ,  b:  2  }  ')).equal({a:1,b:2})
-    expect(j('  {  a  :  1  ,  b  :  2  }  ')).equal({a:1,b:2})
-
-    expect(j('\n  {\n  a:\n  1\n  }\n  ')).equal({a:1})
-    expect(j('\n  {\n  a\n  :\n  1\n  }\n  ')).equal({a:1})
-    expect(j('\n  {\n  a:\n  1\n  ,\n  b:\n  2\n  }\n  ')).equal({a:1,b:2})
-    expect(j('\n  {\n  a\n  :\n  1\n  ,\n  b\n  :\n  2\n  }\n  '))
-      .equal({a:1,b:2})
-
-    expect(j('\n  \n{\n  \na:\n  \n1\n  \n}\n  \n')).equal({a:1})
-    expect(j('\n  \n{\n  \na\n  \n:\n  \n1\n  \n}\n  \n')).equal({a:1})
-    expect(j('\n  \n{\n  \na:\n  \n1\n  \n,\n  \nb:\n  \n2\n  \n}\n  \n')).equal({a:1,b:2})
-    expect(j('\n  \n{\n  \na\n  \n:\n  \n1\n  \n,\n  \nb\n  \n:\n  \n2\n  \n}\n  \n'))
-      .equal({a:1,b:2})
-
-    expect(j('\n\n{\n\na:\n\n1\n\n}\n\n')).equal({a:1})
-    expect(j('\n\n{\n\na\n\n:\n\n1\n\n}\n\n')).equal({a:1})
-    expect(j('\n\n{\n\na:\n\n1\n\n,\n\nb:\n\n2\n\n}\n\n')).equal({a:1,b:2})
-    expect(j('\n\n{\n\na\n\n:\n\n1\n\n,\n\nb\n\n:\n\n2\n\n}\n\n'))
-      .equal({a:1,b:2})
-
-    expect(j('\r\n{\r\na:\r\n1\r\n}\r\n')).equal({a:1})
-    expect(j('\r\n{\r\na\r\n:\r\n1\r\n}\r\n')).equal({a:1})
-    expect(j('\r\n{\r\na:\r\n1\r\n,\r\nb:\r\n2\r\n}\r\n')).equal({a:1,b:2})
-    expect(j('\r\n{\r\na\r\n:\r\n1\r\n,\r\nb\r\n:\r\n2\r\n}\r\n'))
-      .equal({a:1,b:2})
-
-
-    expect(j('a: 1')).equal({a:1})
-    expect(j(' a: 1')).equal({a:1})
-    expect(j(' a: 1 ')).equal({a:1})
-    expect(j(' a : 1 ')).equal({a:1})
-    
-    expect(j(' a: [ { b: 1 } ] ')).equal({a:[{b:1}]})
-    expect(j('\na: [\n  {\n     b: 1\n  }\n]\n')).equal({a:[{b:1}]})
-  })
-
-  
-  it('funky-keys', () => {
-    expect(j('x:1')).equal({'x':1})
-    expect(j('null:1')).equal({'null':1})
-    expect(j('true:1')).equal({'true':1})
-    expect(j('false:1')).equal({'false':1})
-
-    expect(j('{a:{x:1}}')).equal({a:{x:1}})
-    expect(j('a:{x:1}')).equal({a:{x:1}})
-    expect(j('a:{null:1}')).equal({a:{'null':1}})
-    expect(j('a:{true:1}')).equal({a:{'true':1}})
-    expect(j('a:{false:1}')).equal({a:{'false':1}})
-  })
-
-  
-  it('api', () => {
-    expect(Jsonic('a:1')).equal({a:1})
-    expect(Jsonic.parse('a:1')).equal({a:1})
-  })
-  
-
-
-  it('pv-works', function(){
-    expect(j('foo:1, bar:zed')).equal( {"foo":1,"bar":"zed"} )
-    expect(j('foo-foo:1, bar:zed')).equal( {"foo-foo":1,"bar":"zed"} )
-    expect(j('"foo-foo":1, bar:zed')).equal( {"foo-foo":1,"bar":"zed"} )
-    expect(j('"foo-1":1, bar:zed')).equal( {"foo-1":1,"bar":"zed"} )
-    expect(j('"foo-0":1, bar:zed')).equal( {"foo-0":1,"bar":"zed"} )
-    expect(j('"-foo-":1, bar:zed')).equal( {"-foo-":1,"bar":"zed"} )
-    expect(j('"-foo":1, bar:zed')).equal( {"-foo":1,"bar":"zed"} )
-    expect(j('"foo-bar-":1, bar:zed')).equal( {"foo-bar-":1,"bar":"zed"} )
-    expect(j('"foo-":1, bar:zed')).equal( {"foo-":1,"bar":"zed"} )
-    expect(j('"foo---foo":1, bar:zed')).equal( {"foo---foo":1,"bar":"zed"} )
-    expect(j('foo--foo:1, bar:zed')).equal( {"foo--foo":1,"bar":"zed"} )
-    expect(j('"foo--1":1, bar:zed')).equal( {"foo--1":1,"bar":"zed"} )
-    expect(j('"foo---0":1, bar:zed')).equal( {"foo---0":1,"bar":"zed"} )
-    expect(j('"--foo--":1, bar:zed')).equal( {"--foo--":1,"bar":"zed"} )
-    expect(j('"--foo":1, bar:zed')).equal( {"--foo":1,"bar":"zed"} )
-    expect(j('"foo--bar-baz":1, "-bar":zed')).equal( {"foo--bar-baz":1,"-bar":"zed"} )
-    expect(j('"foo--":1, bar:zed')).equal( {"foo--":1,"bar":"zed"} )
-    expect(j('{foo:"bar", arr:[0,0]}')).equal( {"foo":"bar","arr":[0,0]} )
-    expect(j("'a':1,':':2, c : 3")).equal( {"a":1,":":2,"c":3} )
-  })
-
-  
-  it('pv-funky-input', function(){
-
-    // Object values are just returned
-    expect( '{"foo":1,"bar":"zed"}' ).equal(
-      JSON.stringify(j( {foo:1,bar:'zed'} )) )
-
-    expect( '["a","b"]' ).equal(
-      JSON.stringify(j( ['a','b'] )) )
-
-    // TODO: api change - return non-strings as is!
-    // DIFF expect( j( /a/ ) ).equal('/a/')
-    // DIFF expect( j( NaN ) ).equal('NaN')
-    // DIFF expect( j( null ) ).equal('null')
-    // DIFF expect( j( undefined ) ).equal('undefined')
-    // DIFF expect( j( void 0 ) ).equal('undefined')
-    // DIFF expect( j( 1 ) ).equal('1')
-    // DIFF expect( j( Number(1) ) ).equal('1')
-    // DIFF expect( j( true ) ).equal('true')
-    // DIFF expect( j( false ) ).equal('false')
-    // DIFF expect( j( function foo () {} ).replace(/ +/g,'') ).equal('functionfoo(){}')
-
-    var d = new Date()
-    // DIFF expect( j( d ) ).equal(''+d)
-
-
+module.exports = exhaust
+
+if (require.main === module) {
+  exhaust(parseInt(process.argv[2] || 3), true)
+}
+
+function exhaust(size, print) {
+  const j01 = Jsonic.make()
+
+  const config = j01.internal().config
+  const opts = j01.options
+
+  const ZZ = j01.token.ZZ
+
+  if (print) {
+    console.log('\n')
+    console.log('# parse')
+    console.log('# ==================')
+  }
+
+  let max = 256
+  let total = Math.pow(max - 1, size)
+  let percent = ~~(total / 100)
+
+  if (print) {
+    console.log('# size:', size, 'total:', total, '1%=', percent)
+    let mp = Object.keys(process.memoryUsage())
+    console.log(
+      [
+        'P',
+        'T',
+        ...mp.map((x) => 'lo_' + x),
+        ...mp.map((x) => 'hi_' + x),
+        ...mp.map((x) => 'in_' + x),
+      ].join(', ')
+    )
+  }
+
+  let i = 0 // 256*256*120 // 1
+  let rm = {}
+  let em = {}
+  let rmc = 0
+  let emc = 0
+  let ecc = {}
+  let strgen = make_strgen(size, max) //,[0,0,120])
+  let ts = null
+
+  let mt = [0, 0, 0, 0]
+  let mb = [Infinity, Infinity, Infinity, Infinity]
+
+  let start = Date.now()
+  while (i <= total) {
+    ts = strgen()
+    if (0 === i % percent) {
+      let m = Object.values(process.memoryUsage())
+      mb = m.map((x, i) => (m[i] < mb[i] ? m[i] : mb[i]))
+      mt = m.map((x, i) => (m[i] > mt[i] ? m[i] : mt[i]))
+      if (print) {
+        console.log(
+          [
+            1 + ~~((100 * i) / total) + '%',
+            Date.now() - start,
+            ...mb,
+            ...mt,
+            ...m,
+          ].join(',')
+        )
+      }
+    }
+    try {
+      let d = j01(ts.s)
+      rmc++
+      //rm[''+ts.c+'|`'+ts.s+'`'] = d
+    } catch (e) {
+      emc++
+      ecc[e.code] = 1 + (ecc[e.code] = ecc[e.code] || 0)
+      //em[''+ts.c+'|`'+ts.s+'`'] = e.name+':'+e.code
+    }
+    i++
+  }
+
+  //console.log('#',ts.c)
+
+  let dur = Date.now() - start
+
+  if (print) {
+    console.log('# dur: ' + dur)
+    console.log('# rm:  ' + rmc)
+    console.log('# em:  ' + emc)
+    console.log('# ec:  ' + I(ecc))
+  }
+
+  return {
+    dur,
+    rmc,
+    emc,
+    ecc,
+  }
+}
+
+function make_strgen(size, max, init) {
+  let cc = []
+
+  if (null == init) {
+    for (let i = 0; i <= size; i++) {
+      cc[i] = 1 //0
+    }
+    cc[0] = 0 //-1
+    cc[size] = 0
+  } else {
+    cc = init
+  }
+
+  return function strgen() {
+    cc[0]++
+    for (let i = 0; i < size; i++) {
+      if (max <= cc[i]) {
+        cc[i + 1]++
+        cc[i] = 1 //0
+      }
+    }
     /*
-    try { j( 'a:' ); expect('a:').toBe('FAIL') }
-    catch(e) { expect(e.message.match(/^Expected/)).toBeTruthy() }
-
-    try { j( 'b:\n}' ); expect('b:}').toBe('FAIL') }
-    catch(e) { expect(e.message.match(/^Expected/)).toBeTruthy() }
-
-    try { j( 'c:\r}' ); expect('c:}').toBe('FAIL') }
-    catch(e) { expect(e.message.match(/^Expected/)).toBeTruthy() }
+    if(0 < cc[size]) {
+      return null
+    }
     */
-    
+
+    let out = { c: cc.slice(0, size) }
+    out.s = out.c.map((c) => String.fromCharCode(c)).join('')
+    return out
+  }
+}
+
+}).call(this)}).call(this,require('_process'))
+},{"..":1,"_process":19,"util":22}],25:[function(require,module,exports){
+/* Copyright (c) 2013-2020 Richard Rodger and other contributors, MIT License */
+'use strict'
+
+// let Lab = require('@hapi/lab')
+// Lab = null != Lab.script ? Lab : require('hapi-lab-shim')
+
+// const Code = require('@hapi/code')
+
+// const lab = (exports.lab = Lab.script())
+// const describe = lab.describe
+// const it = lab.it
+// const expect = Code.expect
+
+const Util = require('util')
+const I = Util.inspect
+
+const { Jsonic, JsonicError, RuleSpec } = require('..')
+
+const j = Jsonic
+
+describe('feature', function () {
+  it('test-util-match', () => {
+    expect(match(1, 1)).toBeUndefined()
+    expect(match([], [1])).toEqual('$[0]/val:undefined!=1')
+    expect(match([], [])).toBeUndefined()
+    expect(match([1], [1])).toBeUndefined()
+    expect(match([[]], [[]])).toBeUndefined()
+    expect(match([1], [2])).toEqual('$[0]/val:1!=2')
+    expect(match([[1]], [[2]])).toEqual('$[0][0]/val:1!=2')
+    expect(match({}, {})).toBeUndefined()
+    expect(match({ a: 1 }, { a: 1 })).toBeUndefined()
+    expect(match({ a: 1 }, { a: 2 })).toEqual('$.a/val:1!=2')
+    expect(match({ a: { b: 1 } }, { a: { b: 1 } })).toBeUndefined()
+    expect(match({ a: 1 }, { a: 1, b: 2 })).toEqual('$.b/val:undefined!=2')
+    expect(match({ a: 1 }, { b: 1 })).toEqual('$.b/val:undefined!=1')
+    expect(match({ a: { b: 1 } }, { a: { b: 2 } })).toEqual('$.a.b/val:1!=2')
+    expect(match({ a: 1, b: 2 }, { a: 1 })).toBeUndefined()
+    expect(match({ a: 1, b: 2 }, { a: 1 }, { miss: false })).toEqual(
+      '$/key:{a,b}!={a}'
+    )
+    expect(match([1], [])).toBeUndefined()
+    expect(match([], [1])).toEqual('$[0]/val:undefined!=1')
+    expect(match([2, 1], [undefined, 1], { miss: false })).toEqual(
+      '$[0]/val:2!=undefined'
+    )
+    expect(match([2, 1], [undefined, 1])).toBeUndefined()
   })
 
-  
-  it('pv-types', function(){
-    let out = j("t:{null:null,int:100,dec:9.9,t:true,f:false,qs:\"a\\\"a'a\",as:'a\"a\\'a'}")
-    expect(out).equal({
-      t: {
-        null: null,
-        int: 100,
-        dec: 9.9,
-        t: true,
-        f: false,
-        qs: `a"a'a`,
-        as: `a"a'a`
+  it('implicit-comma', () => {
+    expect(j('[0,1]')).toEqual([0, 1])
+    expect(j('[0,null]')).toEqual([0, null])
+    expect(j('{a:0,b:null}')).toEqual({ a: 0, b: null })
+    expect(j('{a:1,b:2}')).toEqual({ a: 1, b: 2 })
+    expect(j('[1,2]')).toEqual([1, 2])
+    expect(j('{a:1,\nb:2}')).toEqual({ a: 1, b: 2 })
+    expect(j('[1,\n2]')).toEqual([1, 2])
+    expect(j('a:1,b:2')).toEqual({ a: 1, b: 2 })
+    expect(j('1,2')).toEqual([1, 2])
+    expect(j('1,2,3')).toEqual([1, 2, 3])
+    expect(j('a:1,\nb:2')).toEqual({ a: 1, b: 2 })
+    expect(j('1,\n2')).toEqual([1, 2])
+    expect(j('{a:1\nb:2}')).toEqual({ a: 1, b: 2 })
+    expect(j('[1\n2]')).toEqual([1, 2])
+    expect(j('a:1\nb:2')).toEqual({ a: 1, b: 2 })
+    expect(j('1\n2')).toEqual([1, 2])
+    expect(j('a\nb')).toEqual(['a', 'b'])
+    expect(j('1\n2\n3')).toEqual([1, 2, 3])
+    expect(j('a\nb\nc')).toEqual(['a', 'b', 'c'])
+    expect(j('true\nfalse\nnull')).toEqual([true, false, null])
+  })
+
+  it('single-char', () => {
+    expect(j()).toEqual(undefined)
+    expect(j('')).toEqual(undefined)
+    expect(j('À')).toEqual('À') // #192 verbatim text
+    expect(j(' ')).toEqual(' ') // #160 non-breaking space, verbatim text
+    expect(j('{')).toEqual({}) // auto-close
+    expect(j('a')).toEqual('a') // verbatim text
+    expect(j('[')).toEqual([]) // auto-close
+    expect(j(',')).toEqual([null]) // implict list, prefixing-comma means null element
+    expect(j('#')).toEqual(undefined) // comment
+    expect(j(' ')).toEqual(undefined) // ignored space
+    expect(j('\u0010')).toEqual('\x10') // verbatim text
+    expect(j('\b')).toEqual('\b') // verbatim
+    expect(j('\t')).toEqual(undefined) // ignored space
+    expect(j('\n')).toEqual(undefined) // ignored newline
+    expect(j('\f')).toEqual('\f') // verbatim
+    expect(j('\r')).toEqual(undefined) // ignored newline
+
+    expect(() => j('"')).toThrow(/unterminated/)
+    expect(() => j("'")).toThrow(/unterminated/)
+    expect(() => j(':')).toThrow(/unexpected/)
+    expect(() => j(']')).toThrow(/unexpected/)
+    expect(() => j('`')).toThrow(/unterminated/)
+    expect(() => j('}')).toThrow(/unexpected/)
+  })
+
+  it('single-comment-line', () => {
+    expect(j('a#b')).toEqual('a')
+    expect(j('a:1#b')).toEqual({ a: 1 })
+    expect(j('#a:1')).toEqual(undefined)
+    expect(j('#a:1\nb:2')).toEqual({ b: 2 })
+    expect(j('b:2\n#a:1')).toEqual({ b: 2 })
+    expect(j('b:2,\n#a:1\nc:3')).toEqual({ b: 2, c: 3 })
+  })
+
+  it('string-comment-line', () => {
+    expect(j('//a:1')).toEqual(undefined)
+    expect(j('//a:1\nb:2')).toEqual({ b: 2 })
+    expect(j('b:2\n//a:1')).toEqual({ b: 2 })
+    expect(j('b:2,\n//a:1\nc:3')).toEqual({ b: 2, c: 3 })
+  })
+
+  it('multi-comment', () => {
+    expect(j('/*a:1*/')).toEqual(undefined)
+    expect(j('/*a:1*/\nb:2')).toEqual({ b: 2 })
+    expect(j('/*a:1\n*/b:2')).toEqual({ b: 2 })
+    expect(j('b:2\n/*a:1*/')).toEqual({ b: 2 })
+    expect(j('b:2,\n/*\na:1,\n*/\nc:3')).toEqual({ b: 2, c: 3 })
+
+    expect(() => j('/*')).toThrow(/unterminated_comment].*:1:1/s)
+    expect(() => j('\n/*')).toThrow(/unterminated_comment].*:2:1/s)
+    expect(() => j('a/*')).toThrow(/unterminated_comment].*:1:2/s)
+    expect(() => j('\na/*')).toThrow(/unterminated_comment].*:2:2/s)
+
+    expect(() => j('a:1/*\n\n*/{')).toThrow(/unexpected].*:3:3/s)
+
+    // Balanced multiline comments!
+    // TODO: PLUGIN
+    // expect(j('/*/*/*a:1*/*/*/b:2')).toEqual({b:2})
+    // expect(j('b:2,/*a:1,/*c:3,*/*/d:4')).toEqual({b:2,d:4})
+    // expect(j('\nb:2\n/*\na:1\n/*\nc:3\n*/\n*/\n,d:4')).toEqual({b:2,d:4})
+
+    // Implicit close
+    // TODO: OPTION
+    // expect(j('b:2\n/*a:1')).toEqual({b:2})
+    // expect(j('b:2\n/*/*/*a:1')).toEqual({b:2})
+  })
+
+  // TODO: PLUGIN
+  // it('balanced-multi-comment', () => {
+  //   // Active by default
+  //   expect(j('/*/*/*a:1*/*/*/b:2')).toEqual({b:2})
+  //   expect(j('/*/*/*a:1*/*/b:2')).toEqual(undefined)
+  //   expect(j('/*/*/*a/b*/*/*/b:2')).toEqual({b:2})
+
+  //   let nobal = Jsonic.make({comment:{balance:false}})
+  //   expect(nobal.options.comment.balance).false()
+
+  //   // NOTE: comment markers inside text are active!
+  //   expect(nobal('/*/*/*a:1*/*/*/,b:2')).toEqual({ '*a': '1*', b: 2 })
+
+  //   // Custom multiline comments
+  //   let coffee = Jsonic.make({comment:{marker:{'###':'###'}}})
+  //   expect(coffee('\n###a:1\nb:2\n###\nc:3')).toEqual({c:3})
+
+  //   // NOTE: no balancing if open === close
+  //   expect(coffee('\n###a:1\n###b:2\n###\nc:3\n###\nd:4')).toEqual({b:2,d:4})
+  // })
+
+  it('number', () => {
+    expect(j('1')).toEqual(1)
+    expect(j('-1')).toEqual(-1)
+    expect(j('+1')).toEqual(1)
+    expect(j('0')).toEqual(0)
+
+    expect(j('1.')).toEqual(1)
+    expect(j('-1.')).toEqual(-1)
+    expect(j('+1.')).toEqual(1)
+    expect(j('0.')).toEqual(0)
+
+    expect(j('.1')).toEqual(0.1)
+    expect(j('-.1')).toEqual(-0.1)
+    expect(j('+.1')).toEqual(0.1)
+    expect(j('.0')).toEqual(0)
+
+    expect(j('0.9')).toEqual(0.9)
+    expect(j('-0.9')).toEqual(-0.9)
+    expect(j('[1]')).toEqual([1])
+    expect(j('a:1')).toEqual({ a: 1 })
+    expect(j('1:a')).toEqual({ 1: 'a' })
+    expect(j('{a:1}')).toEqual({ a: 1 })
+    expect(j('{1:a}')).toEqual({ 1: 'a' })
+    expect(j('1.2')).toEqual(1.2)
+    expect(j('1e2')).toEqual(100)
+    expect(j('10_0')).toEqual(100)
+    expect(j('-1.2')).toEqual(-1.2)
+    expect(j('-1e2')).toEqual(-100)
+    expect(j('-10_0')).toEqual(-100)
+    expect(j('1e+2')).toEqual(100)
+    expect(j('1e-2')).toEqual(0.01)
+
+    expect(j('0xA')).toEqual(10)
+    expect(j('0xa')).toEqual(10)
+    expect(j('+0xA')).toEqual(10)
+    expect(j('+0xa')).toEqual(10)
+    expect(j('-0xA')).toEqual(-10)
+    expect(j('-0xa')).toEqual(-10)
+
+    expect(j('0o12')).toEqual(10)
+    expect(j('0b1010')).toEqual(10)
+    expect(j('0x_A')).toEqual(10)
+    expect(j('0x_a')).toEqual(10)
+    expect(j('0o_12')).toEqual(10)
+    expect(j('0b_1010')).toEqual(10)
+    expect(j('1e6:a')).toEqual({ '1e6': 'a' }) // NOTE: "1e6" not "1000000"
+    expect(j('01')).toEqual(1)
+    expect(j('-01')).toEqual(-1)
+    expect(j('0099')).toEqual(99)
+    expect(j('-0099')).toEqual(-99)
+
+    expect(j('a:1')).toEqual({ a: 1 })
+    expect(j('a:-1')).toEqual({ a: -1 })
+    expect(j('a:+1')).toEqual({ a: 1 })
+    expect(j('a:0')).toEqual({ a: 0 })
+    expect(j('a:0.1')).toEqual({ a: 0.1 })
+    expect(j('a:[1]')).toEqual({ a: [1] })
+    expect(j('a:a:1')).toEqual({ a: { a: 1 } })
+    expect(j('a:1:a')).toEqual({ a: { 1: 'a' } })
+    expect(j('a:{a:1}')).toEqual({ a: { a: 1 } })
+    expect(j('a:{1:a}')).toEqual({ a: { 1: 'a' } })
+    expect(j('a:1.2')).toEqual({ a: 1.2 })
+    expect(j('a:1e2')).toEqual({ a: 100 })
+    expect(j('a:10_0')).toEqual({ a: 100 })
+    expect(j('a:-1.2')).toEqual({ a: -1.2 })
+    expect(j('a:-1e2')).toEqual({ a: -100 })
+    expect(j('a:-10_0')).toEqual({ a: -100 })
+    expect(j('a:1e+2')).toEqual({ a: 100 })
+    expect(j('a:1e-2')).toEqual({ a: 0.01 })
+    expect(j('a:0xA')).toEqual({ a: 10 })
+    expect(j('a:0xa')).toEqual({ a: 10 })
+    expect(j('a:0o12')).toEqual({ a: 10 })
+    expect(j('a:0b1010')).toEqual({ a: 10 })
+    expect(j('a:0x_A')).toEqual({ a: 10 })
+    expect(j('a:0x_a')).toEqual({ a: 10 })
+    expect(j('a:0o_12')).toEqual({ a: 10 })
+    expect(j('a:0b_1010')).toEqual({ a: 10 })
+    expect(j('a:1e6:a')).toEqual({ a: { '1e6': 'a' } }) // NOTE: "1e6" not "1000000"
+    expect(j('[1,0]')).toEqual([1, 0])
+    expect(j('[1,0.5]')).toEqual([1, 0.5])
+
+    // text as +- not value enders
+    expect(j('1+')).toEqual('1+')
+    expect(j('1-')).toEqual('1-')
+    expect(j('1-+')).toEqual('1-+')
+
+    // partial numbers are converted to text
+    expect(j('-')).toEqual('-')
+    expect(j('+')).toEqual('+')
+    expect(j('1a')).toEqual('1a')
+
+    let jn = j.make({ number: { lex: false } })
+    expect(jn('1')).toEqual('1') // Now it's a string.
+    expect(j('1')).toEqual(1)
+    expect(jn('a:1')).toEqual({ a: '1' })
+    expect(j('a:1')).toEqual({ a: 1 })
+
+    let jh = j.make({ number: { hex: false } })
+    expect(jh('1')).toEqual(1)
+    expect(jh('0x10')).toEqual('0x10')
+    expect(jh('0o20')).toEqual(16)
+    expect(jh('0b10000')).toEqual(16)
+    expect(j('1')).toEqual(1)
+    expect(j('0x10')).toEqual(16)
+    expect(j('0o20')).toEqual(16)
+    expect(j('0b10000')).toEqual(16)
+
+    let jo = j.make({ number: { oct: false } })
+    expect(jo('1')).toEqual(1)
+    expect(jo('0x10')).toEqual(16)
+    expect(jo('0o20')).toEqual('0o20')
+    expect(jo('0b10000')).toEqual(16)
+    expect(j('1')).toEqual(1)
+    expect(j('0x10')).toEqual(16)
+    expect(j('0o20')).toEqual(16)
+    expect(j('0b10000')).toEqual(16)
+
+    let jb = j.make({ number: { bin: false } })
+    expect(jb('1')).toEqual(1)
+    expect(jb('0x10')).toEqual(16)
+    expect(jb('0o20')).toEqual(16)
+    expect(jb('0b10000')).toEqual('0b10000')
+    expect(j('1')).toEqual(1)
+    expect(j('0x10')).toEqual(16)
+    expect(j('0o20')).toEqual(16)
+    expect(j('0b10000')).toEqual(16)
+
+    let js0 = j.make({ number: { sep: null } })
+    expect(js0('1_0')).toEqual('1_0')
+    expect(j('1_0')).toEqual(10)
+
+    let js1 = j.make({ number: { sep: ' ' } })
+    expect(js1('1 0')).toEqual(10)
+    expect(js1('a:1 0')).toEqual({ a: 10 })
+    expect(js1('a:1 0, b : 2 000 ')).toEqual({ a: 10, b: 2000 })
+    expect(j('1_0')).toEqual(10)
+  })
+
+  it('value', () => {
+    expect(j('')).toEqual(undefined)
+
+    expect(j('true')).toEqual(true)
+    expect(j('false')).toEqual(false)
+    expect(j('null')).toEqual(null)
+
+    expect(j('true\n')).toEqual(true)
+    expect(j('false\n')).toEqual(false)
+    expect(j('null\n')).toEqual(null)
+
+    expect(j('true#')).toEqual(true)
+    expect(j('false#')).toEqual(false)
+    expect(j('null#')).toEqual(null)
+
+    expect(j('true//')).toEqual(true)
+    expect(j('false//')).toEqual(false)
+    expect(j('null//')).toEqual(null)
+
+    expect(j('{a:true}')).toEqual({ a: true })
+    expect(j('{a:false}')).toEqual({ a: false })
+    expect(j('{a:null}')).toEqual({ a: null })
+
+    expect(j('{true:1}')).toEqual({ true: 1 })
+    expect(j('{false:1}')).toEqual({ false: 1 })
+    expect(j('{null:1}')).toEqual({ null: 1 })
+
+    expect(j('a:true')).toEqual({ a: true })
+    expect(j('a:false')).toEqual({ a: false })
+    expect(j('a:null')).toEqual({ a: null })
+    expect(j('a:')).toEqual({ a: null })
+
+    expect(j('true,')).toEqual([true])
+    expect(j('false,')).toEqual([false])
+    expect(j('null,')).toEqual([null])
+
+    expect(
+      j('a:true,b:false,c:null,d:{e:true,f:false,g:null},h:[true,false,null]')
+    ).toEqual({
+      a: true,
+      b: false,
+      c: null,
+      d: { e: true, f: false, g: null },
+      h: [true, false, null],
+    })
+  })
+
+  it('null-or-undefined', () => {
+    // All ignored, so undefined
+    expect(j('')).toEqual(undefined)
+    expect(j(' ')).toEqual(undefined)
+    expect(j('\n')).toEqual(undefined)
+    expect(j('#')).toEqual(undefined)
+    expect(j('//')).toEqual(undefined)
+    expect(j('/**/')).toEqual(undefined)
+
+    // JSON only has nulls
+    expect(j('null')).toEqual(null)
+    expect(j('a:null')).toEqual({ a: null })
+
+    expect(j('[a:1]')).toEqual([{ a: 1 }])
+
+    expect(j('[{a:null}]')).toEqual([{ a: null }])
+    expect(j('[a:null]')).toEqual([{ a: null }])
+    expect(j('a:null,b:null')).toEqual({ a: null, b: null })
+    expect(j('{a:null,b:null}')).toEqual({ a: null, b: null })
+
+    expect(j('[a:]')).toEqual([{ a: null }])
+    expect(j('[a:,]')).toEqual([{ a: null }])
+    expect(j('[a:,b:]')).toEqual([{ a: null }, { b: null }])
+    expect(j('[a:,b:c:]')).toEqual([{ a: null }, { b: { c: null } }])
+
+    expect(j('a:')).toEqual({ a: null })
+    expect(j('a:,b:')).toEqual({ a: null, b: null })
+    expect(j('a:,b:c:')).toEqual({ a: null, b: { c: null } })
+
+    expect(j('{a:}')).toEqual({ a: null })
+    expect(j('{a:,b:}')).toEqual({ a: null, b: null })
+    expect(j('{a:,b:c:}')).toEqual({ a: null, b: { c: null } })
+  })
+
+  it('value-text', () => {
+    expect(j('a')).toEqual('a')
+    expect(j('1a')).toEqual('1a') // NOTE: not a number!
+    expect(j('a/b')).toEqual('a/b')
+    expect(j('a#b')).toEqual('a')
+
+    expect(j('a//b')).toEqual('a')
+    expect(j('a/*b*/')).toEqual('a')
+    expect(j('a\\n')).toEqual('a\\n')
+    expect(j('\\s+')).toEqual('\\s+')
+
+    expect(j('x:a')).toEqual({ x: 'a' })
+    expect(j('x:a/b')).toEqual({ x: 'a/b' })
+    expect(j('x:a#b')).toEqual({ x: 'a' })
+    expect(j('x:a//b')).toEqual({ x: 'a' })
+    expect(j('x:a/*b*/')).toEqual({ x: 'a' })
+    expect(j('x:a\\n')).toEqual({ x: 'a\\n' })
+    expect(j('x:\\s+')).toEqual({ x: '\\s+' })
+
+    expect(j('[a]')).toEqual(['a'])
+    expect(j('[a/b]')).toEqual(['a/b'])
+    expect(j('[a#b]')).toEqual(['a'])
+    expect(j('[a//b]')).toEqual(['a'])
+    expect(j('[a/*b*/]')).toEqual(['a'])
+    expect(j('[a\\n]')).toEqual(['a\\n'])
+    expect(j('[\\s+]')).toEqual(['\\s+'])
+
+    // TODO: REVIEW
+    // // Force text re to fail (also tests infinite loop protection).
+    // let j0 = j.make()
+    // j0.internal().config.re.te =
+    //   new RegExp(j0.internal().config.re.te.source.replace('#','#a'))
+    // expect(()=>j0('a')).toThrow(/unexpected/)
+  })
+
+  it('value-string', () => {
+    expect(j("''")).toEqual('')
+    expect(j('""')).toEqual('')
+    expect(j('``')).toEqual('')
+
+    expect(j("'a'")).toEqual('a')
+    expect(j('"a"')).toEqual('a')
+    expect(j('`a`')).toEqual('a')
+
+    expect(j("'a b'")).toEqual('a b')
+    expect(j('"a b"')).toEqual('a b')
+    expect(j('`a b`')).toEqual('a b')
+
+    expect(j("'a\\tb'")).toEqual('a\tb')
+    expect(j('"a\\tb"')).toEqual('a\tb')
+    expect(j('`a\\tb`')).toEqual('a\tb')
+
+    // NOTE: backslash inside string is always removed
+    expect(j('`a\\qb`')).toEqual('aqb')
+
+    expect(j("'a\\'b\"`c'")).toEqual('a\'b"`c')
+    expect(j('"a\\"b`\'c"')).toEqual('a"b`\'c')
+    expect(j('`a\\`b"\'c`')).toEqual('a`b"\'c')
+
+    expect(j('"\\u0061"')).toEqual('a')
+    expect(j('"\\x61"')).toEqual('a')
+
+    expect(j('`\n`')).toEqual('\n')
+    expect(() => j('"\n"')).toThrow(/unprintable]/)
+    expect(() => j('"\t"')).toThrow(/unprintable]/)
+    expect(() => j('"\f"')).toThrow(/unprintable]/)
+    expect(() => j('"\b"')).toThrow(/unprintable]/)
+    expect(() => j('"\v"')).toThrow(/unprintable]/)
+    expect(() => j('"\0"')).toThrow(/unprintable]/)
+
+    expect(j('"\\n"')).toEqual('\n')
+    expect(j('"\\t"')).toEqual('\t')
+    expect(j('"\\f"')).toEqual('\f')
+    expect(j('"\\b"')).toEqual('\b')
+    expect(j('"\\v"')).toEqual('\v')
+    expect(j('"\\""')).toEqual('"')
+    expect(j('"\\\'"')).toEqual("'")
+    expect(j('"\\`"')).toEqual('`')
+
+    expect(j('"\\w"')).toEqual('w')
+    expect(j('"\\0"')).toEqual('0')
+
+    expect(() => j('`\x1a`')).toThrow(/unprintable]/)
+    expect(() => j('"\x1a"')).toThrow(/unprintable]/)
+
+    expect(() => j('"x')).toThrow(/unterminated_string].*:1:1/s)
+    expect(() => j(' "x')).toThrow(/unterminated_string].*:1:2/s)
+    expect(() => j('  "x')).toThrow(/unterminated_string].*:1:3/s)
+    expect(() => j('a:"x')).toThrow(/unterminated_string].*:1:3/s)
+    expect(() => j('aa:"x')).toThrow(/unterminated_string].*:1:4/s)
+    expect(() => j('aaa:"x')).toThrow(/unterminated_string].*:1:5/s)
+    expect(() => j(' a:"x')).toThrow(/unterminated_string].*:1:4/s)
+    expect(() => j(' a :"x')).toThrow(/unterminated_string].*:1:5/s)
+
+    expect(() => j("'x")).toThrow(/unterminated_string].*:1:1/s)
+    expect(() => j(" 'x")).toThrow(/unterminated_string].*:1:2/s)
+    expect(() => j("  'x")).toThrow(/unterminated_string].*:1:3/s)
+    expect(() => j("a:'x")).toThrow(/unterminated_string].*:1:3/s)
+    expect(() => j("aa:'x")).toThrow(/unterminated_string].*:1:4/s)
+    expect(() => j("aaa:'x")).toThrow(/unterminated_string].*:1:5/s)
+    expect(() => j(" a:'x")).toThrow(/unterminated_string].*:1:4/s)
+    expect(() => j(" a :'x")).toThrow(/unterminated_string].*:1:5/s)
+
+    expect(() => j('`x')).toThrow(/unterminated_string].*:1:1/s)
+    expect(() => j(' `x')).toThrow(/unterminated_string].*:1:2/s)
+    expect(() => j('  `x')).toThrow(/unterminated_string].*:1:3/s)
+    expect(() => j('a:`x')).toThrow(/unterminated_string].*:1:3/s)
+    expect(() => j('aa:`x')).toThrow(/unterminated_string].*:1:4/s)
+    expect(() => j('aaa:`x')).toThrow(/unterminated_string].*:1:5/s)
+    expect(() => j(' a:`x')).toThrow(/unterminated_string].*:1:4/s)
+    expect(() => j(' a :`x')).toThrow(/unterminated_string].*:1:5/s)
+
+    expect(() => j('`\nx')).toThrow(/unterminated_string].*:1:1/s)
+    expect(() => j(' `\nx')).toThrow(/unterminated_string].*:1:2/s)
+    expect(() => j('  `\nx')).toThrow(/unterminated_string].*:1:3/s)
+    expect(() => j('a:`\nx')).toThrow(/unterminated_string].*:1:3/s)
+    expect(() => j('aa:`\nx')).toThrow(/unterminated_string].*:1:4/s)
+    expect(() => j('aaa:`\nx')).toThrow(/unterminated_string].*:1:5/s)
+    expect(() => j(' a:`\nx')).toThrow(/unterminated_string].*:1:4/s)
+    expect(() => j(' a :`\nx')).toThrow(/unterminated_string].*:1:5/s)
+
+    expect(() => j('\n\n"x')).toThrow(/unterminated_string].*:3:1/s)
+    expect(() => j('\n\n "x')).toThrow(/unterminated_string].*:3:2/s)
+    expect(() => j('\n\n  "x')).toThrow(/unterminated_string].*:3:3/s)
+    expect(() => j('\n\na:"x')).toThrow(/unterminated_string].*:3:3/s)
+    expect(() => j('\n\naa:"x')).toThrow(/unterminated_string].*:3:4/s)
+    expect(() => j('\n\naaa:"x')).toThrow(/unterminated_string].*:3:5/s)
+    expect(() => j('\n\n a:"x')).toThrow(/unterminated_string].*:3:4/s)
+    expect(() => j('\n\n a :"x')).toThrow(/unterminated_string].*:3:5/s)
+
+    // string.escape.allowUnknown:false
+    let j1 = j.make({ string: { allowUnknown: false } })
+    expect(j1('"\\n"')).toEqual('\n')
+    expect(j1('"\\t"')).toEqual('\t')
+    expect(j1('"\\f"')).toEqual('\f')
+    expect(j1('"\\b"')).toEqual('\b')
+    expect(j1('"\\v"')).toEqual('\v')
+    expect(j1('"\\""')).toEqual('"')
+    expect(j1('"\\\\"')).toEqual('\\')
+    expect(() => j1('"\\w"')).toThrow(/unexpected].*:1:3/s)
+    expect(() => j1('"\\0"')).toThrow(/unexpected].*:1:3/s)
+
+    // TODO: PLUGIN csv
+    // let k = j.make({string:{escapedouble:true}})
+    // expect(k('"a""b"')).toEqual('a"b')
+    // expect(k('`a``b`')).toEqual('a`b')
+    // expect(k('\'a\'\'b\'')).toEqual('a\'b')
+  })
+
+  it('multiline-string', () => {
+    expect(j('`a`')).toEqual('a')
+    expect(j('`\na`')).toEqual('\na')
+    expect(j('`\na\n`')).toEqual('\na\n')
+    expect(j('`a\nb`')).toEqual('a\nb')
+    expect(j('`a\n\nb`')).toEqual('a\n\nb')
+    expect(j('`a\nc\nb`')).toEqual('a\nc\nb')
+    expect(j('`a\r\n\r\nb`')).toEqual('a\r\n\r\nb')
+
+    expect(() => j('`\n')).toThrow(/unterminated_string.*:1:1/s)
+    expect(() => j(' `\n')).toThrow(/unterminated_string.*:1:2/s)
+    expect(() => j('\n `\n')).toThrow(/unterminated_string.*:2:2/s)
+
+    expect(() => j('`a``b')).toThrow(/unterminated_string.*:1:4/s)
+    expect(() => j('\n`a``b')).toThrow(/unterminated_string.*:2:4/s)
+    expect(() => j('\n`a`\n`b')).toThrow(/unterminated_string.*:3:1/s)
+    expect(() => j('\n`\na`\n`b')).toThrow(/unterminated_string.*:4:1/s)
+    expect(() => j('\n`\na`\n`\nb')).toThrow(/unterminated_string.*:4:1/s)
+
+    expect(() => j('`a` `b')).toThrow(/unterminated_string.*:1:5/s)
+    expect(() => j('`a`\n `b')).toThrow(/unterminated_string.*:2:2/s)
+
+    expect(() => j('`a\n` `b')).toThrow(/unterminated_string.*:2:3/s)
+    expect(() => j('`a\n`,`b')).toThrow(/unterminated_string.*:2:3/s)
+    expect(() => j('[`a\n` `b')).toThrow(/unterminated_string.*:2:3/s)
+    expect(() => j('[`a\n`,`b')).toThrow(/unterminated_string.*:2:3/s)
+    expect(() => j('1\n `b')).toThrow(/unterminated_string.*:2:2/s)
+    expect(() => j('[1\n,`b')).toThrow(/unterminated_string.*:2:2/s)
+
+    // TODO: PLUGIN
+    // expect(j("'''a\nb'''")).toEqual('a\nb')
+    // expect(j("'''\na\nb'''")).toEqual('a\nb')
+    // expect(j("'''\na\nb\n'''")).toEqual('a\nb')
+    // expect(j("\n'''\na\nb\n'''\n")).toEqual('a\nb')
+    // expect(j(" '''\na\nb\n''' ")).toEqual('a\nb')
+
+    // expect(j("''' a\nb\n'''")).toEqual(' a\nb')
+    // expect(j(" '''a\n b\n'''")).toEqual('a\nb')
+    // expect(j(" ''' \na\n b\n'''")).toEqual('a\nb')
+    // expect(j(" ''' \na\n  b\n'''")).toEqual('a\n b')
+    // expect(j(" ''' \na\nb\n'''")).toEqual('a\nb')
+    // expect(j(" ''' a\n b\n'''")).toEqual('a\nb')
+    // expect(j(" ''' a\nb\n'''")).toEqual('a\nb')
+
+    //     expect(j(`{
+    //   md:
+    //     '''
+    //     First line.
+    //     Second line.
+    //       This line is indented by two spaces.
+    //     '''
+    // }`)).toEqual({
+    //   md: "First line.\nSecond line.\n  This line is indented by two spaces.",
+    // })
+
+    // expect(j("'''\na\nb\n'''")).toEqual('a\nb')
+    // expect(j("'''a\nb'''")).toEqual('a\nb')
+  })
+
+  it('optional-comma', () => {
+    expect(j('[1,]')).toEqual([1])
+    expect(j('[,1]')).toEqual([null, 1])
+    expect(j('[1,,]')).toEqual([1, null])
+    expect(j('[1,,,]')).toEqual([1, null, null])
+    expect(j('[1,,,,]')).toEqual([1, null, null, null])
+    expect(j('[1,,,,,]')).toEqual([1, null, null, null, null])
+    expect(j('[1\n2]')).toEqual([1, 2])
+    expect(j('{a:1},')).toEqual([{ a: 1 }])
+
+    // NOTE: these are not implicit lists!
+    expect(j('a:1,')).toEqual({ a: 1 })
+    expect(j('a:b:1,')).toEqual({ a: { b: 1 } })
+    expect(j('a:1 b:2')).toEqual({ a: 1, b: 2 })
+    expect(j('a:b:1 a:c:2')).toEqual({ a: { b: 1, c: 2 } })
+
+    expect(j('{a:1\nb:2}')).toEqual({ a: 1, b: 2 })
+    expect(j('{,a:1}')).toEqual({ a: 1 })
+    expect(j('{a:1,}')).toEqual({ a: 1 })
+    expect(j('{,a:1,}')).toEqual({ a: 1 })
+    expect(j('{a:1,b:2,}')).toEqual({ a: 1, b: 2 })
+
+    expect(j('[{a:1},]')).toEqual([{ a: 1 }])
+    expect(j('[{a:1},{b:2}]')).toEqual([{ a: 1 }, { b: 2 }])
+
+    expect(j('[[a],]')).toEqual([['a']])
+    expect(j('[[a],[b],]')).toEqual([['a'], ['b']])
+    expect(j('[[a],[b],[c],]')).toEqual([['a'], ['b'], ['c']])
+    expect(j('[[a]]')).toEqual([['a']])
+    expect(j('[[a][b]]')).toEqual([['a'], ['b']])
+    expect(j('[[a][b][c]]')).toEqual([['a'], ['b'], ['c']])
+
+    expect(j('[[0],]')).toEqual([[0]])
+    expect(j('[[0],[1],]')).toEqual([[0], [1]])
+    expect(j('[[0],[1],[2],]')).toEqual([[0], [1], [2]])
+    expect(j('[[0]]')).toEqual([[0]])
+    expect(j('[[0][1]]')).toEqual([[0], [1]])
+    expect(j('[[0][1][2]]')).toEqual([[0], [1], [2]])
+  })
+
+  it('implicit-list', () => {
+    // implicit null element preceeds empty comma
+    expect(j(',')).toEqual([null])
+    expect(j(',a')).toEqual([null, 'a'])
+    expect(j(',"a"')).toEqual([null, 'a'])
+    expect(j(',1')).toEqual([null, 1])
+    expect(j(',true')).toEqual([null, true])
+    expect(j(',[]')).toEqual([null, []])
+    expect(j(',{}')).toEqual([null, {}])
+    expect(j(',[1]')).toEqual([null, [1]])
+    expect(j(',{a:1}')).toEqual([null, { a: 1 }])
+    expect(j(',a:1')).toEqual([null, { a: 1 }])
+
+    // Top level comma imlies list; ignore trailing comma
+    expect(j('a,')).toEqual(['a'])
+    expect(j('"a",')).toEqual(['a'])
+    expect(j('1,')).toEqual([1])
+    expect(j('1,,')).toEqual([1, null])
+    expect(j('1,,,')).toEqual([1, null, null])
+    expect(j('1,null')).toEqual([1, null])
+    expect(j('1,null,')).toEqual([1, null])
+    expect(j('1,null,null')).toEqual([1, null, null])
+    expect(j('1,null,null,')).toEqual([1, null, null])
+    expect(j('true,')).toEqual([true])
+    expect(j('[],')).toEqual([[]])
+    expect(j('{},')).toEqual([{}])
+    expect(j('[1],')).toEqual([[1]])
+    expect(j('{a:1},')).toEqual([{ a: 1 }])
+
+    // NOTE: special case, this is considered a map pair
+    expect(j('a:1,')).toEqual({ a: 1 })
+
+    expect(j('a,')).toEqual(['a'])
+    expect(j('"a",')).toEqual(['a'])
+    expect(j('true,')).toEqual([true])
+    expect(j('1,')).toEqual([1])
+    expect(j('a,1')).toEqual(['a', 1])
+    expect(j('"a",1')).toEqual(['a', 1])
+    expect(j('true,1')).toEqual([true, 1])
+    expect(j('1,1')).toEqual([1, 1])
+
+    expect(j('a,b')).toEqual(['a', 'b'])
+    expect(j('a,b,c')).toEqual(['a', 'b', 'c'])
+    expect(j('a,b,c,d')).toEqual(['a', 'b', 'c', 'd'])
+
+    expect(j('a b')).toEqual(['a', 'b'])
+    expect(j('a b c')).toEqual(['a', 'b', 'c'])
+    expect(j('a b c d')).toEqual(['a', 'b', 'c', 'd'])
+
+    expect(j('[a],[b]')).toEqual([['a'], ['b']])
+    expect(j('[a],[b],[c]')).toEqual([['a'], ['b'], ['c']])
+    expect(j('[a],[b],[c],[d]')).toEqual([['a'], ['b'], ['c'], ['d']])
+
+    expect(j('[a] [b]')).toEqual([['a'], ['b']])
+    expect(j('[a] [b] [c]')).toEqual([['a'], ['b'], ['c']])
+    expect(j('[a] [b] [c] [d]')).toEqual([['a'], ['b'], ['c'], ['d']])
+
+    // TODO: note this in docs as it enables parsing of JSON logs/records
+    expect(j('{a:1} {b:1}')).toEqual([{ a: 1 }, { b: 1 }])
+    expect(j('{a:1} {b:1} {c:1}')).toEqual([{ a: 1 }, { b: 1 }, { c: 1 }])
+    expect(j('{a:1} {b:1} {c:1} {d:1}')).toEqual([
+      { a: 1 },
+      { b: 1 },
+      { c: 1 },
+      { d: 1 },
+    ])
+    expect(j('\n{a:1}\n{b:1}\r\n{c:1}\n{d:1}\r\n')).toEqual([
+      { a: 1 },
+      { b: 1 },
+      { c: 1 },
+      { d: 1 },
+    ])
+
+    expect(j('{a:1},')).toEqual([{ a: 1 }])
+    expect(j('[1],')).toEqual([[1]])
+
+    expect(j('[a:1]')).toEqual([{ a: 1 }])
+    expect(j('[a:1,b:2]')).toEqual([{ a: 1 }, { b: 2 }])
+    expect(j('[a:1,b:2,c:3]')).toEqual([{ a: 1 }, { b: 2 }, { c: 3 }])
+  })
+
+  it('implicit-map', () => {
+    expect(j('a:1')).toEqual({ a: 1 })
+    expect(j('a:1,b:2')).toEqual({ a: 1, b: 2 })
+
+    expect(j('{a:b:1}')).toEqual({ a: { b: 1 } })
+    expect(j('{a:b:1,a:c:2}')).toEqual({ a: { b: 1, c: 2 } })
+    expect(j('{a:b:1,a:c:2,a:d:3}')).toEqual({ a: { b: 1, c: 2, d: 3 } })
+
+    expect(j('a:b:1')).toEqual({ a: { b: 1 } })
+    expect(j('a:b:1,a:c:2')).toEqual({ a: { b: 1, c: 2 } })
+    expect(j('a:b:1,a:c:2,a:d:3')).toEqual({ a: { b: 1, c: 2, d: 3 } })
+
+    expect(j('a:b:c:1')).toEqual({ a: { b: { c: 1 } } })
+    expect(j('a:b:1,d:2')).toEqual({ a: { b: 1 }, d: 2 })
+    expect(j('a:b:c:1,d:2')).toEqual({ a: { b: { c: 1 } }, d: 2 })
+    expect(j('{a:b:1}')).toEqual({ a: { b: 1 } })
+    expect(j('a:{b:c:1}')).toEqual({ a: { b: { c: 1 } } })
+
+    expect(j('{a:,b:')).toEqual({ a: null, b: null })
+    expect(j('a:,b:')).toEqual({ a: null, b: null })
+  })
+
+  it('extension', () => {
+    expect(j('a:{b:1,c:2},a:{c:3,e:4}')).toEqual({ a: { b: 1, c: 3, e: 4 } })
+
+    expect(j('a:{b:1,x:1},a:{b:2,y:2},a:{b:3,z:3}')).toEqual({
+      a: { b: 3, x: 1, y: 2, z: 3 },
+    })
+
+    expect(j('a:[{b:1,x:1}],a:[{b:2,y:2}],a:[{b:3,z:3}]')).toEqual({
+      a: [{ b: 3, x: 1, y: 2, z: 3 }],
+    })
+
+    expect(j('a:[{b:1},{x:1}],a:[{b:2},{y:2}],a:[{b:3},{z:3}]')).toEqual({
+      a: [{ b: 3 }, { x: 1, y: 2, z: 3 }],
+    })
+
+    let k = j.make({ map: { extend: false } })
+    expect(k('a:{b:1,c:2},a:{c:3,e:4}')).toEqual({ a: { c: 3, e: 4 } })
+  })
+
+  it('finish', () => {
+    expect(j('a:{b:')).toEqual({ a: { b: null } })
+    expect(j('{a:{b:{c:1}')).toEqual({ a: { b: { c: 1 } } })
+    expect(j('[[1')).toEqual([[1]])
+
+    // TODO: needs own error code
+    let k = j.make({ rule: { finish: false } })
+    expect(() => k('a:{b:')).toThrow(/unexpected/)
+    expect(() => k('{a:{b:{c:1}')).toThrow(/unexpected/)
+    expect(() => k('[[1')).toThrow(/unexpected/)
+  })
+
+  it('property-dive', () => {
+    expect(j('{a:1,b:2}')).toEqual({ a: 1, b: 2 })
+    expect(j('{a:1,b:{c:2}}')).toEqual({ a: 1, b: { c: 2 } })
+    expect(j('{a:1,b:{c:2},d:3}')).toEqual({ a: 1, b: { c: 2 }, d: 3 })
+    expect(j('{b:{c:2,e:4},d:3}')).toEqual({ b: { c: 2, e: 4 }, d: 3 })
+
+    expect(j('{a:{b:{c:1,d:2},e:3},f:4}')).toEqual({
+      a: { b: { c: 1, d: 2 }, e: 3 },
+      f: 4,
+    })
+    expect(j('a:b:c')).toEqual({ a: { b: 'c' } })
+    expect(j('a:b:c, d:e:f')).toEqual({ a: { b: 'c' }, d: { e: 'f' } })
+    expect(j('a:b:c\nd:e:f')).toEqual({ a: { b: 'c' }, d: { e: 'f' } })
+
+    expect(j('a:b:c,d:e')).toEqual({ a: { b: 'c' }, d: 'e' })
+    expect(j('a:b:c:1,d:e')).toEqual({ a: { b: { c: 1 } }, d: 'e' })
+    expect(j('a:b:c:f:{g:1},d:e')).toEqual({
+      a: { b: { c: { f: { g: 1 } } } },
+      d: 'e',
+    })
+    expect(j('c:f:{g:1,h:2},d:e')).toEqual({ c: { f: { g: 1, h: 2 } }, d: 'e' })
+    expect(j('c:f:[{g:1,h:2}],d:e')).toEqual({
+      c: { f: [{ g: 1, h: 2 }] },
+      d: 'e',
+    })
+
+    expect(j('a:b:c:1\nd:e')).toEqual({ a: { b: { c: 1 } }, d: 'e' })
+
+    expect(j('[{a:1,b:2}]')).toEqual([{ a: 1, b: 2 }])
+    expect(j('[{a:1,b:{c:2}}]')).toEqual([{ a: 1, b: { c: 2 } }])
+    expect(j('[{a:1,b:{c:2},d:3}]')).toEqual([{ a: 1, b: { c: 2 }, d: 3 }])
+    expect(j('[{b:{c:2,e:4},d:3}]')).toEqual([{ b: { c: 2, e: 4 }, d: 3 }])
+
+    expect(j('[{a:{b:{c:1,d:2},e:3},f:4}]')).toEqual([
+      { a: { b: { c: 1, d: 2 }, e: 3 }, f: 4 },
+    ])
+    expect(j('[a:b:c]')).toEqual([{ a: { b: 'c' } }])
+    expect(j('[a:b:c, d:e:f]')).toEqual([{ a: { b: 'c' } }, { d: { e: 'f' } }])
+    expect(j('[a:b:c\nd:e:f]')).toEqual([{ a: { b: 'c' } }, { d: { e: 'f' } }])
+
+    expect(j('[a:b:c,d:e]')).toEqual([{ a: { b: 'c' } }, { d: 'e' }])
+    expect(j('[a:b:c:1,d:e]')).toEqual([{ a: { b: { c: 1 } } }, { d: 'e' }])
+    expect(j('[a:b:c:f:{g:1},d:e]')).toEqual([
+      { a: { b: { c: { f: { g: 1 } } } } },
+      { d: 'e' },
+    ])
+    expect(j('[c:f:{g:1,h:2},d:e]')).toEqual([
+      { c: { f: { g: 1, h: 2 } } },
+      { d: 'e' },
+    ])
+    expect(j('[c:f:[{g:1,h:2}],d:e]')).toEqual([
+      { c: { f: [{ g: 1, h: 2 }] } },
+      { d: 'e' },
+    ])
+
+    expect(j('[a:b:c:1\nd:e]')).toEqual([{ a: { b: { c: 1 } } }, { d: 'e' }])
+
+    expect(j('a:b:{x:1},a:b:{y:2}')).toEqual({ a: { b: { x: 1, y: 2 } } })
+    expect(j('a:b:{x:1},a:b:{y:2},a:b:{z:3}')).toEqual({
+      a: { b: { x: 1, y: 2, z: 3 } },
+    })
+
+    expect(j('a:b:c:{x:1},a:b:c:{y:2}')).toEqual({
+      a: { b: { c: { x: 1, y: 2 } } },
+    })
+    expect(j('a:b:c:{x:1},a:b:c:{y:2},a:b:c:{z:3}')).toEqual({
+      a: { b: { c: { x: 1, y: 2, z: 3 } } },
+    })
+  })
+
+  /* TODO: fix
+  it('get-set-rule-and-lex', () => {
+    let p0 = Jsonic.make()
+
+    // Get all the rules
+    let rval = p0.rule()
+    expect(Object.keys(rval)).toEqual(['val', 'map', 'list', 'pair', 'elem'])
+
+    // Get a rule
+    rval = p0.rule('not-a-rule')
+    expect(rval).not.exists()
+    rval = p0.rule('val')
+    expect(rval.name).toEqual('val')
+
+    // Still OK, for now
+    expect(p0('a:1')).toEqual({a:1})
+
+    // Rules can be deleted
+    p0.rule('val', null)
+    rval = p0.rule('val')
+    expect(rval).not.exists()
+
+    // Parent still OK
+    expect(Jsonic('a:1')).toEqual({a:1})
+
+    // New rule
+    p0.rule('foo',()=>{
+      return new RuleSpec()
+    })
+    rval = p0.rule('foo')
+    expect(rval.name).toEqual('foo')
+    rval = p0.rule()
+    expect(Object.keys(rval)).toEqual(['map', 'list', 'pair', 'elem', 'foo'])
+
+
+    // Modify RuleSpec
+    p0.rule('foo',(rs)=>{
+      rs.x = 1
+    })
+    rval = p0.rule('foo')
+    expect(rval.name).toEqual('foo')
+    expect(rval.x).toEqual(1)
+    rval = p0.rule()
+    expect(Object.keys(rval)).toEqual(['map', 'list', 'pair', 'elem', 'foo'])
+
+    
+    // Get all matchers for all states
+    let mm0 = p0.lex()
+    //expect(I(mm0)).toEqual(`{ '19': [], '20': [], '21': [], '22': [] }`)
+    expect(mm0).toEqual({})
+
+    // Add some lex matchers
+    p0.lex(p0.token.LML,function lmA(){})
+    p0.lex(p0.token.LML,function lmB(){})
+    p0.lex(p0.token.LTX,function lmC(){})
+    mm0 = p0.lex()
+    expect(I(mm0)).toEqual(`{
+  '20': [ [Function: lmC] ],
+  '22': [ [Function: lmA], [Function: lmB] ]
+}`)
+
+    // Get lex matchers for a given state
+    mm0 = p0.lex(p0.token.LML)
+    expect(I(mm0)).toEqual(`[ [Function: lmA], [Function: lmB] ]`)
+
+    // Parent still OK
+    expect(Jsonic('a:1')).toEqual({a:1})
+
+    // Lex matchers can be cleared by state
+    p0.lex(p0.token.LML,null)
+    mm0 = p0.lex(p0.token.LML)
+    expect(mm0).not.exists()
+
+  })
+*/
+
+  // Test derived from debug sessions using quick.js
+  it('debug-cases', () => {
+    let j = (s) => {
+      try {
+        return JSON.stringify(Jsonic(s))
+      } catch (e) {
+        return e.message.split(/\n/)[0]
+      }
+    }
+
+    let cases = [
+      ['1', '1'],
+      ['true', 'true'],
+      ['x', '"x"'],
+      ['"y"', '"y"'],
+
+      ['{a:1}', '{"a":1}'],
+      ['{a:1,b:2}', '{"a":1,"b":2}'],
+      ['{a:1,b:2,c:3}', '{"a":1,"b":2,"c":3}'],
+      ['{a:{b:2}}', '{"a":{"b":2}}'],
+      ['{a:{b:2},c:3}', '{"a":{"b":2},"c":3}'],
+      ['{a:{b:2,c:3}}', '{"a":{"b":2,"c":3}}'],
+      ['{a:{b:{c:3}}', '{"a":{"b":{"c":3}}}'],
+
+      ['a:1', '{"a":1}'],
+      ['a:1,b:2', '{"a":1,"b":2}'],
+      ['a:1,b:2,c:3', '{"a":1,"b":2,"c":3}'],
+      ['a:{b:2}', '{"a":{"b":2}}'],
+      ['a:{b:2},c:3', '{"a":{"b":2},"c":3}'],
+      ['a:{b:2,c:3}', '{"a":{"b":2,"c":3}}'],
+      ['a:{b:{c:3}', '{"a":{"b":{"c":3}}}'],
+
+      ['{a:1,x:0}', '{"a":1,"x":0}'],
+      ['{a:1,b:2,x:0}', '{"a":1,"b":2,"x":0}'],
+      ['{a:{b:2,x:0},x:0}', '{"a":{"b":2,"x":0},"x":0}'],
+      ['{a:{b:2,x:0},c:3,x:0}', '{"a":{"b":2,"x":0},"c":3,"x":0}'],
+      ['{a:{b:2,c:3,x:0},x:0}', '{"a":{"b":2,"c":3,"x":0},"x":0}'],
+      ['{a:{b:{c:3,x:0},x:0}', '{"a":{"b":{"c":3,"x":0},"x":0}}'],
+
+      ['a:1,x:0', '{"a":1,"x":0}'],
+      ['a:1,b:2,x:0', '{"a":1,"b":2,"x":0}'],
+      ['a:{b:2,x:0},x:0', '{"a":{"b":2,"x":0},"x":0}'],
+      ['a:{b:2,x:0},c:3,x:0', '{"a":{"b":2,"x":0},"c":3,"x":0}'],
+      ['a:{b:2,c:3,x:0},x:0', '{"a":{"b":2,"c":3,"x":0},"x":0}'],
+      ['a:{b:{c:3,x:0},x:0', '{"a":{"b":{"c":3,"x":0},"x":0}}'],
+
+      ['{a:b:2}', '{"a":{"b":2}}'],
+      ['{a:b:c:3}', '{"a":{"b":{"c":3}}}'],
+      ['{a:b:2,c:3}', '{"a":{"b":2},"c":3}'],
+      ['{a:1,b:c:3}', '{"a":1,"b":{"c":3}}'],
+      ['{a:b:c:3,d:4}', '{"a":{"b":{"c":3}},"d":4}'],
+      ['{a:1,b:c:d:4}', '{"a":1,"b":{"c":{"d":4}}}'],
+      ['{a:b:2,c:d:4}', '{"a":{"b":2},"c":{"d":4}}'],
+      ['{a:b:c:3,d:e:f:6}', '{"a":{"b":{"c":3}},"d":{"e":{"f":6}}}'],
+
+      ['a:b:2', '{"a":{"b":2}}'],
+      ['a:b:c:3', '{"a":{"b":{"c":3}}}'],
+      ['a:b:2,c:3', '{"a":{"b":2},"c":3}'],
+      ['a:1,b:c:3', '{"a":1,"b":{"c":3}}'],
+      ['a:b:c:3,d:4', '{"a":{"b":{"c":3}},"d":4}'],
+      ['a:1,b:c:d:4', '{"a":1,"b":{"c":{"d":4}}}'],
+      ['a:b:2,c:d:4', '{"a":{"b":2},"c":{"d":4}}'],
+      ['a:b:c:3,d:e:f:6', '{"a":{"b":{"c":3}},"d":{"e":{"f":6}}}'],
+
+      ['{x:{a:b:2}}', '{"x":{"a":{"b":2}}}'],
+      ['{x:{a:b:c:3}}', '{"x":{"a":{"b":{"c":3}}}}'],
+      ['{x:{a:b:2,c:3}}', '{"x":{"a":{"b":2},"c":3}}'],
+      ['{x:{a:1,b:c:3}}', '{"x":{"a":1,"b":{"c":3}}}'],
+      ['{x:{a:b:c:3,d:4}}', '{"x":{"a":{"b":{"c":3}},"d":4}}'],
+      ['{x:{a:1,b:c:d:4}}', '{"x":{"a":1,"b":{"c":{"d":4}}}}'],
+      ['{x:{a:b:2,c:d:4}}', '{"x":{"a":{"b":2},"c":{"d":4}}}'],
+      ['{x:{a:b:c:3,d:e:f:6}}', '{"x":{"a":{"b":{"c":3}},"d":{"e":{"f":6}}}}'],
+
+      ['x:{a:b:2}', '{"x":{"a":{"b":2}}}'],
+      ['x:{a:b:c:3}', '{"x":{"a":{"b":{"c":3}}}}'],
+      ['x:{a:b:2,c:3}', '{"x":{"a":{"b":2},"c":3}}'],
+      ['x:{a:1,b:c:3}', '{"x":{"a":1,"b":{"c":3}}}'],
+      ['x:{a:b:c:3,d:4}', '{"x":{"a":{"b":{"c":3}},"d":4}}'],
+      ['x:{a:1,b:c:d:4}', '{"x":{"a":1,"b":{"c":{"d":4}}}}'],
+      ['x:{a:b:2,c:d:4}', '{"x":{"a":{"b":2},"c":{"d":4}}}'],
+      ['x:{a:b:c:3,d:e:f:6}', '{"x":{"a":{"b":{"c":3}},"d":{"e":{"f":6}}}}'],
+
+      ['{y:{x:{a:b:2}}}', '{"y":{"x":{"a":{"b":2}}}}'],
+      ['{y:{x:{a:b:c:3}}}', '{"y":{"x":{"a":{"b":{"c":3}}}}}'],
+      ['{y:{x:{a:b:2,c:3}}}', '{"y":{"x":{"a":{"b":2},"c":3}}}'],
+      ['{y:{x:{a:1,b:c:3}}}', '{"y":{"x":{"a":1,"b":{"c":3}}}}'],
+      ['{y:{x:{a:b:c:3,d:4}}}', '{"y":{"x":{"a":{"b":{"c":3}},"d":4}}}'],
+      ['{y:{x:{a:1,b:c:d:4}}}', '{"y":{"x":{"a":1,"b":{"c":{"d":4}}}}}'],
+      ['{y:{x:{a:b:2,c:d:4}}}', '{"y":{"x":{"a":{"b":2},"c":{"d":4}}}}'],
+      [
+        '{y:{x:{a:b:c:3,d:e:f:6}}}',
+        '{"y":{"x":{"a":{"b":{"c":3}},"d":{"e":{"f":6}}}}}',
+      ],
+
+      ['y:{x:{a:b:2}}', '{"y":{"x":{"a":{"b":2}}}}'],
+      ['y:{x:{a:b:c:3}}', '{"y":{"x":{"a":{"b":{"c":3}}}}}'],
+      ['y:{x:{a:b:2,c:3}}', '{"y":{"x":{"a":{"b":2},"c":3}}}'],
+      ['y:{x:{a:1,b:c:3}}', '{"y":{"x":{"a":1,"b":{"c":3}}}}'],
+      ['y:{x:{a:b:c:3,d:4}}', '{"y":{"x":{"a":{"b":{"c":3}},"d":4}}}'],
+      ['y:{x:{a:1,b:c:d:4}}', '{"y":{"x":{"a":1,"b":{"c":{"d":4}}}}}'],
+      ['y:{x:{a:b:2,c:d:4}}', '{"y":{"x":{"a":{"b":2},"c":{"d":4}}}}'],
+      [
+        'y:{x:{a:b:c:3,d:e:f:6}}',
+        '{"y":{"x":{"a":{"b":{"c":3}},"d":{"e":{"f":6}}}}}',
+      ],
+
+      ['{y:{x:{a:b:2}},z:0}', '{"y":{"x":{"a":{"b":2}}},"z":0}'],
+      ['{y:{x:{a:b:c:3}},z:0}', '{"y":{"x":{"a":{"b":{"c":3}}}},"z":0}'],
+      ['{y:{x:{a:b:2,c:3}},z:0}', '{"y":{"x":{"a":{"b":2},"c":3}},"z":0}'],
+      ['{y:{x:{a:1,b:c:3}},z:0}', '{"y":{"x":{"a":1,"b":{"c":3}}},"z":0}'],
+      [
+        '{y:{x:{a:b:c:3,d:4}},z:0}',
+        '{"y":{"x":{"a":{"b":{"c":3}},"d":4}},"z":0}',
+      ],
+      [
+        '{y:{x:{a:1,b:c:d:4}},z:0}',
+        '{"y":{"x":{"a":1,"b":{"c":{"d":4}}}},"z":0}',
+      ],
+      [
+        '{y:{x:{a:b:2,c:d:4}},z:0}',
+        '{"y":{"x":{"a":{"b":2},"c":{"d":4}}},"z":0}',
+      ],
+      [
+        '{y:{x:{a:b:c:3,d:e:f:6}},z:0}',
+        '{"y":{"x":{"a":{"b":{"c":3}},"d":{"e":{"f":6}}}},"z":0}',
+      ],
+
+      ['y:{x:{a:b:2}},z:0', '{"y":{"x":{"a":{"b":2}}},"z":0}'],
+      ['y:{x:{a:b:c:3}},z:0', '{"y":{"x":{"a":{"b":{"c":3}}}},"z":0}'],
+      ['y:{x:{a:b:2,c:3}},z:0', '{"y":{"x":{"a":{"b":2},"c":3}},"z":0}'],
+      ['y:{x:{a:1,b:c:3}},z:0', '{"y":{"x":{"a":1,"b":{"c":3}}},"z":0}'],
+      [
+        'y:{x:{a:b:c:3,d:4}},z:0',
+        '{"y":{"x":{"a":{"b":{"c":3}},"d":4}},"z":0}',
+      ],
+      [
+        'y:{x:{a:1,b:c:d:4}},z:0',
+        '{"y":{"x":{"a":1,"b":{"c":{"d":4}}}},"z":0}',
+      ],
+      [
+        'y:{x:{a:b:2,c:d:4}},z:0',
+        '{"y":{"x":{"a":{"b":2},"c":{"d":4}}},"z":0}',
+      ],
+      [
+        'y:{x:{a:b:c:3,d:e:f:6}},z:0',
+        '{"y":{"x":{"a":{"b":{"c":3}},"d":{"e":{"f":6}}}},"z":0}',
+      ],
+
+      ['{y:{x:{a:b:2}},z:k:0}', '{"y":{"x":{"a":{"b":2}}},"z":{"k":0}}'],
+      [
+        '{y:{x:{a:b:2,c:d:e:5,f:g:7}},z:k:{m:n:0,r:11},s:22}',
+        '{"y":{"x":{"a":{"b":2},"c":{"d":{"e":5}},"f":{"g":7}}},"z":{"k":{"m":{"n":0},"r":11}},"s":22}',
+      ],
+
+      ['y:{x:{a:b:2}},z:k:0', '{"y":{"x":{"a":{"b":2}}},"z":{"k":0}}'],
+      [
+        'y:{x:{a:b:2,c:d:e:5,f:g:7}},z:k:{m:n:0,r:11},s:22',
+        '{"y":{"x":{"a":{"b":2},"c":{"d":{"e":5}},"f":{"g":7}}},"z":{"k":{"m":{"n":0},"r":11}},"s":22}',
+      ],
+
+      ['{a:1 b:2}', '{"a":1,"b":2}'],
+      ['a:1 b:2', '{"a":1,"b":2}'],
+
+      ['{a:1 b:2 c:3}', '{"a":1,"b":2,"c":3}'],
+      ['a:1 b:2 c:3', '{"a":1,"b":2,"c":3}'],
+
+      ['{a:b:2 c:3}', '{"a":{"b":2},"c":3}'],
+      ['{a:b:2 `c`:3}', '{"a":{"b":2},"c":3}'],
+      ['{a:b:2 99:3}', '{"99":3,"a":{"b":2}}'],
+      ['{a:b:2 true:3}', '{"a":{"b":2},"true":3}'],
+
+      ['a:b:2 c:3', '{"a":{"b":2},"c":3}'],
+      ['a:b:2 `c`:3', '{"a":{"b":2},"c":3}'],
+      ['a:b:2 99:3', '{"99":3,"a":{"b":2}}'],
+      ['a:b:2 true:3', '{"a":{"b":2},"true":3}'],
+
+      ['{a:{b:c:3} d:4}', '{"a":{"b":{"c":3}},"d":4}'],
+      ['a:{b:c:3} d:4', '{"a":{"b":{"c":3}},"d":4}'],
+
+      ['[a]', '["a"]'],
+      ['[a,b]', '["a","b"]'],
+
+      ['[a]', '["a"]'],
+      ['[a,[b]]', '["a",["b"]]'],
+
+      ['[a b]', '["a","b"]'],
+      ['[a [b]]', '["a",["b"]]'],
+      ['[a {b:2}]', '["a",{"b":2}]'],
+
+      ['[a,b,]', '["a","b"]'],
+      ['{a:1,b:2,}', '{"a":1,"b":2}'],
+
+      ['a,b', '["a","b"]'],
+
+      ['{}', '{}'],
+      ['[]', '[]'],
+
+      ['[,]', '[null]'],
+      ['[,1]', '[null,1]'],
+      ['[,,1]', '[null,null,1]'],
+      ['[2,]', '[2]'],
+      ['[2,,1]', '[2,null,1]'],
+    ]
+
+    let count = { pass: 0, fail: 0 }
+
+    cases.forEach((c) => {
+      let out = j(c[0])
+      let ok = out === c[1]
+      count[ok ? 'pass' : 'fail']++
+      if (!ok) {
+        console.log(ok ? '\x1b[0;32mPASS' : '\x1b[1;31mFAIL', c[0], '->', out)
+        console.log(' '.repeat(7 + c[0].length), '\x1b[1;34m', c[1])
       }
     })
-    
-    let out1 = j("null:null,int:100,dec:9.9,t:true,f:false,qs:\"a\\\"a'a\",as:'a\"a\\'a'")
-    expect(out1).equal({
-      null: null,
-      int: 100,
-      dec: 9.9,
-      t: true,
-      f: false,
-      qs: `a"a'a`,
-      as: `a"a'a`
-    })
-  })
 
-
-  it('pv-subobj', function(){
-    expect(j("a:{b:1},c:2")).equal({"a":{"b":1},"c":2})
-
-    expect(j("a:{b:1}")).equal({"a":{"b":1}})
-
-    expect(j("a:{b:{c:1}}")).equal({"a":{"b":{"c":1}}})
-  })
-
-
-  it('pv-comma', function(){
-    expect(j('a:1, b:2, ')).equal({a:1,b:2})
-
-    expect(j('a:1,')).equal({a:1})
-
-    // TODO: decide how this should work, esp given a:1, -> {a:1}
-    // DIFF expect(j(',a:1')).equal({a:1})
-
-    // DIFF: was {}
-    expect(j(',')).equal([null])
-
-    // DIFF: was {}
-    expect(j(',,')).equal([null,null])
-
-    expect(j('[a,]')).equal(['a'])
-
-    expect(j('[a,1,]')).equal(['a',1])
-
-    // DIFF: was [a,1]
-    expect(j('[,a,1,]')).equal([null,'a',1])
-
-    // DIFF: was []
-    expect(j('[,]')).equal([null])
-
-    // DIFF: was []
-    expect(j('[,,]')).equal([null,null])
-  })
-
-
-  it('pv-empty', function(){
-    // DIFF expect(j("")).equal('{}')
-  })
-
-
-  it('pv-arrays', function(){
-    expect(j("[]")).equal([])
-
-    expect(j("[1]")).equal([1])
-
-    expect(j("[1,2]")).equal([1,2])
-
-    expect(j("[ 1 , 2 ]")).equal([1,2])
-
-    expect(j("{a:[],b:[1],c:[1,2]}")).equal({"a":[],"b":[1],"c":[1,2]})
-
-    expect(j("{a: [ ] , b:[b], c:[ c , dd ]}"))
-      .equal({"a":[],"b":["b"],"c":["c","dd"]})
-
-    expect(j("['a']")).equal(["a"])
-
-    expect(j('["a"]')).equal(["a"])
-
-    expect(j("['a',\"b\"]")).equal(["a","b"])
-
-    expect(j("[ 'a' , \"b\" ]")).equal(["a","b"])
-  })
-
-  
-
-  it('pv-deep', function(){
-    var x = '{a:[[{b:1}],{c:[{d:1}]}]}'
-
-    expect(j(x)).equal({"a":[[{"b":1}],{"c":[{"d":1}]}]})
-
-    expect(j('['+x+']')).equal([{"a":[[{"b":1}],{"c":[{"d":1}]}]}])
-  })
-
-  
-
-  it('pv-strings', function(){
-    expect(j("a:'',b:\"\"")).equal({"a":"","b":""})
-
-    expect(j("a:x y")).equal({"a":"x y"})
-
-    expect(j("a:x, b:y z")).equal({"a":"x","b":"y z"})
-
-    // trimmed
-    expect(j("a: x , b: y z ")).equal({"a":"x","b":"y z"})
-
-    expect(j("a:'x', aa: 'x' , b:'y\"z', bb: 'y\"z' ,bbb:\"y'z\", bbbb: \"y'z\", c:\"\\n\", d:'\\n'")).equal({"a":"x","aa":"x","b":"y\"z","bb":"y\"z","bbb":"y'z","bbbb":"y\'z","c":"\n","d":"\n"})
-
-    // chars
-    // FIX expect(j("a:'\\'\\\\\\/\\b\\f\\n\\r\\t\\u0010'")).equal({"a":"\'\\\\/\\b\\f\\n\\r\\t\\u0010"})
-
-    // FIX expect(j('a:"\\"\\\\\\/\\b\\f\\n\\r\\t\\u0010"')).equal({"a":"\\\"\\\\/\\b\\f\\n\\r\\t\\u0010"})
-  })
-
-
-  it('pv-numbers', function(){
-    expect(j("x:0,a:102,b:1.2,c:-3,d:-4.5,e:-10")).equal({"x":0,"a":102,"b":1.2,"c":-3,"d":-4.5,"e":-10})
-
-    expect(j("x:0,a:102,b:1.2,c:1e2,d:1.2e3,e:1e+2,f:1e-2,g:1.2e+3,h:1.2e-3,i:-1.2e+3,j:-1.2e-3")).equal({"x":0,"a":102,"b":1.2,"c":100,"d":1200,"e":100,"f":0.01,"g":1200,"h":0.0012,"i":-1200,"j":-0.0012})
-
-    // digit prefix, but actually a string - could be an ID etc.
-    expect(j("x:01,a:1a,b:10b,c:1e2e")).equal({"x":"01","a":"1a","b":"10b","c":"1e2e"})
-  })
-
-
-  it('pv-drop-outs', function(){
-    expect(j("a:0a")).equal({"a":"0a"})
-
-    expect(j("a:-0a")).equal({"a":"-0a"})
-
-    expect(j("a:0.a")).equal({"a":"0.a"})
-
-    // ORIG COMMENTED expect(j("a:-0.a")).equal({"a":"-0.a"})
-
-    expect(j("a:0.0a")).equal({"a":"0.0a"})
-
-    expect(j("a:-0.0a")).equal({"a":"-0.0a"})
-
-    // DIFF expect(j("a:'a,")).equal({"a":"\'a"})
-    
-    // DIFF expect(j("a:'a\"")).equal({"a":"\'a\""})
-
-    // DIFF expect(j("a:'\\u")).equal({"a":"\'\\u"})
-
-    // DIFF expect(j("a:'\\uZ")).equal({"a":"\'\\uZ"})
-  })
-
-/*
-  it( 'pv-bad', function(){
-    try { jsonic('{');
-          expect('bad-{').toBe('FAIL') } catch(e) {}
-
-    try { jsonic('}');
-          expect('bad-}').toBe('FAIL') } catch(e) {}
-
-    try { jsonic('a');
-          expect('bad-a').toBe('FAIL') } catch(e) {}
-
-    try { jsonic('!');
-          expect('bad-!').toBe('FAIL') } catch(e) {}
-
-    try { jsonic('0');
-          expect('bad-0').toBe('FAIL') } catch(e) {}
-
-    try { jsonic('a:,');
-          expect('bad-a:,').toBe('FAIL') } catch(e) {}
-
-    try { jsonic('\\');
-          expect('bad-\\').toBe('FAIL') } catch(e) {}
-
-    try { jsonic('"');
-          expect('bad-"').toBe('FAIL') } catch(e) {}
-
-    try { jsonic('""');
-          expect('bad-""').toBe('FAIL') } catch(e) {}
-
-    try { jsonic('a:{,');
-          expect('bad-a:{,').toBe('FAIL') } catch(e) {}
-
-    try { jsonic('a:,}');
-          expect('bad-a:,}').toBe('FAIL') } catch(e) {}
-
-    try { jsonic('a:');
-          expect('bad-a:,}').toBe('FAIL') } catch(e) {}
-
-    try { jsonic('a:"\""');
-          expect('bad-a:"\""').toBe('FAIL') } catch(e) {}
-
-    try { jsonic("a:'\''");
-          expect("bad-a:'\''").toBe('FAIL') } catch(e) {}
-
-    try { jsonic("a:{{}}");
-          expect("bad-a:{{}}").toBe('FAIL') } catch(e) {}
-
-    try { jsonic("a:{}}");
-          expect("bad-a:{}}").toBe('FAIL') } catch(e) {}
-
-    try { jsonic("a:{[]}");
-          expect("bad-a:{[]}").toBe('FAIL') } catch(e) {}
-
-    try { jsonic("a:{[}");
-          expect("bad-a:{[}").toBe('FAIL') } catch(e) {}
-
-    try { jsonic("a:{]}");
-          expect("bad-a:{]}").toBe('FAIL') } catch(e) {}
-
-    try { jsonic("a:{a}");
-          expect("bad-a:{a}").toBe('FAIL') } catch(e) {}
-
-    try { jsonic("a:{a,b}");
-          expect("bad-a:{a,b}").toBe('FAIL') } catch(e) {}
-
-    try { jsonic("a:{a:1,b}");
-          expect("bad-a:{a:1,b}").toBe('FAIL') } catch(e) {}
-
-    try { jsonic("a:{a:1,b:}");
-          expect("bad-a:{a:1,b:}").toBe('FAIL') } catch(e) {}
-
-    try { jsonic("a:{a:1,b:,}");
-          expect("bad-a:{a:1,b:,}").toBe('FAIL') } catch(e) {}
-
-    try { jsonic("a:{a:1,b:]}");
-          expect("bad-a:{a:1,b:]}").toBe('FAIL') } catch(e) {}
-
-    try { jsonic("[");
-          expect("bad-[").toBe('FAIL') } catch(e) {}
-
-    try { jsonic("{");
-          expect("bad-{").toBe('FAIL') } catch(e) {}
-
-    try { jsonic("}");
-          expect("bad-}").toBe('FAIL') } catch(e) {}
-
-    try { jsonic("]");
-          expect("bad-]").toBe('FAIL') } catch(e) {}
-
-
-  })
-*/
-
-  it( 'pv-json', function(){
-    var js = JSON.stringify
-    var jp = JSON.parse
-    var x,g
-
-    x='{}'; g=js(jp(x));
-    expect(js(j(x))).equal(g)
-
-    x=' \r\n\t{ \r\n\t} \r\n\t'; g=js(jp(x));
-    expect(js(j(x))).equal(g)
-
-    x=' \r\n\t{ \r\n\t"a":1 \r\n\t} \r\n\t'; g=js(jp(x));
-    expect(js(j(x))).equal(g)
-
-    x='{"a":[[{"b":1}],{"c":[{"d":1}]}]}'; g=js(jp(x));
-    expect(js(j(x))).equal(g)
-
-    x='['+x+']'; g=js(jp(x));
-    expect(js(j(x))).equal(g)
-  })
-
-/*
-  it( 'stringify', function(){
-    expect( jsonic.stringify(null) ).toBe('null')
-    expect( jsonic.stringify(void 0) ).toBe('null')
-    expect( jsonic.stringify(NaN) ).toBe('null')
-    expect( jsonic.stringify(0) ).toBe('0')
-    expect( jsonic.stringify(1.1) ).toBe('1.1')
-    expect( jsonic.stringify(1e-2) ).toBe('0.01')
-    expect( jsonic.stringify(true) ).toBe('true')
-    expect( jsonic.stringify(false) ).toBe('false')
-    expect( jsonic.stringify('') ).toBe('')
-    expect( jsonic.stringify('a') ).toBe('a')
-    expect( jsonic.stringify("a") ).toBe('a')
-    expect( jsonic.stringify("a a") ).toBe('a a')
-    expect( jsonic.stringify(" a") ).toBe("' a'")
-    expect( jsonic.stringify("a ") ).toBe("'a '")
-    expect( jsonic.stringify(" a ") ).toBe("' a '")
-    expect( jsonic.stringify("'a") ).toBe("'\\'a'")
-    expect( jsonic.stringify("a'a") ).toBe("a'a")
-    expect( jsonic.stringify("\"a") ).toBe("'\"a'")
-    expect( jsonic.stringify("a\"a") ).toBe("a\"a")
-    expect( jsonic.stringify( function f(){ return 'f' }) ).toBe('')
-
-
-    var s,d
-
-    s='[]';d=[]
-    expect( jsonic.stringify(d) ).toBe(s)
-    expect( jsonic(s) ).toEqual(d)
-
-    s='[1]';d=[1]
-    expect( jsonic.stringify(d) ).toBe(s)
-    expect( jsonic(s) ).toEqual(d)
-
-    s='[1,2]';d=[1,2]
-    expect( jsonic.stringify(d) ).toBe(s)
-    expect( jsonic(s) ).toEqual(d)
-
-    s='[a,2]';d=['a',2]
-    expect( jsonic.stringify(d) ).toBe(s)
-    expect( jsonic(s) ).toEqual(d)
-
-    s="[' a',2]";d=[' a',2]
-    expect( jsonic.stringify(d) ).toBe(s)
-    expect( jsonic(s) ).toEqual(d)
-
-    s="[a\'a,2]";d=["a'a",2]
-    expect( jsonic.stringify(d) ).toBe(s)
-    expect( jsonic(s) ).toEqual(d)
-
-    // default max depth is 3
-    s='[1,[2,[3,[]]]]';d=[1,[2,[3,[4,[]]]]]
-    expect( jsonic.stringify(d) ).toBe(s)
-
-    s='[1,[2,[3,[4,[]]]]]';d=[1,[2,[3,[4,[]]]]]
-    expect( jsonic(s) ).toEqual(d)
-
-
-    s='{}';d={}
-    expect( jsonic.stringify(d) ).toBe(s)
-    expect( jsonic(s) ).toEqual(d)
-
-    s='{a:1}';d={a:1}
-    expect( jsonic.stringify(d) ).toBe(s)
-    expect( jsonic(s) ).toEqual(d)
-
-    s='{a:a}';d={a:'a'}
-    expect( jsonic.stringify(d) ).toBe(s)
-    expect( jsonic(s) ).toEqual(d)
-
-    s='{a:A,b:B}';d={a:'A',b:'B'}
-    expect( jsonic.stringify(d) ).toBe(s)
-    expect( jsonic(s) ).toEqual(d)
-
-    // default max depth is 3
-    s='{a:{b:{c:{}}}}';d={a:{b:{c:{d:1}}}}
-    expect( jsonic.stringify(d) ).toBe(s)
-
-    s='{a:{b:{c:{d:1}}}}';d={a:{b:{c:{d:1}}}}
-    expect( jsonic(s) ).toEqual(d)
-
-    // custom depth
-    s='{a:{b:{}}}';d={a:{b:{c:{d:1}}}}
-    expect( jsonic.stringify(d,{depth:2}) ).toBe(s)
-
-    // omits
-    expect( jsonic.stringify({a:1,b:2},{omit:[]}) ).toBe('{a:1,b:2}')
-    expect( jsonic.stringify({a:1,b:2},{omit:['c']}) ).toBe('{a:1,b:2}')
-    expect( jsonic.stringify({a:1,b:2},{omit:['a']}) ).toBe('{b:2}')
-    expect( jsonic.stringify({a:1,b:2},{omit:['a','b']}) ).toBe('{}')
-
-    // omits at all depths!
-    expect( jsonic.stringify({b:{a:1,c:2}},{omit:['a']}) ).toBe('{b:{c:2}}')
-
-    // excludes if contains
-    expect( jsonic.stringify({a$:1,b:2}) ).toBe('{b:2}')
-    expect( jsonic.stringify({a$:1,bx:2,cx:3},{exclude:['b']}) ).toBe('{a$:1,cx:3}')
-
-
-    // custom
-    var o1 = {a:1,toString:function(){return '<A>'}}
-    expect( jsonic.stringify(o1) ).toBe('{a:1}')
-    expect( jsonic.stringify(o1,{custom:true}) ).toBe('<A>')
-    var o1_1 = {a:1,inspect:function(){return '<A>'}}
-    expect( jsonic.stringify(o1_1) ).toBe('{a:1}')
-    expect( jsonic.stringify(o1_1,{custom:true}) ).toBe('<A>')
-
-
-    // maxitems
-    var o2 = [1,2,3,4,5,6,7,8,9,10,11,12]
-    expect( jsonic.stringify(o2) ).toBe('[1,2,3,4,5,6,7,8,9,10,11]')
-    expect( jsonic.stringify(o2,{maxitems:12}) ).toBe('[1,2,3,4,5,6,7,8,9,10,11,12]')
-    expect( jsonic.stringify(o2,{maxitems:13}) ).toBe('[1,2,3,4,5,6,7,8,9,10,11,12]')
-
-    var o3 = {a:1,b:2,c:3,d:4,e:5,f:6,g:7,h:8,i:9,j:10,k:11,l:12}
-    expect( jsonic.stringify(o3) ).toBe(
-      '{a:1,b:2,c:3,d:4,e:5,f:6,g:7,h:8,i:9,j:10,k:11}')
-    expect( jsonic.stringify(o3,{maxitems:12}) ).toBe(
-      '{a:1,b:2,c:3,d:4,e:5,f:6,g:7,h:8,i:9,j:10,k:11,l:12}')
-    expect( jsonic.stringify(o3,{maxitems:12}) ).toBe(
-      '{a:1,b:2,c:3,d:4,e:5,f:6,g:7,h:8,i:9,j:10,k:11,l:12}')
-
-
-    // showfunc - needs custom=true as well
-    var o4 = {a:1,b:function b() {}}
-    expect( jsonic.stringify(o4) ).toBe('{a:1}')
-    expect( jsonic.stringify(o4,{showfunc:true}) )
-      .toBe('{a:1,b:function b() {}}')
-
-
-    // exception
-
-    var o5 = {toString:function(){ throw Error('foo') }}
-    expect( jsonic.stringify(o5,{custom:true}) )
-      .toBe( "ERROR: jsonic.stringify: Error: foo input was: {}" )
-
-
-    // maxchars
-    expect( jsonic.stringify([1,2,3],{maxchars:4}) ).toBe('[1,2')
-
-    // maxitems
-    expect( jsonic.stringify([1,2,3],{maxitems:2}) ).toBe('[1,2]')
-    expect( jsonic.stringify({a:1,b:2,c:3},{maxitems:2}) ).toBe('{a:1,b:2}')
-
-
-    // wierd keys
-    expect( jsonic.stringify({"_":0,"$":1,":":2,"":3,"\'":4,"\"":5,"\n":6}) )
-      .toBe( '{_:0,":":2,"":3,"\'":4,"\\"":5,"\\n":6}' )
-
-    // abbrevs
-    expect( jsonic.stringify({a:1,b:2},{o:['a']}) ).toBe('{b:2}')
-    expect( jsonic.stringify({a$:1,b:2,c:3},{x:['b']}) ).toBe('{a$:1,c:3}')
-    s='{a:{b:{}}}';d={a:{b:{c:{d:1}}}}
-    expect( jsonic.stringify(d,{d:2}) ).toBe(s)
-    expect( jsonic.stringify(o1,{c:true}) ).toBe('<A>')
-    expect( jsonic.stringify([1,2,3],{mc:4}) ).toBe('[1,2')
-    expect( jsonic.stringify([1,2,3],{mi:2}) ).toBe('[1,2]')
-  })
-*/
-  
-
-  it('pv-performance', {timeout:3333}, function(){
-    pv_perf(200)
+    if (0 < count.fail) {
+      console.log('\x1b[0m', count)
+      Code.fail()
+    }
   })
 })
 
-},{"..":1,"./pv-perf":56,"@hapi/code":2,"@hapi/lab":31,"hapi-lab-shim":40,"util":52}],56:[function(require,module,exports){
-var j = require('..').Jsonic
+function match(src, pat, ctx) {
+  ctx = ctx || {}
+  ctx.loc = ctx.loc || '$'
 
-function pv_perf(dur) {
-  var input =
-      "int:100,dec:9.9,t:true,f:false,qs:"+
-      "\"a\\\"a'a\",as:'a\"a\\'a',a:{b:{c:1}}"
+  if (src === pat) return
+  if (false !== ctx.miss && undefined === pat) return
 
-  // warm up
-  var start = Date.now(), count = 0
-  while( Date.now()-start < dur ) {
-    j(input)
+  if (Array.isArray(src) && Array.isArray(pat)) {
+    if (false === ctx.miss && src.length !== pat.length) {
+      return ctx.loc + '/len:' + src.length + '!=' + pat.length
+    }
+
+    let m = undefined
+    for (let i = 0; i < pat.length; i++) {
+      m = match(src[i], pat[i], { ...ctx, loc: ctx.loc + '[' + i + ']' })
+      if (m) {
+        return m
+      }
+    }
+
+    return
+  } else if ('object' === typeof src && 'object' === typeof pat) {
+    let ksrc = Object.keys(src).sort()
+    let kpat = Object.keys(pat).sort()
+
+    if (false === ctx.miss && ksrc.length !== kpat.length) {
+      return ctx.loc + '/key:{' + ksrc + '}!={' + kpat + '}'
+    }
+
+    for (let i = 0; i < kpat.length; i++) {
+      if (false === ctx.miss && ksrc[i] !== kpat[i])
+        return ctx.loc + '/key:' + kpat[i]
+
+      let m = match(src[kpat[i]], pat[kpat[i]], {
+        ...ctx,
+        loc: ctx.loc + '.' + kpat[i],
+      })
+      if (m) {
+        return m
+      }
+    }
+
+    return
   }
 
-  start = Date.now(), count = 0
-  while( Date.now()-start < dur ) {
-    j(input)
-    count++
+  return ctx.loc + '/val:' + src + '!=' + pat
+}
+
+},{"..":1,"util":22}],26:[function(require,module,exports){
+/* Copyright (c) 2021 Richard Rodger and other contributors, MIT License */
+'use strict'
+
+// const Code = require('@hapi/code')
+// const E = Code.expect
+
+const P = JSON.parse
+
+module.exports = function json(j, E) {
+  let s
+
+  // V
+  s = '{}'
+  E(j(s)).toEqual(P(s))
+  s = '[]'
+  E(j(s)).toEqual(P(s))
+  s = '0'
+  E(j(s)).toEqual(P(s))
+  s = '""'
+  E(j(s)).toEqual(P(s))
+  s = 'true'
+  E(j(s)).toEqual(P(s))
+  s = 'false'
+  E(j(s)).toEqual(P(s))
+  s = 'null'
+  E(j(s)).toEqual(P(s))
+
+  // {K:V}
+  s = '{"a":{}}'
+  E(j(s)).toEqual(P(s))
+  s = '{"a":[]}'
+  E(j(s)).toEqual(P(s))
+  s = '{"a":0}'
+  E(j(s)).toEqual(P(s))
+  s = '{"a":""}'
+  E(j(s)).toEqual(P(s))
+  s = '{"a":true}'
+  E(j(s)).toEqual(P(s))
+  s = '{"a":false}'
+  E(j(s)).toEqual(P(s))
+  s = '{"a":null}'
+  E(j(s)).toEqual(P(s))
+
+  // {K:V,K:V}
+  s = '{"a":{},"b":{}}'
+  E(j(s)).toEqual(P(s))
+  s = '{"a":[],"b":[]}'
+  E(j(s)).toEqual(P(s))
+  s = '{"a":0,"b":0}'
+  E(j(s)).toEqual(P(s))
+  s = '{"a":"","b":""}'
+  E(j(s)).toEqual(P(s))
+  s = '{"a":true,"b":true}'
+  E(j(s)).toEqual(P(s))
+  s = '{"a":false,"b":false}'
+  E(j(s)).toEqual(P(s))
+  s = '{"a":null,"b":null}'
+  E(j(s)).toEqual(P(s))
+
+  // [V]
+  s = '[{}]'
+  E(j(s)).toEqual(P(s))
+  s = '[[]]'
+  E(j(s)).toEqual(P(s))
+  s = '[0]'
+  E(j(s)).toEqual(P(s))
+  s = '[""]'
+  E(j(s)).toEqual(P(s))
+  s = '[true]'
+  E(j(s)).toEqual(P(s))
+  s = '[false]'
+  E(j(s)).toEqual(P(s))
+  s = '[null]'
+  E(j(s)).toEqual(P(s))
+
+  // [V,V]
+  s = '[{},{}]'
+  E(j(s)).toEqual(P(s))
+  s = '[[],[]]'
+  E(j(s)).toEqual(P(s))
+  s = '[0,0]'
+  E(j(s)).toEqual(P(s))
+  s = '["",""]'
+  E(j(s)).toEqual(P(s))
+  s = '[true,true]'
+  E(j(s)).toEqual(P(s))
+  s = '[false,false]'
+  E(j(s)).toEqual(P(s))
+  s = '[null,null]'
+  E(j(s)).toEqual(P(s))
+
+  // N
+  s = '1'
+  E(j(s)).toEqual(P(s))
+  s = '-2'
+  E(j(s)).toEqual(P(s))
+  s = '51'
+  E(j(s)).toEqual(P(s))
+  s = '-62'
+  E(j(s)).toEqual(P(s))
+  s = '0.3'
+  E(j(s)).toEqual(P(s))
+  s = '-0.4'
+  E(j(s)).toEqual(P(s))
+  s = '0.37'
+  E(j(s)).toEqual(P(s))
+  s = '-0.48'
+  E(j(s)).toEqual(P(s))
+  s = '9.3'
+  E(j(s)).toEqual(P(s))
+  s = '-1.4'
+  E(j(s)).toEqual(P(s))
+  s = '2.37'
+  E(j(s)).toEqual(P(s))
+  s = '-3.48'
+  E(j(s)).toEqual(P(s))
+  s = '94.3'
+  E(j(s)).toEqual(P(s))
+  s = '-15.4'
+  E(j(s)).toEqual(P(s))
+  s = '26.37'
+  E(j(s)).toEqual(P(s))
+  s = '-37.48'
+  E(j(s)).toEqual(P(s))
+
+  s = '1e8'
+  E(j(s)).toEqual(P(s))
+  s = '-2e9'
+  E(j(s)).toEqual(P(s))
+  s = '51e0'
+  E(j(s)).toEqual(P(s))
+  s = '-62e1'
+  E(j(s)).toEqual(P(s))
+  s = '1e82'
+  E(j(s)).toEqual(P(s))
+  s = '-2e93'
+  E(j(s)).toEqual(P(s))
+  s = '51e04'
+  E(j(s)).toEqual(P(s))
+  s = '-62e15'
+  E(j(s)).toEqual(P(s))
+  s = '1E8'
+  E(j(s)).toEqual(P(s))
+  s = '-2E9'
+  E(j(s)).toEqual(P(s))
+  s = '51E0'
+  E(j(s)).toEqual(P(s))
+  s = '-62E1'
+  E(j(s)).toEqual(P(s))
+  s = '1E82'
+  E(j(s)).toEqual(P(s))
+  s = '-2E93'
+  E(j(s)).toEqual(P(s))
+  s = '51E04'
+  E(j(s)).toEqual(P(s))
+  s = '-62E15'
+  E(j(s)).toEqual(P(s))
+
+  s = '1e-8'
+  E(j(s)).toEqual(P(s))
+  s = '-2e-9'
+  E(j(s)).toEqual(P(s))
+  s = '51e-0'
+  E(j(s)).toEqual(P(s))
+  s = '-62e-1'
+  E(j(s)).toEqual(P(s))
+  s = '1e-82'
+  E(j(s)).toEqual(P(s))
+  s = '-2e-93'
+  E(j(s)).toEqual(P(s))
+  s = '51e-04'
+  E(j(s)).toEqual(P(s))
+  s = '-62e-15'
+  E(j(s)).toEqual(P(s))
+  s = '1E-8'
+  E(j(s)).toEqual(P(s))
+  s = '-2E-9'
+  E(j(s)).toEqual(P(s))
+  s = '51E-0'
+  E(j(s)).toEqual(P(s))
+  s = '-62E-1'
+  E(j(s)).toEqual(P(s))
+  s = '1E-82'
+  E(j(s)).toEqual(P(s))
+  s = '-2E-93'
+  E(j(s)).toEqual(P(s))
+  s = '51E-04'
+  E(j(s)).toEqual(P(s))
+  s = '-62E-15'
+  E(j(s)).toEqual(P(s))
+
+  s = '1e+8'
+  E(j(s)).toEqual(P(s))
+  s = '-2e+9'
+  E(j(s)).toEqual(P(s))
+  s = '51e+0'
+  E(j(s)).toEqual(P(s))
+  s = '-62e+1'
+  E(j(s)).toEqual(P(s))
+  s = '1e+82'
+  E(j(s)).toEqual(P(s))
+  s = '-2e+93'
+  E(j(s)).toEqual(P(s))
+  s = '51e+04'
+  E(j(s)).toEqual(P(s))
+  s = '-62e+15'
+  E(j(s)).toEqual(P(s))
+  s = '1E+8'
+  E(j(s)).toEqual(P(s))
+  s = '-2E+9'
+  E(j(s)).toEqual(P(s))
+  s = '51E+0'
+  E(j(s)).toEqual(P(s))
+  s = '-62E+1'
+  E(j(s)).toEqual(P(s))
+  s = '1E+82'
+  E(j(s)).toEqual(P(s))
+  s = '-2E+93'
+  E(j(s)).toEqual(P(s))
+  s = '51E+04'
+  E(j(s)).toEqual(P(s))
+  s = '-62E+15'
+  E(j(s)).toEqual(P(s))
+
+  // S
+  s = '"a"'
+  E(j(s)).toEqual(P(s))
+  s = '"aa"'
+  E(j(s)).toEqual(P(s))
+  s = '"\\""'
+  E(j(s)).toEqual(P(s))
+  s = '"\\\\"'
+  E(j(s)).toEqual(P(s))
+  s = '"\\/"'
+  E(j(s)).toEqual(P(s))
+  s = '"\\b"'
+  E(j(s)).toEqual(P(s))
+  s = '"\\f"'
+  E(j(s)).toEqual(P(s))
+  s = '"\\n"'
+  E(j(s)).toEqual(P(s))
+  s = '"\\r"'
+  E(j(s)).toEqual(P(s))
+  s = '"\\t"'
+  E(j(s)).toEqual(P(s))
+  s = '"\\u0000"'
+  E(j(s)).toEqual(P(s))
+
+  // {K:N}
+  s = '{"a":1}'
+  E(j(s)).toEqual(P(s))
+  s = '{"a":-2}'
+  E(j(s)).toEqual(P(s))
+  s = '{"a":51}'
+  E(j(s)).toEqual(P(s))
+  s = '{"a":-62}'
+  E(j(s)).toEqual(P(s))
+  s = '{"a":0.3}'
+  E(j(s)).toEqual(P(s))
+  s = '{"a":-0.4}'
+  E(j(s)).toEqual(P(s))
+  s = '{"a":0.37}'
+  E(j(s)).toEqual(P(s))
+  s = '{"a":-0.48}'
+  E(j(s)).toEqual(P(s))
+  s = '{"a":9.3}'
+  E(j(s)).toEqual(P(s))
+  s = '{"a":-1.4}'
+  E(j(s)).toEqual(P(s))
+  s = '{"a":2.37}'
+  E(j(s)).toEqual(P(s))
+  s = '{"a":-3.48}'
+  E(j(s)).toEqual(P(s))
+  s = '{"a":94.3}'
+  E(j(s)).toEqual(P(s))
+  s = '{"a":-15.4}'
+  E(j(s)).toEqual(P(s))
+  s = '{"a":26.37}'
+  E(j(s)).toEqual(P(s))
+  s = '{"a":-37.48}'
+  E(j(s)).toEqual(P(s))
+
+  s = '{"a":1e8}'
+  E(j(s)).toEqual(P(s))
+  s = '{"a":-2e9}'
+  E(j(s)).toEqual(P(s))
+  s = '{"a":51e0}'
+  E(j(s)).toEqual(P(s))
+  s = '{"a":-62e1}'
+  E(j(s)).toEqual(P(s))
+  s = '{"a":1e82}'
+  E(j(s)).toEqual(P(s))
+  s = '{"a":-2e93}'
+  E(j(s)).toEqual(P(s))
+  s = '{"a":51e04}'
+  E(j(s)).toEqual(P(s))
+  s = '{"a":-62e15}'
+  E(j(s)).toEqual(P(s))
+  s = '{"a":1E8}'
+  E(j(s)).toEqual(P(s))
+  s = '{"a":-2E9}'
+  E(j(s)).toEqual(P(s))
+  s = '{"a":51E0}'
+  E(j(s)).toEqual(P(s))
+  s = '{"a":-62E1}'
+  E(j(s)).toEqual(P(s))
+  s = '{"a":1E82}'
+  E(j(s)).toEqual(P(s))
+  s = '{"a":-2E93}'
+  E(j(s)).toEqual(P(s))
+  s = '{"a":51E04}'
+  E(j(s)).toEqual(P(s))
+  s = '{"a":-62E15}'
+  E(j(s)).toEqual(P(s))
+
+  s = '{"a":1e-8}'
+  E(j(s)).toEqual(P(s))
+  s = '{"a":-2e-9}'
+  E(j(s)).toEqual(P(s))
+  s = '{"a":51e-0}'
+  E(j(s)).toEqual(P(s))
+  s = '{"a":-62e-1}'
+  E(j(s)).toEqual(P(s))
+  s = '{"a":1e-82}'
+  E(j(s)).toEqual(P(s))
+  s = '{"a":-2e-93}'
+  E(j(s)).toEqual(P(s))
+  s = '{"a":51e-04}'
+  E(j(s)).toEqual(P(s))
+  s = '{"a":-62e-15}'
+  E(j(s)).toEqual(P(s))
+  s = '{"a":1E-8}'
+  E(j(s)).toEqual(P(s))
+  s = '{"a":-2E-9}'
+  E(j(s)).toEqual(P(s))
+  s = '{"a":51E-0}'
+  E(j(s)).toEqual(P(s))
+  s = '{"a":-62E-1}'
+  E(j(s)).toEqual(P(s))
+  s = '{"a":1E-82}'
+  E(j(s)).toEqual(P(s))
+  s = '{"a":-2E-93}'
+  E(j(s)).toEqual(P(s))
+  s = '{"a":51E-04}'
+  E(j(s)).toEqual(P(s))
+  s = '{"a":-62E-15}'
+  E(j(s)).toEqual(P(s))
+
+  s = '{"a":1e+8}'
+  E(j(s)).toEqual(P(s))
+  s = '{"a":-2e+9}'
+  E(j(s)).toEqual(P(s))
+  s = '{"a":51e+0}'
+  E(j(s)).toEqual(P(s))
+  s = '{"a":-62e+1}'
+  E(j(s)).toEqual(P(s))
+  s = '{"a":1e+82}'
+  E(j(s)).toEqual(P(s))
+  s = '{"a":-2e+93}'
+  E(j(s)).toEqual(P(s))
+  s = '{"a":51e+04}'
+  E(j(s)).toEqual(P(s))
+  s = '{"a":-62e+15}'
+  E(j(s)).toEqual(P(s))
+  s = '{"a":1E+8}'
+  E(j(s)).toEqual(P(s))
+  s = '{"a":-2E+9}'
+  E(j(s)).toEqual(P(s))
+  s = '{"a":51E+0}'
+  E(j(s)).toEqual(P(s))
+  s = '{"a":-62E+1}'
+  E(j(s)).toEqual(P(s))
+  s = '{"a":1E+82}'
+  E(j(s)).toEqual(P(s))
+  s = '{"a":-2E+93}'
+  E(j(s)).toEqual(P(s))
+  s = '{"a":51E+04}'
+  E(j(s)).toEqual(P(s))
+  s = '{"a":-62E+15}'
+  E(j(s)).toEqual(P(s))
+
+  // {K:S}
+  s = '{"a":"a"}'
+  E(j(s)).toEqual(P(s))
+  s = '{"a":"aa"}'
+  E(j(s)).toEqual(P(s))
+  s = '{"a":"\\""}'
+  E(j(s)).toEqual(P(s))
+  s = '{"a":"\\\\"}'
+  E(j(s)).toEqual(P(s))
+  s = '{"a":"\\/"}'
+  E(j(s)).toEqual(P(s))
+  s = '{"a":"\\b"}'
+  E(j(s)).toEqual(P(s))
+  s = '{"a":"\\f"}'
+  E(j(s)).toEqual(P(s))
+  s = '{"a":"\\n"}'
+  E(j(s)).toEqual(P(s))
+  s = '{"a":"\\r"}'
+  E(j(s)).toEqual(P(s))
+  s = '{"a":"\\t"}'
+  E(j(s)).toEqual(P(s))
+  s = '{"a":"\\u0000"}'
+  E(j(s)).toEqual(P(s))
+
+  // {K:B}
+  s = '{"a":true}'
+  E(j(s)).toEqual(P(s))
+  s = '{"a":false}'
+  E(j(s)).toEqual(P(s))
+  s = '{"a":null}'
+  E(j(s)).toEqual(P(s))
+
+  // [N]
+  s = '[1]'
+  E(j(s)).toEqual(P(s))
+  s = '[-2]'
+  E(j(s)).toEqual(P(s))
+  s = '[51]'
+  E(j(s)).toEqual(P(s))
+  s = '[-62]'
+  E(j(s)).toEqual(P(s))
+  s = '[0.3]'
+  E(j(s)).toEqual(P(s))
+  s = '[-0.4]'
+  E(j(s)).toEqual(P(s))
+  s = '[0.37]'
+  E(j(s)).toEqual(P(s))
+  s = '[-0.48]'
+  E(j(s)).toEqual(P(s))
+  s = '[9.3]'
+  E(j(s)).toEqual(P(s))
+  s = '[-1.4]'
+  E(j(s)).toEqual(P(s))
+  s = '[2.37]'
+  E(j(s)).toEqual(P(s))
+  s = '[-3.48]'
+  E(j(s)).toEqual(P(s))
+  s = '[94.3]'
+  E(j(s)).toEqual(P(s))
+  s = '[-15.4]'
+  E(j(s)).toEqual(P(s))
+  s = '[26.37]'
+  E(j(s)).toEqual(P(s))
+  s = '[-37.48]'
+  E(j(s)).toEqual(P(s))
+
+  s = '[1e8]'
+  E(j(s)).toEqual(P(s))
+  s = '[-2e9]'
+  E(j(s)).toEqual(P(s))
+  s = '[51e0]'
+  E(j(s)).toEqual(P(s))
+  s = '[-62e1]'
+  E(j(s)).toEqual(P(s))
+  s = '[1e82]'
+  E(j(s)).toEqual(P(s))
+  s = '[-2e93]'
+  E(j(s)).toEqual(P(s))
+  s = '[51e04]'
+  E(j(s)).toEqual(P(s))
+  s = '[-62e15]'
+  E(j(s)).toEqual(P(s))
+  s = '[1E8]'
+  E(j(s)).toEqual(P(s))
+  s = '[-2E9]'
+  E(j(s)).toEqual(P(s))
+  s = '[51E0]'
+  E(j(s)).toEqual(P(s))
+  s = '[-62E1]'
+  E(j(s)).toEqual(P(s))
+  s = '[1E82]'
+  E(j(s)).toEqual(P(s))
+  s = '[-2E93]'
+  E(j(s)).toEqual(P(s))
+  s = '[51E04]'
+  E(j(s)).toEqual(P(s))
+  s = '[-62E15]'
+  E(j(s)).toEqual(P(s))
+
+  s = '[1e-8]'
+  E(j(s)).toEqual(P(s))
+  s = '[-2e-9]'
+  E(j(s)).toEqual(P(s))
+  s = '[51e-0]'
+  E(j(s)).toEqual(P(s))
+  s = '[-62e-1]'
+  E(j(s)).toEqual(P(s))
+  s = '[1e-82]'
+  E(j(s)).toEqual(P(s))
+  s = '[-2e-93]'
+  E(j(s)).toEqual(P(s))
+  s = '[51e-04]'
+  E(j(s)).toEqual(P(s))
+  s = '[-62e-15]'
+  E(j(s)).toEqual(P(s))
+  s = '[1E-8]'
+  E(j(s)).toEqual(P(s))
+  s = '[-2E-9]'
+  E(j(s)).toEqual(P(s))
+  s = '[51E-0]'
+  E(j(s)).toEqual(P(s))
+  s = '[-62E-1]'
+  E(j(s)).toEqual(P(s))
+  s = '[1E-82]'
+  E(j(s)).toEqual(P(s))
+  s = '[-2E-93]'
+  E(j(s)).toEqual(P(s))
+  s = '[51E-04]'
+  E(j(s)).toEqual(P(s))
+  s = '[-62E-15]'
+  E(j(s)).toEqual(P(s))
+
+  s = '[1e+8]'
+  E(j(s)).toEqual(P(s))
+  s = '[-2e+9]'
+  E(j(s)).toEqual(P(s))
+  s = '[51e+0]'
+  E(j(s)).toEqual(P(s))
+  s = '[-62e+1]'
+  E(j(s)).toEqual(P(s))
+  s = '[1e+82]'
+  E(j(s)).toEqual(P(s))
+  s = '[-2e+93]'
+  E(j(s)).toEqual(P(s))
+  s = '[51e+04]'
+  E(j(s)).toEqual(P(s))
+  s = '[-62e+15]'
+  E(j(s)).toEqual(P(s))
+  s = '[1E+8]'
+  E(j(s)).toEqual(P(s))
+  s = '[-2E+9]'
+  E(j(s)).toEqual(P(s))
+  s = '[51E+0]'
+  E(j(s)).toEqual(P(s))
+  s = '[-62E+1]'
+  E(j(s)).toEqual(P(s))
+  s = '[1E+82]'
+  E(j(s)).toEqual(P(s))
+  s = '[-2E+93]'
+  E(j(s)).toEqual(P(s))
+  s = '[51E+04]'
+  E(j(s)).toEqual(P(s))
+  s = '[-62E+15]'
+  E(j(s)).toEqual(P(s))
+
+  // [S]
+  s = '["a"]'
+  E(j(s)).toEqual(P(s))
+  s = '["aa"]'
+  E(j(s)).toEqual(P(s))
+  s = '["\\""]'
+  E(j(s)).toEqual(P(s))
+  s = '["\\\\"]'
+  E(j(s)).toEqual(P(s))
+  s = '["\\/"]'
+  E(j(s)).toEqual(P(s))
+  s = '["\\b"]'
+  E(j(s)).toEqual(P(s))
+  s = '["\\f"]'
+  E(j(s)).toEqual(P(s))
+  s = '["\\n"]'
+  E(j(s)).toEqual(P(s))
+  s = '["\\r"]'
+  E(j(s)).toEqual(P(s))
+  s = '["\\t"]'
+  E(j(s)).toEqual(P(s))
+  s = '["\\u0000"]'
+  E(j(s)).toEqual(P(s))
+
+  // [B]
+  s = '[true]'
+  E(j(s)).toEqual(P(s))
+  s = '[false]'
+  E(j(s)).toEqual(P(s))
+  s = '[null]'
+  E(j(s)).toEqual(P(s))
+
+  // [{K:V}]
+  s = '[{"a":1}]'
+  E(j(s)).toEqual(P(s))
+  s = '[{"a":-2}]'
+  E(j(s)).toEqual(P(s))
+  s = '[{"a":51}]'
+  E(j(s)).toEqual(P(s))
+  s = '[{"a":-62}]'
+  E(j(s)).toEqual(P(s))
+  s = '[{"a":0.3}]'
+  E(j(s)).toEqual(P(s))
+  s = '[{"a":-0.4}]'
+  E(j(s)).toEqual(P(s))
+  s = '[{"a":0.37}]'
+  E(j(s)).toEqual(P(s))
+  s = '[{"a":-0.48}]'
+  E(j(s)).toEqual(P(s))
+  s = '[{"a":9.3}]'
+  E(j(s)).toEqual(P(s))
+  s = '[{"a":-1.4}]'
+  E(j(s)).toEqual(P(s))
+  s = '[{"a":2.37}]'
+  E(j(s)).toEqual(P(s))
+  s = '[{"a":-3.48}]'
+  E(j(s)).toEqual(P(s))
+  s = '[{"a":94.3}]'
+  E(j(s)).toEqual(P(s))
+  s = '[{"a":-15.4}]'
+  E(j(s)).toEqual(P(s))
+  s = '[{"a":26.37}]'
+  E(j(s)).toEqual(P(s))
+  s = '[{"a":-37.48}]'
+  E(j(s)).toEqual(P(s))
+
+  s = '[{"a":1e8}]'
+  E(j(s)).toEqual(P(s))
+  s = '[{"a":-2e9}]'
+  E(j(s)).toEqual(P(s))
+  s = '[{"a":51e0}]'
+  E(j(s)).toEqual(P(s))
+  s = '[{"a":-62e1}]'
+  E(j(s)).toEqual(P(s))
+  s = '[{"a":1e82}]'
+  E(j(s)).toEqual(P(s))
+  s = '[{"a":-2e93}]'
+  E(j(s)).toEqual(P(s))
+  s = '[{"a":51e04}]'
+  E(j(s)).toEqual(P(s))
+  s = '[{"a":-62e15}]'
+  E(j(s)).toEqual(P(s))
+  s = '[{"a":1E8}]'
+  E(j(s)).toEqual(P(s))
+  s = '[{"a":-2E9}]'
+  E(j(s)).toEqual(P(s))
+  s = '[{"a":51E0}]'
+  E(j(s)).toEqual(P(s))
+  s = '[{"a":-62E1}]'
+  E(j(s)).toEqual(P(s))
+  s = '[{"a":1E82}]'
+  E(j(s)).toEqual(P(s))
+  s = '[{"a":-2E93}]'
+  E(j(s)).toEqual(P(s))
+  s = '[{"a":51E04}]'
+  E(j(s)).toEqual(P(s))
+  s = '[{"a":-62E15}]'
+  E(j(s)).toEqual(P(s))
+
+  s = '[{"a":1e-8}]'
+  E(j(s)).toEqual(P(s))
+  s = '[{"a":-2e-9}]'
+  E(j(s)).toEqual(P(s))
+  s = '[{"a":51e-0}]'
+  E(j(s)).toEqual(P(s))
+  s = '[{"a":-62e-1}]'
+  E(j(s)).toEqual(P(s))
+  s = '[{"a":1e-82}]'
+  E(j(s)).toEqual(P(s))
+  s = '[{"a":-2e-93}]'
+  E(j(s)).toEqual(P(s))
+  s = '[{"a":51e-04}]'
+  E(j(s)).toEqual(P(s))
+  s = '[{"a":-62e-15}]'
+  E(j(s)).toEqual(P(s))
+  s = '[{"a":1E-8}]'
+  E(j(s)).toEqual(P(s))
+  s = '[{"a":-2E-9}]'
+  E(j(s)).toEqual(P(s))
+  s = '[{"a":51E-0}]'
+  E(j(s)).toEqual(P(s))
+  s = '[{"a":-62E-1}]'
+  E(j(s)).toEqual(P(s))
+  s = '[{"a":1E-82}]'
+  E(j(s)).toEqual(P(s))
+  s = '[{"a":-2E-93}]'
+  E(j(s)).toEqual(P(s))
+  s = '[{"a":51E-04}]'
+  E(j(s)).toEqual(P(s))
+  s = '[{"a":-62E-15}]'
+  E(j(s)).toEqual(P(s))
+
+  s = '[{"a":1e+8}]'
+  E(j(s)).toEqual(P(s))
+  s = '[{"a":-2e+9}]'
+  E(j(s)).toEqual(P(s))
+  s = '[{"a":51e+0}]'
+  E(j(s)).toEqual(P(s))
+  s = '[{"a":-62e+1}]'
+  E(j(s)).toEqual(P(s))
+  s = '[{"a":1e+82}]'
+  E(j(s)).toEqual(P(s))
+  s = '[{"a":-2e+93}]'
+  E(j(s)).toEqual(P(s))
+  s = '[{"a":51e+04}]'
+  E(j(s)).toEqual(P(s))
+  s = '[{"a":-62e+15}]'
+  E(j(s)).toEqual(P(s))
+  s = '[{"a":1E+8}]'
+  E(j(s)).toEqual(P(s))
+  s = '[{"a":-2E+9}]'
+  E(j(s)).toEqual(P(s))
+  s = '[{"a":51E+0}]'
+  E(j(s)).toEqual(P(s))
+  s = '[{"a":-62E+1}]'
+  E(j(s)).toEqual(P(s))
+  s = '[{"a":1E+82}]'
+  E(j(s)).toEqual(P(s))
+  s = '[{"a":-2E+93}]'
+  E(j(s)).toEqual(P(s))
+  s = '[{"a":51E+04}]'
+  E(j(s)).toEqual(P(s))
+  s = '[{"a":-62E+15}]'
+  E(j(s)).toEqual(P(s))
+
+  s = '[{"a":"a"}]'
+  E(j(s)).toEqual(P(s))
+  s = '[{"a":"aa"}]'
+  E(j(s)).toEqual(P(s))
+  s = '[{"a":"\\""}]'
+  E(j(s)).toEqual(P(s))
+  s = '[{"a":"\\\\"}]'
+  E(j(s)).toEqual(P(s))
+  s = '[{"a":"\\/"}]'
+  E(j(s)).toEqual(P(s))
+  s = '[{"a":"\\b"}]'
+  E(j(s)).toEqual(P(s))
+  s = '[{"a":"\\f"}]'
+  E(j(s)).toEqual(P(s))
+  s = '[{"a":"\\n"}]'
+  E(j(s)).toEqual(P(s))
+  s = '[{"a":"\\r"}]'
+  E(j(s)).toEqual(P(s))
+  s = '[{"a":"\\t"}]'
+  E(j(s)).toEqual(P(s))
+  s = '[{"a":"\\u0000"}]'
+  E(j(s)).toEqual(P(s))
+
+  s = '[{"a":true}]'
+  E(j(s)).toEqual(P(s))
+  s = '[{"a":false}]'
+  E(j(s)).toEqual(P(s))
+  s = '[{"a":null}]'
+  E(j(s)).toEqual(P(s))
+
+  // {K:[V]}
+  s = '{"a":[1]}'
+  E(j(s)).toEqual(P(s))
+  s = '{"a":[-2]}'
+  E(j(s)).toEqual(P(s))
+  s = '{"a":[51]}'
+  E(j(s)).toEqual(P(s))
+  s = '{"a":[-62]}'
+  E(j(s)).toEqual(P(s))
+  s = '{"a":[0.3]}'
+  E(j(s)).toEqual(P(s))
+  s = '{"a":[-0.4]}'
+  E(j(s)).toEqual(P(s))
+  s = '{"a":[0.37]}'
+  E(j(s)).toEqual(P(s))
+  s = '{"a":[-0.48]}'
+  E(j(s)).toEqual(P(s))
+  s = '{"a":[9.3]}'
+  E(j(s)).toEqual(P(s))
+  s = '{"a":[-1.4]}'
+  E(j(s)).toEqual(P(s))
+  s = '{"a":[2.37]}'
+  E(j(s)).toEqual(P(s))
+  s = '{"a":[-3.48]}'
+  E(j(s)).toEqual(P(s))
+  s = '{"a":[94.3]}'
+  E(j(s)).toEqual(P(s))
+  s = '{"a":[-15.4]}'
+  E(j(s)).toEqual(P(s))
+  s = '{"a":[26.37]}'
+  E(j(s)).toEqual(P(s))
+  s = '{"a":[-37.48]}'
+  E(j(s)).toEqual(P(s))
+
+  s = '{"a":[1e8]}'
+  E(j(s)).toEqual(P(s))
+  s = '{"a":[-2e9]}'
+  E(j(s)).toEqual(P(s))
+  s = '{"a":[51e0]}'
+  E(j(s)).toEqual(P(s))
+  s = '{"a":[-62e1]}'
+  E(j(s)).toEqual(P(s))
+  s = '{"a":[1e82]}'
+  E(j(s)).toEqual(P(s))
+  s = '{"a":[-2e93]}'
+  E(j(s)).toEqual(P(s))
+  s = '{"a":[51e04]}'
+  E(j(s)).toEqual(P(s))
+  s = '{"a":[-62e15]}'
+  E(j(s)).toEqual(P(s))
+  s = '{"a":[1E8]}'
+  E(j(s)).toEqual(P(s))
+  s = '{"a":[-2E9]}'
+  E(j(s)).toEqual(P(s))
+  s = '{"a":[51E0]}'
+  E(j(s)).toEqual(P(s))
+  s = '{"a":[-62E1]}'
+  E(j(s)).toEqual(P(s))
+  s = '{"a":[1E82]}'
+  E(j(s)).toEqual(P(s))
+  s = '{"a":[-2E93]}'
+  E(j(s)).toEqual(P(s))
+  s = '{"a":[51E04]}'
+  E(j(s)).toEqual(P(s))
+  s = '{"a":[-62E15]}'
+  E(j(s)).toEqual(P(s))
+
+  s = '{"a":[1e-8]}'
+  E(j(s)).toEqual(P(s))
+  s = '{"a":[-2e-9]}'
+  E(j(s)).toEqual(P(s))
+  s = '{"a":[51e-0]}'
+  E(j(s)).toEqual(P(s))
+  s = '{"a":[-62e-1]}'
+  E(j(s)).toEqual(P(s))
+  s = '{"a":[1e-82]}'
+  E(j(s)).toEqual(P(s))
+  s = '{"a":[-2e-93]}'
+  E(j(s)).toEqual(P(s))
+  s = '{"a":[51e-04]}'
+  E(j(s)).toEqual(P(s))
+  s = '{"a":[-62e-15]}'
+  E(j(s)).toEqual(P(s))
+  s = '{"a":[1E-8]}'
+  E(j(s)).toEqual(P(s))
+  s = '{"a":[-2E-9]}'
+  E(j(s)).toEqual(P(s))
+  s = '{"a":[51E-0]}'
+  E(j(s)).toEqual(P(s))
+  s = '{"a":[-62E-1]}'
+  E(j(s)).toEqual(P(s))
+  s = '{"a":[1E-82]}'
+  E(j(s)).toEqual(P(s))
+  s = '{"a":[-2E-93]}'
+  E(j(s)).toEqual(P(s))
+  s = '{"a":[51E-04]}'
+  E(j(s)).toEqual(P(s))
+  s = '{"a":[-62E-15]}'
+  E(j(s)).toEqual(P(s))
+
+  s = '{"a":[1e+8]}'
+  E(j(s)).toEqual(P(s))
+  s = '{"a":[-2e+9]}'
+  E(j(s)).toEqual(P(s))
+  s = '{"a":[51e+0]}'
+  E(j(s)).toEqual(P(s))
+  s = '{"a":[-62e+1]}'
+  E(j(s)).toEqual(P(s))
+  s = '{"a":[1e+82]}'
+  E(j(s)).toEqual(P(s))
+  s = '{"a":[-2e+93]}'
+  E(j(s)).toEqual(P(s))
+  s = '{"a":[51e+04]}'
+  E(j(s)).toEqual(P(s))
+  s = '{"a":[-62e+15]}'
+  E(j(s)).toEqual(P(s))
+  s = '{"a":[1E+8]}'
+  E(j(s)).toEqual(P(s))
+  s = '{"a":[-2E+9]}'
+  E(j(s)).toEqual(P(s))
+  s = '{"a":[51E+0]}'
+  E(j(s)).toEqual(P(s))
+  s = '{"a":[-62E+1]}'
+  E(j(s)).toEqual(P(s))
+  s = '{"a":[1E+82]}'
+  E(j(s)).toEqual(P(s))
+  s = '{"a":[-2E+93]}'
+  E(j(s)).toEqual(P(s))
+  s = '{"a":[51E+04]}'
+  E(j(s)).toEqual(P(s))
+  s = '{"a":[-62E+15]}'
+  E(j(s)).toEqual(P(s))
+
+  s = '{"a":[true]}'
+  E(j(s)).toEqual(P(s))
+  s = '{"a":[false]}'
+  E(j(s)).toEqual(P(s))
+  s = '{"a":[null]}'
+  E(j(s)).toEqual(P(s))
+
+  // {K:N,K:N}
+  s = '{"a":1,"b":1}'
+  E(j(s)).toEqual(P(s))
+  s = '{"a":-2,"b":-2}'
+  E(j(s)).toEqual(P(s))
+  s = '{"a":51,"b":51}'
+  E(j(s)).toEqual(P(s))
+  s = '{"a":-62,"b":-62}'
+  E(j(s)).toEqual(P(s))
+  s = '{"a":0.3,"b":0.3}'
+  E(j(s)).toEqual(P(s))
+  s = '{"a":-0.4,"b":-0.4}'
+  E(j(s)).toEqual(P(s))
+  s = '{"a":0.37,"b":0.37}'
+  E(j(s)).toEqual(P(s))
+  s = '{"a":-0.48,"b":-0.48}'
+  E(j(s)).toEqual(P(s))
+  s = '{"a":9.3,"b":9.3}'
+  E(j(s)).toEqual(P(s))
+  s = '{"a":-1.4,"b":-1.4}'
+  E(j(s)).toEqual(P(s))
+  s = '{"a":2.37,"b":2.37}'
+  E(j(s)).toEqual(P(s))
+  s = '{"a":-3.48,"b":-3.48}'
+  E(j(s)).toEqual(P(s))
+  s = '{"a":94.3,"b":94.3}'
+  E(j(s)).toEqual(P(s))
+  s = '{"a":-15.4,"b":-15.4}'
+  E(j(s)).toEqual(P(s))
+  s = '{"a":26.37,"b":26.37}'
+  E(j(s)).toEqual(P(s))
+  s = '{"a":-37.48,"b":-37.48}'
+  E(j(s)).toEqual(P(s))
+
+  s = '{"a":1e8,"b":1e8}'
+  E(j(s)).toEqual(P(s))
+  s = '{"a":-2e9,"b":-2e9}'
+  E(j(s)).toEqual(P(s))
+  s = '{"a":51e0,"b":51e0}'
+  E(j(s)).toEqual(P(s))
+  s = '{"a":-62e1,"b":-62e1}'
+  E(j(s)).toEqual(P(s))
+  s = '{"a":1e82,"b":1e82}'
+  E(j(s)).toEqual(P(s))
+  s = '{"a":-2e93,"b":-2e93}'
+  E(j(s)).toEqual(P(s))
+  s = '{"a":51e04,"b":51e04}'
+  E(j(s)).toEqual(P(s))
+  s = '{"a":-62e15,"b":-62e15}'
+  E(j(s)).toEqual(P(s))
+  s = '{"a":1E8,"b":1E8}'
+  E(j(s)).toEqual(P(s))
+  s = '{"a":-2E9,"b":-2E9}'
+  E(j(s)).toEqual(P(s))
+  s = '{"a":51E0,"b":51E0}'
+  E(j(s)).toEqual(P(s))
+  s = '{"a":-62E1,"b":-62E1}'
+  E(j(s)).toEqual(P(s))
+  s = '{"a":1E82,"b":1E82}'
+  E(j(s)).toEqual(P(s))
+  s = '{"a":-2E93,"b":-2E93}'
+  E(j(s)).toEqual(P(s))
+  s = '{"a":51E04,"b":51E04}'
+  E(j(s)).toEqual(P(s))
+  s = '{"a":-62E15,"b":-62E15}'
+  E(j(s)).toEqual(P(s))
+
+  s = '{"a":1e-8,"b":1e-8}'
+  E(j(s)).toEqual(P(s))
+  s = '{"a":-2e-9,"b":-2e-9}'
+  E(j(s)).toEqual(P(s))
+  s = '{"a":51e-0,"b":51e-0}'
+  E(j(s)).toEqual(P(s))
+  s = '{"a":-62e-1,"b":-62e-1}'
+  E(j(s)).toEqual(P(s))
+  s = '{"a":1e-82,"b":1e-82}'
+  E(j(s)).toEqual(P(s))
+  s = '{"a":-2e-93,"b":-2e-93}'
+  E(j(s)).toEqual(P(s))
+  s = '{"a":51e-04,"b":51e-04}'
+  E(j(s)).toEqual(P(s))
+  s = '{"a":-62e-15,"b":-62e-15}'
+  E(j(s)).toEqual(P(s))
+  s = '{"a":1E-8,"b":1E-8}'
+  E(j(s)).toEqual(P(s))
+  s = '{"a":-2E-9,"b":-2E-9}'
+  E(j(s)).toEqual(P(s))
+  s = '{"a":51E-0,"b":51E-0}'
+  E(j(s)).toEqual(P(s))
+  s = '{"a":-62E-1,"b":-62E-1}'
+  E(j(s)).toEqual(P(s))
+  s = '{"a":1E-82,"b":1E-82}'
+  E(j(s)).toEqual(P(s))
+  s = '{"a":-2E-93,"b":-2E-93}'
+  E(j(s)).toEqual(P(s))
+  s = '{"a":51E-04,"b":51E-04}'
+  E(j(s)).toEqual(P(s))
+  s = '{"a":-62E-15,"b":-62E-15}'
+  E(j(s)).toEqual(P(s))
+
+  s = '{"a":1e+8,"b":1e+8}'
+  E(j(s)).toEqual(P(s))
+  s = '{"a":-2e+9,"b":-2e+9}'
+  E(j(s)).toEqual(P(s))
+  s = '{"a":51e+0,"b":51e+0}'
+  E(j(s)).toEqual(P(s))
+  s = '{"a":-62e+1,"b":-62e+1}'
+  E(j(s)).toEqual(P(s))
+  s = '{"a":1e+82,"b":1e+82}'
+  E(j(s)).toEqual(P(s))
+  s = '{"a":-2e+93,"b":-2e+93}'
+  E(j(s)).toEqual(P(s))
+  s = '{"a":51e+04,"b":51e+04}'
+  E(j(s)).toEqual(P(s))
+  s = '{"a":-62e+15,"b":-62e+15}'
+  E(j(s)).toEqual(P(s))
+  s = '{"a":1E+8,"b":1E+8}'
+  E(j(s)).toEqual(P(s))
+  s = '{"a":-2E+9,"b":-2E+9}'
+  E(j(s)).toEqual(P(s))
+  s = '{"a":51E+0,"b":51E+0}'
+  E(j(s)).toEqual(P(s))
+  s = '{"a":-62E+1,"b":-62E+1}'
+  E(j(s)).toEqual(P(s))
+  s = '{"a":1E+82,"b":1E+82}'
+  E(j(s)).toEqual(P(s))
+  s = '{"a":-2E+93,"b":-2E+93}'
+  E(j(s)).toEqual(P(s))
+  s = '{"a":51E+04,"b":51E+04}'
+  E(j(s)).toEqual(P(s))
+  s = '{"a":-62E+15,"b":-62E+15}'
+  E(j(s)).toEqual(P(s))
+
+  // {K:S,K:S}
+  s = '{"a":"A","b":"B"}'
+  E(j(s)).toEqual(P(s))
+  s = '{"a":"AA","b":"BB"}'
+  E(j(s)).toEqual(P(s))
+  s = '{"a":"\\"","b":"\\""}'
+  E(j(s)).toEqual(P(s))
+  s = '{"a":"\\\\","b":"\\\\"}'
+  E(j(s)).toEqual(P(s))
+  s = '{"a":"\\/","b":"\\/"}'
+  E(j(s)).toEqual(P(s))
+  s = '{"a":"\\b","b":"\\b"}'
+  E(j(s)).toEqual(P(s))
+  s = '{"a":"\\f","b":"\\f"}'
+  E(j(s)).toEqual(P(s))
+  s = '{"a":"\\n","b":"\\n"}'
+  E(j(s)).toEqual(P(s))
+  s = '{"a":"\\r","b":"\\r"}'
+  E(j(s)).toEqual(P(s))
+  s = '{"a":"\\t","b":"\\t"}'
+  E(j(s)).toEqual(P(s))
+  s = '{"a":"\\u0000","b":"\\u0000"}'
+  E(j(s)).toEqual(P(s))
+
+  // {K:B,K:B}
+  s = '{"a":true,"b":true}'
+  E(j(s)).toEqual(P(s))
+  s = '{"a":false,"b":false}'
+  E(j(s)).toEqual(P(s))
+  s = '{"a":null,"b":null}'
+  E(j(s)).toEqual(P(s))
+
+  // [N,N]
+  s = '[1,1]'
+  E(j(s)).toEqual(P(s))
+  s = '[-2,-2]'
+  E(j(s)).toEqual(P(s))
+  s = '[51,51]'
+  E(j(s)).toEqual(P(s))
+  s = '[-62,-62]'
+  E(j(s)).toEqual(P(s))
+  s = '[0.3,0.3]'
+  E(j(s)).toEqual(P(s))
+  s = '[-0.4,-0.4]'
+  E(j(s)).toEqual(P(s))
+  s = '[0.37,0.37]'
+  E(j(s)).toEqual(P(s))
+  s = '[-0.48,-0.48]'
+  E(j(s)).toEqual(P(s))
+  s = '[9.3,9.3]'
+  E(j(s)).toEqual(P(s))
+  s = '[-1.4,-1.4]'
+  E(j(s)).toEqual(P(s))
+  s = '[2.37,2.37]'
+  E(j(s)).toEqual(P(s))
+  s = '[-3.48,-3.48]'
+  E(j(s)).toEqual(P(s))
+  s = '[94.3,94.3]'
+  E(j(s)).toEqual(P(s))
+  s = '[-15.4,-15.4]'
+  E(j(s)).toEqual(P(s))
+  s = '[26.37,26.37]'
+  E(j(s)).toEqual(P(s))
+  s = '[-37.48,-37.48]'
+  E(j(s)).toEqual(P(s))
+
+  s = '[1e8,1e8]'
+  E(j(s)).toEqual(P(s))
+  s = '[-2e9,-2e9]'
+  E(j(s)).toEqual(P(s))
+  s = '[51e0,51e0]'
+  E(j(s)).toEqual(P(s))
+  s = '[-62e1,-62e1]'
+  E(j(s)).toEqual(P(s))
+  s = '[1e82,1e82]'
+  E(j(s)).toEqual(P(s))
+  s = '[-2e93,-2e93]'
+  E(j(s)).toEqual(P(s))
+  s = '[51e04,51e04]'
+  E(j(s)).toEqual(P(s))
+  s = '[-62e15,-62e15]'
+  E(j(s)).toEqual(P(s))
+  s = '[1E8,1E8]'
+  E(j(s)).toEqual(P(s))
+  s = '[-2E9,-2E9]'
+  E(j(s)).toEqual(P(s))
+  s = '[51E0,51E0]'
+  E(j(s)).toEqual(P(s))
+  s = '[-62E1,-62E1]'
+  E(j(s)).toEqual(P(s))
+  s = '[1E82,1E82]'
+  E(j(s)).toEqual(P(s))
+  s = '[-2E93,-2E93]'
+  E(j(s)).toEqual(P(s))
+  s = '[51E04,51E04]'
+  E(j(s)).toEqual(P(s))
+  s = '[-62E15,-62E15]'
+  E(j(s)).toEqual(P(s))
+
+  s = '[1e-8,1e-8]'
+  E(j(s)).toEqual(P(s))
+  s = '[-2e-9,-2e-9]'
+  E(j(s)).toEqual(P(s))
+  s = '[51e-0,51e-0]'
+  E(j(s)).toEqual(P(s))
+  s = '[-62e-1,-62e-1]'
+  E(j(s)).toEqual(P(s))
+  s = '[1e-82,1e-82]'
+  E(j(s)).toEqual(P(s))
+  s = '[-2e-93,-2e-93]'
+  E(j(s)).toEqual(P(s))
+  s = '[51e-04,51e-04]'
+  E(j(s)).toEqual(P(s))
+  s = '[-62e-15,-62e-15]'
+  E(j(s)).toEqual(P(s))
+  s = '[1E-8,1E-8]'
+  E(j(s)).toEqual(P(s))
+  s = '[-2E-9,-2E-9]'
+  E(j(s)).toEqual(P(s))
+  s = '[51E-0,51E-0]'
+  E(j(s)).toEqual(P(s))
+  s = '[-62E-1,-62E-1]'
+  E(j(s)).toEqual(P(s))
+  s = '[1E-82,1E-82]'
+  E(j(s)).toEqual(P(s))
+  s = '[-2E-93,-2E-93]'
+  E(j(s)).toEqual(P(s))
+  s = '[51E-04,51E-04]'
+  E(j(s)).toEqual(P(s))
+  s = '[-62E-15,-62E-15]'
+  E(j(s)).toEqual(P(s))
+
+  s = '[1e+8]'
+  E(j(s)).toEqual(P(s))
+  s = '[-2e+9,-2e+9]'
+  E(j(s)).toEqual(P(s))
+  s = '[51e+0,51e+0]'
+  E(j(s)).toEqual(P(s))
+  s = '[-62e+1,-62e+1]'
+  E(j(s)).toEqual(P(s))
+  s = '[1e+82,1e+82]'
+  E(j(s)).toEqual(P(s))
+  s = '[-2e+93,-2e+93]'
+  E(j(s)).toEqual(P(s))
+  s = '[51e+04,51e+04]'
+  E(j(s)).toEqual(P(s))
+  s = '[-62e+15,-62e+15]'
+  E(j(s)).toEqual(P(s))
+  s = '[1E+8,1E+8]'
+  E(j(s)).toEqual(P(s))
+  s = '[-2E+9,-2E+9]'
+  E(j(s)).toEqual(P(s))
+  s = '[51E+0,51E+0]'
+  E(j(s)).toEqual(P(s))
+  s = '[-62E+1,-62E+1]'
+  E(j(s)).toEqual(P(s))
+  s = '[1E+82,1E+82]'
+  E(j(s)).toEqual(P(s))
+  s = '[-2E+93,-2E+93]'
+  E(j(s)).toEqual(P(s))
+  s = '[51E+04,51E+04]'
+  E(j(s)).toEqual(P(s))
+  s = '[-62E+15,-62E+15]'
+  E(j(s)).toEqual(P(s))
+
+  // [S,S]
+  s = '["a","a"]'
+  E(j(s)).toEqual(P(s))
+  s = '["aa","aa"]'
+  E(j(s)).toEqual(P(s))
+  s = '["\\"","\\""]'
+  E(j(s)).toEqual(P(s))
+  s = '["\\\\","\\\\"]'
+  E(j(s)).toEqual(P(s))
+  s = '["\\/","\\/"]'
+  E(j(s)).toEqual(P(s))
+  s = '["\\b","\\b"]'
+  E(j(s)).toEqual(P(s))
+  s = '["\\f","\\f"]'
+  E(j(s)).toEqual(P(s))
+  s = '["\\n","\\n"]'
+  E(j(s)).toEqual(P(s))
+  s = '["\\r","\\r"]'
+  E(j(s)).toEqual(P(s))
+  s = '["\\t","\\t"]'
+  E(j(s)).toEqual(P(s))
+  s = '["\\u0000","\\u0000"]'
+  E(j(s)).toEqual(P(s))
+
+  // [B,B]
+  s = '[true,true]'
+  E(j(s)).toEqual(P(s))
+  s = '[false,false]'
+  E(j(s)).toEqual(P(s))
+  s = '[null,null]'
+  E(j(s)).toEqual(P(s))
+
+  // [{K:V},{K:V}]
+  s = '[{"a":1},{"a":1}]'
+  E(j(s)).toEqual(P(s))
+  s = '[{"a":-2},{"a":-2}]'
+  E(j(s)).toEqual(P(s))
+  s = '[{"a":51},{"a":51}]'
+  E(j(s)).toEqual(P(s))
+  s = '[{"a":-62},{"a":-62}]'
+  E(j(s)).toEqual(P(s))
+  s = '[{"a":0.3},{"a":0.3}]'
+  E(j(s)).toEqual(P(s))
+  s = '[{"a":-0.4},{"a":-0.4}]'
+  E(j(s)).toEqual(P(s))
+  s = '[{"a":0.37},{"a":0.37}]'
+  E(j(s)).toEqual(P(s))
+  s = '[{"a":-0.48},{"a":-0.48}]'
+  E(j(s)).toEqual(P(s))
+  s = '[{"a":9.3},{"a":9.3}]'
+  E(j(s)).toEqual(P(s))
+  s = '[{"a":-1.4},{"a":-1.4}]'
+  E(j(s)).toEqual(P(s))
+  s = '[{"a":2.37},{"a":2.37}]'
+  E(j(s)).toEqual(P(s))
+  s = '[{"a":-3.48},{"a":-3.48}]'
+  E(j(s)).toEqual(P(s))
+  s = '[{"a":94.3},{"a":94.3}]'
+  E(j(s)).toEqual(P(s))
+  s = '[{"a":-15.4},{"a":-15.4}]'
+  E(j(s)).toEqual(P(s))
+  s = '[{"a":26.37},{"a":26.37}]'
+  E(j(s)).toEqual(P(s))
+  s = '[{"a":-37.48},{"a":-37.48}]'
+  E(j(s)).toEqual(P(s))
+
+  s = '[{"a":1e8},{"a":1e8}]'
+  E(j(s)).toEqual(P(s))
+  s = '[{"a":-2e9},{"a":-2e9}]'
+  E(j(s)).toEqual(P(s))
+  s = '[{"a":51e0},{"a":51e0}]'
+  E(j(s)).toEqual(P(s))
+  s = '[{"a":-62e1},{"a":-62e1}]'
+  E(j(s)).toEqual(P(s))
+  s = '[{"a":1e82},{"a":1e82}]'
+  E(j(s)).toEqual(P(s))
+  s = '[{"a":-2e93},{"a":-2e93}]'
+  E(j(s)).toEqual(P(s))
+  s = '[{"a":51e04},{"a":51e04}]'
+  E(j(s)).toEqual(P(s))
+  s = '[{"a":-62e15},{"a":-62e15}]'
+  E(j(s)).toEqual(P(s))
+  s = '[{"a":1E8},{"a":1E8}]'
+  E(j(s)).toEqual(P(s))
+  s = '[{"a":-2E9},{"a":-2E9}]'
+  E(j(s)).toEqual(P(s))
+  s = '[{"a":51E0},{"a":51E0}]'
+  E(j(s)).toEqual(P(s))
+  s = '[{"a":-62E1},{"a":-62E1}]'
+  E(j(s)).toEqual(P(s))
+  s = '[{"a":1E82},{"a":1E82}]'
+  E(j(s)).toEqual(P(s))
+  s = '[{"a":-2E93},{"a":-2E93}]'
+  E(j(s)).toEqual(P(s))
+  s = '[{"a":51E04},{"a":51E04}]'
+  E(j(s)).toEqual(P(s))
+  s = '[{"a":-62E15},{"a":-62E15}]'
+  E(j(s)).toEqual(P(s))
+
+  s = '[{"a":1e-8},{"a":1e-8}]'
+  E(j(s)).toEqual(P(s))
+  s = '[{"a":-2e-9},{"a":-2e-9}]'
+  E(j(s)).toEqual(P(s))
+  s = '[{"a":51e-0},{"a":51e-0}]'
+  E(j(s)).toEqual(P(s))
+  s = '[{"a":-62e-1},{"a":-62e-1}]'
+  E(j(s)).toEqual(P(s))
+  s = '[{"a":1e-82},{"a":1e-82}]'
+  E(j(s)).toEqual(P(s))
+  s = '[{"a":-2e-93},{"a":-2e-93}]'
+  E(j(s)).toEqual(P(s))
+  s = '[{"a":51e-04},{"a":51e-04}]'
+  E(j(s)).toEqual(P(s))
+  s = '[{"a":-62e-15},{"a":-62e-15}]'
+  E(j(s)).toEqual(P(s))
+  s = '[{"a":1E-8},{"a":1E-8}]'
+  E(j(s)).toEqual(P(s))
+  s = '[{"a":-2E-9},{"a":-2E-9}]'
+  E(j(s)).toEqual(P(s))
+  s = '[{"a":51E-0},{"a":51E-0}]'
+  E(j(s)).toEqual(P(s))
+  s = '[{"a":-62E-1},{"a":-62E-1}]'
+  E(j(s)).toEqual(P(s))
+  s = '[{"a":1E-82},{"a":1E-82}]'
+  E(j(s)).toEqual(P(s))
+  s = '[{"a":-2E-93},{"a":-2E-93}]'
+  E(j(s)).toEqual(P(s))
+  s = '[{"a":51E-04},{"a":51E-04}]'
+  E(j(s)).toEqual(P(s))
+  s = '[{"a":-62E-15},{"a":-62E-15}]'
+  E(j(s)).toEqual(P(s))
+
+  s = '[{"a":1e+8},{"a":1e+8}]'
+  E(j(s)).toEqual(P(s))
+  s = '[{"a":-2e+9},{"a":-2e+9}]'
+  E(j(s)).toEqual(P(s))
+  s = '[{"a":51e+0},{"a":51e+0}]'
+  E(j(s)).toEqual(P(s))
+  s = '[{"a":-62e+1},{"a":-62e+1}]'
+  E(j(s)).toEqual(P(s))
+  s = '[{"a":1e+82},{"a":1e+82}]'
+  E(j(s)).toEqual(P(s))
+  s = '[{"a":-2e+93},{"a":-2e+93}]'
+  E(j(s)).toEqual(P(s))
+  s = '[{"a":51e+04},{"a":51e+04}]'
+  E(j(s)).toEqual(P(s))
+  s = '[{"a":-62e+15},{"a":-62e+15}]'
+  E(j(s)).toEqual(P(s))
+  s = '[{"a":1E+8},{"a":1E+8}]'
+  E(j(s)).toEqual(P(s))
+  s = '[{"a":-2E+9},{"a":-2E+9}]'
+  E(j(s)).toEqual(P(s))
+  s = '[{"a":51E+0},{"a":51E+0}]'
+  E(j(s)).toEqual(P(s))
+  s = '[{"a":-62E+1},{"a":-62E+1}]'
+  E(j(s)).toEqual(P(s))
+  s = '[{"a":1E+82},{"a":1E+82}]'
+  E(j(s)).toEqual(P(s))
+  s = '[{"a":-2E+93},{"a":-2E+93}]'
+  E(j(s)).toEqual(P(s))
+  s = '[{"a":51E+04},{"a":51E+04}]'
+  E(j(s)).toEqual(P(s))
+  s = '[{"a":-62E+15},{"a":-62E+15}]'
+  E(j(s)).toEqual(P(s))
+
+  s = '[{"a":"a"},{"a":"a"}]'
+  E(j(s)).toEqual(P(s))
+  s = '[{"a":"aa"},{"a":"aa"}]'
+  E(j(s)).toEqual(P(s))
+  s = '[{"a":"\\""},{"a":"\\""}]'
+  E(j(s)).toEqual(P(s))
+  s = '[{"a":"\\\\"},{"a":"\\\\"}]'
+  E(j(s)).toEqual(P(s))
+  s = '[{"a":"\\/"},{"a":"\\/"}]'
+  E(j(s)).toEqual(P(s))
+  s = '[{"a":"\\b"},{"a":"\\b"}]'
+  E(j(s)).toEqual(P(s))
+  s = '[{"a":"\\f"},{"a":"\\f"}]'
+  E(j(s)).toEqual(P(s))
+  s = '[{"a":"\\n"},{"a":"\\n"}]'
+  E(j(s)).toEqual(P(s))
+  s = '[{"a":"\\r"},{"a":"\\r"}]'
+  E(j(s)).toEqual(P(s))
+  s = '[{"a":"\\t"},{"a":"\\t"}]'
+  E(j(s)).toEqual(P(s))
+  s = '[{"a":"\\u0000"},{"a":"\\u0000"}]'
+  E(j(s)).toEqual(P(s))
+
+  s = '[{"a":true},{"a":true}]'
+  E(j(s)).toEqual(P(s))
+  s = '[{"a":false},{"a":false}]'
+  E(j(s)).toEqual(P(s))
+  s = '[{"a":null},{"a":null}]'
+  E(j(s)).toEqual(P(s))
+
+  // {K:[V],K:[V]}
+  s = '{"a":[1],"a":[1]}'
+  E(j(s)).toEqual(P(s))
+  s = '{"a":[-2],"b":[-2]}'
+  E(j(s)).toEqual(P(s))
+  s = '{"a":[51],"b":[51]}'
+  E(j(s)).toEqual(P(s))
+  s = '{"a":[-62],"b":[-62]}'
+  E(j(s)).toEqual(P(s))
+  s = '{"a":[0.3],"b":[0.3]}'
+  E(j(s)).toEqual(P(s))
+  s = '{"a":[-0.4],"b":[-0.4]}'
+  E(j(s)).toEqual(P(s))
+  s = '{"a":[0.37],"b":[0.37]}'
+  E(j(s)).toEqual(P(s))
+  s = '{"a":[-0.48],"b":[-0.48]}'
+  E(j(s)).toEqual(P(s))
+  s = '{"a":[9.3],"b":[9.3]}'
+  E(j(s)).toEqual(P(s))
+  s = '{"a":[-1.4],"b":[-1.4]}'
+  E(j(s)).toEqual(P(s))
+  s = '{"a":[2.37],"b":[2.37]}'
+  E(j(s)).toEqual(P(s))
+  s = '{"a":[-3.48],"b":[-3.48]}'
+  E(j(s)).toEqual(P(s))
+  s = '{"a":[94.3],"b":[94.3]}'
+  E(j(s)).toEqual(P(s))
+  s = '{"a":[-15.4],"b":[-15.4]}'
+  E(j(s)).toEqual(P(s))
+  s = '{"a":[26.37],"b":[26.37]}'
+  E(j(s)).toEqual(P(s))
+  s = '{"a":[-37.48],"b":[-37.48]}'
+  E(j(s)).toEqual(P(s))
+
+  s = '{"a":[1e8],"b":[1e8]}'
+  E(j(s)).toEqual(P(s))
+  s = '{"a":[-2e9],"b":[-2e9]}'
+  E(j(s)).toEqual(P(s))
+  s = '{"a":[51e0],"b":[51e0]}'
+  E(j(s)).toEqual(P(s))
+  s = '{"a":[-62e1],"b":[-62e1]}'
+  E(j(s)).toEqual(P(s))
+  s = '{"a":[1e82],"b":[1e82]}'
+  E(j(s)).toEqual(P(s))
+  s = '{"a":[-2e93],"b":[-2e93]}'
+  E(j(s)).toEqual(P(s))
+  s = '{"a":[51e04],"b":[51e04]}'
+  E(j(s)).toEqual(P(s))
+  s = '{"a":[-62e15],"b":[-62e15]}'
+  E(j(s)).toEqual(P(s))
+  s = '{"a":[1E8],"b":[1E8]}'
+  E(j(s)).toEqual(P(s))
+  s = '{"a":[-2E9],"b":[-2E9]}'
+  E(j(s)).toEqual(P(s))
+  s = '{"a":[51E0],"b":[51E0]}'
+  E(j(s)).toEqual(P(s))
+  s = '{"a":[-62E1],"b":[-62E1]}'
+  E(j(s)).toEqual(P(s))
+  s = '{"a":[1E82],"b":[1E82]}'
+  E(j(s)).toEqual(P(s))
+  s = '{"a":[-2E93],"b":[-2E93]}'
+  E(j(s)).toEqual(P(s))
+  s = '{"a":[51E04],"b":[51E04]}'
+  E(j(s)).toEqual(P(s))
+  s = '{"a":[-62E15],"b":[-62E15]}'
+  E(j(s)).toEqual(P(s))
+
+  s = '{"a":[1e-8],"b":[1e-8]}'
+  E(j(s)).toEqual(P(s))
+  s = '{"a":[-2e-9],"b":[-2e-9]}'
+  E(j(s)).toEqual(P(s))
+  s = '{"a":[51e-0],"b":[51e-0]}'
+  E(j(s)).toEqual(P(s))
+  s = '{"a":[-62e-1],"b":[-62e-1]}'
+  E(j(s)).toEqual(P(s))
+  s = '{"a":[1e-82],"b":[1e-82]}'
+  E(j(s)).toEqual(P(s))
+  s = '{"a":[-2e-93],"b":[-2e-93]}'
+  E(j(s)).toEqual(P(s))
+  s = '{"a":[51e-04],"b":[51e-04]}'
+  E(j(s)).toEqual(P(s))
+  s = '{"a":[-62e-15],"b":[-62e-15]}'
+  E(j(s)).toEqual(P(s))
+  s = '{"a":[1E-8],"b":[1E-8]}'
+  E(j(s)).toEqual(P(s))
+  s = '{"a":[-2E-9],"b":[-2E-9]}'
+  E(j(s)).toEqual(P(s))
+  s = '{"a":[51E-0],"b":[51E-0]}'
+  E(j(s)).toEqual(P(s))
+  s = '{"a":[-62E-1],"b":[-62E-1]}'
+  E(j(s)).toEqual(P(s))
+  s = '{"a":[1E-82],"b":[1E-82]}'
+  E(j(s)).toEqual(P(s))
+  s = '{"a":[-2E-93],"b":[-2E-93]}'
+  E(j(s)).toEqual(P(s))
+  s = '{"a":[51E-04],"b":[51E-04]}'
+  E(j(s)).toEqual(P(s))
+  s = '{"a":[-62E-15],"b":[-62E-15]}'
+  E(j(s)).toEqual(P(s))
+
+  s = '{"a":[1e+8],"b":[1e+8]}'
+  E(j(s)).toEqual(P(s))
+  s = '{"a":[-2e+9],"b":[-2e+9]}'
+  E(j(s)).toEqual(P(s))
+  s = '{"a":[51e+0],"b":[51e+0]}'
+  E(j(s)).toEqual(P(s))
+  s = '{"a":[-62e+1],"b":[-62e+1]}'
+  E(j(s)).toEqual(P(s))
+  s = '{"a":[1e+82],"b":[1e+82]}'
+  E(j(s)).toEqual(P(s))
+  s = '{"a":[-2e+93],"b":[-2e+93]}'
+  E(j(s)).toEqual(P(s))
+  s = '{"a":[51e+04],"b":[51e+04]}'
+  E(j(s)).toEqual(P(s))
+  s = '{"a":[-62e+15],"b":[-62e+15]}'
+  E(j(s)).toEqual(P(s))
+  s = '{"a":[1E+8],"b":[1E+8]}'
+  E(j(s)).toEqual(P(s))
+  s = '{"a":[-2E+9],"b":[-2E+9]}'
+  E(j(s)).toEqual(P(s))
+  s = '{"a":[51E+0],"b":[51E+0]}'
+  E(j(s)).toEqual(P(s))
+  s = '{"a":[-62E+1],"b":[-62E+1]}'
+  E(j(s)).toEqual(P(s))
+  s = '{"a":[1E+82],"b":[1E+82]}'
+  E(j(s)).toEqual(P(s))
+  s = '{"a":[-2E+93],"b":[-2E+93]}'
+  E(j(s)).toEqual(P(s))
+  s = '{"a":[51E+04],"b":[51E+04]}'
+  E(j(s)).toEqual(P(s))
+  s = '{"a":[-62E+15],"b":[-62E+15]}'
+  E(j(s)).toEqual(P(s))
+
+  s = '{"a":[true],"b":[true]}'
+  E(j(s)).toEqual(P(s))
+  s = '{"a":[false],"b":[false]}'
+  E(j(s)).toEqual(P(s))
+  s = '{"a":[null],"b":[null]}'
+  E(j(s)).toEqual(P(s))
+
+  // SPACE
+
+  // SPACE V
+  s = ' {\n\n } '
+  E(j(s)).toEqual(P(s))
+  s = '  [\t\r\n]'
+  E(j(s)).toEqual(P(s))
+  s = '0'
+  E(j(s)).toEqual(P(s))
+  s = '""'
+  E(j(s)).toEqual(P(s))
+  s = 'true'
+  E(j(s)).toEqual(P(s))
+  s = 'false'
+  E(j(s)).toEqual(P(s))
+  s = 'null'
+  E(j(s)).toEqual(P(s))
+
+  // SPACE  {\nK:V\n }
+  s = ' {\n"a": {\n\n } \n } '
+  E(j(s)).toEqual(P(s))
+  s = ' {\n"a":  [\t\r\n]\n } '
+  E(j(s)).toEqual(P(s))
+  s = ' {\n"a":0\n } '
+  E(j(s)).toEqual(P(s))
+  s = ' {\n"a":""\n } '
+  E(j(s)).toEqual(P(s))
+  s = ' {\n"a":true\n } '
+  E(j(s)).toEqual(P(s))
+  s = ' {\n"a":false\n } '
+  E(j(s)).toEqual(P(s))
+  s = ' {\n"a":null\n } '
+  E(j(s)).toEqual(P(s))
+
+  // SPACE  {\nK:V   ,\t \t\t  \r\r\n\nK:V\n }
+  s = ' {\n"a": {\n\n }    ,\t \t\t  \r\r\n\n"b": {\n\n } \n } '
+  E(j(s)).toEqual(P(s))
+  s = ' {\n"a":  [\t\r\n]   ,\t \t\t  \r\r\n\n"b":  [\t\r\n]\n } '
+  E(j(s)).toEqual(P(s))
+  s = ' {\n"a":0   ,\t \t\t  \r\r\n\n"b":0\n } '
+  E(j(s)).toEqual(P(s))
+  s = ' {\n"a":""   ,\t \t\t  \r\r\n\n"b":""\n } '
+  E(j(s)).toEqual(P(s))
+  s = ' {\n"a":true   ,\t \t\t  \r\r\n\n"b":true\n } '
+  E(j(s)).toEqual(P(s))
+  s = ' {\n"a":false   ,\t \t\t  \r\r\n\n"b":false\n } '
+  E(j(s)).toEqual(P(s))
+  s = ' {\n"a":null   ,\t \t\t  \r\r\n\n"b":null\n } '
+  E(j(s)).toEqual(P(s))
+
+  // SPACE   [\tV\r\n]
+  s = '  [\t {\n\n } \r\n]'
+  E(j(s)).toEqual(P(s))
+  s = '  [\t  [\t\r\n]\r\n]'
+  E(j(s)).toEqual(P(s))
+  s = '  [\t0\r\n]'
+  E(j(s)).toEqual(P(s))
+  s = '  [\t""\r\n]'
+  E(j(s)).toEqual(P(s))
+  s = '  [\ttrue\r\n]'
+  E(j(s)).toEqual(P(s))
+  s = '  [\tfalse\r\n]'
+  E(j(s)).toEqual(P(s))
+  s = '  [\tnull\r\n]'
+  E(j(s)).toEqual(P(s))
+
+  // SPACE   [\tV   ,\t \t\t  \r\r\n\nV\r\n]
+  s = '  [\t {\n\n }    ,\t \t\t  \r\r\n\n {\n\n } \r\n]'
+  E(j(s)).toEqual(P(s))
+  s = '  [\t  [\t\r\n]   ,\t \t\t  \r\r\n\n  [\t\r\n]\r\n]'
+  E(j(s)).toEqual(P(s))
+  s = '  [\t0   ,\t \t\t  \r\r\n\n0\r\n]'
+  E(j(s)).toEqual(P(s))
+  s = '  [\t""   ,\t \t\t  \r\r\n\n""\r\n]'
+  E(j(s)).toEqual(P(s))
+  s = '  [\ttrue   ,\t \t\t  \r\r\n\ntrue\r\n]'
+  E(j(s)).toEqual(P(s))
+  s = '  [\tfalse   ,\t \t\t  \r\r\n\nfalse\r\n]'
+  E(j(s)).toEqual(P(s))
+  s = '  [\tnull   ,\t \t\t  \r\r\n\nnull\r\n]'
+  E(j(s)).toEqual(P(s))
+
+  // SPACE N
+  s = '1'
+  E(j(s)).toEqual(P(s))
+  s = '-2'
+  E(j(s)).toEqual(P(s))
+  s = '51'
+  E(j(s)).toEqual(P(s))
+  s = '-62'
+  E(j(s)).toEqual(P(s))
+  s = '0.3'
+  E(j(s)).toEqual(P(s))
+  s = '-0.4'
+  E(j(s)).toEqual(P(s))
+  s = '0.37'
+  E(j(s)).toEqual(P(s))
+  s = '-0.48'
+  E(j(s)).toEqual(P(s))
+  s = '9.3'
+  E(j(s)).toEqual(P(s))
+  s = '-1.4'
+  E(j(s)).toEqual(P(s))
+  s = '2.37'
+  E(j(s)).toEqual(P(s))
+  s = '-3.48'
+  E(j(s)).toEqual(P(s))
+  s = '94.3'
+  E(j(s)).toEqual(P(s))
+  s = '-15.4'
+  E(j(s)).toEqual(P(s))
+  s = '26.37'
+  E(j(s)).toEqual(P(s))
+  s = '-37.48'
+  E(j(s)).toEqual(P(s))
+
+  s = '1e8'
+  E(j(s)).toEqual(P(s))
+  s = '-2e9'
+  E(j(s)).toEqual(P(s))
+  s = '51e0'
+  E(j(s)).toEqual(P(s))
+  s = '-62e1'
+  E(j(s)).toEqual(P(s))
+  s = '1e82'
+  E(j(s)).toEqual(P(s))
+  s = '-2e93'
+  E(j(s)).toEqual(P(s))
+  s = '51e04'
+  E(j(s)).toEqual(P(s))
+  s = '-62e15'
+  E(j(s)).toEqual(P(s))
+  s = '1E8'
+  E(j(s)).toEqual(P(s))
+  s = '-2E9'
+  E(j(s)).toEqual(P(s))
+  s = '51E0'
+  E(j(s)).toEqual(P(s))
+  s = '-62E1'
+  E(j(s)).toEqual(P(s))
+  s = '1E82'
+  E(j(s)).toEqual(P(s))
+  s = '-2E93'
+  E(j(s)).toEqual(P(s))
+  s = '51E04'
+  E(j(s)).toEqual(P(s))
+  s = '-62E15'
+  E(j(s)).toEqual(P(s))
+
+  s = '1e-8'
+  E(j(s)).toEqual(P(s))
+  s = '-2e-9'
+  E(j(s)).toEqual(P(s))
+  s = '51e-0'
+  E(j(s)).toEqual(P(s))
+  s = '-62e-1'
+  E(j(s)).toEqual(P(s))
+  s = '1e-82'
+  E(j(s)).toEqual(P(s))
+  s = '-2e-93'
+  E(j(s)).toEqual(P(s))
+  s = '51e-04'
+  E(j(s)).toEqual(P(s))
+  s = '-62e-15'
+  E(j(s)).toEqual(P(s))
+  s = '1E-8'
+  E(j(s)).toEqual(P(s))
+  s = '-2E-9'
+  E(j(s)).toEqual(P(s))
+  s = '51E-0'
+  E(j(s)).toEqual(P(s))
+  s = '-62E-1'
+  E(j(s)).toEqual(P(s))
+  s = '1E-82'
+  E(j(s)).toEqual(P(s))
+  s = '-2E-93'
+  E(j(s)).toEqual(P(s))
+  s = '51E-04'
+  E(j(s)).toEqual(P(s))
+  s = '-62E-15'
+  E(j(s)).toEqual(P(s))
+
+  s = '1e+8'
+  E(j(s)).toEqual(P(s))
+  s = '-2e+9'
+  E(j(s)).toEqual(P(s))
+  s = '51e+0'
+  E(j(s)).toEqual(P(s))
+  s = '-62e+1'
+  E(j(s)).toEqual(P(s))
+  s = '1e+82'
+  E(j(s)).toEqual(P(s))
+  s = '-2e+93'
+  E(j(s)).toEqual(P(s))
+  s = '51e+04'
+  E(j(s)).toEqual(P(s))
+  s = '-62e+15'
+  E(j(s)).toEqual(P(s))
+  s = '1E+8'
+  E(j(s)).toEqual(P(s))
+  s = '-2E+9'
+  E(j(s)).toEqual(P(s))
+  s = '51E+0'
+  E(j(s)).toEqual(P(s))
+  s = '-62E+1'
+  E(j(s)).toEqual(P(s))
+  s = '1E+82'
+  E(j(s)).toEqual(P(s))
+  s = '-2E+93'
+  E(j(s)).toEqual(P(s))
+  s = '51E+04'
+  E(j(s)).toEqual(P(s))
+  s = '-62E+15'
+  E(j(s)).toEqual(P(s))
+
+  // SPACE S
+  s = '"a"'
+  E(j(s)).toEqual(P(s))
+  s = '"aa"'
+  E(j(s)).toEqual(P(s))
+  s = '"\\""'
+  E(j(s)).toEqual(P(s))
+  s = '"\\\\"'
+  E(j(s)).toEqual(P(s))
+  s = '"\\/"'
+  E(j(s)).toEqual(P(s))
+  s = '"\\b"'
+  E(j(s)).toEqual(P(s))
+  s = '"\\f"'
+  E(j(s)).toEqual(P(s))
+  s = '"\\n"'
+  E(j(s)).toEqual(P(s))
+  s = '"\\r"'
+  E(j(s)).toEqual(P(s))
+  s = '"\\t"'
+  E(j(s)).toEqual(P(s))
+  s = '"\\u0000"'
+  E(j(s)).toEqual(P(s))
+
+  // SPACE  {\nK:N\n }
+  s = ' {\n"a":1\n } '
+  E(j(s)).toEqual(P(s))
+  s = ' {\n"a":-2\n } '
+  E(j(s)).toEqual(P(s))
+  s = ' {\n"a":51\n } '
+  E(j(s)).toEqual(P(s))
+  s = ' {\n"a":-62\n } '
+  E(j(s)).toEqual(P(s))
+  s = ' {\n"a":0.3\n } '
+  E(j(s)).toEqual(P(s))
+  s = ' {\n"a":-0.4\n } '
+  E(j(s)).toEqual(P(s))
+  s = ' {\n"a":0.37\n } '
+  E(j(s)).toEqual(P(s))
+  s = ' {\n"a":-0.48\n } '
+  E(j(s)).toEqual(P(s))
+  s = ' {\n"a":9.3\n } '
+  E(j(s)).toEqual(P(s))
+  s = ' {\n"a":-1.4\n } '
+  E(j(s)).toEqual(P(s))
+  s = ' {\n"a":2.37\n } '
+  E(j(s)).toEqual(P(s))
+  s = ' {\n"a":-3.48\n } '
+  E(j(s)).toEqual(P(s))
+  s = ' {\n"a":94.3\n } '
+  E(j(s)).toEqual(P(s))
+  s = ' {\n"a":-15.4\n } '
+  E(j(s)).toEqual(P(s))
+  s = ' {\n"a":26.37\n } '
+  E(j(s)).toEqual(P(s))
+  s = ' {\n"a":-37.48\n } '
+  E(j(s)).toEqual(P(s))
+
+  s = ' {\n"a":1e8\n } '
+  E(j(s)).toEqual(P(s))
+  s = ' {\n"a":-2e9\n } '
+  E(j(s)).toEqual(P(s))
+  s = ' {\n"a":51e0\n } '
+  E(j(s)).toEqual(P(s))
+  s = ' {\n"a":-62e1\n } '
+  E(j(s)).toEqual(P(s))
+  s = ' {\n"a":1e82\n } '
+  E(j(s)).toEqual(P(s))
+  s = ' {\n"a":-2e93\n } '
+  E(j(s)).toEqual(P(s))
+  s = ' {\n"a":51e04\n } '
+  E(j(s)).toEqual(P(s))
+  s = ' {\n"a":-62e15\n } '
+  E(j(s)).toEqual(P(s))
+  s = ' {\n"a":1E8\n } '
+  E(j(s)).toEqual(P(s))
+  s = ' {\n"a":-2E9\n } '
+  E(j(s)).toEqual(P(s))
+  s = ' {\n"a":51E0\n } '
+  E(j(s)).toEqual(P(s))
+  s = ' {\n"a":-62E1\n } '
+  E(j(s)).toEqual(P(s))
+  s = ' {\n"a":1E82\n } '
+  E(j(s)).toEqual(P(s))
+  s = ' {\n"a":-2E93\n } '
+  E(j(s)).toEqual(P(s))
+  s = ' {\n"a":51E04\n } '
+  E(j(s)).toEqual(P(s))
+  s = ' {\n"a":-62E15\n } '
+  E(j(s)).toEqual(P(s))
+
+  s = ' {\n"a":1e-8\n } '
+  E(j(s)).toEqual(P(s))
+  s = ' {\n"a":-2e-9\n } '
+  E(j(s)).toEqual(P(s))
+  s = ' {\n"a":51e-0\n } '
+  E(j(s)).toEqual(P(s))
+  s = ' {\n"a":-62e-1\n } '
+  E(j(s)).toEqual(P(s))
+  s = ' {\n"a":1e-82\n } '
+  E(j(s)).toEqual(P(s))
+  s = ' {\n"a":-2e-93\n } '
+  E(j(s)).toEqual(P(s))
+  s = ' {\n"a":51e-04\n } '
+  E(j(s)).toEqual(P(s))
+  s = ' {\n"a":-62e-15\n } '
+  E(j(s)).toEqual(P(s))
+  s = ' {\n"a":1E-8\n } '
+  E(j(s)).toEqual(P(s))
+  s = ' {\n"a":-2E-9\n } '
+  E(j(s)).toEqual(P(s))
+  s = ' {\n"a":51E-0\n } '
+  E(j(s)).toEqual(P(s))
+  s = ' {\n"a":-62E-1\n } '
+  E(j(s)).toEqual(P(s))
+  s = ' {\n"a":1E-82\n } '
+  E(j(s)).toEqual(P(s))
+  s = ' {\n"a":-2E-93\n } '
+  E(j(s)).toEqual(P(s))
+  s = ' {\n"a":51E-04\n } '
+  E(j(s)).toEqual(P(s))
+  s = ' {\n"a":-62E-15\n } '
+  E(j(s)).toEqual(P(s))
+
+  s = ' {\n"a":1e+8\n } '
+  E(j(s)).toEqual(P(s))
+  s = ' {\n"a":-2e+9\n } '
+  E(j(s)).toEqual(P(s))
+  s = ' {\n"a":51e+0\n } '
+  E(j(s)).toEqual(P(s))
+  s = ' {\n"a":-62e+1\n } '
+  E(j(s)).toEqual(P(s))
+  s = ' {\n"a":1e+82\n } '
+  E(j(s)).toEqual(P(s))
+  s = ' {\n"a":-2e+93\n } '
+  E(j(s)).toEqual(P(s))
+  s = ' {\n"a":51e+04\n } '
+  E(j(s)).toEqual(P(s))
+  s = ' {\n"a":-62e+15\n } '
+  E(j(s)).toEqual(P(s))
+  s = ' {\n"a":1E+8\n } '
+  E(j(s)).toEqual(P(s))
+  s = ' {\n"a":-2E+9\n } '
+  E(j(s)).toEqual(P(s))
+  s = ' {\n"a":51E+0\n } '
+  E(j(s)).toEqual(P(s))
+  s = ' {\n"a":-62E+1\n } '
+  E(j(s)).toEqual(P(s))
+  s = ' {\n"a":1E+82\n } '
+  E(j(s)).toEqual(P(s))
+  s = ' {\n"a":-2E+93\n } '
+  E(j(s)).toEqual(P(s))
+  s = ' {\n"a":51E+04\n } '
+  E(j(s)).toEqual(P(s))
+  s = ' {\n"a":-62E+15\n } '
+  E(j(s)).toEqual(P(s))
+
+  // SPACE  {\nK:S\n }
+  s = ' {\n"a":"a"\n } '
+  E(j(s)).toEqual(P(s))
+  s = ' {\n"a":"aa"\n } '
+  E(j(s)).toEqual(P(s))
+  s = ' {\n"a":"\\""\n } '
+  E(j(s)).toEqual(P(s))
+  s = ' {\n"a":"\\\\"\n } '
+  E(j(s)).toEqual(P(s))
+  s = ' {\n"a":"\\/"\n } '
+  E(j(s)).toEqual(P(s))
+  s = ' {\n"a":"\\b"\n } '
+  E(j(s)).toEqual(P(s))
+  s = ' {\n"a":"\\f"\n } '
+  E(j(s)).toEqual(P(s))
+  s = ' {\n"a":"\\n"\n } '
+  E(j(s)).toEqual(P(s))
+  s = ' {\n"a":"\\r"\n } '
+  E(j(s)).toEqual(P(s))
+  s = ' {\n"a":"\\t"\n } '
+  E(j(s)).toEqual(P(s))
+  s = ' {\n"a":"\\u0000"\n } '
+  E(j(s)).toEqual(P(s))
+
+  // SPACE  {\nK:B\n }
+  s = ' {\n"a":true\n } '
+  E(j(s)).toEqual(P(s))
+  s = ' {\n"a":false\n } '
+  E(j(s)).toEqual(P(s))
+  s = ' {\n"a":null\n } '
+  E(j(s)).toEqual(P(s))
+
+  // SPACE   [\tN\r\n]
+  s = '  [\t1\r\n]'
+  E(j(s)).toEqual(P(s))
+  s = '  [\t-2\r\n]'
+  E(j(s)).toEqual(P(s))
+  s = '  [\t51\r\n]'
+  E(j(s)).toEqual(P(s))
+  s = '  [\t-62\r\n]'
+  E(j(s)).toEqual(P(s))
+  s = '  [\t0.3\r\n]'
+  E(j(s)).toEqual(P(s))
+  s = '  [\t-0.4\r\n]'
+  E(j(s)).toEqual(P(s))
+  s = '  [\t0.37\r\n]'
+  E(j(s)).toEqual(P(s))
+  s = '  [\t-0.48\r\n]'
+  E(j(s)).toEqual(P(s))
+  s = '  [\t9.3\r\n]'
+  E(j(s)).toEqual(P(s))
+  s = '  [\t-1.4\r\n]'
+  E(j(s)).toEqual(P(s))
+  s = '  [\t2.37\r\n]'
+  E(j(s)).toEqual(P(s))
+  s = '  [\t-3.48\r\n]'
+  E(j(s)).toEqual(P(s))
+  s = '  [\t94.3\r\n]'
+  E(j(s)).toEqual(P(s))
+  s = '  [\t-15.4\r\n]'
+  E(j(s)).toEqual(P(s))
+  s = '  [\t26.37\r\n]'
+  E(j(s)).toEqual(P(s))
+  s = '  [\t-37.48\r\n]'
+  E(j(s)).toEqual(P(s))
+
+  s = '  [\t1e8\r\n]'
+  E(j(s)).toEqual(P(s))
+  s = '  [\t-2e9\r\n]'
+  E(j(s)).toEqual(P(s))
+  s = '  [\t51e0\r\n]'
+  E(j(s)).toEqual(P(s))
+  s = '  [\t-62e1\r\n]'
+  E(j(s)).toEqual(P(s))
+  s = '  [\t1e82\r\n]'
+  E(j(s)).toEqual(P(s))
+  s = '  [\t-2e93\r\n]'
+  E(j(s)).toEqual(P(s))
+  s = '  [\t51e04\r\n]'
+  E(j(s)).toEqual(P(s))
+  s = '  [\t-62e15\r\n]'
+  E(j(s)).toEqual(P(s))
+  s = '  [\t1E8\r\n]'
+  E(j(s)).toEqual(P(s))
+  s = '  [\t-2E9\r\n]'
+  E(j(s)).toEqual(P(s))
+  s = '  [\t51E0\r\n]'
+  E(j(s)).toEqual(P(s))
+  s = '  [\t-62E1\r\n]'
+  E(j(s)).toEqual(P(s))
+  s = '  [\t1E82\r\n]'
+  E(j(s)).toEqual(P(s))
+  s = '  [\t-2E93\r\n]'
+  E(j(s)).toEqual(P(s))
+  s = '  [\t51E04\r\n]'
+  E(j(s)).toEqual(P(s))
+  s = '  [\t-62E15\r\n]'
+  E(j(s)).toEqual(P(s))
+
+  s = '  [\t1e-8\r\n]'
+  E(j(s)).toEqual(P(s))
+  s = '  [\t-2e-9\r\n]'
+  E(j(s)).toEqual(P(s))
+  s = '  [\t51e-0\r\n]'
+  E(j(s)).toEqual(P(s))
+  s = '  [\t-62e-1\r\n]'
+  E(j(s)).toEqual(P(s))
+  s = '  [\t1e-82\r\n]'
+  E(j(s)).toEqual(P(s))
+  s = '  [\t-2e-93\r\n]'
+  E(j(s)).toEqual(P(s))
+  s = '  [\t51e-04\r\n]'
+  E(j(s)).toEqual(P(s))
+  s = '  [\t-62e-15\r\n]'
+  E(j(s)).toEqual(P(s))
+  s = '  [\t1E-8\r\n]'
+  E(j(s)).toEqual(P(s))
+  s = '  [\t-2E-9\r\n]'
+  E(j(s)).toEqual(P(s))
+  s = '  [\t51E-0\r\n]'
+  E(j(s)).toEqual(P(s))
+  s = '  [\t-62E-1\r\n]'
+  E(j(s)).toEqual(P(s))
+  s = '  [\t1E-82\r\n]'
+  E(j(s)).toEqual(P(s))
+  s = '  [\t-2E-93\r\n]'
+  E(j(s)).toEqual(P(s))
+  s = '  [\t51E-04\r\n]'
+  E(j(s)).toEqual(P(s))
+  s = '  [\t-62E-15\r\n]'
+  E(j(s)).toEqual(P(s))
+
+  s = '  [\t1e+8\r\n]'
+  E(j(s)).toEqual(P(s))
+  s = '  [\t-2e+9\r\n]'
+  E(j(s)).toEqual(P(s))
+  s = '  [\t51e+0\r\n]'
+  E(j(s)).toEqual(P(s))
+  s = '  [\t-62e+1\r\n]'
+  E(j(s)).toEqual(P(s))
+  s = '  [\t1e+82\r\n]'
+  E(j(s)).toEqual(P(s))
+  s = '  [\t-2e+93\r\n]'
+  E(j(s)).toEqual(P(s))
+  s = '  [\t51e+04\r\n]'
+  E(j(s)).toEqual(P(s))
+  s = '  [\t-62e+15\r\n]'
+  E(j(s)).toEqual(P(s))
+  s = '  [\t1E+8\r\n]'
+  E(j(s)).toEqual(P(s))
+  s = '  [\t-2E+9\r\n]'
+  E(j(s)).toEqual(P(s))
+  s = '  [\t51E+0\r\n]'
+  E(j(s)).toEqual(P(s))
+  s = '  [\t-62E+1\r\n]'
+  E(j(s)).toEqual(P(s))
+  s = '  [\t1E+82\r\n]'
+  E(j(s)).toEqual(P(s))
+  s = '  [\t-2E+93\r\n]'
+  E(j(s)).toEqual(P(s))
+  s = '  [\t51E+04\r\n]'
+  E(j(s)).toEqual(P(s))
+  s = '  [\t-62E+15\r\n]'
+  E(j(s)).toEqual(P(s))
+
+  // SPACE   [\tS\r\n]
+  s = '  [\t"a"\r\n]'
+  E(j(s)).toEqual(P(s))
+  s = '  [\t"aa"\r\n]'
+  E(j(s)).toEqual(P(s))
+  s = '  [\t"\\""\r\n]'
+  E(j(s)).toEqual(P(s))
+  s = '  [\t"\\\\"\r\n]'
+  E(j(s)).toEqual(P(s))
+  s = '  [\t"\\/"\r\n]'
+  E(j(s)).toEqual(P(s))
+  s = '  [\t"\\b"\r\n]'
+  E(j(s)).toEqual(P(s))
+  s = '  [\t"\\f"\r\n]'
+  E(j(s)).toEqual(P(s))
+  s = '  [\t"\\n"\r\n]'
+  E(j(s)).toEqual(P(s))
+  s = '  [\t"\\r"\r\n]'
+  E(j(s)).toEqual(P(s))
+  s = '  [\t"\\t"\r\n]'
+  E(j(s)).toEqual(P(s))
+  s = '  [\t"\\u0000"\r\n]'
+  E(j(s)).toEqual(P(s))
+
+  // SPACE   [\tB\r\n]
+  s = '  [\ttrue\r\n]'
+  E(j(s)).toEqual(P(s))
+  s = '  [\tfalse\r\n]'
+  E(j(s)).toEqual(P(s))
+  s = '  [\tnull\r\n]'
+  E(j(s)).toEqual(P(s))
+
+  // SPACE   [\t {\nK:V\n } \r\n]
+  s = '  [\t {\n"a":1\n } \r\n]'
+  E(j(s)).toEqual(P(s))
+  s = '  [\t {\n"a":-2\n } \r\n]'
+  E(j(s)).toEqual(P(s))
+  s = '  [\t {\n"a":51\n } \r\n]'
+  E(j(s)).toEqual(P(s))
+  s = '  [\t {\n"a":-62\n } \r\n]'
+  E(j(s)).toEqual(P(s))
+  s = '  [\t {\n"a":0.3\n } \r\n]'
+  E(j(s)).toEqual(P(s))
+  s = '  [\t {\n"a":-0.4\n } \r\n]'
+  E(j(s)).toEqual(P(s))
+  s = '  [\t {\n"a":0.37\n } \r\n]'
+  E(j(s)).toEqual(P(s))
+  s = '  [\t {\n"a":-0.48\n } \r\n]'
+  E(j(s)).toEqual(P(s))
+  s = '  [\t {\n"a":9.3\n } \r\n]'
+  E(j(s)).toEqual(P(s))
+  s = '  [\t {\n"a":-1.4\n } \r\n]'
+  E(j(s)).toEqual(P(s))
+  s = '  [\t {\n"a":2.37\n } \r\n]'
+  E(j(s)).toEqual(P(s))
+  s = '  [\t {\n"a":-3.48\n } \r\n]'
+  E(j(s)).toEqual(P(s))
+  s = '  [\t {\n"a":94.3\n } \r\n]'
+  E(j(s)).toEqual(P(s))
+  s = '  [\t {\n"a":-15.4\n } \r\n]'
+  E(j(s)).toEqual(P(s))
+  s = '  [\t {\n"a":26.37\n } \r\n]'
+  E(j(s)).toEqual(P(s))
+  s = '  [\t {\n"a":-37.48\n } \r\n]'
+  E(j(s)).toEqual(P(s))
+
+  s = '  [\t {\n"a":1e8\n } \r\n]'
+  E(j(s)).toEqual(P(s))
+  s = '  [\t {\n"a":-2e9\n } \r\n]'
+  E(j(s)).toEqual(P(s))
+  s = '  [\t {\n"a":51e0\n } \r\n]'
+  E(j(s)).toEqual(P(s))
+  s = '  [\t {\n"a":-62e1\n } \r\n]'
+  E(j(s)).toEqual(P(s))
+  s = '  [\t {\n"a":1e82\n } \r\n]'
+  E(j(s)).toEqual(P(s))
+  s = '  [\t {\n"a":-2e93\n } \r\n]'
+  E(j(s)).toEqual(P(s))
+  s = '  [\t {\n"a":51e04\n } \r\n]'
+  E(j(s)).toEqual(P(s))
+  s = '  [\t {\n"a":-62e15\n } \r\n]'
+  E(j(s)).toEqual(P(s))
+  s = '  [\t {\n"a":1E8\n } \r\n]'
+  E(j(s)).toEqual(P(s))
+  s = '  [\t {\n"a":-2E9\n } \r\n]'
+  E(j(s)).toEqual(P(s))
+  s = '  [\t {\n"a":51E0\n } \r\n]'
+  E(j(s)).toEqual(P(s))
+  s = '  [\t {\n"a":-62E1\n } \r\n]'
+  E(j(s)).toEqual(P(s))
+  s = '  [\t {\n"a":1E82\n } \r\n]'
+  E(j(s)).toEqual(P(s))
+  s = '  [\t {\n"a":-2E93\n } \r\n]'
+  E(j(s)).toEqual(P(s))
+  s = '  [\t {\n"a":51E04\n } \r\n]'
+  E(j(s)).toEqual(P(s))
+  s = '  [\t {\n"a":-62E15\n } \r\n]'
+  E(j(s)).toEqual(P(s))
+
+  s = '  [\t {\n"a":1e-8\n } \r\n]'
+  E(j(s)).toEqual(P(s))
+  s = '  [\t {\n"a":-2e-9\n } \r\n]'
+  E(j(s)).toEqual(P(s))
+  s = '  [\t {\n"a":51e-0\n } \r\n]'
+  E(j(s)).toEqual(P(s))
+  s = '  [\t {\n"a":-62e-1\n } \r\n]'
+  E(j(s)).toEqual(P(s))
+  s = '  [\t {\n"a":1e-82\n } \r\n]'
+  E(j(s)).toEqual(P(s))
+  s = '  [\t {\n"a":-2e-93\n } \r\n]'
+  E(j(s)).toEqual(P(s))
+  s = '  [\t {\n"a":51e-04\n } \r\n]'
+  E(j(s)).toEqual(P(s))
+  s = '  [\t {\n"a":-62e-15\n } \r\n]'
+  E(j(s)).toEqual(P(s))
+  s = '  [\t {\n"a":1E-8\n } \r\n]'
+  E(j(s)).toEqual(P(s))
+  s = '  [\t {\n"a":-2E-9\n } \r\n]'
+  E(j(s)).toEqual(P(s))
+  s = '  [\t {\n"a":51E-0\n } \r\n]'
+  E(j(s)).toEqual(P(s))
+  s = '  [\t {\n"a":-62E-1\n } \r\n]'
+  E(j(s)).toEqual(P(s))
+  s = '  [\t {\n"a":1E-82\n } \r\n]'
+  E(j(s)).toEqual(P(s))
+  s = '  [\t {\n"a":-2E-93\n } \r\n]'
+  E(j(s)).toEqual(P(s))
+  s = '  [\t {\n"a":51E-04\n } \r\n]'
+  E(j(s)).toEqual(P(s))
+  s = '  [\t {\n"a":-62E-15\n } \r\n]'
+  E(j(s)).toEqual(P(s))
+
+  s = '  [\t {\n"a":1e+8\n } \r\n]'
+  E(j(s)).toEqual(P(s))
+  s = '  [\t {\n"a":-2e+9\n } \r\n]'
+  E(j(s)).toEqual(P(s))
+  s = '  [\t {\n"a":51e+0\n } \r\n]'
+  E(j(s)).toEqual(P(s))
+  s = '  [\t {\n"a":-62e+1\n } \r\n]'
+  E(j(s)).toEqual(P(s))
+  s = '  [\t {\n"a":1e+82\n } \r\n]'
+  E(j(s)).toEqual(P(s))
+  s = '  [\t {\n"a":-2e+93\n } \r\n]'
+  E(j(s)).toEqual(P(s))
+  s = '  [\t {\n"a":51e+04\n } \r\n]'
+  E(j(s)).toEqual(P(s))
+  s = '  [\t {\n"a":-62e+15\n } \r\n]'
+  E(j(s)).toEqual(P(s))
+  s = '  [\t {\n"a":1E+8\n } \r\n]'
+  E(j(s)).toEqual(P(s))
+  s = '  [\t {\n"a":-2E+9\n } \r\n]'
+  E(j(s)).toEqual(P(s))
+  s = '  [\t {\n"a":51E+0\n } \r\n]'
+  E(j(s)).toEqual(P(s))
+  s = '  [\t {\n"a":-62E+1\n } \r\n]'
+  E(j(s)).toEqual(P(s))
+  s = '  [\t {\n"a":1E+82\n } \r\n]'
+  E(j(s)).toEqual(P(s))
+  s = '  [\t {\n"a":-2E+93\n } \r\n]'
+  E(j(s)).toEqual(P(s))
+  s = '  [\t {\n"a":51E+04\n } \r\n]'
+  E(j(s)).toEqual(P(s))
+  s = '  [\t {\n"a":-62E+15\n } \r\n]'
+  E(j(s)).toEqual(P(s))
+
+  s = '  [\t {\n"a":"a"\n } \r\n]'
+  E(j(s)).toEqual(P(s))
+  s = '  [\t {\n"a":"aa"\n } \r\n]'
+  E(j(s)).toEqual(P(s))
+  s = '  [\t {\n"a":"\\""\n } \r\n]'
+  E(j(s)).toEqual(P(s))
+  s = '  [\t {\n"a":"\\\\"\n } \r\n]'
+  E(j(s)).toEqual(P(s))
+  s = '  [\t {\n"a":"\\/"\n } \r\n]'
+  E(j(s)).toEqual(P(s))
+  s = '  [\t {\n"a":"\\b"\n } \r\n]'
+  E(j(s)).toEqual(P(s))
+  s = '  [\t {\n"a":"\\f"\n } \r\n]'
+  E(j(s)).toEqual(P(s))
+  s = '  [\t {\n"a":"\\n"\n } \r\n]'
+  E(j(s)).toEqual(P(s))
+  s = '  [\t {\n"a":"\\r"\n } \r\n]'
+  E(j(s)).toEqual(P(s))
+  s = '  [\t {\n"a":"\\t"\n } \r\n]'
+  E(j(s)).toEqual(P(s))
+  s = '  [\t {\n"a":"\\u0000"\n } \r\n]'
+  E(j(s)).toEqual(P(s))
+
+  s = '  [\t {\n"a":true\n } \r\n]'
+  E(j(s)).toEqual(P(s))
+  s = '  [\t {\n"a":false\n } \r\n]'
+  E(j(s)).toEqual(P(s))
+  s = '  [\t {\n"a":null\n } \r\n]'
+  E(j(s)).toEqual(P(s))
+
+  // SPACE  {\nK:  [\tV\r\n]\n }
+  s = ' {\n"a":  [\t1\r\n]\n } '
+  E(j(s)).toEqual(P(s))
+  s = ' {\n"a":  [\t-2\r\n]\n } '
+  E(j(s)).toEqual(P(s))
+  s = ' {\n"a":  [\t51\r\n]\n } '
+  E(j(s)).toEqual(P(s))
+  s = ' {\n"a":  [\t-62\r\n]\n } '
+  E(j(s)).toEqual(P(s))
+  s = ' {\n"a":  [\t0.3\r\n]\n } '
+  E(j(s)).toEqual(P(s))
+  s = ' {\n"a":  [\t-0.4\r\n]\n } '
+  E(j(s)).toEqual(P(s))
+  s = ' {\n"a":  [\t0.37\r\n]\n } '
+  E(j(s)).toEqual(P(s))
+  s = ' {\n"a":  [\t-0.48\r\n]\n } '
+  E(j(s)).toEqual(P(s))
+  s = ' {\n"a":  [\t9.3\r\n]\n } '
+  E(j(s)).toEqual(P(s))
+  s = ' {\n"a":  [\t-1.4\r\n]\n } '
+  E(j(s)).toEqual(P(s))
+  s = ' {\n"a":  [\t2.37\r\n]\n } '
+  E(j(s)).toEqual(P(s))
+  s = ' {\n"a":  [\t-3.48\r\n]\n } '
+  E(j(s)).toEqual(P(s))
+  s = ' {\n"a":  [\t94.3\r\n]\n } '
+  E(j(s)).toEqual(P(s))
+  s = ' {\n"a":  [\t-15.4\r\n]\n } '
+  E(j(s)).toEqual(P(s))
+  s = ' {\n"a":  [\t26.37\r\n]\n } '
+  E(j(s)).toEqual(P(s))
+  s = ' {\n"a":  [\t-37.48\r\n]\n } '
+  E(j(s)).toEqual(P(s))
+
+  s = ' {\n"a":  [\t1e8\r\n]\n } '
+  E(j(s)).toEqual(P(s))
+  s = ' {\n"a":  [\t-2e9\r\n]\n } '
+  E(j(s)).toEqual(P(s))
+  s = ' {\n"a":  [\t51e0\r\n]\n } '
+  E(j(s)).toEqual(P(s))
+  s = ' {\n"a":  [\t-62e1\r\n]\n } '
+  E(j(s)).toEqual(P(s))
+  s = ' {\n"a":  [\t1e82\r\n]\n } '
+  E(j(s)).toEqual(P(s))
+  s = ' {\n"a":  [\t-2e93\r\n]\n } '
+  E(j(s)).toEqual(P(s))
+  s = ' {\n"a":  [\t51e04\r\n]\n } '
+  E(j(s)).toEqual(P(s))
+  s = ' {\n"a":  [\t-62e15\r\n]\n } '
+  E(j(s)).toEqual(P(s))
+  s = ' {\n"a":  [\t1E8\r\n]\n } '
+  E(j(s)).toEqual(P(s))
+  s = ' {\n"a":  [\t-2E9\r\n]\n } '
+  E(j(s)).toEqual(P(s))
+  s = ' {\n"a":  [\t51E0\r\n]\n } '
+  E(j(s)).toEqual(P(s))
+  s = ' {\n"a":  [\t-62E1\r\n]\n } '
+  E(j(s)).toEqual(P(s))
+  s = ' {\n"a":  [\t1E82\r\n]\n } '
+  E(j(s)).toEqual(P(s))
+  s = ' {\n"a":  [\t-2E93\r\n]\n } '
+  E(j(s)).toEqual(P(s))
+  s = ' {\n"a":  [\t51E04\r\n]\n } '
+  E(j(s)).toEqual(P(s))
+  s = ' {\n"a":  [\t-62E15\r\n]\n } '
+  E(j(s)).toEqual(P(s))
+
+  s = ' {\n"a":  [\t1e-8\r\n]\n } '
+  E(j(s)).toEqual(P(s))
+  s = ' {\n"a":  [\t-2e-9\r\n]\n } '
+  E(j(s)).toEqual(P(s))
+  s = ' {\n"a":  [\t51e-0\r\n]\n } '
+  E(j(s)).toEqual(P(s))
+  s = ' {\n"a":  [\t-62e-1\r\n]\n } '
+  E(j(s)).toEqual(P(s))
+  s = ' {\n"a":  [\t1e-82\r\n]\n } '
+  E(j(s)).toEqual(P(s))
+  s = ' {\n"a":  [\t-2e-93\r\n]\n } '
+  E(j(s)).toEqual(P(s))
+  s = ' {\n"a":  [\t51e-04\r\n]\n } '
+  E(j(s)).toEqual(P(s))
+  s = ' {\n"a":  [\t-62e-15\r\n]\n } '
+  E(j(s)).toEqual(P(s))
+  s = ' {\n"a":  [\t1E-8\r\n]\n } '
+  E(j(s)).toEqual(P(s))
+  s = ' {\n"a":  [\t-2E-9\r\n]\n } '
+  E(j(s)).toEqual(P(s))
+  s = ' {\n"a":  [\t51E-0\r\n]\n } '
+  E(j(s)).toEqual(P(s))
+  s = ' {\n"a":  [\t-62E-1\r\n]\n } '
+  E(j(s)).toEqual(P(s))
+  s = ' {\n"a":  [\t1E-82\r\n]\n } '
+  E(j(s)).toEqual(P(s))
+  s = ' {\n"a":  [\t-2E-93\r\n]\n } '
+  E(j(s)).toEqual(P(s))
+  s = ' {\n"a":  [\t51E-04\r\n]\n } '
+  E(j(s)).toEqual(P(s))
+  s = ' {\n"a":  [\t-62E-15\r\n]\n } '
+  E(j(s)).toEqual(P(s))
+
+  s = ' {\n"a":  [\t1e+8\r\n]\n } '
+  E(j(s)).toEqual(P(s))
+  s = ' {\n"a":  [\t-2e+9\r\n]\n } '
+  E(j(s)).toEqual(P(s))
+  s = ' {\n"a":  [\t51e+0\r\n]\n } '
+  E(j(s)).toEqual(P(s))
+  s = ' {\n"a":  [\t-62e+1\r\n]\n } '
+  E(j(s)).toEqual(P(s))
+  s = ' {\n"a":  [\t1e+82\r\n]\n } '
+  E(j(s)).toEqual(P(s))
+  s = ' {\n"a":  [\t-2e+93\r\n]\n } '
+  E(j(s)).toEqual(P(s))
+  s = ' {\n"a":  [\t51e+04\r\n]\n } '
+  E(j(s)).toEqual(P(s))
+  s = ' {\n"a":  [\t-62e+15\r\n]\n } '
+  E(j(s)).toEqual(P(s))
+  s = ' {\n"a":  [\t1E+8\r\n]\n } '
+  E(j(s)).toEqual(P(s))
+  s = ' {\n"a":  [\t-2E+9\r\n]\n } '
+  E(j(s)).toEqual(P(s))
+  s = ' {\n"a":  [\t51E+0\r\n]\n } '
+  E(j(s)).toEqual(P(s))
+  s = ' {\n"a":  [\t-62E+1\r\n]\n } '
+  E(j(s)).toEqual(P(s))
+  s = ' {\n"a":  [\t1E+82\r\n]\n } '
+  E(j(s)).toEqual(P(s))
+  s = ' {\n"a":  [\t-2E+93\r\n]\n } '
+  E(j(s)).toEqual(P(s))
+  s = ' {\n"a":  [\t51E+04\r\n]\n } '
+  E(j(s)).toEqual(P(s))
+  s = ' {\n"a":  [\t-62E+15\r\n]\n } '
+  E(j(s)).toEqual(P(s))
+
+  s = ' {\n"a":  [\ttrue\r\n]\n } '
+  E(j(s)).toEqual(P(s))
+  s = ' {\n"a":  [\tfalse\r\n]\n } '
+  E(j(s)).toEqual(P(s))
+  s = ' {\n"a":  [\tnull\r\n]\n } '
+  E(j(s)).toEqual(P(s))
+
+  // SPACE  {\nK:N   ,\t \t\t  \r\r\n\nK:N\n }
+  s = ' {\n"a":1   ,\t \t\t  \r\r\n\n"b":1\n } '
+  E(j(s)).toEqual(P(s))
+  s = ' {\n"a":-2   ,\t \t\t  \r\r\n\n"b":-2\n } '
+  E(j(s)).toEqual(P(s))
+  s = ' {\n"a":51   ,\t \t\t  \r\r\n\n"b":51\n } '
+  E(j(s)).toEqual(P(s))
+  s = ' {\n"a":-62   ,\t \t\t  \r\r\n\n"b":-62\n } '
+  E(j(s)).toEqual(P(s))
+  s = ' {\n"a":0.3   ,\t \t\t  \r\r\n\n"b":0.3\n } '
+  E(j(s)).toEqual(P(s))
+  s = ' {\n"a":-0.4   ,\t \t\t  \r\r\n\n"b":-0.4\n } '
+  E(j(s)).toEqual(P(s))
+  s = ' {\n"a":0.37   ,\t \t\t  \r\r\n\n"b":0.37\n } '
+  E(j(s)).toEqual(P(s))
+  s = ' {\n"a":-0.48   ,\t \t\t  \r\r\n\n"b":-0.48\n } '
+  E(j(s)).toEqual(P(s))
+  s = ' {\n"a":9.3   ,\t \t\t  \r\r\n\n"b":9.3\n } '
+  E(j(s)).toEqual(P(s))
+  s = ' {\n"a":-1.4   ,\t \t\t  \r\r\n\n"b":-1.4\n } '
+  E(j(s)).toEqual(P(s))
+  s = ' {\n"a":2.37   ,\t \t\t  \r\r\n\n"b":2.37\n } '
+  E(j(s)).toEqual(P(s))
+  s = ' {\n"a":-3.48   ,\t \t\t  \r\r\n\n"b":-3.48\n } '
+  E(j(s)).toEqual(P(s))
+  s = ' {\n"a":94.3   ,\t \t\t  \r\r\n\n"b":94.3\n } '
+  E(j(s)).toEqual(P(s))
+  s = ' {\n"a":-15.4   ,\t \t\t  \r\r\n\n"b":-15.4\n } '
+  E(j(s)).toEqual(P(s))
+  s = ' {\n"a":26.37   ,\t \t\t  \r\r\n\n"b":26.37\n } '
+  E(j(s)).toEqual(P(s))
+  s = ' {\n"a":-37.48   ,\t \t\t  \r\r\n\n"b":-37.48\n } '
+  E(j(s)).toEqual(P(s))
+
+  s = ' {\n"a":1e8   ,\t \t\t  \r\r\n\n"b":1e8\n } '
+  E(j(s)).toEqual(P(s))
+  s = ' {\n"a":-2e9   ,\t \t\t  \r\r\n\n"b":-2e9\n } '
+  E(j(s)).toEqual(P(s))
+  s = ' {\n"a":51e0   ,\t \t\t  \r\r\n\n"b":51e0\n } '
+  E(j(s)).toEqual(P(s))
+  s = ' {\n"a":-62e1   ,\t \t\t  \r\r\n\n"b":-62e1\n } '
+  E(j(s)).toEqual(P(s))
+  s = ' {\n"a":1e82   ,\t \t\t  \r\r\n\n"b":1e82\n } '
+  E(j(s)).toEqual(P(s))
+  s = ' {\n"a":-2e93   ,\t \t\t  \r\r\n\n"b":-2e93\n } '
+  E(j(s)).toEqual(P(s))
+  s = ' {\n"a":51e04   ,\t \t\t  \r\r\n\n"b":51e04\n } '
+  E(j(s)).toEqual(P(s))
+  s = ' {\n"a":-62e15   ,\t \t\t  \r\r\n\n"b":-62e15\n } '
+  E(j(s)).toEqual(P(s))
+  s = ' {\n"a":1E8   ,\t \t\t  \r\r\n\n"b":1E8\n } '
+  E(j(s)).toEqual(P(s))
+  s = ' {\n"a":-2E9   ,\t \t\t  \r\r\n\n"b":-2E9\n } '
+  E(j(s)).toEqual(P(s))
+  s = ' {\n"a":51E0   ,\t \t\t  \r\r\n\n"b":51E0\n } '
+  E(j(s)).toEqual(P(s))
+  s = ' {\n"a":-62E1   ,\t \t\t  \r\r\n\n"b":-62E1\n } '
+  E(j(s)).toEqual(P(s))
+  s = ' {\n"a":1E82   ,\t \t\t  \r\r\n\n"b":1E82\n } '
+  E(j(s)).toEqual(P(s))
+  s = ' {\n"a":-2E93   ,\t \t\t  \r\r\n\n"b":-2E93\n } '
+  E(j(s)).toEqual(P(s))
+  s = ' {\n"a":51E04   ,\t \t\t  \r\r\n\n"b":51E04\n } '
+  E(j(s)).toEqual(P(s))
+  s = ' {\n"a":-62E15   ,\t \t\t  \r\r\n\n"b":-62E15\n } '
+  E(j(s)).toEqual(P(s))
+
+  s = ' {\n"a":1e-8   ,\t \t\t  \r\r\n\n"b":1e-8\n } '
+  E(j(s)).toEqual(P(s))
+  s = ' {\n"a":-2e-9   ,\t \t\t  \r\r\n\n"b":-2e-9\n } '
+  E(j(s)).toEqual(P(s))
+  s = ' {\n"a":51e-0   ,\t \t\t  \r\r\n\n"b":51e-0\n } '
+  E(j(s)).toEqual(P(s))
+  s = ' {\n"a":-62e-1   ,\t \t\t  \r\r\n\n"b":-62e-1\n } '
+  E(j(s)).toEqual(P(s))
+  s = ' {\n"a":1e-82   ,\t \t\t  \r\r\n\n"b":1e-82\n } '
+  E(j(s)).toEqual(P(s))
+  s = ' {\n"a":-2e-93   ,\t \t\t  \r\r\n\n"b":-2e-93\n } '
+  E(j(s)).toEqual(P(s))
+  s = ' {\n"a":51e-04   ,\t \t\t  \r\r\n\n"b":51e-04\n } '
+  E(j(s)).toEqual(P(s))
+  s = ' {\n"a":-62e-15   ,\t \t\t  \r\r\n\n"b":-62e-15\n } '
+  E(j(s)).toEqual(P(s))
+  s = ' {\n"a":1E-8   ,\t \t\t  \r\r\n\n"b":1E-8\n } '
+  E(j(s)).toEqual(P(s))
+  s = ' {\n"a":-2E-9   ,\t \t\t  \r\r\n\n"b":-2E-9\n } '
+  E(j(s)).toEqual(P(s))
+  s = ' {\n"a":51E-0   ,\t \t\t  \r\r\n\n"b":51E-0\n } '
+  E(j(s)).toEqual(P(s))
+  s = ' {\n"a":-62E-1   ,\t \t\t  \r\r\n\n"b":-62E-1\n } '
+  E(j(s)).toEqual(P(s))
+  s = ' {\n"a":1E-82   ,\t \t\t  \r\r\n\n"b":1E-82\n } '
+  E(j(s)).toEqual(P(s))
+  s = ' {\n"a":-2E-93   ,\t \t\t  \r\r\n\n"b":-2E-93\n } '
+  E(j(s)).toEqual(P(s))
+  s = ' {\n"a":51E-04   ,\t \t\t  \r\r\n\n"b":51E-04\n } '
+  E(j(s)).toEqual(P(s))
+  s = ' {\n"a":-62E-15   ,\t \t\t  \r\r\n\n"b":-62E-15\n } '
+  E(j(s)).toEqual(P(s))
+
+  s = ' {\n"a":1e+8   ,\t \t\t  \r\r\n\n"b":1e+8\n } '
+  E(j(s)).toEqual(P(s))
+  s = ' {\n"a":-2e+9   ,\t \t\t  \r\r\n\n"b":-2e+9\n } '
+  E(j(s)).toEqual(P(s))
+  s = ' {\n"a":51e+0   ,\t \t\t  \r\r\n\n"b":51e+0\n } '
+  E(j(s)).toEqual(P(s))
+  s = ' {\n"a":-62e+1   ,\t \t\t  \r\r\n\n"b":-62e+1\n } '
+  E(j(s)).toEqual(P(s))
+  s = ' {\n"a":1e+82   ,\t \t\t  \r\r\n\n"b":1e+82\n } '
+  E(j(s)).toEqual(P(s))
+  s = ' {\n"a":-2e+93   ,\t \t\t  \r\r\n\n"b":-2e+93\n } '
+  E(j(s)).toEqual(P(s))
+  s = ' {\n"a":51e+04   ,\t \t\t  \r\r\n\n"b":51e+04\n } '
+  E(j(s)).toEqual(P(s))
+  s = ' {\n"a":-62e+15   ,\t \t\t  \r\r\n\n"b":-62e+15\n } '
+  E(j(s)).toEqual(P(s))
+  s = ' {\n"a":1E+8   ,\t \t\t  \r\r\n\n"b":1E+8\n } '
+  E(j(s)).toEqual(P(s))
+  s = ' {\n"a":-2E+9   ,\t \t\t  \r\r\n\n"b":-2E+9\n } '
+  E(j(s)).toEqual(P(s))
+  s = ' {\n"a":51E+0   ,\t \t\t  \r\r\n\n"b":51E+0\n } '
+  E(j(s)).toEqual(P(s))
+  s = ' {\n"a":-62E+1   ,\t \t\t  \r\r\n\n"b":-62E+1\n } '
+  E(j(s)).toEqual(P(s))
+  s = ' {\n"a":1E+82   ,\t \t\t  \r\r\n\n"b":1E+82\n } '
+  E(j(s)).toEqual(P(s))
+  s = ' {\n"a":-2E+93   ,\t \t\t  \r\r\n\n"b":-2E+93\n } '
+  E(j(s)).toEqual(P(s))
+  s = ' {\n"a":51E+04   ,\t \t\t  \r\r\n\n"b":51E+04\n } '
+  E(j(s)).toEqual(P(s))
+  s = ' {\n"a":-62E+15   ,\t \t\t  \r\r\n\n"b":-62E+15\n } '
+  E(j(s)).toEqual(P(s))
+
+  // SPACE  {\nK:S   ,\t \t\t  \r\r\n\nK:S\n }
+  s = ' {\n"a":"A"   ,\t \t\t  \r\r\n\n"b":"B"\n } '
+  E(j(s)).toEqual(P(s))
+  s = ' {\n"a":"AA"   ,\t \t\t  \r\r\n\n"b":"BB"\n } '
+  E(j(s)).toEqual(P(s))
+  s = ' {\n"a":"\\""   ,\t \t\t  \r\r\n\n"b":"\\""\n } '
+  E(j(s)).toEqual(P(s))
+  s = ' {\n"a":"\\\\"   ,\t \t\t  \r\r\n\n"b":"\\\\"\n } '
+  E(j(s)).toEqual(P(s))
+  s = ' {\n"a":"\\/"   ,\t \t\t  \r\r\n\n"b":"\\/"\n } '
+  E(j(s)).toEqual(P(s))
+  s = ' {\n"a":"\\b"   ,\t \t\t  \r\r\n\n"b":"\\b"\n } '
+  E(j(s)).toEqual(P(s))
+  s = ' {\n"a":"\\f"   ,\t \t\t  \r\r\n\n"b":"\\f"\n } '
+  E(j(s)).toEqual(P(s))
+  s = ' {\n"a":"\\n"   ,\t \t\t  \r\r\n\n"b":"\\n"\n } '
+  E(j(s)).toEqual(P(s))
+  s = ' {\n"a":"\\r"   ,\t \t\t  \r\r\n\n"b":"\\r"\n } '
+  E(j(s)).toEqual(P(s))
+  s = ' {\n"a":"\\t"   ,\t \t\t  \r\r\n\n"b":"\\t"\n } '
+  E(j(s)).toEqual(P(s))
+  s = ' {\n"a":"\\u0000"   ,\t \t\t  \r\r\n\n"b":"\\u0000"\n } '
+  E(j(s)).toEqual(P(s))
+
+  // SPACE  {\nK:B   ,\t \t\t  \r\r\n\nK:B\n }
+  s = ' {\n"a":true   ,\t \t\t  \r\r\n\n"b":true\n } '
+  E(j(s)).toEqual(P(s))
+  s = ' {\n"a":false   ,\t \t\t  \r\r\n\n"b":false\n } '
+  E(j(s)).toEqual(P(s))
+  s = ' {\n"a":null   ,\t \t\t  \r\r\n\n"b":null\n } '
+  E(j(s)).toEqual(P(s))
+
+  // SPACE   [\tN   ,\t \t\t  \r\r\n\nN\r\n]
+  s = '  [\t1   ,\t \t\t  \r\r\n\n1\r\n]'
+  E(j(s)).toEqual(P(s))
+  s = '  [\t-2   ,\t \t\t  \r\r\n\n-2\r\n]'
+  E(j(s)).toEqual(P(s))
+  s = '  [\t51   ,\t \t\t  \r\r\n\n51\r\n]'
+  E(j(s)).toEqual(P(s))
+  s = '  [\t-62   ,\t \t\t  \r\r\n\n-62\r\n]'
+  E(j(s)).toEqual(P(s))
+  s = '  [\t0.3   ,\t \t\t  \r\r\n\n0.3\r\n]'
+  E(j(s)).toEqual(P(s))
+  s = '  [\t-0.4   ,\t \t\t  \r\r\n\n-0.4\r\n]'
+  E(j(s)).toEqual(P(s))
+  s = '  [\t0.37   ,\t \t\t  \r\r\n\n0.37\r\n]'
+  E(j(s)).toEqual(P(s))
+  s = '  [\t-0.48   ,\t \t\t  \r\r\n\n-0.48\r\n]'
+  E(j(s)).toEqual(P(s))
+  s = '  [\t9.3   ,\t \t\t  \r\r\n\n9.3\r\n]'
+  E(j(s)).toEqual(P(s))
+  s = '  [\t-1.4   ,\t \t\t  \r\r\n\n-1.4\r\n]'
+  E(j(s)).toEqual(P(s))
+  s = '  [\t2.37   ,\t \t\t  \r\r\n\n2.37\r\n]'
+  E(j(s)).toEqual(P(s))
+  s = '  [\t-3.48   ,\t \t\t  \r\r\n\n-3.48\r\n]'
+  E(j(s)).toEqual(P(s))
+  s = '  [\t94.3   ,\t \t\t  \r\r\n\n94.3\r\n]'
+  E(j(s)).toEqual(P(s))
+  s = '  [\t-15.4   ,\t \t\t  \r\r\n\n-15.4\r\n]'
+  E(j(s)).toEqual(P(s))
+  s = '  [\t26.37   ,\t \t\t  \r\r\n\n26.37\r\n]'
+  E(j(s)).toEqual(P(s))
+  s = '  [\t-37.48   ,\t \t\t  \r\r\n\n-37.48\r\n]'
+  E(j(s)).toEqual(P(s))
+
+  s = '  [\t1e8   ,\t \t\t  \r\r\n\n1e8\r\n]'
+  E(j(s)).toEqual(P(s))
+  s = '  [\t-2e9   ,\t \t\t  \r\r\n\n-2e9\r\n]'
+  E(j(s)).toEqual(P(s))
+  s = '  [\t51e0   ,\t \t\t  \r\r\n\n51e0\r\n]'
+  E(j(s)).toEqual(P(s))
+  s = '  [\t-62e1   ,\t \t\t  \r\r\n\n-62e1\r\n]'
+  E(j(s)).toEqual(P(s))
+  s = '  [\t1e82   ,\t \t\t  \r\r\n\n1e82\r\n]'
+  E(j(s)).toEqual(P(s))
+  s = '  [\t-2e93   ,\t \t\t  \r\r\n\n-2e93\r\n]'
+  E(j(s)).toEqual(P(s))
+  s = '  [\t51e04   ,\t \t\t  \r\r\n\n51e04\r\n]'
+  E(j(s)).toEqual(P(s))
+  s = '  [\t-62e15   ,\t \t\t  \r\r\n\n-62e15\r\n]'
+  E(j(s)).toEqual(P(s))
+  s = '  [\t1E8   ,\t \t\t  \r\r\n\n1E8\r\n]'
+  E(j(s)).toEqual(P(s))
+  s = '  [\t-2E9   ,\t \t\t  \r\r\n\n-2E9\r\n]'
+  E(j(s)).toEqual(P(s))
+  s = '  [\t51E0   ,\t \t\t  \r\r\n\n51E0\r\n]'
+  E(j(s)).toEqual(P(s))
+  s = '  [\t-62E1   ,\t \t\t  \r\r\n\n-62E1\r\n]'
+  E(j(s)).toEqual(P(s))
+  s = '  [\t1E82   ,\t \t\t  \r\r\n\n1E82\r\n]'
+  E(j(s)).toEqual(P(s))
+  s = '  [\t-2E93   ,\t \t\t  \r\r\n\n-2E93\r\n]'
+  E(j(s)).toEqual(P(s))
+  s = '  [\t51E04   ,\t \t\t  \r\r\n\n51E04\r\n]'
+  E(j(s)).toEqual(P(s))
+  s = '  [\t-62E15   ,\t \t\t  \r\r\n\n-62E15\r\n]'
+  E(j(s)).toEqual(P(s))
+
+  s = '  [\t1e-8   ,\t \t\t  \r\r\n\n1e-8\r\n]'
+  E(j(s)).toEqual(P(s))
+  s = '  [\t-2e-9   ,\t \t\t  \r\r\n\n-2e-9\r\n]'
+  E(j(s)).toEqual(P(s))
+  s = '  [\t51e-0   ,\t \t\t  \r\r\n\n51e-0\r\n]'
+  E(j(s)).toEqual(P(s))
+  s = '  [\t-62e-1   ,\t \t\t  \r\r\n\n-62e-1\r\n]'
+  E(j(s)).toEqual(P(s))
+  s = '  [\t1e-82   ,\t \t\t  \r\r\n\n1e-82\r\n]'
+  E(j(s)).toEqual(P(s))
+  s = '  [\t-2e-93   ,\t \t\t  \r\r\n\n-2e-93\r\n]'
+  E(j(s)).toEqual(P(s))
+  s = '  [\t51e-04   ,\t \t\t  \r\r\n\n51e-04\r\n]'
+  E(j(s)).toEqual(P(s))
+  s = '  [\t-62e-15   ,\t \t\t  \r\r\n\n-62e-15\r\n]'
+  E(j(s)).toEqual(P(s))
+  s = '  [\t1E-8   ,\t \t\t  \r\r\n\n1E-8\r\n]'
+  E(j(s)).toEqual(P(s))
+  s = '  [\t-2E-9   ,\t \t\t  \r\r\n\n-2E-9\r\n]'
+  E(j(s)).toEqual(P(s))
+  s = '  [\t51E-0   ,\t \t\t  \r\r\n\n51E-0\r\n]'
+  E(j(s)).toEqual(P(s))
+  s = '  [\t-62E-1   ,\t \t\t  \r\r\n\n-62E-1\r\n]'
+  E(j(s)).toEqual(P(s))
+  s = '  [\t1E-82   ,\t \t\t  \r\r\n\n1E-82\r\n]'
+  E(j(s)).toEqual(P(s))
+  s = '  [\t-2E-93   ,\t \t\t  \r\r\n\n-2E-93\r\n]'
+  E(j(s)).toEqual(P(s))
+  s = '  [\t51E-04   ,\t \t\t  \r\r\n\n51E-04\r\n]'
+  E(j(s)).toEqual(P(s))
+  s = '  [\t-62E-15   ,\t \t\t  \r\r\n\n-62E-15\r\n]'
+  E(j(s)).toEqual(P(s))
+
+  s = '  [\t1e+8\r\n]'
+  E(j(s)).toEqual(P(s))
+  s = '  [\t-2e+9   ,\t \t\t  \r\r\n\n-2e+9\r\n]'
+  E(j(s)).toEqual(P(s))
+  s = '  [\t51e+0   ,\t \t\t  \r\r\n\n51e+0\r\n]'
+  E(j(s)).toEqual(P(s))
+  s = '  [\t-62e+1   ,\t \t\t  \r\r\n\n-62e+1\r\n]'
+  E(j(s)).toEqual(P(s))
+  s = '  [\t1e+82   ,\t \t\t  \r\r\n\n1e+82\r\n]'
+  E(j(s)).toEqual(P(s))
+  s = '  [\t-2e+93   ,\t \t\t  \r\r\n\n-2e+93\r\n]'
+  E(j(s)).toEqual(P(s))
+  s = '  [\t51e+04   ,\t \t\t  \r\r\n\n51e+04\r\n]'
+  E(j(s)).toEqual(P(s))
+  s = '  [\t-62e+15   ,\t \t\t  \r\r\n\n-62e+15\r\n]'
+  E(j(s)).toEqual(P(s))
+  s = '  [\t1E+8   ,\t \t\t  \r\r\n\n1E+8\r\n]'
+  E(j(s)).toEqual(P(s))
+  s = '  [\t-2E+9   ,\t \t\t  \r\r\n\n-2E+9\r\n]'
+  E(j(s)).toEqual(P(s))
+  s = '  [\t51E+0   ,\t \t\t  \r\r\n\n51E+0\r\n]'
+  E(j(s)).toEqual(P(s))
+  s = '  [\t-62E+1   ,\t \t\t  \r\r\n\n-62E+1\r\n]'
+  E(j(s)).toEqual(P(s))
+  s = '  [\t1E+82   ,\t \t\t  \r\r\n\n1E+82\r\n]'
+  E(j(s)).toEqual(P(s))
+  s = '  [\t-2E+93   ,\t \t\t  \r\r\n\n-2E+93\r\n]'
+  E(j(s)).toEqual(P(s))
+  s = '  [\t51E+04   ,\t \t\t  \r\r\n\n51E+04\r\n]'
+  E(j(s)).toEqual(P(s))
+  s = '  [\t-62E+15   ,\t \t\t  \r\r\n\n-62E+15\r\n]'
+  E(j(s)).toEqual(P(s))
+
+  // SPACE   [\tS   ,\t \t\t  \r\r\n\nS\r\n]
+  s = '  [\t"a"   ,\t \t\t  \r\r\n\n"a"\r\n]'
+  E(j(s)).toEqual(P(s))
+  s = '  [\t"aa"   ,\t \t\t  \r\r\n\n"aa"\r\n]'
+  E(j(s)).toEqual(P(s))
+  s = '  [\t"\\""   ,\t \t\t  \r\r\n\n"\\""\r\n]'
+  E(j(s)).toEqual(P(s))
+  s = '  [\t"\\\\"   ,\t \t\t  \r\r\n\n"\\\\"\r\n]'
+  E(j(s)).toEqual(P(s))
+  s = '  [\t"\\/"   ,\t \t\t  \r\r\n\n"\\/"\r\n]'
+  E(j(s)).toEqual(P(s))
+  s = '  [\t"\\b"   ,\t \t\t  \r\r\n\n"\\b"\r\n]'
+  E(j(s)).toEqual(P(s))
+  s = '  [\t"\\f"   ,\t \t\t  \r\r\n\n"\\f"\r\n]'
+  E(j(s)).toEqual(P(s))
+  s = '  [\t"\\n"   ,\t \t\t  \r\r\n\n"\\n"\r\n]'
+  E(j(s)).toEqual(P(s))
+  s = '  [\t"\\r"   ,\t \t\t  \r\r\n\n"\\r"\r\n]'
+  E(j(s)).toEqual(P(s))
+  s = '  [\t"\\t"   ,\t \t\t  \r\r\n\n"\\t"\r\n]'
+  E(j(s)).toEqual(P(s))
+  s = '  [\t"\\u0000"   ,\t \t\t  \r\r\n\n"\\u0000"\r\n]'
+  E(j(s)).toEqual(P(s))
+
+  // SPACE   [\tB   ,\t \t\t  \r\r\n\nB\r\n]
+  s = '  [\ttrue   ,\t \t\t  \r\r\n\ntrue\r\n]'
+  E(j(s)).toEqual(P(s))
+  s = '  [\tfalse   ,\t \t\t  \r\r\n\nfalse\r\n]'
+  E(j(s)).toEqual(P(s))
+  s = '  [\tnull   ,\t \t\t  \r\r\n\nnull\r\n]'
+  E(j(s)).toEqual(P(s))
+
+  // SPACE   [\t {\nK:V\n }    ,\t \t\t  \r\r\n\n {\nK:V\n } \r\n]
+  s = '  [\t {\n"a":1\n }    ,\t \t\t  \r\r\n\n {\n"a":1\n } \r\n]'
+  E(j(s)).toEqual(P(s))
+  s = '  [\t {\n"a":-2\n }    ,\t \t\t  \r\r\n\n {\n"a":-2\n } \r\n]'
+  E(j(s)).toEqual(P(s))
+  s = '  [\t {\n"a":51\n }    ,\t \t\t  \r\r\n\n {\n"a":51\n } \r\n]'
+  E(j(s)).toEqual(P(s))
+  s = '  [\t {\n"a":-62\n }    ,\t \t\t  \r\r\n\n {\n"a":-62\n } \r\n]'
+  E(j(s)).toEqual(P(s))
+  s = '  [\t {\n"a":0.3\n }    ,\t \t\t  \r\r\n\n {\n"a":0.3\n } \r\n]'
+  E(j(s)).toEqual(P(s))
+  s = '  [\t {\n"a":-0.4\n }    ,\t \t\t  \r\r\n\n {\n"a":-0.4\n } \r\n]'
+  E(j(s)).toEqual(P(s))
+  s = '  [\t {\n"a":0.37\n }    ,\t \t\t  \r\r\n\n {\n"a":0.37\n } \r\n]'
+  E(j(s)).toEqual(P(s))
+  s = '  [\t {\n"a":-0.48\n }    ,\t \t\t  \r\r\n\n {\n"a":-0.48\n } \r\n]'
+  E(j(s)).toEqual(P(s))
+  s = '  [\t {\n"a":9.3\n }    ,\t \t\t  \r\r\n\n {\n"a":9.3\n } \r\n]'
+  E(j(s)).toEqual(P(s))
+  s = '  [\t {\n"a":-1.4\n }    ,\t \t\t  \r\r\n\n {\n"a":-1.4\n } \r\n]'
+  E(j(s)).toEqual(P(s))
+  s = '  [\t {\n"a":2.37\n }    ,\t \t\t  \r\r\n\n {\n"a":2.37\n } \r\n]'
+  E(j(s)).toEqual(P(s))
+  s = '  [\t {\n"a":-3.48\n }    ,\t \t\t  \r\r\n\n {\n"a":-3.48\n } \r\n]'
+  E(j(s)).toEqual(P(s))
+  s = '  [\t {\n"a":94.3\n }    ,\t \t\t  \r\r\n\n {\n"a":94.3\n } \r\n]'
+  E(j(s)).toEqual(P(s))
+  s = '  [\t {\n"a":-15.4\n }    ,\t \t\t  \r\r\n\n {\n"a":-15.4\n } \r\n]'
+  E(j(s)).toEqual(P(s))
+  s = '  [\t {\n"a":26.37\n }    ,\t \t\t  \r\r\n\n {\n"a":26.37\n } \r\n]'
+  E(j(s)).toEqual(P(s))
+  s = '  [\t {\n"a":-37.48\n }    ,\t \t\t  \r\r\n\n {\n"a":-37.48\n } \r\n]'
+  E(j(s)).toEqual(P(s))
+
+  s = '  [\t {\n"a":1e8\n }    ,\t \t\t  \r\r\n\n {\n"a":1e8\n } \r\n]'
+  E(j(s)).toEqual(P(s))
+  s = '  [\t {\n"a":-2e9\n }    ,\t \t\t  \r\r\n\n {\n"a":-2e9\n } \r\n]'
+  E(j(s)).toEqual(P(s))
+  s = '  [\t {\n"a":51e0\n }    ,\t \t\t  \r\r\n\n {\n"a":51e0\n } \r\n]'
+  E(j(s)).toEqual(P(s))
+  s = '  [\t {\n"a":-62e1\n }    ,\t \t\t  \r\r\n\n {\n"a":-62e1\n } \r\n]'
+  E(j(s)).toEqual(P(s))
+  s = '  [\t {\n"a":1e82\n }    ,\t \t\t  \r\r\n\n {\n"a":1e82\n } \r\n]'
+  E(j(s)).toEqual(P(s))
+  s = '  [\t {\n"a":-2e93\n }    ,\t \t\t  \r\r\n\n {\n"a":-2e93\n } \r\n]'
+  E(j(s)).toEqual(P(s))
+  s = '  [\t {\n"a":51e04\n }    ,\t \t\t  \r\r\n\n {\n"a":51e04\n } \r\n]'
+  E(j(s)).toEqual(P(s))
+  s = '  [\t {\n"a":-62e15\n }    ,\t \t\t  \r\r\n\n {\n"a":-62e15\n } \r\n]'
+  E(j(s)).toEqual(P(s))
+  s = '  [\t {\n"a":1E8\n }    ,\t \t\t  \r\r\n\n {\n"a":1E8\n } \r\n]'
+  E(j(s)).toEqual(P(s))
+  s = '  [\t {\n"a":-2E9\n }    ,\t \t\t  \r\r\n\n {\n"a":-2E9\n } \r\n]'
+  E(j(s)).toEqual(P(s))
+  s = '  [\t {\n"a":51E0\n }    ,\t \t\t  \r\r\n\n {\n"a":51E0\n } \r\n]'
+  E(j(s)).toEqual(P(s))
+  s = '  [\t {\n"a":-62E1\n }    ,\t \t\t  \r\r\n\n {\n"a":-62E1\n } \r\n]'
+  E(j(s)).toEqual(P(s))
+  s = '  [\t {\n"a":1E82\n }    ,\t \t\t  \r\r\n\n {\n"a":1E82\n } \r\n]'
+  E(j(s)).toEqual(P(s))
+  s = '  [\t {\n"a":-2E93\n }    ,\t \t\t  \r\r\n\n {\n"a":-2E93\n } \r\n]'
+  E(j(s)).toEqual(P(s))
+  s = '  [\t {\n"a":51E04\n }    ,\t \t\t  \r\r\n\n {\n"a":51E04\n } \r\n]'
+  E(j(s)).toEqual(P(s))
+  s = '  [\t {\n"a":-62E15\n }    ,\t \t\t  \r\r\n\n {\n"a":-62E15\n } \r\n]'
+  E(j(s)).toEqual(P(s))
+
+  s = '  [\t {\n"a":1e-8\n }    ,\t \t\t  \r\r\n\n {\n"a":1e-8\n } \r\n]'
+  E(j(s)).toEqual(P(s))
+  s = '  [\t {\n"a":-2e-9\n }    ,\t \t\t  \r\r\n\n {\n"a":-2e-9\n } \r\n]'
+  E(j(s)).toEqual(P(s))
+  s = '  [\t {\n"a":51e-0\n }    ,\t \t\t  \r\r\n\n {\n"a":51e-0\n } \r\n]'
+  E(j(s)).toEqual(P(s))
+  s = '  [\t {\n"a":-62e-1\n }    ,\t \t\t  \r\r\n\n {\n"a":-62e-1\n } \r\n]'
+  E(j(s)).toEqual(P(s))
+  s = '  [\t {\n"a":1e-82\n }    ,\t \t\t  \r\r\n\n {\n"a":1e-82\n } \r\n]'
+  E(j(s)).toEqual(P(s))
+  s = '  [\t {\n"a":-2e-93\n }    ,\t \t\t  \r\r\n\n {\n"a":-2e-93\n } \r\n]'
+  E(j(s)).toEqual(P(s))
+  s = '  [\t {\n"a":51e-04\n }    ,\t \t\t  \r\r\n\n {\n"a":51e-04\n } \r\n]'
+  E(j(s)).toEqual(P(s))
+  s = '  [\t {\n"a":-62e-15\n }    ,\t \t\t  \r\r\n\n {\n"a":-62e-15\n } \r\n]'
+  E(j(s)).toEqual(P(s))
+  s = '  [\t {\n"a":1E-8\n }    ,\t \t\t  \r\r\n\n {\n"a":1E-8\n } \r\n]'
+  E(j(s)).toEqual(P(s))
+  s = '  [\t {\n"a":-2E-9\n }    ,\t \t\t  \r\r\n\n {\n"a":-2E-9\n } \r\n]'
+  E(j(s)).toEqual(P(s))
+  s = '  [\t {\n"a":51E-0\n }    ,\t \t\t  \r\r\n\n {\n"a":51E-0\n } \r\n]'
+  E(j(s)).toEqual(P(s))
+  s = '  [\t {\n"a":-62E-1\n }    ,\t \t\t  \r\r\n\n {\n"a":-62E-1\n } \r\n]'
+  E(j(s)).toEqual(P(s))
+  s = '  [\t {\n"a":1E-82\n }    ,\t \t\t  \r\r\n\n {\n"a":1E-82\n } \r\n]'
+  E(j(s)).toEqual(P(s))
+  s = '  [\t {\n"a":-2E-93\n }    ,\t \t\t  \r\r\n\n {\n"a":-2E-93\n } \r\n]'
+  E(j(s)).toEqual(P(s))
+  s = '  [\t {\n"a":51E-04\n }    ,\t \t\t  \r\r\n\n {\n"a":51E-04\n } \r\n]'
+  E(j(s)).toEqual(P(s))
+  s = '  [\t {\n"a":-62E-15\n }    ,\t \t\t  \r\r\n\n {\n"a":-62E-15\n } \r\n]'
+  E(j(s)).toEqual(P(s))
+
+  s = '  [\t {\n"a":1e+8\n }    ,\t \t\t  \r\r\n\n {\n"a":1e+8\n } \r\n]'
+  E(j(s)).toEqual(P(s))
+  s = '  [\t {\n"a":-2e+9\n }    ,\t \t\t  \r\r\n\n {\n"a":-2e+9\n } \r\n]'
+  E(j(s)).toEqual(P(s))
+  s = '  [\t {\n"a":51e+0\n }    ,\t \t\t  \r\r\n\n {\n"a":51e+0\n } \r\n]'
+  E(j(s)).toEqual(P(s))
+  s = '  [\t {\n"a":-62e+1\n }    ,\t \t\t  \r\r\n\n {\n"a":-62e+1\n } \r\n]'
+  E(j(s)).toEqual(P(s))
+  s = '  [\t {\n"a":1e+82\n }    ,\t \t\t  \r\r\n\n {\n"a":1e+82\n } \r\n]'
+  E(j(s)).toEqual(P(s))
+  s = '  [\t {\n"a":-2e+93\n }    ,\t \t\t  \r\r\n\n {\n"a":-2e+93\n } \r\n]'
+  E(j(s)).toEqual(P(s))
+  s = '  [\t {\n"a":51e+04\n }    ,\t \t\t  \r\r\n\n {\n"a":51e+04\n } \r\n]'
+  E(j(s)).toEqual(P(s))
+  s = '  [\t {\n"a":-62e+15\n }    ,\t \t\t  \r\r\n\n {\n"a":-62e+15\n } \r\n]'
+  E(j(s)).toEqual(P(s))
+  s = '  [\t {\n"a":1E+8\n }    ,\t \t\t  \r\r\n\n {\n"a":1E+8\n } \r\n]'
+  E(j(s)).toEqual(P(s))
+  s = '  [\t {\n"a":-2E+9\n }    ,\t \t\t  \r\r\n\n {\n"a":-2E+9\n } \r\n]'
+  E(j(s)).toEqual(P(s))
+  s = '  [\t {\n"a":51E+0\n }    ,\t \t\t  \r\r\n\n {\n"a":51E+0\n } \r\n]'
+  E(j(s)).toEqual(P(s))
+  s = '  [\t {\n"a":-62E+1\n }    ,\t \t\t  \r\r\n\n {\n"a":-62E+1\n } \r\n]'
+  E(j(s)).toEqual(P(s))
+  s = '  [\t {\n"a":1E+82\n }    ,\t \t\t  \r\r\n\n {\n"a":1E+82\n } \r\n]'
+  E(j(s)).toEqual(P(s))
+  s = '  [\t {\n"a":-2E+93\n }    ,\t \t\t  \r\r\n\n {\n"a":-2E+93\n } \r\n]'
+  E(j(s)).toEqual(P(s))
+  s = '  [\t {\n"a":51E+04\n }    ,\t \t\t  \r\r\n\n {\n"a":51E+04\n } \r\n]'
+  E(j(s)).toEqual(P(s))
+  s = '  [\t {\n"a":-62E+15\n }    ,\t \t\t  \r\r\n\n {\n"a":-62E+15\n } \r\n]'
+  E(j(s)).toEqual(P(s))
+
+  s = '  [\t {\n"a":"a"\n }    ,\t \t\t  \r\r\n\n {\n"a":"a"\n } \r\n]'
+  E(j(s)).toEqual(P(s))
+  s = '  [\t {\n"a":"aa"\n }    ,\t \t\t  \r\r\n\n {\n"a":"aa"\n } \r\n]'
+  E(j(s)).toEqual(P(s))
+  s = '  [\t {\n"a":"\\""\n }    ,\t \t\t  \r\r\n\n {\n"a":"\\""\n } \r\n]'
+  E(j(s)).toEqual(P(s))
+  s = '  [\t {\n"a":"\\\\"\n }    ,\t \t\t  \r\r\n\n {\n"a":"\\\\"\n } \r\n]'
+  E(j(s)).toEqual(P(s))
+  s = '  [\t {\n"a":"\\/"\n }    ,\t \t\t  \r\r\n\n {\n"a":"\\/"\n } \r\n]'
+  E(j(s)).toEqual(P(s))
+  s = '  [\t {\n"a":"\\b"\n }    ,\t \t\t  \r\r\n\n {\n"a":"\\b"\n } \r\n]'
+  E(j(s)).toEqual(P(s))
+  s = '  [\t {\n"a":"\\f"\n }    ,\t \t\t  \r\r\n\n {\n"a":"\\f"\n } \r\n]'
+  E(j(s)).toEqual(P(s))
+  s = '  [\t {\n"a":"\\n"\n }    ,\t \t\t  \r\r\n\n {\n"a":"\\n"\n } \r\n]'
+  E(j(s)).toEqual(P(s))
+  s = '  [\t {\n"a":"\\r"\n }    ,\t \t\t  \r\r\n\n {\n"a":"\\r"\n } \r\n]'
+  E(j(s)).toEqual(P(s))
+  s = '  [\t {\n"a":"\\t"\n }    ,\t \t\t  \r\r\n\n {\n"a":"\\t"\n } \r\n]'
+  E(j(s)).toEqual(P(s))
+  s =
+    '  [\t {\n"a":"\\u0000"\n }    ,\t \t\t  \r\r\n\n {\n"a":"\\u0000"\n } \r\n]'
+  E(j(s)).toEqual(P(s))
+
+  s = '  [\t {\n"a":true\n }    ,\t \t\t  \r\r\n\n {\n"a":true\n } \r\n]'
+  E(j(s)).toEqual(P(s))
+  s = '  [\t {\n"a":false\n }    ,\t \t\t  \r\r\n\n {\n"a":false\n } \r\n]'
+  E(j(s)).toEqual(P(s))
+  s = '  [\t {\n"a":null\n }    ,\t \t\t  \r\r\n\n {\n"a":null\n } \r\n]'
+  E(j(s)).toEqual(P(s))
+
+  // SPACE  {\nK:  [\tV\r\n]   ,\t \t\t  \r\r\n\nK:  [\tV\r\n]\n }
+  s = ' {\n"a":  [\t1\r\n]   ,\t \t\t  \r\r\n\n"a":  [\t1\r\n]\n } '
+  E(j(s)).toEqual(P(s))
+  s = ' {\n"a":  [\t-2\r\n]   ,\t \t\t  \r\r\n\n"b":  [\t-2\r\n]\n } '
+  E(j(s)).toEqual(P(s))
+  s = ' {\n"a":  [\t51\r\n]   ,\t \t\t  \r\r\n\n"b":  [\t51\r\n]\n } '
+  E(j(s)).toEqual(P(s))
+  s = ' {\n"a":  [\t-62\r\n]   ,\t \t\t  \r\r\n\n"b":  [\t-62\r\n]\n } '
+  E(j(s)).toEqual(P(s))
+  s = ' {\n"a":  [\t0.3\r\n]   ,\t \t\t  \r\r\n\n"b":  [\t0.3\r\n]\n } '
+  E(j(s)).toEqual(P(s))
+  s = ' {\n"a":  [\t-0.4\r\n]   ,\t \t\t  \r\r\n\n"b":  [\t-0.4\r\n]\n } '
+  E(j(s)).toEqual(P(s))
+  s = ' {\n"a":  [\t0.37\r\n]   ,\t \t\t  \r\r\n\n"b":  [\t0.37\r\n]\n } '
+  E(j(s)).toEqual(P(s))
+  s = ' {\n"a":  [\t-0.48\r\n]   ,\t \t\t  \r\r\n\n"b":  [\t-0.48\r\n]\n } '
+  E(j(s)).toEqual(P(s))
+  s = ' {\n"a":  [\t9.3\r\n]   ,\t \t\t  \r\r\n\n"b":  [\t9.3\r\n]\n } '
+  E(j(s)).toEqual(P(s))
+  s = ' {\n"a":  [\t-1.4\r\n]   ,\t \t\t  \r\r\n\n"b":  [\t-1.4\r\n]\n } '
+  E(j(s)).toEqual(P(s))
+  s = ' {\n"a":  [\t2.37\r\n]   ,\t \t\t  \r\r\n\n"b":  [\t2.37\r\n]\n } '
+  E(j(s)).toEqual(P(s))
+  s = ' {\n"a":  [\t-3.48\r\n]   ,\t \t\t  \r\r\n\n"b":  [\t-3.48\r\n]\n } '
+  E(j(s)).toEqual(P(s))
+  s = ' {\n"a":  [\t94.3\r\n]   ,\t \t\t  \r\r\n\n"b":  [\t94.3\r\n]\n } '
+  E(j(s)).toEqual(P(s))
+  s = ' {\n"a":  [\t-15.4\r\n]   ,\t \t\t  \r\r\n\n"b":  [\t-15.4\r\n]\n } '
+  E(j(s)).toEqual(P(s))
+  s = ' {\n"a":  [\t26.37\r\n]   ,\t \t\t  \r\r\n\n"b":  [\t26.37\r\n]\n } '
+  E(j(s)).toEqual(P(s))
+  s = ' {\n"a":  [\t-37.48\r\n]   ,\t \t\t  \r\r\n\n"b":  [\t-37.48\r\n]\n } '
+  E(j(s)).toEqual(P(s))
+
+  s = ' {\n"a":  [\t1e8\r\n]   ,\t \t\t  \r\r\n\n"b":  [\t1e8\r\n]\n } '
+  E(j(s)).toEqual(P(s))
+  s = ' {\n"a":  [\t-2e9\r\n]   ,\t \t\t  \r\r\n\n"b":  [\t-2e9\r\n]\n } '
+  E(j(s)).toEqual(P(s))
+  s = ' {\n"a":  [\t51e0\r\n]   ,\t \t\t  \r\r\n\n"b":  [\t51e0\r\n]\n } '
+  E(j(s)).toEqual(P(s))
+  s = ' {\n"a":  [\t-62e1\r\n]   ,\t \t\t  \r\r\n\n"b":  [\t-62e1\r\n]\n } '
+  E(j(s)).toEqual(P(s))
+  s = ' {\n"a":  [\t1e82\r\n]   ,\t \t\t  \r\r\n\n"b":  [\t1e82\r\n]\n } '
+  E(j(s)).toEqual(P(s))
+  s = ' {\n"a":  [\t-2e93\r\n]   ,\t \t\t  \r\r\n\n"b":  [\t-2e93\r\n]\n } '
+  E(j(s)).toEqual(P(s))
+  s = ' {\n"a":  [\t51e04\r\n]   ,\t \t\t  \r\r\n\n"b":  [\t51e04\r\n]\n } '
+  E(j(s)).toEqual(P(s))
+  s = ' {\n"a":  [\t-62e15\r\n]   ,\t \t\t  \r\r\n\n"b":  [\t-62e15\r\n]\n } '
+  E(j(s)).toEqual(P(s))
+  s = ' {\n"a":  [\t1E8\r\n]   ,\t \t\t  \r\r\n\n"b":  [\t1E8\r\n]\n } '
+  E(j(s)).toEqual(P(s))
+  s = ' {\n"a":  [\t-2E9\r\n]   ,\t \t\t  \r\r\n\n"b":  [\t-2E9\r\n]\n } '
+  E(j(s)).toEqual(P(s))
+  s = ' {\n"a":  [\t51E0\r\n]   ,\t \t\t  \r\r\n\n"b":  [\t51E0\r\n]\n } '
+  E(j(s)).toEqual(P(s))
+  s = ' {\n"a":  [\t-62E1\r\n]   ,\t \t\t  \r\r\n\n"b":  [\t-62E1\r\n]\n } '
+  E(j(s)).toEqual(P(s))
+  s = ' {\n"a":  [\t1E82\r\n]   ,\t \t\t  \r\r\n\n"b":  [\t1E82\r\n]\n } '
+  E(j(s)).toEqual(P(s))
+  s = ' {\n"a":  [\t-2E93\r\n]   ,\t \t\t  \r\r\n\n"b":  [\t-2E93\r\n]\n } '
+  E(j(s)).toEqual(P(s))
+  s = ' {\n"a":  [\t51E04\r\n]   ,\t \t\t  \r\r\n\n"b":  [\t51E04\r\n]\n } '
+  E(j(s)).toEqual(P(s))
+  s = ' {\n"a":  [\t-62E15\r\n]   ,\t \t\t  \r\r\n\n"b":  [\t-62E15\r\n]\n } '
+  E(j(s)).toEqual(P(s))
+
+  s = ' {\n"a":  [\t1e-8\r\n]   ,\t \t\t  \r\r\n\n"b":  [\t1e-8\r\n]\n } '
+  E(j(s)).toEqual(P(s))
+  s = ' {\n"a":  [\t-2e-9\r\n]   ,\t \t\t  \r\r\n\n"b":  [\t-2e-9\r\n]\n } '
+  E(j(s)).toEqual(P(s))
+  s = ' {\n"a":  [\t51e-0\r\n]   ,\t \t\t  \r\r\n\n"b":  [\t51e-0\r\n]\n } '
+  E(j(s)).toEqual(P(s))
+  s = ' {\n"a":  [\t-62e-1\r\n]   ,\t \t\t  \r\r\n\n"b":  [\t-62e-1\r\n]\n } '
+  E(j(s)).toEqual(P(s))
+  s = ' {\n"a":  [\t1e-82\r\n]   ,\t \t\t  \r\r\n\n"b":  [\t1e-82\r\n]\n } '
+  E(j(s)).toEqual(P(s))
+  s = ' {\n"a":  [\t-2e-93\r\n]   ,\t \t\t  \r\r\n\n"b":  [\t-2e-93\r\n]\n } '
+  E(j(s)).toEqual(P(s))
+  s = ' {\n"a":  [\t51e-04\r\n]   ,\t \t\t  \r\r\n\n"b":  [\t51e-04\r\n]\n } '
+  E(j(s)).toEqual(P(s))
+  s = ' {\n"a":  [\t-62e-15\r\n]   ,\t \t\t  \r\r\n\n"b":  [\t-62e-15\r\n]\n } '
+  E(j(s)).toEqual(P(s))
+  s = ' {\n"a":  [\t1E-8\r\n]   ,\t \t\t  \r\r\n\n"b":  [\t1E-8\r\n]\n } '
+  E(j(s)).toEqual(P(s))
+  s = ' {\n"a":  [\t-2E-9\r\n]   ,\t \t\t  \r\r\n\n"b":  [\t-2E-9\r\n]\n } '
+  E(j(s)).toEqual(P(s))
+  s = ' {\n"a":  [\t51E-0\r\n]   ,\t \t\t  \r\r\n\n"b":  [\t51E-0\r\n]\n } '
+  E(j(s)).toEqual(P(s))
+  s = ' {\n"a":  [\t-62E-1\r\n]   ,\t \t\t  \r\r\n\n"b":  [\t-62E-1\r\n]\n } '
+  E(j(s)).toEqual(P(s))
+  s = ' {\n"a":  [\t1E-82\r\n]   ,\t \t\t  \r\r\n\n"b":  [\t1E-82\r\n]\n } '
+  E(j(s)).toEqual(P(s))
+  s = ' {\n"a":  [\t-2E-93\r\n]   ,\t \t\t  \r\r\n\n"b":  [\t-2E-93\r\n]\n } '
+  E(j(s)).toEqual(P(s))
+  s = ' {\n"a":  [\t51E-04\r\n]   ,\t \t\t  \r\r\n\n"b":  [\t51E-04\r\n]\n } '
+  E(j(s)).toEqual(P(s))
+  s = ' {\n"a":  [\t-62E-15\r\n]   ,\t \t\t  \r\r\n\n"b":  [\t-62E-15\r\n]\n } '
+  E(j(s)).toEqual(P(s))
+
+  s = ' {\n"a":  [\t1e+8\r\n]   ,\t \t\t  \r\r\n\n"b":  [\t1e+8\r\n]\n } '
+  E(j(s)).toEqual(P(s))
+  s = ' {\n"a":  [\t-2e+9\r\n]   ,\t \t\t  \r\r\n\n"b":  [\t-2e+9\r\n]\n } '
+  E(j(s)).toEqual(P(s))
+  s = ' {\n"a":  [\t51e+0\r\n]   ,\t \t\t  \r\r\n\n"b":  [\t51e+0\r\n]\n } '
+  E(j(s)).toEqual(P(s))
+  s = ' {\n"a":  [\t-62e+1\r\n]   ,\t \t\t  \r\r\n\n"b":  [\t-62e+1\r\n]\n } '
+  E(j(s)).toEqual(P(s))
+  s = ' {\n"a":  [\t1e+82\r\n]   ,\t \t\t  \r\r\n\n"b":  [\t1e+82\r\n]\n } '
+  E(j(s)).toEqual(P(s))
+  s = ' {\n"a":  [\t-2e+93\r\n]   ,\t \t\t  \r\r\n\n"b":  [\t-2e+93\r\n]\n } '
+  E(j(s)).toEqual(P(s))
+  s = ' {\n"a":  [\t51e+04\r\n]   ,\t \t\t  \r\r\n\n"b":  [\t51e+04\r\n]\n } '
+  E(j(s)).toEqual(P(s))
+  s = ' {\n"a":  [\t-62e+15\r\n]   ,\t \t\t  \r\r\n\n"b":  [\t-62e+15\r\n]\n } '
+  E(j(s)).toEqual(P(s))
+  s = ' {\n"a":  [\t1E+8\r\n]   ,\t \t\t  \r\r\n\n"b":  [\t1E+8\r\n]\n } '
+  E(j(s)).toEqual(P(s))
+  s = ' {\n"a":  [\t-2E+9\r\n]   ,\t \t\t  \r\r\n\n"b":  [\t-2E+9\r\n]\n } '
+  E(j(s)).toEqual(P(s))
+  s = ' {\n"a":  [\t51E+0\r\n]   ,\t \t\t  \r\r\n\n"b":  [\t51E+0\r\n]\n } '
+  E(j(s)).toEqual(P(s))
+  s = ' {\n"a":  [\t-62E+1\r\n]   ,\t \t\t  \r\r\n\n"b":  [\t-62E+1\r\n]\n } '
+  E(j(s)).toEqual(P(s))
+  s = ' {\n"a":  [\t1E+82\r\n]   ,\t \t\t  \r\r\n\n"b":  [\t1E+82\r\n]\n } '
+  E(j(s)).toEqual(P(s))
+  s = ' {\n"a":  [\t-2E+93\r\n]   ,\t \t\t  \r\r\n\n"b":  [\t-2E+93\r\n]\n } '
+  E(j(s)).toEqual(P(s))
+  s = ' {\n"a":  [\t51E+04\r\n]   ,\t \t\t  \r\r\n\n"b":  [\t51E+04\r\n]\n } '
+  E(j(s)).toEqual(P(s))
+  s = ' {\n"a":  [\t-62E+15\r\n]   ,\t \t\t  \r\r\n\n"b":  [\t-62E+15\r\n]\n } '
+  E(j(s)).toEqual(P(s))
+
+  s = ' {\n"a":  [\ttrue\r\n]   ,\t \t\t  \r\r\n\n"b":  [\ttrue\r\n]\n } '
+  E(j(s)).toEqual(P(s))
+  s = ' {\n"a":  [\tfalse\r\n]   ,\t \t\t  \r\r\n\n"b":  [\tfalse\r\n]\n } '
+  E(j(s)).toEqual(P(s))
+  s = ' {\n"a":  [\tnull\r\n]   ,\t \t\t  \r\r\n\n"b":  [\tnull\r\n]\n } '
+  E(j(s)).toEqual(P(s))
+}
+
+},{}],27:[function(require,module,exports){
+(function (process){(function (){
+/* Copyright (c) 2013-2021 Richard Rodger and other contributors, MIT License */
+'use strict'
+
+// const Util = require('util')
+
+// let Lab = require('@hapi/lab')
+// Lab = null != Lab.script ? Lab : require('hapi-lab-shim')
+
+// const Code = require('@hapi/code')
+
+// const lab = (exports.lab = Lab.script())
+// const describe = lab.describe
+// const it = lab.it
+// const expect = Code.expect
+
+// const I = Util.inspect
+
+const { Jsonic, JsonicError, makeRule, makeRuleSpec } = require('..')
+const Exhaust = require('./exhaust')
+const Large = require('./large')
+const JsonStandard = require('./json-standard')
+
+let j = Jsonic
+
+describe('jsonic', function () {
+  it('happy', () => {
+    expect(Jsonic('{a:1}')).toEqual({ a: 1 })
+    expect(Jsonic('{a:1,b:2}')).toEqual({ a: 1, b: 2 })
+    expect(Jsonic('a:1')).toEqual({ a: 1 })
+    expect(Jsonic('a:1,b:2')).toEqual({ a: 1, b: 2 })
+    expect(Jsonic('{a:q}')).toEqual({ a: 'q' })
+    expect(Jsonic('{"a":1}')).toEqual({ a: 1 })
+    expect(Jsonic('a,')).toEqual(['a'])
+    expect(Jsonic('a,1')).toEqual(['a', 1])
+    expect(Jsonic('[a]')).toEqual(['a'])
+    expect(Jsonic('[a,1]')).toEqual(['a', 1])
+    expect(Jsonic('["a",1]')).toEqual(['a', 1])
+  })
+
+  it('options', () => {
+    let j = Jsonic.make({ x: 1 })
+
+    expect(j.options.x).toEqual(1)
+    expect({ ...j.options }).toMatchObject({ x: 1 })
+
+    j.options({ x: 2 })
+    expect(j.options.x).toEqual(2)
+    expect({ ...j.options }).toMatchObject({ x: 2 })
+
+    j.options()
+    expect(j.options.x).toEqual(2)
+
+    j.options(null)
+    expect(j.options.x).toEqual(2)
+
+    j.options('ignored')
+    expect(j.options.x).toEqual(2)
+
+    expect(j.options.comment.lex).toBeTruthy()
+    expect(j.options().comment.lex).toBeTruthy()
+    expect(j.internal().config.comment.lex).toBeTruthy()
+    j.options({ comment: { lex: false } })
+    expect(j.options.comment.lex).toBeFalsy()
+    expect(j.options().comment.lex).toBeFalsy()
+    expect(j.internal().config.comment.lex).toBeFalsy()
+
+    let k = Jsonic.make()
+    expect(k.options.comment.lex).toBeTruthy()
+    expect(k.options().comment.lex).toBeTruthy()
+    expect(k.internal().config.comment.lex).toBeTruthy()
+    expect(k.rule().val.def.open.length > 4).toBeTruthy()
+    k.use((jsonic) => {
+      jsonic.options({
+        comment: { lex: false },
+        rule: { include: 'json' },
+      })
+    })
+
+    expect(k.options.comment.lex).toBeFalsy()
+    expect(k.options().comment.lex).toBeFalsy()
+    expect(k.internal().config.comment.lex).toBeFalsy()
+    expect(k.rule().val.def.open.length).toEqual(4)
+
+    let k1 = Jsonic.make()
+    k1.use((jsonic) => {
+      jsonic.options({
+        rule: { exclude: 'json' },
+      })
+    })
+    expect(k1.rule().val.def.open.length).toEqual(3)
+  })
+
+  it('token-gen', () => {
+    let j = Jsonic.make()
+
+    let suffix = Math.random()
+    let s = j.token('__' + suffix)
+
+    let s1 = j.token('AA' + suffix)
+    expect(s1).toEqual(s + 1)
+    expect(j.token['AA' + suffix]).toEqual(s + 1)
+    expect(j.token[s + 1]).toEqual('AA' + suffix)
+    expect(j.token('AA' + suffix)).toEqual(s + 1)
+    expect(j.token(s + 1)).toEqual('AA' + suffix)
+
+    let s1a = j.token('AA' + suffix)
+    expect(s1a).toEqual(s + 1)
+    expect(j.token['AA' + suffix]).toEqual(s + 1)
+    expect(j.token[s + 1]).toEqual('AA' + suffix)
+    expect(j.token('AA' + suffix)).toEqual(s + 1)
+    expect(j.token(s + 1)).toEqual('AA' + suffix)
+
+    let s2 = j.token('BB' + suffix)
+    expect(s2).toEqual(s + 2)
+    expect(j.token['BB' + suffix]).toEqual(s + 2)
+    expect(j.token[s + 2]).toEqual('BB' + suffix)
+    expect(j.token('BB' + suffix)).toEqual(s + 2)
+    expect(j.token(s + 2)).toEqual('BB' + suffix)
+  })
+
+  it('token-fixed', () => {
+    let j = Jsonic.make()
+
+    expect({ ...j.fixed }).toEqual({
+      12: '{',
+      13: '}',
+      14: '[',
+      15: ']',
+      16: ':',
+      17: ',',
+      '{': 12,
+      '}': 13,
+      '[': 14,
+      ']': 15,
+      ':': 16,
+      ',': 17,
+    })
+
+    expect(j.fixed('{')).toEqual(12)
+    expect(j.fixed('}')).toEqual(13)
+    expect(j.fixed('[')).toEqual(14)
+    expect(j.fixed(']')).toEqual(15)
+    expect(j.fixed(':')).toEqual(16)
+    expect(j.fixed(',')).toEqual(17)
+
+    expect(j.fixed(12)).toEqual('{')
+    expect(j.fixed(13)).toEqual('}')
+    expect(j.fixed(14)).toEqual('[')
+    expect(j.fixed(15)).toEqual(']')
+    expect(j.fixed(16)).toEqual(':')
+    expect(j.fixed(17)).toEqual(',')
+
+    j.options({
+      fixed: {
+        token: {
+          '#A': 'a',
+          '#BB': 'bb',
+        },
+      },
+    })
+
+    expect({ ...j.fixed }).toEqual({
+      12: '{',
+      13: '}',
+      14: '[',
+      15: ']',
+      16: ':',
+      17: ',',
+      18: 'a',
+      19: 'bb',
+      '{': 12,
+      '}': 13,
+      '[': 14,
+      ']': 15,
+      ':': 16,
+      ',': 17,
+      a: 18,
+      bb: 19,
+    })
+
+    expect(j.fixed('{')).toEqual(12)
+    expect(j.fixed('}')).toEqual(13)
+    expect(j.fixed('[')).toEqual(14)
+    expect(j.fixed(']')).toEqual(15)
+    expect(j.fixed(':')).toEqual(16)
+    expect(j.fixed(',')).toEqual(17)
+    expect(j.fixed('a')).toEqual(18)
+    expect(j.fixed('bb')).toEqual(19)
+
+    expect(j.fixed(12)).toEqual('{')
+    expect(j.fixed(13)).toEqual('}')
+    expect(j.fixed(14)).toEqual('[')
+    expect(j.fixed(15)).toEqual(']')
+    expect(j.fixed(16)).toEqual(':')
+    expect(j.fixed(17)).toEqual(',')
+    expect(j.fixed(18)).toEqual('a')
+    expect(j.fixed(19)).toEqual('bb')
+  })
+
+  it('basic-json', () => {
+    expect(Jsonic('"a"')).toEqual('a')
+    expect(Jsonic('{"a":1}')).toEqual({ a: 1 })
+    expect(Jsonic('{"a":"1"}')).toEqual({ a: '1' })
+    expect(Jsonic('{"a":1,"b":"2"}')).toEqual({ a: 1, b: '2' })
+    expect(Jsonic('{"a":{"b":1}}')).toEqual({ a: { b: 1 } })
+
+    expect(Jsonic('[1]')).toEqual([1])
+    expect(Jsonic('[1,"2"]')).toEqual([1, '2'])
+    expect(Jsonic('[1,[2]]')).toEqual([1, [2]])
+
+    expect(Jsonic('{"a":[1]}')).toEqual({ a: [1] })
+    expect(Jsonic('{"a":[1,{"b":2}]}')).toEqual({ a: [1, { b: 2 }] })
+
+    expect(Jsonic(' { "a" : 1 } ')).toEqual({ a: 1 })
+    expect(Jsonic(' [ 1 , "2" ] ')).toEqual([1, '2'])
+    expect(Jsonic(' { "a" : [ 1 ] }')).toEqual({ a: [1] })
+    expect(Jsonic(' { "a" : [ 1 , { "b" : 2 } ] } ')).toEqual({
+      a: [1, { b: 2 }],
+    })
+
+    expect(Jsonic('{"a":true,"b":false,"c":null}')).toEqual({
+      a: true,
+      b: false,
+      c: null,
+    })
+    expect(Jsonic('[true,false,null]')).toEqual([true, false, null])
+  })
+
+  it('basic-object-tree', () => {
+    expect(Jsonic('{}')).toEqual({})
+    expect(Jsonic('{a:{}}')).toEqual({ a: {} })
+    expect(Jsonic('{a:{b:{}}}')).toEqual({ a: { b: {} } })
+    expect(Jsonic('{a:{b:{c:{}}}}')).toEqual({ a: { b: { c: {} } } })
+
+    expect(Jsonic('{a:1}')).toEqual({ a: 1 })
+    expect(Jsonic('{a:1,b:2}')).toEqual({ a: 1, b: 2 })
+    expect(Jsonic('{a:1,b:2,c:3}')).toEqual({ a: 1, b: 2, c: 3 })
+
+    expect(Jsonic('{a:{b:2}}')).toEqual({ a: { b: 2 } })
+    expect(Jsonic('{a:{b:{c:2}}}')).toEqual({ a: { b: { c: 2 } } })
+    expect(Jsonic('{a:{b:{c:{d:2}}}}')).toEqual({ a: { b: { c: { d: 2 } } } })
+
+    expect(Jsonic('{x:10,a:{b:2}}')).toEqual({ x: 10, a: { b: 2 } })
+    expect(Jsonic('{x:10,a:{b:{c:2}}}')).toEqual({ x: 10, a: { b: { c: 2 } } })
+    expect(Jsonic('{x:10,a:{b:{c:{d:2}}}}')).toEqual({
+      x: 10,
+      a: { b: { c: { d: 2 } } },
+    })
+
+    expect(Jsonic('{a:{b:2},y:20}')).toEqual({ a: { b: 2 }, y: 20 })
+    expect(Jsonic('{a:{b:{c:2}},y:20}')).toEqual({ a: { b: { c: 2 } }, y: 20 })
+    expect(Jsonic('{a:{b:{c:{d:2}}},y:20}')).toEqual({
+      a: { b: { c: { d: 2 } } },
+      y: 20,
+    })
+
+    expect(Jsonic('{x:10,a:{b:2},y:20}')).toEqual({ x: 10, a: { b: 2 }, y: 20 })
+    expect(Jsonic('{x:10,a:{b:{c:2}},y:20}')).toEqual({
+      x: 10,
+      a: { b: { c: 2 } },
+      y: 20,
+    })
+    expect(Jsonic('{x:10,a:{b:{c:{d:2}}},y:20}')).toEqual({
+      x: 10,
+      a: { b: { c: { d: 2 } } },
+      y: 20,
+    })
+
+    expect(Jsonic('{a:{b:2,c:3}}')).toEqual({ a: { b: 2, c: 3 } })
+    expect(Jsonic('{a:{b:2,c:3,d:4}}')).toEqual({ a: { b: 2, c: 3, d: 4 } })
+    expect(Jsonic('{a:{b:{e:2},c:3,d:4}}')).toEqual({
+      a: { b: { e: 2 }, c: 3, d: 4 },
+    })
+    expect(Jsonic('{a:{b:2,c:{e:3},d:4}}')).toEqual({
+      a: { b: 2, c: { e: 3 }, d: 4 },
+    })
+    expect(Jsonic('{a:{b:2,c:3,d:{e:4}}}')).toEqual({
+      a: { b: 2, c: 3, d: { e: 4 } },
+    })
+
+    expect(Jsonic('{a:{b:{c:2,d:3}}}')).toEqual({ a: { b: { c: 2, d: 3 } } })
+    expect(Jsonic('{a:{b:{c:2,d:3,e:4}}}')).toEqual({
+      a: { b: { c: 2, d: 3, e: 4 } },
+    })
+    expect(Jsonic('{a:{b:{c:{f:2},d:3,e:4}}}')).toEqual({
+      a: { b: { c: { f: 2 }, d: 3, e: 4 } },
+    })
+    expect(Jsonic('{a:{b:{c:2,d:{f:3},e:4}}}')).toEqual({
+      a: { b: { c: 2, d: { f: 3 }, e: 4 } },
+    })
+    expect(Jsonic('{a:{b:{c:2,d:3,e:{f:4}}}}')).toEqual({
+      a: { b: { c: 2, d: 3, e: { f: 4 } } },
+    })
+
+    // NOTE: important feature!!!
+    expect(Jsonic('a:b:1')).toEqual({ a: { b: 1 } })
+    expect(Jsonic('a:b:c:1')).toEqual({ a: { b: { c: 1 } } })
+    expect(Jsonic('a:b:1,c:2')).toEqual({ a: { b: 1 }, c: 2 })
+  })
+
+  it('basic-array-tree', () => {
+    expect(Jsonic('[]')).toEqual([])
+    expect(Jsonic('[0]')).toEqual([0])
+    expect(Jsonic('[0,1]')).toEqual([0, 1])
+    expect(Jsonic('[0,1,2]')).toEqual([0, 1, 2])
+
+    expect(Jsonic('[[]]')).toEqual([[]])
+    expect(Jsonic('[0,[]]')).toEqual([0, []])
+    expect(Jsonic('[[],1]')).toEqual([[], 1])
+    expect(Jsonic('[0,[],1]')).toEqual([0, [], 1])
+    expect(Jsonic('[[],0,[],1]')).toEqual([[], 0, [], 1])
+    expect(Jsonic('[0,[],1,[]]')).toEqual([0, [], 1, []])
+    expect(Jsonic('[[],0,[],1,[]]')).toEqual([[], 0, [], 1, []])
+
+    expect(Jsonic('[[2]]')).toEqual([[2]])
+    expect(Jsonic('[0,[2]]')).toEqual([0, [2]])
+    expect(Jsonic('[[2],1]')).toEqual([[2], 1])
+    expect(Jsonic('[0,[2],1]')).toEqual([0, [2], 1])
+    expect(Jsonic('[[2],0,[3],1]')).toEqual([[2], 0, [3], 1])
+    expect(Jsonic('[0,[3],1,[2]]')).toEqual([0, [3], 1, [2]])
+    expect(Jsonic('[[2],0,[4],1,[3]]')).toEqual([[2], 0, [4], 1, [3]])
+
+    expect(Jsonic('[[2,9]]')).toEqual([[2, 9]])
+    expect(Jsonic('[0,[2,9]]')).toEqual([0, [2, 9]])
+    expect(Jsonic('[[2,9],1]')).toEqual([[2, 9], 1])
+    expect(Jsonic('[0,[2,9],1]')).toEqual([0, [2, 9], 1])
+    expect(Jsonic('[[2,9],0,[3,9],1]')).toEqual([[2, 9], 0, [3, 9], 1])
+    expect(Jsonic('[0,[3,9],1,[2,9]]')).toEqual([0, [3, 9], 1, [2, 9]])
+    expect(Jsonic('[[2,9],0,[4,9],1,[3,9]]')).toEqual([
+      [2, 9],
+      0,
+      [4, 9],
+      1,
+      [3, 9],
+    ])
+
+    expect(Jsonic('[[[[]]]]')).toEqual([[[[]]]])
+    expect(Jsonic('[[[[0]]]]')).toEqual([[[[0]]]])
+    expect(Jsonic('[[[1,[0]]]]')).toEqual([[[1, [0]]]])
+    expect(Jsonic('[[[1,[0],2]]]')).toEqual([[[1, [0], 2]]])
+    expect(Jsonic('[[3,[1,[0],2]]]')).toEqual([[3, [1, [0], 2]]])
+    expect(Jsonic('[[3,[1,[0],2],4]]')).toEqual([[3, [1, [0], 2], 4]])
+    expect(Jsonic('[5,[3,[1,[0],2],4]]')).toEqual([5, [3, [1, [0], 2], 4]])
+    expect(Jsonic('[5,[3,[1,[0],2],4],6]')).toEqual([5, [3, [1, [0], 2], 4], 6])
+  })
+
+  it('basic-mixed-tree', () => {
+    expect(Jsonic('[{}]')).toEqual([{}])
+    expect(Jsonic('{a:[]}')).toEqual({ a: [] })
+
+    expect(Jsonic('[{a:[]}]')).toEqual([{ a: [] }])
+    expect(Jsonic('{a:[{}]}')).toEqual({ a: [{}] })
+
+    expect(Jsonic('[{a:[{}]}]')).toEqual([{ a: [{}] }])
+    expect(Jsonic('{a:[{b:[]}]}')).toEqual({ a: [{ b: [] }] })
+  })
+
+  it('syntax-errors', () => {
+    // bad close
+    expect(() => j('}')).toThrow()
+    expect(() => j(']')).toThrow()
+
+    // top level already is a map
+    expect(() => j('a:1,2')).toThrow()
+
+    // values not valid inside map
+    expect(() => j('x:{1,2}')).toThrow()
+  })
+
+  it('process-scalars', () => {
+    expect(j('')).toEqual(undefined)
+    expect(j('null')).toEqual(null)
+    expect(j('true')).toEqual(true)
+    expect(j('false')).toEqual(false)
+    expect(j('123')).toEqual(123)
+    expect(j('"a"')).toEqual('a')
+    expect(j("'b'")).toEqual('b')
+    expect(j('q')).toEqual('q')
+    expect(j('x')).toEqual('x')
+  })
+
+  it('process-text', () => {
+    //expect(j('{x y:1}')).toEqual({'x y':1})
+    //expect(j('x y:1')).toEqual({'x y':1})
+    //expect(j('[{x y:1}]')).toEqual([{'x y':1}])
+
+    expect(j('q')).toEqual('q')
+    //expect(j('q w')).toEqual('q w')
+    //expect(j('a:q w')).toEqual({a:'q w'})
+    //expect(j('a:q w, b:1')).toEqual({a:'q w', b:1})
+    //expect(j('a: q w , b:1')).toEqual({a:'q w', b:1})
+    //expect(j('[q w]')).toEqual(['q w'])
+    //expect(j('[ q w ]')).toEqual(['q w'])
+    //expect(j('[ q w, 1 ]')).toEqual(['q w', 1])
+    //expect(j('[ q w , 1 ]')).toEqual(['q w', 1])
+    //expect(j('p:[q w]}')).toEqual({p:['q w']})
+    //expect(j('p:[ q w ]')).toEqual({p:['q w']})
+    //expect(j('p:[ q w, 1 ]')).toEqual({p:['q w', 1]})
+    //expect(j('p:[ q w , 1 ]')).toEqual({p:['q w', 1]})
+    //expect(j('p:[ q w , 1 ]')).toEqual({p:['q w', 1]})
+    expect(j('[ qq ]')).toEqual(['qq'])
+    expect(j('[ q ]')).toEqual(['q'])
+    expect(j('[ c ]')).toEqual(['c'])
+    expect(j('c:[ c ]')).toEqual({ c: ['c'] })
+    expect(j('c:[ c , cc ]')).toEqual({ c: ['c', 'cc'] })
+  })
+
+  it('process-implicit-object', () => {
+    expect(j('a:1')).toEqual({ a: 1 })
+    expect(j('a:1,b:2')).toEqual({ a: 1, b: 2 })
+  })
+
+  it('process-object-tree', () => {
+    expect(j('{}')).toEqual({})
+    expect(j('{a:1}')).toEqual({ a: 1 })
+    expect(j('{a:1,b:q}')).toEqual({ a: 1, b: 'q' })
+    expect(j('{a:1,b:q,c:"w"}')).toEqual({ a: 1, b: 'q', c: 'w' })
+
+    expect(j('a:1,b:{c:2}')).toEqual({ a: 1, b: { c: 2 } })
+    expect(j('a:1,d:3,b:{c:2}')).toEqual({ a: 1, d: 3, b: { c: 2 } })
+    expect(j('a:1,b:{c:2},d:3')).toEqual({ a: 1, d: 3, b: { c: 2 } })
+    expect(j('a:1,b:{c:2},e:{f:4}')).toEqual({ a: 1, b: { c: 2 }, e: { f: 4 } })
+    expect(j('a:1,b:{c:2},d:3,e:{f:4}')).toEqual({
+      a: 1,
+      d: 3,
+      b: { c: 2 },
+      e: { f: 4 },
+    })
+    expect(j('a:1,b:{c:2},d:3,e:{f:4},g:5')).toEqual({
+      a: 1,
+      d: 3,
+      b: { c: 2 },
+      e: { f: 4 },
+      g: 5,
+    })
+
+    expect(j('a:{b:1}')).toEqual({ a: { b: 1 } })
+
+    expect(j('{a:{b:1}}')).toEqual({ a: { b: 1 } })
+    expect(j('a:{b:1}')).toEqual({ a: { b: 1 } })
+
+    expect(j('{a:{b:{c:1}}}')).toEqual({ a: { b: { c: 1 } } })
+    expect(j('a:{b:{c:1}}')).toEqual({ a: { b: { c: 1 } } })
+
+    expect(j('a:1,b:{c:2},d:{e:{f:3}}')).toEqual({
+      a: 1,
+      b: { c: 2 },
+      d: { e: { f: 3 } },
+    })
+    expect(j('a:1,b:{c:2},d:{e:{f:3}},g:4')).toEqual({
+      a: 1,
+      b: { c: 2 },
+      d: { e: { f: 3 } },
+      g: 4,
+    })
+    expect(j('a:1,b:{c:2},d:{e:{f:3}},h:{i:5},g:4')).toEqual({
+      a: 1,
+      b: { c: 2 },
+      d: { e: { f: 3 } },
+      g: 4,
+      h: { i: 5 },
+    })
+
+    // PN002
+    expect(j('a:1,b:{c:2}d:3')).toEqual({ a: 1, b: { c: 2 }, d: 3 })
+  })
+
+  it('process-array', () => {
+    expect(j('[a]')).toEqual(['a'])
+    expect(j('[a,]')).toEqual(['a'])
+    expect(j('[a,,]')).toEqual(['a', null])
+    expect(j('[,a]')).toEqual([null, 'a'])
+    expect(j('[,a,]')).toEqual([null, 'a'])
+    expect(j('[,,a]')).toEqual([null, null, 'a'])
+    expect(j('[,,a,]')).toEqual([null, null, 'a'])
+    expect(j('[,,a,,]')).toEqual([null, null, 'a', null])
+
+    expect(j(' [ a ] ')).toEqual(['a'])
+    expect(j(' [ a , ] ')).toEqual(['a'])
+    expect(j(' [ a , , ] ')).toEqual(['a', null])
+    expect(j(' [ , a ] ')).toEqual([null, 'a'])
+    expect(j(' [ , a , ] ')).toEqual([null, 'a'])
+    expect(j(' [ , , a ] ')).toEqual([null, null, 'a'])
+    expect(j(' [ , , a , ] ')).toEqual([null, null, 'a'])
+    expect(j(' [ , , a , , ] ')).toEqual([null, null, 'a', null])
+
+    expect(j(',')).toEqual([null])
+    expect(j(',,')).toEqual([null, null])
+    expect(j('1,')).toEqual([1])
+    expect(j('0,')).toEqual([0])
+    expect(j(',1')).toEqual([null, 1])
+    expect(j(',0')).toEqual([null, 0])
+    expect(j(',1,')).toEqual([null, 1])
+    expect(j(',0,')).toEqual([null, 0])
+    expect(j(',1,,')).toEqual([null, 1, null])
+    expect(j(',0,,')).toEqual([null, 0, null])
+
+    expect(j('[]')).toEqual([])
+    expect(j('[,]')).toEqual([null])
+    expect(j('[,,]')).toEqual([null, null])
+
+    expect(j('[0]')).toEqual([0])
+    expect(j('[0,1]')).toEqual([0, 1])
+    expect(j('[0,1,2]')).toEqual([0, 1, 2])
+    expect(j('[0,]')).toEqual([0])
+    expect(j('[0,1,]')).toEqual([0, 1])
+    expect(j('[0,1,2,]')).toEqual([0, 1, 2])
+
+    expect(j('[q]')).toEqual(['q'])
+    expect(j('[q,"w"]')).toEqual(['q', 'w'])
+    expect(j('[q,"w",false]')).toEqual(['q', 'w', false])
+    expect(j('[q,"w",false,0x,0x1]')).toEqual(['q', 'w', false, '0x', 1])
+    expect(j('[q,"w",false,0x,0x1,$]')).toEqual(['q', 'w', false, '0x', 1, '$'])
+    expect(j('[q,]')).toEqual(['q'])
+    expect(j('[q,"w",]')).toEqual(['q', 'w'])
+    expect(j('[q,"w",false,]')).toEqual(['q', 'w', false])
+    expect(j('[q,"w",false,0x,0x1,$,]')).toEqual([
+      'q',
+      'w',
+      false,
+      '0x',
+      1,
+      '$',
+    ])
+
+    expect(j('0,1')).toEqual([0, 1])
+
+    // PN006
+    expect(j('0,1,')).toEqual([0, 1])
+
+    expect(j('a:{b:1}')).toEqual({ a: { b: 1 } })
+    expect(j('a:[1]')).toEqual({ a: [1] })
+    expect(j('a:[0,1]')).toEqual({ a: [0, 1] })
+    expect(j('a:[0,1,2]')).toEqual({ a: [0, 1, 2] })
+    expect(j('{a:[0,1,2]}')).toEqual({ a: [0, 1, 2] })
+
+    expect(j('a:[1],b:[2,3]')).toEqual({ a: [1], b: [2, 3] })
+
+    expect(j('[[]]')).toEqual([[]])
+    expect(j('[[],]')).toEqual([[]])
+    expect(j('[[],[]]')).toEqual([[], []])
+    expect(j('[[[]],[]]')).toEqual([[[]], []])
+    expect(j('[[[],[]],[]]')).toEqual([[[], []], []])
+    expect(j('[[[],[[]]],[]]')).toEqual([[[], [[]]], []])
+    expect(j('[[[],[[],[]]],[]]')).toEqual([[[], [[], []]], []])
+  })
+
+  it('process-mixed-nodes', () => {
+    expect(j('a:[{b:1}]')).toEqual({ a: [{ b: 1 }] })
+    expect(j('{a:[{b:1}]}')).toEqual({ a: [{ b: 1 }] })
+
+    expect(j('[{a:1}]')).toEqual([{ a: 1 }])
+    expect(j('[{a:1},{b:2}]')).toEqual([{ a: 1 }, { b: 2 }])
+
+    expect(j('[[{a:1}]]')).toEqual([[{ a: 1 }]])
+    expect(j('[[{a:1},{b:2}]]')).toEqual([[{ a: 1 }, { b: 2 }]])
+
+    expect(j('[[[{a:1}]]]')).toEqual([[[{ a: 1 }]]])
+    expect(j('[[[{a:1},{b:2}]]]')).toEqual([[[{ a: 1 }, { b: 2 }]]])
+
+    expect(j('[{a:[1]}]')).toEqual([{ a: [1] }])
+    expect(j('[{a:[{b:1}]}]')).toEqual([{ a: [{ b: 1 }] }])
+    expect(j('[{a:{b:[1]}}]')).toEqual([{ a: { b: [1] } }])
+    expect(j('[{a:{b:[{c:1}]}}]')).toEqual([{ a: { b: [{ c: 1 }] } }])
+    expect(j('[{a:{b:{c:[1]}}}]')).toEqual([{ a: { b: { c: [1] } } }])
+
+    expect(j('[{},{a:[1]}]')).toEqual([{}, { a: [1] }])
+    expect(j('[{},{a:[{b:1}]}]')).toEqual([{}, { a: [{ b: 1 }] }])
+    expect(j('[{},{a:{b:[1]}}]')).toEqual([{}, { a: { b: [1] } }])
+    expect(j('[{},{a:{b:[{c:1}]}}]')).toEqual([{}, { a: { b: [{ c: 1 }] } }])
+    expect(j('[{},{a:{b:{c:[1]}}}]')).toEqual([{}, { a: { b: { c: [1] } } }])
+
+    expect(j('[[],{a:[1]}]')).toEqual([[], { a: [1] }])
+    expect(j('[[],{a:[{b:1}]}]')).toEqual([[], { a: [{ b: 1 }] }])
+    expect(j('[[],{a:{b:[1]}}]')).toEqual([[], { a: { b: [1] } }])
+    expect(j('[[],{a:{b:[{c:1}]}}]')).toEqual([[], { a: { b: [{ c: 1 }] } }])
+    expect(j('[[],{a:{b:{c:[1]}}}]')).toEqual([[], { a: { b: { c: [1] } } }])
+
+    expect(j('[{a:[1]},{a:[1]}]')).toEqual([{ a: [1] }, { a: [1] }])
+    expect(j('[{a:[{b:1}]},{a:[{b:1}]}]')).toEqual([
+      { a: [{ b: 1 }] },
+      { a: [{ b: 1 }] },
+    ])
+    expect(j('[{a:{b:[1]}},{a:{b:[1]}}]')).toEqual([
+      { a: { b: [1] } },
+      { a: { b: [1] } },
+    ])
+    expect(j('[{a:{b:[{c:1}]}},{a:{b:[{c:1}]}}]')).toEqual([
+      { a: { b: [{ c: 1 }] } },
+      { a: { b: [{ c: 1 }] } },
+    ])
+    expect(j('[{a:{b:{c:[1]}}},{a:{b:{c:[1]}}}]')).toEqual([
+      { a: { b: { c: [1] } } },
+      { a: { b: { c: [1] } } },
+    ])
+  })
+
+  it('process-comment', () => {
+    expect(j('a:q\nb:w #X\nc:r \n\nd:t\n\n#')).toEqual({
+      a: 'q',
+      b: 'w',
+      c: 'r',
+      d: 't',
+    })
+
+    let jm = j.make({ comment: { lex: false } })
+    expect(jm('a:q\nb:w#X\nc:r \n\nd:t')).toEqual({
+      a: 'q',
+      b: 'w#X',
+      c: 'r',
+      d: 't',
+    })
+  })
+
+  it('process-whitespace', () => {
+    expect(j('[0,1]')).toEqual([0, 1])
+    expect(j('[0, 1]')).toEqual([0, 1])
+    expect(j('[0 ,1]')).toEqual([0, 1])
+    expect(j('[0 ,1 ]')).toEqual([0, 1])
+    expect(j('[0,1 ]')).toEqual([0, 1])
+    expect(j('[ 0,1]')).toEqual([0, 1])
+    expect(j('[ 0,1 ]')).toEqual([0, 1])
+
+    expect(j('{a: 1}')).toEqual({ a: 1 })
+    expect(j('{a : 1}')).toEqual({ a: 1 })
+    expect(j('{a: 1,b: 2}')).toEqual({ a: 1, b: 2 })
+    expect(j('{a : 1,b : 2}')).toEqual({ a: 1, b: 2 })
+
+    expect(j('{a:\n1}')).toEqual({ a: 1 })
+    expect(j('{a\n:\n1}')).toEqual({ a: 1 })
+    expect(j('{a:\n1,b:\n2}')).toEqual({ a: 1, b: 2 })
+    expect(j('{a\n:\n1,b\n:\n2}')).toEqual({ a: 1, b: 2 })
+
+    expect(j('{a:\r\n1}')).toEqual({ a: 1 })
+    expect(j('{a\r\n:\r\n1}')).toEqual({ a: 1 })
+    expect(j('{a:\r\n1,b:\r\n2}')).toEqual({ a: 1, b: 2 })
+    expect(j('{a\r\n:\r\n1,b\r\n:\r\n2}')).toEqual({ a: 1, b: 2 })
+
+    expect(j(' { a: 1 } ')).toEqual({ a: 1 })
+    expect(j(' { a : 1 } ')).toEqual({ a: 1 })
+    expect(j(' { a: 1 , b: 2 } ')).toEqual({ a: 1, b: 2 })
+    expect(j(' { a : 1 , b : 2 } ')).toEqual({ a: 1, b: 2 })
+
+    expect(j('  {  a:  1  }  ')).toEqual({ a: 1 })
+    expect(j('  {  a  :  1  }  ')).toEqual({ a: 1 })
+    expect(j('  {  a:  1  ,  b:  2  }  ')).toEqual({ a: 1, b: 2 })
+    expect(j('  {  a  :  1  ,  b  :  2  }  ')).toEqual({ a: 1, b: 2 })
+
+    expect(j('\n  {\n  a:\n  1\n  }\n  ')).toEqual({ a: 1 })
+    expect(j('\n  {\n  a\n  :\n  1\n  }\n  ')).toEqual({ a: 1 })
+    expect(j('\n  {\n  a:\n  1\n  ,\n  b:\n  2\n  }\n  ')).toEqual({
+      a: 1,
+      b: 2,
+    })
+    expect(j('\n  {\n  a\n  :\n  1\n  ,\n  b\n  :\n  2\n  }\n  ')).toEqual({
+      a: 1,
+      b: 2,
+    })
+
+    expect(j('\n  \n{\n  \na:\n  \n1\n  \n}\n  \n')).toEqual({ a: 1 })
+    expect(j('\n  \n{\n  \na\n  \n:\n  \n1\n  \n}\n  \n')).toEqual({ a: 1 })
+    expect(
+      j('\n  \n{\n  \na:\n  \n1\n  \n,\n  \nb:\n  \n2\n  \n}\n  \n')
+    ).toEqual({ a: 1, b: 2 })
+    expect(
+      j('\n  \n{\n  \na\n  \n:\n  \n1\n  \n,\n  \nb\n  \n:\n  \n2\n  \n}\n  \n')
+    ).toEqual({ a: 1, b: 2 })
+
+    expect(j('\n\n{\n\na:\n\n1\n\n}\n\n')).toEqual({ a: 1 })
+    expect(j('\n\n{\n\na\n\n:\n\n1\n\n}\n\n')).toEqual({ a: 1 })
+    expect(j('\n\n{\n\na:\n\n1\n\n,\n\nb:\n\n2\n\n}\n\n')).toEqual({
+      a: 1,
+      b: 2,
+    })
+    expect(j('\n\n{\n\na\n\n:\n\n1\n\n,\n\nb\n\n:\n\n2\n\n}\n\n')).toEqual({
+      a: 1,
+      b: 2,
+    })
+
+    expect(j('\r\n{\r\na:\r\n1\r\n}\r\n')).toEqual({ a: 1 })
+    expect(j('\r\n{\r\na\r\n:\r\n1\r\n}\r\n')).toEqual({ a: 1 })
+    expect(j('\r\n{\r\na:\r\n1\r\n,\r\nb:\r\n2\r\n}\r\n')).toEqual({
+      a: 1,
+      b: 2,
+    })
+    expect(j('\r\n{\r\na\r\n:\r\n1\r\n,\r\nb\r\n:\r\n2\r\n}\r\n')).toEqual({
+      a: 1,
+      b: 2,
+    })
+
+    expect(j('a: 1')).toEqual({ a: 1 })
+    expect(j(' a: 1')).toEqual({ a: 1 })
+    expect(j(' a: 1 ')).toEqual({ a: 1 })
+    expect(j(' a : 1 ')).toEqual({ a: 1 })
+
+    expect(j(' a: [ { b: 1 } ] ')).toEqual({ a: [{ b: 1 }] })
+    expect(j('\na: [\n  {\n     b: 1\n  }\n]\n')).toEqual({ a: [{ b: 1 }] })
+  })
+
+  it('funky-keys', () => {
+    expect(j('x:1')).toEqual({ x: 1 })
+    expect(j('null:1')).toEqual({ null: 1 })
+    expect(j('true:1')).toEqual({ true: 1 })
+    expect(j('false:1')).toEqual({ false: 1 })
+
+    expect(j('{a:{x:1}}')).toEqual({ a: { x: 1 } })
+    expect(j('a:{x:1}')).toEqual({ a: { x: 1 } })
+    expect(j('a:{null:1}')).toEqual({ a: { null: 1 } })
+    expect(j('a:{true:1}')).toEqual({ a: { true: 1 } })
+    expect(j('a:{false:1}')).toEqual({ a: { false: 1 } })
+  })
+
+  it('api', () => {
+    expect(Jsonic('a:1')).toEqual({ a: 1 })
+    expect(Jsonic.parse('a:1')).toEqual({ a: 1 })
+  })
+
+  it('rule-spec', () => {
+    let cfg = {}
+
+    let rs0 = j.makeRuleSpec(cfg, {})
+    expect(rs0.name).toEqual('')
+    expect(rs0.def.open).toEqual([])
+    expect(rs0.def.close).toEqual([])
+
+    let rs1 = j.makeRuleSpec(cfg, {
+      open: [{}, { c: () => true }, { c: { n: {} } }, { c: {} }],
+    })
+    expect(rs1.def.open[0].c).toEqual(undefined)
+    expect(typeof rs1.def.open[1].c === 'function').toBeTruthy()
+    expect(typeof rs1.def.open[2].c === 'function').toBeTruthy()
+
+    let rs2 = j.makeRuleSpec(cfg, {
+      open: [{ c: { n: { a: 10, b: 20 } } }],
+    })
+    let c0 = rs2.def.open[0].c
+    expect(c0({ n: {} })).toEqual(true)
+    expect(c0({ n: { a: 5 } })).toEqual(true)
+    expect(c0({ n: { a: 10 } })).toEqual(true)
+    expect(c0({ n: { a: 15 } })).toEqual(false)
+    expect(c0({ n: { b: 19 } })).toEqual(true)
+    expect(c0({ n: { b: 20 } })).toEqual(true)
+    expect(c0({ n: { b: 21 } })).toEqual(false)
+
+    expect(c0({ n: { a: 10, b: 20 } })).toEqual(true)
+    expect(c0({ n: { a: 10, b: 21 } })).toEqual(false)
+    expect(c0({ n: { a: 11, b: 21 } })).toEqual(false)
+    expect(c0({ n: { a: 11, b: 20 } })).toEqual(false)
+  })
+
+  it('id-string', function () {
+    let s0 = '' + Jsonic
+    expect(s0.match(/Jsonic.*/)).toBeTruthy()
+    expect('' + Jsonic).toEqual(s0)
+    expect('' + Jsonic).toEqual('' + Jsonic)
+
+    let j1 = Jsonic.make()
+    let s1 = '' + j1
+    expect(s1.match(/Jsonic.*/)).toBeTruthy()
+    expect('' + j1).toEqual(s1)
+    expect('' + j1).toEqual('' + j1)
+    expect(s0).not.toEqual(s1)
+
+    let j2 = Jsonic.make({ tag: 'foo' })
+    let s2 = '' + j2
+    expect(s2.match(/Jsonic.*foo/)).toBeTruthy()
+    expect('' + j2).toEqual(s2)
+    expect('' + j2).toEqual('' + j2)
+    expect(s0).not.toEqual(s2)
+    expect(s1).not.toEqual(s2)
+  })
+
+  // Test against all combinations of chars up to `len`
+  // NOTE: coverage tracing slows this down - a lot!
+  it('exhaust-perf', function () {
+    let len = 2
+
+    // Use this env var for debug-code-test loop to avoid
+    // slowing things down. Do run this test for builds!
+    if (null == process.env.JSONIC_TEST_SKIP_PERF) {
+      let out = Exhaust(len)
+
+      // NOTE: if parse algo changes then these may change.
+      // But if *not intended* changes here indicate unexpected effects.
+      expect(out).toMatchObject({
+        rmc: 62732,
+        emc: 2294,
+        ecc: {
+          unprintable: 91,
+          unexpected: 1501,
+          unterminated_string: 701,
+          unterminated_comment: 1,
+        },
+      })
+    }
+  })
+
+  it('large-perf', function () {
+    let len = 12345 // Coverage really nerfs this test sadly
+    // let len = 520000 // Pretty much the V8 string length limit
+
+    // Use this env var for debug-code-test loop to avoid
+    // slowing things down. Do run this test for builds!
+    if (null == process.env.JSONIC_TEST_SKIP_PERF) {
+      let out = Large(len)
+
+      // NOTE: if parse algo changes then these may change.
+      // But if *not intended* changes here indicate unexpected effects.
+      expect(out).toMatchObject({
+        ok: true,
+        len: len * 1000,
+      })
+    }
+  })
+
+  // Validate pure JSON to ensure Jsonic is always a superset.
+  it('json-standard', function () {
+    JsonStandard(Jsonic, expect)
+  })
+
+  it('src-not-string', () => {
+    expect(Jsonic({})).toEqual({})
+    expect(Jsonic([])).toEqual([])
+    expect(Jsonic(true)).toEqual(true)
+    expect(Jsonic(false)).toEqual(false)
+    expect(Jsonic(null)).toEqual(null)
+    expect(Jsonic(undefined)).toEqual(undefined)
+    expect(Jsonic(1)).toEqual(1)
+    expect(Jsonic(/a/)).toEqual(/a/)
+
+    let sa = Symbol('a')
+    expect(Jsonic(sa)).toEqual(sa)
+  })
+
+  it('src-empty-string', () => {
+    expect(Jsonic('')).toEqual(undefined)
+
+    expect(() => Jsonic.make({ lex: { empty: false } }).parse('')).toThrow(
+      /unexpected.*:1:1/s
+    )
+  })
+})
+
+function make_empty(opts) {
+  let j = Jsonic.make(opts)
+  let rns = j.rule()
+  Object.keys(rns).map((rn) => j.rule(rn, null))
+  return j
+}
+
+}).call(this)}).call(this,require('_process'))
+},{"..":1,"./exhaust":24,"./json-standard":26,"./large":28,"_process":19}],28:[function(require,module,exports){
+(function (process){(function (){
+// Test very large sources.
+
+const Util = require('util')
+const I = Util.inspect
+
+const { Jsonic } = require('..')
+
+module.exports = large
+
+if (require.main === module) {
+  large(parseInt(process.argv[2] || 3), true)
+}
+
+function large(size, print) {
+  const j01 = Jsonic.make()
+
+  const v0 = 'a'.repeat(1000 * size)
+  const s0 = '"' + v0 + '"'
+
+  print && console.log('LEN:', v0.length)
+  const start = Date.now()
+  const o0 = Jsonic(s0)
+  const ok = v0 == o0
+  print && console.log('EQL:', ok)
+  print && console.log('DUR:', Date.now() - start)
+
+  return {
+    ok: v0 == o0,
+    len: v0.length,
   }
-
-  console.log( 'parse/sec: '+(count*(1000/dur)) )
-
 }
 
-if(require.main === module) {
-  pv_perf(1000)
-}
-
-module.exports = pv_perf
-
-},{"..":1}],57:[function(require,module,exports){
+}).call(this)}).call(this,require('_process'))
+},{"..":1,"_process":19,"util":22}],29:[function(require,module,exports){
 // TODO: check missing
 require('./jsonic.test.js')
 require('./feature.test.js')
 
-},{"./feature.test.js":54,"./jsonic.test.js":55}]},{},[57])(57)
+},{"./feature.test.js":25,"./jsonic.test.js":27}]},{},[29])(29)
 });

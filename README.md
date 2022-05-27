@@ -1,5 +1,7 @@
 # jsonic
 
+NOTE: PREVIEW VERSION OF NEXT RELEASE
+
 *A JSON parser for JavaScript that isn't strict. 
 Also, it's very __very__ extensible.* 
 

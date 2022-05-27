@@ -7,11 +7,11 @@ const lexer_1 = require("./lexer");
 // Null-safe object and array utilities
 // TODO: should use proper types:
 // https://github.com/microsoft/TypeScript/tree/main/src/lib
-const keys = (x) => null == x ? [] : Object.keys(x);
+const keys = (x) => (null == x ? [] : Object.keys(x));
 exports.keys = keys;
-const values = (x) => null == x ? [] : Object.values(x);
+const values = (x) => (null == x ? [] : Object.values(x));
 exports.values = values;
-const entries = (x) => null == x ? [] : Object.entries(x);
+const entries = (x) => (null == x ? [] : Object.entries(x));
 exports.entries = entries;
 const assign = (x, ...r) => Object.assign(null == x ? {} : x, ...r);
 exports.assign = assign;
@@ -21,9 +21,7 @@ const defprop = Object.defineProperty;
 exports.defprop = defprop;
 // Map object properties using entries.
 const omap = (o, f) => {
-    return Object
-        .entries(o || {})
-        .reduce((o, e) => {
+    return Object.entries(o || {}).reduce((o, e) => {
         let me = f ? f(e) : e;
         if (undefined === me[0]) {
             delete o[e[0]];
@@ -123,13 +121,21 @@ function configure(jsonic, incfg, opts) {
     }
     cfg.fixed = {
         lex: !!((_a = opts.fixed) === null || _a === void 0 ? void 0 : _a.lex),
-        token: opts.fixed ? omap(clean(opts.fixed.token), ([name, src]) => [src, tokenize(name, cfg)]) : {},
-        ref: undefined
+        token: opts.fixed
+            ? omap(clean(opts.fixed.token), ([name, src]) => [
+                src,
+                tokenize(name, cfg),
+            ])
+            : {},
+        ref: undefined,
     };
-    cfg.fixed.ref = omap(cfg.fixed.token, ([tin, src]) => [tin, src]);
+    cfg.fixed.ref = omap(cfg.fixed.token, ([tin, src]) => [
+        tin,
+        src,
+    ]);
     cfg.fixed.ref = Object.assign(cfg.fixed.ref, omap(cfg.fixed.ref, ([tin, src]) => [src, tin]));
     cfg.tokenSet = {
-        ignore: Object.fromEntries((((_b = opts.tokenSet) === null || _b === void 0 ? void 0 : _b.ignore) || []).map(tn => [t(tn), true]))
+        ignore: Object.fromEntries((((_b = opts.tokenSet) === null || _b === void 0 ? void 0 : _b.ignore) || []).map((tn) => [t(tn), true])),
     };
     cfg.space = {
         lex: !!((_c = opts.space) === null || _c === void 0 ? void 0 : _c.lex),
@@ -144,7 +150,7 @@ function configure(jsonic, incfg, opts) {
         lex: !!((_h = opts.text) === null || _h === void 0 ? void 0 : _h.lex),
         modify: (((_j = cfg.text) === null || _j === void 0 ? void 0 : _j.modify) || [])
             .concat(([(_k = opts.text) === null || _k === void 0 ? void 0 : _k.modify] || []).flat())
-            .filter(m => null != m)
+            .filter((m) => null != m),
     };
     cfg.number = {
         lex: !!((_l = opts.number) === null || _l === void 0 ? void 0 : _l.lex),
@@ -168,30 +174,37 @@ function configure(jsonic, incfg, opts) {
         start: null == ((_v = opts.rule) === null || _v === void 0 ? void 0 : _v.start) ? 'val' : opts.rule.start,
         maxmul: null == ((_w = opts.rule) === null || _w === void 0 ? void 0 : _w.maxmul) ? 3 : opts.rule.maxmul,
         finish: !!((_x = opts.rule) === null || _x === void 0 ? void 0 : _x.finish),
-        include: ((_y = opts.rule) === null || _y === void 0 ? void 0 : _y.include) ?
-            opts.rule.include.split(/\s*,+\s*/).filter(g => '' !== g) : [],
-        exclude: ((_z = opts.rule) === null || _z === void 0 ? void 0 : _z.exclude) ?
-            opts.rule.exclude.split(/\s*,+\s*/).filter(g => '' !== g) : [],
+        include: ((_y = opts.rule) === null || _y === void 0 ? void 0 : _y.include)
+            ? opts.rule.include.split(/\s*,+\s*/).filter((g) => '' !== g)
+            : [],
+        exclude: ((_z = opts.rule) === null || _z === void 0 ? void 0 : _z.exclude)
+            ? opts.rule.exclude.split(/\s*,+\s*/).filter((g) => '' !== g)
+            : [],
     };
     cfg.map = {
         extend: !!((_0 = opts.map) === null || _0 === void 0 ? void 0 : _0.extend),
         merge: (_1 = opts.map) === null || _1 === void 0 ? void 0 : _1.merge,
     };
-    let fixedSorted = Object.keys(cfg.fixed.token)
-        .sort((a, b) => b.length - a.length);
-    let fixedRE = fixedSorted.map(fixed => escre(fixed)).join('|');
-    let commentStartRE = ((_2 = opts.comment) === null || _2 === void 0 ? void 0 : _2.lex) ? (opts.comment.marker || [])
-        .filter(c => c.lex)
-        .map(c => escre(c.start)).join('|')
+    let fixedSorted = Object.keys(cfg.fixed.token).sort((a, b) => b.length - a.length);
+    let fixedRE = fixedSorted.map((fixed) => escre(fixed)).join('|');
+    let commentStartRE = ((_2 = opts.comment) === null || _2 === void 0 ? void 0 : _2.lex)
+        ? (opts.comment.marker || [])
+            .filter((c) => c.lex)
+            .map((c) => escre(c.start))
+            .join('|')
         : '';
     // End-marker RE part
     let enderRE = [
         '([',
         escre(keys(charset(cfg.space.lex && cfg.space.chars, cfg.line.lex && cfg.line.chars)).join('')),
         ']',
-        ('string' === typeof (opts.ender) ? opts.ender.split('') :
-            Array.isArray(opts.ender) ? opts.ender : [])
-            .map((c) => '|' + escre(c)).join(''),
+        ('string' === typeof opts.ender
+            ? opts.ender.split('')
+            : Array.isArray(opts.ender)
+                ? opts.ender
+                : [])
+            .map((c) => '|' + escre(c))
+            .join(''),
         '' === fixedRE ? '' : '|',
         fixedRE,
         '' === commentStartRE ? '' : '|',
@@ -212,8 +225,9 @@ function configure(jsonic, incfg, opts) {
     };
     cfg.lex = {
         empty: !!((_5 = opts.lex) === null || _5 === void 0 ? void 0 : _5.empty),
-        match: ((_6 = opts.lex) === null || _6 === void 0 ? void 0 : _6.match) ?
-            opts.lex.match.map((maker) => maker(cfg, opts)) : [],
+        match: ((_6 = opts.lex) === null || _6 === void 0 ? void 0 : _6.match)
+            ? opts.lex.match.map((maker) => maker(cfg, opts))
+            : [],
     };
     cfg.debug = {
         get_console: ((_7 = opts.debug) === null || _7 === void 0 ? void 0 : _7.get_console) || (() => console),
@@ -227,8 +241,7 @@ function configure(jsonic, incfg, opts) {
     cfg.hint = opts.hint || {};
     // Apply any config modifiers (probably from plugins).
     if ((_13 = opts.config) === null || _13 === void 0 ? void 0 : _13.modify) {
-        keys(opts.config.modify)
-            .forEach((modifer) => opts.config.modify[modifer](cfg, opts));
+        keys(opts.config.modify).forEach((modifer) => opts.config.modify[modifer](cfg, opts));
     }
     // Debug the config - useful for plugin authors.
     if (cfg.debug.print.config) {
@@ -245,7 +258,7 @@ exports.configure = configure;
 function tokenize(ref, cfg, jsonic) {
     let tokenmap = cfg.t;
     let token = tokenmap[ref];
-    if (null == token && types_1.STRING === typeof (ref)) {
+    if (null == token && types_1.STRING === typeof ref) {
         token = cfg.tI++;
         tokenmap[token] = ref;
         tokenmap[ref] = token;
@@ -259,24 +272,28 @@ function tokenize(ref, cfg, jsonic) {
 exports.tokenize = tokenize;
 // Mark a string for escaping by `util.regexp`.
 function mesc(s, _) {
-    return (_ = new String(s), _.esc = true, _);
+    return (_ = new String(s)), (_.esc = true), _;
 }
 exports.mesc = mesc;
 // Construct a RegExp. Use mesc to mark string for escaping.
 // NOTE: flags first allows concatenated parts to be rest.
 function regexp(flags, ...parts) {
-    return new RegExp(parts.map(p => p.esc ?
-        //p.replace(/[-\\|\]{}()[^$+*?.!=]/g, '\\$&')
-        escre(p.toString())
-        : p).join(types_1.EMPTY), null == flags ? '' : flags);
+    return new RegExp(parts
+        .map((p) => p.esc
+        ? //p.replace(/[-\\|\]{}()[^$+*?.!=]/g, '\\$&')
+            escre(p.toString())
+        : p)
+        .join(types_1.EMPTY), null == flags ? '' : flags);
 }
 exports.regexp = regexp;
 function escre(s) {
-    return null == s ? '' : s
-        .replace(/[-\\|\]{}()[^$+*?.!=]/g, '\\$&')
-        .replace(/\t/g, '\\t')
-        .replace(/\r/g, '\\r')
-        .replace(/\n/g, '\\n');
+    return null == s
+        ? ''
+        : s
+            .replace(/[-\\|\]{}()[^$+*?.!=]/g, '\\$&')
+            .replace(/\t/g, '\\t')
+            .replace(/\r/g, '\\r')
+            .replace(/\n/g, '\\n');
 }
 exports.escre = escre;
 // Deep override for plain data. Retains base object and array.
@@ -284,29 +301,30 @@ exports.escre = escre;
 // `undefined` always loses, `over` plain objects inject into functions,
 // and `over` functions always win. Over always copied.
 function deep(base, ...rest) {
-    let base_isf = S.function === typeof (base);
-    let base_iso = null != base &&
-        (S.object === typeof (base) || base_isf);
+    let base_isf = S.function === typeof base;
+    let base_iso = null != base && (S.object === typeof base || base_isf);
     for (let over of rest) {
-        let over_isf = S.function === typeof (over);
-        let over_iso = null != over &&
-            (S.object === typeof (over) || over_isf);
+        let over_isf = S.function === typeof over;
+        let over_iso = null != over && (S.object === typeof over || over_isf);
         if (base_iso &&
             over_iso &&
             !over_isf &&
-            (Array.isArray(base) === Array.isArray(over))) {
+            Array.isArray(base) === Array.isArray(over)) {
             for (let k in over) {
                 base[k] = deep(base[k], over[k]);
             }
         }
         else {
-            base = undefined === over ? base :
-                over_isf ? over :
-                    (over_iso ?
-                        deep(Array.isArray(over) ? [] : {}, over) : over);
-            base_isf = S.function === typeof (base);
-            base_iso = null != base &&
-                (S.object === typeof (base) || base_isf);
+            base =
+                undefined === over
+                    ? base
+                    : over_isf
+                        ? over
+                        : over_iso
+                            ? deep(Array.isArray(over) ? [] : {}, over)
+                            : over;
+            base_isf = S.function === typeof base;
+            base_iso = null != base && (S.object === typeof base || base_isf);
         }
     }
     return base;
@@ -317,22 +335,38 @@ exports.deep = deep;
 // determined heuristically from the Token and Context.
 function errinject(s, code, details, token, rule, ctx) {
     let ref = { code, details, token, rule, ctx };
-    return null == s ? '' : s.replace(/\$([\w_]+)/g, (_m, name) => {
-        let instr = JSON.stringify(null != ref[name] ? ref[name] : (null != details[name] ? details[name] : ((ctx.meta && null != ctx.meta[name]) ? ctx.meta[name] : (null != token[name] ? token[name] : (null != rule[name] ? rule[name] : (null != ctx.opts[name] ? ctx.opts[name] : (null != ctx.cfg[name] ? ctx.cfg[name] :
-            null != ctx[name] ? ctx[name] :
-                '$' + name)))))));
-        return null == instr ? '' : instr;
-    });
+    return null == s
+        ? ''
+        : s.replace(/\$([\w_]+)/g, (_m, name) => {
+            let instr = JSON.stringify(null != ref[name]
+                ? ref[name]
+                : null != details[name]
+                    ? details[name]
+                    : ctx.meta && null != ctx.meta[name]
+                        ? ctx.meta[name]
+                        : null != token[name]
+                            ? token[name]
+                            : null != rule[name]
+                                ? rule[name]
+                                : null != ctx.opts[name]
+                                    ? ctx.opts[name]
+                                    : null != ctx.cfg[name]
+                                        ? ctx.cfg[name]
+                                        : null != ctx[name]
+                                            ? ctx[name]
+                                            : '$' + name);
+            return null == instr ? '' : instr;
+        });
 }
 exports.errinject = errinject;
 // Remove Jsonic internal lines as spurious for caller.
 function trimstk(err) {
     if (err.stack) {
-        err.stack =
-            err.stack.split('\n')
-                .filter(s => !s.includes('jsonic/jsonic'))
-                .map(s => s.replace(/    at /, 'at '))
-                .join('\n');
+        err.stack = err.stack
+            .split('\n')
+            .filter((s) => !s.includes('jsonic/jsonic'))
+            .map((s) => s.replace(/    at /, 'at '))
+            .join('\n');
     }
 }
 exports.trimstk = trimstk;
@@ -345,17 +379,23 @@ function extract(src, errtxt, token) {
     let ahead = src.substring(loc, loc + 333).split('\n');
     let pad = 2 + (types_1.EMPTY + (row + 2)).length;
     let rc = row < 3 ? 1 : row - 2;
-    let ln = (s) => '\x1b[34m' + (types_1.EMPTY + (rc++)).padStart(pad, ' ') +
-        ' | \x1b[0m' + (null == s ? types_1.EMPTY : s);
+    let ln = (s) => '\x1b[34m' +
+        (types_1.EMPTY + rc++).padStart(pad, ' ') +
+        ' | \x1b[0m' +
+        (null == s ? types_1.EMPTY : s);
     let blen = behind.length;
     let lines = [
         2 < blen ? ln(behind[blen - 3]) : null,
         1 < blen ? ln(behind[blen - 2]) : null,
         ln(behind[blen - 1] + ahead[0]),
-        (' '.repeat(pad)) + '   ' +
+        ' '.repeat(pad) +
+            '   ' +
             ' '.repeat(col - 1) +
-            '\x1b[31m' + '^'.repeat(tsrc.length || 1) +
-            ' ' + errtxt + '\x1b[0m',
+            '\x1b[31m' +
+            '^'.repeat(tsrc.length || 1) +
+            ' ' +
+            errtxt +
+            '\x1b[0m',
         ln(ahead[1]),
         ln(ahead[2]),
     ]
@@ -368,15 +408,19 @@ function errdesc(code, details, token, rule, ctx) {
     try {
         let cfg = ctx.cfg;
         let meta = ctx.meta;
-        let errtxt = errinject((cfg.error[code] || cfg.error.unknown), code, details, token, rule, ctx);
-        if (S.function === typeof (cfg.hint)) {
+        let errtxt = errinject(cfg.error[code] || cfg.error.unknown, code, details, token, rule, ctx);
+        if (S.function === typeof cfg.hint) {
             // Only expand the hints on demand. Allows for plugin-defined hints.
             cfg.hint = { ...cfg.hint(), ...cfg.hint };
         }
         let message = [
-            ('\x1b[31m[jsonic/' + code + ']:\x1b[0m ' + errtxt),
-            '  \x1b[34m-->\x1b[0m ' + (meta && meta.fileName || '<no-file>') +
-                ':' + token.rI + ':' + token.cI,
+            '\x1b[31m[jsonic/' + code + ']:\x1b[0m ' + errtxt,
+            '  \x1b[34m-->\x1b[0m ' +
+                ((meta && meta.fileName) || '<no-file>') +
+                ':' +
+                token.rI +
+                ':' +
+                token.cI,
             extract(ctx.src(), errtxt, token),
             '',
             errinject((cfg.hint[code] || cfg.hint.unknown || '')
@@ -386,17 +430,26 @@ function errdesc(code, details, token, rule, ctx) {
                 .join('\n'), code, details, token, rule, ctx),
             '',
             '  \x1b[2mhttps://jsonic.senecajs.org\x1b[0m',
-            '  \x1b[2m--internal: rule=' + rule.name + '~' + rule.state +
+            '  \x1b[2m--internal: rule=' +
+                rule.name +
+                '~' +
+                rule.state +
                 //'; token=' + ctx.cfg.t[token.tin] +
-                '; token=' + tokenize(token.tin, ctx.cfg) +
-                (null == token.why ? '' : ('~' + token.why)) +
-                '; plugins=' + ctx.plgn().map((p) => p.name).join(',') + '--\x1b[0m\n'
+                '; token=' +
+                tokenize(token.tin, ctx.cfg) +
+                (null == token.why ? '' : '~' + token.why) +
+                '; plugins=' +
+                ctx
+                    .plgn()
+                    .map((p) => p.name)
+                    .join(',') +
+                '--\x1b[0m\n',
         ].join('\n');
         let desc = {
             internal: {
                 token,
                 ctx,
-            }
+            },
         };
         desc = {
             ...Object.create(desc),
@@ -448,8 +501,8 @@ function makelog(ctx, meta) {
             ctx.log = (...rest) => {
                 if (exclude_objects) {
                     let logstr = rest
-                        .filter((item) => S.object != typeof (item))
-                        .map((item) => S.function == typeof (item) ? item.name : item)
+                        .filter((item) => S.object != typeof item)
+                        .map((item) => (S.function == typeof item ? item.name : item))
                         .join('\t');
                     ctx.cfg.debug.get_console().log(logstr);
                 }
@@ -467,16 +520,19 @@ function makelog(ctx, meta) {
 }
 exports.makelog = makelog;
 function srcfmt(config) {
-    return 'function' === typeof (config.debug.print.src) ? config.debug.print.src :
-        ((s, _) => null == s ? types_1.EMPTY : (_ = JSON.stringify(s),
-            _.substring(0, config.debug.maxlen) +
-                (config.debug.maxlen < _.length ? '...' : types_1.EMPTY)));
+    return 'function' === typeof config.debug.print.src
+        ? config.debug.print.src
+        : (s, _) => null == s
+            ? types_1.EMPTY
+            : ((_ = JSON.stringify(s)),
+                _.substring(0, config.debug.maxlen) +
+                    (config.debug.maxlen < _.length ? '...' : types_1.EMPTY));
 }
 exports.srcfmt = srcfmt;
 function str(o, len = 44) {
     let s;
     try {
-        s = 'object' === typeof (o) ? JSON.stringify(o) : '' + o;
+        s = 'object' === typeof o ? JSON.stringify(o) : '' + o;
     }
     catch (e) {
         s = '' + o;
@@ -485,7 +541,9 @@ function str(o, len = 44) {
 }
 exports.str = str;
 function snip(s, len = 5) {
-    return undefined === s ? '' : ('' + s).substring(0, len).replace(/[\r\n\t]/g, '.');
+    return undefined === s
+        ? ''
+        : ('' + s).substring(0, len).replace(/[\r\n\t]/g, '.');
 }
 exports.snip = snip;
 function clone(class_instance) {
@@ -494,12 +552,14 @@ function clone(class_instance) {
 exports.clone = clone;
 // Lookup map for a set of chars.
 function charset(...parts) {
-    return null == parts ? {} : parts
-        .filter(p => false !== p)
-        .map((p) => 'object' === typeof (p) ? keys(p).join(types_1.EMPTY) : p)
-        .join(types_1.EMPTY)
-        .split(types_1.EMPTY)
-        .reduce((a, c) => (a[c] = c.charCodeAt(0), a), {});
+    return null == parts
+        ? {}
+        : parts
+            .filter((p) => false !== p)
+            .map((p) => ('object' === typeof p ? keys(p).join(types_1.EMPTY) : p))
+            .join(types_1.EMPTY)
+            .split(types_1.EMPTY)
+            .reduce((a, c) => ((a[c] = c.charCodeAt(0)), a), {});
 }
 exports.charset = charset;
 // Remove all properties with values null or undefined. Note: mutates argument.
@@ -515,16 +575,18 @@ exports.clean = clean;
 function filterRules(rs, cfg) {
     let rsnames = ['open', 'close'];
     for (let rsn of rsnames) {
+        ;
         rs.def[rsn] = rs.def[rsn]
-            // Convert comma separated rule group name list to string[]. 
-            .map((as) => ((as.g = 'string' === typeof as.g ?
-            (as.g || '').split(/\s*,+\s*/) :
-            (as.g || [])),
+            // Convert comma separated rule group name list to string[].
+            .map((as) => ((as.g =
+            'string' === typeof as.g
+                ? (as.g || '').split(/\s*,+\s*/)
+                : as.g || []),
             as))
             // Keep rule if any group name matches, or if there are no includes.
-            .filter((as) => cfg.rule.include.reduce((a, g) => (a || (null != as.g && -1 !== as.g.indexOf(g))), 0 === cfg.rule.include.length))
+            .filter((as) => cfg.rule.include.reduce((a, g) => a || (null != as.g && -1 !== as.g.indexOf(g)), 0 === cfg.rule.include.length))
             // Drop rule if any group name matches, unless there are no excludes.
-            .filter((as) => cfg.rule.exclude.reduce((a, g) => (a && (null == as.g || -1 === as.g.indexOf(g))), true));
+            .filter((as) => cfg.rule.exclude.reduce((a, g) => a && (null == as.g || -1 === as.g.indexOf(g)), true));
     }
     return rs;
 }
@@ -544,25 +606,29 @@ function normalt(a) {
                 if (null != counters) {
                     for (let cn in counters) {
                         // Pass if rule counter <= alt counter, (0 if undef).
-                        pass = pass && (null == rule.n[cn] ||
-                            (rule.n[cn] <= (null == counters[cn] ? 0 : counters[cn])));
+                        pass =
+                            pass &&
+                                (null == rule.n[cn] ||
+                                    rule.n[cn] <= (null == counters[cn] ? 0 : counters[cn]));
                     }
                 }
                 if (null != depth) {
-                    pass = pass && (rule.d <= depth);
+                    pass = pass && rule.d <= depth;
                 }
                 return pass;
             };
             if (null != counters) {
+                ;
                 a.c.n = counters;
             }
             if (null != depth) {
+                ;
                 a.c.d = depth;
             }
         }
     }
     // Ensure groups are a string[]
-    if (types_1.STRING === typeof (a.g)) {
+    if (types_1.STRING === typeof a.g) {
         a.g = a.g.split(/\s*,\s*/);
     }
     if (!a.s || 0 === a.s.length) {
@@ -579,23 +645,27 @@ function normalt(a) {
         //     .reduce((bits: BigInt, tin: number) =>
         //       ((BigInt(1) << BigInt(tin - 1)) | (bits as any)),
         //       BigInt(0));
-        const tinsify = (s) => s.flat().filter(tin => 'number' === typeof (tin));
-        const partify = (tins, part) => tins.filter(tin => (31 * part) <= tin && tin < (31 * (part + 1)));
+        const tinsify = (s) => s.flat().filter((tin) => 'number' === typeof tin);
+        const partify = (tins, part) => tins.filter((tin) => 31 * part <= tin && tin < 31 * (part + 1));
         const bitify = (s, part) => s.reduce((bits, tin) => (1 << (tin - (31 * part + 1))) | bits, 0);
         const tins0 = tinsify([a.s[0]]);
         const tins1 = tinsify([a.s[1]]);
         const aa = a;
         // Create as many bit fields as needed, each of size 31 bits.
-        aa.S0 = 0 < tins0.length ?
-            new Array(Math.max(...tins0.map(tin => 1 + (tin / 31) | 0)))
-                .fill(null).map((_, i) => i)
-                .map(part => bitify(partify(tins0, part), part))
-            : null;
-        aa.S1 = 0 < tins1.length ?
-            new Array(Math.max(...tins1.map(tin => 1 + (tin / 31) | 0)))
-                .fill(null).map((_, i) => i)
-                .map(part => bitify(partify(tins1, part), part))
-            : null;
+        aa.S0 =
+            0 < tins0.length
+                ? new Array(Math.max(...tins0.map((tin) => (1 + tin / 31) | 0)))
+                    .fill(null)
+                    .map((_, i) => i)
+                    .map((part) => bitify(partify(tins0, part), part))
+                : null;
+        aa.S1 =
+            0 < tins1.length
+                ? new Array(Math.max(...tins1.map((tin) => (1 + tin / 31) | 0)))
+                    .fill(null)
+                    .map((_, i) => i)
+                    .map((part) => bitify(partify(tins1, part), part))
+                : null;
     }
     return a;
 }
@@ -608,7 +678,7 @@ function prop(obj, path, val) {
         for (let pI = 0; pI < parts.length; pI++) {
             pn = parts[pI];
             if (pI < parts.length - 1) {
-                obj = (obj[pn] = (obj[pn] || {}));
+                obj = obj[pn] = obj[pn] || {};
             }
         }
         if (undefined !== val) {
@@ -617,8 +687,12 @@ function prop(obj, path, val) {
         return obj[pn];
     }
     catch (e) {
-        throw new Error('Cannot ' + (undefined === val ? 'get' : 'set') +
-            ' path ' + path + ' on object: ' + str(root) +
+        throw new Error('Cannot ' +
+            (undefined === val ? 'get' : 'set') +
+            ' path ' +
+            path +
+            ' on object: ' +
+            str(root) +
             (undefined === val ? '' : ' to value: ' + str(val, 22)));
     }
 }
@@ -647,45 +721,47 @@ function parserwrap(parser) {
                             cI--;
                         col = Math.max(src.substring(cI, loc).length, 0);
                     }
-                    let token = ex.token || (0, lexer_1.makeToken)('#UK', 
-                    // tokenize('#UK', jsonic.config),
-                    tokenize('#UK', jsonic.internal().config), undefined, tsrc, (0, lexer_1.makePoint)(tsrc.length, loc, ex.lineNumber || row, ex.columnNumber || col));
+                    let token = ex.token ||
+                        (0, lexer_1.makeToken)('#UK', 
+                        // tokenize('#UK', jsonic.config),
+                        tokenize('#UK', jsonic.internal().config), undefined, tsrc, (0, lexer_1.makePoint)(tsrc.length, loc, ex.lineNumber || row, ex.columnNumber || col));
                     throw new JsonicError(ex.code || 'json', ex.details || {
-                        msg: ex.message
-                    }, token, {}, ex.ctx || {
-                        uI: -1,
-                        opts: jsonic.options,
-                        //cfg: ({ t: {} } as Config),
-                        cfg: jsonic.internal().config,
-                        token: token,
-                        meta,
-                        src: () => src,
-                        root: () => undefined,
-                        plgn: () => jsonic.internal().plugins,
-                        rule: { name: 'no-rule' },
-                        xs: -1,
-                        v2: token,
-                        v1: token,
-                        t0: token,
-                        t1: token,
-                        tC: -1,
-                        rs: [],
-                        rsI: 0,
-                        next: () => token,
-                        rsm: {},
-                        n: {},
-                        log: meta ? meta.log : undefined,
-                        F: srcfmt(jsonic.internal().config),
-                        use: {},
-                        NORULE: { name: 'no-rule' },
-                        NOTOKEN: { name: 'no-token' },
-                    });
+                        msg: ex.message,
+                    }, token, {}, ex.ctx ||
+                        {
+                            uI: -1,
+                            opts: jsonic.options,
+                            //cfg: ({ t: {} } as Config),
+                            cfg: jsonic.internal().config,
+                            token: token,
+                            meta,
+                            src: () => src,
+                            root: () => undefined,
+                            plgn: () => jsonic.internal().plugins,
+                            rule: { name: 'no-rule' },
+                            xs: -1,
+                            v2: token,
+                            v1: token,
+                            t0: token,
+                            t1: token,
+                            tC: -1,
+                            rs: [],
+                            rsI: 0,
+                            next: () => token,
+                            rsm: {},
+                            n: {},
+                            log: meta ? meta.log : undefined,
+                            F: srcfmt(jsonic.internal().config),
+                            use: {},
+                            NORULE: { name: 'no-rule' },
+                            NOTOKEN: { name: 'no-token' },
+                        });
                 }
                 else {
                     throw ex;
                 }
             }
-        }
+        },
     };
 }
 exports.parserwrap = parserwrap;

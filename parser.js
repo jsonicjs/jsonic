@@ -77,8 +77,8 @@ class RuleSpecImpl {
         let inject = (flags === null || flags === void 0 ? void 0 : flags.last) ? 'push' : 'unshift';
         let aa = ((0, utility_1.isarr)(a) ? a : [a])
             .filter((alt) => null != alt)
-            .map(a => (0, utility_1.normalt)(a));
-        this.def[('o' === state ? 'open' : 'close')][inject](...aa);
+            .map((a) => (0, utility_1.normalt)(a));
+        this.def['o' === state ? 'open' : 'close'][inject](...aa);
         (0, utility_1.filterRules)(this, this.cfg);
         return this;
     }
@@ -117,17 +117,14 @@ class RuleSpecImpl {
         // Match alternates for current state.
         let alts = (is_open ? def.open : def.close);
         // Handle "before" call.
-        let before = is_open ?
-            (rule.bo && def.bo) :
-            (rule.bc && def.bc);
+        let before = is_open ? rule.bo && def.bo : rule.bc && def.bc;
         let bout = before && before.call(this, rule, ctx);
         if (bout && bout.isToken && null != bout.err) {
             return this.bad(bout, rule, ctx, { is_open });
         }
         // Attempt to match one of the alts.
         // let alt: AltMatch = (bout && bout.alt) ? { ...EMPTY_ALT, ...bout.alt } :
-        let alt = 0 < alts.length ? this.parse_alts(is_open, alts, rule, ctx) :
-            EMPTY_ALT;
+        let alt = 0 < alts.length ? this.parse_alts(is_open, alts, rule, ctx) : EMPTY_ALT;
         // Custom alt handler.
         if (alt.h) {
             alt = alt.h(rule, ctx, alt, next) || alt;
@@ -142,11 +139,13 @@ class RuleSpecImpl {
             for (let cn in alt.n) {
                 rule.n[cn] =
                     // 0 reverts counter to 0.
-                    0 === alt.n[cn] ? 0 :
-                        // First seen, set to 0.
-                        (null == rule.n[cn] ? 0 :
-                            // Increment counter.
-                            rule.n[cn]) + alt.n[cn];
+                    0 === alt.n[cn]
+                        ? 0
+                        : // First seen, set to 0.
+                            (null == rule.n[cn]
+                                ? 0
+                                : // Increment counter.
+                                    rule.n[cn]) + alt.n[cn];
             }
         }
         // Set custom properties
@@ -198,15 +197,21 @@ class RuleSpecImpl {
             why += 'Z';
         }
         // Handle "after" call.
-        let after = is_open ?
-            (rule.ao && def.ao) :
-            (rule.ac && def.ac);
+        let after = is_open ? rule.ao && def.ao : rule.ac && def.ac;
         let aout = after && after.call(this, rule, ctx, alt, next);
         if (aout && aout.isToken && null != aout.err) {
             return this.bad(aout, rule, ctx, { is_open });
         }
         next.why = why;
-        ctx.log && ctx.log('node  ' + rule.state.toUpperCase(), (rule.prev.id + '/' + rule.parent.id + '/' + rule.child.id), rule.name + '~' + rule.id, 'w=' + why, 'n:' + (0, utility_1.entries)(rule.n).filter(n => n[1]).map(n => n[0] + '=' + n[1]).join(';'), 'u:' + (0, utility_1.entries)(rule.use).map(u => u[0] + '=' + u[1]).join(';'), '<' + F(rule.node) + '>');
+        ctx.log &&
+            ctx.log('node  ' + rule.state.toUpperCase(), rule.prev.id + '/' + rule.parent.id + '/' + rule.child.id, rule.name + '~' + rule.id, 'w=' + why, 'n:' +
+                (0, utility_1.entries)(rule.n)
+                    .filter((n) => n[1])
+                    .map((n) => n[0] + '=' + n[1])
+                    .join(';'), 'u:' +
+                (0, utility_1.entries)(rule.use)
+                    .map((u) => u[0] + '=' + u[1])
+                    .join(';'), '<' + F(rule.node) + '>');
         // Lex next tokens (up to backtrack).
         let mI = 0;
         let rewind = rule[is_open ? 'os' : 'cs'] - (alt.b || 0);
@@ -224,7 +229,7 @@ class RuleSpecImpl {
     parse_alts(is_open, alts, rule, ctx) {
         let out = PALT;
         out.b = 0; // Backtrack n tokens.
-        out.p = types_1.EMPTY; // Push named rule onto stack. 
+        out.p = types_1.EMPTY; // Push named rule onto stack.
         out.r = types_1.EMPTY; // Replace current rule with named rule.
         out.n = undefined; // Increment named counters.
         out.h = undefined; // Custom handler function.
@@ -235,7 +240,7 @@ class RuleSpecImpl {
         let altI = 0;
         let t = ctx.cfg.t;
         let cond;
-        let bitAA = (1 << (t.AA - 1));
+        let bitAA = 1 << (t.AA - 1);
         // TODO: replace with lookup map
         let len = alts.length;
         for (altI = 0; altI < len; altI++) {
@@ -247,13 +252,13 @@ class RuleSpecImpl {
             cond = true;
             if (alt.S0) {
                 has0 = true;
-                cond = ((alt.S0[(tin0 / 31) | 0] & ((1 << ((tin0 % 31) - 1)) | bitAA)));
+                cond = alt.S0[(tin0 / 31) | 0] & ((1 << ((tin0 % 31) - 1)) | bitAA);
                 if (cond) {
                     has1 = null != alt.S1;
                     if (alt.S1) {
                         has1 = true;
                         let tin1 = ctx.t1.tin;
-                        cond = (alt.S1[(tin1 / 31) | 0] & ((1 << ((tin1 % 31) - 1)) | bitAA));
+                        cond = alt.S1[(tin1 / 31) | 0] & ((1 << ((tin1 % 31) - 1)) | bitAA);
                     }
                 }
             }
@@ -288,33 +293,56 @@ class RuleSpecImpl {
             out.a = null != alt.a ? alt.a : out.a;
             out.u = null != alt.u ? alt.u : out.u;
             out.g = null != alt.g ? alt.g : out.g;
-            out.e = alt.e && alt.e(rule, ctx, out) || undefined;
-            out.p = null != alt.p ?
-                ('string' === typeof (alt.p) ? alt.p : alt.p(rule, ctx, out)) :
-                out.p;
-            out.r = null != alt.r ?
-                ('string' === typeof (alt.r) ? alt.r : alt.r(rule, ctx, out)) :
-                out.r;
-            out.b = null != alt.b ?
-                ('number' === typeof (alt.b) ? alt.b : alt.b(rule, ctx, out)) :
-                out.b;
+            out.e = (alt.e && alt.e(rule, ctx, out)) || undefined;
+            out.p =
+                null != alt.p
+                    ? 'string' === typeof alt.p
+                        ? alt.p
+                        : alt.p(rule, ctx, out)
+                    : out.p;
+            out.r =
+                null != alt.r
+                    ? 'string' === typeof alt.r
+                        ? alt.r
+                        : alt.r(rule, ctx, out)
+                    : out.r;
+            out.b =
+                null != alt.b
+                    ? 'number' === typeof alt.b
+                        ? alt.b
+                        : alt.b(rule, ctx, out)
+                    : out.b;
         }
         let match = altI < alts.length;
         // TODO: move to util function
-        ctx.log && ctx.log('parse ' + rule.state.toUpperCase(), (rule.prev.id + '/' + rule.parent.id + '/' + rule.child.id), rule.name + '~' + rule.id, match ? 'alt=' + altI : 'no-alt', (match && out.g ? 'g:' + out.g + ' ' : ''), (match && out.p ? 'p:' + out.p + ' ' : '') +
-            (match && out.r ? 'r:' + out.r + ' ' : '') +
-            (match && out.b ? 'b:' + out.b + ' ' : ''), (types_1.OPEN === rule.state ?
-            ([rule.o0, rule.o1].slice(0, rule.os)) :
-            ([rule.c0, rule.c1].slice(0, rule.cs)))
-            .map((tkn) => tkn.name + '=' + ctx.F(tkn.src)).join(' '), 'c:' + ((alt && alt.c) ? cond : types_1.EMPTY), 'n:' + (0, utility_1.entries)(out.n).map(n => n[0] + '=' + n[1]).join(';'), 'u:' + (0, utility_1.entries)(out.u).map(u => u[0] + '=' + u[1]).join(';'), altI < alts.length &&
-            alt.s ?
-            '[' + alt.s.map((pin) => (Array.isArray(pin) ? pin.map((pin) => t[pin]).join('|') : t[pin])).join(' ') + ']' : '[]', out);
+        ctx.log &&
+            ctx.log('parse ' + rule.state.toUpperCase(), rule.prev.id + '/' + rule.parent.id + '/' + rule.child.id, rule.name + '~' + rule.id, match ? 'alt=' + altI : 'no-alt', match && out.g ? 'g:' + out.g + ' ' : '', (match && out.p ? 'p:' + out.p + ' ' : '') +
+                (match && out.r ? 'r:' + out.r + ' ' : '') +
+                (match && out.b ? 'b:' + out.b + ' ' : ''), (types_1.OPEN === rule.state
+                ? [rule.o0, rule.o1].slice(0, rule.os)
+                : [rule.c0, rule.c1].slice(0, rule.cs))
+                .map((tkn) => tkn.name + '=' + ctx.F(tkn.src))
+                .join(' '), 'c:' + (alt && alt.c ? cond : types_1.EMPTY), 'n:' +
+                (0, utility_1.entries)(out.n)
+                    .map((n) => n[0] + '=' + n[1])
+                    .join(';'), 'u:' +
+                (0, utility_1.entries)(out.u)
+                    .map((u) => u[0] + '=' + u[1])
+                    .join(';'), altI < alts.length && alt.s
+                ? '[' +
+                    alt.s
+                        .map((pin) => Array.isArray(pin)
+                        ? pin.map((pin) => t[pin]).join('|')
+                        : t[pin])
+                        .join(' ') +
+                    ']'
+                : '[]', out);
         return out;
     }
     bad(tkn, rule, ctx, parse) {
         throw new utility_1.JsonicError(tkn.err || utility_1.S.unexpected, {
             ...tkn.use,
-            state: parse.is_open ? utility_1.S.open : utility_1.S.close
+            state: parse.is_open ? utility_1.S.open : utility_1.S.close,
         }, tkn, rule, ctx);
     }
     unknownRule(tkn, name) {
@@ -346,8 +374,8 @@ class Parser {
         }
         // Else add or redefine a rule by name.
         else if (undefined !== define) {
-            rs = this.rsm[name] = (this.rsm[name] || makeRuleSpec(this.cfg, {}));
-            rs = this.rsm[name] = (define(this.rsm[name], this.rsm) || this.rsm[name]);
+            rs = this.rsm[name] = this.rsm[name] || makeRuleSpec(this.cfg, {});
+            rs = this.rsm[name] = define(this.rsm[name], this.rsm) || this.rsm[name];
             rs.name = name;
             for (let alt of [...rs.def.open, ...rs.def.close]) {
                 (0, utility_1.normalt)(alt);
@@ -412,8 +440,7 @@ class Parser {
         // rule open and close, and for each rule on each char to be
         // virtual (like map, list), and double for safety margin (allows
         // lots of backtracking), and apply a multipler options as a get-out-of-jail.
-        let maxr = 2 * (0, utility_1.keys)(this.rsm).length * lex.src.length *
-            2 * ctx.cfg.rule.maxmul;
+        let maxr = 2 * (0, utility_1.keys)(this.rsm).length * lex.src.length * 2 * ctx.cfg.rule.maxmul;
         let ignore = ctx.cfg.tokenSet.ignore;
         // Lex next token.
         function next() {
@@ -437,11 +464,22 @@ class Parser {
         // occurrences until there's none left.
         while (norule !== rule && rI < maxr) {
             ctx.log &&
-                ctx.log('\nstack', '<<' + ctx.F(root.node) + '>>', ctx.rs.slice(0, ctx.rsI).map((r) => r.name + '~' + r.id).join('/'), ctx.rs.slice(0, ctx.rsI).map((r) => '<' + ctx.F(r.node) + '>').join(' '), rule, ctx, '\n');
+                ctx.log('\nstack', '<<' + ctx.F(root.node) + '>>', ctx.rs
+                    .slice(0, ctx.rsI)
+                    .map((r) => r.name + '~' + r.id)
+                    .join('/'), ctx.rs
+                    .slice(0, ctx.rsI)
+                    .map((r) => '<' + ctx.F(r.node) + '>')
+                    .join(' '), rule, ctx, '\n');
             ctx.log &&
-                ctx.log('rule  ' + rule.state.toUpperCase(), (rule.prev.id + '/' + rule.parent.id + '/' + rule.child.id), rule.name + '~' + rule.id, '[' + ctx.F(ctx.t0.src) + ' ' + ctx.F(ctx.t1.src) + ']', 'n:' + (0, utility_1.entries)(rule.n)
-                    .filter(n => n[1])
-                    .map(n => n[0] + '=' + n[1]).join(';'), 'u:' + (0, utility_1.entries)(rule.use).map(u => u[0] + '=' + u[1]).join(';'), '[' + tn(ctx.t0.tin) + ' ' + tn(ctx.t1.tin) + ']', rule, ctx);
+                ctx.log('rule  ' + rule.state.toUpperCase(), rule.prev.id + '/' + rule.parent.id + '/' + rule.child.id, rule.name + '~' + rule.id, '[' + ctx.F(ctx.t0.src) + ' ' + ctx.F(ctx.t1.src) + ']', 'n:' +
+                    (0, utility_1.entries)(rule.n)
+                        .filter((n) => n[1])
+                        .map((n) => n[0] + '=' + n[1])
+                        .join(';'), 'u:' +
+                    (0, utility_1.entries)(rule.use)
+                        .map((u) => u[0] + '=' + u[1])
+                        .join(';'), '[' + tn(ctx.t0.tin) + ' ' + tn(ctx.t1.tin) + ']', rule, ctx);
             ctx.rule = rule;
             rule = rule.process(ctx);
             rI++;
@@ -459,9 +497,7 @@ class Parser {
     clone(options, config) {
         let parser = new Parser(options, config);
         // Inherit rules from parent, filtered by config.rule
-        parser.rsm = Object
-            .keys(this.rsm)
-            .reduce((a, rn) => (a[rn] = (0, utility_1.filterRules)(this.rsm[rn], this.cfg), a), {});
+        parser.rsm = Object.keys(this.rsm).reduce((a, rn) => ((a[rn] = (0, utility_1.filterRules)(this.rsm[rn], this.cfg)), a), {});
         return parser;
     }
 }

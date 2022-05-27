@@ -404,7 +404,8 @@ describe('first-version', function () {
   })
 
   // NOTE: coverage tracing slows this down - a lot!
-  it('fv-performance', function () { // {timeout:3333},
+  it('fv-performance', function () {
+    // {timeout:3333},
     if (null == process.env.JSONIC_TEST_SKIP_PERF) {
       pv_perf(200)
     }

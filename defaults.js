@@ -4,7 +4,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.defaults = void 0;
 const lexer_1 = require("./lexer");
 const defaults = {
-    // Default tag - set your own! 
+    // Default tag - set your own!
     tag: '-',
     // Fixed token lexing.
     fixed: {
@@ -18,11 +18,11 @@ const defaults = {
             '#CS': ']',
             '#CL': ':',
             '#CA': ',',
-        }
+        },
     },
     // Token sets.
     tokenSet: {
-        ignore: ['#SP', '#LN', '#CM']
+        ignore: ['#SP', '#LN', '#CM'],
     },
     // Recognize space characters in the lexer.
     space: {
@@ -98,7 +98,7 @@ const defaults = {
             v: '\v',
             // These preserve standard escapes when allowUnknown=false.
             '"': '"',
-            '\'': '\'',
+            "'": "'",
             '`': '`',
             '\\': '\\',
             '/': '/',
@@ -119,10 +119,10 @@ const defaults = {
     value: {
         lex: true,
         map: {
-            'true': { val: true },
-            'false': { val: false },
-            'null': { val: null },
-        }
+            true: { val: true },
+            false: { val: false },
+            null: { val: null },
+        },
     },
     // Additional text ending characters
     ender: [],
@@ -153,9 +153,9 @@ const defaults = {
         unterminated_comment: 'unterminated comment: $src',
         unknown_rule: 'unknown rule: $rulename',
     },
-    // Error hints: {error-code: hint-text}. 
+    // Error hints: {error-code: hint-text}.
     hint: make_hint,
-    // Lexer 
+    // Lexer
     lex: {
         match: [
             lexer_1.makeFixedMatcher,
@@ -167,7 +167,7 @@ const defaults = {
             lexer_1.makeTextMatcher,
         ],
         // Empty string is allowed and returns undefined
-        empty: true
+        empty: true,
     },
     // Parser rule options.
     rule: {
@@ -183,15 +183,16 @@ const defaults = {
     // Configuration options.
     config: {
         // Configuration modifiers.
-        modify: {}
+        modify: {},
     },
     // Provide a custom parser.
     parser: {
-        start: undefined
-    }
+        start: undefined,
+    },
 };
 exports.defaults = defaults;
 // Generate hint text lookup.
 // NOTE: generated and inserted by hint.js
+// prettier-ignore
 function make_hint(d = (t, r = 'replace') => t[r](/[A-Z]/g, (m) => ' ' + m.toLowerCase())[r](/[~%][a-z]/g, (m) => ('~' == m[0] ? ' ' : '') + m[1].toUpperCase()), s = '~sinceTheErrorIsUnknown,ThisIsProbablyABugInsideJsonic\nitself,OrAPlugin.~pleaseConsiderPostingAGithubIssue -Thanks!\n\n~code: $code,~details: \n$details|~theCharacter(s) $srcWereNotExpectedAtThisPointAsTheyDoNot\nmatchTheExpectedSyntax,EvenUnderTheRelaxedJsonicRules.~ifIt\nisNotObviouslyWrong,TheActualSyntaxErrorMayBeElsewhere.~try\ncommentingOutLargerAreasAroundThisPointUntilYouGetNoErrors,\nthenRemoveTheCommentsInSmallSectionsUntilYouFindThe\noffendingSyntax.~n%o%t%e:~alsoCheckIfAnyPluginsYouAreUsing\nexpectDifferentSyntaxInThisCase.|~theEscapeSequence $srcDoesNotEncodeAValidUnicodeCodePoint\nnumber.~youMayNeedToValidateYourStringDataManuallyUsingTest\ncodeToSeeHow~javaScriptWillInterpretIt.~alsoConsiderThatYour\ndataMayHaveBecomeCorrupted,OrTheEscapeSequenceHasNotBeen\ngeneratedCorrectly.|~theEscapeSequence $srcDoesNotEncodeAValid~a%s%c%i%iCharacter.~you\nmayNeedToValidateYourStringDataManuallyUsingTestCodeToSee\nhow~javaScriptWillInterpretIt.~alsoConsiderThatYourDataMay\nhaveBecomeCorrupted,OrTheEscapeSequenceHasNotBeenGenerated\ncorrectly.|~stringValuesCannotContainUnprintableCharacters (characterCodes\nbelow 32).~theCharacter $srcIsUnprintable.~youMayNeedToRemove\ntheseCharactersFromYourSourceData.~alsoCheckThatItHasNot\nbecomeCorrupted.|~thisStringHasNoEndQuote.|~thisCommentIsNeverClosed.|~noRuleNamed $rulenameIsDefined.~thisIsProbablyAnErrorInThe\ngrammarOfAPlugin.'.split('|')) { return 'unknown|unexpected|invalid_unicode|invalid_ascii|unprintable|unterminated_string|unterminated_comment|unknown_rule'.split('|').reduce((a, n, i) => (a[n] = d(s[i]), a), {}); }
 //# sourceMappingURL=defaults.js.map

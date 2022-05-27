@@ -58,18 +58,22 @@ function make(param_options, parent) {
         parser: {},
         config: {},
         plugins: [],
-        mark: Math.random()
+        mark: Math.random(),
     };
     // Merge options.
-    let merged_options = (0, utility_1.deep)({}, parent ? { ...parent.options } :
-        false === (param_options === null || param_options === void 0 ? void 0 : param_options.defaults$) ? {} : defaults_1.defaults, param_options ? param_options : {});
+    let merged_options = (0, utility_1.deep)({}, parent
+        ? { ...parent.options }
+        : false === (param_options === null || param_options === void 0 ? void 0 : param_options.defaults$)
+            ? {}
+            : defaults_1.defaults, param_options ? param_options : {});
     // Create primary parsing function
     let jsonic = function Jsonic(src, meta, parent_ctx) {
         var _a;
-        if (utility_1.S.string === typeof (src)) {
+        if (utility_1.S.string === typeof src) {
             let internal = jsonic.internal();
-            let parser = ((_a = options.parser) === null || _a === void 0 ? void 0 : _a.start) ?
-                (0, utility_1.parserwrap)(options.parser) : internal.parser;
+            let parser = ((_a = options.parser) === null || _a === void 0 ? void 0 : _a.start)
+                ? (0, utility_1.parserwrap)(options.parser)
+                : internal.parser;
             return parser.start(src, jsonic, meta, parent_ctx);
         }
         return src;
@@ -77,7 +81,7 @@ function make(param_options, parent) {
     // This lets you access options as direct properties,
     // and set them as a funtion call.
     let options = (change_options) => {
-        if (null != change_options && utility_1.S.object === typeof (change_options)) {
+        if (null != change_options && utility_1.S.object === typeof change_options) {
             (0, utility_1.deep)(merged_options, change_options);
             (0, utility_1.configure)(jsonic, internal.config, merged_options);
             let parser = jsonic.internal().parser;
@@ -99,8 +103,8 @@ function make(param_options, parent) {
             jsonic.options({
                 plugin: {
                     // [plugin.name]: full_plugin_options
-                    [plugin_name]: full_plugin_options
-                }
+                    [plugin_name]: full_plugin_options,
+                },
             });
             let merged_plugin_options = jsonic.options.plugin[plugin_name];
             jsonic.internal().plugins.push(plugin);
@@ -113,7 +117,7 @@ function make(param_options, parent) {
             let match = merged_options.lex.match;
             match.unshift(matchmaker);
             jsonic.options({
-                lex: { match }
+                lex: { match },
             });
         },
         make: (options) => {
@@ -122,10 +126,11 @@ function make(param_options, parent) {
         empty: (options) => make({
             defaults$: false,
             grammar$: false,
-            ...(options || {})
+            ...(options || {}),
         }),
         id: 'Jsonic/' +
-            Date.now() + '/' +
+            Date.now() +
+            '/' +
             ('' + Math.random()).substring(2, 8).padEnd(6, '0') +
             (null == options.tag ? '' : '/' + options.tag),
         toString: () => {
@@ -166,7 +171,7 @@ function make(param_options, parent) {
 }
 exports.make = make;
 let root = undefined;
-let Jsonic = root = make();
+let Jsonic = (root = make());
 exports.Jsonic = Jsonic;
 // The global root Jsonic instance cannot be modified.
 // use Jsonic.make() to create a modifiable instance.
@@ -185,11 +190,18 @@ root.makeToken = lexer_1.makeToken;
 root.makePoint = lexer_1.makePoint;
 root.makeRule = parser_1.makeRule;
 root.makeRuleSpec = parser_1.makeRuleSpec;
+root.makeFixedMatcher = lexer_1.makeFixedMatcher;
+root.makeSpaceMatcher = lexer_1.makeSpaceMatcher;
+root.makeLineMatcher = lexer_1.makeLineMatcher;
+root.makeStringMatcher = lexer_1.makeStringMatcher;
+root.makeCommentMatcher = lexer_1.makeCommentMatcher;
+root.makeNumberMatcher = lexer_1.makeNumberMatcher;
+root.makeTextMatcher = lexer_1.makeTextMatcher;
 root.util = util;
 root.make = make;
 exports.default = Jsonic;
 // Build process uncomments this to enable more natural Node.js requires.
 /* $lab:coverage:off$ */
-//-NODE-MODULE-FIX;('undefined' != typeof(module) && (module.exports = exports.Jsonic));
+;('undefined' != typeof(module) && (module.exports = exports.Jsonic));
 /* $lab:coverage:on$ */
 //# sourceMappingURL=jsonic.js.map

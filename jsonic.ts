@@ -350,6 +350,13 @@ root.makeToken = makeToken
 root.makePoint = makePoint
 root.makeRule = makeRule
 root.makeRuleSpec = makeRuleSpec
+root.makeFixedMatcher = makeFixedMatcher
+root.makeSpaceMatcher = makeSpaceMatcher
+root.makeLineMatcher = makeLineMatcher
+root.makeStringMatcher = makeStringMatcher
+root.makeCommentMatcher = makeCommentMatcher
+root.makeNumberMatcher = makeNumberMatcher
+root.makeTextMatcher = makeTextMatcher
 root.util = util
 root.make = make
 

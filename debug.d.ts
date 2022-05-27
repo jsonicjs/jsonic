@@ -1,3 +1,3 @@
-import { Plugin } from './jsonic'
-declare const Debug: Plugin
-export { Debug }
+import { Plugin } from './jsonic';
+declare const Debug: Plugin;
+export { Debug };

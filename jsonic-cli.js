@@ -80,7 +80,7 @@ async function run(argv, console) {
     }
     let data = { val: null };
     for (let fp of args.files) {
-        if ('string' === typeof (fp) && '' !== fp) {
+        if ('string' === typeof fp && '' !== fp) {
             jsonic_1.util.deep(data, { val: jsonic(fs_1.default.readFileSync(fp).toString(), meta) });
         }
     }
@@ -92,19 +92,20 @@ async function run(argv, console) {
         jsonic_1.util.deep(data, { val: jsonic(src, meta) });
     }
     options.JSON =
-        null == options.JSON || 'object' !== typeof (options.JSON) ? {} :
-            options.JSON;
+        null == options.JSON || 'object' !== typeof options.JSON ? {} : options.JSON;
     let replacer = (0, jsonic_1.Jsonic)(options.JSON.replacer);
     let space = (0, jsonic_1.Jsonic)(options.JSON.space);
-    replacer = Array.isArray(replacer) ? replacer :
-        null == replacer ? null :
-            [replacer];
+    replacer = Array.isArray(replacer)
+        ? replacer
+        : null == replacer
+            ? null
+            : [replacer];
     let json = JSON.stringify(data.val, replacer, space);
     console.log(json);
 }
 exports.run = run;
 async function read_stdin(console) {
-    if ('string' === typeof (console.test$)) {
+    if ('string' === typeof console.test$) {
         return console.test$;
     }
     if (process.stdin.isTTY)
@@ -147,20 +148,20 @@ function handle_plugins(plugins) {
             }
         }
         // Handle some variations in the way the plugin function is exported.
-        if ('function' !== typeof (out[name])) {
+        if ('function' !== typeof out[name]) {
             let refname = (name.match(/([^.\\\/]+)($|\.[^.]+$)/) || [])[1];
             refname = null != refname ? refname.toLowerCase() : refname;
             // See test plugin test/p1.js
-            if ('function' == typeof (out[name].default)) {
+            if ('function' == typeof out[name].default) {
                 out[name] = out[name].default;
             }
             else if (null != refname &&
-                'function' == typeof (out[name][camel(refname)])) {
+                'function' == typeof out[name][camel(refname)]) {
                 out[name] = out[name][camel(refname)];
             }
             // See test plugin test/p2.js
             else if (null != refname &&
-                'function' == typeof (out[name][refname])) {
+                'function' == typeof out[name][refname]) {
                 out[refname] = out[name][refname];
                 delete out[name];
             }
@@ -172,8 +173,10 @@ function handle_plugins(plugins) {
     return out;
 }
 function camel(s) {
-    return s[0].toUpperCase() +
-        s.substring(1).replace(/-(\w)/g, (m) => (m[1][0].toUpperCase() + m[1].substring(1)));
+    return (s[0].toUpperCase() +
+        s
+            .substring(1)
+            .replace(/-(\w)/g, (m) => m[1][0].toUpperCase() + m[1].substring(1)));
 }
 function help(console) {
     let s = `

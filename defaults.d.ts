@@ -1,3 +1,3 @@
-import { Options } from './jsonic'
-declare const defaults: Options
-export { defaults }
+import { Options } from './jsonic';
+declare const defaults: Options;
+export { defaults };
