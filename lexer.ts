@@ -4,7 +4,6 @@
  *  Lexer implementation, converts source text into tokens for the parser.
  */
 
-
 import type {
   Tin,
   Token,
@@ -17,18 +16,12 @@ import type {
   Relate,
 } from './types'
 
-
-import {
-  EMPTY,
-  INSPECT,
-} from './types'
-
+import { EMPTY, INSPECT } from './types'
 
 import type {
   // Rule,
   Options,
 } from './jsonic'
-
 
 import {
   S,
@@ -45,7 +38,6 @@ import {
   omap,
 } from './utility'
 
-
 class PointImpl implements Point {
   len = -1
   sI = 0
@@ -56,14 +48,24 @@ class PointImpl implements Point {
 
   constructor(len: number, sI?: number, rI?: number, cI?: number) {
     this.len = len
-    if (null != sI) { this.sI = sI }
-    if (null != rI) { this.rI = rI }
-    if (null != cI) { this.cI = cI }
+    if (null != sI) {
+      this.sI = sI
+    }
+    if (null != rI) {
+      this.rI = rI
+    }
+    if (null != cI) {
+      this.cI = cI
+    }
   }
 
   toString() {
-    return 'Point[' + [this.sI + '/' + this.len, this.rI, this.cI] +
-      (0 < this.token.length ? (' ' + this.token) : '') + ']'
+    return (
+      'Point[' +
+      [this.sI + '/' + this.len, this.rI, this.cI] +
+      (0 < this.token.length ? ' ' + this.token : '') +
+      ']'
+    )
   }
 
   [INSPECT]() {
@@ -73,9 +75,6 @@ class PointImpl implements Point {
 
 const makePoint = (...params: ConstructorParameters<typeof PointImpl>) =>
   new PointImpl(...params)
-
-
-
 
 // Tokens from the lexer.
 class TokenImpl implements Token {
@@ -99,7 +98,7 @@ class TokenImpl implements Token {
     src: string,
     pnt: Point,
     use?: any,
-    why?: string,
+    why?: string
   ) {
     this.name = name
     this.tin = tin
@@ -114,14 +113,11 @@ class TokenImpl implements Token {
     this.len = null == src ? 0 : src.length
   }
 
-
   resolveVal(rule: Rule, ctx: Context): any {
-    let out = 'function' === typeof this.val ?
-      (this.val as any)(rule, ctx) :
-      this.val
+    let out =
+      'function' === typeof this.val ? (this.val as any)(rule, ctx) : this.val
     return out
   }
-
 
   bad(err: string, details?: any): Token {
     this.err = err
@@ -132,23 +128,25 @@ class TokenImpl implements Token {
   }
 
   toString() {
-    return 'Token[' +
-      this.name + '=' + this.tin + ' ' +
-
+    return (
+      'Token[' +
+      this.name +
+      '=' +
+      this.tin +
+      ' ' +
       snip(this.src) +
-
-      (undefined === this.val || '#ST' === this.name || '#TX' === this.name ? '' :
-        '=' + snip(this.val)) + ' ' +
-
+      (undefined === this.val || '#ST' === this.name || '#TX' === this.name
+        ? ''
+        : '=' + snip(this.val)) +
+      ' ' +
       [this.sI, this.rI, this.cI] +
-
-      (null == this.use ? '' : ' ' +
-        snip(('' + JSON.stringify(this.use).replace(/"/g, '')), 22)) +
-
+      (null == this.use
+        ? ''
+        : ' ' + snip('' + JSON.stringify(this.use).replace(/"/g, ''), 22)) +
       (null == this.err ? '' : ' ' + this.err) +
-
       (null == this.why ? '' : ' ' + snip('' + this.why, 22)) +
       ']'
+    )
   }
 
   [INSPECT]() {
@@ -159,24 +157,10 @@ class TokenImpl implements Token {
 const makeToken = (...params: ConstructorParameters<typeof TokenImpl>) =>
   new TokenImpl(...params)
 
-
-const makeNoToken = () => makeToken(
-  '',
-  -1,
-  undefined,
-  EMPTY,
-  makePoint(-1)
-)
-
-
+const makeNoToken = () => makeToken('', -1, undefined, EMPTY, makePoint(-1))
 
 let makeFixedMatcher: MakeLexMatcher = (cfg: Config, _opts: Options) => {
-  let fixed = regexp(
-    null,
-    '^(',
-    cfg.rePart.fixed,
-    ')'
-  )
+  let fixed = regexp(null, '^(', cfg.rePart.fixed, ')')
 
   // console.log(fixed)
 
@@ -196,12 +180,7 @@ let makeFixedMatcher: MakeLexMatcher = (cfg: Config, _opts: Options) => {
 
         let tin = mcfg.token[msrc]
         if (null != tin) {
-          tkn = lex.token(
-            tin,
-            undefined,
-            msrc,
-            pnt,
-          )
+          tkn = lex.token(tin, undefined, msrc, pnt)
 
           pnt.sI += mlen
           pnt.cI += mlen
@@ -213,25 +192,24 @@ let makeFixedMatcher: MakeLexMatcher = (cfg: Config, _opts: Options) => {
   }
 }
 
-
-
 let makeCommentMatcher: MakeLexMatcher = (cfg: Config, opts: Options) => {
-
   let oc = opts.comment
   cfg.comment = {
     lex: oc ? !!oc.lex : false,
-    marker: (oc?.marker || []).map(om => ({
-      start: (om.start as string),
+    marker: (oc?.marker || []).map((om) => ({
+      start: om.start as string,
       end: om.end,
       line: !!om.line,
       lex: !!om.lex,
-    }))
+    })),
   }
 
-  let lineComments =
-    cfg.comment.lex ? cfg.comment.marker.filter(c => c.lex && c.line) : []
-  let blockComments =
-    cfg.comment.lex ? cfg.comment.marker.filter(c => c.lex && !c.line) : []
+  let lineComments = cfg.comment.lex
+    ? cfg.comment.marker.filter((c) => c.lex && c.line)
+    : []
+  let blockComments = cfg.comment.lex
+    ? cfg.comment.marker.filter((c) => c.lex && !c.line)
+    : []
 
   return function matchComment(lex: Lex) {
     let mcfg = cfg.comment
@@ -256,12 +234,7 @@ let makeCommentMatcher: MakeLexMatcher = (cfg: Config, opts: Options) => {
         }
 
         let csrc = fwd.substring(0, fI)
-        let tkn = lex.token(
-          '#CM',
-          undefined,
-          csrc,
-          pnt,
-        )
+        let tkn = lex.token('#CM', undefined, csrc, pnt)
 
         pnt.sI += csrc.length
         pnt.cI = cI
@@ -269,7 +242,6 @@ let makeCommentMatcher: MakeLexMatcher = (cfg: Config, opts: Options) => {
         return tkn
       }
     }
-
 
     // Multiline comment.
 
@@ -292,39 +264,29 @@ let makeCommentMatcher: MakeLexMatcher = (cfg: Config, opts: Options) => {
         if (fwd.substring(fI).startsWith(end)) {
           cI += end.length
           let csrc = fwd.substring(0, fI + end.length)
-          let tkn = lex.token(
-            '#CM',
-            undefined,
-            csrc,
-            pnt,
-          )
+          let tkn = lex.token('#CM', undefined, csrc, pnt)
 
           pnt.sI += csrc.length
           pnt.rI = rI
           pnt.cI = cI
 
           return tkn
-
-        }
-        else {
-          return lex.bad(S.unterminated_comment,
-            pnt.sI, pnt.sI + (9 * mc.start.length))
+        } else {
+          return lex.bad(
+            S.unterminated_comment,
+            pnt.sI,
+            pnt.sI + 9 * mc.start.length
+          )
         }
       }
     }
   }
 }
 
-
 // Match text, checking for literal values, optionally followed by a fixed token.
 // Text strings are terminated by end markers.
 let makeTextMatcher: MakeLexMatcher = (cfg: Config, opts: Options) => {
-
-  let ender = regexp(
-    cfg.line.lex ? null : 's',
-    '^(.*?)',
-    ...cfg.rePart.ender
-  )
+  let ender = regexp(cfg.line.lex ? null : 's', '^(.*?)', ...cfg.rePart.ender)
 
   return function textMatcher(lex: Lex) {
     let mcfg = cfg.text
@@ -343,14 +305,12 @@ let makeTextMatcher: MakeLexMatcher = (cfg: Config, opts: Options) => {
       if (null != msrc) {
         let mlen = msrc.length
         if (0 < mlen) {
-
           let vs = undefined
           if (cfg.value.lex && undefined !== (vs = vm[msrc])) {
             out = lex.token('#VL', vs.val, msrc, pnt)
             pnt.sI += mlen
             pnt.cI += mlen
-          }
-          else if (mcfg.lex) {
+          } else if (mcfg.lex) {
             out = lex.token('#TX', msrc, msrc, pnt)
             pnt.sI += mlen
             pnt.cI += mlen
@@ -376,7 +336,6 @@ let makeTextMatcher: MakeLexMatcher = (cfg: Config, opts: Options) => {
   }
 }
 
-
 let makeNumberMatcher: MakeLexMatcher = (cfg: Config, _opts: Options) => {
   let mcfg = cfg.number
 
@@ -388,20 +347,22 @@ let makeNumberMatcher: MakeLexMatcher = (cfg: Config, _opts: Options) => {
         mcfg.hex ? 'x[0-9a-fA-F_]+' : null,
         mcfg.oct ? 'o[0-7_]+' : null,
         mcfg.bin ? 'b[01_]+' : null,
-      ].filter(s => null != s).join('|'),
+      ]
+        .filter((s) => null != s)
+        .join('|'),
       ')|[.0-9]+([0-9_]*[0-9])?)',
       '(\\.[0-9]?([0-9_]*[0-9])?)?',
       '([eE][-+]?[0-9]+([0-9_]*[0-9])?)?',
     ]
       .join('')
-      .replace(/_/g, mcfg.sep ? escre((mcfg.sepChar as string)) : ''),
+      .replace(/_/g, mcfg.sep ? escre(mcfg.sepChar as string) : ''),
     ')',
     ...cfg.rePart.ender
   )
 
-  let numberSep = (mcfg.sep ? regexp(
-    'g', escre((mcfg.sepChar as string))) : undefined)
-
+  let numberSep = mcfg.sep
+    ? regexp('g', escre(mcfg.sepChar as string))
+    : undefined
 
   return function matchNumber(lex: Lex) {
     mcfg = cfg.number
@@ -421,20 +382,18 @@ let makeNumberMatcher: MakeLexMatcher = (cfg: Config, _opts: Options) => {
       if (null != msrc) {
         let mlen = msrc.length
         if (0 < mlen) {
-
           let vs = undefined
           if (cfg.value.lex && undefined !== (vs = vm[msrc])) {
             out = lex.token('#VL', vs.val, msrc, pnt)
-          }
-          else {
+          } else {
             let nstr = numberSep ? msrc.replace(numberSep, '') : msrc
-            let num = +(nstr)
+            let num = +nstr
 
             // Special case: +- prefix of 0x... format
             if (isNaN(num)) {
               let first = nstr[0]
               if ('-' === first || '+' === first) {
-                num = ('-' === first ? -1 : 1) * +(nstr.substring(1))
+                num = ('-' === first ? -1 : 1) * +nstr.substring(1)
               }
             }
 
@@ -455,13 +414,11 @@ let makeNumberMatcher: MakeLexMatcher = (cfg: Config, _opts: Options) => {
   }
 }
 
-
 let makeStringMatcher: MakeLexMatcher = (cfg: Config, opts: Options) => {
-
-  // TODO: does `clean` make sense here? 
+  // TODO: does `clean` make sense here?
 
   let os = opts.string || {}
-  cfg.string = (cfg.string || {})
+  cfg.string = cfg.string || {}
 
   // TODO: compose with earlier config - do this in other makeFooMatchers?
   cfg.string = deep(cfg.string, {
@@ -470,14 +427,17 @@ let makeStringMatcher: MakeLexMatcher = (cfg: Config, opts: Options) => {
     multiChars: charset(os.multiChars),
     escMap: clean({ ...os.escape }),
     escChar: os.escapeChar,
-    escCharCode: null == os.escapeChar ? undefined : os.escapeChar.charCodeAt(0),
+    escCharCode:
+      null == os.escapeChar ? undefined : os.escapeChar.charCodeAt(0),
     allowUnknown: !!os.allowUnknown,
-    replaceCodeMap: omap(clean({ ...os.replace }), ([c, r]) => [c.charCodeAt(0), r]),
-    hasReplace: false
+    replaceCodeMap: omap(clean({ ...os.replace }), ([c, r]) => [
+      c.charCodeAt(0),
+      r,
+    ]),
+    hasReplace: false,
   })
 
   cfg.string.hasReplace = 0 < keys(cfg.string.replaceCodeMap).length
-
 
   return function stringMatcher(lex: Lex) {
     let mcfg = cfg.string
@@ -516,13 +476,11 @@ let makeStringMatcher: MakeLexMatcher = (cfg: Config, opts: Options) => {
 
         // Quote char.
         if (q === c) {
-
           sI++
           break // String finished.
-
         }
 
-        // Escape char. 
+        // Escape char.
         else if (escChar === c) {
           sI++
           cI++
@@ -573,20 +531,17 @@ let makeStringMatcher: MakeLexMatcher = (cfg: Config, opts: Options) => {
             let us = String.fromCodePoint(cc)
 
             s.push(us)
-            sI += (ulen - 1) + ux // Loop increments sI.
+            sI += ulen - 1 + ux // Loop increments sI.
             cI += ulen + ux
-          }
-          else if (allowUnknown) {
+          } else if (allowUnknown) {
             s.push(src[sI])
-          }
-          else {
+          } else {
             pnt.sI = sI
             pnt.cI = cI - 1
             return lex.bad(S.unexpected, sI, sI + 1)
           }
-        }
-
-        else if (hasReplace &&
+        } else if (
+          hasReplace &&
           undefined !== (rs = replaceCodeMap[src.charCodeAt(sI)])
         ) {
           s.push(rs)
@@ -602,8 +557,11 @@ let makeStringMatcher: MakeLexMatcher = (cfg: Config, opts: Options) => {
           let cc = src.charCodeAt(sI)
 
           while (
-            (!hasReplace || (undefined === (rs = replaceCodeMap[cc]))) &&
-            sI < srclen && 32 <= cc && qc !== cc && escCharCode !== cc
+            (!hasReplace || undefined === (rs = replaceCodeMap[cc])) &&
+            sI < srclen &&
+            32 <= cc &&
+            qc !== cc &&
+            escCharCode !== cc
           ) {
             cc = src.charCodeAt(++sI)
             cI++
@@ -618,14 +576,12 @@ let makeStringMatcher: MakeLexMatcher = (cfg: Config, opts: Options) => {
 
               cI = 1
               s.push(src.substring(bI, sI + 1))
-            }
-            else {
+            } else {
               pnt.sI = sI
               pnt.cI = cI
               return lex.bad(S.unprintable, sI, sI + 1)
             }
-          }
-          else {
+          } else {
             s.push(src.substring(bI, sI))
             sI--
           }
@@ -641,7 +597,7 @@ let makeStringMatcher: MakeLexMatcher = (cfg: Config, opts: Options) => {
         '#ST',
         s.join(EMPTY),
         src.substring(pnt.sI, sI),
-        pnt,
+        pnt
       )
 
       pnt.sI = sI
@@ -651,7 +607,6 @@ let makeStringMatcher: MakeLexMatcher = (cfg: Config, opts: Options) => {
     }
   }
 }
-
 
 // Line ending matcher.
 let makeLineMatcher: MakeLexMatcher = (cfg: Config, _opts: Options) => {
@@ -663,18 +618,13 @@ let makeLineMatcher: MakeLexMatcher = (cfg: Config, _opts: Options) => {
     let { sI, rI } = pnt
 
     while (chars[src[sI]]) {
-      rI += (rowChars[src[sI]] ? 1 : 0)
+      rI += rowChars[src[sI]] ? 1 : 0
       sI++
     }
 
     if (pnt.sI < sI) {
       let msrc = src.substring(pnt.sI, sI)
-      const tkn = lex.token(
-        '#LN',
-        undefined,
-        msrc,
-        pnt,
-      )
+      const tkn = lex.token('#LN', undefined, msrc, pnt)
       pnt.sI += msrc.length
       pnt.rI = rI
       pnt.cI = 1
@@ -683,7 +633,6 @@ let makeLineMatcher: MakeLexMatcher = (cfg: Config, _opts: Options) => {
     }
   }
 }
-
 
 // Space matcher.
 let makeSpaceMatcher: MakeLexMatcher = (cfg: Config, _opts: Options) => {
@@ -701,12 +650,7 @@ let makeSpaceMatcher: MakeLexMatcher = (cfg: Config, _opts: Options) => {
 
     if (pnt.sI < sI) {
       let msrc = src.substring(pnt.sI, sI)
-      const tkn = lex.token(
-        '#SP',
-        undefined,
-        msrc,
-        pnt,
-      )
+      const tkn = lex.token('#SP', undefined, msrc, pnt)
       pnt.sI += msrc.length
       pnt.cI = cI
       return tkn
@@ -714,12 +658,10 @@ let makeSpaceMatcher: MakeLexMatcher = (cfg: Config, _opts: Options) => {
   }
 }
 
-
 function subMatchFixed(
   lex: Lex,
   first: Token | undefined,
-  tsrc: string | undefined,
-
+  tsrc: string | undefined
 ): Token | undefined {
   let pnt = lex.pnt
   let out = first
@@ -731,12 +673,7 @@ function subMatchFixed(
 
       let tin = lex.cfg.fixed.token[tsrc]
       if (null != tin) {
-        tkn = lex.token(
-          tin,
-          undefined,
-          tsrc,
-          pnt,
-        )
+        tkn = lex.token(tin, undefined, tsrc, pnt)
       }
 
       if (null != tkn) {
@@ -745,8 +682,7 @@ function subMatchFixed(
 
         if (null == first) {
           out = tkn
-        }
-        else {
+        } else {
           pnt.token.push(tkn)
         }
       }
@@ -755,11 +691,10 @@ function subMatchFixed(
   return out
 }
 
-
 class LexImpl implements Lex {
   src = EMPTY
-  ctx = ({} as Context)
-  cfg = ({} as Config)
+  ctx = {} as Context
+  cfg = {} as Config
   pnt = makePoint(-1)
 
   constructor(ctx: Context) {
@@ -775,32 +710,22 @@ class LexImpl implements Lex {
     src: string,
     pnt?: Point,
     use?: any,
-    why?: string,
+    why?: string
   ): Token {
     let tin: Tin
     let name: string
-    if ('string' === typeof (ref)) {
+    if ('string' === typeof ref) {
       name = ref
       tin = tokenize(name, this.cfg)
-    }
-    else {
+    } else {
       tin = ref
       name = tokenize(ref, this.cfg)
     }
 
-    let tkn = makeToken(
-      name,
-      tin,
-      val,
-      src,
-      pnt || this.pnt,
-      use,
-      why,
-    )
+    let tkn = makeToken(name, tin, val, src, pnt || this.pnt, use, why)
 
     return tkn
   }
-
 
   next(rule: Rule): Token {
     let tkn: Token | undefined
@@ -808,49 +733,39 @@ class LexImpl implements Lex {
 
     if (pnt.end) {
       tkn = pnt.end
-    }
-
-    else if (0 < pnt.token.length) {
-      tkn = (pnt.token.shift() as Token)
-    }
-
-    else if (pnt.len <= pnt.sI) {
-      pnt.end = this.token(
-        '#ZZ',
-        undefined,
-        '',
-        pnt,
-      )
+    } else if (0 < pnt.token.length) {
+      tkn = pnt.token.shift() as Token
+    } else if (pnt.len <= pnt.sI) {
+      pnt.end = this.token('#ZZ', undefined, '', pnt)
 
       tkn = pnt.end
-    }
-
-    else {
-
+    } else {
       //for (let mat of this.mat) {
       for (let mat of this.cfg.lex.match) {
-        if (tkn = mat(this, rule)) {
+        if ((tkn = mat(this, rule))) {
           break
         }
       }
 
-      tkn = tkn || this.token(
-        '#BD',
-        undefined,
-        this.src[pnt.sI],
-        pnt,
-        undefined,
-        'unexpected'
-      )
+      tkn =
+        tkn ||
+        this.token(
+          '#BD',
+          undefined,
+          this.src[pnt.sI],
+          pnt,
+          undefined,
+          'unexpected'
+        )
     }
 
     if (this.ctx.log) {
       this.ctx.log(
-        S.lex,         // Log entry prefix.
+        S.lex, // Log entry prefix.
         tokenize(tkn.tin, this.cfg), // Name of token from tin (token identification numer).
-        this.ctx.F(tkn.src),  // Format token src for log.
-        pnt.sI,            // Current source index.
-        pnt.rI + ':' + pnt.cI, // Row and column.
+        this.ctx.F(tkn.src), // Format token src for log.
+        pnt.sI, // Current source index.
+        pnt.rI + ':' + pnt.cI // Row and column.
         // { ...tkn },  // Copy of the token.
         //...rest)       // Context-specific additional entries.
       )
@@ -859,11 +774,9 @@ class LexImpl implements Lex {
     return tkn
   }
 
-  tokenize<
-    R extends string | Tin,
-    T extends (R extends Tin ? string : Tin)
-  >(ref: R):
-    T {
+  tokenize<R extends string | Tin, T extends R extends Tin ? string : Tin>(
+    ref: R
+  ): T {
     return tokenize(ref, this.cfg)
   }
 
@@ -871,9 +784,9 @@ class LexImpl implements Lex {
     return this.token(
       '#BD',
       undefined,
-      0 <= pstart && pstart <= pend ?
-        this.src.substring(pstart, pend) :
-        this.src[this.pnt.sI],
+      0 <= pstart && pstart <= pend
+        ? this.src.substring(pstart, pend)
+        : this.src[this.pnt.sI],
       undefined,
       undefined,
       why
@@ -883,8 +796,6 @@ class LexImpl implements Lex {
 
 const makeLex = (...params: ConstructorParameters<typeof LexImpl>) =>
   new LexImpl(...params)
-
-
 
 export {
   makeNoToken,
@@ -899,5 +810,3 @@ export {
   makeNumberMatcher,
   makeTextMatcher,
 }
-
-

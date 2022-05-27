@@ -4,7 +4,6 @@
  *  Default option values.
  */
 
-
 import { Options } from './jsonic'
 
 import {
@@ -17,15 +16,12 @@ import {
   makeTextMatcher,
 } from './lexer'
 
-
 const defaults: Options = {
-
-  // Default tag - set your own! 
+  // Default tag - set your own!
   tag: '-',
 
   // Fixed token lexing.
   fixed: {
-
     // Recognize fixed tokens in the Lexer.
     lex: true,
 
@@ -37,18 +33,16 @@ const defaults: Options = {
       '#CS': ']',
       '#CL': ':',
       '#CA': ',',
-    }
+    },
   },
 
   // Token sets.
   tokenSet: {
-    ignore: ['#SP', '#LN', '#CM']
+    ignore: ['#SP', '#LN', '#CM'],
   },
-
 
   // Recognize space characters in the lexer.
   space: {
-
     // Recognize space in the Lexer.
     lex: true,
 
@@ -57,10 +51,8 @@ const defaults: Options = {
     chars: ' \t',
   },
 
-
   // Line lexing.
   line: {
-
     // Recognize lines in the Lexer.
     lex: true,
 
@@ -71,18 +63,14 @@ const defaults: Options = {
     rowChars: '\n',
   },
 
-
   // Text formats.
   text: {
-
     // Recognize text (non-quoted strings) in the Lexer.
     lex: true,
   },
 
-
   // Control number formats.
   number: {
-
     // Recognize numbers in the Lexer.
     lex: true,
 
@@ -102,12 +90,10 @@ const defaults: Options = {
     sep: '_',
   },
 
-
   // Comment markers.
   // <mark-char>: true -> single line comments
   // <mark-start>: <mark-end> -> multiline comments
   comment: {
-
     // Recognize comments in the Lexer.
     lex: true,
 
@@ -123,10 +109,8 @@ const defaults: Options = {
     ],
   },
 
-
   // String formats.
   string: {
-
     // Recognize strings in the Lexer.
     lex: true,
 
@@ -151,7 +135,7 @@ const defaults: Options = {
 
       // These preserve standard escapes when allowUnknown=false.
       '"': '"',
-      '\'': '\'',
+      "'": "'",
       '`': '`',
       '\\': '\\',
       '/': '/',
@@ -159,13 +143,10 @@ const defaults: Options = {
 
     // Allow unknown escape characters - they are copied to output: '\w' -> 'w'.
     allowUnknown: true,
-
   },
-
 
   // Object formats.
   map: {
-
     // TODO: or trigger error?
     // Later duplicates extend earlier ones, rather than replacing them.
     extend: true,
@@ -175,25 +156,21 @@ const defaults: Options = {
     merge: undefined,
   },
 
-
   // Keyword values.
   value: {
     lex: true,
     map: {
-      'true': { val: true },
-      'false': { val: false },
-      'null': { val: null },
-    }
+      true: { val: true },
+      false: { val: false },
+      null: { val: null },
+    },
   },
-
 
   // Additional text ending characters
   ender: [],
 
-
   // Plugin custom options, (namespace by plugin name).
   plugin: {},
-
 
   // Debug settings
   debug: {
@@ -205,7 +182,6 @@ const defaults: Options = {
 
     // Print internal structures
     print: {
-
       // Print config built from options.
       config: false,
 
@@ -213,7 +189,6 @@ const defaults: Options = {
       src: undefined,
     },
   },
-
 
   // Error messages.
   error: {
@@ -227,11 +202,10 @@ const defaults: Options = {
     unknown_rule: 'unknown rule: $rulename',
   },
 
-
-  // Error hints: {error-code: hint-text}. 
+  // Error hints: {error-code: hint-text}.
   hint: make_hint,
 
-  // Lexer 
+  // Lexer
   lex: {
     match: [
       makeFixedMatcher,
@@ -244,13 +218,11 @@ const defaults: Options = {
     ],
 
     // Empty string is allowed and returns undefined
-    empty: true
+    empty: true,
   },
-
 
   // Parser rule options.
   rule: {
-
     // Name of the starting rule.
     start: 'val',
 
@@ -264,25 +236,33 @@ const defaults: Options = {
     exclude: '',
   },
 
-
   // Configuration options.
   config: {
-
     // Configuration modifiers.
-    modify: {}
+    modify: {},
   },
-
 
   // Provide a custom parser.
   parser: {
-    start: undefined
-  }
+    start: undefined,
+  },
 }
-
 
 // Generate hint text lookup.
 // NOTE: generated and inserted by hint.js
-function make_hint(d = (t: any, r = 'replace') => t[r](/[A-Z]/g, (m: any) => ' ' + m.toLowerCase())[r](/[~%][a-z]/g, (m: any) => ('~' == m[0] ? ' ' : '') + m[1].toUpperCase()), s = '~sinceTheErrorIsUnknown,ThisIsProbablyABugInsideJsonic\nitself,OrAPlugin.~pleaseConsiderPostingAGithubIssue -Thanks!\n\n~code: $code,~details: \n$details|~theCharacter(s) $srcWereNotExpectedAtThisPointAsTheyDoNot\nmatchTheExpectedSyntax,EvenUnderTheRelaxedJsonicRules.~ifIt\nisNotObviouslyWrong,TheActualSyntaxErrorMayBeElsewhere.~try\ncommentingOutLargerAreasAroundThisPointUntilYouGetNoErrors,\nthenRemoveTheCommentsInSmallSectionsUntilYouFindThe\noffendingSyntax.~n%o%t%e:~alsoCheckIfAnyPluginsYouAreUsing\nexpectDifferentSyntaxInThisCase.|~theEscapeSequence $srcDoesNotEncodeAValidUnicodeCodePoint\nnumber.~youMayNeedToValidateYourStringDataManuallyUsingTest\ncodeToSeeHow~javaScriptWillInterpretIt.~alsoConsiderThatYour\ndataMayHaveBecomeCorrupted,OrTheEscapeSequenceHasNotBeen\ngeneratedCorrectly.|~theEscapeSequence $srcDoesNotEncodeAValid~a%s%c%i%iCharacter.~you\nmayNeedToValidateYourStringDataManuallyUsingTestCodeToSee\nhow~javaScriptWillInterpretIt.~alsoConsiderThatYourDataMay\nhaveBecomeCorrupted,OrTheEscapeSequenceHasNotBeenGenerated\ncorrectly.|~stringValuesCannotContainUnprintableCharacters (characterCodes\nbelow 32).~theCharacter $srcIsUnprintable.~youMayNeedToRemove\ntheseCharactersFromYourSourceData.~alsoCheckThatItHasNot\nbecomeCorrupted.|~thisStringHasNoEndQuote.|~thisCommentIsNeverClosed.|~noRuleNamed $rulenameIsDefined.~thisIsProbablyAnErrorInThe\ngrammarOfAPlugin.'.split('|')): any { return 'unknown|unexpected|invalid_unicode|invalid_ascii|unprintable|unterminated_string|unterminated_comment|unknown_rule'.split('|').reduce((a: any, n, i) => (a[n] = d(s[i]), a), {}) }
-
+function make_hint(
+  d = (t: any, r = 'replace') =>
+    t[r](/[A-Z]/g, (m: any) => ' ' + m.toLowerCase())[r](
+      /[~%][a-z]/g,
+      (m: any) => ('~' == m[0] ? ' ' : '') + m[1].toUpperCase()
+    ),
+  s = '~sinceTheErrorIsUnknown,ThisIsProbablyABugInsideJsonic\nitself,OrAPlugin.~pleaseConsiderPostingAGithubIssue -Thanks!\n\n~code: $code,~details: \n$details|~theCharacter(s) $srcWereNotExpectedAtThisPointAsTheyDoNot\nmatchTheExpectedSyntax,EvenUnderTheRelaxedJsonicRules.~ifIt\nisNotObviouslyWrong,TheActualSyntaxErrorMayBeElsewhere.~try\ncommentingOutLargerAreasAroundThisPointUntilYouGetNoErrors,\nthenRemoveTheCommentsInSmallSectionsUntilYouFindThe\noffendingSyntax.~n%o%t%e:~alsoCheckIfAnyPluginsYouAreUsing\nexpectDifferentSyntaxInThisCase.|~theEscapeSequence $srcDoesNotEncodeAValidUnicodeCodePoint\nnumber.~youMayNeedToValidateYourStringDataManuallyUsingTest\ncodeToSeeHow~javaScriptWillInterpretIt.~alsoConsiderThatYour\ndataMayHaveBecomeCorrupted,OrTheEscapeSequenceHasNotBeen\ngeneratedCorrectly.|~theEscapeSequence $srcDoesNotEncodeAValid~a%s%c%i%iCharacter.~you\nmayNeedToValidateYourStringDataManuallyUsingTestCodeToSee\nhow~javaScriptWillInterpretIt.~alsoConsiderThatYourDataMay\nhaveBecomeCorrupted,OrTheEscapeSequenceHasNotBeenGenerated\ncorrectly.|~stringValuesCannotContainUnprintableCharacters (characterCodes\nbelow 32).~theCharacter $srcIsUnprintable.~youMayNeedToRemove\ntheseCharactersFromYourSourceData.~alsoCheckThatItHasNot\nbecomeCorrupted.|~thisStringHasNoEndQuote.|~thisCommentIsNeverClosed.|~noRuleNamed $rulenameIsDefined.~thisIsProbablyAnErrorInThe\ngrammarOfAPlugin.'.split(
+    '|'
+  )
+): any {
+  return 'unknown|unexpected|invalid_unicode|invalid_ascii|unprintable|unterminated_string|unterminated_comment|unknown_rule'
+    .split('|')
+    .reduce((a: any, n, i) => ((a[n] = d(s[i])), a), {})
+}
 
 export { defaults }

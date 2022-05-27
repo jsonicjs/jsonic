@@ -4,7 +4,7 @@ module.exports = function angle(jsonic) {
       token: {
         '#OB': '<',
         '#CB': '>',
-      }
-    }
+      },
+    },
   })
 }

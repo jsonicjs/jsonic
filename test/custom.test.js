@@ -1,20 +1,12 @@
 /* Copyright (c) 2013-2021 Richard Rodger and other contributors, MIT License */
 'use strict'
 
-
-const {
-  Jsonic,
-  JsonicError,
-  makeRule,
-  makeFixedMatcher,
-} = require('..')
+const { Jsonic, JsonicError, makeRule, makeFixedMatcher } = require('..')
 
 let j = Jsonic
 let { keys } = j.util
 
-
 describe('custom', function () {
-
   it('fixed-tokens', () => {
     let j = Jsonic.make({
       fixed: {
@@ -24,8 +16,8 @@ describe('custom', function () {
           '#DEFINE': ':-',
           '#MARK': '##',
           '#TRIPLE': '///',
-        }
-      }
+        },
+      },
     })
 
     let NOT = j.token['#NOT']
@@ -34,13 +26,13 @@ describe('custom', function () {
     let MARK = j.token['#MARK']
     let TRIPLE = j.token['#TRIPLE']
 
-    j.rule('val', (rs)=>{
+    j.rule('val', (rs) => {
       rs.def.open.unshift(
-        { s:[NOT], a:(r)=>r.node='<not>' },
-        { s:[IMPLIES], a:(r)=>r.node='<implies>' },
-        { s:[DEFINE], a:(r)=>r.node='<define>' },
-        { s:[MARK], a:(r)=>r.node='<mark>' },
-        { s:[TRIPLE], a:(r)=>r.node='<triple>' },
+        { s: [NOT], a: (r) => (r.node = '<not>') },
+        { s: [IMPLIES], a: (r) => (r.node = '<implies>') },
+        { s: [DEFINE], a: (r) => (r.node = '<define>') },
+        { s: [MARK], a: (r) => (r.node = '<mark>') },
+        { s: [TRIPLE], a: (r) => (r.node = '<triple>') }
       )
     })
     let out = j('a:~,b:1,c:~,d:=>,e::-,f:##,g:///,h:a,i:# foo')
@@ -53,280 +45,278 @@ describe('custom', function () {
       f: '<mark>',
       g: '<triple>',
       h: 'a',
-      i: null // implicit null
+      i: null, // implicit null
     })
   })
 
-
   it('string-replace', () => {
-    expect(Jsonic('a:1')).toEqual({a:1})
+    expect(Jsonic('a:1')).toEqual({ a: 1 })
 
     let j0 = Jsonic.make({
       string: {
         replace: {
-          'A': 'B',
-          'D': '',
-        }
-      }
+          A: 'B',
+          D: '',
+        },
+      },
     })
 
     expect(j0('"aAc"')).toEqual('aBc')
     expect(j0('"aAcDe"')).toEqual('aBce')
-    expect(()=>j0('x:\n "Ac\n"')).toThrow(/unprintable.*2:6/s)
-
+    expect(() => j0('x:\n "Ac\n"')).toThrow(/unprintable.*2:6/s)
 
     let j1 = Jsonic.make({
       string: {
         replace: {
-          'A': 'B',
-          '\n': 'X'
-        }
-      }
+          A: 'B',
+          '\n': 'X',
+        },
+      },
     })
 
     expect(j1('"aAc\n"')).toEqual('aBcX')
-    expect(()=>j1('x:\n "ac\n\r"')).toThrow(/unprintable.*2:7/s)
-
+    expect(() => j1('x:\n "ac\n\r"')).toThrow(/unprintable.*2:7/s)
 
     let j2 = Jsonic.make({
       string: {
         replace: {
-          'A': 'B',
-          '\n': ''
-        }
-      }
+          A: 'B',
+          '\n': '',
+        },
+      },
     })
 
     expect(j2('"aAc\n"')).toEqual('aBc')
-    expect(()=>j2('x:\n "ac\n\r"')).toThrow(/unprintable.*2:7/s)
+    expect(() => j2('x:\n "ac\n\r"')).toThrow(/unprintable.*2:7/s)
   })
 
-  
   it('parser-empty-clean', () => {
-    expect(Jsonic('a:1')).toEqual({a:1})
+    expect(Jsonic('a:1')).toEqual({ a: 1 })
 
     let j = Jsonic.empty()
-    expect(keys({...j.token}).length).toEqual(0)
-    expect(keys({...j.fixed}).length).toEqual(0)
+    expect(keys({ ...j.token }).length).toEqual(0)
+    expect(keys({ ...j.fixed }).length).toEqual(0)
     expect(Object.keys(j.rule())).toEqual([])
     expect(j('a:1')).toEqual(undefined)
   })
 
-
   it('parser-empty-fixed', () => {
-    expect(Jsonic('a:1')).toEqual({a:1})
+    expect(Jsonic('a:1')).toEqual({ a: 1 })
 
-    let j = Jsonic
-        .empty({
-          fixed: {
-            lex: true,
-            token: {
-              '#T0': 't0'
-            }
-          },
-          rule: {
-            start: 'r0'
-          },
-          lex: {
-            match: [
-              makeFixedMatcher,
-            ]
-          }
-        })
-        .rule('r0', (rs) => {
-          rs
-            .open({s:[rs.tin('#T0')]})
-            .bc(r=>r.node='~T0~')
-        })
+    let j = Jsonic.empty({
+      fixed: {
+        lex: true,
+        token: {
+          '#T0': 't0',
+        },
+      },
+      rule: {
+        start: 'r0',
+      },
+      lex: {
+        match: [makeFixedMatcher],
+      },
+    }).rule('r0', (rs) => {
+      rs.open({ s: [rs.tin('#T0')] }).bc((r) => (r.node = '~T0~'))
+    })
 
     expect(j('t0')).toEqual('~T0~')
   })
 
-  
-
   it('parser-handler-actives', () => {
     let b = ''
-    let j = make_norules({rule:{start:'top'}})
+    let j = make_norules({ rule: { start: 'top' } })
     let cfg = j.internal().config
-    
+
     let AA = j.token.AA
     j.rule('top', (rs) => {
-      rs
-        .open([
-          {
-            s:[AA,AA],
-            h: (rule,ctx,alt) => {
-              // No effect: rule.bo - bo already called at this point.
-              // rule.bo = false
-              rule.ao = false
-              rule.bc = false
-              rule.ac = false
-              rule.node = 1111
-              return alt
-            }
-          }
-        ])
-        .close([
-          {s:[AA,AA]}
-        ])
-        .bo(()=>(b+='bo;'))
-        .ao(()=>(b+='ao;'))
-        .bc(()=>(b+='bc;'))
-        .ac(()=>(b+='ac;'))
+      rs.open([
+        {
+          s: [AA, AA],
+          h: (rule, ctx, alt) => {
+            // No effect: rule.bo - bo already called at this point.
+            // rule.bo = false
+            rule.ao = false
+            rule.bc = false
+            rule.ac = false
+            rule.node = 1111
+            return alt
+          },
+        },
+      ])
+        .close([{ s: [AA, AA] }])
+        .bo(() => (b += 'bo;'))
+        .ao(() => (b += 'ao;'))
+        .bc(() => (b += 'bc;'))
+        .ac(() => (b += 'ac;'))
     })
 
     //expect(j('a b c d e f')).toEqual(1111)
     expect(j('a')).toEqual(1111)
     expect(b).toEqual('bo;') // m: is too late to avoid bo
   })
-  
 
   it('parser-action-errors', () => {
     let b = ''
-    let j = make_norules({rule:{start:'top'}})
+    let j = make_norules({ rule: { start: 'top' } })
 
     let AA = j.token.AA
 
-    let rsdef = (rs)=>rs.clear().open([{s:[AA,AA]}]).close([{s:[AA,AA]}])
+    let rsdef = (rs) =>
+      rs
+        .clear()
+        .open([{ s: [AA, AA] }])
+        .close([{ s: [AA, AA] }])
 
+    j.rule('top', (rs) =>
+      rsdef(rs).bo((rule, ctx) => ctx.t0.bad('foo', { bar: 'BO' }))
+    )
+    expect(() => j('a')).toThrow(/foo.*BO/s)
 
+    j.rule('top', (rs) =>
+      rsdef(rs).ao((rule, ctx) => ctx.t0.bad('foo', { bar: 'AO' }))
+    )
+    expect(() => j('a')).toThrow(/foo.*AO/s)
 
-    j.rule('top', (rs) => rsdef(rs)
-           .bo((rule,ctx)=>ctx.t0.bad('foo',{bar:'BO'})))
-    expect(()=>j('a')).toThrow(/foo.*BO/s)
+    j.rule('top', (rs) =>
+      rsdef(rs).bc((rule, ctx) => ctx.t0.bad('foo', { bar: 'BC' }))
+    )
+    expect(() => j('a')).toThrow(/foo.*BC/s)
 
-    j.rule('top', (rs) => rsdef(rs)
-           .ao((rule,ctx)=>ctx.t0.bad('foo',{bar:'AO'})))
-    expect(()=>j('a')).toThrow(/foo.*AO/s)
-
-    j.rule('top', (rs) => rsdef(rs)
-           .bc((rule,ctx)=>ctx.t0.bad('foo',{bar:'BC'})))
-    expect(()=>j('a')).toThrow(/foo.*BC/s)
-
-    j.rule('top', (rs) => rsdef(rs)
-           .ac((rule,ctx)=>ctx.t0.bad('foo',{bar:'AC'})))
-    expect(()=>j('a')).toThrow(/foo.*AC/s)
+    j.rule('top', (rs) =>
+      rsdef(rs).ac((rule, ctx) => ctx.t0.bad('foo', { bar: 'AC' }))
+    )
+    expect(() => j('a')).toThrow(/foo.*AC/s)
   })
 
-
   it('parser-before-after-state', () => {
-    let j = make_norules({rule:{start:'top'}})
+    let j = make_norules({ rule: { start: 'top' } })
     let AA = j.token.AA
 
-    let rsdef = (rs)=>rs.clear().open([{s:[AA,AA]}]).close([{s:[AA,AA]}])
+    let rsdef = (rs) =>
+      rs
+        .clear()
+        .open([{ s: [AA, AA] }])
+        .close([{ s: [AA, AA] }])
 
-    j.rule('top', (rs) => rsdef(rs).bo((rule)=>rule.node='BO'))
+    j.rule('top', (rs) => rsdef(rs).bo((rule) => (rule.node = 'BO')))
     expect(j('a')).toEqual('BO')
 
-    j.rule('top', (rs) => rsdef(rs).ao((rule)=>rule.node='AO'))
+    j.rule('top', (rs) => rsdef(rs).ao((rule) => (rule.node = 'AO')))
     expect(j('a')).toEqual('AO')
 
-    j.rule('top', (rs) => rsdef(rs).bc((rule)=>rule.node='BC'))
+    j.rule('top', (rs) => rsdef(rs).bc((rule) => (rule.node = 'BC')))
     expect(j('a')).toEqual('BC')
 
-    j.rule('top', (rs) => rsdef(rs).ac((rule)=>rule.node='AC'))
+    j.rule('top', (rs) => rsdef(rs).ac((rule) => (rule.node = 'AC')))
     expect(j('a')).toEqual('AC')
   })
 
-
   it('parser-empty-seq', () => {
-    let j = make_norules({rule:{start:'top'}})
+    let j = make_norules({ rule: { start: 'top' } })
 
     let AA = j.token.AA
 
-    let rsdef = (rs)=>rs.clear().open([{s:[]}]).close([{s:[AA]}])
-    
-    j.rule('top', (rs) => rsdef(rs).bo((rule)=>(rule.node=4444)))
+    let rsdef = (rs) =>
+      rs
+        .clear()
+        .open([{ s: [] }])
+        .close([{ s: [AA] }])
+
+    j.rule('top', (rs) => rsdef(rs).bo((rule) => (rule.node = 4444)))
 
     expect(j('a')).toEqual(4444)
   })
 
-
   it('parser-any-def', () => {
-    let j = make_norules({rule:{start:'top'}})
-    let rsdef = (rs)=>rs.clear().open([{s:[AA,TX]}])
+    let j = make_norules({ rule: { start: 'top' } })
+    let rsdef = (rs) => rs.clear().open([{ s: [AA, TX] }])
 
     let AA = j.token.AA
     let TX = j.token.TX
 
-    j.rule('top', (rs) => rsdef(rs).ac((rule)=>rule.node = rule.o0.val+rule.o1.val))
+    j.rule('top', (rs) =>
+      rsdef(rs).ac((rule) => (rule.node = rule.o0.val + rule.o1.val))
+    )
 
     expect(j('a\nb')).toEqual('ab')
-    expect(()=>j('AAA,')).toThrow(/unexpected.*AAA/)
+    expect(() => j('AAA,')).toThrow(/unexpected.*AAA/)
   })
-
 
   it('parser-token-error-why', () => {
-    let j = make_norules({rule:{start:'top'}})
-    
+    let j = make_norules({ rule: { start: 'top' } })
+
     let AA = j.token.AA
 
-    j.rule('top', (rs) => rs
-           .clear()
-           .open([{s:[AA]}])
-           .close([{s:[AA]}])
-           .ac((rule,ctx)=>(ctx.t0.bad('foo', {bar:'AAA'}))))
+    j.rule('top', (rs) =>
+      rs
+        .clear()
+        .open([{ s: [AA] }])
+        .close([{ s: [AA] }])
+        .ac((rule, ctx) => ctx.t0.bad('foo', { bar: 'AAA' }))
+    )
 
-    expect(()=>j('a')).toThrow(/foo.*AAA/s)
+    expect(() => j('a')).toThrow(/foo.*AAA/s)
   })
 
-
   it('parser-multi-alts', () => {
-    expect(Jsonic('a:1')).toEqual({a:1})
+    expect(Jsonic('a:1')).toEqual({ a: 1 })
 
-    let j = make_norules({rule:{start:'top'}})
+    let j = make_norules({ rule: { start: 'top' } })
 
     j.options({
       fixed: {
         token: {
-          'Ta': 'a',
-          'Tb': 'b',
-          'Tc': 'c',
-        }
-      }
+          Ta: 'a',
+          Tb: 'b',
+          Tc: 'c',
+        },
+      },
     })
 
     let Ta = j.token.Ta
     let Tb = j.token.Tb
     let Tc = j.token.Tc
-       
-    j.rule('top', (rs)=>
+
+    j.rule('top', (rs) =>
       rs
-        .open([{s:[Ta,[Tb,Tc]]}])
-           .ac((r)=>r.node = (r.o0.src+r.o1.src).toUpperCase()))
-    
+        .open([{ s: [Ta, [Tb, Tc]] }])
+        .ac((r) => (r.node = (r.o0.src + r.o1.src).toUpperCase()))
+    )
+
     expect(j('ab')).toEqual('AB')
     expect(j('ac')).toEqual('AC')
-    expect(()=>j('ad')).toThrow(/unexpected.*d/)
+    expect(() => j('ad')).toThrow(/unexpected.*d/)
   })
-  
-  
+
   it('parser-value', () => {
-    function Car() {this.m = true}
+    function Car() {
+      this.m = true
+    }
     let c0 = new Car()
     expect(c0 instanceof Car).toEqual(true)
-    
-    let o0 = {x:1}
-    let f1 = ()=>'F1'
-    
+
+    let o0 = { x: 1 }
+    let f1 = () => 'F1'
+
     let j = Jsonic.make({
       value: {
         map: {
-          foo: {val:'FOO'},
-          bar: {val:'BAR'},
-          zed: {val:123},
-          qaz: {val:false},
-          obj: {val:o0},
+          foo: { val: 'FOO' },
+          bar: { val: 'BAR' },
+          zed: { val: 123 },
+          qaz: { val: false },
+          obj: { val: o0 },
 
           // This won't work - cloning removes constructor
-          car: {val:c0},
+          car: { val: c0 },
 
           // Functions build values dynamically, or prevent cloning
-          fun: {val:()=>'f0'},
-          high: {val:()=>f1},
-          ferry: {val:()=>new Car()},
-        }
-      }
+          fun: { val: () => 'f0' },
+          high: { val: () => f1 },
+          ferry: { val: () => new Car() },
+        },
+      },
     })
 
     expect(j('foo')).toEqual('FOO')
@@ -336,156 +326,163 @@ describe('custom', function () {
 
     // Options get copied, so `obj` should remain {x:1}
     o0.x = 2
-    expect(j('obj')).toEqual({x:1})
+    expect(j('obj')).toEqual({ x: 1 })
 
     // Instance properties are copied, but not constructor
-    expect(j('car')).toEqual({m:true})
-    expect(j('car') instanceof Car ).toEqual(false)
-    
+    expect(j('car')).toEqual({ m: true })
+    expect(j('car') instanceof Car).toEqual(false)
+
     expect(j('fun')).toEqual('f0')
     expect(j('high')).toEqual(f1)
 
     // constructor is protected
-    expect(j('ferry')).toEqual({m:true})
+    expect(j('ferry')).toEqual({ m: true })
     expect(j('ferry') instanceof Car).toEqual(true)
-
   })
 
-
   it('parser-mixed-token', () => {
-    expect(Jsonic('a:1')).toEqual({a:1})
+    expect(Jsonic('a:1')).toEqual({ a: 1 })
 
     let cs = [
-      'Q',  // generic char
-      '/'   // mixed use as comment marker
+      'Q', // generic char
+      '/', // mixed use as comment marker
     ]
 
-    for(let c of cs) {
+    for (let c of cs) {
       let j = Jsonic.make()
       j.options({
         fixed: {
           token: {
             '#T/': c,
-          }
-        }
+          },
+        },
       })
-      
+
       let FS = j.token['#T/']
       let TX = j.token.TX
-      
-      j.rule('val', (rs)=>{
+
+      j.rule('val', (rs) => {
         rs.def.open.unshift({
-          s:[FS,TX], a:(r)=>r.o0.val='@'+r.o1.val
+          s: [FS, TX],
+          a: (r) => (r.o0.val = '@' + r.o1.val),
         })
       })
-      
-      j.rule('elem', (rs)=>{
+
+      j.rule('elem', (rs) => {
         rs.def.close.unshift({
-          s:[FS,TX], r:()=>'elem', b:2
+          s: [FS, TX],
+          r: () => 'elem',
+          b: 2,
         })
       })
-      
-      expect(j('['+c+'x'+c+'y]')).toEqual(['@x','@y'])
+
+      expect(j('[' + c + 'x' + c + 'y]')).toEqual(['@x', '@y'])
     }
   })
 
-
   it('merge', () => {
     // verify standard merges
-    expect(Jsonic('a:1,a:2')).toEqual({a:2})
-    expect(Jsonic('a:1,a:2,a:3')).toEqual({a:3})
-    expect(Jsonic('a:{x:1},a:{y:2}')).toEqual({a:{x:1,y:2}})
-    expect(Jsonic('a:{x:1},a:{y:2},a:{z:3}')).toEqual({a:{x:1,y:2,z:3}})
+    expect(Jsonic('a:1,a:2')).toEqual({ a: 2 })
+    expect(Jsonic('a:1,a:2,a:3')).toEqual({ a: 3 })
+    expect(Jsonic('a:{x:1},a:{y:2}')).toEqual({ a: { x: 1, y: 2 } })
+    expect(Jsonic('a:{x:1},a:{y:2},a:{z:3}')).toEqual({
+      a: { x: 1, y: 2, z: 3 },
+    })
 
     let b = ''
     let j = Jsonic.make({
       map: {
-        merge: (prev, curr)=>{
-          return prev+curr
-        }
-      }
+        merge: (prev, curr) => {
+          return prev + curr
+        },
+      },
     })
 
-    expect(j('a:1,a:2')).toEqual({a:3})
-    expect(j('a:1,a:2,a:3')).toEqual({a:6})
+    expect(j('a:1,a:2')).toEqual({ a: 3 })
+    expect(j('a:1,a:2,a:3')).toEqual({ a: 6 })
   })
 
-
   it('parser-condition-depth', () => {
-    expect(Jsonic('a:1')).toEqual({a:1})
+    expect(Jsonic('a:1')).toEqual({ a: 1 })
 
     let j = make_norules({
-      fixed:{token:{'#F':'f','#B':'b'}},
-      rule:{start:'top'}
+      fixed: { token: { '#F': 'f', '#B': 'b' } },
+      rule: { start: 'top' },
     })
 
     let FT = j.token.F
     let BT = j.token.B
-    
-    j.rule('top',(rs)=>rs
-           .open([{p:'foo',c:{d:0}}])
-           .bo((r)=>r.node={o:'T'}))
 
-    j.rule('foo',(rs)=>rs
-           .open([{s:[FT],p:'bar',c:{d:1}}])
-           .ao((r)=>r.node.o+='F'))
+    j.rule('top', (rs) =>
+      rs.open([{ p: 'foo', c: { d: 0 } }]).bo((r) => (r.node = { o: 'T' }))
+    )
 
-    j.rule('bar',(rs)=>rs
-           .open([{s:[BT],c:{d:2}}])
-           .ao((r)=>r.node.o+='B'))
+    j.rule('foo', (rs) =>
+      rs.open([{ s: [FT], p: 'bar', c: { d: 1 } }]).ao((r) => (r.node.o += 'F'))
+    )
 
-    expect(j('fb')).toEqual({o:'TFB'})
+    j.rule('bar', (rs) =>
+      rs.open([{ s: [BT], c: { d: 2 } }]).ao((r) => (r.node.o += 'B'))
+    )
 
+    expect(j('fb')).toEqual({ o: 'TFB' })
 
-    j.rule('bar',(rs)=>rs
-           .clear()
-           .open([{s:[BT],c:{d:0}}])
-           .ao((r)=>r.node.o+='B'))
+    j.rule('bar', (rs) =>
+      rs
+        .clear()
+        .open([{ s: [BT], c: { d: 0 } }])
+        .ao((r) => (r.node.o += 'B'))
+    )
 
-    expect(()=>j('fb')).toThrow(/unexpected/)    
+    expect(() => j('fb')).toThrow(/unexpected/)
   })
 
-
   it('parser-condition-counter', () => {
-    expect(Jsonic('a:1')).toEqual({a:1})
+    expect(Jsonic('a:1')).toEqual({ a: 1 })
 
     let j = make_norules({
-      fixed:{token:{'#F':'f','#B':'b'}},
-      rule:{start:'top'}
+      fixed: { token: { '#F': 'f', '#B': 'b' } },
+      rule: { start: 'top' },
     })
     let cfg = j.internal().config
 
     let FT = j.token.F
     let BT = j.token.B
-    
-    j.rule('top',(rs)=>rs
-           .open([{p:'foo',n:{x:1,y:2}}]) // incr x=1,y=2
-           .bo((r)=>r.node={o:'T'}))
 
-    j.rule('foo',(rs)=>rs
-           .open([{s:[FT],p:'bar',c:{n:{x:1,y:2}}, n:{y:0}}]) // (x <= 1, y <= 2) -> pass
-           .ao((r)=>r.node.o+='F'))
+    j.rule('top', (rs) =>
+      rs
+        .open([{ p: 'foo', n: { x: 1, y: 2 } }]) // incr x=1,y=2
+        .bo((r) => (r.node = { o: 'T' }))
+    )
 
-    j.rule('bar',(rs)=>rs
-           .open([{s:[BT],c:{n:{x:1,y:0}}}]) // (x <= 1, y <= 0) -> pass
-           .ao((r)=>r.node.o+='B'))
+    j.rule('foo', (rs) =>
+      rs
+        .open([{ s: [FT], p: 'bar', c: { n: { x: 1, y: 2 } }, n: { y: 0 } }]) // (x <= 1, y <= 2) -> pass
+        .ao((r) => (r.node.o += 'F'))
+    )
 
-    expect(j('fb')).toEqual({o:'TFB'})
+    j.rule('bar', (rs) =>
+      rs
+        .open([{ s: [BT], c: { n: { x: 1, y: 0 } } }]) // (x <= 1, y <= 0) -> pass
+        .ao((r) => (r.node.o += 'B'))
+    )
 
+    expect(j('fb')).toEqual({ o: 'TFB' })
 
-    j.rule('bar',(rs)=>rs
-           .clear()
-           .open([{s:[BT],c:{n:{x:0}}}])  // !(x <= 0) -> fail
-           .ao((r)=>r.node.o+='B'))
+    j.rule('bar', (rs) =>
+      rs
+        .clear()
+        .open([{ s: [BT], c: { n: { x: 0 } } }]) // !(x <= 0) -> fail
+        .ao((r) => (r.node.o += 'B'))
+    )
 
-    expect(()=>j('fb')).toThrow(/unexpected/)
+    expect(() => j('fb')).toThrow(/unexpected/)
   })
 })
-
 
 function make_norules(opts) {
   let j = Jsonic.make(opts)
   let rns = j.rule()
-  Object.keys(rns).map(rn=>j.rule(rn,null))
+  Object.keys(rns).map((rn) => j.rule(rn, null))
   return j
 }

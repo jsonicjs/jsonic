@@ -4,14 +4,7 @@
  *  Grammar definition.
  */
 
-import {
-  Jsonic,
-  Rule,
-  RuleSpec,
-  Context,
-  AltError,
-} from './jsonic'
-
+import { Jsonic, Rule, RuleSpec, Context, AltError } from './jsonic'
 
 function grammar(jsonic: Jsonic) {
   const OB = jsonic.token.OB
@@ -40,16 +33,13 @@ function grammar(jsonic: Jsonic) {
     }
   }
 
-
   // Counters.
   // * pk (pair-key): depth of the pair-key path
   // * il (implicit list): only allow at top level
   // * im (implicit map): only allow at top level
 
-
   jsonic.rule('val', (rs: RuleSpec) => {
-    rs
-      .bo((rule: Rule) => rule.node = undefined)
+    rs.bo((rule: Rule) => (rule.node = undefined))
 
       .open([
         // A map: `{ ...`
@@ -59,7 +49,7 @@ function grammar(jsonic: Jsonic) {
         { s: [OS], p: 'list', b: 1, g: 'list,json' },
 
         // A pair key: `a: ...`
-        { s: [VAL, CL], p: 'map', b: 2, n: { pk: 1 }, g: 'pair,json', },
+        { s: [VAL, CL], p: 'map', b: 2, n: { pk: 1 }, g: 'pair,json' },
 
         // A plain value: `x` `"x"` `1` `true` ....
         { s: [VAL], g: 'val,json' },
@@ -73,7 +63,7 @@ function grammar(jsonic: Jsonic) {
           c: { n: { il: 0 } },
           p: 'list',
           b: 1,
-          g: 'list,imp'
+          g: 'list,imp',
         },
 
         // Value is null when empty before commas.
@@ -91,7 +81,7 @@ function grammar(jsonic: Jsonic) {
           c: { n: { il: 0, pk: 0 } },
           n: { il: 1 },
           r: 'elem',
-          a: (rule: Rule) => rule.node = [rule.node],
+          a: (rule: Rule) => (rule.node = [rule.node]),
           g: 'list,val,imp,comma',
         },
 
@@ -99,7 +89,7 @@ function grammar(jsonic: Jsonic) {
           c: { n: { il: 0, pk: 0 } },
           n: { il: 1 },
           r: 'elem',
-          a: (rule: Rule) => rule.node = [rule.node],
+          a: (rule: Rule) => (rule.node = [rule.node]),
           g: 'list,val,imp,space',
           b: 1,
         },
@@ -114,12 +104,14 @@ function grammar(jsonic: Jsonic) {
         // NOTE: val can be undefined when there is no value at all
         // (eg. empty string, thus no matched opening token)
         rule.node =
-          undefined === rule.node ?
-            undefined === rule.child.node ?
-              // (0 === rule.os ? undefined : rule.o0.val) :
-              (0 === rule.os ? undefined : rule.o0.resolveVal(rule, ctx)) :
-              rule.child.node :
-            rule.node
+          undefined === rule.node
+            ? undefined === rule.child.node
+              ? // (0 === rule.os ? undefined : rule.o0.val) :
+                0 === rule.os
+                ? undefined
+                : rule.o0.resolveVal(rule, ctx)
+              : rule.child.node
+            : rule.node
 
         // console.log('VAL BC B', rule.node)
       })
@@ -129,87 +121,84 @@ function grammar(jsonic: Jsonic) {
     // })
   })
 
-
   jsonic.rule('map', (rs: RuleSpec) => {
-    rs
-      .bo((rule: Rule) => {
-        // Implicit lists only at top level.
-        rule.n.il = 1 + (rule.n.il ? rule.n.il : 0)
+    rs.bo((rule: Rule) => {
+      // Implicit lists only at top level.
+      rule.n.il = 1 + (rule.n.il ? rule.n.il : 0)
 
-        rule.n.im = 1 + (rule.n.im ? rule.n.im : 0)
+      rule.n.im = 1 + (rule.n.im ? rule.n.im : 0)
 
-        // Create a new empty map.
-        rule.node = {}
-      })
-      .open([
-        // An empty map: {}.
-        { s: [OB, CB], g: 'map,json' },
+      // Create a new empty map.
+      rule.node = {}
+    }).open([
+      // An empty map: {}.
+      { s: [OB, CB], g: 'map,json' },
 
-        // Start matching map key-value pairs: a:1.
-        // OB `{` resets implicit map counter.
-        { s: [OB], p: 'pair', n: { pk: 0 }, g: 'map,json,pair' },
+      // Start matching map key-value pairs: a:1.
+      // OB `{` resets implicit map counter.
+      { s: [OB], p: 'pair', n: { pk: 0 }, g: 'map,json,pair' },
 
-        // Pair from implicit map.
-        { s: [VAL, CL], p: 'pair', b: 2, g: 'pair,list,val,imp' },
-      ])
+      // Pair from implicit map.
+      { s: [VAL, CL], p: 'pair', b: 2, g: 'pair,list,val,imp' },
+    ])
   })
-
 
   jsonic.rule('list', (rs: RuleSpec) => {
-    rs
-      .bo((rule: Rule) => {
-        // No implicit lists or maps inside lists.
-        rule.n.il = 1 + (rule.n.il ? rule.n.il : 0)
-        rule.n.pk = 1 + (rule.n.pk ? rule.n.pk : 0)
+    rs.bo((rule: Rule) => {
+      // No implicit lists or maps inside lists.
+      rule.n.il = 1 + (rule.n.il ? rule.n.il : 0)
+      rule.n.pk = 1 + (rule.n.pk ? rule.n.pk : 0)
 
-        rule.n.im = 1 + (rule.n.im ? rule.n.im : 0)
+      rule.n.im = 1 + (rule.n.im ? rule.n.im : 0)
 
-        // Create a new empty list.
-        // return { node: [] }
-        rule.node = []
-      })
+      // Create a new empty list.
+      // return { node: [] }
+      rule.node = []
+    }).open([
+      // An empty list: [].
+      { s: [OS, CS], g: 'list,json' },
 
-      .open([
-        // An empty list: [].
-        { s: [OS, CS], g: 'list,json' },
+      // Start matching list elements: 1,2.
+      { s: [OS], p: 'elem', g: 'list,json,elem' },
 
-        // Start matching list elements: 1,2.
-        { s: [OS], p: 'elem', g: 'list,json,elem' },
+      // Initial comma [, will insert null as [null,
+      { s: [CA], p: 'elem', b: 1, g: 'list,elem,val,imp' },
 
-        // Initial comma [, will insert null as [null,
-        { s: [CA], p: 'elem', b: 1, g: 'list,elem,val,imp' },
-
-        // Another element.
-        { p: 'elem', g: 'list,elem' },
-      ])
+      // Another element.
+      { p: 'elem', g: 'list,elem' },
+    ])
   })
-
 
   // sets key:val on node
   jsonic.rule('pair', (rs: RuleSpec) => {
-    rs
-      .open([
-        // Match key-colon start of pair.
-        { s: [VAL, CL], p: 'val', u: { key: true }, g: 'map,pair,key,json' },
+    rs.open([
+      // Match key-colon start of pair.
+      { s: [VAL, CL], p: 'val', u: { key: true }, g: 'map,pair,key,json' },
 
-        // Ignore initial comma: {,a:1.
-        { s: [CA], g: 'map,pair,comma' },
-      ])
+      // Ignore initial comma: {,a:1.
+      { s: [CA], g: 'map,pair,comma' },
+    ])
       .bc((r: Rule, ctx: Context) => {
         if (r.use.key) {
           const key_token = r.o0
           const key =
-            (ST === key_token.tin || TX === key_token.tin) ? key_token.val :
-              key_token.src
+            ST === key_token.tin || TX === key_token.tin
+              ? key_token.val
+              : key_token.src
           let val = r.child.node
           const prev = r.node[key]
 
           // Convert undefined to null when there was no pair value
           val = undefined === val ? null : val
 
-          r.node[key] = null == prev ? val :
-            (ctx.cfg.map.merge ? ctx.cfg.map.merge(prev, val) :
-              (ctx.cfg.map.extend ? deep(prev, val) : val))
+          r.node[key] =
+            null == prev
+              ? val
+              : ctx.cfg.map.merge
+              ? ctx.cfg.map.merge(prev, val)
+              : ctx.cfg.map.extend
+              ? deep(prev, val)
+              : val
         }
       })
       .close([
@@ -249,23 +238,25 @@ function grammar(jsonic: Jsonic) {
 
   // push onto node
   jsonic.rule('elem', (rs: RuleSpec) => {
-    rs
-      .open([
-        // Empty commas insert null elements.
-        // Note that close consumes a comma, so b:2 works.
-        {
-          s: [CA, CA], b: 2, a: (r: Rule) => r.node.push(null),
-          g: 'list,elem,imp,null',
-        },
+    rs.open([
+      // Empty commas insert null elements.
+      // Note that close consumes a comma, so b:2 works.
+      {
+        s: [CA, CA],
+        b: 2,
+        a: (r: Rule) => r.node.push(null),
+        g: 'list,elem,imp,null',
+      },
 
-        {
-          s: [CA], a: (r: Rule) => r.node.push(null),
-          g: 'list,elem,imp,null',
-        },
+      {
+        s: [CA],
+        a: (r: Rule) => r.node.push(null),
+        g: 'list,elem,imp,null',
+      },
 
-        // Anything else must a list element value.
-        { p: 'val', g: 'list,elem,val,json' },
-      ])
+      // Anything else must a list element value.
+      { p: 'val', g: 'list,elem,val,json' },
+    ])
 
       .bc((rule: Rule) => {
         if (undefined !== rule.child.node) {
@@ -292,7 +283,4 @@ function grammar(jsonic: Jsonic) {
   })
 }
 
-
-export {
-  grammar
-}
+export { grammar }

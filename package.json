@@ -1,5 +1,5 @@
 {
-  "name": "jsonic",
+  "name": "@jsonic/jsonic-next",
   "version": "2.0.0",
   "main": "jsonic.js",
   "type": "commonjs",
@@ -27,9 +27,6 @@
     "watch": "tsc -w -d",
     "build": "node hint.js && tsc -d && node mfix.js && cp jsonic.js jsonic.min.js && browserify -o jsonic.min.js -e jsonic.js -s Jsonic -im -i assert -p tinyify",
     "diagrams": "docs-src/.vuepress/diagrams/generate.sh",
-    "xtest": "lab -v -P test -t 100 --sourcemaps --transform node_modules/lab-transform-typescript -r console -o stdout -r html -o test/coverage.html",
-    "xtest-quick": "lab -P test --sourcemaps --transform node_modules/lab-transform-typescript",
-    "xtest-some": "lab -v -P test --sourcemaps --transform node_modules/lab-transform-typescript -g",
     "test-web": "npm run build && browserify -o test-web/test-web.js -e test/web-all.js -s All -im -i assert -i @hapi/lab && open test-web/index.html",
     "coveralls": "lab -s -P test -r lcov | coveralls",
     "prettier": "prettier --write --no-semi --single-quote *.ts test/*.js",
@@ -39,7 +36,7 @@
     "reset": "npm run clean && npm i && npm test",
     "repo-tag": "REPO_VERSION=`node -e \"console.log(require('./package').version)\"` && echo TAG: v$REPO_VERSION && git commit -a -m v$REPO_VERSION && git push && git tag v$REPO_VERSION && git push --tags;",
     "repo-publish": "npm run clean && npm i && npm run repo-publish-quick",
-    "repo-publish-quick": "npm run prettier && npm run build && npm run test && npm run test-web && npm run repo-tag && npm publish --registry http://registry.npmjs.org "
+    "repo-publish-quick": "npm run prettier && npm run build && npm run test && npm run test-web && npm run repo-tag && npm publish --registry https://registry.npmjs.org "
   },
   "license": "MIT",
   "files": [
@@ -54,19 +51,19 @@
     "jsonic": "bin/jsonic"
   },
   "devDependencies": {
-    "@jsonic/directive": "^0.4.1",
-    "@types/jest": "^27.4.1",
+    "@jsonic/directive": "^0.5.0",
+    "@types/jest": "^27.5.1",
     "browserify": "^17.0.0",
-    "esbuild": "^0.14.29",
+    "esbuild": "^0.14.40",
     "esbuild-jest": "^0.5.0",
     "hapi-lab-shim": "0.0.2",
-    "jest": "^27.5.1",
+    "jest": "^28.1.0",
     "lab-transform-typescript": "^3.0.1",
-    "prettier": "^2.6.1",
+    "prettier": "^2.6.2",
     "prismjs": "rjrodger/prismjs",
     "tinyify": "^3.0.0",
-    "ts-jest": "^27.1.4",
-    "typescript": "^4.6.3",
+    "ts-jest": "^28.0.3",
+    "typescript": "^4.7.2",
     "vuepress": "^1.9.7"
   }
 }

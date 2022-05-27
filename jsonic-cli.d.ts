@@ -1,1 +1,1 @@
-export declare function run(argv: string[], console: Console): Promise<void>;
+export declare function run(argv: string[], console: Console): Promise<void>

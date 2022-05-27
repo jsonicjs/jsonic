@@ -1,7 +1,6 @@
 /* Copyright (c) 2013-2021 Richard Rodger and other contributors, MIT License */
 'use strict'
 
-
 // const Util = require('util')
 
 // let Lab = require('@hapi/lab')
@@ -14,25 +13,23 @@
 // const it = lab.it
 // const expect = Code.expect
 
-
 const { Jsonic, Lexer, Parser, JsonicError, make } = require('..')
 
 describe('plugin', function () {
-
   it('parent-safe', () => {
     let c0 = Jsonic.make({
-      a:1,
-      fixed: { token: { '#B': 'b' } }
+      a: 1,
+      fixed: { token: { '#B': 'b' } },
     })
 
-    c0.foo = ()=>'FOO'
+    c0.foo = () => 'FOO'
     c0.bar = 11
-    
+
     // Jsonic unaffected
     expect(Jsonic('b')).toEqual('b')
     expect(Jsonic.foo).toBeUndefined()
     expect(Jsonic.bar).toBeUndefined()
-    
+
     expect(c0.options.a).toEqual(1)
     expect(c0.token['#B']).toEqual(18)
     expect(c0.fixed['b']).toEqual(18)
@@ -44,14 +41,14 @@ describe('plugin', function () {
     expect(c0.fixed(18)).toEqual('b')
     expect(c0.foo()).toEqual('FOO')
     expect(c0.bar).toEqual(11)
-    
-    expect(()=>c0('b')).toThrow(/unexpected/)
-    
+
+    expect(() => c0('b')).toThrow(/unexpected/)
+
     // console.log('c0 int A', c0.internal().mark, c0.internal().config.fixed)
-    
+
     let c1 = c0.make({
-      c:2,
-      fixed: { token: { '#D': 'd' } }
+      c: 2,
+      fixed: { token: { '#D': 'd' } },
     })
 
     expect(c1.options.a).toEqual(1)
@@ -78,14 +75,14 @@ describe('plugin', function () {
     expect(c1.foo()).toEqual('FOO')
     expect(c1.bar).toEqual(11)
 
-    expect(()=>c1('b')).toThrow(/unexpected/)
-    expect(()=>c1('d')).toThrow(/unexpected/)
+    expect(() => c1('b')).toThrow(/unexpected/)
+    expect(() => c1('d')).toThrow(/unexpected/)
 
     // console.log('c1 int A', c1.internal().mark, c1.internal().config.fixed)
     // console.log('c0 int B', c0.internal().mark, c0.internal().config.fixed)
-    
+
     // c0 unaffected by c1
-    
+
     expect(c0.options.a).toEqual(1)
     expect(c0.token['#B']).toEqual(18)
     expect(c0.fixed['b']).toEqual(18)
@@ -97,55 +94,63 @@ describe('plugin', function () {
     expect(c0.fixed(18)).toEqual('b')
     expect(c0.foo()).toEqual('FOO')
     expect(c0.bar).toEqual(11)
-    
-    expect(()=>c0('b')).toThrow(/unexpected/)
+
+    expect(() => c0('b')).toThrow(/unexpected/)
 
     expect(c0.options.c).toBeUndefined()
     expect(c0.token['#D']).toBeUndefined()
     expect(c0.fixed['d']).toBeUndefined()
     expect(c0.token[19]).toBeUndefined()
     expect(c0.fixed[19]).toBeUndefined()
-    
+
     expect(c0.fixed('d')).toBeUndefined()
     expect(c0.token(19)).toBeUndefined()
     expect(c0.fixed(19)).toBeUndefined()
     // NOTE: c0.token('#D') will create a new token
   })
 
-  
   it('clone-parser', () => {
-    let config0 = {config:true,mark:0,tI:1,t:{},rule:{include:[],exclude:[]}}
-    let opts0 = {opts:true,mark:0}
-    let p0 = new Parser(opts0,config0)
+    let config0 = {
+      config: true,
+      mark: 0,
+      tI: 1,
+      t: {},
+      rule: { include: [], exclude: [] },
+    }
+    let opts0 = { opts: true, mark: 0 }
+    let p0 = new Parser(opts0, config0)
 
-    let config1 = {config:true,mark:1,tI:1,t:{},rule:{include:[],exclude:[]}}
-    let opts1 = {opts:true,mark:1}
-    let p1 = p0.clone(opts1,config1)
+    let config1 = {
+      config: true,
+      mark: 1,
+      tI: 1,
+      t: {},
+      rule: { include: [], exclude: [] },
+    }
+    let opts1 = { opts: true, mark: 1 }
+    let p1 = p0.clone(opts1, config1)
 
     expect(p0 === p1).toBeFalsy()
     expect(p0.rsm === p1.rsm).toBeFalsy()
   })
 
-
-  
   it('naked-make', () => {
-    expect(()=>Jsonic.use(make_token_plugin('A','aaa'))).toThrow()
+    expect(() => Jsonic.use(make_token_plugin('A', 'aaa'))).toThrow()
 
     // use make to avoid polluting Jsonic
     const j = make()
-    j.use(make_token_plugin('A','aaa'))
-    expect(j('x:A,y:B,z:C')).toEqual({x:'aaa',y:'B',z:'C'})
+    j.use(make_token_plugin('A', 'aaa'))
+    expect(j('x:A,y:B,z:C')).toEqual({ x: 'aaa', y: 'B', z: 'C' })
 
-    
-    const a1 = j.make({a:1})
+    const a1 = j.make({ a: 1 })
     expect(a1.options.a).toEqual(1)
     expect(j.options.a).toBeUndefined()
     expect(j.internal().parser === a1.internal().parser).toBeFalsy()
     expect(j.token.OB === a1.token.OB).toBeTruthy()
-    expect(a1('x:A,y:B,z:C')).toEqual({x:'aaa',y:'B',z:'C'})
-    expect(j('x:A,y:B,z:C')).toEqual({x:'aaa',y:'B',z:'C'})
-    
-    const a2 = j.make({a:2})
+    expect(a1('x:A,y:B,z:C')).toEqual({ x: 'aaa', y: 'B', z: 'C' })
+    expect(j('x:A,y:B,z:C')).toEqual({ x: 'aaa', y: 'B', z: 'C' })
+
+    const a2 = j.make({ a: 2 })
     expect(a2.options.a).toEqual(2)
     expect(a1.options.a).toEqual(1)
     expect(j.options.a).toBeUndefined()
@@ -153,17 +158,16 @@ describe('plugin', function () {
     expect(a2.internal().parser === a1.internal().parser).toBeFalsy()
     expect(j.token.OB === a2.token.OB).toBeTruthy()
     expect(a2.token.OB === a1.token.OB).toBeTruthy()
-    expect(a2('x:A,y:B,z:C')).toEqual({x:'aaa',y:'B',z:'C'})
-    expect(a1('x:A,y:B,z:C')).toEqual({x:'aaa',y:'B',z:'C'})
-    expect(j('x:A,y:B,z:C')).toEqual({x:'aaa',y:'B',z:'C'})
-    
-    a2.use(make_token_plugin('B','bbb'))
-    expect(a2('x:A,y:B,z:C')).toEqual({x:'aaa',y:'bbb',z:'C'})
-    expect(a1('x:A,y:B,z:C')).toEqual({x:'aaa',y:'B',z:'C'})
-    expect(j('x:A,y:B,z:C')).toEqual({x:'aaa',y:'B',z:'C'})
+    expect(a2('x:A,y:B,z:C')).toEqual({ x: 'aaa', y: 'B', z: 'C' })
+    expect(a1('x:A,y:B,z:C')).toEqual({ x: 'aaa', y: 'B', z: 'C' })
+    expect(j('x:A,y:B,z:C')).toEqual({ x: 'aaa', y: 'B', z: 'C' })
 
+    a2.use(make_token_plugin('B', 'bbb'))
+    expect(a2('x:A,y:B,z:C')).toEqual({ x: 'aaa', y: 'bbb', z: 'C' })
+    expect(a1('x:A,y:B,z:C')).toEqual({ x: 'aaa', y: 'B', z: 'C' })
+    expect(j('x:A,y:B,z:C')).toEqual({ x: 'aaa', y: 'B', z: 'C' })
 
-    const a22 = a2.make({a:22})
+    const a22 = a2.make({ a: 22 })
     expect(a22.options.a).toEqual(22)
     expect(a2.options.a).toEqual(2)
     expect(a1.options.a).toEqual(1)
@@ -176,38 +180,38 @@ describe('plugin', function () {
     expect(j.token.OB === a22.token.OB).toBeTruthy()
     expect(a22.token.OB === a1.token.OB).toBeTruthy()
     expect(a2.token.OB === a1.token.OB).toBeTruthy()
-    expect(a22('x:A,y:B,z:C')).toEqual({x:'aaa',y:'bbb',z:'C'})
-    expect(a2('x:A,y:B,z:C')).toEqual({x:'aaa',y:'bbb',z:'C'})
-    expect(a1('x:A,y:B,z:C')).toEqual({x:'aaa',y:'B',z:'C'})
-    expect(j('x:A,y:B,z:C')).toEqual({x:'aaa',y:'B',z:'C'})
-    
-    a22.use(make_token_plugin('C','ccc'))
-    expect(a22('x:A,y:B,z:C')).toEqual({x:'aaa',y:'bbb',z:'ccc'})
-    expect(a2('x:A,y:B,z:C')).toEqual({x:'aaa',y:'bbb',z:'C'})
-    expect(a1('x:A,y:B,z:C')).toEqual({x:'aaa',y:'B',z:'C'})
-    expect(j('x:A,y:B,z:C')).toEqual({x:'aaa',y:'B',z:'C'})
+    expect(a22('x:A,y:B,z:C')).toEqual({ x: 'aaa', y: 'bbb', z: 'C' })
+    expect(a2('x:A,y:B,z:C')).toEqual({ x: 'aaa', y: 'bbb', z: 'C' })
+    expect(a1('x:A,y:B,z:C')).toEqual({ x: 'aaa', y: 'B', z: 'C' })
+    expect(j('x:A,y:B,z:C')).toEqual({ x: 'aaa', y: 'B', z: 'C' })
+
+    a22.use(make_token_plugin('C', 'ccc'))
+    expect(a22('x:A,y:B,z:C')).toEqual({ x: 'aaa', y: 'bbb', z: 'ccc' })
+    expect(a2('x:A,y:B,z:C')).toEqual({ x: 'aaa', y: 'bbb', z: 'C' })
+    expect(a1('x:A,y:B,z:C')).toEqual({ x: 'aaa', y: 'B', z: 'C' })
+    expect(j('x:A,y:B,z:C')).toEqual({ x: 'aaa', y: 'B', z: 'C' })
   })
-  
 
   it('plugin-opts', () => {
     // use make to avoid polluting Jsonic
     let x = null
     const j = make()
-    j.use(function foo(jsonic) {
-      x = jsonic.options.plugin.foo.x
-    }, {x:1})
+    j.use(
+      function foo(jsonic) {
+        x = jsonic.options.plugin.foo.x
+      },
+      { x: 1 }
+    )
     expect(x).toEqual(1)
   })
-
 
   it('wrap-jsonic', () => {
     const j = make()
     let jp = j.use(function foo(jsonic) {
-      return new Proxy(jsonic,{})
+      return new Proxy(jsonic, {})
     })
-    expect(jp('a:1')).toEqual({a:1})
+    expect(jp('a:1')).toEqual({ a: 1 })
   })
-
 
   it('config-modifiers', () => {
     const j = make()
@@ -215,33 +219,31 @@ describe('plugin', function () {
       jsonic.options({
         config: {
           modify: {
-            foo: (config)=>config.fixed.token['#QQ']=99
-          }
-        }
+            foo: (config) => (config.fixed.token['#QQ'] = 99),
+          },
+        },
       })
     })
     expect(j.internal().config.fixed.token['#QQ']).toEqual(99)
   })
 
-
   it('decorate', () => {
     const j = make()
 
     let jp0 = j.use(function foo(jsonic) {
-      jsonic.foo = ()=>'FOO'
+      jsonic.foo = () => 'FOO'
     })
     expect(jp0.foo()).toEqual('FOO')
 
     let jp1 = jp0.use(function bar(jsonic) {
-      jsonic.bar = ()=>'BAR'
+      jsonic.bar = () => 'BAR'
     })
     expect(jp1.bar()).toEqual('BAR')
     expect(jp1.foo()).toEqual('FOO')
     expect(jp0.foo()).toEqual('FOO')
   })
 
-  
-/*
+  /*
   it('dynamic-basic', () => {
     let d = (x)=>JSON.parse(JSON.stringify(x))
     let k = Jsonic.make().use(Dynamic)
@@ -472,7 +474,6 @@ aa\tbb
   })
 */
 
-
   /*
   it('legacy-stringify-basic', () => {
     let k = Jsonic.make().use(LegacyStringify)
@@ -652,47 +653,43 @@ aa\tbb
   })
 */
 
-  it('custom-parser-error', ()=>{
+  it('custom-parser-error', () => {
     let j = Jsonic.make().use(function foo(jsonic) {
       jsonic.options({
         parser: {
-          start: function(src, jsonic, meta) {
-            if('e:0'===src) {
+          start: function (src, jsonic, meta) {
+            if ('e:0' === src) {
               throw new Error('bad-parser:e:0')
-            }
-            else if('e:1'===src) {
+            } else if ('e:1' === src) {
               let e1 = new SyntaxError('Unexpected token e:1 at position 0')
               e1.lineNumber = 1
               e1.columnNumber = 1
               throw e1
-            }
-            else if('e:2'===src) {
+            } else if ('e:2' === src) {
               let e2 = new SyntaxError('bad-parser:e:2')
               e2.code = 'e2'
               e2.token = {}
               e2.details = {}
               e2.ctx = {
-                src:()=>'',
-                cfg:{t:{},error:{e2:'e:2'},hint:{e2:'e:2'}},
-                plgn:()=>[]
+                src: () => '',
+                cfg: { t: {}, error: { e2: 'e:2' }, hint: { e2: 'e:2' } },
+                plgn: () => [],
               }
               throw e2
             }
           },
-        }
+        },
       })
     })
 
     // j('e:1')
-    
-    expect(()=>j('e:0')).toThrow(/e:0/s)
-    expect(()=>j('e:1',{log:()=>null})).toThrow(/e:1/s)
-    expect(()=>j('e:2')).toThrow(/e:2/s)
+
+    expect(() => j('e:0')).toThrow(/e:0/s)
+    expect(() => j('e:1', { log: () => null })).toThrow(/e:1/s)
+    expect(() => j('e:2')).toThrow(/e:2/s)
   })
 
-
-
-/*
+  /*
   it('hoover', () => {
     let j = Jsonic.make().use(Hoover)
     expect(Jsonic('a b')).toEqual(['a','b'])
@@ -746,20 +743,17 @@ aa\tbb
     expect(j1('a:x y')).toEqual({a:'x y'})
   })
 */
-
 })
 
-
-
 function make_token_plugin(char, val) {
-  let tn = '#T<'+char+'>'
+  let tn = '#T<' + char + '>'
   let plugin = function (jsonic) {
     jsonic.options({
       fixed: {
         token: {
-          [tn]: char
-        }
-      }
+          [tn]: char,
+        },
+      },
     })
 
     let TT = jsonic.token(tn)
@@ -778,6 +772,6 @@ function make_token_plugin(char, val) {
       return rs
     })
   }
-  Object.defineProperty(plugin, 'name', {value:'plugin_'+char})
+  Object.defineProperty(plugin, 'name', { value: 'plugin_' + char })
   return plugin
 }

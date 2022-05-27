@@ -39,7 +39,7 @@
 // TODO: quotes are value enders - x:a"a" is an err! not 'a"a"'
 // TODO: tag should appear in error
 // TODO: remove console colors in browser?
-// post release: 
+// post release:
 // TODO: plugin for path expr: a.b:1 -> {a:{b:1}}
 // TODO: data file to diff exhaust changes
 // TODO: cli - less ambiguous merging at top level
@@ -47,56 +47,40 @@
 // TODO: option to control comma null insertion
 // TODO: {,} should fail ({,,...} does).
 
-
 // # Conventions
 //
 // ## Token names
 // * '#' prefix: parse token
 
-
 import type {
   Config,
   Context,
-
   Counters,
   Relate,
   Tin,
-
   Point,
   Token,
   Rule,
   RuleSpec,
   Lex,
-
   RuleDefiner,
   RuleState,
   RuleSpecMap,
-
   LexMatcher,
   MakeLexMatcher,
-
   AltSpec,
   AltMatch,
   AltAction,
   AltCond,
   AltModifier,
   AltError,
-
   Options,
   JsonicAPI,
   JsonicParse,
   Plugin,
-
 } from './types'
 
-
-import {
-  OPEN,
-  CLOSE,
-  BEFORE,
-  AFTER,
-} from './types'
-
+import { OPEN, CLOSE, BEFORE, AFTER } from './types'
 
 import {
   JsonicError,
@@ -129,10 +113,7 @@ import {
   keys,
 } from './utility'
 
-
-import {
-  defaults
-} from './defaults'
+import { defaults } from './defaults'
 
 import {
   makePoint,
@@ -147,16 +128,9 @@ import {
   makeTextMatcher,
 } from './lexer'
 
-import {
-  makeRule,
-  makeRuleSpec,
-  Parser
-} from './parser'
+import { makeRule, makeRuleSpec, Parser } from './parser'
 
-
-import {
-  grammar
-} from './grammar'
+import { grammar } from './grammar'
 
 // TODO: remove - too much for an API!
 const util = {
@@ -186,57 +160,56 @@ const util = {
   entries,
 }
 
-
 // The full library type.
 // NOTE: redeclared here so it can be exported as a type and instance.
-type Jsonic =
-  JsonicParse & // A function that parses.
-  JsonicAPI & // A utility with API methods.
-  { [prop: string]: any } // Extensible by plugin decoration.
-
-
+type Jsonic = JsonicParse & // A function that parses.
+  JsonicAPI & { [prop: string]: any } // A utility with API methods. // Extensible by plugin decoration.
 
 function make(param_options?: Relate, parent?: Jsonic): Jsonic {
-
   let internal: {
-    parser: Parser,
-    config: Config,
-    plugins: Plugin[],
-    mark: number,
+    parser: Parser
+    config: Config
+    plugins: Plugin[]
+    mark: number
   } = {
-    parser: ({} as Parser),
-    config: ({} as Config),
+    parser: {} as Parser,
+    config: {} as Config,
     plugins: [],
-    mark: Math.random()
+    mark: Math.random(),
   }
 
   // Merge options.
   let merged_options = deep(
     {},
-    parent ? { ...parent.options } :
-      false === param_options?.defaults$ ? {} : defaults,
-    param_options ? param_options : {},
+    parent
+      ? { ...parent.options }
+      : false === param_options?.defaults$
+      ? {}
+      : defaults,
+    param_options ? param_options : {}
   )
 
-
   // Create primary parsing function
-  let jsonic: any =
-    function Jsonic(src: any, meta?: any, parent_ctx?: any): any {
-      if (S.string === typeof (src)) {
-        let internal = jsonic.internal()
-        let parser = options.parser?.start ?
-          parserwrap(options.parser) : internal.parser
-        return parser.start(src, jsonic, meta, parent_ctx)
-      }
-
-      return src
+  let jsonic: any = function Jsonic(
+    src: any,
+    meta?: any,
+    parent_ctx?: any
+  ): any {
+    if (S.string === typeof src) {
+      let internal = jsonic.internal()
+      let parser = options.parser?.start
+        ? parserwrap(options.parser)
+        : internal.parser
+      return parser.start(src, jsonic, meta, parent_ctx)
     }
 
+    return src
+  }
 
   // This lets you access options as direct properties,
   // and set them as a funtion call.
   let options: any = (change_options?: Relate) => {
-    if (null != change_options && S.object === typeof (change_options)) {
+    if (null != change_options && S.object === typeof change_options) {
       deep(merged_options, change_options)
       configure(jsonic, internal.config, merged_options)
       let parser = jsonic.internal().parser
@@ -245,10 +218,8 @@ function make(param_options?: Relate, parent?: Jsonic): Jsonic {
     return { ...jsonic.options }
   }
 
-
   // Define the API
   let api: JsonicAPI = {
-
     token: ((ref: string | Tin) =>
       tokenize(ref, internal.config, jsonic)) as unknown as JsonicAPI['token'],
 
@@ -263,13 +234,16 @@ function make(param_options?: Relate, parent?: Jsonic): Jsonic {
     use: function use(plugin: Plugin, plugin_options?: Relate): Jsonic {
       // Plugin name keys in options.plugin are the lower-cased plugin function name.
       const plugin_name = plugin.name.toLowerCase()
-      const full_plugin_options =
-        deep({}, plugin.defaults || {}, plugin_options || {})
+      const full_plugin_options = deep(
+        {},
+        plugin.defaults || {},
+        plugin_options || {}
+      )
       jsonic.options({
         plugin: {
           // [plugin.name]: full_plugin_options
-          [plugin_name]: full_plugin_options
-        }
+          [plugin_name]: full_plugin_options,
+        },
       })
       let merged_plugin_options = jsonic.options.plugin[plugin_name]
       jsonic.internal().plugins.push(plugin)
@@ -284,7 +258,7 @@ function make(param_options?: Relate, parent?: Jsonic): Jsonic {
       let match = merged_options.lex.match
       match.unshift(matchmaker)
       jsonic.options({
-        lex: { match }
+        lex: { match },
       })
     },
 
@@ -292,14 +266,17 @@ function make(param_options?: Relate, parent?: Jsonic): Jsonic {
       return make(options, jsonic)
     },
 
-    empty: (options?: Options) => make({
-      defaults$: false,
-      grammar$: false,
-      ...(options || {})
-    }),
+    empty: (options?: Options) =>
+      make({
+        defaults$: false,
+        grammar$: false,
+        ...(options || {}),
+      }),
 
-    id: 'Jsonic/' +
-      Date.now() + '/' +
+    id:
+      'Jsonic/' +
+      Date.now() +
+      '/' +
       ('' + Math.random()).substring(2, 8).padEnd(6, '0') +
       (null == options.tag ? '' : '/' + options.tag),
 
@@ -310,7 +287,6 @@ function make(param_options?: Relate, parent?: Jsonic): Jsonic {
     util,
   }
 
-
   // Has to be done indirectly as we are in a fuction named `make`.
   defprop(api.make, S.name, { value: S.make })
 
@@ -319,7 +295,6 @@ function make(param_options?: Relate, parent?: Jsonic): Jsonic {
 
   // Hide internals where you can still find them.
   defprop(jsonic, 'internal', { value: () => internal })
-
 
   if (parent) {
     // Transfer extra parent properties (preserves plugin decorations, etc).
@@ -338,9 +313,11 @@ function make(param_options?: Relate, parent?: Jsonic): Jsonic {
     assign(jsonic.token, internal.config.t)
 
     internal.plugins = [...parent_internal.plugins]
-    internal.parser = parent_internal.parser.clone(merged_options, internal.config)
-  }
-  else {
+    internal.parser = parent_internal.parser.clone(
+      merged_options,
+      internal.config
+    )
+  } else {
     internal.config = configure(jsonic, undefined, merged_options)
     internal.plugins = []
     internal.parser = new Parser(merged_options, internal.config)
@@ -352,10 +329,8 @@ function make(param_options?: Relate, parent?: Jsonic): Jsonic {
   return jsonic
 }
 
-
 let root: any = undefined
-let Jsonic: Jsonic = root = make()
-
+let Jsonic: Jsonic = (root = make())
 
 // The global root Jsonic instance cannot be modified.
 // use Jsonic.make() to create a modifiable instance.
@@ -365,7 +340,6 @@ delete root.rule
 delete root.lex
 delete root.token
 delete root.fixed
-
 
 // Provide deconstruction export names
 root.Jsonic = root
@@ -379,31 +353,25 @@ root.makeRuleSpec = makeRuleSpec
 root.util = util
 root.make = make
 
-
 // Export most of the types for use by plugins.
 export type {
   Plugin,
   Options,
   Config,
   Context,
-
   Token,
   Point,
   Rule,
   RuleSpec,
   Lex,
-
   Counters,
   Relate,
   Tin,
-
   MakeLexMatcher,
   LexMatcher,
-
   RuleDefiner,
   RuleState,
   RuleSpecMap,
-
   AltSpec,
   AltMatch,
   AltCond,
@@ -419,13 +387,11 @@ export {
   Parser,
   util,
   make,
-
   makeToken,
   makePoint,
   makeRule,
   makeRuleSpec,
   makeLex,
-
   makeFixedMatcher,
   makeSpaceMatcher,
   makeLineMatcher,
@@ -433,13 +399,11 @@ export {
   makeCommentMatcher,
   makeNumberMatcher,
   makeTextMatcher,
-
   OPEN,
   CLOSE,
   BEFORE,
   AFTER,
 }
-
 
 export default Jsonic
 

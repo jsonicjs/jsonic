@@ -3,10 +3,9 @@ module.exports = {
     jsonic.options({
       value: {
         map: {
-          [popts.s||'Z']: { val: popts.z }
-        }
-      }
+          [popts.s || 'Z']: { val: popts.z },
+        },
+      },
     })
-  }
+  },
 }
-

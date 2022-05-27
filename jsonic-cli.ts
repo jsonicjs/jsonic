@@ -7,7 +7,6 @@ import { Jsonic, Plugin, Relate, util } from './jsonic'
 
 import { Debug } from './debug'
 
-
 // Make sure JsonicError is shown nicely.
 if (require.main === module) {
   run(process.argv, console).catch((e) => console.error(e))
@@ -15,16 +14,15 @@ if (require.main === module) {
 
 /* $lab:coverage:on$ */
 
-
 export async function run(argv: string[], console: Console) {
   const args = {
     help: false,
     stdin: false,
-    sources: ([] as string[]),
-    files: ([] as string[]),
-    options: ([] as string[]),
-    meta: ([] as string[]),
-    plugins: ([] as string[]),
+    sources: [] as string[],
+    files: [] as string[],
+    options: [] as string[],
+    meta: [] as string[],
+    plugins: [] as string[],
   }
 
   let plugins: { [name: string]: Plugin } = {}
@@ -36,34 +34,25 @@ export async function run(argv: string[], console: Console) {
     if (accept_args && arg.startsWith('-')) {
       if ('-' === arg) {
         args.stdin = true
-      }
-      else if ('--' === arg) {
+      } else if ('--' === arg) {
         accept_args = false
-      }
-      else if ('--file' === arg || '-f' === arg) {
+      } else if ('--file' === arg || '-f' === arg) {
         args.files.push(argv[++aI])
-      }
-      else if ('--option' === arg || '-o' === arg) {
+      } else if ('--option' === arg || '-o' === arg) {
         args.options.push(argv[++aI])
-      }
-      else if ('--meta' === arg || '-m' === arg) {
+      } else if ('--meta' === arg || '-m' === arg) {
         args.meta.push(argv[++aI])
-      }
-      else if ('--debug' === arg || '-d' === arg) {
+      } else if ('--debug' === arg || '-d' === arg) {
         plugins.debug = Debug
         args.meta.push('log=-1')
-      }
-      else if ('--help' === arg || '-h' === arg) {
+      } else if ('--help' === arg || '-h' === arg) {
         args.help = true
-      }
-      else if ('--plugin' === arg || '-p' === arg) {
+      } else if ('--plugin' === arg || '-p' === arg) {
         args.plugins.push(argv[++aI])
-      }
-      else {
+      } else {
         args.sources.push(arg)
       }
-    }
-    else {
+    } else {
       args.sources.push(arg)
     }
   }
@@ -90,15 +79,13 @@ export async function run(argv: string[], console: Console) {
     console.log(jsonic.describe() + '\n=== PARSE ===')
   }
 
-
   let data = { val: null }
 
   for (let fp of args.files) {
-    if ('string' === typeof (fp) && '' !== fp) {
+    if ('string' === typeof fp && '' !== fp) {
       util.deep(data, { val: jsonic(Fs.readFileSync(fp).toString(), meta) })
     }
   }
-
 
   if (0 === args.sources.length || args.stdin) {
     let stdin = await read_stdin(console)
@@ -110,24 +97,23 @@ export async function run(argv: string[], console: Console) {
   }
 
   options.JSON =
-    null == options.JSON || 'object' !== typeof (options.JSON) ? {} :
-      options.JSON
+    null == options.JSON || 'object' !== typeof options.JSON ? {} : options.JSON
   let replacer = Jsonic(options.JSON.replacer)
   let space = Jsonic(options.JSON.space)
 
-  replacer = Array.isArray(replacer) ? replacer :
-    null == replacer ? null :
-      [replacer]
+  replacer = Array.isArray(replacer)
+    ? replacer
+    : null == replacer
+    ? null
+    : [replacer]
 
   let json = JSON.stringify(data.val, replacer, space)
 
   console.log(json)
 }
 
-
-
 async function read_stdin(console: Console) {
-  if ('string' === typeof ((console as any).test$)) {
+  if ('string' === typeof (console as any).test$) {
     return (console as any).test$
   }
 
@@ -135,10 +121,9 @@ async function read_stdin(console: Console) {
 
   let s = ''
   process.stdin.setEncoding('utf8')
-  for await (const p of process.stdin) s += p;
+  for await (const p of process.stdin) s += p
   return s
 }
-
 
 // NOTE: uses vanilla Jsonic to parse arg vals, so you can set complex
 // properties.  This will break if core Jsonic is broken.
@@ -155,50 +140,47 @@ function handle_props(propvals: string[]): Relate {
   return out
 }
 
-
 function handle_plugins(plugins: string[]): Relate {
   let out: any = {}
   for (let name of plugins) {
     try {
       out[name] = require(name)
-    }
-    catch (e) {
+    } catch (e) {
       let err = e
 
       // Might be @jsonic plugin
       if (!name.startsWith('@')) {
         try {
           out[name] = require('@jsonic/' + name)
-        }
-        catch (e) {
+        } catch (e) {
           throw err // NOTE: throws original error
         }
       }
     }
 
     // Handle some variations in the way the plugin function is exported.
-    if ('function' !== typeof (out[name])) {
+    if ('function' !== typeof out[name]) {
       let refname = ((name as any).match(/([^.\\\/]+)($|\.[^.]+$)/) || [])[1]
       refname = null != refname ? refname.toLowerCase() : refname
 
       // See test plugin test/p1.js
-      if ('function' == typeof (out[name].default)) {
+      if ('function' == typeof out[name].default) {
         out[name] = out[name].default
-      }
-      else if (null != refname &&
-        'function' == typeof (out[name][(camel(refname) as string)])
+      } else if (
+        null != refname &&
+        'function' == typeof out[name][camel(refname) as string]
       ) {
-        out[name] = out[name][(camel(refname) as string)]
+        out[name] = out[name][camel(refname) as string]
       }
 
       // See test plugin test/p2.js
-      else if (null != refname &&
-        'function' == typeof (out[name][(refname as any)])
+      else if (
+        null != refname &&
+        'function' == typeof out[name][refname as any]
       ) {
         out[refname] = out[name][refname]
         delete out[name]
-      }
-      else {
+      } else {
         throw new Error('Plugin is not a function: ' + name)
       }
     }
@@ -207,14 +189,14 @@ function handle_plugins(plugins: string[]): Relate {
   return out
 }
 
-
-
 function camel(s: string) {
-  return s[0].toUpperCase() +
-    s.substring(1).replace(/-(\w)/g, (m) =>
-      (m[1][0].toUpperCase() + m[1].substring(1)))
+  return (
+    s[0].toUpperCase() +
+    s
+      .substring(1)
+      .replace(/-(\w)/g, (m) => m[1][0].toUpperCase() + m[1].substring(1))
+  )
 }
-
 
 function help(console: Console) {
   let s = `

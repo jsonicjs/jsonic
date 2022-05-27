@@ -15,16 +15,14 @@ const { Jsonic, JsonicError } = require('..')
 
 const je = (s) => () => Jsonic(s)
 
-
 describe('error', function () {
   it('error-message', () => {
     let src0 = '\n\n\n\n\n\n\n\n\n\n   "\\u0000"'
     try {
       Jsonic(src0)
-    }
-    catch(e) {
+    } catch (e) {
       expect(e.message).toEqual(
-`\u001b[31m[jsonic/invalid_unicode]:\u001b[0m invalid unicode escape: "\\\\u0000"
+        `\u001b[31m[jsonic/invalid_unicode]:\u001b[0m invalid unicode escape: "\\\\u0000"
   \u001b[34m-->\u001b[0m <no-file>:10:6
 \u001b[34m   8 | \u001b[0m
 \u001b[34m   9 | \u001b[0m
@@ -41,23 +39,23 @@ describe('error', function () {
 
   \u001b[2mhttps://jsonic.senecajs.org\u001b[0m
   \u001b[2m--internal: rule=val~open; token=#BD~foo; plugins=--\u001b[0m'
-`      )
+`
+      )
     }
   })
-  
 
   it('plugin-errors', () => {
     let k = Jsonic.make().use(function foo(jsonic) {
       jsonic.options({
         error: {
-          foo: 'foo: $src!'
+          foo: 'foo: $src!',
         },
         hint: {
-          foo: 'Foo hint.'
-        }
+          foo: 'Foo hint.',
+        },
       })
-      jsonic.lex(()=>(lex)=>{
-        if(lex.src.substring(lex.pnt.sI).startsWith('FOO')) {
+      jsonic.lex(() => (lex) => {
+        if (lex.src.substring(lex.pnt.sI).startsWith('FOO')) {
           return lex.bad('foo', lex.pnt.sI, lex.pnt.sI + 4)
         }
       })
@@ -73,11 +71,10 @@ describe('error', function () {
       console.log(e)
     } 
     */
-    
+
     try {
       k(src0)
-    }
-    catch(e) {
+    } catch (e) {
       expect(e.message).toEqual(
         '\u001b[31m[jsonic/foo]:\u001b[0m foo: "FOO"!\n' +
           '  \u001b[34m-->\u001b[0m <no-file>:2:3\n' +
@@ -86,53 +83,43 @@ describe('error', function () {
           '        \u001b[31m^^^ foo: "FOO"!\u001b[0m\n' +
           '\u001b[34m  3 | \u001b[0m\n' +
           '\u001b[34m  4 | \u001b[0m\n' +
-          '\n'+
+          '\n' +
           '  Foo hint.\n' +
-          '\n'+
+          '\n' +
           '  \u001b[2mhttps://jsonic.senecajs.org\u001b[0m\n' +
-          '  \u001b[2m--internal: rule=pair~o; token=#BD~foo;'+
+          '  \u001b[2m--internal: rule=pair~o; token=#BD~foo;' +
           ' plugins=foo--\u001b[0m\n'
       )
     }
-    
-    expect(()=>k('a:1,\nb:FOO'))
-      .toThrow(/foo/)
+
+    expect(() => k('a:1,\nb:FOO')).toThrow(/foo/)
   })
-  
 
   it('lex-unicode', () => {
     let src0 = '\n\n\n\n\n\n\n\n\n\n   "\\uQQQQ"'
     //je(src0)()
-    expect(je(src0))
-      .toThrow(/invalid_unicode/)
+    expect(je(src0)).toThrow(/invalid_unicode/)
 
     let src1 = '\n\n\n\n\n\n\n\n\n\n   "\\u{QQQQQQ}"'
     //je(src1)()
-    expect(je(src0))
-      .toThrow(/invalid_unicode/)
+    expect(je(src0)).toThrow(/invalid_unicode/)
   })
-
 
   it('lex-ascii', () => {
     let src0 = '\n\n\n\n\n\n\n\n\n\n   "\\x!!"'
     // je(src0)()
-    expect(je(src0))
-      .toThrow(/invalid_ascii/)
+    expect(je(src0)).toThrow(/invalid_ascii/)
   })
-
 
   it('lex-unprintable', () => {
     let src0 = '"\x00"'
-    expect(je(src0))
-      .toThrow(/unprintable/)
+    expect(je(src0)).toThrow(/unprintable/)
   })
-
 
   it('lex-unterminated', () => {
     let src0 = '"a'
 
-    expect(je(src0))
-      .toThrow(/unterminated/)
+    expect(je(src0)).toThrow(/unterminated/)
 
     /*
     try {
@@ -144,12 +131,10 @@ describe('error', function () {
     */
   })
 
-  
   it('parse-unexpected', () => {
     let src0 = '\n\n\n\n\n\n\n\n\n\n   }'
 
-    expect(je(src0))
-      .toThrow(/unexpected/)
+    expect(je(src0)).toThrow(/unexpected/)
 
     /*
     try {
@@ -161,19 +146,19 @@ describe('error', function () {
     */
   })
 
-  
   it('error-json-desc', () => {
     try {
       Jsonic(']')
-    }
-    catch(e) {
+    } catch (e) {
       // console.log(e)
-      expect(JSON.stringify(e)
-        .includes('{"code":"unexpected","details":{},'+
-                  '"meta":{},"lineNumber":1,"columnNumber":1')).toBeTruthy()
-    } 
+      expect(
+        JSON.stringify(e).includes(
+          '{"code":"unexpected","details":{},' +
+            '"meta":{},"lineNumber":1,"columnNumber":1'
+        )
+      ).toBeTruthy()
+    }
   })
-
 
   it('bad-syntax', () => {
     // TODO: unexpected end of src needs own case, otherwise incorrect explanation
@@ -198,7 +183,6 @@ describe('error', function () {
     expect(je('[:')).toThrow(/unexpected/)
     expect(je('[:a')).toThrow(/unexpected/)
 
-    
     // Unexpected close
     expect(je(']')).toThrow(/unexpected/)
     expect(je('}')).toThrow(/unexpected/)
@@ -212,13 +196,11 @@ describe('error', function () {
     expect(je('{a}')).toThrow(/unexpected/)
     expect(je('{a:1]')).toThrow(/unexpected/)
 
-    
     // These are actually OK
     expect(Jsonic(',]')).toEqual([null])
-    expect(Jsonic('{a:}')).toEqual({a:null})
-    expect(Jsonic('{a:b:}')).toEqual({a:{b:null}})
-    expect(Jsonic('[a:1]')).toEqual([{a:1}])
-    expect(Jsonic('[a:]')).toEqual([{a:null}])
+    expect(Jsonic('{a:}')).toEqual({ a: null })
+    expect(Jsonic('{a:b:}')).toEqual({ a: { b: null } })
+    expect(Jsonic('[a:1]')).toEqual([{ a: 1 }])
+    expect(Jsonic('[a:]')).toEqual([{ a: null }])
   })
-
 })

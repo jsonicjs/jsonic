@@ -4,7 +4,6 @@
  *  Parser implementation, converts the lexer tokens into parsed data.
  */
 
-
 import type {
   RuleState,
   RuleStep,
@@ -28,14 +27,7 @@ import type {
   Relate,
 } from './types'
 
-import {
-  OPEN,
-  CLOSE,
-  BEFORE,
-  AFTER,
-  EMPTY,
-} from './types'
-
+import { OPEN, CLOSE, BEFORE, AFTER, EMPTY } from './types'
 
 import {
   JsonicError,
@@ -52,14 +44,7 @@ import {
   normalt,
 } from './utility'
 
-
-import {
-  makeNoToken,
-  makeLex,
-  makePoint,
-  makeToken,
-} from './lexer'
-
+import { makeNoToken, makeLex, makePoint, makeToken } from './lexer'
 
 class RuleImpl implements Rule {
   id = -1
@@ -87,7 +72,7 @@ class RuleImpl implements Rule {
   c1: Token
 
   constructor(spec: RuleSpec, ctx: Context, node?: any) {
-    this.id = ctx.uI++     // Rule ids are unique only to the parse run.
+    this.id = ctx.uI++ // Rule ids are unique only to the parse run.
     this.name = spec.name
     this.spec = spec
 
@@ -99,7 +84,6 @@ class RuleImpl implements Rule {
     this.o1 = ctx.NOTOKEN
     this.c0 = ctx.NOTOKEN
     this.c1 = ctx.NOTOKEN
-
 
     this.node = node
     this.d = ctx.rsI
@@ -118,35 +102,28 @@ class RuleImpl implements Rule {
 const makeRule = (...params: ConstructorParameters<typeof RuleImpl>) =>
   new RuleImpl(...params)
 
-const makeNoRule = (ctx: Context) => makeRule(
-  makeRuleSpec(ctx.cfg, {}),
-  ctx,
-)
-
-
+const makeNoRule = (ctx: Context) => makeRule(makeRuleSpec(ctx.cfg, {}), ctx)
 
 // Parse-alternate match (built from current tokens and AltSpec).
 class AltMatchImpl implements AltMatch {
   // m: Token[] = [] // Matched Tokens (not Tins!).
-  p = EMPTY       // Push rule (by name).
-  r = EMPTY       // Replace rule (by name).
-  b = 0           // Move token position backward.
-  c?: AltCond     // Custom alt match condition.
-  n?: Counters    // increment named counters.
-  a?: AltAction   // Match actions.
+  p = EMPTY // Push rule (by name).
+  r = EMPTY // Replace rule (by name).
+  b = 0 // Move token position backward.
+  c?: AltCond // Custom alt match condition.
+  n?: Counters // increment named counters.
+  a?: AltAction // Match actions.
   h?: AltModifier // Modify alternate match.
-  u?: Relate      // Custom properties to add to Rule.use.
-  g?: string[]    // Named group tags (allows plugins to find alts).
-  e?: Token       // Errored on this token.
+  u?: Relate // Custom properties to add to Rule.use.
+  g?: string[] // Named group tags (allows plugins to find alts).
+  e?: Token // Errored on this token.
 }
 
 const makeAltMatch = (...params: ConstructorParameters<typeof AltMatchImpl>) =>
   new AltMatchImpl(...params)
 
-
 const PALT = makeAltMatch() // Only one alt object is created.
 const EMPTY_ALT = makeAltMatch()
-
 
 class RuleSpecImpl implements RuleSpec {
   name = EMPTY // Set by Parser.rule
@@ -159,40 +136,39 @@ class RuleSpecImpl implements RuleSpec {
 
     // Null Alt entries are allowed and ignored as a convenience.
     this.def.open = (this.def.open || []).filter((alt: AltSpec) => null != alt)
-    this.def.close = (this.def.close || []).filter((alt: AltSpec) => null != alt)
+    this.def.close = (this.def.close || []).filter(
+      (alt: AltSpec) => null != alt
+    )
 
     for (let alt of [...this.def.open, ...this.def.close]) {
       normalt(alt)
     }
   }
 
-
   // Convenience access to token Tins
-  tin<R extends string | Tin, T extends (R extends Tin ? string : Tin)>(ref: R): T {
+  tin<R extends string | Tin, T extends R extends Tin ? string : Tin>(
+    ref: R
+  ): T {
     return tokenize(ref, this.cfg)
   }
-
 
   add(state: RuleState, a: AltSpec | AltSpec[], flags: any): RuleSpec {
     let inject = flags?.last ? 'push' : 'unshift'
     let aa = ((isarr(a) ? a : [a]) as AltSpec[])
       .filter((alt: AltSpec) => null != alt)
-      .map(a => normalt(a))
-    this.def[('o' === state ? 'open' : 'close')][inject](...aa)
+      .map((a) => normalt(a))
+    this.def['o' === state ? 'open' : 'close'][inject](...aa)
     filterRules(this, this.cfg)
     return this
   }
-
 
   open(a: AltSpec | AltSpec[], flags?: any): RuleSpec {
     return this.add('o', a, flags)
   }
 
-
   close(a: AltSpec | AltSpec[], flags?: any): RuleSpec {
     return this.add('c', a, flags)
   }
-
 
   action(step: RuleStep, state: RuleState, action: StateAction): RuleSpec {
     this.def[step + state] = action
@@ -233,9 +209,7 @@ class RuleSpecImpl implements RuleSpec {
     let alts = (is_open ? def.open : def.close) as NormAltSpec[]
 
     // Handle "before" call.
-    let before = is_open ?
-      (rule.bo && def.bo) :
-      (rule.bc && def.bc)
+    let before = is_open ? rule.bo && def.bo : rule.bc && def.bc
     let bout = before && before.call(this, rule, ctx)
     if (bout && bout.isToken && null != bout.err) {
       return this.bad(bout, rule, ctx, { is_open })
@@ -243,8 +217,8 @@ class RuleSpecImpl implements RuleSpec {
 
     // Attempt to match one of the alts.
     // let alt: AltMatch = (bout && bout.alt) ? { ...EMPTY_ALT, ...bout.alt } :
-    let alt: AltMatch = 0 < alts.length ? this.parse_alts(is_open, alts, rule, ctx) :
-      EMPTY_ALT
+    let alt: AltMatch =
+      0 < alts.length ? this.parse_alts(is_open, alts, rule, ctx) : EMPTY_ALT
 
     // Custom alt handler.
     if (alt.h) {
@@ -262,11 +236,13 @@ class RuleSpecImpl implements RuleSpec {
       for (let cn in alt.n) {
         rule.n[cn] =
           // 0 reverts counter to 0.
-          0 === alt.n[cn] ? 0 :
-            // First seen, set to 0.
-            (null == rule.n[cn] ? 0 :
-              // Increment counter.
-              rule.n[cn]) + alt.n[cn]
+          0 === alt.n[cn]
+            ? 0
+            : // First seen, set to 0.
+              (null == rule.n[cn]
+                ? 0
+                : // Increment counter.
+                  rule.n[cn]) + alt.n[cn]
       }
     }
 
@@ -295,8 +271,8 @@ class RuleSpecImpl implements RuleSpec {
         next.parent = rule
         next.n = { ...rule.n }
         why += '@p:' + alt.p
-      }
-      else return this.bad(this.unknownRule(ctx.t0, alt.p), rule, ctx, { is_open })
+      } else
+        return this.bad(this.unknownRule(ctx.t0, alt.p), rule, ctx, { is_open })
     }
 
     // ...or replace with a new rule.
@@ -311,8 +287,8 @@ class RuleSpecImpl implements RuleSpec {
 
         next.n = { ...rule.n }
         why += '@r:' + alt.r
-      }
-      else return this.bad(this.unknownRule(ctx.t0, alt.r), rule, ctx, { is_open })
+      } else
+        return this.bad(this.unknownRule(ctx.t0, alt.r), rule, ctx, { is_open })
     }
 
     // Pop closed rule off stack.
@@ -325,9 +301,7 @@ class RuleSpecImpl implements RuleSpec {
     }
 
     // Handle "after" call.
-    let after = is_open ?
-      (rule.ao && def.ao) :
-      (rule.ac && def.ac)
+    let after = is_open ? rule.ao && def.ao : rule.ac && def.ac
     let aout = after && after.call(this, rule, ctx, alt, next)
     if (aout && aout.isToken && null != aout.err) {
       return this.bad(aout, rule, ctx, { is_open })
@@ -335,16 +309,23 @@ class RuleSpecImpl implements RuleSpec {
 
     next.why = why
 
-    ctx.log && ctx.log(
-      'node  ' + rule.state.toUpperCase(),
-      (rule.prev.id + '/' + rule.parent.id + '/' + rule.child.id),
-      rule.name + '~' + rule.id,
-      'w=' + why,
-      'n:' + entries(rule.n).filter(n => n[1]).map(n => n[0] + '=' + n[1]).join(';'),
-      'u:' + entries(rule.use).map(u => u[0] + '=' + u[1]).join(';'),
-      '<' + F(rule.node) + '>'
-    )
-
+    ctx.log &&
+      ctx.log(
+        'node  ' + rule.state.toUpperCase(),
+        rule.prev.id + '/' + rule.parent.id + '/' + rule.child.id,
+        rule.name + '~' + rule.id,
+        'w=' + why,
+        'n:' +
+          entries(rule.n)
+            .filter((n) => n[1])
+            .map((n) => n[0] + '=' + n[1])
+            .join(';'),
+        'u:' +
+          entries(rule.use)
+            .map((u) => u[0] + '=' + u[1])
+            .join(';'),
+        '<' + F(rule.node) + '>'
+      )
 
     // Lex next tokens (up to backtrack).
     let mI = 0
@@ -370,27 +351,26 @@ class RuleSpecImpl implements RuleSpec {
     ctx: Context
   ): AltMatch {
     let out = PALT
-    out.b = 0           // Backtrack n tokens.
-    out.p = EMPTY          // Push named rule onto stack. 
-    out.r = EMPTY          // Replace current rule with named rule.
-    out.n = undefined   // Increment named counters.
-    out.h = undefined   // Custom handler function.
-    out.a = undefined   // Rule action.
-    out.u = undefined   // Custom rule properties.
-    out.e = undefined   // Error token.
+    out.b = 0 // Backtrack n tokens.
+    out.p = EMPTY // Push named rule onto stack.
+    out.r = EMPTY // Replace current rule with named rule.
+    out.n = undefined // Increment named counters.
+    out.h = undefined // Custom handler function.
+    out.a = undefined // Rule action.
+    out.u = undefined // Custom rule properties.
+    out.e = undefined // Error token.
 
     let alt: NormAltSpec | null = null
     let altI = 0
     let t = ctx.cfg.t
     let cond
-    let bitAA = (1 << (t.AA - 1))
+    let bitAA = 1 << (t.AA - 1)
 
     // TODO: replace with lookup map
     let len = alts.length
     for (altI = 0; altI < len; altI++) {
-
       // cond = false
-      alt = (alts[altI] as NormAltSpec)
+      alt = alts[altI] as NormAltSpec
 
       let tin0 = ctx.t0.tin
       let has0 = false
@@ -400,7 +380,7 @@ class RuleSpecImpl implements RuleSpec {
 
       if (alt.S0) {
         has0 = true
-        cond = ((alt.S0[(tin0 / 31) | 0] & ((1 << ((tin0 % 31) - 1)) | bitAA)))
+        cond = alt.S0[(tin0 / 31) | 0] & ((1 << ((tin0 % 31) - 1)) | bitAA)
 
         if (cond) {
           has1 = null != alt.S1
@@ -408,7 +388,7 @@ class RuleSpecImpl implements RuleSpec {
           if (alt.S1) {
             has1 = true
             let tin1 = ctx.t1.tin
-            cond = (alt.S1[(tin1 / 31) | 0] & ((1 << ((tin1 % 31) - 1)) | bitAA))
+            cond = alt.S1[(tin1 / 31) | 0] & ((1 << ((tin1 % 31) - 1)) | bitAA)
           }
         }
       }
@@ -417,8 +397,7 @@ class RuleSpecImpl implements RuleSpec {
         rule.o0 = has0 ? ctx.t0 : ctx.NOTOKEN
         rule.o1 = has1 ? ctx.t1 : ctx.NOTOKEN
         rule.os = (has0 ? 1 : 0) + (has1 ? 1 : 0)
-      }
-      else {
+      } else {
         rule.c0 = has0 ? ctx.t0 : ctx.NOTOKEN
         rule.c1 = has1 ? ctx.t1 : ctx.NOTOKEN
         rule.cs = (has0 ? 1 : 0) + (has1 ? 1 : 0)
@@ -431,8 +410,7 @@ class RuleSpecImpl implements RuleSpec {
 
       if (cond) {
         break
-      }
-      else {
+      } else {
         alt = null
       }
     }
@@ -449,54 +427,77 @@ class RuleSpecImpl implements RuleSpec {
       out.u = null != alt.u ? alt.u : out.u
       out.g = null != alt.g ? alt.g : out.g
 
-      out.e = alt.e && alt.e(rule, ctx, out) || undefined
+      out.e = (alt.e && alt.e(rule, ctx, out)) || undefined
 
-      out.p = null != alt.p ?
-        ('string' === typeof (alt.p) ? alt.p : alt.p(rule, ctx, out)) :
-        out.p
+      out.p =
+        null != alt.p
+          ? 'string' === typeof alt.p
+            ? alt.p
+            : alt.p(rule, ctx, out)
+          : out.p
 
-      out.r = null != alt.r ?
-        ('string' === typeof (alt.r) ? alt.r : alt.r(rule, ctx, out)) :
-        out.r
+      out.r =
+        null != alt.r
+          ? 'string' === typeof alt.r
+            ? alt.r
+            : alt.r(rule, ctx, out)
+          : out.r
 
-      out.b = null != alt.b ?
-        ('number' === typeof (alt.b) ? alt.b : alt.b(rule, ctx, out)) :
-        out.b
+      out.b =
+        null != alt.b
+          ? 'number' === typeof alt.b
+            ? alt.b
+            : alt.b(rule, ctx, out)
+          : out.b
     }
 
     let match = altI < alts.length
 
     // TODO: move to util function
-    ctx.log && ctx.log(
-      'parse ' + rule.state.toUpperCase(),
-      (rule.prev.id + '/' + rule.parent.id + '/' + rule.child.id),
+    ctx.log &&
+      ctx.log(
+        'parse ' + rule.state.toUpperCase(),
+        rule.prev.id + '/' + rule.parent.id + '/' + rule.child.id,
+        rule.name + '~' + rule.id,
 
-      rule.name + '~' + rule.id,
+        match ? 'alt=' + altI : 'no-alt',
 
-      match ? 'alt=' + altI : 'no-alt',
+        match && out.g ? 'g:' + out.g + ' ' : '',
+        (match && out.p ? 'p:' + out.p + ' ' : '') +
+          (match && out.r ? 'r:' + out.r + ' ' : '') +
+          (match && out.b ? 'b:' + out.b + ' ' : ''),
 
-      (match && out.g ? 'g:' + out.g + ' ' : ''),
+        (OPEN === rule.state
+          ? [rule.o0, rule.o1].slice(0, rule.os)
+          : [rule.c0, rule.c1].slice(0, rule.cs)
+        )
+          .map((tkn: Token) => tkn.name + '=' + ctx.F(tkn.src))
+          .join(' '),
 
-      (match && out.p ? 'p:' + out.p + ' ' : '') +
-      (match && out.r ? 'r:' + out.r + ' ' : '') +
-      (match && out.b ? 'b:' + out.b + ' ' : ''),
+        'c:' + (alt && alt.c ? cond : EMPTY),
+        'n:' +
+          entries(out.n)
+            .map((n) => n[0] + '=' + n[1])
+            .join(';'),
+        'u:' +
+          entries(out.u)
+            .map((u) => u[0] + '=' + u[1])
+            .join(';'),
 
-      (OPEN === rule.state ?
-        ([rule.o0, rule.o1].slice(0, rule.os)) :
-        ([rule.c0, rule.c1].slice(0, rule.cs)))
-        .map((tkn: Token) => tkn.name + '=' + ctx.F(tkn.src)).join(' '),
+        altI < alts.length && (alt as any).s
+          ? '[' +
+              (alt as any).s
+                .map((pin: Tin) =>
+                  Array.isArray(pin)
+                    ? pin.map((pin: Tin) => t[pin]).join('|')
+                    : t[pin]
+                )
+                .join(' ') +
+              ']'
+          : '[]',
 
-      'c:' + ((alt && alt.c) ? cond : EMPTY),
-      'n:' + entries(out.n).map(n => n[0] + '=' + n[1]).join(';'),
-      'u:' + entries(out.u).map(u => u[0] + '=' + u[1]).join(';'),
-
-      altI < alts.length &&
-        (alt as any).s ?
-        '[' + (alt as any).s.map((pin: Tin) => (
-          Array.isArray(pin) ? pin.map((pin: Tin) => t[pin]).join('|') : t[pin]
-        )).join(' ') + ']' : '[]',
-
-      out)
+        out
+      )
 
     return out
   }
@@ -506,7 +507,7 @@ class RuleSpecImpl implements RuleSpec {
       tkn.err || S.unexpected,
       {
         ...tkn.use,
-        state: parse.is_open ? S.open : S.close
+        state: parse.is_open ? S.open : S.close,
       },
       tkn,
       rule,
@@ -522,11 +523,8 @@ class RuleSpecImpl implements RuleSpec {
   }
 }
 
-
 const makeRuleSpec = (...params: ConstructorParameters<typeof RuleSpecImpl>) =>
   new RuleSpecImpl(...params)
-
-
 
 class Parser {
   options: Options
@@ -539,9 +537,10 @@ class Parser {
   }
 
   // Multi-functional get/set for rules.
-  rule(name?: string, define?: RuleDefiner | null):
-    RuleSpec | RuleSpecMap | undefined {
-
+  rule(
+    name?: string,
+    define?: RuleDefiner | null
+  ): RuleSpec | RuleSpecMap | undefined {
     // If no name, get all the rules.
     if (null == name) {
       return this.rsm
@@ -557,8 +556,8 @@ class Parser {
 
     // Else add or redefine a rule by name.
     else if (undefined !== define) {
-      rs = this.rsm[name] = (this.rsm[name] || makeRuleSpec(this.cfg, {}))
-      rs = this.rsm[name] = (define(this.rsm[name], this.rsm) || this.rsm[name])
+      rs = this.rsm[name] = this.rsm[name] || makeRuleSpec(this.cfg, {})
+      rs = this.rsm[name] = define(this.rsm[name], this.rsm) || this.rsm[name]
       rs.name = name
 
       for (let alt of [...rs.def.open, ...rs.def.close]) {
@@ -571,13 +570,7 @@ class Parser {
     return rs
   }
 
-
-  start(
-    src: string,
-    jsonic: any,
-    meta?: any,
-    parent_ctx?: any
-  ): any {
+  start(src: string, jsonic: any, meta?: any, parent_ctx?: any): any {
     let root: Rule
 
     let endtkn = makeToken(
@@ -598,13 +591,13 @@ class Parser {
       src: () => src, // Avoid printing src
       root: () => root.node,
       plgn: () => jsonic.internal().plugins,
-      rule: ({} as Rule),
+      rule: {} as Rule,
       xs: -1,
       v2: endtkn,
       v1: endtkn,
       t0: endtkn,
       t1: endtkn,
-      tC: -2,  // Prepare count for 2-token lookahead.
+      tC: -2, // Prepare count for 2-token lookahead.
       next,
       rs: [],
       rsI: 0,
@@ -613,7 +606,7 @@ class Parser {
       F: srcfmt(this.cfg),
       use: {},
       NOTOKEN: notoken,
-      NORULE: ({} as Rule),
+      NORULE: {} as Rule,
     }
 
     ctx = deep(ctx, parent_ctx)
@@ -624,18 +617,14 @@ class Parser {
 
     makelog(ctx, meta)
 
-
     // Special case - avoids extra per-token tests in main parser rules.
     if ('' === src) {
       if (this.cfg.lex.empty) {
         return undefined
-      }
-      else {
+      } else {
         throw new JsonicError(S.unexpected, { src }, ctx.t0, norule, ctx)
       }
     }
-
-
 
     let tn = (pin: Tin): string => tokenize(pin, this.cfg)
     let lex = badlex(makeLex(ctx), tokenize('#BD', this.cfg), ctx)
@@ -654,8 +643,8 @@ class Parser {
     // rule open and close, and for each rule on each char to be
     // virtual (like map, list), and double for safety margin (allows
     // lots of backtracking), and apply a multipler options as a get-out-of-jail.
-    let maxr = 2 * keys(this.rsm).length * lex.src.length *
-      2 * ctx.cfg.rule.maxmul
+    let maxr =
+      2 * keys(this.rsm).length * lex.src.length * 2 * ctx.cfg.rule.maxmul
 
     let ignore = ctx.cfg.tokenSet.ignore
 
@@ -690,25 +679,41 @@ class Parser {
         ctx.log(
           '\nstack',
           '<<' + ctx.F(root.node) + '>>',
-          ctx.rs.slice(0, ctx.rsI).map((r: Rule) => r.name + '~' + r.id).join('/'),
-          ctx.rs.slice(0, ctx.rsI).map((r: Rule) => '<' + ctx.F(r.node) + '>').join(' '),
+          ctx.rs
+            .slice(0, ctx.rsI)
+            .map((r: Rule) => r.name + '~' + r.id)
+            .join('/'),
+          ctx.rs
+            .slice(0, ctx.rsI)
+            .map((r: Rule) => '<' + ctx.F(r.node) + '>')
+            .join(' '),
 
-          rule, ctx, '\n')
+          rule,
+          ctx,
+          '\n'
+        )
 
       ctx.log &&
         ctx.log(
           'rule  ' + rule.state.toUpperCase(),
-          (rule.prev.id + '/' + rule.parent.id + '/' + rule.child.id),
+          rule.prev.id + '/' + rule.parent.id + '/' + rule.child.id,
           rule.name + '~' + rule.id,
           '[' + ctx.F(ctx.t0.src) + ' ' + ctx.F(ctx.t1.src) + ']',
-          'n:' + entries(rule.n)
-            .filter(n => n[1])
-            .map(n => n[0] + '=' + n[1]).join(';'),
-          'u:' + entries(rule.use).map(u => u[0] + '=' + u[1]).join(';'),
+          'n:' +
+            entries(rule.n)
+              .filter((n) => n[1])
+              .map((n) => n[0] + '=' + n[1])
+              .join(';'),
+          'u:' +
+            entries(rule.use)
+              .map((u) => u[0] + '=' + u[1])
+              .join(';'),
 
           '[' + tn(ctx.t0.tin) + ' ' + tn(ctx.t1.tin) + ']',
 
-          rule, ctx)
+          rule,
+          ctx
+        )
 
       ctx.rule = rule
 
@@ -731,23 +736,17 @@ class Parser {
     return ctx.root()
   }
 
-
   clone(options: Options, config: Config) {
     let parser = new Parser(options, config)
 
     // Inherit rules from parent, filtered by config.rule
-    parser.rsm = Object
-      .keys(this.rsm)
-      .reduce((a, rn) =>
-        (a[rn] = filterRules(this.rsm[rn], this.cfg), a), ({} as any))
+    parser.rsm = Object.keys(this.rsm).reduce(
+      (a, rn) => ((a[rn] = filterRules(this.rsm[rn], this.cfg)), a),
+      {} as any
+    )
 
     return parser
   }
 }
 
-
-export {
-  makeRule,
-  makeRuleSpec,
-  Parser,
-}
+export { makeRule, makeRuleSpec, Parser }

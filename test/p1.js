@@ -3,9 +3,9 @@ module.exports = {
     jsonic.options({
       value: {
         map: {
-          [popts.s||'Y']: { val: popts.y }
-        }
-      }
+          [popts.s || 'Y']: { val: popts.y },
+        },
+      },
     })
-  }
+  },
 }
