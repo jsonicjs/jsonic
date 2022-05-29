@@ -185,8 +185,8 @@ function make(param_options?: Relate, parent?: Jsonic): Jsonic {
     parent
       ? { ...parent.options }
       : false === param_options?.defaults$
-        ? {}
-        : defaults,
+      ? {}
+      : defaults,
     param_options ? param_options : {}
   )
 

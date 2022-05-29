@@ -100,8 +100,7 @@ function grammar(jsonic) {
         // })
     });
     jsonic.rule('map', (rs) => {
-        rs
-            .bo((rule) => {
+        rs.bo((rule) => {
             // Implicit lists only at top level.
             rule.n.il = 1 + (rule.n.il ? rule.n.il : 0);
             rule.n.im = 1 + (rule.n.im ? rule.n.im : 0);

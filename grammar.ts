@@ -114,7 +114,7 @@ function grammar(jsonic: Jsonic) {
           undefined === rule.node
             ? undefined === rule.child.node
               ? // (0 === rule.os ? undefined : rule.o0.val) :
-              0 === rule.os
+                0 === rule.os
                 ? undefined
                 : rule.o0.resolveVal(rule, ctx)
               : rule.child.node
@@ -129,16 +129,15 @@ function grammar(jsonic: Jsonic) {
   })
 
   jsonic.rule('map', (rs: RuleSpec) => {
-    rs
-      .bo((rule: Rule) => {
-        // Implicit lists only at top level.
-        rule.n.il = 1 + (rule.n.il ? rule.n.il : 0)
+    rs.bo((rule: Rule) => {
+      // Implicit lists only at top level.
+      rule.n.il = 1 + (rule.n.il ? rule.n.il : 0)
 
-        rule.n.im = 1 + (rule.n.im ? rule.n.im : 0)
+      rule.n.im = 1 + (rule.n.im ? rule.n.im : 0)
 
-        // Create a new empty map.
-        rule.node = {}
-      })
+      // Create a new empty map.
+      rule.node = {}
+    })
 
       .ao((rule: Rule, _ctx: Context) => {
         if (null != rule.parent.use.key) {
@@ -218,10 +217,10 @@ function grammar(jsonic: Jsonic) {
             null == prev
               ? val
               : ctx.cfg.map.merge
-                ? ctx.cfg.map.merge(prev, val)
-                : ctx.cfg.map.extend
-                  ? deep(prev, val)
-                  : val
+              ? ctx.cfg.map.merge(prev, val)
+              : ctx.cfg.map.extend
+              ? deep(prev, val)
+              : val
         }
       })
       .close([

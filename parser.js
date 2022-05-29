@@ -137,7 +137,7 @@ class RuleSpecImpl {
         // Match alternates for current state.
         let alts = (is_open ? def.open : def.close);
         // Handle "before" call.
-        let befores = is_open ? rule.bo ? def.bo : null : rule.bc ? def.bc : null;
+        let befores = is_open ? (rule.bo ? def.bo : null) : rule.bc ? def.bc : null;
         if (befores) {
             let bout = undefined;
             for (let bI = 0; bI < befores.length; bI++) {
@@ -222,7 +222,7 @@ class RuleSpecImpl {
             why += 'Z';
         }
         // Handle "after" call.
-        let afters = is_open ? rule.ao ? def.ao : null : rule.ac ? def.ac : null;
+        let afters = is_open ? (rule.ao ? def.ao : null) : rule.ac ? def.ac : null;
         if (afters) {
             let aout = undefined;
             // TODO: needed? let aout = after && after.call(this, rule, ctx, alt, next)

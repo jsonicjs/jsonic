@@ -124,16 +124,15 @@ const makeAltMatch = (...params: ConstructorParameters<typeof AltMatchImpl>) =>
 const PALT = makeAltMatch() // Only one alt object is created.
 const EMPTY_ALT = makeAltMatch()
 
-
 class RuleSpecImpl implements RuleSpec {
   name = EMPTY // Set by Parser.rule
   def = {
-    open: ([] as AltSpec[]),
-    close: ([] as AltSpec[]),
-    bo: ([] as StateAction[]),
-    bc: ([] as StateAction[]),
-    ao: ([] as StateAction[]),
-    ac: ([] as StateAction[]),
+    open: [] as AltSpec[],
+    close: [] as AltSpec[],
+    bo: [] as StateAction[],
+    bc: [] as StateAction[],
+    ao: [] as StateAction[],
+    ac: [] as StateAction[],
   }
   cfg: Config
 
@@ -183,13 +182,12 @@ class RuleSpecImpl implements RuleSpec {
     prepend: boolean,
     step: RuleStep,
     state: RuleState,
-    action: StateAction):
-    RuleSpec {
+    action: StateAction
+  ): RuleSpec {
     let actions = (this.def as any)[step + state]
     if (prepend) {
       actions.unshift(action)
-    }
-    else {
+    } else {
       actions.push(action)
     }
     return this
@@ -197,22 +195,38 @@ class RuleSpecImpl implements RuleSpec {
 
   bo(first: StateAction | boolean, second?: StateAction): RuleSpec {
     return this.action(
-      second ? !!first : true, BEFORE, OPEN, second || first as StateAction)
+      second ? !!first : true,
+      BEFORE,
+      OPEN,
+      second || (first as StateAction)
+    )
   }
 
   ao(first: StateAction | boolean, second?: StateAction): RuleSpec {
     return this.action(
-      second ? !!first : true, AFTER, OPEN, second || first as StateAction)
+      second ? !!first : true,
+      AFTER,
+      OPEN,
+      second || (first as StateAction)
+    )
   }
 
   bc(first: StateAction | boolean, second?: StateAction): RuleSpec {
     return this.action(
-      second ? !!first : true, BEFORE, CLOSE, second || first as StateAction)
+      second ? !!first : true,
+      BEFORE,
+      CLOSE,
+      second || (first as StateAction)
+    )
   }
 
   ac(first: StateAction | boolean, second?: StateAction): RuleSpec {
     return this.action(
-      second ? !!first : true, AFTER, CLOSE, second || first as StateAction)
+      second ? !!first : true,
+      AFTER,
+      CLOSE,
+      second || (first as StateAction)
+    )
   }
 
   clear() {
@@ -238,7 +252,7 @@ class RuleSpecImpl implements RuleSpec {
     let alts = (is_open ? def.open : def.close) as NormAltSpec[]
 
     // Handle "before" call.
-    let befores = is_open ? rule.bo ? def.bo : null : rule.bc ? def.bc : null
+    let befores = is_open ? (rule.bo ? def.bo : null) : rule.bc ? def.bc : null
     if (befores) {
       let bout: Token | void = undefined
       for (let bI = 0; bI < befores.length; bI++) {
@@ -273,10 +287,10 @@ class RuleSpecImpl implements RuleSpec {
           0 === alt.n[cn]
             ? 0
             : // First seen, set to 0.
-            (null == rule.n[cn]
-              ? 0
-              : // Increment counter.
-              rule.n[cn]) + alt.n[cn]
+              (null == rule.n[cn]
+                ? 0
+                : // Increment counter.
+                  rule.n[cn]) + alt.n[cn]
       }
     }
 
@@ -335,7 +349,7 @@ class RuleSpecImpl implements RuleSpec {
     }
 
     // Handle "after" call.
-    let afters = is_open ? rule.ao ? def.ao : null : rule.ac ? def.ac : null
+    let afters = is_open ? (rule.ao ? def.ao : null) : rule.ac ? def.ac : null
     if (afters) {
       let aout: Token | void = undefined
       // TODO: needed? let aout = after && after.call(this, rule, ctx, alt, next)
@@ -356,14 +370,14 @@ class RuleSpecImpl implements RuleSpec {
         rule.name + '~' + rule.id,
         'w=' + why,
         'n:' +
-        entries(rule.n)
-          .filter((n) => n[1])
-          .map((n) => n[0] + '=' + n[1])
-          .join(';'),
+          entries(rule.n)
+            .filter((n) => n[1])
+            .map((n) => n[0] + '=' + n[1])
+            .join(';'),
         'u:' +
-        entries(rule.use)
-          .map((u) => u[0] + '=' + u[1])
-          .join(';'),
+          entries(rule.use)
+            .map((u) => u[0] + '=' + u[1])
+            .join(';'),
         '<' + F(rule.node) + '>'
       )
 
@@ -504,8 +518,8 @@ class RuleSpecImpl implements RuleSpec {
 
         match && out.g ? 'g:' + out.g + ' ' : '',
         (match && out.p ? 'p:' + out.p + ' ' : '') +
-        (match && out.r ? 'r:' + out.r + ' ' : '') +
-        (match && out.b ? 'b:' + out.b + ' ' : ''),
+          (match && out.r ? 'r:' + out.r + ' ' : '') +
+          (match && out.b ? 'b:' + out.b + ' ' : ''),
 
         (OPEN === rule.state
           ? [rule.o0, rule.o1].slice(0, rule.os)
@@ -516,24 +530,24 @@ class RuleSpecImpl implements RuleSpec {
 
         'c:' + (alt && alt.c ? cond : EMPTY),
         'n:' +
-        entries(out.n)
-          .map((n) => n[0] + '=' + n[1])
-          .join(';'),
+          entries(out.n)
+            .map((n) => n[0] + '=' + n[1])
+            .join(';'),
         'u:' +
-        entries(out.u)
-          .map((u) => u[0] + '=' + u[1])
-          .join(';'),
+          entries(out.u)
+            .map((u) => u[0] + '=' + u[1])
+            .join(';'),
 
         altI < alts.length && (alt as any).s
           ? '[' +
-          (alt as any).s
-            .map((pin: Tin) =>
-              Array.isArray(pin)
-                ? pin.map((pin: Tin) => t[pin]).join('|')
-                : t[pin]
-            )
-            .join(' ') +
-          ']'
+              (alt as any).s
+                .map((pin: Tin) =>
+                  Array.isArray(pin)
+                    ? pin.map((pin: Tin) => t[pin]).join('|')
+                    : t[pin]
+                )
+                .join(' ') +
+              ']'
           : '[]',
 
         out
@@ -740,14 +754,14 @@ class Parser {
           rule.name + '~' + rule.id,
           '[' + ctx.F(ctx.t0.src) + ' ' + ctx.F(ctx.t1.src) + ']',
           'n:' +
-          entries(rule.n)
-            .filter((n) => n[1])
-            .map((n) => n[0] + '=' + n[1])
-            .join(';'),
+            entries(rule.n)
+              .filter((n) => n[1])
+              .map((n) => n[0] + '=' + n[1])
+              .join(';'),
           'u:' +
-          entries(rule.use)
-            .map((u) => u[0] + '=' + u[1])
-            .join(';'),
+            entries(rule.use)
+              .map((u) => u[0] + '=' + u[1])
+              .join(';'),
 
           '[' + tn(ctx.t0.tin) + ' ' + tn(ctx.t1.tin) + ']',
 
