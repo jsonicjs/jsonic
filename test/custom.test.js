@@ -437,6 +437,7 @@ describe('custom', function () {
     expect(() => j('fb')).toThrow(/unexpected/)
   })
 
+  
   it('parser-condition-counter', () => {
     expect(Jsonic('a:1')).toEqual({ a: 1 })
 
@@ -477,6 +478,63 @@ describe('custom', function () {
     )
 
     expect(() => j('fb')).toThrow(/unexpected/)
+  })
+
+
+  it('parser-keep-propagates', () => {
+    expect(Jsonic('a:1')).toEqual({ a: 1 })
+
+    let j = make_norules({
+      fixed: { token: { '#F': 'f', '#B': 'b', '#Z': 'z' } },
+      rule: { start: 'top' },
+    })
+
+    let FT = j.token.F
+    let BT = j.token.B
+    let ZT = j.token.Z
+
+    j
+      .rule('top', (rs) => {
+        rs
+          .open([{ p: 'foo', k: { color: 'red'}, u: { planet: 'mars' }}])
+          .bo((r) => (r.node = { out: [] }))
+          .ao((r) => (r.node.out.push(`AO-TOP<${r.keep.color},${r.use.planet}>`)))
+          .bc((r) => (r.node.out.push(`BC-TOP<${r.keep.color},${r.use.planet}>`)))
+      })
+
+      .rule('foo', (rs) => {
+        rs
+          .open([{ s: [FT], p: 'bar'}])
+          .ao((r) => (r.node.out.push(`AO-FOO<${r.keep.color},${r.use.planet}>`)))
+          .bc((r) => (r.node.out.push(`BC-FOO<${r.keep.color},${r.use.planet}>`)))
+      })
+
+      .rule('bar', (rs) => {
+        rs
+          .open([{ s: [BT], p:'zed', u: {planet:'earth'}}])
+          .ao((r) => (r.node.out.push(`AO-BAR<${r.keep.color},${r.use.planet}>`)))
+          .bc((r) => (r.node.out.push(`BC-BAR<${r.keep.color},${r.use.planet}>`)))
+      })
+
+      .rule('zed', (rs) => {
+        rs
+          .open([{ s: [ZT], k: {color:'green'}}])
+          .ao((r) => (r.node.out.push(`AO-ZED<${r.keep.color},${r.use.planet}>`)))
+          .bc((r) => (r.node.out.push(`BC-ZED<${r.keep.color},${r.use.planet}>`)))
+      })
+
+    expect(j('fbz')).toEqual({
+      out: [
+        'AO-TOP<red,mars>',
+        'AO-FOO<red,undefined>',
+        'AO-BAR<red,earth>',
+        'AO-ZED<green,undefined>',
+        'BC-ZED<green,undefined>',
+        'BC-BAR<red,earth>',
+        'BC-FOO<red,undefined>',
+        'BC-TOP<red,mars>'
+      ]
+    })
   })
 })
 

@@ -8,9 +8,9 @@ export declare const STRING = "string";
 export declare type JsonicParse = (src: any, meta?: any, parent_ctx?: any) => any;
 export interface JsonicAPI {
     parse: JsonicParse;
-    options: Options & ((change_options?: Relate) => Relate);
+    options: Options & ((change_options?: Bag) => Bag);
     make: (options?: Options) => Jsonic;
-    use: (plugin: Plugin, plugin_options?: Relate) => Jsonic;
+    use: (plugin: Plugin, plugin_options?: Bag) => Jsonic;
     rule: (name?: string, define?: RuleDefiner | null) => Jsonic | RuleSpec | RuleSpecMap;
     lex: (matchmaker: MakeLexMatcher) => void;
     empty: (options?: Options) => Jsonic;
@@ -26,14 +26,14 @@ export interface JsonicAPI {
     } & (<A extends string | Tin>(ref: A) => undefined | (A extends string ? Tin : string));
     id: string;
     toString: () => string;
-    util: Relate;
+    util: Bag;
 }
 export declare type Jsonic = JsonicParse & // A function that parses.
 JsonicAPI & {
     [prop: string]: any;
 };
 export declare type Plugin = ((jsonic: Jsonic, plugin_options?: any) => void | Jsonic) & {
-    defaults?: Relate;
+    defaults?: Bag;
 };
 export declare type Options = {
     tag?: string;
@@ -99,7 +99,7 @@ export declare type Options = {
         };
     };
     ender?: string | string[];
-    plugin?: Relate;
+    plugin?: Bag;
     debug?: {
         get_console?: () => any;
         maxlen?: number;
@@ -179,7 +179,8 @@ export interface Rule {
     c1: Token;
     n: Counters;
     d: number;
-    use: Relate;
+    use: Bag;
+    keep: Bag;
     bo: boolean;
     ao: boolean;
     bc: boolean;
@@ -191,7 +192,7 @@ export declare type Context = {
     uI: number;
     opts: Options;
     cfg: Config;
-    meta: Relate;
+    meta: Bag;
     src: () => string;
     root: () => any;
     plgn: () => Plugin[];
@@ -210,7 +211,7 @@ export declare type Context = {
     next: () => Token;
     log?: (...rest: any) => undefined;
     F: (s: any) => string;
-    use: Relate;
+    use: Bag;
     NOTOKEN: Token;
     NORULE: Rule;
 };
@@ -270,7 +271,7 @@ export declare type Config = {
     string: {
         lex: boolean;
         quoteMap: Chars;
-        escMap: Relate;
+        escMap: Bag;
         escChar?: string;
         escCharCode?: number;
         multiChars: Chars;
@@ -336,7 +337,7 @@ export interface Token {
     rI: number;
     cI: number;
     len: number;
-    use?: Relate;
+    use?: Bag;
     err?: string;
     why?: string;
     bad(err: string, details?: any): Token;
@@ -354,7 +355,8 @@ export interface AltSpec {
     n?: Counters;
     a?: AltAction;
     h?: AltModifier;
-    u?: Relate;
+    u?: Bag;
+    k?: Bag;
     g?: string | string[];
     e?: AltError;
 }
@@ -366,11 +368,12 @@ export interface AltMatch {
     n?: Counters;
     a?: AltAction;
     h?: AltModifier;
-    u?: any;
+    u?: Bag;
+    k?: Bag;
     g?: string[];
     e?: Token;
 }
-export declare type Relate = {
+export declare type Bag = {
     [key: string]: any;
 };
 export declare type Counters = {

@@ -25,13 +25,13 @@ export interface JsonicAPI {
   parse: JsonicParse
 
   // Get and set partial option trees.
-  options: Options & ((change_options?: Relate) => Relate)
+  options: Options & ((change_options?: Bag) => Bag)
 
   // Create a new Jsonic instance to customize.
   make: (options?: Options) => Jsonic
 
   // Use a plugin
-  use: (plugin: Plugin, plugin_options?: Relate) => Jsonic
+  use: (plugin: Plugin, plugin_options?: Bag) => Jsonic
 
   // Get and set parser rules.
   rule: (
@@ -46,17 +46,17 @@ export interface JsonicAPI {
 
   // Token get and set for plugins. Reference by either name or Tin.
   token: { [ref: string]: Tin } & { [ref: number]: string } & (<
-      A extends string | Tin
+    A extends string | Tin
     >(
-      ref: A
-    ) => A extends string ? Tin : string)
+    ref: A
+  ) => A extends string ? Tin : string)
 
   // Fixed token src get and set for plugins. Reference by either src or Tin.
   fixed: { [ref: string]: Tin } & { [ref: number]: string } & (<
-      A extends string | Tin
+    A extends string | Tin
     >(
-      ref: A
-    ) => undefined | (A extends string ? Tin : string))
+    ref: A
+  ) => undefined | (A extends string ? Tin : string))
 
   // Unique identifier string for each Jsonic instance.
   id: string
@@ -64,7 +64,7 @@ export interface JsonicAPI {
   // Provide identifier for string conversion.
   toString: () => string
 
-  util: Relate
+  util: Bag
 }
 
 // The full library type.
@@ -75,7 +75,7 @@ export type Jsonic = JsonicParse & // A function that parses.
 export type Plugin = ((
   jsonic: Jsonic,
   plugin_options?: any
-) => void | Jsonic) & { defaults?: Relate }
+) => void | Jsonic) & { defaults?: Bag }
 
 // Parsing options. See defaults.ts for commentary.
 export type Options = {
@@ -134,7 +134,7 @@ export type Options = {
     map?: { [src: string]: { val: any } }
   }
   ender?: string | string[]
-  plugin?: Relate
+  plugin?: Bag
   debug?: {
     get_console?: () => any
     maxlen?: number
@@ -242,7 +242,8 @@ export interface Rule {
 
   n: Counters // Named counter values.
   d: number // The current stack depth.
-  use: Relate // Custom key-value store.
+  use: Bag // Custom key-value store, this rule only.
+  keep: Bag // Custom key-value store, propogates via push and replace.
   bo: boolean // Flag: call bo (before-open).
   ao: boolean // Flag: call ao (after-open).
   bc: boolean // Flag: call bc (before-close).
@@ -259,7 +260,7 @@ export type Context = {
   uI: number // Rule index.
   opts: Options // Jsonic instance options.
   cfg: Config // Jsonic instance config.
-  meta: Relate // Parse meta parameters.
+  meta: Bag // Parse meta parameters.
   src: () => string // source text to parse.
   root: () => any // Root node.
   plgn: () => Plugin[] // Jsonic instance plugins.
@@ -276,7 +277,7 @@ export type Context = {
   next: () => Token // Move to next token.
   log?: (...rest: any) => undefined // Log parse/lex step (if defined).
   F: (s: any) => string // Format arbitrary data as length-limited string.
-  use: Relate // Custom meta data (for use by plugins)
+  use: Bag // Custom meta data (for use by plugins)
   NOTOKEN: Token // Per parse "null" Token
   NORULE: Rule // Per parse "null" Rule
 }
@@ -369,7 +370,7 @@ export type Config = {
   string: {
     lex: boolean
     quoteMap: Chars
-    escMap: Relate
+    escMap: Bag
     escChar?: string
     escCharCode?: number
     multiChars: Chars
@@ -447,7 +448,7 @@ export interface Token {
   rI: number // Row location of token in source text (1-based).
   cI: number // Column location of token in source text (1-based).
   len: number // Length of Token source text.
-  use?: Relate // Custom meta data from plugins goes here.
+  use?: Bag // Custom meta data from plugins goes here.
   err?: string // Error code.
   why?: string // Internal tracing.
 
@@ -475,28 +476,28 @@ export interface AltSpec {
   // Condition function, return true to match alternate.
   // NOTE: Token sequence (s) must also match.
   c?:
-    | AltCond
-    | {
-        // Condition convenience definitions (all must pass).
-        d?: number // - Match if rule stack depth <= d.
-        n?: Counters // - Match if rule counters <= respective given values.
-      }
+  | AltCond
+  | {
+    // Condition convenience definitions (all must pass).
+    d?: number // - Match if rule stack depth <= d.
+    n?: Counters // - Match if rule counters <= respective given values.
+  }
 
   n?: Counters // Increment counters by specified amounts.
   a?: AltAction // Perform an action if this alternate matches.
   h?: AltModifier // Modify current Alt to customize parser.
-  u?: Relate // Key-value custom data.
+  u?: Bag // Key-value custom data.
+  k?: Bag // Key-value custom data (propagated).
 
   g?:
-    | string // Named group tags for the alternate (allows filtering).
-    | string[] // - comma separated or string array
+  | string // Named group tags for the alternate (allows filtering).
+  | string[] // - comma separated or string array
 
   e?: AltError // Generate an error token (alternate is not allowed).
 }
 
 // Parse-alternate match (built from current tokens and AltSpec).
 export interface AltMatch {
-  // m: Token[]      // Matched Tokens (not Tins!).
   p: string // Push rule (by name).
   r: string // Replace rule (by name).
   b: number // Move token position backward.
@@ -504,13 +505,14 @@ export interface AltMatch {
   n?: Counters // increment named counters.
   a?: AltAction // Match actions.
   h?: AltModifier // Modify alternate match.
-  u?: any // Custom properties to add to Rule.use.
+  u?: Bag // Custom props to add to Rule.use.
+  k?: Bag // Custom props to add to Rule.keep and keep via push and replace.
   g?: string[] // Named group tags (allows plugins to find alts).
   e?: Token // Errored on this token.
 }
 
-// General relation map.
-export type Relate = { [key: string]: any }
+// General container of named items.
+export type Bag = { [key: string]: any }
 
 // A set of named counters.
 export type Counters = { [key: string]: number }

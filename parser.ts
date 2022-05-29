@@ -24,7 +24,7 @@ import type {
   AltSpec,
   Options,
   Counters,
-  Relate,
+  Bag,
 } from './types'
 
 import { OPEN, CLOSE, BEFORE, AFTER, EMPTY } from './types'
@@ -51,9 +51,10 @@ class RuleImpl implements Rule {
   name = EMPTY
   node = null
   state = OPEN
-  n = {}
+  n = Object.create(null)
   d = -1
-  use = {}
+  use = Object.create(null)
+  keep = Object.create(null)
   bo = false
   ao = false
   bc = false
@@ -113,7 +114,8 @@ class AltMatchImpl implements AltMatch {
   n?: Counters // increment named counters.
   a?: AltAction // Match actions.
   h?: AltModifier // Modify alternate match.
-  u?: Relate // Custom properties to add to Rule.use.
+  u?: Bag // Custom props to add to Rule.use.
+  k?: Bag // Custom props to add to Rule.keep and keep via push and replace.
   g?: string[] // Named group tags (allows plugins to find alts).
   e?: Token // Errored on this token.
 }
@@ -287,16 +289,19 @@ class RuleSpecImpl implements RuleSpec {
           0 === alt.n[cn]
             ? 0
             : // First seen, set to 0.
-              (null == rule.n[cn]
-                ? 0
-                : // Increment counter.
-                  rule.n[cn]) + alt.n[cn]
+            (null == rule.n[cn]
+              ? 0
+              : // Increment counter.
+              rule.n[cn]) + alt.n[cn]
       }
     }
 
     // Set custom properties
     if (alt.u) {
       rule.use = Object.assign(rule.use, alt.u)
+    }
+    if (alt.k) {
+      rule.keep = Object.assign(rule.keep, alt.k)
     }
 
     // Action call.
@@ -318,6 +323,9 @@ class RuleSpecImpl implements RuleSpec {
         next = rule.child = makeRule(rulespec, ctx, rule.node)
         next.parent = rule
         next.n = { ...rule.n }
+        if (0 < Object.keys(rule.keep).length) {
+          next.keep = { ...rule.keep }
+        }
         why += '@p:' + alt.p
       } else
         return this.bad(this.unknownRule(ctx.t0, alt.p), rule, ctx, { is_open })
@@ -330,10 +338,10 @@ class RuleSpecImpl implements RuleSpec {
         next = makeRule(rulespec, ctx, rule.node)
         next.parent = rule.parent
         next.prev = rule
-
-        // console.log('PROC R', rule.name, rule.n)
-
         next.n = { ...rule.n }
+        if (0 < Object.keys(rule.keep).length) {
+          next.keep = { ...rule.keep }
+        }
         why += '@r:' + alt.r
       } else
         return this.bad(this.unknownRule(ctx.t0, alt.r), rule, ctx, { is_open })
@@ -370,14 +378,18 @@ class RuleSpecImpl implements RuleSpec {
         rule.name + '~' + rule.id,
         'w=' + why,
         'n:' +
-          entries(rule.n)
-            .filter((n) => n[1])
-            .map((n) => n[0] + '=' + n[1])
-            .join(';'),
+        entries(rule.n)
+          .filter((n) => n[1])
+          .map((n) => n[0] + '=' + n[1])
+          .join(';'),
         'u:' +
-          entries(rule.use)
-            .map((u) => u[0] + '=' + u[1])
-            .join(';'),
+        entries(rule.use)
+          .map((u) => u[0] + '=' + u[1])
+          .join(';'),
+        'k:' +
+        entries(rule.keep)
+          .map((k) => k[0] + '=' + k[1])
+          .join(';'),
         '<' + F(rule.node) + '>'
       )
 
@@ -412,6 +424,7 @@ class RuleSpecImpl implements RuleSpec {
     out.h = undefined // Custom handler function.
     out.a = undefined // Rule action.
     out.u = undefined // Custom rule properties.
+    out.k = undefined // Custom rule properties (propagated).
     out.e = undefined // Error token.
 
     let alt: NormAltSpec | null = null
@@ -423,7 +436,6 @@ class RuleSpecImpl implements RuleSpec {
     // TODO: replace with lookup map
     let len = alts.length
     for (altI = 0; altI < len; altI++) {
-      // cond = false
       alt = alts[altI] as NormAltSpec
 
       let tin0 = ctx.t0.tin
@@ -469,7 +481,6 @@ class RuleSpecImpl implements RuleSpec {
       }
     }
 
-    // if (null == alt && t.ZZ !== ctx.t0.tin) {
     if (!cond && t.ZZ !== ctx.t0.tin) {
       out.e = ctx.t0
     }
@@ -479,6 +490,7 @@ class RuleSpecImpl implements RuleSpec {
       out.h = null != alt.h ? alt.h : out.h
       out.a = null != alt.a ? alt.a : out.a
       out.u = null != alt.u ? alt.u : out.u
+      out.k = null != alt.k ? alt.k : out.k
       out.g = null != alt.g ? alt.g : out.g
 
       out.e = (alt.e && alt.e(rule, ctx, out)) || undefined
@@ -518,8 +530,8 @@ class RuleSpecImpl implements RuleSpec {
 
         match && out.g ? 'g:' + out.g + ' ' : '',
         (match && out.p ? 'p:' + out.p + ' ' : '') +
-          (match && out.r ? 'r:' + out.r + ' ' : '') +
-          (match && out.b ? 'b:' + out.b + ' ' : ''),
+        (match && out.r ? 'r:' + out.r + ' ' : '') +
+        (match && out.b ? 'b:' + out.b + ' ' : ''),
 
         (OPEN === rule.state
           ? [rule.o0, rule.o1].slice(0, rule.os)
@@ -530,24 +542,28 @@ class RuleSpecImpl implements RuleSpec {
 
         'c:' + (alt && alt.c ? cond : EMPTY),
         'n:' +
-          entries(out.n)
-            .map((n) => n[0] + '=' + n[1])
-            .join(';'),
+        entries(out.n)
+          .map((n) => n[0] + '=' + n[1])
+          .join(';'),
         'u:' +
-          entries(out.u)
-            .map((u) => u[0] + '=' + u[1])
-            .join(';'),
+        entries(out.u)
+          .map((u) => u[0] + '=' + u[1])
+          .join(';'),
+        'k:' +
+        entries(out.k)
+          .map((k) => k[0] + '=' + k[1])
+          .join(';'),
 
         altI < alts.length && (alt as any).s
           ? '[' +
-              (alt as any).s
-                .map((pin: Tin) =>
-                  Array.isArray(pin)
-                    ? pin.map((pin: Tin) => t[pin]).join('|')
-                    : t[pin]
-                )
-                .join(' ') +
-              ']'
+          (alt as any).s
+            .map((pin: Tin) =>
+              Array.isArray(pin)
+                ? pin.map((pin: Tin) => t[pin]).join('|')
+                : t[pin]
+            )
+            .join(' ') +
+          ']'
           : '[]',
 
         out
@@ -754,14 +770,18 @@ class Parser {
           rule.name + '~' + rule.id,
           '[' + ctx.F(ctx.t0.src) + ' ' + ctx.F(ctx.t1.src) + ']',
           'n:' +
-            entries(rule.n)
-              .filter((n) => n[1])
-              .map((n) => n[0] + '=' + n[1])
-              .join(';'),
+          entries(rule.n)
+            .filter((n) => n[1])
+            .map((n) => n[0] + '=' + n[1])
+            .join(';'),
           'u:' +
-            entries(rule.use)
-              .map((u) => u[0] + '=' + u[1])
-              .join(';'),
+          entries(rule.use)
+            .map((u) => u[0] + '=' + u[1])
+            .join(';'),
+          'k:' +
+          entries(rule.keep)
+            .map((k) => k[0] + '=' + k[1])
+            .join(';'),
 
           '[' + tn(ctx.t0.tin) + ' ' + tn(ctx.t1.tin) + ']',
 
@@ -782,11 +802,6 @@ class Parser {
     }
 
     // NOTE: by returning root, we get implicit closing of maps and lists.
-
-    // console.log('JSONIC FINAL', root.id)
-    // return root.node
-
-    // console.log('ROOT', ctx.root())
     return ctx.root()
   }
 

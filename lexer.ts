@@ -13,7 +13,7 @@ import type {
   Config,
   Context,
   MakeLexMatcher,
-  Relate,
+  Bag,
 } from './types'
 
 import { EMPTY, INSPECT } from './types'
@@ -87,7 +87,7 @@ class TokenImpl implements Token {
   rI = -1
   cI = -1
   len = -1
-  use?: Relate
+  use?: Bag
   err?: string
   why?: string
 

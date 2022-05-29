@@ -11,9 +11,10 @@ class RuleImpl {
         this.name = types_1.EMPTY;
         this.node = null;
         this.state = types_1.OPEN;
-        this.n = {};
+        this.n = Object.create(null);
         this.d = -1;
-        this.use = {};
+        this.use = Object.create(null);
+        this.keep = Object.create(null);
         this.bo = false;
         this.ao = false;
         this.bc = false;
@@ -177,6 +178,9 @@ class RuleSpecImpl {
         if (alt.u) {
             rule.use = Object.assign(rule.use, alt.u);
         }
+        if (alt.k) {
+            rule.keep = Object.assign(rule.keep, alt.k);
+        }
         // Action call.
         if (alt.a) {
             why += 'A';
@@ -194,6 +198,9 @@ class RuleSpecImpl {
                 next = rule.child = makeRule(rulespec, ctx, rule.node);
                 next.parent = rule;
                 next.n = { ...rule.n };
+                if (0 < Object.keys(rule.keep).length) {
+                    next.keep = { ...rule.keep };
+                }
                 why += '@p:' + alt.p;
             }
             else
@@ -206,8 +213,10 @@ class RuleSpecImpl {
                 next = makeRule(rulespec, ctx, rule.node);
                 next.parent = rule.parent;
                 next.prev = rule;
-                // console.log('PROC R', rule.name, rule.n)
                 next.n = { ...rule.n };
+                if (0 < Object.keys(rule.keep).length) {
+                    next.keep = { ...rule.keep };
+                }
                 why += '@r:' + alt.r;
             }
             else
@@ -242,6 +251,9 @@ class RuleSpecImpl {
                     .join(';'), 'u:' +
                 (0, utility_1.entries)(rule.use)
                     .map((u) => u[0] + '=' + u[1])
+                    .join(';'), 'k:' +
+                (0, utility_1.entries)(rule.keep)
+                    .map((k) => k[0] + '=' + k[1])
                     .join(';'), '<' + F(rule.node) + '>');
         // Lex next tokens (up to backtrack).
         let mI = 0;
@@ -266,6 +278,7 @@ class RuleSpecImpl {
         out.h = undefined; // Custom handler function.
         out.a = undefined; // Rule action.
         out.u = undefined; // Custom rule properties.
+        out.k = undefined; // Custom rule properties (propagated).
         out.e = undefined; // Error token.
         let alt = null;
         let altI = 0;
@@ -275,7 +288,6 @@ class RuleSpecImpl {
         // TODO: replace with lookup map
         let len = alts.length;
         for (altI = 0; altI < len; altI++) {
-            // cond = false
             alt = alts[altI];
             let tin0 = ctx.t0.tin;
             let has0 = false;
@@ -314,7 +326,6 @@ class RuleSpecImpl {
                 alt = null;
             }
         }
-        // if (null == alt && t.ZZ !== ctx.t0.tin) {
         if (!cond && t.ZZ !== ctx.t0.tin) {
             out.e = ctx.t0;
         }
@@ -323,6 +334,7 @@ class RuleSpecImpl {
             out.h = null != alt.h ? alt.h : out.h;
             out.a = null != alt.a ? alt.a : out.a;
             out.u = null != alt.u ? alt.u : out.u;
+            out.k = null != alt.k ? alt.k : out.k;
             out.g = null != alt.g ? alt.g : out.g;
             out.e = (alt.e && alt.e(rule, ctx, out)) || undefined;
             out.p =
@@ -359,6 +371,9 @@ class RuleSpecImpl {
                     .join(';'), 'u:' +
                 (0, utility_1.entries)(out.u)
                     .map((u) => u[0] + '=' + u[1])
+                    .join(';'), 'k:' +
+                (0, utility_1.entries)(out.k)
+                    .map((k) => k[0] + '=' + k[1])
                     .join(';'), altI < alts.length && alt.s
                 ? '[' +
                     alt.s
@@ -510,6 +525,9 @@ class Parser {
                         .join(';'), 'u:' +
                     (0, utility_1.entries)(rule.use)
                         .map((u) => u[0] + '=' + u[1])
+                        .join(';'), 'k:' +
+                    (0, utility_1.entries)(rule.keep)
+                        .map((k) => k[0] + '=' + k[1])
                         .join(';'), '[' + tn(ctx.t0.tin) + ' ' + tn(ctx.t1.tin) + ']', rule, ctx);
             ctx.rule = rule;
             rule = rule.process(ctx);
@@ -520,9 +538,6 @@ class Parser {
             throw new utility_1.JsonicError(utility_1.S.unexpected, {}, ctx.t0, norule, ctx);
         }
         // NOTE: by returning root, we get implicit closing of maps and lists.
-        // console.log('JSONIC FINAL', root.id)
-        // return root.node
-        // console.log('ROOT', ctx.root())
         return ctx.root();
     }
     clone(options, config) {

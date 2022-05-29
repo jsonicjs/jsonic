@@ -1,4 +1,4 @@
-import type { Context, Config, Relate, Chars, Token, AltSpec, NormAltSpec, Lex, Rule, RuleSpec, Tin, Options } from './types';
+import type { Context, Config, Bag, Chars, Token, AltSpec, NormAltSpec, Lex, Rule, RuleSpec, Tin, Options } from './types';
 declare const keys: (x: any) => string[];
 declare const values: (x: any) => unknown[];
 declare const entries: (x: any) => [string, unknown][];
@@ -41,7 +41,7 @@ declare const S: {
     make: string;
 };
 declare class JsonicError extends SyntaxError {
-    constructor(code: string, details: Relate, token: Token, rule: Rule, ctx: Context);
+    constructor(code: string, details: Bag, token: Token, rule: Rule, ctx: Context);
     toJSON(): this & {
         __error: boolean;
         name: string;
@@ -57,10 +57,10 @@ declare function regexp(flags: string | null, ...parts: (string | (String & {
 }))[]): RegExp;
 declare function escre(s: string | undefined): string;
 declare function deep(base?: any, ...rest: any): any;
-declare function errinject(s: string, code: string, details: Relate, token: Token, rule: Rule, ctx: Context): string;
+declare function errinject(s: string, code: string, details: Bag, token: Token, rule: Rule, ctx: Context): string;
 declare function trimstk(err: Error): void;
 declare function extract(src: string, errtxt: string, token: Token): string;
-declare function errdesc(code: string, details: Relate, token: Token, rule: Rule, ctx: Context): Relate;
+declare function errdesc(code: string, details: Bag, token: Token, rule: Rule, ctx: Context): Bag;
 declare function badlex(lex: Lex, BD: Tin, ctx: Context): any;
 declare function makelog(ctx: Context, meta: any): ((...rest: any) => undefined) | undefined;
 declare function srcfmt(config: Config): (s: any) => string;

@@ -1,4 +1,4 @@
-import type { Tin, Token, Point, Lex, Rule, Config, Context, MakeLexMatcher, Relate } from './types';
+import type { Tin, Token, Point, Lex, Rule, Config, Context, MakeLexMatcher, Bag } from './types';
 import { INSPECT } from './types';
 declare class PointImpl implements Point {
     len: number;
@@ -22,7 +22,7 @@ declare class TokenImpl implements Token {
     rI: number;
     cI: number;
     len: number;
-    use?: Relate;
+    use?: Bag;
     err?: string;
     why?: string;
     constructor(name: string, tin: Tin, val: any, src: string, pnt: Point, use?: any, why?: string);

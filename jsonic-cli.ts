@@ -1,7 +1,7 @@
 /* Copyright (c) 2020-2022 Richard Rodger, Oliver Sturm, and other contributors, MIT License */
 import Fs from 'fs'
 
-import { Jsonic, Plugin, Relate, util } from './jsonic'
+import { Jsonic, Plugin, Bag, util } from './jsonic'
 
 import { Debug } from './debug'
 
@@ -9,6 +9,7 @@ import { Debug } from './debug'
 if (require.main === module) {
   run(process.argv, console).catch((e) => console.error(e))
 }
+
 
 export async function run(argv: string[], console: Console) {
   const args = {
@@ -100,8 +101,8 @@ export async function run(argv: string[], console: Console) {
   replacer = Array.isArray(replacer)
     ? replacer
     : null == replacer
-    ? null
-    : [replacer]
+      ? null
+      : [replacer]
 
   let json = JSON.stringify(data.val, replacer, space)
 
@@ -123,7 +124,7 @@ async function read_stdin(console: Console) {
 
 // NOTE: uses vanilla Jsonic to parse arg vals, so you can set complex
 // properties.  This will break if core Jsonic is broken.
-function handle_props(propvals: string[]): Relate {
+function handle_props(propvals: string[]): Bag {
   let out = {}
 
   for (let propval of propvals) {
@@ -136,7 +137,7 @@ function handle_props(propvals: string[]): Relate {
   return out
 }
 
-function handle_plugins(plugins: string[]): Relate {
+function handle_plugins(plugins: string[]): Bag {
   let out: any = {}
   for (let name of plugins) {
     try {

@@ -56,7 +56,7 @@ import type {
   Config,
   Context,
   Counters,
-  Relate,
+  Bag,
   Tin,
   Point,
   Token,
@@ -166,7 +166,7 @@ const util = {
 type Jsonic = JsonicParse & // A function that parses.
   JsonicAPI & { [prop: string]: any } // A utility with API methods. // Extensible by plugin decoration.
 
-function make(param_options?: Relate, parent?: Jsonic): Jsonic {
+function make(param_options?: Bag, parent?: Jsonic): Jsonic {
   let internal: {
     parser: Parser
     config: Config
@@ -185,8 +185,8 @@ function make(param_options?: Relate, parent?: Jsonic): Jsonic {
     parent
       ? { ...parent.options }
       : false === param_options?.defaults$
-      ? {}
-      : defaults,
+        ? {}
+        : defaults,
     param_options ? param_options : {}
   )
 
@@ -209,7 +209,7 @@ function make(param_options?: Relate, parent?: Jsonic): Jsonic {
 
   // This lets you access options as direct properties,
   // and set them as a funtion call.
-  let options: any = (change_options?: Relate) => {
+  let options: any = (change_options?: Bag) => {
     if (null != change_options && S.object === typeof change_options) {
       deep(merged_options, change_options)
       configure(jsonic, internal.config, merged_options)
@@ -232,7 +232,7 @@ function make(param_options?: Relate, parent?: Jsonic): Jsonic {
     parse: jsonic,
 
     // TODO: how to handle null plugin?
-    use: function use(plugin: Plugin, plugin_options?: Relate): Jsonic {
+    use: function use(plugin: Plugin, plugin_options?: Bag): Jsonic {
       // Plugin name keys in options.plugin are the lower-cased plugin function name.
       const plugin_name = plugin.name.toLowerCase()
       const full_plugin_options = deep(
@@ -373,7 +373,7 @@ export type {
   RuleSpec,
   Lex,
   Counters,
-  Relate,
+  Bag,
   Tin,
   MakeLexMatcher,
   LexMatcher,

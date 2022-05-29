@@ -4,9 +4,10 @@ declare class RuleImpl implements Rule {
     name: string;
     node: null;
     state: RuleState;
-    n: {};
+    n: any;
     d: number;
-    use: {};
+    use: any;
+    keep: any;
     bo: boolean;
     ao: boolean;
     bc: boolean;
