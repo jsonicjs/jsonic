@@ -1,6 +1,4 @@
-/* Copyright (c) 2020-2021 Richard Rodger, Oliver Sturm, and other contributors, MIT License */
-/* $lab:coverage:off$ */
-
+/* Copyright (c) 2020-2022 Richard Rodger, Oliver Sturm, and other contributors, MIT License */
 import Fs from 'fs'
 
 import { Jsonic, Plugin, Relate, util } from './jsonic'
@@ -12,7 +10,6 @@ if (require.main === module) {
   run(process.argv, console).catch((e) => console.error(e))
 }
 
-/* $lab:coverage:on$ */
 
 export async function run(argv: string[], console: Console) {
   const args = {
@@ -104,8 +101,8 @@ export async function run(argv: string[], console: Console) {
   replacer = Array.isArray(replacer)
     ? replacer
     : null == replacer
-    ? null
-    : [replacer]
+      ? null
+      : [replacer]
 
   let json = JSON.stringify(data.val, replacer, space)
 
@@ -269,7 +266,7 @@ Examples:
 > jsonic -o plugin.dynamic.markchar=% -p dynamic 'a:%1+1'
 {"a":2}
 
-See also: http://jsonic.richardrodger.com
+See also: http://jsonic.senecajs.org
 `
 
   console.log(s)

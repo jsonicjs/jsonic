@@ -141,20 +141,20 @@ export interface RuleSpec {
     def: {
         open: AltSpec[];
         close: AltSpec[];
-        bo?: StateAction;
-        ao?: StateAction;
-        bc?: StateAction;
-        ac?: StateAction;
+        bo: StateAction[];
+        bc: StateAction[];
+        ao: StateAction[];
+        ac: StateAction[];
     };
     tin<R extends string | Tin, T extends R extends Tin ? string : Tin>(ref: R): T;
     add(state: RuleState, a: AltSpec | AltSpec[], flags: any): RuleSpec;
     open(a: AltSpec | AltSpec[], flags?: any): RuleSpec;
     close(a: AltSpec | AltSpec[], flags?: any): RuleSpec;
-    action(step: RuleStep, state: RuleState, action: StateAction): RuleSpec;
-    bo(action: StateAction): RuleSpec;
-    ao(action: StateAction): RuleSpec;
-    bc(action: StateAction): RuleSpec;
-    ac(action: StateAction): RuleSpec;
+    action(prepend: boolean, step: RuleStep, state: RuleState, action: StateAction): RuleSpec;
+    bo(first: StateAction | boolean, second?: StateAction): RuleSpec;
+    ao(first: StateAction | boolean, second?: StateAction): RuleSpec;
+    bc(first: StateAction | boolean, second?: StateAction): RuleSpec;
+    ac(first: StateAction | boolean, second?: StateAction): RuleSpec;
     clear(): RuleSpec;
     process(rule: Rule, ctx: Context, state: RuleState): Rule;
     parse_alts(is_open: boolean, alts: NormAltSpec[], rule: Rule, ctx: Context): AltMatch;
@@ -327,6 +327,7 @@ export interface Point {
     end?: Token;
 }
 export interface Token {
+    isToken: boolean;
     name: string;
     tin: Tin;
     val: any;
@@ -405,6 +406,6 @@ export declare type AltModifier = (rule: Rule, ctx: Context, alt: AltMatch, next
 export declare type AltAction = (rule: Rule, ctx: Context, alt: AltMatch) => any;
 export declare type AltNext = (rule: Rule, ctx: Context, alt: AltMatch) => string;
 export declare type AltBack = (rule: Rule, ctx: Context, alt: AltMatch) => number;
-export declare type StateAction = (rule: Rule, ctx: Context) => any;
+export declare type StateAction = (this: RuleSpec, rule: Rule, ctx: Context, out?: Token | void) => Token | void;
 export declare type AltError = (rule: Rule, ctx: Context, alt: AltMatch) => Token | undefined;
 export declare type ValModifier = (val: any, lex: Lex, cfg: Config, opts: Options) => string;

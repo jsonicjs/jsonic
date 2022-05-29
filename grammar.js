@@ -74,6 +74,12 @@ function grammar(jsonic) {
             // There may be another elem or pair.
             { b: 1, g: 'val,json,more' },
         ])
+            // TODO: move to plugin OR new feature: 'use' that is copied to children
+            .ao((rule, _ctx) => {
+            if (null != rule.parent.use.key) {
+                rule.use.key = rule.parent.use.key;
+            }
+        })
             .bc((rule, ctx) => {
             // console.log('VAL BC A', rule.node, rule.o0.val, rule.os, rule.child.node)
             // NOTE: val can be undefined when there is no value at all
@@ -94,13 +100,20 @@ function grammar(jsonic) {
         // })
     });
     jsonic.rule('map', (rs) => {
-        rs.bo((rule) => {
+        rs
+            .bo((rule) => {
             // Implicit lists only at top level.
             rule.n.il = 1 + (rule.n.il ? rule.n.il : 0);
             rule.n.im = 1 + (rule.n.im ? rule.n.im : 0);
             // Create a new empty map.
             rule.node = {};
-        }).open([
+        })
+            .ao((rule, _ctx) => {
+            if (null != rule.parent.use.key) {
+                rule.use.key = rule.parent.use.key;
+            }
+        })
+            .open([
             // An empty map: {}.
             { s: [OB, CB], g: 'map,json' },
             // Start matching map key-value pairs: a:1.
@@ -134,16 +147,22 @@ function grammar(jsonic) {
     jsonic.rule('pair', (rs) => {
         rs.open([
             // Match key-colon start of pair.
-            { s: [VAL, CL], p: 'val', u: { key: true }, g: 'map,pair,key,json' },
+            { s: [VAL, CL], p: 'val', u: { pair: true }, g: 'map,pair,key,json' },
             // Ignore initial comma: {,a:1.
             { s: [CA], g: 'map,pair,comma' },
         ])
-            .bc((r, ctx) => {
-            if (r.use.key) {
+            .ao((r, _ctx) => {
+            if (r.use.pair) {
                 const key_token = r.o0;
                 const key = ST === key_token.tin || TX === key_token.tin
                     ? key_token.val
                     : key_token.src;
+                r.use.key = key;
+            }
+        })
+            .bc((r, ctx) => {
+            if (r.use.pair) {
+                let key = r.use.key;
                 let val = r.child.node;
                 const prev = r.node[key];
                 // Convert undefined to null when there was no pair value

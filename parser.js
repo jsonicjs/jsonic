@@ -48,7 +48,6 @@ const makeNoRule = (ctx) => makeRule(makeRuleSpec(ctx.cfg, {}), ctx);
 // Parse-alternate match (built from current tokens and AltSpec).
 class AltMatchImpl {
     constructor() {
-        // m: Token[] = [] // Matched Tokens (not Tins!).
         this.p = types_1.EMPTY; // Push rule (by name).
         this.r = types_1.EMPTY; // Replace rule (by name).
         this.b = 0; // Move token position backward.
@@ -58,10 +57,19 @@ const makeAltMatch = (...params) => new AltMatchImpl(...params);
 const PALT = makeAltMatch(); // Only one alt object is created.
 const EMPTY_ALT = makeAltMatch();
 class RuleSpecImpl {
+    // TODO: is def param used?
     constructor(cfg, def) {
         this.name = types_1.EMPTY; // Set by Parser.rule
+        this.def = {
+            open: [],
+            close: [],
+            bo: [],
+            bc: [],
+            ao: [],
+            ac: [],
+        };
         this.cfg = cfg;
-        this.def = def || {};
+        this.def = Object.assign(this.def, def);
         // Null Alt entries are allowed and ignored as a convenience.
         this.def.open = (this.def.open || []).filter((alt) => null != alt);
         this.def.close = (this.def.close || []).filter((alt) => null != alt);
@@ -78,7 +86,8 @@ class RuleSpecImpl {
         let aa = ((0, utility_1.isarr)(a) ? a : [a])
             .filter((alt) => null != alt)
             .map((a) => (0, utility_1.normalt)(a));
-        this.def['o' === state ? 'open' : 'close'][inject](...aa);
+        let alts = this.def['o' === state ? 'open' : 'close'];
+        alts[inject](...aa);
         (0, utility_1.filterRules)(this, this.cfg);
         return this;
     }
@@ -88,24 +97,35 @@ class RuleSpecImpl {
     close(a, flags) {
         return this.add('c', a, flags);
     }
-    action(step, state, action) {
-        this.def[step + state] = action;
+    action(prepend, step, state, action) {
+        let actions = this.def[step + state];
+        if (prepend) {
+            actions.unshift(action);
+        }
+        else {
+            actions.push(action);
+        }
         return this;
     }
-    bo(action) {
-        return this.action(types_1.BEFORE, types_1.OPEN, action);
+    bo(first, second) {
+        return this.action(second ? !!first : true, types_1.BEFORE, types_1.OPEN, second || first);
     }
-    ao(action) {
-        return this.action(types_1.AFTER, types_1.OPEN, action);
+    ao(first, second) {
+        return this.action(second ? !!first : true, types_1.AFTER, types_1.OPEN, second || first);
     }
-    bc(action) {
-        return this.action(types_1.BEFORE, types_1.CLOSE, action);
+    bc(first, second) {
+        return this.action(second ? !!first : true, types_1.BEFORE, types_1.CLOSE, second || first);
     }
-    ac(action) {
-        return this.action(types_1.AFTER, types_1.CLOSE, action);
+    ac(first, second) {
+        return this.action(second ? !!first : true, types_1.AFTER, types_1.CLOSE, second || first);
     }
     clear() {
-        this.def = { open: [], close: [] };
+        this.def.open.length = 0;
+        this.def.close.length = 0;
+        this.def.bo.length = 0;
+        this.def.ao.length = 0;
+        this.def.bc.length = 0;
+        this.def.ac.length = 0;
         return this;
     }
     process(rule, ctx, state) {
@@ -117,10 +137,15 @@ class RuleSpecImpl {
         // Match alternates for current state.
         let alts = (is_open ? def.open : def.close);
         // Handle "before" call.
-        let before = is_open ? rule.bo && def.bo : rule.bc && def.bc;
-        let bout = before && before.call(this, rule, ctx);
-        if (bout && bout.isToken && null != bout.err) {
-            return this.bad(bout, rule, ctx, { is_open });
+        let befores = is_open ? rule.bo ? def.bo : null : rule.bc ? def.bc : null;
+        if (befores) {
+            let bout = undefined;
+            for (let bI = 0; bI < befores.length; bI++) {
+                bout = befores[bI].call(this, rule, ctx, bout);
+                if ((bout === null || bout === void 0 ? void 0 : bout.isToken) && (bout === null || bout === void 0 ? void 0 : bout.err)) {
+                    return this.bad(bout, rule, ctx, { is_open });
+                }
+            }
         }
         // Attempt to match one of the alts.
         // let alt: AltMatch = (bout && bout.alt) ? { ...EMPTY_ALT, ...bout.alt } :
@@ -197,10 +222,16 @@ class RuleSpecImpl {
             why += 'Z';
         }
         // Handle "after" call.
-        let after = is_open ? rule.ao && def.ao : rule.ac && def.ac;
-        let aout = after && after.call(this, rule, ctx, alt, next);
-        if (aout && aout.isToken && null != aout.err) {
-            return this.bad(aout, rule, ctx, { is_open });
+        let afters = is_open ? rule.ao ? def.ao : null : rule.ac ? def.ac : null;
+        if (afters) {
+            let aout = undefined;
+            // TODO: needed? let aout = after && after.call(this, rule, ctx, alt, next)
+            for (let aI = 0; aI < afters.length; aI++) {
+                aout = afters[aI].call(this, rule, ctx, aout);
+                if ((aout === null || aout === void 0 ? void 0 : aout.isToken) && (aout === null || aout === void 0 ? void 0 : aout.err)) {
+                    return this.bad(aout, rule, ctx, { is_open });
+                }
+            }
         }
         next.why = why;
         ctx.log &&
@@ -314,7 +345,7 @@ class RuleSpecImpl {
                     : out.b;
         }
         let match = altI < alts.length;
-        // TODO: move to util function
+        // TODO: move to debug plugin
         ctx.log &&
             ctx.log('parse ' + rule.state.toUpperCase(), rule.prev.id + '/' + rule.parent.id + '/' + rule.child.id, rule.name + '~' + rule.id, match ? 'alt=' + altI : 'no-alt', match && out.g ? 'g:' + out.g + ' ' : '', (match && out.p ? 'p:' + out.p + ' ' : '') +
                 (match && out.r ? 'r:' + out.r + ' ' : '') +

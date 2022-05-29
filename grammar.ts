@@ -98,6 +98,13 @@ function grammar(jsonic: Jsonic) {
         { b: 1, g: 'val,json,more' },
       ])
 
+      // TODO: move to plugin OR new feature: 'use' that is copied to children
+      .ao((rule: Rule, _ctx: Context) => {
+        if (null != rule.parent.use.key) {
+          rule.use.key = rule.parent.use.key
+        }
+      })
+
       .bc((rule: Rule, ctx: Context) => {
         // console.log('VAL BC A', rule.node, rule.o0.val, rule.os, rule.child.node)
 
@@ -107,7 +114,7 @@ function grammar(jsonic: Jsonic) {
           undefined === rule.node
             ? undefined === rule.child.node
               ? // (0 === rule.os ? undefined : rule.o0.val) :
-                0 === rule.os
+              0 === rule.os
                 ? undefined
                 : rule.o0.resolveVal(rule, ctx)
               : rule.child.node
@@ -122,25 +129,34 @@ function grammar(jsonic: Jsonic) {
   })
 
   jsonic.rule('map', (rs: RuleSpec) => {
-    rs.bo((rule: Rule) => {
-      // Implicit lists only at top level.
-      rule.n.il = 1 + (rule.n.il ? rule.n.il : 0)
+    rs
+      .bo((rule: Rule) => {
+        // Implicit lists only at top level.
+        rule.n.il = 1 + (rule.n.il ? rule.n.il : 0)
 
-      rule.n.im = 1 + (rule.n.im ? rule.n.im : 0)
+        rule.n.im = 1 + (rule.n.im ? rule.n.im : 0)
 
-      // Create a new empty map.
-      rule.node = {}
-    }).open([
-      // An empty map: {}.
-      { s: [OB, CB], g: 'map,json' },
+        // Create a new empty map.
+        rule.node = {}
+      })
 
-      // Start matching map key-value pairs: a:1.
-      // OB `{` resets implicit map counter.
-      { s: [OB], p: 'pair', n: { pk: 0 }, g: 'map,json,pair' },
+      .ao((rule: Rule, _ctx: Context) => {
+        if (null != rule.parent.use.key) {
+          rule.use.key = rule.parent.use.key
+        }
+      })
 
-      // Pair from implicit map.
-      { s: [VAL, CL], p: 'pair', b: 2, g: 'pair,list,val,imp' },
-    ])
+      .open([
+        // An empty map: {}.
+        { s: [OB, CB], g: 'map,json' },
+
+        // Start matching map key-value pairs: a:1.
+        // OB `{` resets implicit map counter.
+        { s: [OB], p: 'pair', n: { pk: 0 }, g: 'map,json,pair' },
+
+        // Pair from implicit map.
+        { s: [VAL, CL], p: 'pair', b: 2, g: 'pair,list,val,imp' },
+      ])
   })
 
   jsonic.rule('list', (rs: RuleSpec) => {
@@ -173,18 +189,25 @@ function grammar(jsonic: Jsonic) {
   jsonic.rule('pair', (rs: RuleSpec) => {
     rs.open([
       // Match key-colon start of pair.
-      { s: [VAL, CL], p: 'val', u: { key: true }, g: 'map,pair,key,json' },
+      { s: [VAL, CL], p: 'val', u: { pair: true }, g: 'map,pair,key,json' },
 
       // Ignore initial comma: {,a:1.
       { s: [CA], g: 'map,pair,comma' },
     ])
-      .bc((r: Rule, ctx: Context) => {
-        if (r.use.key) {
+      .ao((r: Rule, _ctx: Context) => {
+        if (r.use.pair) {
           const key_token = r.o0
           const key =
             ST === key_token.tin || TX === key_token.tin
               ? key_token.val
               : key_token.src
+
+          r.use.key = key
+        }
+      })
+      .bc((r: Rule, ctx: Context) => {
+        if (r.use.pair) {
+          let key = r.use.key
           let val = r.child.node
           const prev = r.node[key]
 
@@ -195,10 +218,10 @@ function grammar(jsonic: Jsonic) {
             null == prev
               ? val
               : ctx.cfg.map.merge
-              ? ctx.cfg.map.merge(prev, val)
-              : ctx.cfg.map.extend
-              ? deep(prev, val)
-              : val
+                ? ctx.cfg.map.merge(prev, val)
+                : ctx.cfg.map.extend
+                  ? deep(prev, val)
+                  : val
         }
       })
       .close([

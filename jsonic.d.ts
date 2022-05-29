@@ -1,4 +1,4 @@
-import type { Config, Context, Counters, Relate, Tin, Point, Token, Rule, RuleSpec, Lex, RuleDefiner, RuleState, RuleSpecMap, LexMatcher, MakeLexMatcher, AltSpec, AltMatch, AltAction, AltCond, AltModifier, AltError, Options, JsonicAPI, JsonicParse, Plugin } from './types';
+import type { Config, Context, Counters, Relate, Tin, Point, Token, Rule, RuleSpec, Lex, RuleDefiner, RuleState, RuleSpecMap, LexMatcher, MakeLexMatcher, AltSpec, AltMatch, AltAction, AltCond, AltModifier, AltError, Options, JsonicAPI, JsonicParse, Plugin, StateAction } from './types';
 import { OPEN, CLOSE, BEFORE, AFTER } from './types';
 import { JsonicError, badlex, deep, errdesc, errinject, extract, makelog, mesc, regexp, tokenize, trimstk, srcfmt, clone, charset, configure, escre, parserwrap, prop, str } from './utility';
 import { makePoint, makeToken, makeLex, makeFixedMatcher, makeSpaceMatcher, makeLineMatcher, makeStringMatcher, makeCommentMatcher, makeNumberMatcher, makeTextMatcher } from './lexer';
@@ -33,6 +33,6 @@ JsonicAPI & {
 };
 declare function make(param_options?: Relate, parent?: Jsonic): Jsonic;
 declare let Jsonic: Jsonic;
-export type { Plugin, Options, Config, Context, Token, Point, Rule, RuleSpec, Lex, Counters, Relate, Tin, MakeLexMatcher, LexMatcher, RuleDefiner, RuleState, RuleSpecMap, AltSpec, AltMatch, AltCond, AltAction, AltModifier, AltError, };
+export type { Plugin, Options, Config, Context, Token, Point, Rule, RuleSpec, Lex, Counters, Relate, Tin, MakeLexMatcher, LexMatcher, RuleDefiner, RuleState, RuleSpecMap, AltSpec, AltMatch, AltCond, AltAction, AltModifier, AltError, StateAction, };
 export { Jsonic as Jsonic, JsonicError, Parser, util, make, makeToken, makePoint, makeRule, makeRuleSpec, makeLex, makeFixedMatcher, makeSpaceMatcher, makeLineMatcher, makeStringMatcher, makeCommentMatcher, makeNumberMatcher, makeTextMatcher, OPEN, CLOSE, BEFORE, AFTER, };
 export default Jsonic;

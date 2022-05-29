@@ -46,17 +46,17 @@ export interface JsonicAPI {
 
   // Token get and set for plugins. Reference by either name or Tin.
   token: { [ref: string]: Tin } & { [ref: number]: string } & (<
-      A extends string | Tin
+    A extends string | Tin
     >(
-      ref: A
-    ) => A extends string ? Tin : string)
+    ref: A
+  ) => A extends string ? Tin : string)
 
   // Fixed token src get and set for plugins. Reference by either src or Tin.
   fixed: { [ref: string]: Tin } & { [ref: number]: string } & (<
-      A extends string | Tin
+    A extends string | Tin
     >(
-      ref: A
-    ) => undefined | (A extends string ? Tin : string))
+    ref: A
+  ) => undefined | (A extends string ? Tin : string))
 
   // Unique identifier string for each Jsonic instance.
   id: string
@@ -182,10 +182,10 @@ export interface RuleSpec {
   def: {
     open: AltSpec[]
     close: AltSpec[]
-    bo?: StateAction
-    ao?: StateAction
-    bc?: StateAction
-    ac?: StateAction
+    bo: StateAction[]
+    bc: StateAction[]
+    ao: StateAction[]
+    ac: StateAction[]
   }
 
   tin<R extends string | Tin, T extends R extends Tin ? string : Tin>(ref: R): T
@@ -193,11 +193,16 @@ export interface RuleSpec {
   add(state: RuleState, a: AltSpec | AltSpec[], flags: any): RuleSpec
   open(a: AltSpec | AltSpec[], flags?: any): RuleSpec
   close(a: AltSpec | AltSpec[], flags?: any): RuleSpec
-  action(step: RuleStep, state: RuleState, action: StateAction): RuleSpec
-  bo(action: StateAction): RuleSpec
-  ao(action: StateAction): RuleSpec
-  bc(action: StateAction): RuleSpec
-  ac(action: StateAction): RuleSpec
+  action(
+    prepend: boolean,
+    step: RuleStep,
+    state: RuleState,
+    action: StateAction
+  ): RuleSpec
+  bo(first: StateAction | boolean, second?: StateAction): RuleSpec
+  ao(first: StateAction | boolean, second?: StateAction): RuleSpec
+  bc(first: StateAction | boolean, second?: StateAction): RuleSpec
+  ac(first: StateAction | boolean, second?: StateAction): RuleSpec
   clear(): RuleSpec
 
   process(rule: Rule, ctx: Context, state: RuleState): Rule
@@ -433,6 +438,7 @@ export interface Point {
 // of parser errors, as they capture the position of the error in the
 // source.
 export interface Token {
+  isToken: boolean // Marks object as token.
   name: string // Token name.
   tin: Tin // Token identification number.
   val: any // Value of Token if literal (eg. number).
@@ -469,12 +475,12 @@ export interface AltSpec {
   // Condition function, return true to match alternate.
   // NOTE: Token sequence (s) must also match.
   c?:
-    | AltCond
-    | {
-        // Condition convenience definitions (all must pass).
-        d?: number // - Match if rule stack depth <= d.
-        n?: Counters // - Match if rule counters <= respective given values.
-      }
+  | AltCond
+  | {
+    // Condition convenience definitions (all must pass).
+    d?: number // - Match if rule stack depth <= d.
+    n?: Counters // - Match if rule counters <= respective given values.
+  }
 
   n?: Counters // Increment counters by specified amounts.
   a?: AltAction // Perform an action if this alternate matches.
@@ -482,8 +488,8 @@ export interface AltSpec {
   u?: Relate // Key-value custom data.
 
   g?:
-    | string // Named group tags for the alternate (allows filtering).
-    | string[] // - comma separated or string array
+  | string // Named group tags for the alternate (allows filtering).
+  | string[] // - comma separated or string array
 
   e?: AltError // Generate an error token (alternate is not allowed).
 }
@@ -570,7 +576,12 @@ export type AltBack = (rule: Rule, ctx: Context, alt: AltMatch) => number
 
 // Execute an action for a given Rule state and step:
 // bo: BEFORE OPEN, ao: AFTER OPEN, bc: BEFORE CLOSE, ac: AFTER CLOSE.
-export type StateAction = (rule: Rule, ctx: Context) => any
+export type StateAction = (
+  this: RuleSpec,
+  rule: Rule,
+  ctx: Context,
+  out?: Token | void
+) => Token | void
 
 // Generate an error token (with an appropriate code).
 // NOTE: errors are specified using tokens in order to capture file row and col.

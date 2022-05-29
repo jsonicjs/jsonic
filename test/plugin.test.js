@@ -140,7 +140,7 @@ describe('plugin', function () {
     // use make to avoid polluting Jsonic
     const j = make()
     j.use(make_token_plugin('A', 'aaa'))
-    expect(j('x:A,y:B,z:C')).toEqual({ x: 'aaa', y: 'B', z: 'C' })
+    expect(j('x:A,y:B,z:C',{xlog:-1})).toEqual({ x: 'aaa', y: 'B', z: 'C' })
 
     const a1 = j.make({ a: 1 })
     expect(a1.options.a).toEqual(1)
@@ -759,19 +759,18 @@ function make_token_plugin(char, val) {
     let TT = jsonic.token(tn)
 
     jsonic.rule('val', (rs) => {
-      rs.def.open.push({ s: [TT] })
-
-      let bc = rs.def.bc
-      rs.def.bc = (rule) => {
+      rs
+        .open({ s: [TT], g: 'CV='+val })
+        .bc(rule => {
         if (rule.o0 && TT === rule.o0.tin) {
           rule.o0.val = val
+          // console.log('QQQ', rule.o0, rule.o0.val)
         }
-        return bc(rule)
-      }
-
-      return rs
+      })
+      // return rs
     })
   }
+
   Object.defineProperty(plugin, 'name', { value: 'plugin_' + char })
   return plugin
 }

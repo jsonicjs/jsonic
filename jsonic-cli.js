@@ -1,11 +1,10 @@
 "use strict";
-/* Copyright (c) 2020-2021 Richard Rodger, Oliver Sturm, and other contributors, MIT License */
-/* $lab:coverage:off$ */
 var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.run = void 0;
+/* Copyright (c) 2020-2022 Richard Rodger, Oliver Sturm, and other contributors, MIT License */
 const fs_1 = __importDefault(require("fs"));
 const jsonic_1 = require("./jsonic");
 const debug_1 = require("./debug");
@@ -13,7 +12,6 @@ const debug_1 = require("./debug");
 if (require.main === module) {
     run(process.argv, console).catch((e) => console.error(e));
 }
-/* $lab:coverage:on$ */
 async function run(argv, console) {
     const args = {
         help: false,
@@ -249,7 +247,7 @@ Examples:
 > jsonic -o plugin.dynamic.markchar=% -p dynamic 'a:%1+1'
 {"a":2}
 
-See also: http://jsonic.richardrodger.com
+See also: http://jsonic.senecajs.org
 `;
     console.log(s);
 }

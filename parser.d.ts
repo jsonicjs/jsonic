@@ -27,18 +27,25 @@ declare class RuleImpl implements Rule {
 declare const makeRule: (spec: RuleSpec, ctx: Context, node?: any) => RuleImpl;
 declare class RuleSpecImpl implements RuleSpec {
     name: string;
-    def: any;
+    def: {
+        open: AltSpec[];
+        close: AltSpec[];
+        bo: StateAction[];
+        bc: StateAction[];
+        ao: StateAction[];
+        ac: StateAction[];
+    };
     cfg: Config;
     constructor(cfg: Config, def: any);
     tin<R extends string | Tin, T extends R extends Tin ? string : Tin>(ref: R): T;
     add(state: RuleState, a: AltSpec | AltSpec[], flags: any): RuleSpec;
     open(a: AltSpec | AltSpec[], flags?: any): RuleSpec;
     close(a: AltSpec | AltSpec[], flags?: any): RuleSpec;
-    action(step: RuleStep, state: RuleState, action: StateAction): RuleSpec;
-    bo(action: StateAction): RuleSpec;
-    ao(action: StateAction): RuleSpec;
-    bc(action: StateAction): RuleSpec;
-    ac(action: StateAction): RuleSpec;
+    action(prepend: boolean, step: RuleStep, state: RuleState, action: StateAction): RuleSpec;
+    bo(first: StateAction | boolean, second?: StateAction): RuleSpec;
+    ao(first: StateAction | boolean, second?: StateAction): RuleSpec;
+    bc(first: StateAction | boolean, second?: StateAction): RuleSpec;
+    ac(first: StateAction | boolean, second?: StateAction): RuleSpec;
     clear(): this;
     process(rule: Rule, ctx: Context, state: RuleState): Rule;
     parse_alts(is_open: boolean, alts: NormAltSpec[], rule: Rule, ctx: Context): AltMatch;
