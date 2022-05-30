@@ -74,12 +74,12 @@ function grammar(jsonic) {
             // There may be another elem or pair.
             { b: 1, g: 'val,json,more' },
         ])
-            // TODO: move to plugin OR new feature: 'use' that is copied to children
-            .ao((rule, _ctx) => {
-            if (null != rule.parent.use.key) {
-                rule.use.key = rule.parent.use.key;
-            }
-        })
+            // // TODO: move to plugin OR new feature: 'use' that is copied to children
+            // .ao((rule: Rule, _ctx: Context) => {
+            //   if (null != rule.parent.use.key) {
+            //     rule.use.key = rule.parent.use.key
+            //   }
+            // })
             .bc((rule, ctx) => {
             // console.log('VAL BC A', rule.node, rule.o0.val, rule.os, rule.child.node)
             // NOTE: val can be undefined when there is no value at all
@@ -107,11 +107,11 @@ function grammar(jsonic) {
             // Create a new empty map.
             rule.node = {};
         })
-            .ao((rule, _ctx) => {
-            if (null != rule.parent.use.key) {
-                rule.use.key = rule.parent.use.key;
-            }
-        })
+            // .ao((rule: Rule, _ctx: Context) => {
+            //   if (null != rule.parent.use.key) {
+            //     rule.use.key = rule.parent.use.key
+            //   }
+            // })
             .open([
             // An empty map: {}.
             { s: [OB, CB], g: 'map,json' },

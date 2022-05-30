@@ -98,12 +98,12 @@ function grammar(jsonic: Jsonic) {
         { b: 1, g: 'val,json,more' },
       ])
 
-      // TODO: move to plugin OR new feature: 'use' that is copied to children
-      .ao((rule: Rule, _ctx: Context) => {
-        if (null != rule.parent.use.key) {
-          rule.use.key = rule.parent.use.key
-        }
-      })
+      // // TODO: move to plugin OR new feature: 'use' that is copied to children
+      // .ao((rule: Rule, _ctx: Context) => {
+      //   if (null != rule.parent.use.key) {
+      //     rule.use.key = rule.parent.use.key
+      //   }
+      // })
 
       .bc((rule: Rule, ctx: Context) => {
         // console.log('VAL BC A', rule.node, rule.o0.val, rule.os, rule.child.node)
@@ -114,7 +114,7 @@ function grammar(jsonic: Jsonic) {
           undefined === rule.node
             ? undefined === rule.child.node
               ? // (0 === rule.os ? undefined : rule.o0.val) :
-                0 === rule.os
+              0 === rule.os
                 ? undefined
                 : rule.o0.resolveVal(rule, ctx)
               : rule.child.node
@@ -139,11 +139,11 @@ function grammar(jsonic: Jsonic) {
       rule.node = {}
     })
 
-      .ao((rule: Rule, _ctx: Context) => {
-        if (null != rule.parent.use.key) {
-          rule.use.key = rule.parent.use.key
-        }
-      })
+      // .ao((rule: Rule, _ctx: Context) => {
+      //   if (null != rule.parent.use.key) {
+      //     rule.use.key = rule.parent.use.key
+      //   }
+      // })
 
       .open([
         // An empty map: {}.
@@ -217,10 +217,10 @@ function grammar(jsonic: Jsonic) {
             null == prev
               ? val
               : ctx.cfg.map.merge
-              ? ctx.cfg.map.merge(prev, val)
-              : ctx.cfg.map.extend
-              ? deep(prev, val)
-              : val
+                ? ctx.cfg.map.merge(prev, val)
+                : ctx.cfg.map.extend
+                  ? deep(prev, val)
+                  : val
         }
       })
       .close([

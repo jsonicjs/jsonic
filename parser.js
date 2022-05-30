@@ -142,7 +142,7 @@ class RuleSpecImpl {
         if (befores) {
             let bout = undefined;
             for (let bI = 0; bI < befores.length; bI++) {
-                bout = befores[bI].call(this, rule, ctx, bout);
+                bout = befores[bI].call(this, rule, ctx, next, bout);
                 if ((bout === null || bout === void 0 ? void 0 : bout.isToken) && (bout === null || bout === void 0 ? void 0 : bout.err)) {
                     return this.bad(bout, rule, ctx, { is_open });
                 }
@@ -236,11 +236,15 @@ class RuleSpecImpl {
             let aout = undefined;
             // TODO: needed? let aout = after && after.call(this, rule, ctx, alt, next)
             for (let aI = 0; aI < afters.length; aI++) {
-                aout = afters[aI].call(this, rule, ctx, aout);
+                aout = afters[aI].call(this, rule, ctx, next, aout);
                 if ((aout === null || aout === void 0 ? void 0 : aout.isToken) && (aout === null || aout === void 0 ? void 0 : aout.err)) {
                     return this.bad(aout, rule, ctx, { is_open });
                 }
             }
+        }
+        // Keep properties added in after action
+        if (0 < Object.keys(rule.keep).length) {
+            next.keep = { ...next.keep, ...rule.keep };
         }
         next.why = why;
         ctx.log &&

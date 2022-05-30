@@ -582,6 +582,7 @@ export type StateAction = (
   this: RuleSpec,
   rule: Rule,
   ctx: Context,
+  next: Rule,
   out?: Token | void
 ) => Token | void
 

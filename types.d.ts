@@ -409,6 +409,6 @@ export declare type AltModifier = (rule: Rule, ctx: Context, alt: AltMatch, next
 export declare type AltAction = (rule: Rule, ctx: Context, alt: AltMatch) => any;
 export declare type AltNext = (rule: Rule, ctx: Context, alt: AltMatch) => string;
 export declare type AltBack = (rule: Rule, ctx: Context, alt: AltMatch) => number;
-export declare type StateAction = (this: RuleSpec, rule: Rule, ctx: Context, out?: Token | void) => Token | void;
+export declare type StateAction = (this: RuleSpec, rule: Rule, ctx: Context, next: Rule, out?: Token | void) => Token | void;
 export declare type AltError = (rule: Rule, ctx: Context, alt: AltMatch) => Token | undefined;
 export declare type ValModifier = (val: any, lex: Lex, cfg: Config, opts: Options) => string;
