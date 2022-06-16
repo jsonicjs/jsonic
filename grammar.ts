@@ -114,7 +114,7 @@ function grammar(jsonic: Jsonic) {
           undefined === rule.node
             ? undefined === rule.child.node
               ? // (0 === rule.os ? undefined : rule.o0.val) :
-              0 === rule.os
+                0 === rule.os
                 ? undefined
                 : rule.o0.resolveVal(rule, ctx)
               : rule.child.node
@@ -217,10 +217,10 @@ function grammar(jsonic: Jsonic) {
             null == prev
               ? val
               : ctx.cfg.map.merge
-                ? ctx.cfg.map.merge(prev, val)
-                : ctx.cfg.map.extend
-                  ? deep(prev, val)
-                  : val
+              ? ctx.cfg.map.merge(prev, val)
+              : ctx.cfg.map.extend
+              ? deep(prev, val)
+              : val
         }
       })
       .close([
