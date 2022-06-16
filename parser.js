@@ -242,10 +242,6 @@ class RuleSpecImpl {
                 }
             }
         }
-        // // Keep properties added in after action
-        // if (0 < Object.keys(rule.keep).length) {
-        //   next.keep = { ...next.keep, ...rule.keep }
-        // }
         next.why = why;
         ctx.log &&
             ctx.log('node  ' + rule.state.toUpperCase(), rule.prev.id + '/' + rule.parent.id + '/' + rule.child.id, rule.name + '~' + rule.id, 'w=' + why, 'n:' +
