@@ -511,7 +511,7 @@ describe('custom', function () {
 
       .rule('bar', (rs) => {
         rs
-          .open([{ s: [BT], p:'zed', u: {planet:'earth'}}])
+          .open([{ s: [BT], p: 'zed', u: {planet:'earth'}}])
           .ao((r) => (r.node.out.push(`AO-BAR<${r.keep.color},${r.use.planet}>`)))
           .bc((r) => (r.node.out.push(`BC-BAR<${r.keep.color},${r.use.planet}>`)))
       })
