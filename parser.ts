@@ -369,11 +369,6 @@ class RuleSpecImpl implements RuleSpec {
       }
     }
 
-    // Keep properties added in after action
-    if (0 < Object.keys(rule.keep).length) {
-      next.keep = { ...next.keep, ...rule.keep }
-    }
-
     next.why = why
 
     ctx.log &&

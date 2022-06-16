@@ -27,20 +27,21 @@ let j = Jsonic.make().use(function path(jsonic) {
           r.keep.index = -1
         })
         .bc((r)=>{
-          r.keep.index = r.use.index
-          r.keep.key = undefined
+          // r.keep.index = r.use.index
+          // r.keep.key = undefined
         })
     })
     .rule('pair',(rs)=>{
       rs
         .ao(false,(r)=>{
-          if(0<r.d) {
-            r.keep.key = r.use.key
-            r.keep.path = [...r.keep.path, r.use.key]
+          if(0<r.d && r.use.pair) {
+            // r.keep.key = r.use.key
+            // r.keep.path = [...r.keep.path, r.use.key]
+            r.child.keep.path = [...r.keep.path, r.use.key]
           }
         })
         .bc((r)=>{
-          r.keep.path = r.keep.path.slice(0,r.keep.path.length-1)
+          // r.keep.path = r.keep.path.slice(0,r.keep.path.length-1)
         })
     })
     .rule('list',(rs)=>{
@@ -49,7 +50,7 @@ let j = Jsonic.make().use(function path(jsonic) {
           r.keep.index = -1
         })
         .bc((r)=>{
-          r.keep.index = -1
+          // r.keep.index = -1
         })
     })
     .rule('elem',(rs)=>{
@@ -57,16 +58,19 @@ let j = Jsonic.make().use(function path(jsonic) {
         .ao(false,(r)=>{
           if(0<r.d) {
             r.keep.index = 1 + r.keep.index
-            r.keep.path = [...r.keep.path, r.keep.index]
+            // r.keep.path = [...r.keep.path, r.keep.index]
+            r.child.keep.path = [...r.keep.path, r.keep.index]
           }
         })
         .bc((r)=>{
-          r.keep.path = r.keep.path.slice(0,r.keep.path.length-1)
+          // r.keep.path = r.keep.path.slice(0,r.keep.path.length-1)
         })
     })
 })
 
-// console.log(j('a:b:c:1,a:b:d:2',{log:-1}))
+console.log(j('a:b:c:1,a:b:d:2',{xlog:-1}))
+console.log(j('[1,[2],3]',{xlog:-1}))
+console.log(j('1,2,3',{xlog:-1})) // FIX
 
-console.dir(j('a:[11,22,33],b:c:[44,{d:[55,66]},77]',{log:-1}), {depth:null})
+console.dir(j('a:[11,22,33],b:c:[44,{d:[55,66]},77]',{xlog:-1}), {depth:null})
 
