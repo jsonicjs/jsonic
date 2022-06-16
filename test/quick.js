@@ -1,5 +1,7 @@
 let { Jsonic } = require('..')
 
+// TODO: MOVE TO PLUGIN 
+
 let j = Jsonic.make().use(function path(jsonic) {
   jsonic
     .rule('val',(rs)=>{
