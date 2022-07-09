@@ -93,9 +93,9 @@ class RuleSpecImpl {
         if (ops) {
             // Delete before move so indexes still make sense, using null to preserve index.
             if (ops.delete) {
-                for (let i = 0; i < ops.delete.length; i += 2) {
+                for (let i = 0; i < ops.delete.length; i++) {
                     let deleteI = (alts.length + ops.delete[i]) % alts.length;
-                    alts.splice(deleteI, 1, null);
+                    alts[deleteI] = null;
                 }
             }
             if (ops.move) {

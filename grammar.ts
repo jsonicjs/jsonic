@@ -116,10 +116,52 @@ function grammar(jsonic: Jsonic) {
 
   // sets key:val on node
   jsonic.rule('pair', (rs: RuleSpec) => {
-    rs.open([
-      // Match key-colon start of pair.
-      { s: [VAL, CL], p: 'val', u: { pair: true }, g: 'map,pair,key,json' },
-    ])
+    rs
+      .open([
+        // Match key-colon start of pair.
+        { s: [VAL, CL], p: 'val', u: { pair: true }, g: 'map,pair,key,json' },
+      ])
+      .ao((r: Rule, _ctx: Context) => {
+        if (r.use.pair) {
+          const key_token = r.o0
+          const key =
+            ST === key_token.tin || TX === key_token.tin
+              ? key_token.val
+              : key_token.src
+
+          r.use.key = key
+        }
+      })
+      .bc((r: Rule, ctx: Context) => {
+        if (r.use.pair) {
+          let key = r.use.key
+          let val = r.child.node
+          const prev = r.node[key]
+
+          // Convert undefined to null when there was no pair value
+          val = undefined === val ? null : val
+
+          r.node[key] =
+            null == prev
+              ? val
+              : ctx.cfg.map.merge
+                ? ctx.cfg.map.merge(prev, val)
+                : ctx.cfg.map.extend
+                  ? deep(prev, val)
+                  : val
+        }
+      })
+      .close([
+        // End of map.
+        { s: [CB], g: 'map,pair,json' },
+
+        // Comma means a new pair at same pair-key level.
+        { s: [CA], r: 'pair', g: 'map,pair,json' },
+
+        // Fail if auto-close option is false.
+        { s: [ZZ], e: finish, g: 'map,pair,json' },
+      ])
+
   })
 
 
@@ -230,69 +272,37 @@ function grammar(jsonic: Jsonic) {
       // Ignore initial comma: {,a:1.
       { s: [CA], g: 'map,pair,comma' },
     ], { append: true })
-      .ao((r: Rule, _ctx: Context) => {
-        if (r.use.pair) {
-          const key_token = r.o0
-          const key =
-            ST === key_token.tin || TX === key_token.tin
-              ? key_token.val
-              : key_token.src
-
-          r.use.key = key
-        }
-      })
-      .bc((r: Rule, ctx: Context) => {
-        if (r.use.pair) {
-          let key = r.use.key
-          let val = r.child.node
-          const prev = r.node[key]
-
-          // Convert undefined to null when there was no pair value
-          val = undefined === val ? null : val
-
-          r.node[key] =
-            null == prev
-              ? val
-              : ctx.cfg.map.merge
-                ? ctx.cfg.map.merge(prev, val)
-                : ctx.cfg.map.extend
-                  ? deep(prev, val)
-                  : val
-        }
-      })
       .close([
         // End of map, reset implicit depth counter so that
         // a:b:c:1,d:2 -> {a:{b:{c:1}},d:2}
         { s: [CB], c: { n: { pk: 0 } }, g: 'map,pair,json' },
 
         // Ignore trailing comma at end of map.
-        { s: [CA, CB], c: { n: { pk: 0 } }, g: 'map,pair,comma' },
+        { s: [CA, CB], c: { n: { pk: 0 } }, g: 'map,pair,comma,jsonic' },
 
         // Comma means a new pair at same pair-key level.
         { s: [CA], c: { n: { pk: 0 } }, r: 'pair', g: 'map,pair,json' },
 
         // TODO: try CA VAL ? works anywhere?
         // Comma means a new pair if implicit top level map.
-        // { s: [CA], c: { d: 2 }, r: 'pair', g: 'map,pair,json' },
-        { s: [CA], c: { n: { im: 1 } }, r: 'pair', g: 'map,pair,json' },
+        { s: [CA], c: { n: { im: 1 } }, r: 'pair', g: 'map,pair,jsonic' },
 
         // Who needs commas anyway?
-        { s: [VAL], c: { n: { pk: 0 } }, r: 'pair', b: 1, g: 'map,pair,imp' },
+        { s: [VAL], c: { n: { pk: 0 } }, r: 'pair', b: 1, g: 'map,pair,imp,jsonic' },
 
         // TODO: try VAL CL ? works anywhere?
         // Value means a new pair if implicit top level map.
-        // { s: [VAL], c: { d: 2 }, r: 'pair', b: 1, g: 'map,pair,imp' },
-        { s: [VAL], c: { n: { im: 1 } }, r: 'pair', b: 1, g: 'map,pair,imp' },
+        { s: [VAL], c: { n: { im: 1 } }, r: 'pair', b: 1, g: 'map,pair,imp,jsonic' },
 
         // End of implicit path (eg. a:b:1), keep closing until pk=0.
-        { s: [[CB, CA, ...VAL]], b: 1, g: 'map,pair,imp,path' },
+        { s: [[CB, CA, ...VAL]], b: 1, g: 'map,pair,imp,path,jsonic' },
 
         // Close implicit single prop map inside list: [a:1]
-        { s: [CS], b: 1, g: 'list,pair,imp' },
+        { s: [CS], b: 1, g: 'list,pair,imp,jsonic' },
 
         // Fail if auto-close option is false.
         { s: [ZZ], e: finish, g: 'map,pair,json' },
-      ])
+      ], { append: true, delete: [0, 1, 2] })
   })
 
   // push onto node

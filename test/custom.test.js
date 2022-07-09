@@ -313,6 +313,18 @@ describe('custom', function () {
 
     expect(j('bcde')).toEqual({o:'BCDE'})
     expect(j.rule('top').def.open.map(alt=>alt.g[0])).toEqual(['gc','gb','ge','gd'])
+
+
+    // Delete ops
+    j.use(j=>{
+      j.rule(
+        'top',rs=>rs
+          .open([], { delete:[1,2] }))
+    })
+
+    expect(j('cd')).toEqual({o:'CD'})
+    expect(j.rule('top').def.open.map(alt=>alt.g[0])).toEqual(['gc','gd'])
+
   })
 
   
