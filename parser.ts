@@ -1,4 +1,4 @@
-/* Copyright (c) 2013-2021 Richard Rodger, MIT License */
+/* Copyright (c) 2013-2022 Richard Rodger, MIT License */
 
 /*  parser.ts
  *  Parser implementation, converts the lexer tokens into parsed data.

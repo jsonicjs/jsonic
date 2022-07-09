@@ -1,8 +1,12 @@
-/* Copyright (c) 2013-2021 Richard Rodger, MIT License */
+/* Copyright (c) 2013-2022 Richard Rodger, MIT License */
 
 /*  jsonic.ts
  *  Entry point and API.
  */
+
+// TODO: HIGH: [a:1] should set prop on array, not create [{a:1}]
+// TODO: HIGH: [,,,] syntax should match JS!
+
 
 // TODO: Option switch to turn Debug plugin off when loaded
 // TODO: document standard g names: open, close, step, start, end, imp, top, val, map, etc
@@ -21,7 +25,6 @@
 // TODO: define explicitly: p in close, r in open, behaviour
 // TODO: is s:[] needed?
 // TODO: implicit lists in pair values: "a:1,2 b:3" -> {a:[1,2], b:3} - pair key terminates (A)
-// TODO: [a:1] should set prop on array, not create [{a:1}]
 // TODO: string format for rule def: s:'ST,NR' -> s:[ST,NR], also "s:ST,NR,p:foo,..." - needs (A) - can only used post standard definition (thus not in grammar.ts)
 // TODO: Context provides current jsonic instance: { ..., jsonic: ()=>instance }
 // TODO: docs: ref https://wiki.alopex.li/OnParsers
@@ -29,7 +32,6 @@
 // TODO: rule.use should be rule.u for consistency
 // TODO: Jsonic.make('json') - preset plain JSON options - see variant test just-json
 // TODO: consistent use of clean on options to allow null to mean 'remove property'
-// TODO: [,,,] syntax should match JS!
 // TODO: rename tokens to be user friendly
 // TODO: if token recognized, error needs to be about token, not characters
 // TODO: test custom alt error: eg.  { e: (r: Rule) => r.close[0] } ??? bug: r.close empty!

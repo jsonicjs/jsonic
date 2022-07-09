@@ -1,4 +1,4 @@
-/* Copyright (c) 2013-2021 Richard Rodger, MIT License */
+/* Copyright (c) 2013-2022 Richard Rodger, MIT License */
 
 /*  lexer.ts
  *  Lexer implementation, converts source text into tokens for the parser.

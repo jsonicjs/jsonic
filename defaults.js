@@ -1,5 +1,5 @@
 "use strict";
-/* Copyright (c) 2013-2021 Richard Rodger, MIT License */
+/* Copyright (c) 2013-2022 Richard Rodger, MIT License */
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.defaults = void 0;
 const lexer_1 = require("./lexer");
