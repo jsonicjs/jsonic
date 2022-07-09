@@ -42,10 +42,8 @@ function grammar(jsonic) {
             .close([
             // End of input.
             { s: [ZZ], g: 'end,json' },
-            // Close map or list: `}`, `]`
-            { s: [[CB, CS]], b: 1, g: 'val,json,close' },
-            // There's another elem or pair.
-            { b: 1, g: 'val,json,more' },
+            // There's more JSON.
+            { b: 1, g: 'more,json' },
         ])
             .bc((rule, ctx) => {
             // NOTE: val can be undefined when there is no value at all
@@ -87,6 +85,8 @@ function grammar(jsonic) {
             { s: [CA], b: 1, g: 'list,val,imp,null,jsonic' },
         ], { append: true })
             .close([
+            // Explicitly close map or list: `}`, `]`
+            { s: [[CB, CS]], b: 1, g: 'val,json,close' },
             // Implicit list (comma sep) only allowed at top level: `1,2`.
             {
                 s: [CA],
@@ -107,7 +107,7 @@ function grammar(jsonic) {
             },
         ], {
             append: true,
-            move: [2, -1]
+            move: [1, -1]
         });
     });
     jsonic.rule('map', (rs) => {
