@@ -4,8 +4,7 @@
  *  Entry point and API.
  */
 
-// TODO: Option switch to tunr Debug plugin off when loaded
-// TODO: refactor S. strings to normal strings
+// TODO: Option switch to turn Debug plugin off when loaded
 // TODO: document standard g names: open, close, step, start, end, imp, top, val, map, etc
 // TODO: Rule.use should be Rule.u for consistency
 // TODO: remove c: { n: } and c: { d: } conditionals - just use funcs
@@ -40,7 +39,6 @@
 // TODO: tag should appear in error
 // TODO: remove console colors in browser?
 // post release:
-// TODO: plugin for path expr: a.b:1 -> {a:{b:1}}
 // TODO: data file to diff exhaust changes
 // TODO: cli - less ambiguous merging at top level
 // TODO: internal errors - e.g. adding a null rulespec
@@ -185,8 +183,8 @@ function make(param_options?: Bag, parent?: Jsonic): Jsonic {
     parent
       ? { ...parent.options }
       : false === param_options?.defaults$
-      ? {}
-      : defaults,
+        ? {}
+        : defaults,
     param_options ? param_options : {}
   )
 
