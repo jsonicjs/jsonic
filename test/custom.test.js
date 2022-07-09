@@ -228,6 +228,63 @@ describe('custom', function () {
     expect(j('a')).toEqual(4444)
   })
 
+
+  it('parser-alt-append', () => {
+    let j = make_norules({
+      fixed: {
+        token: {
+          Ta: 'a',
+          Tb: 'b',
+          Tc: 'c',
+        },
+      },
+      
+      rule: { start: 'top' }
+    })
+
+    let Ta = j.token.Ta
+    let Tb = j.token.Tb
+    let Tc = j.token.Tc
+    
+    j.use(j=>{
+      j.rule(
+        'top',rs=>rs
+          .bo(r=>r.node=r.node||{o:''})
+          .open([
+            { s:[Ta], r:'top', a: r=>r.node.o+='A', g:'ga' }
+          ]))
+    })
+
+    expect(j('a')).toEqual({o:'A'})
+    expect(j.rule('top').def.open.map(alt=>alt.g[0])).toEqual(['ga'])
+
+    // Prepend by default
+    j.use(j=>{
+      j.rule(
+        'top',rs=>rs
+          .open([
+            { s:[Tb], r:'top', a: r=>r.node.o+='B', g:'gb' }
+          ]))
+    })
+
+    expect(j('ab')).toEqual({o:'AB'})
+    expect(j.rule('top').def.open.map(alt=>alt.g[0])).toEqual(['gb','ga'])
+
+    // Append flag
+    j.use(j=>{
+      j.rule(
+        'top',rs=>rs
+          .open([
+            { s:[Tc], r:'top', a: r=>r.node.o+='C', g:'gc' }
+          ],{append:true}))
+    })
+
+    expect(j('abc')).toEqual({o:'ABC'})
+    expect(j.rule('top').def.open.map(alt=>alt.g[0])).toEqual(['gb','ga','gc'])
+
+  })
+
+  
   it('parser-any-def', () => {
     let j = make_norules({ rule: { start: 'top' } })
     let rsdef = (rs) => rs.clear().open([{ s: [AA, TX] }])

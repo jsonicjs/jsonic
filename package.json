@@ -33,7 +33,7 @@
     "prettier": "prettier --write --no-semi --single-quote *.ts test/*.js",
     "docs-dev": "vuepress dev docs-src",
     "docs-build": "vuepress build docs-src",
-    "clean": "rm -rf node_modules yarn.lock package-lock.json",
+    "clean": "rm -rf node_modules dist yarn.lock package-lock.json",
     "reset": "npm run clean && npm i && npm test",
     "repo-tag": "REPO_VERSION=`node -e \"console.log(require('./package').version)\"` && echo TAG: v$REPO_VERSION && git commit -a -m v$REPO_VERSION && git push && git tag v$REPO_VERSION && git push --tags;",
     "repo-publish": "npm run clean && npm i && npm run repo-publish-quick",

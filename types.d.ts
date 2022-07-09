@@ -360,6 +360,9 @@ export interface AltSpec {
     g?: string | string[];
     e?: AltError;
 }
+export declare type AddAltFlags = {
+    append: boolean;
+};
 export interface AltMatch {
     p: string;
     r: string;

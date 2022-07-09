@@ -83,7 +83,7 @@ class RuleSpecImpl {
         return (0, utility_1.tokenize)(ref, this.cfg);
     }
     add(state, a, flags) {
-        let inject = (flags === null || flags === void 0 ? void 0 : flags.last) ? 'push' : 'unshift';
+        let inject = (flags === null || flags === void 0 ? void 0 : flags.append) ? 'push' : 'unshift';
         let aa = ((0, utility_1.isarr)(a) ? a : [a])
             .filter((alt) => null != alt)
             .map((a) => (0, utility_1.normalt)(a));

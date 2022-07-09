@@ -795,17 +795,6 @@ function normalt(a: AltSpec): NormAltSpec {
   if (!a.s || 0 === a.s.length) {
     a.s = null
   } else {
-    // (a as any).S0 =
-    //   ([a.s[0]].flat().filter(tin => 'number' === typeof (tin)) as number[])
-    //     .reduce((bits: BigInt, tin: number) =>
-    //       ((BigInt(1) << BigInt(tin - 1)) | (bits as any)),
-    //       BigInt(0));
-    // (a as any).S1 = null == a.s[1] ? null :
-    //   ([a.s[1]].flat().filter(tin => 'number' === typeof (tin)) as number[])
-    //     .reduce((bits: BigInt, tin: number) =>
-    //       ((BigInt(1) << BigInt(tin - 1)) | (bits as any)),
-    //       BigInt(0));
-
     const tinsify = (s: any[]): Tin[] =>
       s.flat().filter((tin) => 'number' === typeof tin)
 

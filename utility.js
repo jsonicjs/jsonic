@@ -296,8 +296,8 @@ function escre(s) {
             .replace(/\n/g, '\\n');
 }
 exports.escre = escre;
-// Deep override for plain data. Retains base object and array.
-// Array merge by `over` index, `over` wins non-matching types, expect:
+// Deep override for plain data. Mutates base object and array.
+// Array merge by `over` index, `over` wins non-matching types, except:
 // `undefined` always loses, `over` plain objects inject into functions,
 // and `over` functions always win. Over always copied.
 function deep(base, ...rest) {
@@ -635,16 +635,6 @@ function normalt(a) {
         a.s = null;
     }
     else {
-        // (a as any).S0 =
-        //   ([a.s[0]].flat().filter(tin => 'number' === typeof (tin)) as number[])
-        //     .reduce((bits: BigInt, tin: number) =>
-        //       ((BigInt(1) << BigInt(tin - 1)) | (bits as any)),
-        //       BigInt(0));
-        // (a as any).S1 = null == a.s[1] ? null :
-        //   ([a.s[1]].flat().filter(tin => 'number' === typeof (tin)) as number[])
-        //     .reduce((bits: BigInt, tin: number) =>
-        //       ((BigInt(1) << BigInt(tin - 1)) | (bits as any)),
-        //       BigInt(0));
         const tinsify = (s) => s.flat().filter((tin) => 'number' === typeof tin);
         const partify = (tins, part) => tins.filter((tin) => 31 * part <= tin && tin < 31 * (part + 1));
         const bitify = (s, part) => s.reduce((bits, tin) => (1 << (tin - (31 * part + 1))) | bits, 0);
