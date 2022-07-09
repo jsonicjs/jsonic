@@ -498,8 +498,10 @@ export interface AltSpec {
 
 
 // Flags for adding a set of alts using RuleSpec.add.
-export type AddAltFlags = {
-  append: boolean // if `true` apppend alts, otherwise prepend.
+export type AddAltOps = {
+  append?: boolean // if `true` apppend alts, otherwise prepend.
+  move?: number[]
+  delete?: number[]
 }
 
 

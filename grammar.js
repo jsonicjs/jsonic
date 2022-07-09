@@ -23,12 +23,12 @@ function grammar(jsonic) {
             return ctx.t0;
         }
     };
-    // Counters.
-    // * pk (pair-key): depth of the pair-key path
-    // * il (implicit list): only allow at top level
-    // * im (implicit map): only allow at top level
+    // Plain JSON
     jsonic.rule('val', (rs) => {
-        rs.bo((rule) => (rule.node = undefined))
+        rs
+            // Clear the current node as this a new value.
+            .bo((rule) => (rule.node = undefined))
+            // Opening token alternates.
             .open([
             // A map: `{ ...`
             { s: [OB], p: 'map', b: 1, g: 'map,json' },
@@ -38,66 +38,77 @@ function grammar(jsonic) {
             { s: [VAL, CL], p: 'map', b: 2, n: { pk: 1 }, g: 'pair,json' },
             // A plain value: `x` `"x"` `1` `true` ....
             { s: [VAL], g: 'val,json' },
+        ])
+            .close([
+            // End of input.
+            { s: [ZZ], g: 'end,json' },
+            // Close map or list: `}`, `]`
+            { s: [[CB, CS]], b: 1, g: 'val,json,close' },
+            // There's another elem or pair.
+            { b: 1, g: 'val,json,more' },
+        ])
+            .bc((rule, ctx) => {
+            // NOTE: val can be undefined when there is no value at all
+            // (eg. empty string, thus no matched opening token)
+            rule.node =
+                // If there's no node,
+                undefined === rule.node
+                    // ... or child node, 
+                    ? undefined === rule.child.node
+                        // ... or token, 
+                        ? 0 === rule.os
+                            // ... then the node has no value
+                            ? undefined
+                            // .. otherwise use the token value
+                            : rule.o0.resolveVal(rule, ctx)
+                        : rule.child.node
+                    : rule.node;
+        });
+    });
+    // Jsonic syntax extensions.
+    // Counters.
+    // * pk (pair-key): depth of the pair-key path
+    // * il (implicit list): only allow at top level
+    // * im (implicit map): only allow at top level
+    jsonic.rule('val', (rs) => {
+        rs
+            .open([
             // Implicit ends `{a:}` -> {"a":null}, `[a:]` -> [{"a":null}]
-            { s: [[CB, CS]], b: 1, g: 'val,imp,null' },
+            { s: [[CB, CS]], b: 1, g: 'val,imp,null,jsonic' },
             // Implicit list at top level: a,b.
             {
                 s: [CA],
                 c: { n: { il: 0 } },
                 p: 'list',
                 b: 1,
-                g: 'list,imp',
+                g: 'list,imp,jsonic',
             },
-            // Value is null when empty before commas.
-            { s: [CA], b: 1, g: 'list,val,imp,null' },
-        ])
+            // Value is implicitly null when empty before commas.
+            { s: [CA], b: 1, g: 'list,val,imp,null,jsonic' },
+        ], { append: true })
             .close([
-            { s: [ZZ], g: 'end' },
-            { s: [[CB, CS]], b: 1, g: 'val,json,close' },
-            // Implicit list only allowed at top level: 1,2.
+            // Implicit list (comma sep) only allowed at top level: `1,2`.
             {
                 s: [CA],
                 c: { n: { il: 0, pk: 0 } },
                 n: { il: 1 },
                 r: 'elem',
                 a: (rule) => (rule.node = [rule.node]),
-                g: 'list,val,imp,comma',
+                g: 'list,val,imp,comma,jsonic',
             },
+            // Implicit list (space sep) only allowed at top level: `1 2`.
             {
                 c: { n: { il: 0, pk: 0 } },
                 n: { il: 1 },
                 r: 'elem',
                 a: (rule) => (rule.node = [rule.node]),
-                g: 'list,val,imp,space',
+                g: 'list,val,imp,space,jsonic',
                 b: 1,
             },
-            // There may be another elem or pair.
-            { b: 1, g: 'val,json,more' },
-        ])
-            // // TODO: move to plugin OR new feature: 'use' that is copied to children
-            // .ao((rule: Rule, _ctx: Context) => {
-            //   if (null != rule.parent.use.key) {
-            //     rule.use.key = rule.parent.use.key
-            //   }
-            // })
-            .bc((rule, ctx) => {
-            // console.log('VAL BC A', rule.node, rule.o0.val, rule.os, rule.child.node)
-            // NOTE: val can be undefined when there is no value at all
-            // (eg. empty string, thus no matched opening token)
-            rule.node =
-                undefined === rule.node
-                    ? undefined === rule.child.node
-                        ? // (0 === rule.os ? undefined : rule.o0.val) :
-                            0 === rule.os
-                                ? undefined
-                                : rule.o0.resolveVal(rule, ctx)
-                        : rule.child.node
-                    : rule.node;
-            // console.log('VAL BC B', rule.node)
+        ], {
+            append: true,
+            move: [2, -1]
         });
-        // .ac((rule: Rule) => {
-        //   console.log(rule)
-        // })
     });
     jsonic.rule('map', (rs) => {
         rs.bo((rule) => {

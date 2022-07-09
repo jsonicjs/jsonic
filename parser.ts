@@ -19,6 +19,7 @@ import type {
   AltModifier,
   AltAction,
   AltMatch,
+  AddAltOps,
   RuleSpecMap,
   RuleDefiner,
   AltSpec,
@@ -161,13 +162,38 @@ class RuleSpecImpl implements RuleSpec {
     return tokenize(ref, this.cfg)
   }
 
-  add(state: RuleState, a: AltSpec | AltSpec[], flags: any): RuleSpec {
-    let inject = flags?.append ? 'push' : 'unshift'
+  add(state: RuleState, a: AltSpec | AltSpec[], ops: AddAltOps): RuleSpec {
+    let inject = ops?.append ? 'push' : 'unshift'
     let aa = ((isarr(a) ? a : [a]) as AltSpec[])
       .filter((alt: AltSpec) => null != alt)
       .map((a) => normalt(a))
-    let alts: any = this.def['o' === state ? 'open' : 'close']
+    let altState = 'o' === state ? 'open' : 'close'
+    let alts: any = (this.def as any)[altState]
     alts[inject](...aa)
+
+    if (ops) {
+      // Delete before move so indexes still make sense, using null to preserve index.
+      if (ops.delete) {
+        for (let i = 0; i < ops.delete.length; i += 2) {
+          let deleteI = (alts.length + ops.delete[i]) % alts.length
+          alts.splice(deleteI, 1, null)
+        }
+      }
+
+      if (ops.move) {
+        for (let i = 0; i < ops.move.length; i += 2) {
+          let fromI = (alts.length + ops.move[i]) % alts.length
+          let toI = (alts.length + ops.move[i + 1]) % alts.length
+          let alt = alts[fromI]
+          alts.splice(fromI, 1)
+          alts.splice(toI, 0, alt)
+        }
+      }
+
+      // Filter out any deletes.
+      ; (this.def as any)[altState] = alts.filter((a: AltSpec) => null != a)
+    }
+
     filterRules(this, this.cfg)
     return this
   }

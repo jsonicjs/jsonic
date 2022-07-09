@@ -229,13 +229,15 @@ describe('custom', function () {
   })
 
 
-  it('parser-alt-append', () => {
+  it('parser-alt-ops', () => {
     let j = make_norules({
       fixed: {
         token: {
           Ta: 'a',
           Tb: 'b',
           Tc: 'c',
+          Td: 'd',
+          Te: 'e',
         },
       },
       
@@ -245,6 +247,8 @@ describe('custom', function () {
     let Ta = j.token.Ta
     let Tb = j.token.Tb
     let Tc = j.token.Tc
+    let Td = j.token.Td
+    let Te = j.token.Te
     
     j.use(j=>{
       j.rule(
@@ -282,6 +286,33 @@ describe('custom', function () {
     expect(j('abc')).toEqual({o:'ABC'})
     expect(j.rule('top').def.open.map(alt=>alt.g[0])).toEqual(['gb','ga','gc'])
 
+    // Delete op
+    j.use(j=>{
+      j.rule(
+        'top',rs=>rs
+          .open([
+            { s:[Td], r:'top', a: r=>r.node.o+='D', g:'gd' }
+          ], { append:true, delete: [1] }))
+    })
+
+    expect(j('bcd')).toEqual({o:'BCD'})
+    expect(j.rule('top').def.open.map(alt=>alt.g[0])).toEqual(['gb','gc','gd'])
+
+
+    // Move ops
+    j.use(j=>{
+      j.rule(
+        'top',rs=>rs
+          .open([
+            { s:[Te], r:'top', a: r=>r.node.o+='E', g:'ge' }
+          ], { append:true, move:[
+            2,-1,
+            0,1
+          ] }))
+    })
+
+    expect(j('bcde')).toEqual({o:'BCDE'})
+    expect(j.rule('top').def.open.map(alt=>alt.g[0])).toEqual(['gc','gb','ge','gd'])
   })
 
   

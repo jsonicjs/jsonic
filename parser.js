@@ -82,13 +82,35 @@ class RuleSpecImpl {
     tin(ref) {
         return (0, utility_1.tokenize)(ref, this.cfg);
     }
-    add(state, a, flags) {
-        let inject = (flags === null || flags === void 0 ? void 0 : flags.append) ? 'push' : 'unshift';
+    add(state, a, ops) {
+        let inject = (ops === null || ops === void 0 ? void 0 : ops.append) ? 'push' : 'unshift';
         let aa = ((0, utility_1.isarr)(a) ? a : [a])
             .filter((alt) => null != alt)
             .map((a) => (0, utility_1.normalt)(a));
-        let alts = this.def['o' === state ? 'open' : 'close'];
+        let altState = 'o' === state ? 'open' : 'close';
+        let alts = this.def[altState];
         alts[inject](...aa);
+        if (ops) {
+            // Delete before move so indexes still make sense, using null to preserve index.
+            if (ops.delete) {
+                for (let i = 0; i < ops.delete.length; i += 2) {
+                    let deleteI = (alts.length + ops.delete[i]) % alts.length;
+                    alts.splice(deleteI, 1, null);
+                }
+            }
+            if (ops.move) {
+                for (let i = 0; i < ops.move.length; i += 2) {
+                    let fromI = (alts.length + ops.move[i]) % alts.length;
+                    let toI = (alts.length + ops.move[i + 1]) % alts.length;
+                    let alt = alts[fromI];
+                    alts.splice(fromI, 1);
+                    alts.splice(toI, 0, alt);
+                }
+            }
+            // Filter out any deletes.
+            ;
+            this.def[altState] = alts.filter((a) => null != a);
+        }
         (0, utility_1.filterRules)(this, this.cfg);
         return this;
     }

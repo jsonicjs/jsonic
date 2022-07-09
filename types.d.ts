@@ -360,8 +360,10 @@ export interface AltSpec {
     g?: string | string[];
     e?: AltError;
 }
-export declare type AddAltFlags = {
-    append: boolean;
+export declare type AddAltOps = {
+    append?: boolean;
+    move?: number[];
+    delete?: number[];
 };
 export interface AltMatch {
     p: string;

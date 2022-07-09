@@ -1,4 +1,4 @@
-import type { RuleState, RuleStep, StateAction, Tin, Token, Config, Context, Rule, RuleSpec, NormAltSpec, AltMatch, RuleSpecMap, RuleDefiner, AltSpec, Options } from './types';
+import type { RuleState, RuleStep, StateAction, Tin, Token, Config, Context, Rule, RuleSpec, NormAltSpec, AltMatch, AddAltOps, RuleSpecMap, RuleDefiner, AltSpec, Options } from './types';
 declare class RuleImpl implements Rule {
     id: number;
     name: string;
@@ -39,7 +39,7 @@ declare class RuleSpecImpl implements RuleSpec {
     cfg: Config;
     constructor(cfg: Config, def: any);
     tin<R extends string | Tin, T extends R extends Tin ? string : Tin>(ref: R): T;
-    add(state: RuleState, a: AltSpec | AltSpec[], flags: any): RuleSpec;
+    add(state: RuleState, a: AltSpec | AltSpec[], ops: AddAltOps): RuleSpec;
     open(a: AltSpec | AltSpec[], flags?: any): RuleSpec;
     close(a: AltSpec | AltSpec[], flags?: any): RuleSpec;
     action(prepend: boolean, step: RuleStep, state: RuleState, action: StateAction): RuleSpec;
