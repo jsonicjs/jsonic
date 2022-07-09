@@ -759,10 +759,9 @@ function make_token_plugin(char, val) {
     let TT = jsonic.token(tn)
 
     jsonic.rule('val', (rs) => {
-      rs.open({ s: [TT], g: 'CV=' + val }).bc((rule) => {
+      rs.open({ s: [TT], g: 'CV=' + val }).bc(false, (rule) => {
         if (rule.o0 && TT === rule.o0.tin) {
           rule.o0.val = val
-          // console.log('QQQ', rule.o0, rule.o0.val)
         }
       })
       // return rs

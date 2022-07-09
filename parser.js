@@ -120,21 +120,21 @@ class RuleSpecImpl {
     close(a, flags) {
         return this.add('c', a, flags);
     }
-    action(prepend, step, state, action) {
+    action(append, step, state, action) {
         let actions = this.def[step + state];
-        if (prepend) {
-            actions.unshift(action);
+        if (append) {
+            actions.push(action);
         }
         else {
-            actions.push(action);
+            actions.unshift(action);
         }
         return this;
     }
-    bo(first, second) {
-        return this.action(second ? !!first : true, types_1.BEFORE, types_1.OPEN, second || first);
+    bo(append, action) {
+        return this.action(action ? !!append : true, types_1.BEFORE, types_1.OPEN, action || append);
     }
-    ao(first, second) {
-        return this.action(second ? !!first : true, types_1.AFTER, types_1.OPEN, second || first);
+    ao(append, action) {
+        return this.action(action ? !!append : true, types_1.AFTER, types_1.OPEN, action || append);
     }
     bc(first, second) {
         return this.action(second ? !!first : true, types_1.BEFORE, types_1.CLOSE, second || first);

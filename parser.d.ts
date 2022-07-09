@@ -42,9 +42,9 @@ declare class RuleSpecImpl implements RuleSpec {
     add(state: RuleState, a: AltSpec | AltSpec[], ops: AddAltOps): RuleSpec;
     open(a: AltSpec | AltSpec[], flags?: any): RuleSpec;
     close(a: AltSpec | AltSpec[], flags?: any): RuleSpec;
-    action(prepend: boolean, step: RuleStep, state: RuleState, action: StateAction): RuleSpec;
-    bo(first: StateAction | boolean, second?: StateAction): RuleSpec;
-    ao(first: StateAction | boolean, second?: StateAction): RuleSpec;
+    action(append: boolean, step: RuleStep, state: RuleState, action: StateAction): RuleSpec;
+    bo(append: StateAction | boolean, action?: StateAction): RuleSpec;
+    ao(append: StateAction | boolean, action?: StateAction): RuleSpec;
     bc(first: StateAction | boolean, second?: StateAction): RuleSpec;
     ac(first: StateAction | boolean, second?: StateAction): RuleSpec;
     clear(): this;

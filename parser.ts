@@ -207,35 +207,35 @@ class RuleSpecImpl implements RuleSpec {
   }
 
   action(
-    prepend: boolean,
+    append: boolean,
     step: RuleStep,
     state: RuleState,
     action: StateAction
   ): RuleSpec {
     let actions = (this.def as any)[step + state]
-    if (prepend) {
-      actions.unshift(action)
-    } else {
+    if (append) {
       actions.push(action)
+    } else {
+      actions.unshift(action)
     }
     return this
   }
 
-  bo(first: StateAction | boolean, second?: StateAction): RuleSpec {
+  bo(append: StateAction | boolean, action?: StateAction): RuleSpec {
     return this.action(
-      second ? !!first : true,
+      action ? !!append : true,
       BEFORE,
       OPEN,
-      second || (first as StateAction)
+      action || (append as StateAction)
     )
   }
 
-  ao(first: StateAction | boolean, second?: StateAction): RuleSpec {
+  ao(append: StateAction | boolean, action?: StateAction): RuleSpec {
     return this.action(
-      second ? !!first : true,
+      action ? !!append : true,
       AFTER,
       OPEN,
-      second || (first as StateAction)
+      action || (append as StateAction)
     )
   }
 

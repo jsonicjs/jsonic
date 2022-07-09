@@ -132,23 +132,10 @@ function grammar(jsonic: Jsonic) {
           r.use.key = key
         }
       })
-      .bc((r: Rule, ctx: Context) => {
+      .bc((r: Rule, _ctx: Context) => {
         if (r.use.pair) {
-          let key = r.use.key
-          let val = r.child.node
-          const prev = r.node[key]
-
-          // Convert undefined to null when there was no pair value
-          val = undefined === val ? null : val
-
-          r.node[key] =
-            null == prev
-              ? val
-              : ctx.cfg.map.merge
-                ? ctx.cfg.map.merge(prev, val)
-                : ctx.cfg.map.extend
-                  ? deep(prev, val)
-                  : val
+          r.use.prev = r.node[r.use.key]
+          r.node[r.use.key] = r.child.node
         }
       })
       .close([
@@ -168,14 +155,26 @@ function grammar(jsonic: Jsonic) {
   // push onto node
   jsonic.rule('elem', (rs: RuleSpec) => {
     rs
+      .open([
+        // A list element value.
+        { p: 'val', g: 'list,elem,val,json' },
+      ])
       .bc((rule: Rule) => {
         if (undefined !== rule.child.node) {
           rule.node.push(rule.child.node)
         }
       })
+      .close([
+        // Next element.
+        { s: [CA], r: 'elem', g: 'list,elem,json' },
+
+        // End of list.
+        { s: [CS], g: 'list,elem,json' },
+
+        // Fail if auto-close option is false.
+        { s: [ZZ], e: finish, g: 'list,elem,json' },
+      ])
   })
-
-
 
 
   // Jsonic syntax extensions.
@@ -230,6 +229,8 @@ function grammar(jsonic: Jsonic) {
         },
       ], {
         append: true,
+
+        // Move "There's more JSON" to end.
         move: [1, -1]
       })
   })
@@ -268,10 +269,30 @@ function grammar(jsonic: Jsonic) {
 
   // sets key:val on node
   jsonic.rule('pair', (rs: RuleSpec) => {
-    rs.open([
-      // Ignore initial comma: {,a:1.
-      { s: [CA], g: 'map,pair,comma' },
-    ], { append: true })
+    rs
+      .open([
+        // Ignore initial comma: {,a:1.
+        { s: [CA], g: 'map,pair,comma' },
+      ], { append: true })
+      .bc((r: Rule, ctx: Context) => {
+        if (r.use.pair) {
+          let key = r.use.key
+          let val = r.child.node
+          const prev = r.use.prev
+
+          // Convert undefined to null when there was no pair value
+          val = undefined === val ? null : val
+
+          r.node[key] =
+            null == prev
+              ? val
+              : ctx.cfg.map.merge
+                ? ctx.cfg.map.merge(prev, val)
+                : ctx.cfg.map.extend
+                  ? deep(prev, val)
+                  : val
+        }
+      })
       .close([
         // End of map, reset implicit depth counter so that
         // a:b:c:1,d:2 -> {a:{b:{c:1}},d:2}
@@ -307,48 +328,40 @@ function grammar(jsonic: Jsonic) {
 
   // push onto node
   jsonic.rule('elem', (rs: RuleSpec) => {
-    rs.open([
-      // Empty commas insert null elements.
-      // Note that close consumes a comma, so b:2 works.
-      {
-        s: [CA, CA],
-        b: 2,
-        a: (r: Rule) => r.node.push(null),
-        g: 'list,elem,imp,null',
-      },
+    rs
+      .open([
+        // Empty commas insert null elements.
+        // Note that close consumes a comma, so b:2 works.
+        {
+          s: [CA, CA],
+          b: 2,
+          a: (r: Rule) => r.node.push(null),
+          g: 'list,elem,imp,null,jsonic',
+        },
 
-      {
-        s: [CA],
-        a: (r: Rule) => r.node.push(null),
-        g: 'list,elem,imp,null',
-      },
-
-      // Anything else must a list element value.
-      { p: 'val', g: 'list,elem,val,json' },
-    ])
-
-      // .bc((rule: Rule) => {
-      //   if (undefined !== rule.child.node) {
-      //     rule.node.push(rule.child.node)
-      //   }
-      // })
+        {
+          s: [CA],
+          a: (r: Rule) => r.node.push(null),
+          g: 'list,elem,imp,null,jsonic',
+        },
+      ])
 
       .close([
         // Ignore trailing comma.
-        { s: [CA, CS], g: 'list,elem,comma' },
+        { s: [CA, CS], g: 'list,elem,comma.jsonic' },
 
         // Next element.
         { s: [CA], r: 'elem', g: 'list,elem,json' },
 
         // Who needs commas anyway?
-        { s: [[...VAL, OB, OS]], r: 'elem', b: 1, g: 'list,elem,imp' },
+        { s: [[...VAL, OB, OS]], r: 'elem', b: 1, g: 'list,elem,imp,jsonic' },
 
         // End of list.
         { s: [CS], g: 'list,elem,json' },
 
         // Fail if auto-close option is false.
         { s: [ZZ], e: finish, g: 'list,elem,json' },
-      ])
+      ], { delete: [-1, -2, -3] })
   })
 }
 
