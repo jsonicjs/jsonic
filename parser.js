@@ -247,7 +247,6 @@ class RuleSpecImpl {
         // Pop closed rule off stack.
         else {
             if (!is_open) {
-                // next = ctx.rs.pop() || ctx.NORULE
                 next = ctx.rs[--ctx.rsI] || ctx.NORULE;
             }
             why += 'Z';

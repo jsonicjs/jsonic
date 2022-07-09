@@ -50,12 +50,14 @@ function grammar(jsonic: Jsonic) {
         { s: [OS], p: 'list', b: 1, g: 'list,json' },
 
         // A pair key: `a: ...`
+        // Increment counter n.pk to indicate pair-key state (for extensions).
         { s: [VAL, CL], p: 'map', b: 2, n: { pk: 1 }, g: 'pair,json' },
 
         // A plain value: `x` `"x"` `1` `true` ....
         { s: [VAL], g: 'val,json' },
       ])
 
+      // Closing token alternates.
       .close([
         // End of input.
         { s: [ZZ], g: 'end,json' },
@@ -70,9 +72,9 @@ function grammar(jsonic: Jsonic) {
         rule.node =
           // If there's no node,
           undefined === rule.node
-            // ... or child node, 
+            // ... or no child node (child map or list), 
             ? undefined === rule.child.node
-              // ... or token, 
+              // ... or no matched tokens, 
               ? 0 === rule.os
                 // ... then the node has no value
                 ? undefined
@@ -94,7 +96,7 @@ function grammar(jsonic: Jsonic) {
         { s: [OB, CB], g: 'map,json' },
 
         // Start matching map key-value pairs: a:1.
-        // OB `{` resets implicit map counter.
+        // Reset counter n.pk as new map (for extensions).
         { s: [OB], p: 'pair', n: { pk: 0 }, g: 'map,json,pair' },
       ])
   })
@@ -123,17 +125,19 @@ function grammar(jsonic: Jsonic) {
       ])
       .ao((r: Rule, _ctx: Context) => {
         if (r.use.pair) {
+          // Get key string value from first matching token of `Open` state.
           const key_token = r.o0
           const key =
             ST === key_token.tin || TX === key_token.tin
-              ? key_token.val
-              : key_token.src
+              ? key_token.val // Was text
+              : key_token.src // Was number, use original text
 
           r.use.key = key
         }
       })
       .bc((r: Rule, _ctx: Context) => {
         if (r.use.pair) {
+          // Store previous value (if any, for extenstions).
           r.use.prev = r.node[r.use.key]
           r.node[r.use.key] = r.child.node
         }
@@ -145,7 +149,7 @@ function grammar(jsonic: Jsonic) {
         // Comma means a new pair at same pair-key level.
         { s: [CA], r: 'pair', g: 'map,pair,json' },
 
-        // Fail if auto-close option is false.
+        // Fail if rule.finish option is false.
         { s: [ZZ], e: finish, g: 'map,pair,json' },
       ])
 
@@ -171,7 +175,7 @@ function grammar(jsonic: Jsonic) {
         // End of list.
         { s: [CS], g: 'list,elem,json' },
 
-        // Fail if auto-close option is false.
+        // Fail if rule.finish option is false.
         { s: [ZZ], e: finish, g: 'list,elem,json' },
       ])
   })
