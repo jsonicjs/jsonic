@@ -84,6 +84,22 @@ function grammar(jsonic: Jsonic) {
   })
 
 
+  jsonic.rule('map', (rs: RuleSpec) => {
+    rs.bo((rule: Rule) => {
+      // Create a new empty map.
+      rule.node = {}
+    })
+      .open([
+        // An empty map: {}.
+        { s: [OB, CB], g: 'map,json' },
+
+        // Start matching map key-value pairs: a:1.
+        // OB `{` resets implicit map counter.
+        { s: [OB], p: 'pair', n: { pk: 0 }, g: 'map,json,pair' },
+      ])
+  })
+
+
   // Jsonic syntax extensions.
 
   // Counters.
@@ -146,30 +162,15 @@ function grammar(jsonic: Jsonic) {
       // Implicit lists only at top level.
       rule.n.il = 1 + (rule.n.il ? rule.n.il : 0)
 
+      // Implicit maps only at top level.
       rule.n.im = 1 + (rule.n.im ? rule.n.im : 0)
-
-      // Create a new empty map.
-      rule.node = {}
     })
-
-      // .ao((rule: Rule, _ctx: Context) => {
-      //   if (null != rule.parent.use.key) {
-      //     rule.use.key = rule.parent.use.key
-      //   }
-      // })
-
       .open([
-        // An empty map: {}.
-        { s: [OB, CB], g: 'map,json' },
-
-        // Start matching map key-value pairs: a:1.
-        // OB `{` resets implicit map counter.
-        { s: [OB], p: 'pair', n: { pk: 0 }, g: 'map,json,pair' },
-
         // Pair from implicit map.
         { s: [VAL, CL], p: 'pair', b: 2, g: 'pair,list,val,imp' },
-      ])
+      ], { append: true })
   })
+
 
   jsonic.rule('list', (rs: RuleSpec) => {
     rs.bo((rule: Rule) => {
