@@ -53,15 +53,15 @@ function grammar(jsonic) {
             rule.node =
                 // If there's no node,
                 undefined === rule.node
-                    // ... or no child node (child map or list), 
-                    ? undefined === rule.child.node
-                        // ... or no matched tokens, 
-                        ? 0 === rule.os
-                            // ... then the node has no value
-                            ? undefined
-                            // .. otherwise use the token value
-                            : rule.o0.resolveVal(rule, ctx)
-                        : rule.child.node
+                    ? // ... or no child node (child map or list),
+                        undefined === rule.child.node
+                            ? // ... or no matched tokens,
+                                0 === rule.os
+                                    ? // ... then the node has no value
+                                        undefined
+                                    : // .. otherwise use the token value
+                                        rule.o0.resolveVal(rule, ctx)
+                            : rule.child.node
                     : rule.node;
         });
     });
@@ -69,8 +69,7 @@ function grammar(jsonic) {
         rs.bo((rule) => {
             // Create a new empty map.
             rule.node = {};
-        })
-            .open([
+        }).open([
             // An empty map: {}.
             { s: [OB, CB], g: 'map,json' },
             // Start matching map key-value pairs: a:1.
@@ -91,8 +90,7 @@ function grammar(jsonic) {
     });
     // sets key:val on node
     jsonic.rule('pair', (rs) => {
-        rs
-            .open([
+        rs.open([
             // Match key-colon start of pair.
             { s: [VAL, CL], p: 'val', u: { pair: true }, g: 'map,pair,key,json' },
         ])
@@ -124,8 +122,7 @@ function grammar(jsonic) {
     });
     // push onto node
     jsonic.rule('elem', (rs) => {
-        rs
-            .open([
+        rs.open([
             // A list element value.
             { p: 'val', g: 'list,elem,val,json' },
         ])
@@ -149,8 +146,7 @@ function grammar(jsonic) {
     // * il (implicit list): only allow at top level
     // * im (implicit map): only allow at top level
     jsonic.rule('val', (rs) => {
-        rs
-            .open([
+        rs.open([
             // Implicit ends `{a:}` -> {"a":null}, `[a:]` -> [{"a":null}]
             { s: [[CB, CS]], b: 1, g: 'val,imp,null,jsonic' },
             // Implicit list at top level: a,b.
@@ -188,7 +184,7 @@ function grammar(jsonic) {
         ], {
             append: true,
             // Move "There's more JSON" to end.
-            move: [1, -1]
+            move: [1, -1],
         });
     });
     jsonic.rule('map', (rs) => {
@@ -197,8 +193,7 @@ function grammar(jsonic) {
             rule.n.il = 1 + (rule.n.il ? rule.n.il : 0);
             // Implicit maps only at top level.
             rule.n.im = 1 + (rule.n.im ? rule.n.im : 0);
-        })
-            .open([
+        }).open([
             // Pair from implicit map.
             { s: [VAL, CL], p: 'pair', b: 2, g: 'pair,list,val,imp' },
         ], { append: true });
@@ -218,8 +213,7 @@ function grammar(jsonic) {
     });
     // sets key:val on node
     jsonic.rule('pair', (rs) => {
-        rs
-            .open([
+        rs.open([
             // Ignore initial comma: {,a:1.
             { s: [CA], g: 'map,pair,comma' },
         ], { append: true })
@@ -252,10 +246,22 @@ function grammar(jsonic) {
             // Comma means a new pair if implicit top level map.
             { s: [CA], c: { n: { im: 1 } }, r: 'pair', g: 'map,pair,jsonic' },
             // Who needs commas anyway?
-            { s: [VAL], c: { n: { pk: 0 } }, r: 'pair', b: 1, g: 'map,pair,imp,jsonic' },
+            {
+                s: [VAL],
+                c: { n: { pk: 0 } },
+                r: 'pair',
+                b: 1,
+                g: 'map,pair,imp,jsonic',
+            },
             // TODO: try VAL CL ? works anywhere?
             // Value means a new pair if implicit top level map.
-            { s: [VAL], c: { n: { im: 1 } }, r: 'pair', b: 1, g: 'map,pair,imp,jsonic' },
+            {
+                s: [VAL],
+                c: { n: { im: 1 } },
+                r: 'pair',
+                b: 1,
+                g: 'map,pair,imp,jsonic',
+            },
             // End of implicit path (eg. a:b:1), keep closing until pk=0.
             { s: [[CB, CA, ...VAL]], b: 1, g: 'map,pair,imp,path,jsonic' },
             // Close implicit single prop map inside list: [a:1]
@@ -266,8 +272,7 @@ function grammar(jsonic) {
     });
     // push onto node
     jsonic.rule('elem', (rs) => {
-        rs
-            .open([
+        rs.open([
             // Empty commas insert null elements.
             // Note that close consumes a comma, so b:2 works.
             {

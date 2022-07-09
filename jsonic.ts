@@ -7,7 +7,6 @@
 // TODO: HIGH: [a:1] should set prop on array, not create [{a:1}]
 // TODO: HIGH: [,,,] syntax should match JS!
 
-
 // TODO: Option switch to turn Debug plugin off when loaded
 // TODO: document standard g names: open, close, step, start, end, imp, top, val, map, etc
 // TODO: Rule.use should be Rule.u for consistency
@@ -185,8 +184,8 @@ function make(param_options?: Bag, parent?: Jsonic): Jsonic {
     parent
       ? { ...parent.options }
       : false === param_options?.defaults$
-        ? {}
-        : defaults,
+      ? {}
+      : defaults,
     param_options ? param_options : {}
   )
 

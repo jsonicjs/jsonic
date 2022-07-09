@@ -46,17 +46,17 @@ export interface JsonicAPI {
 
   // Token get and set for plugins. Reference by either name or Tin.
   token: { [ref: string]: Tin } & { [ref: number]: string } & (<
-    A extends string | Tin
+      A extends string | Tin
     >(
-    ref: A
-  ) => A extends string ? Tin : string)
+      ref: A
+    ) => A extends string ? Tin : string)
 
   // Fixed token src get and set for plugins. Reference by either src or Tin.
   fixed: { [ref: string]: Tin } & { [ref: number]: string } & (<
-    A extends string | Tin
+      A extends string | Tin
     >(
-    ref: A
-  ) => undefined | (A extends string ? Tin : string))
+      ref: A
+    ) => undefined | (A extends string ? Tin : string))
 
   // Unique identifier string for each Jsonic instance.
   id: string
@@ -476,12 +476,12 @@ export interface AltSpec {
   // Condition function, return true to match alternate.
   // NOTE: Token sequence (s) must also match.
   c?:
-  | AltCond
-  | {
-    // Condition convenience definitions (all must pass).
-    d?: number // - Match if rule stack depth <= d.
-    n?: Counters // - Match if rule counters <= respective given values.
-  }
+    | AltCond
+    | {
+        // Condition convenience definitions (all must pass).
+        d?: number // - Match if rule stack depth <= d.
+        n?: Counters // - Match if rule counters <= respective given values.
+      }
 
   n?: Counters // Increment counters by specified amounts.
   a?: AltAction // Perform an action if this alternate matches.
@@ -490,12 +490,11 @@ export interface AltSpec {
   k?: Bag // Key-value custom data (propagated).
 
   g?:
-  | string // Named group tags for the alternate (allows filtering).
-  | string[] // - comma separated or string array
+    | string // Named group tags for the alternate (allows filtering).
+    | string[] // - comma separated or string array
 
   e?: AltError // Generate an error token (alternate is not allowed).
 }
-
 
 // Flags for adding a set of alts using RuleSpec.add.
 export type AddAltOps = {
@@ -503,7 +502,6 @@ export type AddAltOps = {
   move?: number[]
   delete?: number[]
 }
-
 
 // Parse-alternate match (built from current tokens and AltSpec).
 export interface AltMatch {
