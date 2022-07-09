@@ -76,6 +76,33 @@ function grammar(jsonic) {
             { s: [OB], p: 'pair', n: { pk: 0 }, g: 'map,json,pair' },
         ]);
     });
+    jsonic.rule('list', (rs) => {
+        rs.bo((rule) => {
+            // Create a new empty list.
+            rule.node = [];
+        }).open([
+            // An empty list: [].
+            { s: [OS, CS], g: 'list,json' },
+            // Start matching list elements: 1,2.
+            { s: [OS], p: 'elem', g: 'list,elem,json' },
+        ]);
+    });
+    // sets key:val on node
+    jsonic.rule('pair', (rs) => {
+        rs.open([
+            // Match key-colon start of pair.
+            { s: [VAL, CL], p: 'val', u: { pair: true }, g: 'map,pair,key,json' },
+        ]);
+    });
+    // push onto node
+    jsonic.rule('elem', (rs) => {
+        rs
+            .bc((rule) => {
+            if (undefined !== rule.child.node) {
+                rule.node.push(rule.child.node);
+            }
+        });
+    });
     // Jsonic syntax extensions.
     // Counters.
     // * pk (pair-key): depth of the pair-key path
@@ -141,28 +168,19 @@ function grammar(jsonic) {
             rule.n.il = 1 + (rule.n.il ? rule.n.il : 0);
             rule.n.pk = 1 + (rule.n.pk ? rule.n.pk : 0);
             rule.n.im = 1 + (rule.n.im ? rule.n.im : 0);
-            // Create a new empty list.
-            // return { node: [] }
-            rule.node = [];
         }).open([
-            // An empty list: [].
-            { s: [OS, CS], g: 'list,json' },
-            // Start matching list elements: 1,2.
-            { s: [OS], p: 'elem', g: 'list,json,elem' },
             // Initial comma [, will insert null as [null,
             { s: [CA], p: 'elem', b: 1, g: 'list,elem,val,imp' },
             // Another element.
             { p: 'elem', g: 'list,elem' },
-        ]);
+        ], { append: true });
     });
     // sets key:val on node
     jsonic.rule('pair', (rs) => {
         rs.open([
-            // Match key-colon start of pair.
-            { s: [VAL, CL], p: 'val', u: { pair: true }, g: 'map,pair,key,json' },
             // Ignore initial comma: {,a:1.
             { s: [CA], g: 'map,pair,comma' },
-        ])
+        ], { append: true })
             .ao((r, _ctx) => {
             if (r.use.pair) {
                 const key_token = r.o0;
@@ -234,11 +252,11 @@ function grammar(jsonic) {
             // Anything else must a list element value.
             { p: 'val', g: 'list,elem,val,json' },
         ])
-            .bc((rule) => {
-            if (undefined !== rule.child.node) {
-                rule.node.push(rule.child.node);
-            }
-        })
+            // .bc((rule: Rule) => {
+            //   if (undefined !== rule.child.node) {
+            //     rule.node.push(rule.child.node)
+            //   }
+            // })
             .close([
             // Ignore trailing comma.
             { s: [CA, CS], g: 'list,elem,comma' },
