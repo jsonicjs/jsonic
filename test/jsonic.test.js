@@ -79,7 +79,7 @@ describe('jsonic', function () {
     expect(k.options.comment.lex).toBeFalsy()
     expect(k.options().comment.lex).toBeFalsy()
     expect(k.internal().config.comment.lex).toBeFalsy()
-    expect(k.rule().val.def.open.length).toEqual(4)
+    expect(k.rule().val.def.open.length).toEqual(3)
 
     let k1 = Jsonic.make()
     k1.use((jsonic) => {
@@ -87,7 +87,7 @@ describe('jsonic', function () {
         rule: { exclude: 'json' },
       })
     })
-    expect(k1.rule().val.def.open.length).toEqual(3)
+    expect(k1.rule().val.def.open.length).toEqual(4)
   })
 
   it('token-gen', () => {

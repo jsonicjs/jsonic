@@ -36,7 +36,7 @@ function grammar(jsonic) {
             { s: [OS], p: 'list', b: 1, g: 'list,json' },
             // A pair key: `a: ...`
             // Increment counter n.pk to indicate pair-key state (for extensions).
-            { s: [VAL, CL], p: 'map', b: 2, n: { pk: 1 }, g: 'pair,json' },
+            // { s: [VAL, CL], p: 'map', b: 2, n: { pk: 1 }, g: 'pair,json' },
             // A plain value: `x` `"x"` `1` `true` ....
             { s: [VAL], g: 'val,json' },
         ])
@@ -91,7 +91,7 @@ function grammar(jsonic) {
     // sets key:val on node
     jsonic.rule('pair', (rs) => {
         rs.open([
-            // Match key-colon start of pair.
+            // Match key-colon start of pair. Marker `elem=true` allows flexibility.
             { s: [VAL, CL], p: 'val', u: { pair: true }, g: 'map,pair,key,json' },
         ])
             .ao((r, _ctx) => {
@@ -123,11 +123,11 @@ function grammar(jsonic) {
     // push onto node
     jsonic.rule('elem', (rs) => {
         rs.open([
-            // A list element value.
-            { p: 'val', g: 'list,elem,val,json' },
+            // A list element value. Marker `elem=true` allows flexibility.
+            { p: 'val', u: { elem: true }, g: 'list,elem,val,json' },
         ])
             .bc((rule) => {
-            if (undefined !== rule.child.node) {
+            if (rule.use.elem) { //  && undefined !== rule.child.node) {
                 rule.node.push(rule.child.node);
             }
         })
@@ -146,7 +146,13 @@ function grammar(jsonic) {
     // * il (implicit list): only allow at top level
     // * im (implicit map): only allow at top level
     jsonic.rule('val', (rs) => {
-        rs.open([
+        rs
+            .open([
+            // A pair key: `a: ...`
+            // Increment counter n.pk to indicate pair-key state (for extensions).
+            { s: [VAL, CL], p: 'map', b: 2, n: { pk: 1 }, g: 'pair,jsonic' },
+            // A plain value: `x` `"x"` `1` `true` ....
+            { s: [VAL], g: 'val,json' },
             // Implicit ends `{a:}` -> {"a":null}, `[a:]` -> [{"a":null}]
             { s: [[CB, CS]], b: 1, g: 'val,imp,null,jsonic' },
             // Implicit list at top level: a,b.
@@ -159,7 +165,7 @@ function grammar(jsonic) {
             },
             // Value is implicitly null when empty before commas.
             { s: [CA], b: 1, g: 'list,val,imp,null,jsonic' },
-        ], { append: true })
+        ], { append: true, delete: [2] })
             .close([
             // Explicitly close map or list: `}`, `]`
             { s: [[CB, CS]], b: 1, g: 'val,json,close' },
