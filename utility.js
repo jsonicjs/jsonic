@@ -43,6 +43,8 @@ exports.omap = omap;
 // A bit pedantic, but let's be strict about strings.
 // Also improves minification a little.
 const S = {
+    indent: '  ',
+    space: ' ',
     object: 'object',
     string: 'string',
     function: 'function',
@@ -464,6 +466,7 @@ function errdesc(code, details, token, rule, ctx) {
         return desc;
     }
     catch (e) {
+        // TODO: fix
         console.log(e);
         return {};
     }
@@ -503,7 +506,7 @@ function makelog(ctx, meta) {
                     let logstr = rest
                         .filter((item) => S.object != typeof item)
                         .map((item) => (S.function == typeof item ? item.name : item))
-                        .join('\t');
+                        .join(S.indent);
                     ctx.cfg.debug.get_console().log(logstr);
                 }
                 else {

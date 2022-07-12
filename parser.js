@@ -265,7 +265,7 @@ class RuleSpecImpl {
         }
         next.why = why;
         ctx.log &&
-            ctx.log('node  ' + rule.state.toUpperCase(), rule.prev.id + '/' + rule.parent.id + '/' + rule.child.id, rule.name + '~' + rule.id, 'w=' + why, 'n:' +
+            ctx.log(utility_1.S.indent.repeat(rule.d) + utility_1.S.node + utility_1.S.space, rule.state.toUpperCase(), (rule.prev.id + '/' + rule.parent.id + '/' + rule.child.id).padEnd(12), rule.name + '~' + rule.id, 'w=' + why, 'n:' +
                 (0, utility_1.entries)(rule.n)
                     .filter((n) => n[1])
                     .map((n) => n[0] + '=' + n[1])
@@ -380,7 +380,7 @@ class RuleSpecImpl {
         let match = altI < alts.length;
         // TODO: move to debug plugin
         ctx.log &&
-            ctx.log('parse ' + rule.state.toUpperCase(), rule.prev.id + '/' + rule.parent.id + '/' + rule.child.id, rule.name + '~' + rule.id, match ? 'alt=' + altI : 'no-alt', match && out.g ? 'g:' + out.g + ' ' : '', (match && out.p ? 'p:' + out.p + ' ' : '') +
+            ctx.log(utility_1.S.indent.repeat(rule.d) + utility_1.S.parse, rule.state.toUpperCase(), (rule.prev.id + '/' + rule.parent.id + '/' + rule.child.id).padEnd(12), rule.name + '~' + rule.id, match ? 'alt=' + altI : 'no-alt', match && out.g ? 'g:' + out.g + ' ' : '', (match && out.p ? 'p:' + out.p + ' ' : '') +
                 (match && out.r ? 'r:' + out.r + ' ' : '') +
                 (match && out.b ? 'b:' + out.b + ' ' : ''), (types_1.OPEN === rule.state
                 ? [rule.o0, rule.o1].slice(0, rule.os)
@@ -531,15 +531,15 @@ class Parser {
         // occurrences until there's none left.
         while (norule !== rule && rI < maxr) {
             ctx.log &&
-                ctx.log('\nstack', '<<' + ctx.F(root.node) + '>>', ctx.rs
+                ctx.log('\n' + utility_1.S.indent.repeat(rule.d) + utility_1.S.stack, ctx.rs
                     .slice(0, ctx.rsI)
                     .map((r) => r.name + '~' + r.id)
-                    .join('/'), ctx.rs
+                    .join('/'), '<<' + ctx.F(root.node) + '>>', ctx.rs
                     .slice(0, ctx.rsI)
                     .map((r) => '<' + ctx.F(r.node) + '>')
-                    .join(' '), rule, ctx, '\n');
+                    .join(' '), rule, ctx);
             ctx.log &&
-                ctx.log('rule  ' + rule.state.toUpperCase(), rule.prev.id + '/' + rule.parent.id + '/' + rule.child.id, rule.name + '~' + rule.id, '[' + ctx.F(ctx.t0.src) + ' ' + ctx.F(ctx.t1.src) + ']', 'n:' +
+                ctx.log(utility_1.S.indent.repeat(rule.d) + utility_1.S.rule + utility_1.S.space, rule.state.toUpperCase(), (rule.prev.id + '/' + rule.parent.id + '/' + rule.child.id).padEnd(12), rule.name + '~' + rule.id, '[' + ctx.F(ctx.t0.src) + ' ' + ctx.F(ctx.t1.src) + ']', 'n:' +
                     (0, utility_1.entries)(rule.n)
                         .filter((n) => n[1])
                         .map((n) => n[0] + '=' + n[1])

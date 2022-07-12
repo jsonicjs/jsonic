@@ -191,7 +191,7 @@ class RuleSpecImpl implements RuleSpec {
       }
 
       // Filter out any deletes.
-      ;(this.def as any)[altState] = alts.filter((a: AltSpec) => null != a)
+      ; (this.def as any)[altState] = alts.filter((a: AltSpec) => null != a)
     }
 
     filterRules(this, this.cfg)
@@ -315,10 +315,10 @@ class RuleSpecImpl implements RuleSpec {
           0 === alt.n[cn]
             ? 0
             : // First seen, set to 0.
-              (null == rule.n[cn]
-                ? 0
-                : // Increment counter.
-                  rule.n[cn]) + alt.n[cn]
+            (null == rule.n[cn]
+              ? 0
+              : // Increment counter.
+              rule.n[cn]) + alt.n[cn]
       }
     }
 
@@ -398,23 +398,24 @@ class RuleSpecImpl implements RuleSpec {
 
     ctx.log &&
       ctx.log(
-        'node  ' + rule.state.toUpperCase(),
-        rule.prev.id + '/' + rule.parent.id + '/' + rule.child.id,
+        S.indent.repeat(rule.d) + S.node + S.space,
+        rule.state.toUpperCase(),
+        (rule.prev.id + '/' + rule.parent.id + '/' + rule.child.id).padEnd(12),
         rule.name + '~' + rule.id,
         'w=' + why,
         'n:' +
-          entries(rule.n)
-            .filter((n) => n[1])
-            .map((n) => n[0] + '=' + n[1])
-            .join(';'),
+        entries(rule.n)
+          .filter((n) => n[1])
+          .map((n) => n[0] + '=' + n[1])
+          .join(';'),
         'u:' +
-          entries(rule.use)
-            .map((u) => u[0] + '=' + u[1])
-            .join(';'),
+        entries(rule.use)
+          .map((u) => u[0] + '=' + u[1])
+          .join(';'),
         'k:' +
-          entries(rule.keep)
-            .map((k) => k[0] + '=' + k[1])
-            .join(';'),
+        entries(rule.keep)
+          .map((k) => k[0] + '=' + k[1])
+          .join(';'),
         '<' + F(rule.node) + '>'
       )
 
@@ -547,16 +548,17 @@ class RuleSpecImpl implements RuleSpec {
     // TODO: move to debug plugin
     ctx.log &&
       ctx.log(
-        'parse ' + rule.state.toUpperCase(),
-        rule.prev.id + '/' + rule.parent.id + '/' + rule.child.id,
+        S.indent.repeat(rule.d) + S.parse,
+        rule.state.toUpperCase(),
+        (rule.prev.id + '/' + rule.parent.id + '/' + rule.child.id).padEnd(12),
         rule.name + '~' + rule.id,
 
         match ? 'alt=' + altI : 'no-alt',
 
         match && out.g ? 'g:' + out.g + ' ' : '',
         (match && out.p ? 'p:' + out.p + ' ' : '') +
-          (match && out.r ? 'r:' + out.r + ' ' : '') +
-          (match && out.b ? 'b:' + out.b + ' ' : ''),
+        (match && out.r ? 'r:' + out.r + ' ' : '') +
+        (match && out.b ? 'b:' + out.b + ' ' : ''),
 
         (OPEN === rule.state
           ? [rule.o0, rule.o1].slice(0, rule.os)
@@ -567,28 +569,28 @@ class RuleSpecImpl implements RuleSpec {
 
         'c:' + (alt && alt.c ? cond : EMPTY),
         'n:' +
-          entries(out.n)
-            .map((n) => n[0] + '=' + n[1])
-            .join(';'),
+        entries(out.n)
+          .map((n) => n[0] + '=' + n[1])
+          .join(';'),
         'u:' +
-          entries(out.u)
-            .map((u) => u[0] + '=' + u[1])
-            .join(';'),
+        entries(out.u)
+          .map((u) => u[0] + '=' + u[1])
+          .join(';'),
         'k:' +
-          entries(out.k)
-            .map((k) => k[0] + '=' + k[1])
-            .join(';'),
+        entries(out.k)
+          .map((k) => k[0] + '=' + k[1])
+          .join(';'),
 
         altI < alts.length && (alt as any).s
           ? '[' +
-              (alt as any).s
-                .map((pin: Tin) =>
-                  Array.isArray(pin)
-                    ? pin.map((pin: Tin) => t[pin]).join('|')
-                    : t[pin]
-                )
-                .join(' ') +
-              ']'
+          (alt as any).s
+            .map((pin: Tin) =>
+              Array.isArray(pin)
+                ? pin.map((pin: Tin) => t[pin]).join('|')
+                : t[pin]
+            )
+            .join(' ') +
+          ']'
           : '[]',
 
         out
@@ -772,12 +774,12 @@ class Parser {
     while (norule !== rule && rI < maxr) {
       ctx.log &&
         ctx.log(
-          '\nstack',
-          '<<' + ctx.F(root.node) + '>>',
+          '\n' + S.indent.repeat(rule.d) + S.stack,
           ctx.rs
             .slice(0, ctx.rsI)
             .map((r: Rule) => r.name + '~' + r.id)
             .join('/'),
+          '<<' + ctx.F(root.node) + '>>',
           ctx.rs
             .slice(0, ctx.rsI)
             .map((r: Rule) => '<' + ctx.F(r.node) + '>')
@@ -785,28 +787,28 @@ class Parser {
 
           rule,
           ctx,
-          '\n'
         )
 
       ctx.log &&
         ctx.log(
-          'rule  ' + rule.state.toUpperCase(),
-          rule.prev.id + '/' + rule.parent.id + '/' + rule.child.id,
+          S.indent.repeat(rule.d) + S.rule + S.space,
+          rule.state.toUpperCase(),
+          (rule.prev.id + '/' + rule.parent.id + '/' + rule.child.id).padEnd(12),
           rule.name + '~' + rule.id,
           '[' + ctx.F(ctx.t0.src) + ' ' + ctx.F(ctx.t1.src) + ']',
           'n:' +
-            entries(rule.n)
-              .filter((n) => n[1])
-              .map((n) => n[0] + '=' + n[1])
-              .join(';'),
+          entries(rule.n)
+            .filter((n) => n[1])
+            .map((n) => n[0] + '=' + n[1])
+            .join(';'),
           'u:' +
-            entries(rule.use)
-              .map((u) => u[0] + '=' + u[1])
-              .join(';'),
+          entries(rule.use)
+            .map((u) => u[0] + '=' + u[1])
+            .join(';'),
           'k:' +
-            entries(rule.keep)
-              .map((k) => k[0] + '=' + k[1])
-              .join(';'),
+          entries(rule.keep)
+            .map((k) => k[0] + '=' + k[1])
+            .join(';'),
 
           '[' + tn(ctx.t0.tin) + ' ' + tn(ctx.t1.tin) + ']',
 

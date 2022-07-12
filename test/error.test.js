@@ -1,19 +1,11 @@
-/* Copyright (c) 2013-2020 Richard Rodger and other contributors, MIT License */
+/* Copyright (c) 2013-2022 Richard Rodger and other contributors, MIT License */
 'use strict'
-
-// let Lab = require('@hapi/lab')
-// Lab = null != Lab.script ? Lab : require('hapi-lab-shim')
-
-// const Code = require('@hapi/code')
-
-// const lab = (exports.lab = Lab.script())
-// const describe = lab.describe
-// const it = lab.it
-// const expect = Code.expect
 
 const { Jsonic, JsonicError } = require('..')
 
 const je = (s) => () => Jsonic(s)
+
+const JS = (x)=>JSON.stringify(x)
 
 describe('error', function () {
   it('error-message', () => {
@@ -200,7 +192,11 @@ describe('error', function () {
     expect(Jsonic(',]')).toEqual([null])
     expect(Jsonic('{a:}')).toEqual({ a: null })
     expect(Jsonic('{a:b:}')).toEqual({ a: { b: null } })
-    expect(Jsonic('[a:1]')).toEqual([{ a: 1 }])
-    expect(Jsonic('[a:]')).toEqual([{ a: null }])
+
+    expect(JS(Jsonic('[a:1]'))).toEqual('[]')
+    expect(Jsonic('[a:1]').a).toEqual(1)
+
+    expect(JS(Jsonic('[a:]'))).toEqual('[]')
+    expect(Jsonic('[a:]').a).toEqual(null)
   })
 })

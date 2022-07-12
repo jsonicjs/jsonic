@@ -7,6 +7,8 @@ declare const isarr: (x: any) => boolean;
 declare const defprop: <T>(o: T, p: PropertyKey, attributes: PropertyDescriptor & ThisType<any>) => T;
 declare const omap: (o: any, f?: ((e: any) => any) | undefined) => any;
 declare const S: {
+    indent: string;
+    space: string;
     object: string;
     string: string;
     function: string;

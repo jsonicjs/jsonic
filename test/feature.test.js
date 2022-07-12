@@ -1,4 +1,4 @@
-/* Copyright (c) 2013-2020 Richard Rodger and other contributors, MIT License */
+/* Copyright (c) 2013-2022 Richard Rodger and other contributors, MIT License */
 'use strict'
 
 const Util = require('util')
@@ -7,6 +7,9 @@ const I = Util.inspect
 const { Jsonic, JsonicError, RuleSpec } = require('..')
 
 const j = Jsonic
+
+const JS = (x)=>JSON.stringify(x)
+
 
 describe('feature', function () {
   it('test-util-match', () => {
@@ -346,17 +349,28 @@ describe('feature', function () {
     expect(j('null')).toEqual(null)
     expect(j('a:null')).toEqual({ a: null })
 
-    expect(j('[a:1]')).toEqual([{ a: 1 }])
+    expect(JS(j('[a:1]'))).toEqual('[]')
+    expect(j('[a:1]').a).toEqual(1)
 
     expect(j('[{a:null}]')).toEqual([{ a: null }])
-    expect(j('[a:null]')).toEqual([{ a: null }])
+
+    expect(JS(j('[a:null]'))).toEqual('[]')
+    expect(j('[a:null]').a).toEqual(null)
+
     expect(j('a:null,b:null')).toEqual({ a: null, b: null })
     expect(j('{a:null,b:null}')).toEqual({ a: null, b: null })
 
-    expect(j('[a:]')).toEqual([{ a: null }])
-    expect(j('[a:,]')).toEqual([{ a: null }])
-    expect(j('[a:,b:]')).toEqual([{ a: null }, { b: null }])
-    expect(j('[a:,b:c:]')).toEqual([{ a: null }, { b: { c: null } }])
+    expect(JS(j('[a:]'))).toEqual('[]')
+    expect(j('[a:]').a).toEqual(null)
+
+    expect(JS(j('[a:,]'))).toEqual('[]')
+    expect(j('[a:,]').a).toEqual(null)
+
+    expect(JS(j('[a:,b:]'))).toEqual('[]')
+    expect({...j('[a:,b:]')}).toEqual({a:null,b:null})
+
+    expect(JS(j('[a:,b:c:]'))).toEqual('[]')
+    expect({...j('[a:,b:c:]')}).toEqual({ a: null, b: { c: null } })
 
     expect(j('a:')).toEqual({ a: null })
     expect(j('a:,b:')).toEqual({ a: null, b: null })
@@ -626,7 +640,9 @@ describe('feature', function () {
     expect(j(',{}')).toEqual([null, {}])
     expect(j(',[1]')).toEqual([null, [1]])
     expect(j(',{a:1}')).toEqual([null, { a: 1 }])
-    expect(j(',a:1')).toEqual([null, { a: 1 }])
+
+    expect(JS(j(',a:1'))).toEqual('[null]')
+    expect(j(',a:1').a).toEqual(1)
 
     // Top level comma imlies list; ignore trailing comma
     expect(j('a,')).toEqual(['a'])
@@ -691,10 +707,19 @@ describe('feature', function () {
     expect(j('{a:1},')).toEqual([{ a: 1 }])
     expect(j('[1],')).toEqual([[1]])
 
-    expect(j('[a:1]')).toEqual([{ a: 1 }])
-    expect(j('[a:1,b:2]')).toEqual([{ a: 1 }, { b: 2 }])
-    expect(j('[a:1,b:2,c:3]')).toEqual([{ a: 1 }, { b: 2 }, { c: 3 }])
+    expect(JS(j('[a:1]'))).toEqual('[]')
+    expect({...j('[a:1]')}).toEqual({a:1})
+
+    expect(JS(j('[a:1,b:2]'))).toEqual('[]')
+    expect({...j('[a:1,b:2]')}).toEqual({ a: 1, b: 2 })
+
+    expect(JS(j('[a:1,b:2,c:3]'))).toEqual('[]')
+    expect({...j('[a:1,b:2,c:3]')}).toEqual({ a: 1, b: 2, c: 3 })
+
+    expect(JS(j('[a:1,b:2,c:3,d:4]'))).toEqual('[]')
+    expect({...j('[a:1,b:2,c:3,d:4]')}).toEqual({ a: 1, b: 2, c: 3, d: 4 })
   })
+  
 
   it('implicit-map', () => {
     expect(j('a:1')).toEqual({ a: 1 })
@@ -785,26 +810,40 @@ describe('feature', function () {
     expect(j('[{a:{b:{c:1,d:2},e:3},f:4}]')).toEqual([
       { a: { b: { c: 1, d: 2 }, e: 3 }, f: 4 },
     ])
-    expect(j('[a:b:c]')).toEqual([{ a: { b: 'c' } }])
-    expect(j('[a:b:c, d:e:f]')).toEqual([{ a: { b: 'c' } }, { d: { e: 'f' } }])
-    expect(j('[a:b:c\nd:e:f]')).toEqual([{ a: { b: 'c' } }, { d: { e: 'f' } }])
 
-    expect(j('[a:b:c,d:e]')).toEqual([{ a: { b: 'c' } }, { d: 'e' }])
-    expect(j('[a:b:c:1,d:e]')).toEqual([{ a: { b: { c: 1 } } }, { d: 'e' }])
-    expect(j('[a:b:c:f:{g:1},d:e]')).toEqual([
-      { a: { b: { c: { f: { g: 1 } } } } },
-      { d: 'e' },
-    ])
-    expect(j('[c:f:{g:1,h:2},d:e]')).toEqual([
-      { c: { f: { g: 1, h: 2 } } },
-      { d: 'e' },
-    ])
-    expect(j('[c:f:[{g:1,h:2}],d:e]')).toEqual([
-      { c: { f: [{ g: 1, h: 2 }] } },
-      { d: 'e' },
-    ])
+    expect(JS(j('[a:b:c]'))).toEqual('[]')
+    expect(j('[a:b:c]').a).toEqual({ b: 'c' })
 
-    expect(j('[a:b:c:1\nd:e]')).toEqual([{ a: { b: { c: 1 } } }, { d: 'e' }])
+    // TODO: FIX
+    // expect(JS(j('[a:b:c, a:d:e]'))).toEqual('[]')
+    // expect({...j('[a:b:c, a:d:e]')}).toEqual({ a: { b: 'c', d: 'e' } })
+
+    expect(JS(j('[a:b:c, d:e:f]'))).toEqual('[]')
+    expect({...j('[a:b:c, d:e:f]')}).toEqual({ a: { b: 'c' }, d: { e: 'f' } })
+
+    expect(JS(j('[a:b:c\nd:e:f]'))).toEqual('[]')
+    expect({...j('[a:b:c\nd:e:f]')}).toEqual({ a: { b: 'c' }, d: { e: 'f' } })
+    
+    expect(JS(j('[a:b:c,d:e]'))).toEqual('[]')
+    expect({...j('[a:b:c,d:e]')}).toEqual({ a: { b: 'c' }, d: 'e' })
+
+    expect(JS(j('[a:b:c:1,d:e]'))).toEqual('[]')
+    expect({...j('[a:b:c:1,d:e]')}).toEqual({ a: { b: { c: 1 } }, d: 'e' })
+
+    expect(JS(j('[a:b:c:f:{g:1},d:e]'))).toEqual('[]')
+    expect({...j('[a:b:c:f:{g:1},d:e]')}).toEqual({
+      a: { b: { c: { f: { g: 1 } } } }, d: 'e' })
+    
+    expect(JS(j('[c:f:{g:1,h:2},d:e]'))).toEqual('[]')
+    expect({...j('[c:f:{g:1,h:2},d:e]')}).toEqual({
+      c: { f: { g: 1, h: 2 } }, d: 'e' })
+
+    expect(JS(j('[c:f:[{g:1,h:2}],d:e]'))).toEqual('[]')
+    expect({...j('[c:f:[{g:1,h:2}],d:e]')}).toEqual({
+       c: { f: [{ g: 1, h: 2 }] }, d: 'e' })
+
+    expect(JS(j('[a:b:c:1\nd:e]'))).toEqual('[]')
+    expect({...j('[a:b:c:1\nd:e]')}).toEqual({ a: { b: { c: 1 } }, d: 'e' })
 
     expect(j('a:b:{x:1},a:b:{y:2}')).toEqual({ a: { b: { x: 1, y: 2 } } })
     expect(j('a:b:{x:1},a:b:{y:2},a:b:{z:3}')).toEqual({

@@ -761,13 +761,11 @@ class LexImpl implements Lex {
 
     if (this.ctx.log) {
       this.ctx.log(
-        S.lex, // Log entry prefix.
+        S.indent.repeat(rule.d) + S.lex, // Log entry prefix.
         tokenize(tkn.tin, this.cfg), // Name of token from tin (token identification numer).
         this.ctx.F(tkn.src), // Format token src for log.
         pnt.sI, // Current source index.
         pnt.rI + ':' + pnt.cI // Row and column.
-        // { ...tkn },  // Copy of the token.
-        //...rest)       // Context-specific additional entries.
       )
     }
 

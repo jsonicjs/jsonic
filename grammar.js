@@ -23,6 +23,29 @@ function grammar(jsonic) {
             return ctx.t0;
         }
     };
+    const pairkey = (r) => {
+        // Get key string value from first matching token of `Open` state.
+        const key_token = r.o0;
+        const key = ST === key_token.tin || TX === key_token.tin
+            ? key_token.val // Was text
+            : key_token.src; // Was number, use original text
+        r.use.key = key;
+    };
+    const pairval = (r, ctx) => {
+        let key = r.use.key;
+        let val = r.child.node;
+        const prev = r.use.prev;
+        // Convert undefined to null when there was no pair value
+        val = undefined === val ? null : val;
+        r.node[key] =
+            null == prev
+                ? val
+                : ctx.cfg.map.merge
+                    ? ctx.cfg.map.merge(prev, val)
+                    : ctx.cfg.map.extend
+                        ? deep(prev, val)
+                        : val;
+    };
     // Plain JSON
     jsonic.rule('val', (rs) => {
         rs
@@ -47,28 +70,28 @@ function grammar(jsonic) {
             // There's more JSON.
             { b: 1, g: 'more,json' },
         ])
-            .bc((rule, ctx) => {
+            .bc((r, ctx) => {
             // NOTE: val can be undefined when there is no value at all
             // (eg. empty string, thus no matched opening token)
-            rule.node =
+            r.node =
                 // If there's no node,
-                undefined === rule.node
+                undefined === r.node
                     ? // ... or no child node (child map or list),
-                        undefined === rule.child.node
+                        undefined === r.child.node
                             ? // ... or no matched tokens,
-                                0 === rule.os
+                                0 === r.os
                                     ? // ... then the node has no value
                                         undefined
                                     : // .. otherwise use the token value
-                                        rule.o0.resolveVal(rule, ctx)
-                            : rule.child.node
-                    : rule.node;
+                                        r.o0.resolveVal(r, ctx)
+                            : r.child.node
+                    : r.node;
         });
     });
     jsonic.rule('map', (rs) => {
-        rs.bo((rule) => {
+        rs.bo((r) => {
             // Create a new empty map.
-            rule.node = {};
+            r.node = {};
         }).open([
             // An empty map: {}.
             { s: [OB, CB], g: 'map,json' },
@@ -78,9 +101,9 @@ function grammar(jsonic) {
         ]);
     });
     jsonic.rule('list', (rs) => {
-        rs.bo((rule) => {
+        rs.bo((r) => {
             // Create a new empty list.
-            rule.node = [];
+            r.node = [];
         }).open([
             // An empty list: [].
             { s: [OS, CS], g: 'list,json' },
@@ -92,18 +115,22 @@ function grammar(jsonic) {
     jsonic.rule('pair', (rs) => {
         rs.open([
             // Match key-colon start of pair. Marker `elem=true` allows flexibility.
-            { s: [VAL, CL], p: 'val', u: { pair: true }, g: 'map,pair,key,json' },
+            { s: [VAL, CL], p: 'val', u: { pair: true }, a: pairkey, g: 'map,pair,key,json' },
         ])
-            .ao((r, _ctx) => {
-            if (r.use.pair) {
-                // Get key string value from first matching token of `Open` state.
-                const key_token = r.o0;
-                const key = ST === key_token.tin || TX === key_token.tin
-                    ? key_token.val // Was text
-                    : key_token.src; // Was number, use original text
-                r.use.key = key;
-            }
-        })
+            /*
+                  .ao((r: Rule, _ctx: Context) => {
+                    if (r.use.pair) {
+                      // Get key string value from first matching token of `Open` state.
+                      const key_token = r.o0
+                      const key =
+                        ST === key_token.tin || TX === key_token.tin
+                          ? key_token.val // Was text
+                          : key_token.src // Was number, use original text
+            
+                      r.use.key = key
+                    }
+                  })
+            */
             .bc((r, _ctx) => {
             if (r.use.pair) {
                 // Store previous value (if any, for extenstions).
@@ -126,9 +153,9 @@ function grammar(jsonic) {
             // A list element value. Marker `elem=true` allows flexibility.
             { p: 'val', u: { elem: true }, g: 'list,elem,val,json' },
         ])
-            .bc((rule) => {
-            if (rule.use.elem) { //  && undefined !== rule.child.node) {
-                rule.node.push(rule.child.node);
+            .bc((r) => {
+            if (r.use.elem) { //  && undefined !== rule.child.node) {
+                r.node.push(r.child.node);
             }
         })
             .close([
@@ -175,7 +202,7 @@ function grammar(jsonic) {
                 c: { n: { il: 0, pk: 0 } },
                 n: { il: 1 },
                 r: 'elem',
-                a: (rule) => (rule.node = [rule.node]),
+                a: (r) => (r.node = [r.node]),
                 g: 'list,val,imp,comma,jsonic',
             },
             // Implicit list (space sep) only allowed at top level: `1 2`.
@@ -183,7 +210,7 @@ function grammar(jsonic) {
                 c: { n: { il: 0, pk: 0 } },
                 n: { il: 1 },
                 r: 'elem',
-                a: (rule) => (rule.node = [rule.node]),
+                a: (r) => (r.node = [r.node]),
                 g: 'list,val,imp,space,jsonic',
                 b: 1,
             },
@@ -194,22 +221,22 @@ function grammar(jsonic) {
         });
     });
     jsonic.rule('map', (rs) => {
-        rs.bo((rule) => {
+        rs.bo((r) => {
             // Implicit lists only at top level.
-            rule.n.il = 1 + (rule.n.il ? rule.n.il : 0);
+            r.n.il = 1 + (r.n.il ? r.n.il : 0);
             // Implicit maps only at top level.
-            rule.n.im = 1 + (rule.n.im ? rule.n.im : 0);
+            r.n.im = 1 + (r.n.im ? r.n.im : 0);
         }).open([
             // Pair from implicit map.
             { s: [VAL, CL], p: 'pair', b: 2, g: 'pair,list,val,imp' },
         ], { append: true });
     });
     jsonic.rule('list', (rs) => {
-        rs.bo((rule) => {
+        rs.bo((r) => {
             // No implicit lists or maps inside lists.
-            rule.n.il = 1 + (rule.n.il ? rule.n.il : 0);
-            rule.n.pk = 1 + (rule.n.pk ? rule.n.pk : 0);
-            rule.n.im = 1 + (rule.n.im ? rule.n.im : 0);
+            r.n.il = 1 + (r.n.il ? r.n.il : 0);
+            r.n.pk = 1 + (r.n.pk ? r.n.pk : 0);
+            r.n.im = 1 + (r.n.im ? r.n.im : 0);
         }).open([
             // Initial comma [, will insert null as [null,
             { s: [CA], p: 'elem', b: 1, g: 'list,elem,val,imp' },
@@ -225,19 +252,20 @@ function grammar(jsonic) {
         ], { append: true })
             .bc((r, ctx) => {
             if (r.use.pair) {
-                let key = r.use.key;
-                let val = r.child.node;
-                const prev = r.use.prev;
-                // Convert undefined to null when there was no pair value
-                val = undefined === val ? null : val;
-                r.node[key] =
-                    null == prev
-                        ? val
-                        : ctx.cfg.map.merge
-                            ? ctx.cfg.map.merge(prev, val)
-                            : ctx.cfg.map.extend
-                                ? deep(prev, val)
-                                : val;
+                pairval(r, ctx);
+                // let key = r.use.key
+                // let val = r.child.node
+                // const prev = r.use.prev
+                // // Convert undefined to null when there was no pair value
+                // val = undefined === val ? null : val
+                // r.node[key] =
+                //   null == prev
+                //     ? val
+                //     : ctx.cfg.map.merge
+                //       ? ctx.cfg.map.merge(prev, val)
+                //       : ctx.cfg.map.extend
+                //         ? deep(prev, val)
+                //         : val
             }
         })
             .close([
@@ -278,7 +306,8 @@ function grammar(jsonic) {
     });
     // push onto node
     jsonic.rule('elem', (rs) => {
-        rs.open([
+        rs
+            .open([
             // Empty commas insert null elements.
             // Note that close consumes a comma, so b:2 works.
             {
@@ -292,7 +321,33 @@ function grammar(jsonic) {
                 a: (r) => r.node.push(null),
                 g: 'list,elem,imp,null,jsonic',
             },
+            {
+                s: [VAL, CL], p: 'val',
+                n: { pk: 1 },
+                u: { elem: false },
+                a: pairkey,
+                g: 'elem,pair,jsonic'
+            },
         ])
+            /*
+              .ao((r: Rule, _ctx: Context) => {
+                if (false === r.use.elem) {
+                  // Get key string value from first matching token of `Open` state.
+                  const key_token = r.o0
+                  const key =
+                    ST === key_token.tin || TX === key_token.tin
+                      ? key_token.val // Was text
+                      : key_token.src // Was number, use original text
+        
+                  r.use.key = key
+                }
+              })
+        */
+            .bc((r, ctx) => {
+            if (false === r.use.elem) {
+                pairval(r, ctx);
+            }
+        })
             .close([
             // Ignore trailing comma.
             { s: [CA, CS], g: 'list,elem,comma.jsonic' },
