@@ -282,7 +282,7 @@ let makeNumberMatcher = (cfg, _opts) => {
             let out = undefined;
             let included = true;
             if (null != msrc &&
-                (included = (!cfg.number.exclude || !msrc.match(cfg.number.exclude)))) {
+                (included = !cfg.number.exclude || !msrc.match(cfg.number.exclude))) {
                 let mlen = msrc.length;
                 if (0 < mlen) {
                     let vs = undefined;

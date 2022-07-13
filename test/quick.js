@@ -1,6 +1,5 @@
 let { Jsonic, util } = require('..')
 
-
 let json = Jsonic.make('json')
 
 // console.log(util.deep(undefined, 1))
@@ -15,5 +14,4 @@ let json = Jsonic.make('json')
 
 //console.log(json('["a"00,"b"]',{log:-1}))
 
-console.log(json('[true 00,"b"]',{log:-1}))
-
+console.log(json('[true 00,"b"]', { log: -1 }))

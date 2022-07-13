@@ -28,8 +28,7 @@ declare const util: {
     entries: (x: any) => [string, unknown][];
 };
 declare type Jsonic = JsonicParse & // A function that parses.
-JsonicAPI & // A utility with API methods. 
-{
+JsonicAPI & {
     [prop: string]: any;
 };
 declare function make(param_options?: Bag | string, parent?: Jsonic): Jsonic;

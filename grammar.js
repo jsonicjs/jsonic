@@ -97,12 +97,14 @@ function grammar(jsonic) {
     });
     // sets key:val on node
     jsonic.rule('pair', (rs) => {
-        rs
-            .open([
+        rs.open([
             // Match key-colon start of pair. Marker `pair=true` allows flexibility.
             {
-                s: [KEY, CL], p: 'val', u: { pair: true }, a: pairkey,
-                g: 'map,pair,key,json'
+                s: [KEY, CL],
+                p: 'val',
+                u: { pair: true },
+                a: pairkey,
+                g: 'map,pair,key,json',
             },
         ])
             .bc((r, _ctx) => {
@@ -128,7 +130,8 @@ function grammar(jsonic) {
             { p: 'val', u: { elem: true }, g: 'list,elem,val,json' },
         ])
             .bc((r) => {
-            if (r.use.elem) { //  && undefined !== rule.child.node) {
+            if (r.use.elem) {
+                //  && undefined !== rule.child.node) {
                 r.node.push(r.child.node);
             }
         })
@@ -162,8 +165,7 @@ function grammar(jsonic) {
                         : val;
     };
     jsonic.rule('val', (rs) => {
-        rs
-            .open([
+        rs.open([
             // A pair key: `a: ...`
             // Increment counter n.pk to indicate pair-key state (for extensions).
             { s: [KEY, CL], p: 'map', b: 2, n: { pk: 1 }, g: 'pair,jsonic' },
@@ -181,8 +183,7 @@ function grammar(jsonic) {
             },
             // Value is implicitly null when empty before commas.
             { s: [CA], b: 1, g: 'list,val,imp,null,jsonic' },
-        ], { append: true, delete: [2] })
-            .close([
+        ], { append: true, delete: [2] }).close([
             // Explicitly close map or list: `}`, `]`
             { s: [[CB, CS]], b: 1, g: 'val,json,close' },
             // Implicit list (comma sep) only allowed at top level: `1,2`.
@@ -282,8 +283,7 @@ function grammar(jsonic) {
     });
     // push onto node
     jsonic.rule('elem', (rs) => {
-        rs
-            .open([
+        rs.open([
             // Empty commas insert null elements.
             // Note that close consumes a comma, so b:2 works.
             {
@@ -298,11 +298,12 @@ function grammar(jsonic) {
                 g: 'list,elem,imp,null,jsonic',
             },
             cfg.list.property && {
-                s: [KEY, CL], p: 'val',
+                s: [KEY, CL],
+                p: 'val',
                 n: { pk: 1 },
                 u: { elem: false },
                 a: pairkey,
-                g: 'elem,pair,jsonic'
+                g: 'elem,pair,jsonic',
             },
         ])
             .bc((r, ctx) => {
@@ -350,7 +351,7 @@ function makeJSON(jsonic) {
         result: { fail: [undefined, NaN] },
         tokenSet: {
             key: ['#ST', null, null, null],
-        }
+        },
     });
     grammar(justJSON);
     return justJSON;

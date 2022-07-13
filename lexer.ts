@@ -198,7 +198,6 @@ let makeFixedMatcher: MakeLexMatcher = (cfg: Config, _opts: Options) => {
 // NOTE 2: matchers can place a second token onto the Point tokens,
 // supporting two token lookahead.
 
-
 let makeCommentMatcher: MakeLexMatcher = (cfg: Config, opts: Options) => {
   let oc = opts.comment
   cfg.comment = {
@@ -389,7 +388,7 @@ let makeNumberMatcher: MakeLexMatcher = (cfg: Config, _opts: Options) => {
 
       if (
         null != msrc &&
-        (included = (!cfg.number.exclude || !msrc.match(cfg.number.exclude)))
+        (included = !cfg.number.exclude || !msrc.match(cfg.number.exclude))
       ) {
         let mlen = msrc.length
         if (0 < mlen) {
@@ -791,7 +790,7 @@ class LexImpl implements Lex {
         pnt.sI, // Current source index.
         pnt.rI + ':' + pnt.cI, // Row and column.
         match?.name || 'none',
-        this.ctx.F(this.src.substring(sI, sI + 16)),
+        this.ctx.F(this.src.substring(sI, sI + 16))
       )
     }
 

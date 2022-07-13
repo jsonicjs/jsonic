@@ -5,7 +5,7 @@ const { Jsonic, JsonicError } = require('..')
 
 const je = (s) => () => Jsonic(s)
 
-const JS = (x)=>JSON.stringify(x)
+const JS = (x) => JSON.stringify(x)
 
 describe('error', function () {
   it('error-message', () => {

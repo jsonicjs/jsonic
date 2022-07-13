@@ -122,7 +122,7 @@ const defaults = {
     // Array formats.
     list: {
         // Allow arrays to have properties: `[a:9,0,1]`
-        property: true
+        property: true,
     },
     // Keyword values.
     value: {
@@ -192,7 +192,7 @@ const defaults = {
     // Result value options.
     result: {
         // Fail if result matches any of these.
-        fail: []
+        fail: [],
     },
     // Configuration options.
     config: {

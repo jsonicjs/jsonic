@@ -139,10 +139,11 @@ function configure(jsonic, incfg, opts) {
     ]);
     cfg.fixed.ref = Object.assign(cfg.fixed.ref, omap(cfg.fixed.ref, ([tin, src]) => [src, tin]));
     // console.log('AAA', cfg.tokenSet, opts.tokenSet)
-    cfg.tokenSet = opts.tokenSet ? Object.keys(opts.tokenSet)
-        .reduce(((a, n) => (a[n] = opts.tokenSet[n]
-        .filter((x) => null != x)
-        .map((n) => t(n)), a)), { ...cfg.tokenSet })
+    cfg.tokenSet = opts.tokenSet
+        ? Object.keys(opts.tokenSet).reduce((a, n) => ((a[n] = opts.tokenSet[n]
+            .filter((x) => null != x)
+            .map((n) => t(n))),
+            a), { ...cfg.tokenSet })
         : {};
     // console.log('BBB', cfg.tokenSet)
     cfg.tokenSetDerived = {
@@ -263,7 +264,7 @@ function configure(jsonic, incfg, opts) {
         cfg.debug.get_console().dir(cfg, { depth: null });
     }
     cfg.result = {
-        fail: []
+        fail: [],
     };
     if (opts.result) {
         cfg.result.fail = [...opts.result.fail];
@@ -338,13 +339,16 @@ function deep(base, ...rest) {
         }
         else {
             base =
-                undefined === over ? base :
-                    over_isf ? over :
-                        over_iso ?
-                            ((S.function === typeof (over_ctor = over.constructor) &&
+                undefined === over
+                    ? base
+                    : over_isf
+                        ? over
+                        : over_iso
+                            ? S.function === typeof (over_ctor = over.constructor) &&
                                 S.Object !== over_ctor.name &&
-                                S.Array !== over_ctor.name) ? over :
-                                deep(Array.isArray(over) ? [] : {}, over))
+                                S.Array !== over_ctor.name
+                                ? over
+                                : deep(Array.isArray(over) ? [] : {}, over)
                             : over;
             base_isf = S.function === typeof base;
             base_iso = null != base && (S.object === typeof base || base_isf);

@@ -41,8 +41,4 @@ describe('variant', function () {
     expect(() => json('["a"00,"b"]')).toThrow(/unexpected/s)
     expect(() => json('[{}00,"b"]')).toThrow(/unexpected/s)
   })
-
-
 })
-
-
