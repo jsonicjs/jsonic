@@ -97,6 +97,7 @@ function make(param_options, parent) {
         token: ((ref) => (0, utility_1.tokenize)(ref, internal.config, jsonic)),
         fixed: ((ref) => internal.config.fixed.ref[ref]),
         options: (0, utility_1.deep)(options, merged_options),
+        config: () => (0, utility_1.deep)(internal.config),
         parse: jsonic,
         // TODO: how to handle null plugin?
         use: function use(plugin, plugin_options) {

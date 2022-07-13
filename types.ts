@@ -27,6 +27,9 @@ export interface JsonicAPI {
   // Get and set partial option trees.
   options: Options & ((change_options?: Bag) => Bag)
 
+  // Get the current configuration (derived from options).
+  config: () => Config
+
   // Create a new Jsonic instance to customize.
   make: (options?: Options) => Jsonic
 
@@ -130,6 +133,9 @@ export type Options = {
     extend?: boolean
     merge?: (prev: any, curr: any) => any
   }
+  list?: {
+    property: boolean
+  }
   value?: {
     lex?: boolean
     map?: { [src: string]: { val: any } }
@@ -196,8 +202,8 @@ export interface RuleSpec {
   tin<R extends string | Tin, T extends R extends Tin ? string : Tin>(ref: R): T
 
   add(state: RuleState, a: AltSpec | AltSpec[], flags: any): RuleSpec
-  open(a: AltSpec | AltSpec[], flags?: any): RuleSpec
-  close(a: AltSpec | AltSpec[], flags?: any): RuleSpec
+  open(a: AltSpec | AltSpecish[], flags?: any): RuleSpec
+  close(a: AltSpec | AltSpecish[], flags?: any): RuleSpec
   action(
     prepend: boolean,
     step: RuleStep,
@@ -411,6 +417,10 @@ export type Config = {
     merge?: (prev: any, curr: any) => any
   }
 
+  list: {
+    property: boolean
+  }
+
   debug: {
     get_console: () => any
     maxlen: number
@@ -510,6 +520,9 @@ export interface AltSpec {
 
   e?: AltError // Generate an error token (alternate is not allowed).
 }
+
+// Allow AltSpecs to be "empty" and thus ignored.
+type AltSpecish = AltSpec | undefined | null | false | 0 | typeof NaN
 
 // Flags for adding a set of alts using RuleSpec.add.
 export type AddAltOps = {

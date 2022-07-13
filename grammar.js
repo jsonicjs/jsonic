@@ -14,9 +14,7 @@ function grammar(jsonic) {
     const ST = jsonic.token.ST;
     // const VL = jsonic.token.VL
     const ZZ = jsonic.token.ZZ;
-    // TODO: expose config?
-    const cfg = jsonic.internal().config;
-    // console.log(cfg.tokenSet)
+    const cfg = jsonic.config();
     const VAL = cfg.tokenSet.val;
     const KEY = cfg.tokenSet.key;
     const deep = jsonic.util.deep;
@@ -34,21 +32,6 @@ function grammar(jsonic) {
             ? key_token.val // Was text
             : key_token.src; // Was number, use original text
         r.use.key = key;
-    };
-    const pairval = (r, ctx) => {
-        let key = r.use.key;
-        let val = r.child.node;
-        const prev = r.use.prev;
-        // Convert undefined to null when there was no pair value
-        val = undefined === val ? null : val;
-        r.node[key] =
-            null == prev
-                ? val
-                : ctx.cfg.map.merge
-                    ? ctx.cfg.map.merge(prev, val)
-                    : ctx.cfg.map.extend
-                        ? deep(prev, val)
-                        : val;
     };
     // Plain JSON
     jsonic.rule('val', (rs) => {
@@ -163,6 +146,21 @@ function grammar(jsonic) {
     // * pk (pair-key): depth of the pair-key path
     // * il (implicit list): only allow at top level
     // * im (implicit map): only allow at top level
+    const pairval = (r, ctx) => {
+        let key = r.use.key;
+        let val = r.child.node;
+        const prev = r.use.prev;
+        // Convert undefined to null when there was no pair value
+        val = undefined === val ? null : val;
+        r.node[key] =
+            null == prev
+                ? val
+                : ctx.cfg.map.merge
+                    ? ctx.cfg.map.merge(prev, val)
+                    : ctx.cfg.map.extend
+                        ? deep(prev, val)
+                        : val;
+    };
     jsonic.rule('val', (rs) => {
         rs
             .open([
@@ -244,19 +242,6 @@ function grammar(jsonic) {
             .bc((r, ctx) => {
             if (r.use.pair) {
                 pairval(r, ctx);
-                // let key = r.use.key
-                // let val = r.child.node
-                // const prev = r.use.prev
-                // // Convert undefined to null when there was no pair value
-                // val = undefined === val ? null : val
-                // r.node[key] =
-                //   null == prev
-                //     ? val
-                //     : ctx.cfg.map.merge
-                //       ? ctx.cfg.map.merge(prev, val)
-                //       : ctx.cfg.map.extend
-                //         ? deep(prev, val)
-                //         : val
             }
         })
             .close([
@@ -312,7 +297,7 @@ function grammar(jsonic) {
                 a: (r) => r.node.push(null),
                 g: 'list,elem,imp,null,jsonic',
             },
-            {
+            cfg.list.property && {
                 s: [KEY, CL], p: 'val',
                 n: { pk: 1 },
                 u: { elem: false },
@@ -320,20 +305,6 @@ function grammar(jsonic) {
                 g: 'elem,pair,jsonic'
             },
         ])
-            /*
-              .ao((r: Rule, _ctx: Context) => {
-                if (false === r.use.elem) {
-                  // Get key string value from first matching token of `Open` state.
-                  const key_token = r.o0
-                  const key =
-                    ST === key_token.tin || TX === key_token.tin
-                      ? key_token.val // Was text
-                      : key_token.src // Was number, use original text
-        
-                  r.use.key = key
-                }
-              })
-        */
             .bc((r, ctx) => {
             if (false === r.use.elem) {
                 r.use.prev = r.node[r.use.key];

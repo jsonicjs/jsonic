@@ -119,6 +119,11 @@ const defaults = {
         // TODO: needs function signature
         merge: undefined,
     },
+    // Array formats.
+    list: {
+        // Allow arrays to have properties: `[a:9,0,1]`
+        property: true
+    },
     // Keyword values.
     value: {
         lex: true,

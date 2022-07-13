@@ -1,5 +1,6 @@
 /* Copyright (c) 2013-2022 Richard Rodger, MIT License */
 
+
 /*  jsonic.ts
  *  Entry point and API.
  */
@@ -162,8 +163,10 @@ const util = {
 
 // The full library type.
 // NOTE: redeclared here so it can be exported as a type and instance.
-type Jsonic = JsonicParse & // A function that parses.
-  JsonicAPI & { [prop: string]: any } // A utility with API methods. // Extensible by plugin decoration.
+type Jsonic =
+  JsonicParse & // A function that parses.
+  JsonicAPI & // A utility with API methods. 
+  { [prop: string]: any } // Extensible by plugin decoration.
 
 function make(param_options?: Bag | string, parent?: Jsonic): Jsonic {
   if ('json' === param_options) {
@@ -231,6 +234,8 @@ function make(param_options?: Bag | string, parent?: Jsonic): Jsonic {
       internal.config.fixed.ref[ref]) as unknown as JsonicAPI['fixed'],
 
     options: deep(options, merged_options),
+
+    config: () => deep(internal.config),
 
     parse: jsonic,
 

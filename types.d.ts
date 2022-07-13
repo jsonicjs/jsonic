@@ -9,6 +9,7 @@ export declare type JsonicParse = (src: any, meta?: any, parent_ctx?: any) => an
 export interface JsonicAPI {
     parse: JsonicParse;
     options: Options & ((change_options?: Bag) => Bag);
+    config: () => Config;
     make: (options?: Options) => Jsonic;
     use: (plugin: Plugin, plugin_options?: Bag) => Jsonic;
     rule: (name?: string, define?: RuleDefiner | null) => Jsonic | RuleSpec | RuleSpecMap;
@@ -91,6 +92,9 @@ export declare type Options = {
         extend?: boolean;
         merge?: (prev: any, curr: any) => any;
     };
+    list?: {
+        property: boolean;
+    };
     value?: {
         lex?: boolean;
         map?: {
@@ -151,8 +155,8 @@ export interface RuleSpec {
     };
     tin<R extends string | Tin, T extends R extends Tin ? string : Tin>(ref: R): T;
     add(state: RuleState, a: AltSpec | AltSpec[], flags: any): RuleSpec;
-    open(a: AltSpec | AltSpec[], flags?: any): RuleSpec;
-    close(a: AltSpec | AltSpec[], flags?: any): RuleSpec;
+    open(a: AltSpec | AltSpecish[], flags?: any): RuleSpec;
+    close(a: AltSpec | AltSpecish[], flags?: any): RuleSpec;
     action(prepend: boolean, step: RuleStep, state: RuleState, action: StateAction): RuleSpec;
     bo(first: StateAction | boolean, second?: StateAction): RuleSpec;
     ao(first: StateAction | boolean, second?: StateAction): RuleSpec;
@@ -309,6 +313,9 @@ export declare type Config = {
         extend: boolean;
         merge?: (prev: any, curr: any) => any;
     };
+    list: {
+        property: boolean;
+    };
     debug: {
         get_console: () => any;
         maxlen: number;
@@ -370,6 +377,7 @@ export interface AltSpec {
     g?: string | string[];
     e?: AltError;
 }
+declare type AltSpecish = AltSpec | undefined | null | false | 0 | typeof NaN;
 export declare type AddAltOps = {
     append?: boolean;
     move?: number[];
@@ -427,3 +435,4 @@ export declare type AltBack = (rule: Rule, ctx: Context, alt: AltMatch) => numbe
 export declare type StateAction = (this: RuleSpec, rule: Rule, ctx: Context, next: Rule, out?: Token | void) => Token | void;
 export declare type AltError = (rule: Rule, ctx: Context, alt: AltMatch) => Token | undefined;
 export declare type ValModifier = (val: any, lex: Lex, cfg: Config, opts: Options) => string;
+export {};

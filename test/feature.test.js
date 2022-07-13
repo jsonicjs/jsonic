@@ -762,6 +762,7 @@ describe('feature', function () {
     expect(k('a:{b:1,c:2},a:{c:3,e:4}')).toEqual({ a: { c: 3, e: 4 } })
   })
 
+  
   it('finish', () => {
     expect(j('a:{b:')).toEqual({ a: { b: null } })
     expect(j('{a:{b:{c:1}')).toEqual({ a: { b: { c: 1 } } })
@@ -774,6 +775,7 @@ describe('feature', function () {
     expect(() => k('[[1')).toThrow(/unexpected/)
   })
 
+  
   it('property-dive', () => {
     expect(j('{a:1,b:2}')).toEqual({ a: 1, b: 2 })
     expect(j('{a:1,b:{c:2}}')).toEqual({ a: 1, b: { c: 2 } })
@@ -858,6 +860,15 @@ describe('feature', function () {
     })
   })
 
+
+  it('list-property', () => {
+    expect(j('[a:1]').a).toEqual(1)
+
+    let k = j.make({ list: { property: false } })
+    expect(k('[a:1]').a).toEqual(undefined)
+  })
+
+  
   /* TODO: fix
   it('get-set-rule-and-lex', () => {
     let p0 = Jsonic.make()

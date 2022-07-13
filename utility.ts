@@ -248,6 +248,10 @@ function configure(
     merge: opts.map?.merge,
   }
 
+  cfg.list = {
+    property: !!opts.list?.property,
+  }
+
   let fixedSorted = Object.keys(cfg.fixed.token).sort(
     (a: string, b: string) => b.length - a.length
   )

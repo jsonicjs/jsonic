@@ -165,7 +165,7 @@ class RuleSpecImpl implements RuleSpec {
   add(state: RuleState, a: AltSpec | AltSpec[], ops: AddAltOps): RuleSpec {
     let inject = ops?.append ? 'push' : 'unshift'
     let aa = ((isarr(a) ? a : [a]) as AltSpec[])
-      .filter((alt: AltSpec) => null != alt)
+      .filter((alt: AltSpec) => null != alt && 'object' === typeof alt)
       .map((a) => normalt(a))
     let altState = 'o' === state ? 'open' : 'close'
     let alts: any = (this.def as any)[altState]

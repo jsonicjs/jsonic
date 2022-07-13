@@ -104,7 +104,7 @@ exports.JsonicError = JsonicError;
 // Idempotent normalization of options.
 // See Config type for commentary.
 function configure(jsonic, incfg, opts) {
-    var _a, _b, _c, _d, _e, _f, _g, _h, _j, _k, _l, _o, _p, _q, _r, _s, _t, _u, _v, _w, _x, _y, _z, _0, _1, _2, _3, _4, _5, _6, _7, _8, _9, _10, _11, _12, _13, _14;
+    var _a, _b, _c, _d, _e, _f, _g, _h, _j, _k, _l, _o, _p, _q, _r, _s, _t, _u, _v, _w, _x, _y, _z, _0, _1, _2, _3, _4, _5, _6, _7, _8, _9, _10, _11, _12, _13, _14, _15;
     const cfg = incfg || {};
     cfg.t = cfg.t || {};
     cfg.tI = cfg.tI || 1;
@@ -197,9 +197,12 @@ function configure(jsonic, incfg, opts) {
         extend: !!((_1 = opts.map) === null || _1 === void 0 ? void 0 : _1.extend),
         merge: (_2 = opts.map) === null || _2 === void 0 ? void 0 : _2.merge,
     };
+    cfg.list = {
+        property: !!((_3 = opts.list) === null || _3 === void 0 ? void 0 : _3.property),
+    };
     let fixedSorted = Object.keys(cfg.fixed.token).sort((a, b) => b.length - a.length);
     let fixedRE = fixedSorted.map((fixed) => escre(fixed)).join('|');
-    let commentStartRE = ((_3 = opts.comment) === null || _3 === void 0 ? void 0 : _3.lex)
+    let commentStartRE = ((_4 = opts.comment) === null || _4 === void 0 ? void 0 : _4.lex)
         ? (opts.comment.marker || [])
             .filter((c) => c.lex)
             .map((c) => escre(c.start))
@@ -232,27 +235,27 @@ function configure(jsonic, incfg, opts) {
     cfg.re = {
         ender: regexp(null, ...enderRE),
         // TODO: prebuild these using a property on matcher?
-        rowChars: regexp(null, escre((_4 = opts.line) === null || _4 === void 0 ? void 0 : _4.rowChars)),
-        columns: regexp(null, '[' + escre((_5 = opts.line) === null || _5 === void 0 ? void 0 : _5.chars) + ']', '(.*)$'),
+        rowChars: regexp(null, escre((_5 = opts.line) === null || _5 === void 0 ? void 0 : _5.rowChars)),
+        columns: regexp(null, '[' + escre((_6 = opts.line) === null || _6 === void 0 ? void 0 : _6.chars) + ']', '(.*)$'),
     };
     cfg.lex = {
-        empty: !!((_6 = opts.lex) === null || _6 === void 0 ? void 0 : _6.empty),
-        match: ((_7 = opts.lex) === null || _7 === void 0 ? void 0 : _7.match)
+        empty: !!((_7 = opts.lex) === null || _7 === void 0 ? void 0 : _7.empty),
+        match: ((_8 = opts.lex) === null || _8 === void 0 ? void 0 : _8.match)
             ? opts.lex.match.map((maker) => maker(cfg, opts))
             : [],
     };
     cfg.debug = {
-        get_console: ((_8 = opts.debug) === null || _8 === void 0 ? void 0 : _8.get_console) || (() => console),
-        maxlen: null == ((_9 = opts.debug) === null || _9 === void 0 ? void 0 : _9.maxlen) ? 99 : opts.debug.maxlen,
+        get_console: ((_9 = opts.debug) === null || _9 === void 0 ? void 0 : _9.get_console) || (() => console),
+        maxlen: null == ((_10 = opts.debug) === null || _10 === void 0 ? void 0 : _10.maxlen) ? 99 : opts.debug.maxlen,
         print: {
-            config: !!((_11 = (_10 = opts.debug) === null || _10 === void 0 ? void 0 : _10.print) === null || _11 === void 0 ? void 0 : _11.config),
-            src: (_13 = (_12 = opts.debug) === null || _12 === void 0 ? void 0 : _12.print) === null || _13 === void 0 ? void 0 : _13.src,
+            config: !!((_12 = (_11 = opts.debug) === null || _11 === void 0 ? void 0 : _11.print) === null || _12 === void 0 ? void 0 : _12.config),
+            src: (_14 = (_13 = opts.debug) === null || _13 === void 0 ? void 0 : _13.print) === null || _14 === void 0 ? void 0 : _14.src,
         },
     };
     cfg.error = opts.error || {};
     cfg.hint = opts.hint || {};
     // Apply any config modifiers (probably from plugins).
-    if ((_14 = opts.config) === null || _14 === void 0 ? void 0 : _14.modify) {
+    if ((_15 = opts.config) === null || _15 === void 0 ? void 0 : _15.modify) {
         keys(opts.config.modify).forEach((modifer) => opts.config.modify[modifer](cfg, opts));
     }
     // Debug the config - useful for plugin authors.

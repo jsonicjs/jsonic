@@ -85,7 +85,7 @@ class RuleSpecImpl {
     add(state, a, ops) {
         let inject = (ops === null || ops === void 0 ? void 0 : ops.append) ? 'push' : 'unshift';
         let aa = ((0, utility_1.isarr)(a) ? a : [a])
-            .filter((alt) => null != alt)
+            .filter((alt) => null != alt && 'object' === typeof alt)
             .map((a) => (0, utility_1.normalt)(a));
         let altState = 'o' === state ? 'open' : 'close';
         let alts = this.def[altState];
