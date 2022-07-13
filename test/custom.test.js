@@ -410,10 +410,9 @@ describe('custom', function () {
           qaz: { val: false },
           obj: { val: o0 },
 
-          // This won't work - cloning removes constructor
           car: { val: c0 },
 
-          // Functions build values dynamically, or prevent cloning
+          // Functions build values dynamically
           fun: { val: () => 'f0' },
           high: { val: () => f1 },
           ferry: { val: () => new Car() },
@@ -430,9 +429,8 @@ describe('custom', function () {
     o0.x = 2
     expect(j('obj')).toEqual({ x: 1 })
 
-    // Instance properties are copied, but not constructor
     expect(j('car')).toEqual({ m: true })
-    expect(j('car') instanceof Car).toEqual(false)
+    expect(j('car') instanceof Car).toEqual(true)
 
     expect(j('fun')).toEqual('f0')
     expect(j('high')).toEqual(f1)

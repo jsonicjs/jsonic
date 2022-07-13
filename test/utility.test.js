@@ -461,8 +461,16 @@ describe('utility', () => {
     expect(deep({ a: 1 }, { a: null })).toEqual({ a: null })
     expect(deep({ a: undefined }, { a: null })).toEqual({ a: null })
     expect(deep({ a: 1 }, { a: undefined })).toEqual({ a: 1 })
+
+    let re0 = /a/
+    expect(deep(re0)).toEqual(re0)
+    expect(deep(undefined, 1)).toEqual(1)
+    expect(deep(undefined, re0)).toEqual(re0)
+    expect(deep({a:re0})).toEqual({a:re0})
+    expect(deep({a:undefined},{a:re0})).toEqual({a:re0})
   })
 
+  
   it('errinject', () => {
     let args = [
       'c0',

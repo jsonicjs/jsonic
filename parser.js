@@ -508,7 +508,7 @@ class Parser {
         // virtual (like map, list), and double for safety margin (allows
         // lots of backtracking), and apply a multipler options as a get-out-of-jail.
         let maxr = 2 * (0, utility_1.keys)(this.rsm).length * lex.src.length * 2 * ctx.cfg.rule.maxmul;
-        let ignore = ctx.cfg.tokenSet.ignore;
+        let ignore = ctx.cfg.tokenSetDerived.ignore;
         // Lex next token.
         function next() {
             ctx.v2 = ctx.v1;
@@ -559,7 +559,11 @@ class Parser {
             throw new utility_1.JsonicError(utility_1.S.unexpected, {}, ctx.t0, norule, ctx);
         }
         // NOTE: by returning root, we get implicit closing of maps and lists.
-        return ctx.root();
+        const result = ctx.root();
+        if (this.cfg.result.fail.includes(result)) {
+            throw new utility_1.JsonicError(utility_1.S.unexpected, {}, ctx.t0, norule, ctx);
+        }
+        return result;
     }
     clone(options, config) {
         let parser = new Parser(options, config);

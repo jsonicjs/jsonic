@@ -814,9 +814,9 @@ describe('feature', function () {
     expect(JS(j('[a:b:c]'))).toEqual('[]')
     expect(j('[a:b:c]').a).toEqual({ b: 'c' })
 
-    // TODO: FIX
-    // expect(JS(j('[a:b:c, a:d:e]'))).toEqual('[]')
-    // expect({...j('[a:b:c, a:d:e]')}).toEqual({ a: { b: 'c', d: 'e' } })
+    // NOTE: this validates that array props also merge!
+    expect(JS(j('[a:b:c, a:d:e]'))).toEqual('[]')
+    expect({...j('[a:b:c, a:d:e]')}).toEqual({ a: { b: 'c', d: 'e' } })
 
     expect(JS(j('[a:b:c, d:e:f]'))).toEqual('[]')
     expect({...j('[a:b:c, d:e:f]')}).toEqual({ a: { b: 'c' }, d: { e: 'f' } })

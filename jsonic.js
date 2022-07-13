@@ -54,6 +54,9 @@ const util = {
 };
 exports.util = util;
 function make(param_options, parent) {
+    if ('json' === param_options) {
+        return (0, grammar_1.makeJSON)(root);
+    }
     let internal = {
         parser: {},
         config: {},
@@ -125,6 +128,7 @@ function make(param_options, parent) {
         },
         empty: (options) => make({
             defaults$: false,
+            standard$: false,
             grammar$: false,
             ...(options || {}),
         }),

@@ -743,7 +743,7 @@ class Parser {
     let maxr =
       2 * keys(this.rsm).length * lex.src.length * 2 * ctx.cfg.rule.maxmul
 
-    let ignore = ctx.cfg.tokenSet.ignore
+    let ignore = ctx.cfg.tokenSetDerived.ignore
 
     // Lex next token.
     function next() {
@@ -829,7 +829,13 @@ class Parser {
     }
 
     // NOTE: by returning root, we get implicit closing of maps and lists.
-    return ctx.root()
+    const result = ctx.root()
+
+    if (this.cfg.result.fail.includes(result)) {
+      throw new JsonicError(S.unexpected, {}, ctx.t0, norule, ctx)
+    }
+
+    return result
   }
 
   clone(options: Options, config: Config) {

@@ -85,7 +85,7 @@ export type Options = {
     token?: StrMap
   }
   tokenSet?: {
-    ignore?: string[]
+    [name: string]: string[]
   }
   space?: {
     lex?: boolean
@@ -106,6 +106,7 @@ export type Options = {
     oct?: boolean
     bin?: boolean
     sep?: string | null
+    exclude?: RegExp
   }
   comment?: {
     lex?: boolean
@@ -156,6 +157,9 @@ export type Options = {
     include?: string
     exclude?: string
   }
+  result?: {
+    fail: any[],
+  }
   config?: {
     modify?: {
       [plugin_name: string]: (config: Config, options: Options) => void
@@ -163,13 +167,14 @@ export type Options = {
   }
   parser?: {
     start?: (
-      lexer: any, //Lexer,
+      lexer: any,
       src: string,
-      jsonic: any, //Jsonic,
+      jsonic: any,
       meta?: any,
       parent_ctx?: any
     ) => any
   }
+  standard$?: boolean
   defaults$?: boolean
   grammar$?: boolean
 }
@@ -329,8 +334,13 @@ export type Config = {
     ref: Record<string | Tin, Tin | string>
   }
 
-  // Token sets.
+  // Token set derived config.
   tokenSet: {
+    [name: string]: number[]
+  },
+
+  // Token set derived config.
+  tokenSetDerived: {
     // Tokens ignored by rules.
     ignore: {
       [name: number]: boolean
@@ -363,6 +373,7 @@ export type Config = {
     oct: boolean
     bin: boolean
     sep: boolean
+    exclude?: RegExp
     sepChar?: string | null
   }
 
@@ -407,6 +418,10 @@ export type Config = {
       config: boolean
       src?: (x: any) => string
     }
+  }
+
+  result: {
+    fail: any[],
   }
 
   error: { [code: string]: string }

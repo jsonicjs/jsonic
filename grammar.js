@@ -1,7 +1,7 @@
 "use strict";
 /* Copyright (c) 2013-2021 Richard Rodger, MIT License */
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.grammar = void 0;
+exports.makeJSON = exports.grammar = void 0;
 function grammar(jsonic) {
     const OB = jsonic.token.OB;
     const CB = jsonic.token.CB;
@@ -10,11 +10,15 @@ function grammar(jsonic) {
     const CL = jsonic.token.CL;
     const CA = jsonic.token.CA;
     const TX = jsonic.token.TX;
-    const NR = jsonic.token.NR;
+    // const NR = jsonic.token.NR
     const ST = jsonic.token.ST;
-    const VL = jsonic.token.VL;
+    // const VL = jsonic.token.VL
     const ZZ = jsonic.token.ZZ;
-    const VAL = [TX, NR, ST, VL];
+    // TODO: expose config?
+    const cfg = jsonic.internal().config;
+    // console.log(cfg.tokenSet)
+    const VAL = cfg.tokenSet.val;
+    const KEY = cfg.tokenSet.key;
     const deep = jsonic.util.deep;
     const finish = (_rule, ctx) => {
         if (!ctx.cfg.rule.finish) {
@@ -57,9 +61,6 @@ function grammar(jsonic) {
             { s: [OB], p: 'map', b: 1, g: 'map,json' },
             // A list: `[ ...`
             { s: [OS], p: 'list', b: 1, g: 'list,json' },
-            // A pair key: `a: ...`
-            // Increment counter n.pk to indicate pair-key state (for extensions).
-            // { s: [VAL, CL], p: 'map', b: 2, n: { pk: 1 }, g: 'pair,json' },
             // A plain value: `x` `"x"` `1` `true` ....
             { s: [VAL], g: 'val,json' },
         ])
@@ -113,24 +114,14 @@ function grammar(jsonic) {
     });
     // sets key:val on node
     jsonic.rule('pair', (rs) => {
-        rs.open([
-            // Match key-colon start of pair. Marker `elem=true` allows flexibility.
-            { s: [VAL, CL], p: 'val', u: { pair: true }, a: pairkey, g: 'map,pair,key,json' },
+        rs
+            .open([
+            // Match key-colon start of pair. Marker `pair=true` allows flexibility.
+            {
+                s: [KEY, CL], p: 'val', u: { pair: true }, a: pairkey,
+                g: 'map,pair,key,json'
+            },
         ])
-            /*
-                  .ao((r: Rule, _ctx: Context) => {
-                    if (r.use.pair) {
-                      // Get key string value from first matching token of `Open` state.
-                      const key_token = r.o0
-                      const key =
-                        ST === key_token.tin || TX === key_token.tin
-                          ? key_token.val // Was text
-                          : key_token.src // Was number, use original text
-            
-                      r.use.key = key
-                    }
-                  })
-            */
             .bc((r, _ctx) => {
             if (r.use.pair) {
                 // Store previous value (if any, for extenstions).
@@ -177,7 +168,7 @@ function grammar(jsonic) {
             .open([
             // A pair key: `a: ...`
             // Increment counter n.pk to indicate pair-key state (for extensions).
-            { s: [VAL, CL], p: 'map', b: 2, n: { pk: 1 }, g: 'pair,jsonic' },
+            { s: [KEY, CL], p: 'map', b: 2, n: { pk: 1 }, g: 'pair,jsonic' },
             // A plain value: `x` `"x"` `1` `true` ....
             { s: [VAL], g: 'val,json' },
             // Implicit ends `{a:}` -> {"a":null}, `[a:]` -> [{"a":null}]
@@ -228,7 +219,7 @@ function grammar(jsonic) {
             r.n.im = 1 + (r.n.im ? r.n.im : 0);
         }).open([
             // Pair from implicit map.
-            { s: [VAL, CL], p: 'pair', b: 2, g: 'pair,list,val,imp' },
+            { s: [KEY, CL], p: 'pair', b: 2, g: 'pair,list,val,imp' },
         ], { append: true });
     });
     jsonic.rule('list', (rs) => {
@@ -322,7 +313,7 @@ function grammar(jsonic) {
                 g: 'list,elem,imp,null,jsonic',
             },
             {
-                s: [VAL, CL], p: 'val',
+                s: [KEY, CL], p: 'val',
                 n: { pk: 1 },
                 u: { elem: false },
                 a: pairkey,
@@ -345,6 +336,7 @@ function grammar(jsonic) {
         */
             .bc((r, ctx) => {
             if (false === r.use.elem) {
+                r.use.prev = r.node[r.use.key];
                 pairval(r, ctx);
             }
         })
@@ -363,4 +355,34 @@ function grammar(jsonic) {
     });
 }
 exports.grammar = grammar;
+function makeJSON(jsonic) {
+    let justJSON = jsonic.make({
+        grammar$: false,
+        text: { lex: false },
+        number: {
+            hex: false,
+            oct: false,
+            bin: false,
+            sep: null,
+            exclude: /^00+/,
+        },
+        string: {
+            chars: '"',
+            multiChars: '',
+            allowUnknown: false,
+            escape: { v: null },
+        },
+        comment: { lex: false },
+        map: { extend: false },
+        lex: { empty: false },
+        rule: { finish: false, include: 'json' },
+        result: { fail: [undefined, NaN] },
+        tokenSet: {
+            key: ['#ST', null, null, null],
+        }
+    });
+    grammar(justJSON);
+    return justJSON;
+}
+exports.makeJSON = makeJSON;
 //# sourceMappingURL=grammar.js.map

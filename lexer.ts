@@ -379,7 +379,7 @@ let makeNumberMatcher: MakeLexMatcher = (cfg: Config, _opts: Options) => {
 
       let out: Token | undefined = undefined
 
-      if (null != msrc) {
+      if (null != msrc && (!cfg.number.exclude || !msrc.match(cfg.number.exclude))) {
         let mlen = msrc.length
         if (0 < mlen) {
           let vs = undefined

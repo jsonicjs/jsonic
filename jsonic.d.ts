@@ -31,7 +31,7 @@ declare type Jsonic = JsonicParse & // A function that parses.
 JsonicAPI & {
     [prop: string]: any;
 };
-declare function make(param_options?: Bag, parent?: Jsonic): Jsonic;
+declare function make(param_options?: Bag | string, parent?: Jsonic): Jsonic;
 declare let Jsonic: Jsonic;
 export type { Plugin, Options, Config, Context, Token, Point, Rule, RuleSpec, Lex, Counters, Bag, Tin, MakeLexMatcher, LexMatcher, RuleDefiner, RuleState, RuleSpecMap, AltSpec, AltMatch, AltCond, AltAction, AltModifier, AltError, StateAction, };
 export { Jsonic as Jsonic, JsonicError, Parser, util, make, makeToken, makePoint, makeRule, makeRuleSpec, makeLex, makeFixedMatcher, makeSpaceMatcher, makeLineMatcher, makeStringMatcher, makeCommentMatcher, makeNumberMatcher, makeTextMatcher, OPEN, CLOSE, BEFORE, AFTER, };

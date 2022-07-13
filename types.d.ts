@@ -42,7 +42,7 @@ export declare type Options = {
         token?: StrMap;
     };
     tokenSet?: {
-        ignore?: string[];
+        [name: string]: string[];
     };
     space?: {
         lex?: boolean;
@@ -63,6 +63,7 @@ export declare type Options = {
         oct?: boolean;
         bin?: boolean;
         sep?: string | null;
+        exclude?: RegExp;
     };
     comment?: {
         lex?: boolean;
@@ -123,16 +124,18 @@ export declare type Options = {
         include?: string;
         exclude?: string;
     };
+    result?: {
+        fail: any[];
+    };
     config?: {
         modify?: {
             [plugin_name: string]: (config: Config, options: Options) => void;
         };
     };
     parser?: {
-        start?: (lexer: any, //Lexer,
-        src: string, jsonic: any, //Jsonic,
-        meta?: any, parent_ctx?: any) => any;
+        start?: (lexer: any, src: string, jsonic: any, meta?: any, parent_ctx?: any) => any;
     };
+    standard$?: boolean;
     defaults$?: boolean;
     grammar$?: boolean;
 };
@@ -243,6 +246,9 @@ export declare type Config = {
         ref: Record<string | Tin, Tin | string>;
     };
     tokenSet: {
+        [name: string]: number[];
+    };
+    tokenSetDerived: {
         ignore: {
             [name: number]: boolean;
         };
@@ -266,6 +272,7 @@ export declare type Config = {
         oct: boolean;
         bin: boolean;
         sep: boolean;
+        exclude?: RegExp;
         sepChar?: string | null;
     };
     string: {
@@ -309,6 +316,9 @@ export declare type Config = {
             config: boolean;
             src?: (x: any) => string;
         };
+    };
+    result: {
+        fail: any[];
     };
     error: {
         [code: string]: string;

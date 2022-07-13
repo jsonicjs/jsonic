@@ -39,6 +39,8 @@ const defaults: Options = {
   // Token sets.
   tokenSet: {
     ignore: ['#SP', '#LN', '#CM'],
+    val: ['#TX', '#NR', '#ST', '#VL'],
+    key: ['#TX', '#NR', '#ST', '#VL'],
   },
 
   // Recognize space characters in the lexer.
@@ -88,6 +90,9 @@ const defaults: Options = {
 
     // Allow embedded separator. `null` to disable.
     sep: '_',
+
+    // Exclude number strings matching this RegExp
+    exclude: undefined,
   },
 
   // Comment markers.
@@ -234,6 +239,12 @@ const defaults: Options = {
 
     include: '',
     exclude: '',
+  },
+
+  // Result value options.
+  result: {
+    // Fail if result matches any of these.
+    fail: []
   },
 
   // Configuration options.

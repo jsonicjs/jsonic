@@ -1,36 +1,13 @@
 /* Copyright (c) 2013-2021 Richard Rodger and other contributors, MIT License */
 'use strict'
 
-// let Lab = require('@hapi/lab')
-// Lab = null != Lab.script ? Lab : require('hapi-lab-shim')
-
-// const Code = require('@hapi/code')
-
-// const lab = (exports.lab = Lab.script())
-// const describe = lab.describe
-// const it = lab.it
-// const expect = Code.expect
-
 const { Jsonic, JsonicError } = require('..')
 
 const j = Jsonic
 
 describe('variant', function () {
-  it('just-json', () => {
-    let json = Jsonic.make({
-      text: { lex: false },
-      number: { hex: false, oct: false, bin: false, sep: null },
-      string: {
-        chars: '"',
-        multiChars: '',
-        allowUnknown: false,
-        escape: { v: null },
-      },
-      comment: { lex: false },
-      map: { extend: false },
-      lex: { empty: false },
-      rule: { finish: false, include: 'json' },
-    })
+  it('just-json-happy', () => {
+    let json = Jsonic.make('json')
 
     expect(json('{"a":1}')).toEqual({ a: 1 })
     expect(
@@ -57,5 +34,13 @@ describe('variant', function () {
 
     // TODO: fix: unexpected on `a` as `,` is already parsed as a valid fixed token
     expect(() => json('[,a]')).toThrow(/unexpected.*:1:3/s)
+
+    expect(() => json('')).toThrow(/unexpected/s)
+    expect(() => json('00')).toThrow(/unexpected/s)
+    expect(() => json('{0:1}')).toThrow(/unexpected/s)
   })
+
+
 })
+
+

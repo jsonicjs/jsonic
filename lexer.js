@@ -274,7 +274,7 @@ let makeNumberMatcher = (cfg, _opts) => {
             let msrc = m[1];
             let tsrc = m[9]; // NOTE: count parens in numberEnder!
             let out = undefined;
-            if (null != msrc) {
+            if (null != msrc && (!cfg.number.exclude || !msrc.match(cfg.number.exclude))) {
                 let mlen = msrc.length;
                 if (0 < mlen) {
                     let vs = undefined;

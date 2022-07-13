@@ -23,6 +23,8 @@ const defaults = {
     // Token sets.
     tokenSet: {
         ignore: ['#SP', '#LN', '#CM'],
+        val: ['#TX', '#NR', '#ST', '#VL'],
+        key: ['#TX', '#NR', '#ST', '#VL'],
     },
     // Recognize space characters in the lexer.
     space: {
@@ -60,6 +62,8 @@ const defaults = {
         // digital: '-1023456789._xoeEaAbBcCdDfF+',
         // Allow embedded separator. `null` to disable.
         sep: '_',
+        // Exclude number strings matching this RegExp
+        exclude: undefined,
     },
     // Comment markers.
     // <mark-char>: true -> single line comments
@@ -179,6 +183,11 @@ const defaults = {
         maxmul: 3,
         include: '',
         exclude: '',
+    },
+    // Result value options.
+    result: {
+        // Fail if result matches any of these.
+        fail: []
     },
     // Configuration options.
     config: {

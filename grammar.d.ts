@@ -1,3 +1,4 @@
 import { Jsonic } from './jsonic';
 declare function grammar(jsonic: Jsonic): void;
-export { grammar };
+declare function makeJSON(jsonic: any): any;
+export { grammar, makeJSON };

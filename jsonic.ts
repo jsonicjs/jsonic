@@ -130,7 +130,7 @@ import {
 
 import { makeRule, makeRuleSpec, Parser } from './parser'
 
-import { grammar } from './grammar'
+import { grammar, makeJSON } from './grammar'
 
 // TODO: remove - too much for an API!
 const util = {
@@ -165,7 +165,11 @@ const util = {
 type Jsonic = JsonicParse & // A function that parses.
   JsonicAPI & { [prop: string]: any } // A utility with API methods. // Extensible by plugin decoration.
 
-function make(param_options?: Bag, parent?: Jsonic): Jsonic {
+function make(param_options?: Bag | string, parent?: Jsonic): Jsonic {
+  if ('json' === param_options) {
+    return makeJSON(root)
+  }
+
   let internal: {
     parser: Parser
     config: Config
@@ -183,9 +187,9 @@ function make(param_options?: Bag, parent?: Jsonic): Jsonic {
     {},
     parent
       ? { ...parent.options }
-      : false === param_options?.defaults$
-      ? {}
-      : defaults,
+      : false === (param_options as Bag)?.defaults$
+        ? {}
+        : defaults,
     param_options ? param_options : {}
   )
 
@@ -269,6 +273,7 @@ function make(param_options?: Bag, parent?: Jsonic): Jsonic {
     empty: (options?: Options) =>
       make({
         defaults$: false,
+        standard$: false,
         grammar$: false,
         ...(options || {}),
       }),

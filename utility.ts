@@ -61,6 +61,8 @@ const omap = (o: any, f?: (e: any) => any) => {
 const S = {
   indent: '  ',
   space: ' ',
+  Object: 'Object',
+  Array: 'Array',
   object: 'object',
   string: 'string',
   function: 'function',
@@ -137,7 +139,7 @@ function configure(
   const t = (tn: string) => tokenize(tn, cfg)
 
   // Standard tokens. These names should not be changed.
-  if (false !== opts.grammar$) {
+  if (false !== opts.standard$) {
     t('#BD') // BAD
     t('#ZZ') // END
     t('#UK') // UNKNOWN
@@ -171,7 +173,19 @@ function configure(
     omap(cfg.fixed.ref, ([tin, src]: [string, string]) => [src, tin])
   )
 
-  cfg.tokenSet = {
+  // console.log('AAA', cfg.tokenSet, opts.tokenSet)
+
+  cfg.tokenSet = opts.tokenSet ? Object.keys(opts.tokenSet)
+    .reduce(((a: any, n: string) =>
+    (a[n] = (opts.tokenSet as any)[n]
+      .filter((x: any) => null != x)
+      .map((n: string) => t(n)), a)),
+      { ...cfg.tokenSet })
+    : {}
+
+  // console.log('BBB', cfg.tokenSet)
+
+  cfg.tokenSetDerived = {
     ignore: Object.fromEntries(
       (opts.tokenSet?.ignore || []).map((tn) => [t(tn), true])
     ),
@@ -201,6 +215,7 @@ function configure(
     oct: !!opts.number?.oct,
     bin: !!opts.number?.bin,
     sep: null != opts.number?.sep && '' !== opts.number.sep,
+    exclude: opts.number?.exclude,
     sepChar: opts.number?.sep,
   }
 
@@ -208,7 +223,7 @@ function configure(
     lex: !!opts.value?.lex,
     map: opts.value?.map || {},
 
-    // TODO: just testing, move to plugin
+    // TODO: just testing, move to a plugin for extended values
     // 'undefined': { v: undefined },
     // 'NaN': { v: NaN },
     // 'Infinity': { v: Infinity },
@@ -324,6 +339,14 @@ function configure(
     cfg.debug.get_console().dir(cfg, { depth: null })
   }
 
+  cfg.result = {
+    fail: []
+  }
+
+  if (opts.result) {
+    cfg.result.fail = [...opts.result.fail]
+  }
+
   assign(jsonic.options, opts)
   assign(jsonic.token, cfg.t)
   assign(jsonic.fixed, cfg.fixed.ref)
@@ -398,6 +421,7 @@ function deep(base?: any, ...rest: any): any {
   for (let over of rest) {
     let over_isf = S.function === typeof over
     let over_iso = null != over && (S.object === typeof over || over_isf)
+    let over_ctor
     if (
       base_iso &&
       over_iso &&
@@ -409,12 +433,13 @@ function deep(base?: any, ...rest: any): any {
       }
     } else {
       base =
-        undefined === over
-          ? base
-          : over_isf
-            ? over
-            : over_iso
-              ? deep(Array.isArray(over) ? [] : {}, over)
+        undefined === over ? base :
+          over_isf ? over :
+            over_iso ?
+              ((S.function === typeof (over_ctor = over.constructor) &&
+                S.Object !== over_ctor.name &&
+                S.Array !== over_ctor.name) ? over :
+                deep(Array.isArray(over) ? [] : {}, over))
               : over
 
       base_isf = S.function === typeof base
@@ -953,6 +978,8 @@ function parserwrap(parser: any) {
     },
   }
 }
+
+
 
 export {
   JsonicError,

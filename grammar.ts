@@ -15,13 +15,20 @@ function grammar(jsonic: Jsonic) {
   const CA = jsonic.token.CA
 
   const TX = jsonic.token.TX
-  const NR = jsonic.token.NR
+  // const NR = jsonic.token.NR
   const ST = jsonic.token.ST
-  const VL = jsonic.token.VL
+  // const VL = jsonic.token.VL
 
   const ZZ = jsonic.token.ZZ
 
-  const VAL = [TX, NR, ST, VL]
+  // TODO: expose config?
+  const cfg = jsonic.internal().config
+
+  // console.log(cfg.tokenSet)
+
+  const VAL = cfg.tokenSet.val
+  const KEY = cfg.tokenSet.key
+
 
   const deep = jsonic.util.deep
 
@@ -78,10 +85,6 @@ function grammar(jsonic: Jsonic) {
 
         // A list: `[ ...`
         { s: [OS], p: 'list', b: 1, g: 'list,json' },
-
-        // A pair key: `a: ...`
-        // Increment counter n.pk to indicate pair-key state (for extensions).
-        // { s: [VAL, CL], p: 'map', b: 2, n: { pk: 1 }, g: 'pair,json' },
 
         // A plain value: `x` `"x"` `1` `true` ....
         { s: [VAL], g: 'val,json' },
@@ -144,24 +147,14 @@ function grammar(jsonic: Jsonic) {
 
   // sets key:val on node
   jsonic.rule('pair', (rs: RuleSpec) => {
-    rs.open([
-      // Match key-colon start of pair. Marker `elem=true` allows flexibility.
-      { s: [VAL, CL], p: 'val', u: { pair: true }, a: pairkey, g: 'map,pair,key,json' },
-    ])
-      /*
-            .ao((r: Rule, _ctx: Context) => {
-              if (r.use.pair) {
-                // Get key string value from first matching token of `Open` state.
-                const key_token = r.o0
-                const key =
-                  ST === key_token.tin || TX === key_token.tin
-                    ? key_token.val // Was text
-                    : key_token.src // Was number, use original text
-      
-                r.use.key = key
-              }
-            })
-      */
+    rs
+      .open([
+        // Match key-colon start of pair. Marker `pair=true` allows flexibility.
+        {
+          s: [KEY, CL], p: 'val', u: { pair: true }, a: pairkey,
+          g: 'map,pair,key,json'
+        },
+      ])
       .bc((r: Rule, _ctx: Context) => {
         if (r.use.pair) {
           // Store previous value (if any, for extenstions).
@@ -204,6 +197,7 @@ function grammar(jsonic: Jsonic) {
       ])
   })
 
+
   // Jsonic syntax extensions.
 
   // Counters.
@@ -217,7 +211,7 @@ function grammar(jsonic: Jsonic) {
         [
           // A pair key: `a: ...`
           // Increment counter n.pk to indicate pair-key state (for extensions).
-          { s: [VAL, CL], p: 'map', b: 2, n: { pk: 1 }, g: 'pair,jsonic' },
+          { s: [KEY, CL], p: 'map', b: 2, n: { pk: 1 }, g: 'pair,jsonic' },
 
           // A plain value: `x` `"x"` `1` `true` ....
           { s: [VAL], g: 'val,json' },
@@ -283,7 +277,7 @@ function grammar(jsonic: Jsonic) {
     }).open(
       [
         // Pair from implicit map.
-        { s: [VAL, CL], p: 'pair', b: 2, g: 'pair,list,val,imp' },
+        { s: [KEY, CL], p: 'pair', b: 2, g: 'pair,list,val,imp' },
       ],
       { append: true }
     )
@@ -404,7 +398,7 @@ function grammar(jsonic: Jsonic) {
         },
 
         {
-          s: [VAL, CL], p: 'val',
+          s: [KEY, CL], p: 'val',
           n: { pk: 1 },
           u: { elem: false },
           a: pairkey,
@@ -427,6 +421,7 @@ function grammar(jsonic: Jsonic) {
   */
       .bc((r: Rule, ctx: Context) => {
         if (false === r.use.elem) {
+          r.use.prev = r.node[r.use.key]
           pairval(r, ctx)
         }
       })
@@ -452,4 +447,37 @@ function grammar(jsonic: Jsonic) {
   })
 }
 
-export { grammar }
+function makeJSON(jsonic: any) {
+  let justJSON = jsonic.make({
+    grammar$: false,
+    text: { lex: false },
+    number: {
+      hex: false,
+      oct: false,
+      bin: false,
+      sep: null,
+      exclude: /^00+/,
+    },
+    string: {
+      chars: '"',
+      multiChars: '',
+      allowUnknown: false,
+      escape: { v: null },
+    },
+    comment: { lex: false },
+    map: { extend: false },
+    lex: { empty: false },
+    rule: { finish: false, include: 'json' },
+    result: { fail: [undefined, NaN] },
+    tokenSet: {
+      key: ['#ST', null, null, null],
+    }
+  })
+
+  grammar(justJSON)
+
+  return justJSON
+}
+
+
+export { grammar, makeJSON }

@@ -9,6 +9,8 @@ declare const omap: (o: any, f?: ((e: any) => any) | undefined) => any;
 declare const S: {
     indent: string;
     space: string;
+    Object: string;
+    Array: string;
     object: string;
     string: string;
     function: string;
