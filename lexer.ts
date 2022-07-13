@@ -25,8 +25,6 @@ import type {
 
 import {
   S,
-  // Config,
-  // Context,
   tokenize,
   snip,
   regexp,
@@ -191,6 +189,15 @@ let makeFixedMatcher: MakeLexMatcher = (cfg: Config, _opts: Options) => {
     }
   }
 }
+
+// NOTE 1: matchers return arbitrary tokens and describe lexing using
+// code, rather than a grammar. Thus, for example, some matchers below
+// will check (using subMatchFixed) if their source text actually represents
+// a fixed value.
+
+// NOTE 2: matchers can place a second token onto the Point tokens,
+// supporting two token lookahead.
+
 
 let makeCommentMatcher: MakeLexMatcher = (cfg: Config, opts: Options) => {
   let oc = opts.comment
@@ -378,8 +385,12 @@ let makeNumberMatcher: MakeLexMatcher = (cfg: Config, _opts: Options) => {
       let tsrc = m[9] // NOTE: count parens in numberEnder!
 
       let out: Token | undefined = undefined
+      let included = true
 
-      if (null != msrc && (!cfg.number.exclude || !msrc.match(cfg.number.exclude))) {
+      if (
+        null != msrc &&
+        (included = (!cfg.number.exclude || !msrc.match(cfg.number.exclude)))
+      ) {
         let mlen = msrc.length
         if (0 < mlen) {
           let vs = undefined
@@ -407,7 +418,11 @@ let makeNumberMatcher: MakeLexMatcher = (cfg: Config, _opts: Options) => {
         }
       }
 
-      out = subMatchFixed(lex, out, tsrc)
+      // console.log('WWW', included, out, tsrc)
+
+      if (included) {
+        out = subMatchFixed(lex, out, tsrc)
+      }
 
       return out
     }
@@ -730,6 +745,10 @@ class LexImpl implements Lex {
   next(rule: Rule): Token {
     let tkn: Token | undefined
     let pnt = this.pnt
+    let sI = pnt.sI
+    let match
+
+    // console.log('\nNEXT PNT', pnt, this.src.substring(pnt.sI))
 
     if (pnt.end) {
       tkn = pnt.end
@@ -740,12 +759,14 @@ class LexImpl implements Lex {
 
       tkn = pnt.end
     } else {
-      //for (let mat of this.mat) {
       for (let mat of this.cfg.lex.match) {
         if ((tkn = mat(this, rule))) {
+          match = mat
           break
         }
       }
+
+      // console.log('MATCH', match, tkn)
 
       tkn =
         tkn ||
@@ -762,13 +783,19 @@ class LexImpl implements Lex {
     if (this.ctx.log) {
       this.ctx.log(
         S.indent.repeat(rule.d) + S.lex, // Log entry prefix.
-        tokenize(tkn.tin, this.cfg), // Name of token from tin (token identification numer).
+
+        // Name of token from tin (token identification numer).
+        tokenize(tkn.tin, this.cfg),
+
         this.ctx.F(tkn.src), // Format token src for log.
         pnt.sI, // Current source index.
-        pnt.rI + ':' + pnt.cI // Row and column.
+        pnt.rI + ':' + pnt.cI, // Row and column.
+        match?.name || 'none',
+        this.ctx.F(this.src.substring(sI, sI + 16)),
       )
     }
 
+    // console.log('NEXT TKN', tkn)
     return tkn
   }
 

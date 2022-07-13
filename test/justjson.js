@@ -28,16 +28,18 @@ let i = start
 Fs.writeFileSync('./mismatch.txt','')
 let fd = Fs.openSync('./mismatch.txt','a')
 
+let d = 0
 let startTime = Date.now()
 for(; i < end; i++) {
+  d++
   if(0 === i % 1e5) {
     let now = Date.now()
     console.log(
       'COUNT', i, 
-      'PERCENT', Math.round(1000*i/end)/100,
-      'RATE', Math.round((i/((now-startTime)/1000))),
+      'PERCENT', Math.round(1000*i/end)/10,
+      'RATE', Math.round((d/((now-startTime)/1000))),
       'DUR', (now-startTime)/1000,
-      'MATCH', Math.round(100000*(i-mismatch.length)/i)/1000
+      'MATCH', Math.round(10000000*(d-mismatch.length)/d)/100000
     )
   }
 
@@ -101,9 +103,9 @@ for(; i < end; i++) {
 
 let endTime = Date.now()
 console.log('TOTAL: ',end, 'DONE: ',i, 'MISMATCH', mismatch.length,
-            'RATE', Math.round((i/((endTime-startTime)/1000))),
+            'RATE', Math.round((d/((endTime-startTime)/1000))),
             'DUR', (endTime-startTime)/1000,
-            'MATCH', Math.round(100000*(i-mismatch.length)/i)/1000
+            'MATCH', Math.round(10000000*(d-mismatch.length)/d)/100000
            )
 
 

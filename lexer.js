@@ -122,6 +122,12 @@ let makeFixedMatcher = (cfg, _opts) => {
     };
 };
 exports.makeFixedMatcher = makeFixedMatcher;
+// NOTE 1: matchers return arbitrary tokens and describe lexing using
+// code, rather than a grammar. Thus, for example, some matchers below
+// will check (using subMatchFixed) if their source text actually represents
+// a fixed value.
+// NOTE 2: matchers can place a second token onto the Point tokens,
+// supporting two token lookahead.
 let makeCommentMatcher = (cfg, opts) => {
     let oc = opts.comment;
     cfg.comment = {
@@ -274,7 +280,9 @@ let makeNumberMatcher = (cfg, _opts) => {
             let msrc = m[1];
             let tsrc = m[9]; // NOTE: count parens in numberEnder!
             let out = undefined;
-            if (null != msrc && (!cfg.number.exclude || !msrc.match(cfg.number.exclude))) {
+            let included = true;
+            if (null != msrc &&
+                (included = (!cfg.number.exclude || !msrc.match(cfg.number.exclude)))) {
                 let mlen = msrc.length;
                 if (0 < mlen) {
                     let vs = undefined;
@@ -300,7 +308,10 @@ let makeNumberMatcher = (cfg, _opts) => {
                     }
                 }
             }
-            out = subMatchFixed(lex, out, tsrc);
+            // console.log('WWW', included, out, tsrc)
+            if (included) {
+                out = subMatchFixed(lex, out, tsrc);
+            }
             return out;
         }
     };
@@ -554,6 +565,9 @@ class LexImpl {
     next(rule) {
         let tkn;
         let pnt = this.pnt;
+        let sI = pnt.sI;
+        let match;
+        // console.log('\nNEXT PNT', pnt, this.src.substring(pnt.sI))
         if (pnt.end) {
             tkn = pnt.end;
         }
@@ -565,24 +579,26 @@ class LexImpl {
             tkn = pnt.end;
         }
         else {
-            //for (let mat of this.mat) {
             for (let mat of this.cfg.lex.match) {
                 if ((tkn = mat(this, rule))) {
+                    match = mat;
                     break;
                 }
             }
+            // console.log('MATCH', match, tkn)
             tkn =
                 tkn ||
                     this.token('#BD', undefined, this.src[pnt.sI], pnt, undefined, 'unexpected');
         }
         if (this.ctx.log) {
             this.ctx.log(utility_1.S.indent.repeat(rule.d) + utility_1.S.lex, // Log entry prefix.
-            (0, utility_1.tokenize)(tkn.tin, this.cfg), // Name of token from tin (token identification numer).
-            this.ctx.F(tkn.src), // Format token src for log.
+            // Name of token from tin (token identification numer).
+            (0, utility_1.tokenize)(tkn.tin, this.cfg), this.ctx.F(tkn.src), // Format token src for log.
             pnt.sI, // Current source index.
-            pnt.rI + ':' + pnt.cI // Row and column.
-            );
+            pnt.rI + ':' + pnt.cI, // Row and column.
+            (match === null || match === void 0 ? void 0 : match.name) || 'none', this.ctx.F(this.src.substring(sI, sI + 16)));
         }
+        // console.log('NEXT TKN', tkn)
         return tkn;
     }
     tokenize(ref) {

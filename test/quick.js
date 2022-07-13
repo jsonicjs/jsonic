@@ -10,5 +10,10 @@ let json = Jsonic.make('json')
 
 // console.log(Jsonic('[a:b:c, a:d:e]'))
 
-console.log(json('{"a":1}',{log:-1}))
-console.log(json('{0:1}',{xlog:-1}))
+// console.log(json('{"a":1}',{log:-1}))
+// console.log(json('{0:1}',{xlog:-1}))
+
+//console.log(json('["a"00,"b"]',{log:-1}))
+
+console.log(json('[true 00,"b"]',{log:-1}))
+
