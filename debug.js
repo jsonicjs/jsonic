@@ -2,40 +2,59 @@
 /* Copyright (c) 2021-2022 Richard Rodger, MIT License */
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.Debug = void 0;
-/*  debug.ts
- *  Debug tools
- */
-const jsonic_1 = require("./jsonic");
-const { keys, values, entries, omap } = jsonic_1.util;
-const Debug = (jsonic) => {
-    jsonic.describe = function () {
-        var _a, _b;
-        let rules = this.rule();
-        return [
-            '=== LEXER ===',
-            '  ' + (((_b = (_a = this.options.lex) === null || _a === void 0 ? void 0 : _a.match) === null || _b === void 0 ? void 0 : _b.map((m) => m.name)) || []).join('\n  '),
-            '\n',
-            '=== ALTS ===',
-            values(rules)
-                .map((rs) => '  ' +
-                rs.name +
-                ':\n' +
-                descAlt(jsonic, rs, 'open') +
-                descAlt(jsonic, rs, 'close'))
-                .join('\n\n'),
-            '=== RULES ===',
-            ruleTree(keys(rules), rules),
-        ].join('\n');
+const Debug = (jsonic, options) => {
+    const { keys, values, entries } = jsonic.util;
+    jsonic.debug = {
+        describe: function () {
+            var _a;
+            let match = (_a = jsonic.options.lex) === null || _a === void 0 ? void 0 : _a.match;
+            let rules = jsonic.rule();
+            return [
+                '========= RULES =========',
+                ruleTree(jsonic, keys(rules), rules),
+                '\n',
+                '========= ALTS =========',
+                values(rules)
+                    .map((rs) => '  ' +
+                    rs.name +
+                    ':\n' +
+                    descAlt(jsonic, rs, 'open') +
+                    descAlt(jsonic, rs, 'close'))
+                    .join('\n\n'),
+                '\n',
+                '========= LEXER =========',
+                '  ' + (match && match.map((m) => m.name) || []).join('\n  '),
+                '\n',
+                '\n',
+                '========= PLUGIN =========',
+                '  ' + jsonic.internal().plugins
+                    .map((p) => p.name +
+                    (p.options ? entries(p.options)
+                        .reduce((s, e) => (s += '\n    ' + e[0] + ': ' + JSON.stringify(e[1])), '') :
+                        '')).join('\n  '),
+                '\n',
+            ].join('\n');
+        }
     };
+    const origUse = jsonic.use.bind(jsonic);
+    jsonic.use = (...args) => {
+        let self = origUse(...args);
+        if (options.print) {
+            console.log(self.debug.describe());
+        }
+        return self;
+    };
+    if (options.trace) {
+    }
 };
 exports.Debug = Debug;
 function descAlt(jsonic, rs, kind) {
-    return ('    ' +
-        kind.toUpperCase() +
-        ':\n' +
-        (0 === rs.def[kind].length
-            ? '      NONE'
-            : rs.def[kind]
+    const { entries } = jsonic.util;
+    return 0 === rs.def[kind].length ? '' :
+        '    ' +
+            kind.toUpperCase() +
+            ':\n' +
+            rs.def[kind]
                 .map((a, i) => {
                 var _a, _b;
                 return '      ' +
@@ -68,9 +87,10 @@ function descAlt(jsonic, rs, kind) {
                     (null == ((_b = a.c) === null || _b === void 0 ? void 0 : _b.d) ? '' : ' CD=' + a.c.d) +
                     (a.g ? '\tg=' + a.g : '');
             })
-                .join('\n') + '\n'));
+                .join('\n') + '\n';
 }
-function ruleTree(rn, rsm) {
+function ruleTree(jsonic, rn, rsm) {
+    const { values, omap } = jsonic.util;
     return rn.reduce((a, n) => ((a +=
         '  ' +
             n +
@@ -80,10 +100,6 @@ function ruleTree(rn, rsm) {
                 or: ruleTreeStep(rsm, n, 'open', 'r'),
                 cp: ruleTreeStep(rsm, n, 'close', 'p'),
                 cr: ruleTreeStep(rsm, n, 'close', 'r'),
-                // op: [...new Set(rsm[n].def.open.filter((alt: any) => alt.p).map((alt: any) => alt.p))].join(' '),
-                // or: [...new Set(rsm[n].def.open.filter((alt: any) => alt.r).map((alt: any) => alt.r))].join(' '),
-                // cp: [...new Set(rsm[n].def.close.filter((alt: any) => alt.p).map((alt: any) => alt.p))].join(' '),
-                // cr: [...new Set(rsm[n].def.close.filter((alt: any) => alt.r).map((alt: any) => alt.r))].join(' '),
             }, ([n, d]) => [
                 1 < d.length ? n : undefined,
                 n + ': ' + d,
@@ -99,4 +115,8 @@ function ruleTreeStep(rsm, name, state, step) {
             .map((step) => ('string' === typeof step ? step : '<F>'))),
     ].join(' ');
 }
+Debug.defaults = {
+    print: true,
+    trace: false,
+};
 //# sourceMappingURL=debug.js.map

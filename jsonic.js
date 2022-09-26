@@ -1,12 +1,13 @@
 "use strict";
 /* Copyright (c) 2013-2022 Richard Rodger, MIT License */
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.AFTER = exports.BEFORE = exports.CLOSE = exports.OPEN = exports.makeTextMatcher = exports.makeNumberMatcher = exports.makeCommentMatcher = exports.makeStringMatcher = exports.makeLineMatcher = exports.makeSpaceMatcher = exports.makeFixedMatcher = exports.makeLex = exports.makeRuleSpec = exports.makeRule = exports.makePoint = exports.makeToken = exports.make = exports.util = exports.Parser = exports.JsonicError = exports.Jsonic = void 0;
+exports.EMPTY = exports.AFTER = exports.BEFORE = exports.CLOSE = exports.OPEN = exports.makeTextMatcher = exports.makeNumberMatcher = exports.makeCommentMatcher = exports.makeStringMatcher = exports.makeLineMatcher = exports.makeSpaceMatcher = exports.makeFixedMatcher = exports.makeLex = exports.makeRuleSpec = exports.makeRule = exports.makePoint = exports.makeToken = exports.make = exports.util = exports.Debug = exports.Parser = exports.JsonicError = exports.Jsonic = void 0;
 const types_1 = require("./types");
 Object.defineProperty(exports, "OPEN", { enumerable: true, get: function () { return types_1.OPEN; } });
 Object.defineProperty(exports, "CLOSE", { enumerable: true, get: function () { return types_1.CLOSE; } });
 Object.defineProperty(exports, "BEFORE", { enumerable: true, get: function () { return types_1.BEFORE; } });
 Object.defineProperty(exports, "AFTER", { enumerable: true, get: function () { return types_1.AFTER; } });
+Object.defineProperty(exports, "EMPTY", { enumerable: true, get: function () { return types_1.EMPTY; } });
 const utility_1 = require("./utility");
 Object.defineProperty(exports, "JsonicError", { enumerable: true, get: function () { return utility_1.JsonicError; } });
 const defaults_1 = require("./defaults");
@@ -26,11 +27,12 @@ Object.defineProperty(exports, "makeRule", { enumerable: true, get: function () 
 Object.defineProperty(exports, "makeRuleSpec", { enumerable: true, get: function () { return parser_1.makeRuleSpec; } });
 Object.defineProperty(exports, "Parser", { enumerable: true, get: function () { return parser_1.Parser; } });
 const grammar_1 = require("./grammar");
+const debug_1 = require("./debug");
+Object.defineProperty(exports, "Debug", { enumerable: true, get: function () { return debug_1.Debug; } });
 // TODO: remove - too much for an API!
 const util = {
     tokenize: utility_1.tokenize,
     srcfmt: utility_1.srcfmt,
-    deep: utility_1.deep,
     clone: utility_1.clone,
     charset: utility_1.charset,
     trimstk: utility_1.trimstk,
@@ -46,7 +48,9 @@ const util = {
     regexp: utility_1.regexp,
     prop: utility_1.prop,
     str: utility_1.str,
+    clean: utility_1.clean,
     // TODO: validated to include in util API:
+    deep: utility_1.deep,
     omap: utility_1.omap,
     keys: utility_1.keys,
     values: utility_1.values,
@@ -106,12 +110,12 @@ function make(param_options, parent) {
             const full_plugin_options = (0, utility_1.deep)({}, plugin.defaults || {}, plugin_options || {});
             jsonic.options({
                 plugin: {
-                    // [plugin.name]: full_plugin_options
                     [plugin_name]: full_plugin_options,
                 },
             });
             let merged_plugin_options = jsonic.options.plugin[plugin_name];
             jsonic.internal().plugins.push(plugin);
+            plugin.options = merged_plugin_options;
             return plugin(jsonic, merged_plugin_options) || jsonic;
         },
         rule: (name, define) => {

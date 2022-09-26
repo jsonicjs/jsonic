@@ -292,7 +292,8 @@ let makeCommentMatcher: MakeLexMatcher = (cfg: Config, opts: Options) => {
 // Match text, checking for literal values, optionally followed by a fixed token.
 // Text strings are terminated by end markers.
 let makeTextMatcher: MakeLexMatcher = (cfg: Config, opts: Options) => {
-  let ender = regexp(cfg.line.lex ? null : 's', '^(.*?)', ...cfg.rePart.ender)
+  let ender = regexp(cfg.line.lex ? null : 's',
+    '^(.*?)', ...cfg.rePart.ender)
 
   return function textMatcher(lex: Lex) {
     let mcfg = cfg.text
@@ -583,6 +584,7 @@ let makeStringMatcher: MakeLexMatcher = (cfg: Config, opts: Options) => {
           cI--
 
           if (undefined === rs && cc < 32) {
+            // TODO: move up - allow c < 32 to be a line char
             if (isMultiLine && cfg.line.chars[src[sI]]) {
               if (cfg.line.rowChars[src[sI]]) {
                 pnt.rI = ++rI

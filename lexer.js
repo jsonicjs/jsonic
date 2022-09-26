@@ -435,6 +435,7 @@ let makeStringMatcher = (cfg, opts) => {
                     }
                     cI--;
                     if (undefined === rs && cc < 32) {
+                        // TODO: move up - allow c < 32 to be a line char
                         if (isMultiLine && cfg.line.chars[src[sI]]) {
                             if (cfg.line.rowChars[src[sI]]) {
                                 pnt.rI = ++rI;

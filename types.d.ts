@@ -35,6 +35,7 @@ JsonicAPI & {
 };
 export declare type Plugin = ((jsonic: Jsonic, plugin_options?: any) => void | Jsonic) & {
     defaults?: Bag;
+    options?: Bag;
 };
 export declare type Options = {
     tag?: string;

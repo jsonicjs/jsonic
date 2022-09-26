@@ -4,6 +4,8 @@
  *  Entry point and API.
  */
 
+// TODO: Jsonic.options type should not have optionals as definitely defined:
+//   e.g jsonic.options.lex.match is defined!
 // TODO: HIGH: [a:1] should set prop on array, not create [{a:1}]
 // TODO: HIGH: [,,,] syntax should match JS!
 
@@ -80,7 +82,7 @@ import type {
   StateAction,
 } from './types'
 
-import { OPEN, CLOSE, BEFORE, AFTER } from './types'
+import { OPEN, CLOSE, BEFORE, AFTER, EMPTY } from './types'
 
 import {
   JsonicError,
@@ -105,6 +107,7 @@ import {
   parserwrap,
   prop,
   str,
+  clean,
 
   // Exported with jsonic.util
   omap,
@@ -132,11 +135,12 @@ import { makeRule, makeRuleSpec, Parser } from './parser'
 
 import { grammar, makeJSON } from './grammar'
 
+import { Debug } from './debug'
+
 // TODO: remove - too much for an API!
 const util = {
   tokenize,
   srcfmt,
-  deep,
   clone,
   charset,
   trimstk,
@@ -152,8 +156,10 @@ const util = {
   regexp,
   prop,
   str,
+  clean,
 
   // TODO: validated to include in util API:
+  deep,
   omap,
   keys,
   values,
@@ -188,8 +194,8 @@ function make(param_options?: Bag | string, parent?: Jsonic): Jsonic {
     parent
       ? { ...parent.options }
       : false === (param_options as Bag)?.defaults$
-      ? {}
-      : defaults,
+        ? {}
+        : defaults,
     param_options ? param_options : {}
   )
 
@@ -247,12 +253,12 @@ function make(param_options?: Bag | string, parent?: Jsonic): Jsonic {
       )
       jsonic.options({
         plugin: {
-          // [plugin.name]: full_plugin_options
           [plugin_name]: full_plugin_options,
         },
       })
       let merged_plugin_options = jsonic.options.plugin[plugin_name]
       jsonic.internal().plugins.push(plugin)
+      plugin.options = merged_plugin_options
       return plugin(jsonic, merged_plugin_options) || jsonic
     },
 
@@ -400,6 +406,7 @@ export {
   Jsonic as Jsonic,
   JsonicError,
   Parser,
+  Debug,
   util,
   make,
   makeToken,
@@ -418,6 +425,7 @@ export {
   CLOSE,
   BEFORE,
   AFTER,
+  EMPTY,
 }
 
 export default Jsonic

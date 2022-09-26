@@ -518,11 +518,13 @@ exports.badlex = badlex;
 // log:N -> console.dir to depth N
 // log:-1 -> console.dir to depth 1, omitting objects (good summary!)
 function makelog(ctx, meta) {
-    if (meta) {
-        if ('number' === typeof meta.log) {
+    var _a, _b, _c;
+    let trace = (_c = (_b = (_a = ctx.opts) === null || _a === void 0 ? void 0 : _a.plugin) === null || _b === void 0 ? void 0 : _b.debug) === null || _c === void 0 ? void 0 : _c.trace;
+    if (meta || trace) {
+        if ('number' === typeof meta.log || trace) {
             let exclude_objects = false;
             let logdepth = meta.log;
-            if (-1 === logdepth) {
+            if (-1 === logdepth || trace) {
                 logdepth = 1;
                 exclude_objects = true;
             }
