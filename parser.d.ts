@@ -24,6 +24,7 @@ declare class RuleImpl implements Rule {
     c1: Token;
     constructor(spec: RuleSpec, ctx: Context, node?: any);
     process(ctx: Context): Rule;
+    toString(): string;
 }
 declare const makeRule: (spec: RuleSpec, ctx: Context, node?: any) => RuleImpl;
 declare class RuleSpecImpl implements RuleSpec {

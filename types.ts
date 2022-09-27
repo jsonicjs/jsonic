@@ -157,6 +157,7 @@ export type Options = {
   hint?: any
   lex?: {
     empty?: boolean
+    emptyResult?: any
     match?: MakeLexMatcher[]
   }
   rule?: {
@@ -326,6 +327,7 @@ export type Config = {
   lex: {
     match: LexMatcher[]
     empty: boolean
+    emptyResult: any
   }
 
   rule: {

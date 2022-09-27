@@ -177,6 +177,7 @@ const defaults = {
         ],
         // Empty string is allowed and returns undefined
         empty: true,
+        emptyResult: undefined,
     },
     // Parser rule options.
     rule: {

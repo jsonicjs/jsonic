@@ -42,6 +42,9 @@ class RuleImpl {
         let rule = this.spec.process(this, ctx, this.state);
         return rule;
     }
+    toString() {
+        return '[Rule ' + this.name + '~' + this.id + ']';
+    }
 }
 const makeRule = (...params) => new RuleImpl(...params);
 exports.makeRule = makeRule;
@@ -488,7 +491,7 @@ class Parser {
         // Special case - avoids extra per-token tests in main parser rules.
         if ('' === src) {
             if (this.cfg.lex.empty) {
-                return undefined;
+                return this.cfg.lex.emptyResult;
             }
             else {
                 throw new utility_1.JsonicError(utility_1.S.unexpected, { src }, ctx.t0, norule, ctx);

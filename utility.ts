@@ -173,8 +173,6 @@ function configure(
     omap(cfg.fixed.ref, ([tin, src]: [string, string]) => [src, tin])
   )
 
-  // console.log('AAA', cfg.tokenSet, opts.tokenSet)
-
   cfg.tokenSet = opts.tokenSet
     ? Object.keys(opts.tokenSet).reduce(
       (a: any, n: string) => (
@@ -318,6 +316,7 @@ function configure(
 
   cfg.lex = {
     empty: !!opts.lex?.empty,
+    emptyResult: opts.lex?.emptyResult,
     match: opts.lex?.match
       ? opts.lex.match.map((maker: any) => maker(cfg, opts))
       : [],
@@ -670,9 +669,9 @@ function makelog(ctx: Context, meta: any) {
   let trace = ctx.opts?.plugin?.debug?.trace
 
   if (meta || trace) {
-    if ('number' === typeof meta.log || trace) {
+    if ('number' === typeof meta?.log || trace) {
       let exclude_objects = false
-      let logdepth = meta.log
+      let logdepth = meta?.log
       if (-1 === logdepth || trace) {
         logdepth = 1
         exclude_objects = true

@@ -104,7 +104,7 @@ exports.JsonicError = JsonicError;
 // Idempotent normalization of options.
 // See Config type for commentary.
 function configure(jsonic, incfg, opts) {
-    var _a, _b, _c, _d, _e, _f, _g, _h, _j, _k, _l, _o, _p, _q, _r, _s, _t, _u, _v, _w, _x, _y, _z, _0, _1, _2, _3, _4, _5, _6, _7, _8, _9, _10, _11, _12, _13, _14, _15;
+    var _a, _b, _c, _d, _e, _f, _g, _h, _j, _k, _l, _o, _p, _q, _r, _s, _t, _u, _v, _w, _x, _y, _z, _0, _1, _2, _3, _4, _5, _6, _7, _8, _9, _10, _11, _12, _13, _14, _15, _16;
     const cfg = incfg || {};
     cfg.t = cfg.t || {};
     cfg.tI = cfg.tI || 1;
@@ -138,7 +138,6 @@ function configure(jsonic, incfg, opts) {
         src,
     ]);
     cfg.fixed.ref = Object.assign(cfg.fixed.ref, omap(cfg.fixed.ref, ([tin, src]) => [src, tin]));
-    // console.log('AAA', cfg.tokenSet, opts.tokenSet)
     cfg.tokenSet = opts.tokenSet
         ? Object.keys(opts.tokenSet).reduce((a, n) => ((a[n] = opts.tokenSet[n]
             .filter((x) => null != x)
@@ -241,22 +240,23 @@ function configure(jsonic, incfg, opts) {
     };
     cfg.lex = {
         empty: !!((_7 = opts.lex) === null || _7 === void 0 ? void 0 : _7.empty),
-        match: ((_8 = opts.lex) === null || _8 === void 0 ? void 0 : _8.match)
+        emptyResult: (_8 = opts.lex) === null || _8 === void 0 ? void 0 : _8.emptyResult,
+        match: ((_9 = opts.lex) === null || _9 === void 0 ? void 0 : _9.match)
             ? opts.lex.match.map((maker) => maker(cfg, opts))
             : [],
     };
     cfg.debug = {
-        get_console: ((_9 = opts.debug) === null || _9 === void 0 ? void 0 : _9.get_console) || (() => console),
-        maxlen: null == ((_10 = opts.debug) === null || _10 === void 0 ? void 0 : _10.maxlen) ? 99 : opts.debug.maxlen,
+        get_console: ((_10 = opts.debug) === null || _10 === void 0 ? void 0 : _10.get_console) || (() => console),
+        maxlen: null == ((_11 = opts.debug) === null || _11 === void 0 ? void 0 : _11.maxlen) ? 99 : opts.debug.maxlen,
         print: {
-            config: !!((_12 = (_11 = opts.debug) === null || _11 === void 0 ? void 0 : _11.print) === null || _12 === void 0 ? void 0 : _12.config),
-            src: (_14 = (_13 = opts.debug) === null || _13 === void 0 ? void 0 : _13.print) === null || _14 === void 0 ? void 0 : _14.src,
+            config: !!((_13 = (_12 = opts.debug) === null || _12 === void 0 ? void 0 : _12.print) === null || _13 === void 0 ? void 0 : _13.config),
+            src: (_15 = (_14 = opts.debug) === null || _14 === void 0 ? void 0 : _14.print) === null || _15 === void 0 ? void 0 : _15.src,
         },
     };
     cfg.error = opts.error || {};
     cfg.hint = opts.hint || {};
     // Apply any config modifiers (probably from plugins).
-    if ((_15 = opts.config) === null || _15 === void 0 ? void 0 : _15.modify) {
+    if ((_16 = opts.config) === null || _16 === void 0 ? void 0 : _16.modify) {
         keys(opts.config.modify).forEach((modifer) => opts.config.modify[modifer](cfg, opts));
     }
     // Debug the config - useful for plugin authors.
@@ -521,9 +521,9 @@ function makelog(ctx, meta) {
     var _a, _b, _c;
     let trace = (_c = (_b = (_a = ctx.opts) === null || _a === void 0 ? void 0 : _a.plugin) === null || _b === void 0 ? void 0 : _b.debug) === null || _c === void 0 ? void 0 : _c.trace;
     if (meta || trace) {
-        if ('number' === typeof meta.log || trace) {
+        if ('number' === typeof (meta === null || meta === void 0 ? void 0 : meta.log) || trace) {
             let exclude_objects = false;
-            let logdepth = meta.log;
+            let logdepth = meta === null || meta === void 0 ? void 0 : meta.log;
             if (-1 === logdepth || trace) {
                 logdepth = 1;
                 exclude_objects = true;
