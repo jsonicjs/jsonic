@@ -481,6 +481,7 @@ export interface Token {
   use?: Bag // Custom meta data from plugins goes here.
   err?: string // Error code.
   why?: string // Internal tracing.
+  ignored?: Token
 
   // Convert into an error Token.
   bad(err: string, details?: any): Token

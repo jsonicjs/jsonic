@@ -755,12 +755,15 @@ class Parser {
       ctx.v1 = ctx.t0
       ctx.t0 = ctx.t1
 
+      let i0
+
       let t1
       do {
         t1 = lex(rule)
         ctx.tC++
-      } while (ignore[t1.tin])
+      } while (ignore[t1.tin] && (i0 = t1))
 
+      t1.ignored = i0
       ctx.t1 = t1
 
       return ctx.t0

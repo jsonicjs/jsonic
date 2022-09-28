@@ -360,6 +360,7 @@ export interface Token {
     use?: Bag;
     err?: string;
     why?: string;
+    ignored?: Token;
     bad(err: string, details?: any): Token;
     resolveVal(rule: Rule, ctx: Context): any;
 }
