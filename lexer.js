@@ -132,12 +132,32 @@ let makeCommentMatcher = (cfg, opts) => {
     let oc = opts.comment;
     cfg.comment = {
         lex: oc ? !!oc.lex : false,
-        marker: ((oc === null || oc === void 0 ? void 0 : oc.marker) || []).map((om) => ({
-            start: om.start,
-            end: om.end,
-            line: !!om.line,
-            lex: !!om.lex,
-        })),
+        marker: ((oc === null || oc === void 0 ? void 0 : oc.marker) || []).map((om) => {
+            let cm = {
+                start: om.start,
+                end: om.end,
+                line: !!om.line,
+                lex: !!om.lex,
+                // Dynamic as cfg.lex.match may not yet be defined
+                suffixMatch: undefined,
+            };
+            cm.getSuffixMatch = om.suffix ? () => {
+                if (om.suffix instanceof Function) {
+                    return cm.suffixMatch = om.suffix;
+                }
+                let mmnames = (Array.isArray(om.suffix) ? om.suffix : [om.suffix]);
+                let matchers = mmnames
+                    .map((mmname) => cfg.lex.match
+                    .find((mm) => { var _a; return ((_a = mm.maker) === null || _a === void 0 ? void 0 : _a.name) == mmname; }))
+                    .filter(m => null != m);
+                let sm = (...args) => {
+                    matchers.map((m) => m(...args));
+                };
+                (0, utility_1.defprop)(sm, 'name', { value: '' + om.suffix });
+                return sm;
+            } : undefined;
+            return cm;
+        })
     };
     let lineComments = cfg.comment.lex
         ? cfg.comment.marker.filter((c) => c.lex && c.line)
@@ -145,7 +165,7 @@ let makeCommentMatcher = (cfg, opts) => {
     let blockComments = cfg.comment.lex
         ? cfg.comment.marker.filter((c) => c.lex && !c.line)
         : [];
-    return function matchComment(lex) {
+    return function matchComment(lex, rule) {
         let mcfg = cfg.comment;
         if (!mcfg.lex)
             return undefined;
@@ -167,6 +187,16 @@ let makeCommentMatcher = (cfg, opts) => {
                 let tkn = lex.token('#CM', undefined, csrc, pnt);
                 pnt.sI += csrc.length;
                 pnt.cI = cI;
+                // TODO: move to plugin
+                if (mc.suffixMatch) {
+                    mc.suffixMatch(lex, rule);
+                }
+                else if (mc.getSuffixMatch) {
+                    mc.suffixMatch = mc.getSuffixMatch();
+                    if (mc.suffixMatch) {
+                        mc.suffixMatch(lex, rule);
+                    }
+                }
                 return tkn;
             }
         }
@@ -476,7 +506,20 @@ let makeLineMatcher = (cfg, _opts) => {
         let { chars, rowChars } = cfg.line;
         let { pnt, src } = lex;
         let { sI, rI } = pnt;
+        let single = cfg.line.single;
+        let counts = undefined;
+        if (single) {
+            counts = {};
+        }
         while (chars[src[sI]]) {
+            if (counts) {
+                counts[src[sI]] = (counts[src[sI]] || 0) + 1;
+                if (single) {
+                    if (1 < counts[src[sI]]) {
+                        break;
+                    }
+                }
+            }
             rI += rowChars[src[sI]] ? 1 : 0;
             sI++;
         }
@@ -600,6 +643,9 @@ class LexImpl {
             (match === null || match === void 0 ? void 0 : match.name) || 'none', this.ctx.F(this.src.substring(sI, sI + 16)));
         }
         // console.log('NEXT TKN', tkn)
+        if (this.ctx.sub.lex) {
+            this.ctx.sub.lex.map(sub => sub(tkn, rule, this.ctx));
+        }
         return tkn;
     }
     tokenize(ref) {

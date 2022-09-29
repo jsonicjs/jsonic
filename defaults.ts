@@ -63,6 +63,10 @@ const defaults: Options = {
 
     // Increments row (aka line) counter.
     rowChars: '\n',
+
+    // Generate separate lexer tokens for each newline.
+    // Note: '\r\n' counts as one newline.
+    single: false
   },
 
   // Text formats.

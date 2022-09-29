@@ -80,6 +80,8 @@ import type {
   JsonicParse,
   Plugin,
   StateAction,
+  LexSub,
+  RuleSub,
 } from './types'
 
 import { OPEN, CLOSE, BEFORE, AFTER, EMPTY } from './types'
@@ -180,11 +182,19 @@ function make(param_options?: Bag | string, parent?: Jsonic): Jsonic {
     parser: Parser
     config: Config
     plugins: Plugin[]
+    sub: {
+      lex?: LexSub[],
+      rule?: RuleSub[],
+    },
     mark: number
   } = {
     parser: {} as Parser,
     config: {} as Config,
     plugins: [],
+    sub: {
+      lex: undefined,
+      rule: undefined,
+    },
     mark: Math.random(),
   }
 
@@ -295,6 +305,21 @@ function make(param_options?: Bag | string, parent?: Jsonic): Jsonic {
 
     toString: () => {
       return api.id
+    },
+
+    sub: (spec: {
+      lex?: LexSub,
+      rule?: RuleSub,
+    }) => {
+      if (spec.lex) {
+        internal.sub.lex = internal.sub.lex || []
+        internal.sub.lex.push(spec.lex)
+      }
+      if (spec.rule) {
+        internal.sub.rule = internal.sub.rule || []
+        internal.sub.rule.push(spec.rule)
+      }
+      return jsonic
     },
 
     util,

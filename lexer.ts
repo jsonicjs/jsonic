@@ -34,6 +34,7 @@ import {
   deep,
   keys,
   omap,
+  defprop,
 } from './utility'
 
 class PointImpl implements Point {
@@ -200,14 +201,42 @@ let makeFixedMatcher: MakeLexMatcher = (cfg: Config, _opts: Options) => {
 
 let makeCommentMatcher: MakeLexMatcher = (cfg: Config, opts: Options) => {
   let oc = opts.comment
+
   cfg.comment = {
     lex: oc ? !!oc.lex : false,
-    marker: (oc?.marker || []).map((om) => ({
-      start: om.start as string,
-      end: om.end,
-      line: !!om.line,
-      lex: !!om.lex,
-    })),
+    marker: (oc?.marker || []).map((om) => {
+      let cm: any = {
+        start: om.start as string,
+        end: om.end,
+        line: !!om.line,
+        lex: !!om.lex,
+
+        // Dynamic as cfg.lex.match may not yet be defined
+        suffixMatch: undefined,
+      }
+
+      cm.getSuffixMatch = om.suffix ? () => {
+        if (om.suffix instanceof Function) {
+          return cm.suffixMatch = om.suffix
+        }
+
+        let mmnames = (Array.isArray(om.suffix) ? om.suffix : [om.suffix]) as string[]
+        let matchers = mmnames
+          .map((mmname: string) => cfg.lex.match
+            .find((mm: any) => mm.maker?.name == mmname))
+          .filter(m => null != m)
+
+        let sm = (...args: any[]) => {
+          matchers.map((m: any) => m(...args))
+        }
+
+        defprop(sm, 'name', { value: '' + om.suffix })
+
+        return sm
+      } : undefined
+
+      return cm
+    })
   }
 
   let lineComments = cfg.comment.lex
@@ -217,7 +246,7 @@ let makeCommentMatcher: MakeLexMatcher = (cfg: Config, opts: Options) => {
     ? cfg.comment.marker.filter((c) => c.lex && !c.line)
     : []
 
-  return function matchComment(lex: Lex) {
+  return function matchComment(lex: Lex, rule: Rule) {
     let mcfg = cfg.comment
     if (!mcfg.lex) return undefined
 
@@ -244,6 +273,17 @@ let makeCommentMatcher: MakeLexMatcher = (cfg: Config, opts: Options) => {
 
         pnt.sI += csrc.length
         pnt.cI = cI
+
+        // TODO: move to plugin
+        if (mc.suffixMatch) {
+          mc.suffixMatch(lex, rule)
+        }
+        else if (mc.getSuffixMatch) {
+          mc.suffixMatch = mc.getSuffixMatch()
+          if (mc.suffixMatch) {
+            mc.suffixMatch(lex, rule)
+          }
+        }
 
         return tkn
       }
@@ -633,7 +673,23 @@ let makeLineMatcher: MakeLexMatcher = (cfg: Config, _opts: Options) => {
     let { pnt, src } = lex
     let { sI, rI } = pnt
 
+    let single = cfg.line.single
+    let counts: Record<string, number> | undefined = undefined
+
+    if (single) {
+      counts = {}
+    }
+
     while (chars[src[sI]]) {
+      if (counts) {
+        counts[src[sI]] = (counts[src[sI]] || 0) + 1
+
+        if (single) {
+          if (1 < counts[src[sI]]) {
+            break
+          }
+        }
+      }
       rI += rowChars[src[sI]] ? 1 : 0
       sI++
     }
@@ -797,6 +853,11 @@ class LexImpl implements Lex {
     }
 
     // console.log('NEXT TKN', tkn)
+
+    if (this.ctx.sub.lex) {
+      this.ctx.sub.lex.map(sub => sub((tkn as Token), rule, this.ctx))
+    }
+
     return tkn
   }
 

@@ -117,18 +117,13 @@ describe('feature', function () {
 
     expect(() => j('a:1/*\n\n*/{')).toThrow(/unexpected].*:3:3/s)
 
-    // Balanced multiline comments!
-    // TODO: PLUGIN
-    // expect(j('/*/*/*a:1*/*/*/b:2')).toEqual({b:2})
-    // expect(j('b:2,/*a:1,/*c:3,*/*/d:4')).toEqual({b:2,d:4})
-    // expect(j('\nb:2\n/*\na:1\n/*\nc:3\n*/\n*/\n,d:4')).toEqual({b:2,d:4})
-
     // Implicit close
     // TODO: OPTION
     // expect(j('b:2\n/*a:1')).toEqual({b:2})
     // expect(j('b:2\n/*/*/*a:1')).toEqual({b:2})
   })
 
+  
   // TODO: PLUGIN
   // it('balanced-multi-comment', () => {
   //   // Active by default

@@ -65,6 +65,10 @@ function make(param_options, parent) {
         parser: {},
         config: {},
         plugins: [],
+        sub: {
+            lex: undefined,
+            rule: undefined,
+        },
         mark: Math.random(),
     };
     // Merge options.
@@ -144,6 +148,17 @@ function make(param_options, parent) {
             (null == options.tag ? '' : '/' + options.tag),
         toString: () => {
             return api.id;
+        },
+        sub: (spec) => {
+            if (spec.lex) {
+                internal.sub.lex = internal.sub.lex || [];
+                internal.sub.lex.push(spec.lex);
+            }
+            if (spec.rule) {
+                internal.sub.rule = internal.sub.rule || [];
+                internal.sub.rule.push(spec.rule);
+            }
+            return jsonic;
         },
         util,
     };

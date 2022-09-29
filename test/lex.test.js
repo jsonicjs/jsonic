@@ -1,20 +1,6 @@
 /* Copyright (c) 2013-2021 Richard Rodger and other contributors, MIT License */
 'use strict'
 
-// const Util = require('util')
-
-// let Lab = require('@hapi/lab')
-// Lab = null != Lab.script ? Lab : require('hapi-lab-shim')
-
-// const Code = require('@hapi/code')
-
-// const lab = (exports.lab = Lab.script())
-// const describe = lab.describe
-// const it = lab.it
-// const expect = Code.expect
-
-// const I = Util.inspect
-
 const { Jsonic, makeLex, JsonicError } = require('..')
 
 describe('lex', function () {
@@ -42,7 +28,7 @@ describe('lex', function () {
     config = j.internal().config
     t = j.token
 
-    let lex = makeLex({ src: () => src, cfg: config, opts: j.options })
+    let lex = makeLex({ src: () => src, cfg: config, opts: j.options, sub:{} })
     return lex.next.bind(lex)
   }
 

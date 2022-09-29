@@ -202,6 +202,7 @@ function configure(
     lex: !!opts.line?.lex,
     chars: charset(opts.line?.chars),
     rowChars: charset(opts.line?.rowChars),
+    single: !!opts.line?.single,
   }
 
   cfg.text = {
@@ -318,7 +319,11 @@ function configure(
     empty: !!opts.lex?.empty,
     emptyResult: opts.lex?.emptyResult,
     match: opts.lex?.match
-      ? opts.lex.match.map((maker: any) => maker(cfg, opts))
+      ? opts.lex.match.map((maker: any) => {
+        let m = maker(cfg, opts)
+        m.maker = maker
+        return m
+      })
       : [],
   }
 
@@ -957,7 +962,6 @@ function parserwrap(parser: any) {
             ({
               uI: -1,
               opts: jsonic.options,
-              //cfg: ({ t: {} } as Config),
               cfg: jsonic.internal().config,
               token: token,
               meta,
@@ -965,6 +969,7 @@ function parserwrap(parser: any) {
               root: () => undefined,
               plgn: () => jsonic.internal().plugins,
               rule: { name: 'no-rule' } as Rule,
+              sub: {},
               xs: -1,
               v2: token,
               v1: token,

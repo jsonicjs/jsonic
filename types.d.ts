@@ -27,6 +27,10 @@ export interface JsonicAPI {
     } & (<A extends string | Tin>(ref: A) => undefined | (A extends string ? Tin : string));
     id: string;
     toString: () => string;
+    sub: (spec: {
+        lex?: LexSub;
+        rule?: RuleSub;
+    }) => Jsonic;
     util: Bag;
 }
 export declare type Jsonic = JsonicParse & // A function that parses.
@@ -54,6 +58,7 @@ export declare type Options = {
         lex?: boolean;
         chars?: string;
         rowChars?: string;
+        single?: boolean;
     };
     text?: {
         lex?: boolean;
@@ -74,6 +79,7 @@ export declare type Options = {
             start?: string;
             end?: string;
             lex?: boolean;
+            suffix?: string | string[] | LexMatcher;
         }[];
     };
     string?: {
@@ -206,6 +212,10 @@ export declare type Context = {
     root: () => any;
     plgn: () => Plugin[];
     rule: Rule;
+    sub: {
+        lex?: LexSub[];
+        rule?: RuleSub[];
+    };
     xs: Tin;
     v2: Token;
     v1: Token;
@@ -268,6 +278,7 @@ export declare type Config = {
         lex: boolean;
         chars: Chars;
         rowChars: Chars;
+        single: boolean;
     };
     text: {
         lex: boolean;
@@ -310,6 +321,8 @@ export declare type Config = {
             start: string;
             end?: string;
             lex: boolean;
+            suffixMatch?: LexMatcher;
+            getSuffixMatch?: () => LexMatcher | undefined;
         }[];
     };
     map: {
@@ -439,4 +452,6 @@ export declare type AltBack = (rule: Rule, ctx: Context, alt: AltMatch) => numbe
 export declare type StateAction = (this: RuleSpec, rule: Rule, ctx: Context, next: Rule, out?: Token | void) => Token | void;
 export declare type AltError = (rule: Rule, ctx: Context, alt: AltMatch) => Token | undefined;
 export declare type ValModifier = (val: any, lex: Lex, cfg: Config, opts: Options) => string;
+export declare type LexSub = (tkn: Token, rule: Rule, ctx: Context) => void;
+export declare type RuleSub = (rule: Rule, ctx: Context) => void;
 export {};

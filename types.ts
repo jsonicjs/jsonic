@@ -67,6 +67,11 @@ export interface JsonicAPI {
   // Provide identifier for string conversion.
   toString: () => string
 
+  sub: (spec: {
+    lex?: LexSub,
+    rule?: RuleSub,
+  }) => Jsonic
+
   util: Bag
 }
 
@@ -101,6 +106,7 @@ export type Options = {
     lex?: boolean
     chars?: string
     rowChars?: string
+    single?: boolean
   }
   text?: {
     lex?: boolean
@@ -121,6 +127,7 @@ export type Options = {
       start?: string
       end?: string
       lex?: boolean
+      suffix?: string | string[] | LexMatcher
     }[]
   }
   string?: {
@@ -128,7 +135,9 @@ export type Options = {
     chars?: string
     multiChars?: string
     escapeChar?: string
-    escape?: { [char: string]: string | null }
+    escape?: {
+      [char: string]: string | null
+    }
     allowUnknown?: boolean
     replace?: { [char: string]: string | null }
   }
@@ -280,6 +289,10 @@ export type Context = {
   root: () => any // Root node.
   plgn: () => Plugin[] // Jsonic instance plugins.
   rule: Rule // Current rule instance.
+  sub: {
+    lex?: LexSub[],
+    rule?: RuleSub[],
+  },
   xs: Tin // Lex state tin.
   v2: Token // Previous previous token.
   v1: Token // Previous token.
@@ -369,6 +382,7 @@ export type Config = {
     lex: boolean
     chars: Chars
     rowChars: Chars // Row counting characters.
+    single: boolean
   }
 
   // Unquoted text
@@ -414,6 +428,8 @@ export type Config = {
       start: string
       end?: string
       lex: boolean
+      suffixMatch?: LexMatcher
+      getSuffixMatch?: () => LexMatcher | undefined
     }[]
   }
 
@@ -641,3 +657,6 @@ export type ValModifier = (
   cfg: Config,
   opts: Options
 ) => string
+
+export type LexSub = (tkn: Token, rule: Rule, ctx: Context) => void
+export type RuleSub = (rule: Rule, ctx: Context) => void

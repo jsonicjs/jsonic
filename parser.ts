@@ -693,6 +693,7 @@ class Parser {
       root: () => root.node,
       plgn: () => jsonic.internal().plugins,
       rule: {} as Rule,
+      sub: jsonic.internal().sub,
       xs: -1,
       v2: endtkn,
       v1: endtkn,
@@ -779,6 +780,10 @@ class Parser {
     // This loop is the heart of the engine. Keep processing rule
     // occurrences until there's none left.
     while (norule !== rule && rI < maxr) {
+      if (ctx.sub.rule) {
+        ctx.sub.rule.map(sub => sub(rule, ctx))
+      }
+
       ctx.log &&
         ctx.log(
           '\n' + S.indent.repeat(rule.d) + S.stack,
