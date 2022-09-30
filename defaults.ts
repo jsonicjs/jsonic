@@ -66,7 +66,7 @@ const defaults: Options = {
 
     // Generate separate lexer tokens for each newline.
     // Note: '\r\n' counts as one newline.
-    single: false
+    single: false,
   },
 
   // Text formats.
@@ -175,9 +175,9 @@ const defaults: Options = {
   value: {
     lex: true,
     map: {
-      'true': { val: true },
-      'false': { val: false },
-      'null': { val: null },
+      true: { val: true },
+      false: { val: false },
+      null: { val: null },
     },
   },
 

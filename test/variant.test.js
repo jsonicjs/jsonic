@@ -42,74 +42,86 @@ describe('variant', function () {
     expect(() => json('[{}00,"b"]')).toThrow(/unexpected/s)
   })
 
-
   // TODO: move to plugin
   it('comment-suffix', () => {
     let js = Jsonic.make()
-      
+
     let jc = Jsonic.make({
       comment: {
-        marker: [
-          { suffix: 'makeLineMatcher' }
-        ]
-      }
+        marker: [{ suffix: 'makeLineMatcher' }],
+      },
     })
 
     let tknlogS = []
-    js.sub({lex:(tkn)=>{
-      tknlogS.push(tkn)
-    }})
-    
-    let tknlogC = []
-    jc.sub({lex:(tkn)=>{
-      tknlogC.push(tkn)
-    }})
+    js.sub({
+      lex: (tkn) => {
+        tknlogS.push(tkn)
+      },
+    })
 
-    expect(js('a#b \nc')).toEqual(['a','c'])
-    expect(jc('a#b \nc')).toEqual(['a','c'])
+    let tknlogC = []
+    jc.sub({
+      lex: (tkn) => {
+        tknlogC.push(tkn)
+      },
+    })
+
+    expect(js('a#b \nc')).toEqual(['a', 'c'])
+    expect(jc('a#b \nc')).toEqual(['a', 'c'])
 
     // console.log(''+tknlogS)
     // console.log(''+tknlogC)
 
-    expect(''+tknlogS).toEqual('Token[#TX=10 a 0,1,1],Token[#CM=7 #b  1,1,2],Token[#LN=6 . 4,1,5],Token[#TX=10 c 5,2,1],Token[#ZZ=2  6,2,2],Token[#ZZ=2  6,2,2],Token[#ZZ=2  6,2,2],Token[#ZZ=2  6,2,2]')
+    expect('' + tknlogS).toEqual(
+      'Token[#TX=10 a 0,1,1],Token[#CM=7 #b  1,1,2],Token[#LN=6 . 4,1,5],Token[#TX=10 c 5,2,1],Token[#ZZ=2  6,2,2],Token[#ZZ=2  6,2,2],Token[#ZZ=2  6,2,2],Token[#ZZ=2  6,2,2]'
+    )
 
-    expect(''+tknlogC).toEqual('Token[#TX=10 a 0,1,1],Token[#CM=7 #b  1,1,2],Token[#TX=10 c 5,2,1],Token[#ZZ=2  6,2,2],Token[#ZZ=2  6,2,2],Token[#ZZ=2  6,2,2],Token[#ZZ=2  6,2,2]')
+    expect('' + tknlogC).toEqual(
+      'Token[#TX=10 a 0,1,1],Token[#CM=7 #b  1,1,2],Token[#TX=10 c 5,2,1],Token[#ZZ=2  6,2,2],Token[#ZZ=2  6,2,2],Token[#ZZ=2  6,2,2],Token[#ZZ=2  6,2,2]'
+    )
 
     tknlogC.length = 0
-    expect(jc('a#b \n\n\nc')).toEqual(['a','c'])
+    expect(jc('a#b \n\n\nc')).toEqual(['a', 'c'])
     // console.log(''+tknlogC)
-    expect(''+tknlogC).toEqual('Token[#TX=10 a 0,1,1],Token[#CM=7 #b  1,1,2],Token[#TX=10 c 7,4,1],Token[#ZZ=2  8,4,2],Token[#ZZ=2  8,4,2],Token[#ZZ=2  8,4,2],Token[#ZZ=2  8,4,2]')
+    expect('' + tknlogC).toEqual(
+      'Token[#TX=10 a 0,1,1],Token[#CM=7 #b  1,1,2],Token[#TX=10 c 7,4,1],Token[#ZZ=2  8,4,2],Token[#ZZ=2  8,4,2],Token[#ZZ=2  8,4,2],Token[#ZZ=2  8,4,2]'
+    )
   })
-  
 
   it('line-lex-single', () => {
     let j = Jsonic
     let js = Jsonic.make({
-      line: { single: true }
+      line: { single: true },
     })
 
     let tknlog = []
-    j.sub({lex:(tkn)=>{
-      tknlog.push(tkn)
-    }})
+    j.sub({
+      lex: (tkn) => {
+        tknlog.push(tkn)
+      },
+    })
 
     let tknlogS = []
-    js.sub({lex:(tkn)=>{
-      tknlogS.push(tkn)
-    }})
+    js.sub({
+      lex: (tkn) => {
+        tknlogS.push(tkn)
+      },
+    })
 
-    expect(j('a\n\nb')).toEqual(['a','b'])
+    expect(j('a\n\nb')).toEqual(['a', 'b'])
     // console.log(''+tknlog)
-    expect(''+tknlog).toEqual(
-      'Token[#TX=10 a 0,1,1],'+
-        'Token[#LN=6 .. 1,1,2],'+
-        'Token[#TX=10 b 3,3,1],Token[#ZZ=2  4,3,2],Token[#ZZ=2  4,3,2],Token[#ZZ=2  4,3,2],Token[#ZZ=2  4,3,2]')
-    
-    expect(js('a\n\nb')).toEqual(['a','b'])
+    expect('' + tknlog).toEqual(
+      'Token[#TX=10 a 0,1,1],' +
+        'Token[#LN=6 .. 1,1,2],' +
+        'Token[#TX=10 b 3,3,1],Token[#ZZ=2  4,3,2],Token[#ZZ=2  4,3,2],Token[#ZZ=2  4,3,2],Token[#ZZ=2  4,3,2]'
+    )
+
+    expect(js('a\n\nb')).toEqual(['a', 'b'])
     // console.log(''+tknlogS)
-    expect(''+tknlogS).toEqual(
-      'Token[#TX=10 a 0,1,1],'+
-        'Token[#LN=6 . 1,1,2],Token[#LN=6 . 2,2,1],'+
-        'Token[#TX=10 b 3,3,1],Token[#ZZ=2  4,3,2],Token[#ZZ=2  4,3,2],Token[#ZZ=2  4,3,2],Token[#ZZ=2  4,3,2]')
+    expect('' + tknlogS).toEqual(
+      'Token[#TX=10 a 0,1,1],' +
+        'Token[#LN=6 . 1,1,2],Token[#LN=6 . 2,2,1],' +
+        'Token[#TX=10 b 3,3,1],Token[#ZZ=2  4,3,2],Token[#ZZ=2  4,3,2],Token[#ZZ=2  4,3,2],Token[#ZZ=2  4,3,2]'
+    )
   })
 })

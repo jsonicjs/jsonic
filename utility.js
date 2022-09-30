@@ -175,8 +175,7 @@ function configure(jsonic, incfg, opts) {
     };
     cfg.value = {
         lex: !!((_v = opts.value) === null || _v === void 0 ? void 0 : _v.lex),
-        map: entries(((_w = opts.value) === null || _w === void 0 ? void 0 : _w.map) || {})
-            .reduce(((a, e) => (((null == e[1]) || (a[e[0]] = e[1])), a)), {}),
+        map: entries(((_w = opts.value) === null || _w === void 0 ? void 0 : _w.map) || {}).reduce((a, e) => (null == e[1] || (a[e[0]] = e[1]), a), {}),
         // TODO: just testing, move to a plugin for extended values
         // 'undefined': { v: undefined },
         // 'NaN': { v: NaN },

@@ -6,12 +6,10 @@
 
 import { Jsonic, Plugin, RuleSpec } from './jsonic'
 
-
 type DebugOptions = {
   print: boolean
   trace: boolean
 }
-
 
 const Debug: Plugin = (jsonic: Jsonic, options: DebugOptions) => {
   const { keys, values, entries } = jsonic.util
@@ -39,21 +37,29 @@ const Debug: Plugin = (jsonic: Jsonic, options: DebugOptions) => {
 
         '\n',
         '========= LEXER =========',
-        '  ' + (match && match.map((m: any) => m.name) || []).join('\n  '),
+        '  ' + ((match && match.map((m: any) => m.name)) || []).join('\n  '),
         '\n',
 
         '\n',
         '========= PLUGIN =========',
-        '  ' + jsonic.internal().plugins
-          .map((p: Plugin) => p.name +
-            (p.options ? entries(p.options)
-              .reduce((s: string, e: any[]) =>
-                (s += '\n    ' + e[0] + ': ' + JSON.stringify(e[1])), '') :
-              '')).join('\n  '),
+        '  ' +
+        jsonic
+          .internal()
+          .plugins.map(
+            (p: Plugin) =>
+              p.name +
+              (p.options
+                ? entries(p.options).reduce(
+                  (s: string, e: any[]) =>
+                    (s += '\n    ' + e[0] + ': ' + JSON.stringify(e[1])),
+                  ''
+                )
+                : '')
+          )
+          .join('\n  '),
         '\n',
-
       ].join('\n')
-    }
+    },
   }
 
   const origUse = jsonic.use.bind(jsonic)
@@ -67,16 +73,15 @@ const Debug: Plugin = (jsonic: Jsonic, options: DebugOptions) => {
   }
 
   if (options.trace) {
-
   }
 }
-
 
 function descAlt(jsonic: Jsonic, rs: RuleSpec, kind: 'open' | 'close') {
   const { entries } = jsonic.util
 
-  return 0 === rs.def[kind].length ? '' :
-    '    ' +
+  return 0 === rs.def[kind].length
+    ? ''
+    : '    ' +
     kind.toUpperCase() +
     ':\n' +
     rs.def[kind]
@@ -104,7 +109,8 @@ function descAlt(jsonic: Jsonic, rs: RuleSpec, kind: 'open' | 'close') {
           '\t' +
           (null == a.n
             ? ''
-            : 'n=' + entries(a.n).map(([k, v]: [string, any]) => k + ':' + v)) +
+            : 'n=' +
+            entries(a.n).map(([k, v]: [string, any]) => k + ':' + v)) +
           '\t' +
           (null == a.a ? '' : 'A') +
           (null == a.c ? '' : 'C') +
@@ -112,13 +118,14 @@ function descAlt(jsonic: Jsonic, rs: RuleSpec, kind: 'open' | 'close') {
           '\t' +
           (null == a.c?.n
             ? '\t'
-            : ' CN=' + entries(a.c.n).map(([k, v]: [string, any]) => k + ':' + v)) +
+            : ' CN=' +
+            entries(a.c.n).map(([k, v]: [string, any]) => k + ':' + v)) +
           (null == a.c?.d ? '' : ' CD=' + a.c.d) +
           (a.g ? '\tg=' + a.g : '')
       )
-      .join('\n') + '\n'
+      .join('\n') +
+    '\n'
 }
-
 
 function ruleTree(jsonic: Jsonic, rn: string[], rsm: any) {
   const { values, omap } = jsonic.util
@@ -165,7 +172,6 @@ function ruleTreeStep(
     ),
   ].join(' ')
 }
-
 
 Debug.defaults = {
   print: true,

@@ -183,9 +183,9 @@ function make(param_options?: Bag | string, parent?: Jsonic): Jsonic {
     config: Config
     plugins: Plugin[]
     sub: {
-      lex?: LexSub[],
-      rule?: RuleSub[],
-    },
+      lex?: LexSub[]
+      rule?: RuleSub[]
+    }
     mark: number
   } = {
     parser: {} as Parser,
@@ -204,8 +204,8 @@ function make(param_options?: Bag | string, parent?: Jsonic): Jsonic {
     parent
       ? { ...parent.options }
       : false === (param_options as Bag)?.defaults$
-        ? {}
-        : defaults,
+      ? {}
+      : defaults,
     param_options ? param_options : {}
   )
 
@@ -307,10 +307,7 @@ function make(param_options?: Bag | string, parent?: Jsonic): Jsonic {
       return api.id
     },
 
-    sub: (spec: {
-      lex?: LexSub,
-      rule?: RuleSub,
-    }) => {
+    sub: (spec: { lex?: LexSub; rule?: RuleSub }) => {
       if (spec.lex) {
         internal.sub.lex = internal.sub.lex || []
         internal.sub.lex.push(spec.lex)

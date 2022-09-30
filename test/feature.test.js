@@ -123,7 +123,6 @@ describe('feature', function () {
     // expect(j('b:2\n/*/*/*a:1')).toEqual({b:2})
   })
 
-  
   // TODO: PLUGIN
   // it('balanced-multi-comment', () => {
   //   // Active by default

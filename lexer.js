@@ -141,23 +141,24 @@ let makeCommentMatcher = (cfg, opts) => {
                 // Dynamic as cfg.lex.match may not yet be defined
                 suffixMatch: undefined,
             };
-            cm.getSuffixMatch = om.suffix ? () => {
-                if (om.suffix instanceof Function) {
-                    return cm.suffixMatch = om.suffix;
+            cm.getSuffixMatch = om.suffix
+                ? () => {
+                    if (om.suffix instanceof Function) {
+                        return (cm.suffixMatch = om.suffix);
+                    }
+                    let mmnames = (Array.isArray(om.suffix) ? om.suffix : [om.suffix]);
+                    let matchers = mmnames
+                        .map((mmname) => cfg.lex.match.find((mm) => { var _a; return ((_a = mm.maker) === null || _a === void 0 ? void 0 : _a.name) == mmname; }))
+                        .filter((m) => null != m);
+                    let sm = (...args) => {
+                        matchers.map((m) => m(...args));
+                    };
+                    (0, utility_1.defprop)(sm, 'name', { value: '' + om.suffix });
+                    return sm;
                 }
-                let mmnames = (Array.isArray(om.suffix) ? om.suffix : [om.suffix]);
-                let matchers = mmnames
-                    .map((mmname) => cfg.lex.match
-                    .find((mm) => { var _a; return ((_a = mm.maker) === null || _a === void 0 ? void 0 : _a.name) == mmname; }))
-                    .filter(m => null != m);
-                let sm = (...args) => {
-                    matchers.map((m) => m(...args));
-                };
-                (0, utility_1.defprop)(sm, 'name', { value: '' + om.suffix });
-                return sm;
-            } : undefined;
+                : undefined;
             return cm;
-        })
+        }),
     };
     let lineComments = cfg.comment.lex
         ? cfg.comment.marker.filter((c) => c.lex && c.line)
@@ -644,7 +645,7 @@ class LexImpl {
         }
         // console.log('NEXT TKN', tkn)
         if (this.ctx.sub.lex) {
-            this.ctx.sub.lex.map(sub => sub(tkn, rule, this.ctx));
+            this.ctx.sub.lex.map((sub) => sub(tkn, rule, this.ctx));
         }
         return tkn;
     }

@@ -23,18 +23,21 @@ const Debug = (jsonic, options) => {
                     .join('\n\n'),
                 '\n',
                 '========= LEXER =========',
-                '  ' + (match && match.map((m) => m.name) || []).join('\n  '),
+                '  ' + ((match && match.map((m) => m.name)) || []).join('\n  '),
                 '\n',
                 '\n',
                 '========= PLUGIN =========',
-                '  ' + jsonic.internal().plugins
-                    .map((p) => p.name +
-                    (p.options ? entries(p.options)
-                        .reduce((s, e) => (s += '\n    ' + e[0] + ': ' + JSON.stringify(e[1])), '') :
-                        '')).join('\n  '),
+                '  ' +
+                    jsonic
+                        .internal()
+                        .plugins.map((p) => p.name +
+                        (p.options
+                            ? entries(p.options).reduce((s, e) => (s += '\n    ' + e[0] + ': ' + JSON.stringify(e[1])), '')
+                            : ''))
+                        .join('\n  '),
                 '\n',
             ].join('\n');
-        }
+        },
     };
     const origUse = jsonic.use.bind(jsonic);
     jsonic.use = (...args) => {
@@ -50,8 +53,9 @@ const Debug = (jsonic, options) => {
 exports.Debug = Debug;
 function descAlt(jsonic, rs, kind) {
     const { entries } = jsonic.util;
-    return 0 === rs.def[kind].length ? '' :
-        '    ' +
+    return 0 === rs.def[kind].length
+        ? ''
+        : '    ' +
             kind.toUpperCase() +
             ':\n' +
             rs.def[kind]
@@ -75,7 +79,8 @@ function descAlt(jsonic, rs, kind) {
                     '\t' +
                     (null == a.n
                         ? ''
-                        : 'n=' + entries(a.n).map(([k, v]) => k + ':' + v)) +
+                        : 'n=' +
+                            entries(a.n).map(([k, v]) => k + ':' + v)) +
                     '\t' +
                     (null == a.a ? '' : 'A') +
                     (null == a.c ? '' : 'C') +
@@ -83,11 +88,13 @@ function descAlt(jsonic, rs, kind) {
                     '\t' +
                     (null == ((_a = a.c) === null || _a === void 0 ? void 0 : _a.n)
                         ? '\t'
-                        : ' CN=' + entries(a.c.n).map(([k, v]) => k + ':' + v)) +
+                        : ' CN=' +
+                            entries(a.c.n).map(([k, v]) => k + ':' + v)) +
                     (null == ((_b = a.c) === null || _b === void 0 ? void 0 : _b.d) ? '' : ' CD=' + a.c.d) +
                     (a.g ? '\tg=' + a.g : '');
             })
-                .join('\n') + '\n';
+                .join('\n') +
+            '\n';
 }
 function ruleTree(jsonic, rn, rsm) {
     const { values, omap } = jsonic.util;

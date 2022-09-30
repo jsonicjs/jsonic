@@ -28,7 +28,7 @@ describe('lex', function () {
     config = j.internal().config
     t = j.token
 
-    let lex = makeLex({ src: () => src, cfg: config, opts: j.options, sub:{} })
+    let lex = makeLex({ src: () => src, cfg: config, opts: j.options, sub: {} })
     return lex.next.bind(lex)
   }
 

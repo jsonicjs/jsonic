@@ -157,9 +157,9 @@ function configure(
     lex: !!opts.fixed?.lex,
     token: opts.fixed
       ? omap(clean(opts.fixed.token), ([name, src]: [string, string]) => [
-        src,
-        tokenize(name, cfg),
-      ])
+          src,
+          tokenize(name, cfg),
+        ])
       : {},
     ref: undefined as any,
   }
@@ -175,14 +175,14 @@ function configure(
 
   cfg.tokenSet = opts.tokenSet
     ? Object.keys(opts.tokenSet).reduce(
-      (a: any, n: string) => (
-        (a[n] = (opts.tokenSet as any)[n]
-          .filter((x: any) => null != x)
-          .map((n: string) => t(n))),
-        a
-      ),
-      { ...cfg.tokenSet }
-    )
+        (a: any, n: string) => (
+          (a[n] = (opts.tokenSet as any)[n]
+            .filter((x: any) => null != x)
+            .map((n: string) => t(n))),
+          a
+        ),
+        { ...cfg.tokenSet }
+      )
     : {}
 
   // console.log('BBB', cfg.tokenSet)
@@ -224,9 +224,10 @@ function configure(
 
   cfg.value = {
     lex: !!opts.value?.lex,
-    map: entries(opts.value?.map || {})
-      .reduce(((a: any, e: any[]) => (((null == e[1]) || (a[e[0]] = e[1])), a)),
-        ({} as any)),
+    map: entries(opts.value?.map || {}).reduce(
+      (a: any, e: any[]) => (null == e[1] || (a[e[0]] = e[1]), a),
+      {} as any
+    ),
 
     // TODO: just testing, move to a plugin for extended values
     // 'undefined': { v: undefined },
@@ -265,9 +266,9 @@ function configure(
 
   let commentStartRE = opts.comment?.lex
     ? (opts.comment.marker || [])
-      .filter((c) => c.lex)
-      .map((c) => escre(c.start))
-      .join('|')
+        .filter((c) => c.lex)
+        .map((c) => escre(c.start))
+        .join('|')
     : ''
 
   // End-marker RE part
@@ -286,8 +287,8 @@ function configure(
     ('string' === typeof opts.ender
       ? opts.ender.split('')
       : Array.isArray(opts.ender)
-        ? opts.ender
-        : []
+      ? opts.ender
+      : []
     )
       .map((c: string) => '|' + escre(c))
       .join(''),
@@ -322,10 +323,10 @@ function configure(
     emptyResult: opts.lex?.emptyResult,
     match: opts.lex?.match
       ? opts.lex.match.map((maker: any) => {
-        let m = maker(cfg, opts)
-        m.maker = maker
-        return m
-      })
+          let m = maker(cfg, opts)
+          m.maker = maker
+          return m
+        })
       : [],
   }
 
@@ -407,7 +408,7 @@ function regexp(
       .map((p) =>
         (p as any).esc
           ? //p.replace(/[-\\|\]{}()[^$+*?.!=]/g, '\\$&')
-          escre(p.toString())
+            escre(p.toString())
           : p
       )
       .join(EMPTY),
@@ -419,10 +420,10 @@ function escre(s: string | undefined) {
   return null == s
     ? ''
     : s
-      .replace(/[-\\|\]{}()[^$+*?.!=]/g, '\\$&')
-      .replace(/\t/g, '\\t')
-      .replace(/\r/g, '\\r')
-      .replace(/\n/g, '\\n')
+        .replace(/[-\\|\]{}()[^$+*?.!=]/g, '\\$&')
+        .replace(/\t/g, '\\t')
+        .replace(/\r/g, '\\r')
+        .replace(/\n/g, '\\n')
 }
 
 // Deep override for plain data. Mutates base object and array.
@@ -450,14 +451,14 @@ function deep(base?: any, ...rest: any): any {
         undefined === over
           ? base
           : over_isf
+          ? over
+          : over_iso
+          ? S.function === typeof (over_ctor = over.constructor) &&
+            S.Object !== over_ctor.name &&
+            S.Array !== over_ctor.name
             ? over
-            : over_iso
-              ? S.function === typeof (over_ctor = over.constructor) &&
-                S.Object !== over_ctor.name &&
-                S.Array !== over_ctor.name
-                ? over
-                : deep(Array.isArray(over) ? [] : {}, over)
-              : over
+            : deep(Array.isArray(over) ? [] : {}, over)
+          : over
 
       base_isf = S.function === typeof base
       base_iso = null != base && (S.object === typeof base || base_isf)
@@ -481,27 +482,27 @@ function errinject(
   return null == s
     ? ''
     : s.replace(/\$([\w_]+)/g, (_m: any, name: string) => {
-      let instr = JSON.stringify(
-        null != ref[name]
-          ? ref[name]
-          : null != details[name]
+        let instr = JSON.stringify(
+          null != ref[name]
+            ? ref[name]
+            : null != details[name]
             ? details[name]
             : ctx.meta && null != ctx.meta[name]
-              ? ctx.meta[name]
-              : null != (token as Bag)[name]
-                ? (token as Bag)[name]
-                : null != (rule as Bag)[name]
-                  ? (rule as Bag)[name]
-                  : null != (ctx.opts as any)[name]
-                    ? (ctx.opts as any)[name]
-                    : null != (ctx.cfg as any)[name]
-                      ? (ctx.cfg as any)[name]
-                      : null != (ctx as Bag)[name]
-                        ? (ctx as Bag)[name]
-                        : '$' + name
-      )
-      return null == instr ? '' : instr
-    })
+            ? ctx.meta[name]
+            : null != (token as Bag)[name]
+            ? (token as Bag)[name]
+            : null != (rule as Bag)[name]
+            ? (rule as Bag)[name]
+            : null != (ctx.opts as any)[name]
+            ? (ctx.opts as any)[name]
+            : null != (ctx.cfg as any)[name]
+            ? (ctx.cfg as any)[name]
+            : null != (ctx as Bag)[name]
+            ? (ctx as Bag)[name]
+            : '$' + name
+        )
+        return null == instr ? '' : instr
+      })
 }
 
 // Remove Jsonic internal lines as spurious for caller.
@@ -538,13 +539,13 @@ function extract(src: string, errtxt: string, token: Token) {
     1 < blen ? ln(behind[blen - 2]) : null,
     ln(behind[blen - 1] + ahead[0]),
     ' '.repeat(pad) +
-    '   ' +
-    ' '.repeat(col - 1) +
-    '\x1b[31m' +
-    '^'.repeat(tsrc.length || 1) +
-    ' ' +
-    errtxt +
-    '\x1b[0m',
+      '   ' +
+      ' '.repeat(col - 1) +
+      '\x1b[31m' +
+      '^'.repeat(tsrc.length || 1) +
+      ' ' +
+      errtxt +
+      '\x1b[0m',
     ln(ahead[1]),
     ln(ahead[2]),
   ]
@@ -581,11 +582,11 @@ function errdesc(
     let message = [
       '\x1b[31m[jsonic/' + code + ']:\x1b[0m ' + errtxt,
       '  \x1b[34m-->\x1b[0m ' +
-      ((meta && meta.fileName) || '<no-file>') +
-      ':' +
-      token.rI +
-      ':' +
-      token.cI,
+        ((meta && meta.fileName) || '<no-file>') +
+        ':' +
+        token.rI +
+        ':' +
+        token.cI,
       extract(ctx.src(), errtxt, token),
       '',
       errinject(
@@ -603,19 +604,19 @@ function errdesc(
       '',
       '  \x1b[2mhttps://jsonic.senecajs.org\x1b[0m',
       '  \x1b[2m--internal: rule=' +
-      rule.name +
-      '~' +
-      rule.state +
-      //'; token=' + ctx.cfg.t[token.tin] +
-      '; token=' +
-      tokenize(token.tin, ctx.cfg) +
-      (null == token.why ? '' : '~' + token.why) +
-      '; plugins=' +
-      ctx
-        .plgn()
-        .map((p: any) => p.name)
-        .join(',') +
-      '--\x1b[0m\n',
+        rule.name +
+        '~' +
+        rule.state +
+        //'; token=' + ctx.cfg.t[token.tin] +
+        '; token=' +
+        tokenize(token.tin, ctx.cfg) +
+        (null == token.why ? '' : '~' + token.why) +
+        '; plugins=' +
+        ctx
+          .plgn()
+          .map((p: any) => p.name)
+          .join(',') +
+        '--\x1b[0m\n',
     ].join('\n')
 
     let desc: any = {
@@ -706,13 +707,14 @@ function srcfmt(config: Config): (s: any) => string {
   return 'function' === typeof config.debug.print.src
     ? config.debug.print.src
     : (s: any, _?: any) => {
-      let out = null == s
-        ? EMPTY
-        : ((_ = JSON.stringify(s)),
-          _.substring(0, config.debug.maxlen) +
-          (config.debug.maxlen < _.length ? '...' : EMPTY))
-      return out
-    }
+        let out =
+          null == s
+            ? EMPTY
+            : ((_ = JSON.stringify(s)),
+              _.substring(0, config.debug.maxlen) +
+                (config.debug.maxlen < _.length ? '...' : EMPTY))
+        return out
+      }
 }
 
 function str(o: any, len: number = 44) {
@@ -743,11 +745,11 @@ function charset(...parts: (string | object | boolean | undefined)[]): Chars {
   return null == parts
     ? {}
     : parts
-      .filter((p) => false !== p)
-      .map((p: any) => ('object' === typeof p ? keys(p).join(EMPTY) : p))
-      .join(EMPTY)
-      .split(EMPTY)
-      .reduce((a: any, c: string) => ((a[c] = c.charCodeAt(0)), a), {})
+        .filter((p) => false !== p)
+        .map((p: any) => ('object' === typeof p ? keys(p).join(EMPTY) : p))
+        .join(EMPTY)
+        .split(EMPTY)
+        .reduce((a: any, c: string) => ((a[c] = c.charCodeAt(0)), a), {})
 }
 
 // Remove all properties with values null or undefined. Note: mutates argument.
@@ -763,7 +765,7 @@ function clean<T>(o: T): T {
 function filterRules(rs: RuleSpec, cfg: Config) {
   let rsnames: (keyof RuleSpec['def'])[] = ['open', 'close']
   for (let rsn of rsnames) {
-    ; (rs.def[rsn] as AltSpec[]) = (rs.def[rsn] as AltSpec[])
+    ;(rs.def[rsn] as AltSpec[]) = (rs.def[rsn] as AltSpec[])
 
       // Convert comma separated rule group name list to string[].
       .map(
@@ -806,7 +808,7 @@ function normalt(a: AltSpec): NormAltSpec {
     let counters = (a.c as any).n
     let depth = (a.c as any).d
     if (null != counters || null != depth) {
-      a.c = function(rule: Rule) {
+      a.c = function (rule: Rule) {
         let pass = true
 
         //if (null! + counters) {
@@ -828,10 +830,10 @@ function normalt(a: AltSpec): NormAltSpec {
       }
 
       if (null != counters) {
-        ; (a.c as any).n = counters
+        ;(a.c as any).n = counters
       }
       if (null != depth) {
-        ; (a.c as any).d = depth
+        ;(a.c as any).d = depth
       }
     }
   }
@@ -865,17 +867,17 @@ function normalt(a: AltSpec): NormAltSpec {
     aa.S0 =
       0 < tins0.length
         ? new Array(Math.max(...tins0.map((tin) => (1 + tin / 31) | 0)))
-          .fill(null)
-          .map((_, i) => i)
-          .map((part) => bitify(partify(tins0, part), part))
+            .fill(null)
+            .map((_, i) => i)
+            .map((part) => bitify(partify(tins0, part), part))
         : null
 
     aa.S1 =
       0 < tins1.length
         ? new Array(Math.max(...tins1.map((tin) => (1 + tin / 31) | 0)))
-          .fill(null)
-          .map((_, i) => i)
-          .map((part) => bitify(partify(tins1, part), part))
+            .fill(null)
+            .map((_, i) => i)
+            .map((part) => bitify(partify(tins1, part), part))
         : null
   }
 
@@ -900,19 +902,19 @@ function prop(obj: any, path: string, val: any): any {
   } catch (e: any) {
     throw new Error(
       'Cannot ' +
-      (undefined === val ? 'get' : 'set') +
-      ' path ' +
-      path +
-      ' on object: ' +
-      str(root) +
-      (undefined === val ? '' : ' to value: ' + str(val, 22))
+        (undefined === val ? 'get' : 'set') +
+        ' path ' +
+        path +
+        ' on object: ' +
+        str(root) +
+        (undefined === val ? '' : ' to value: ' + str(val, 22))
     )
   }
 }
 
 function parserwrap(parser: any) {
   return {
-    start: function(
+    start: function (
       src: string,
       // jsonic: Jsonic,
       jsonic: any,
@@ -963,34 +965,34 @@ function parserwrap(parser: any) {
             token,
             {} as Rule,
             ex.ctx ||
-            ({
-              uI: -1,
-              opts: jsonic.options,
-              cfg: jsonic.internal().config,
-              token: token,
-              meta,
-              src: () => src,
-              root: () => undefined,
-              plgn: () => jsonic.internal().plugins,
-              rule: { name: 'no-rule' } as Rule,
-              sub: {},
-              xs: -1,
-              v2: token,
-              v1: token,
-              t0: token,
-              t1: token, // TODO: should be end token
-              tC: -1,
-              rs: [],
-              rsI: 0,
-              next: () => token, // TODO: should be end token
-              rsm: {},
-              n: {},
-              log: meta ? meta.log : undefined,
-              F: srcfmt(jsonic.internal().config),
-              use: {},
-              NORULE: { name: 'no-rule' } as Rule,
-              NOTOKEN: { name: 'no-token' } as Token,
-            } as Context)
+              ({
+                uI: -1,
+                opts: jsonic.options,
+                cfg: jsonic.internal().config,
+                token: token,
+                meta,
+                src: () => src,
+                root: () => undefined,
+                plgn: () => jsonic.internal().plugins,
+                rule: { name: 'no-rule' } as Rule,
+                sub: {},
+                xs: -1,
+                v2: token,
+                v1: token,
+                t0: token,
+                t1: token, // TODO: should be end token
+                tC: -1,
+                rs: [],
+                rsI: 0,
+                next: () => token, // TODO: should be end token
+                rsm: {},
+                n: {},
+                log: meta ? meta.log : undefined,
+                F: srcfmt(jsonic.internal().config),
+                use: {},
+                NORULE: { name: 'no-rule' } as Rule,
+                NOTOKEN: { name: 'no-token' } as Token,
+              } as Context)
           )
         } else {
           throw ex

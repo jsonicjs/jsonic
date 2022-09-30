@@ -536,7 +536,7 @@ class Parser {
         // occurrences until there's none left.
         while (norule !== rule && rI < maxr) {
             if (ctx.sub.rule) {
-                ctx.sub.rule.map(sub => sub(rule, ctx));
+                ctx.sub.rule.map((sub) => sub(rule, ctx));
             }
             ctx.log &&
                 ctx.log('\n' + utility_1.S.indent.repeat(rule.d) + utility_1.S.stack, ctx.rs
