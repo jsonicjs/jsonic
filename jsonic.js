@@ -209,6 +209,7 @@ delete root.fixed;
 root.Jsonic = root;
 root.JsonicError = utility_1.JsonicError;
 root.Parser = parser_1.Parser;
+root.Debug = debug_1.Debug;
 root.makeLex = lexer_1.makeLex;
 root.makeToken = lexer_1.makeToken;
 root.makePoint = lexer_1.makePoint;
@@ -226,6 +227,6 @@ root.make = make;
 exports.default = Jsonic;
 // Build process uncomments this to enable more natural Node.js requires.
 /* $lab:coverage:off$ */
-//-NODE-MODULE-FIX;('undefined' != typeof(module) && (module.exports = exports.Jsonic));
+;('undefined' != typeof(module) && (module.exports = exports.Jsonic));
 /* $lab:coverage:on$ */
 //# sourceMappingURL=jsonic.js.map

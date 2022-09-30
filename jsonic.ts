@@ -139,6 +139,7 @@ import { grammar, makeJSON } from './grammar'
 
 import { Debug } from './debug'
 
+
 // TODO: remove - too much for an API!
 const util = {
   tokenize,
@@ -204,8 +205,8 @@ function make(param_options?: Bag | string, parent?: Jsonic): Jsonic {
     parent
       ? { ...parent.options }
       : false === (param_options as Bag)?.defaults$
-      ? {}
-      : defaults,
+        ? {}
+        : defaults,
     param_options ? param_options : {}
   )
 
@@ -380,6 +381,7 @@ delete root.fixed
 root.Jsonic = root
 root.JsonicError = JsonicError
 root.Parser = Parser
+root.Debug = Debug
 root.makeLex = makeLex
 root.makeToken = makeToken
 root.makePoint = makePoint

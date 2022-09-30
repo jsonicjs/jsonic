@@ -21,6 +21,7 @@
   },
   "scripts": {
     "test": "jest --coverage",
+    "test-pure": "jest --coverage --config jest.config.pure.js",
     "test-some": "jest -t",
     "test-watch": "jest --coverage --watchAll",
     "test-view": "open coverage/lcov-report/index.html",
