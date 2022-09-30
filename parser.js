@@ -505,7 +505,6 @@ class Parser {
             return undefined;
         }
         let rule = makeRule(startspec, ctx);
-        // console.log('\nSTART', rule)
         root = rule;
         // Maximum rule iterations (prevents infinite loops). Allow for
         // rule open and close, and for each rule on each char to be

@@ -737,7 +737,6 @@ class Parser {
     }
 
     let rule = makeRule(startspec, ctx)
-    // console.log('\nSTART', rule)
 
     root = rule
 

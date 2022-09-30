@@ -131,9 +131,9 @@ const defaults = {
     value: {
         lex: true,
         map: {
-            true: { val: true },
-            false: { val: false },
-            null: { val: null },
+            'true': { val: true },
+            'false': { val: false },
+            'null': { val: null },
         },
     },
     // Additional text ending characters

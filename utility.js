@@ -175,7 +175,8 @@ function configure(jsonic, incfg, opts) {
     };
     cfg.value = {
         lex: !!((_v = opts.value) === null || _v === void 0 ? void 0 : _v.lex),
-        map: ((_w = opts.value) === null || _w === void 0 ? void 0 : _w.map) || {},
+        map: entries(((_w = opts.value) === null || _w === void 0 ? void 0 : _w.map) || {})
+            .reduce(((a, e) => (((null == e[1]) || (a[e[0]] = e[1])), a)), {}),
         // TODO: just testing, move to a plugin for extended values
         // 'undefined': { v: undefined },
         // 'NaN': { v: NaN },
@@ -557,11 +558,14 @@ exports.makelog = makelog;
 function srcfmt(config) {
     return 'function' === typeof config.debug.print.src
         ? config.debug.print.src
-        : (s, _) => null == s
-            ? types_1.EMPTY
-            : ((_ = JSON.stringify(s)),
-                _.substring(0, config.debug.maxlen) +
-                    (config.debug.maxlen < _.length ? '...' : types_1.EMPTY));
+        : (s, _) => {
+            let out = null == s
+                ? types_1.EMPTY
+                : ((_ = JSON.stringify(s)),
+                    _.substring(0, config.debug.maxlen) +
+                        (config.debug.maxlen < _.length ? '...' : types_1.EMPTY));
+            return out;
+        };
 }
 exports.srcfmt = srcfmt;
 function str(o, len = 44) {

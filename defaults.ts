@@ -175,9 +175,9 @@ const defaults: Options = {
   value: {
     lex: true,
     map: {
-      true: { val: true },
-      false: { val: false },
-      null: { val: null },
+      'true': { val: true },
+      'false': { val: false },
+      'null': { val: null },
     },
   },
 

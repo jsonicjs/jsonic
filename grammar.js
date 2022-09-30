@@ -131,7 +131,6 @@ function grammar(jsonic) {
         ])
             .bc((r) => {
             if (r.use.elem) {
-                //  && undefined !== rule.child.node) {
                 r.node.push(r.child.node);
             }
         })

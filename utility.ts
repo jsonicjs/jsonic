@@ -224,7 +224,9 @@ function configure(
 
   cfg.value = {
     lex: !!opts.value?.lex,
-    map: opts.value?.map || {},
+    map: entries(opts.value?.map || {})
+      .reduce(((a: any, e: any[]) => (((null == e[1]) || (a[e[0]] = e[1])), a)),
+        ({} as any)),
 
     // TODO: just testing, move to a plugin for extended values
     // 'undefined': { v: undefined },
@@ -703,12 +705,14 @@ function makelog(ctx: Context, meta: any) {
 function srcfmt(config: Config): (s: any) => string {
   return 'function' === typeof config.debug.print.src
     ? config.debug.print.src
-    : (s: any, _?: any) =>
-      null == s
+    : (s: any, _?: any) => {
+      let out = null == s
         ? EMPTY
         : ((_ = JSON.stringify(s)),
           _.substring(0, config.debug.maxlen) +
           (config.debug.maxlen < _.length ? '...' : EMPTY))
+      return out
+    }
 }
 
 function str(o: any, len: number = 44) {
