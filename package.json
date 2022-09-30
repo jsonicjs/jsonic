@@ -53,18 +53,17 @@
   },
   "devDependencies": {
     "@jsonic/directive": "^0.8.0",
-    "@types/jest": "^29.0.3",
+    "@types/jest": "^29.1.1",
     "browserify": "^17.0.0",
-    "esbuild": "^0.15.9",
-    "esbuild-jest": "^0.5.0",
-    "hapi-lab-shim": "0.0.2",
-    "jest": "^29.0.3",
+    "esbuild": "^0.15.10",
+    "es-jest": "^2.0.0",
+    "jest": "^29.1.2",
     "lab-transform-typescript": "^3.0.1",
     "prettier": "^2.7.1",
     "prismjs": "rjrodger/prismjs",
     "tinyify": "^3.1.0",
-    "ts-jest": "^29.0.1",
-    "typescript": "^4.8.3",
+    "ts-jest": "^29.0.3",
+    "typescript": "^4.8.4",
     "vuepress": "^1.9.7"
   }
 }
