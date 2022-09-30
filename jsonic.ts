@@ -393,6 +393,12 @@ root.makeStringMatcher = makeStringMatcher
 root.makeCommentMatcher = makeCommentMatcher
 root.makeNumberMatcher = makeNumberMatcher
 root.makeTextMatcher = makeTextMatcher
+root.OPEN = OPEN
+root.CLOSE = CLOSE
+root.BEFORE = BEFORE
+root.AFTER = AFTER
+root.EMPTY = EMPTY
+
 root.util = util
 root.make = make
 
