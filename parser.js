@@ -21,7 +21,7 @@ class RuleImpl {
         this.ac = false;
         this.os = 0;
         this.cs = 0;
-        this.back = 0;
+        this.need = 0;
         this.id = ctx.uI++; // Rule ids are unique only to the parse run.
         this.name = spec.name;
         this.spec = spec;
@@ -159,8 +159,8 @@ class RuleSpecImpl {
         let why = types_1.EMPTY;
         let F = ctx.F;
         let mI = 0;
-        while (mI++ < rule.back) {
-            ctx.next();
+        while (mI++ < rule.need) {
+            ctx.next(rule);
         }
         let is_open = state === 'o';
         let next = is_open ? rule : ctx.NORULE;
@@ -294,7 +294,7 @@ class RuleSpecImpl {
         // while (mI++ < rewind) {
         //   ctx.next()
         // }
-        next.back = rewind;
+        next.need = rewind;
         return next;
     }
     // First match wins.
@@ -519,14 +519,14 @@ class Parser {
         let maxr = 2 * (0, utility_1.keys)(this.rsm).length * lex.src.length * 2 * ctx.cfg.rule.maxmul;
         let ignore = ctx.cfg.tokenSetDerived.ignore;
         // Lex next token.
-        function next() {
+        function next(r) {
             ctx.v2 = ctx.v1;
             ctx.v1 = ctx.t0;
             ctx.t0 = ctx.t1;
             let i0;
             let t1;
             do {
-                t1 = lex(rule);
+                t1 = lex(r);
                 ctx.tC++;
             } while (ignore[t1.tin] && (i0 = t1));
             t1.ignored = i0;
@@ -534,8 +534,9 @@ class Parser {
             return ctx.t0;
         }
         // Look two tokens ahead
-        next();
-        next();
+        // next()
+        // next()
+        rule.need = 2;
         // Process rules on tokens
         let rI = 0;
         // This loop is the heart of the engine. Keep processing rule

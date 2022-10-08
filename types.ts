@@ -273,7 +273,8 @@ export interface Rule {
   ac: boolean // Flag: call ac (after-close).
   why?: string // Internal tracing.
 
-  back: number
+  // Lex tokens needed
+  need: number
 
   // Process the "open" or "close" state of the Rule, returning the
   // next rule to process.
@@ -303,7 +304,7 @@ export type Context = {
   rs: Rule[] // Rule stack.
   rsI: number
   rsm: { [name: string]: RuleSpec } // RuleSpec lookup map (by rule name).
-  next: () => Token // Move to next token.
+  next: (r: Rule) => Token // Move to next token.
   log?: (...rest: any) => undefined // Log parse/lex step (if defined).
   F: (s: any) => string // Format arbitrary data as length-limited string.
   use: Bag // Custom meta data (for use by plugins)

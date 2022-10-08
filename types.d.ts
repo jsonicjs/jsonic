@@ -203,7 +203,7 @@ export interface Rule {
     bc: boolean;
     ac: boolean;
     why?: string;
-    back: number;
+    need: number;
     process(ctx: Context): Rule;
 }
 export declare type Context = {
@@ -230,7 +230,7 @@ export declare type Context = {
     rsm: {
         [name: string]: RuleSpec;
     };
-    next: () => Token;
+    next: (r: Rule) => Token;
     log?: (...rest: any) => undefined;
     F: (s: any) => string;
     use: Bag;

@@ -73,7 +73,7 @@ class RuleImpl implements Rule {
   c0: Token
   c1: Token
 
-  back = 0
+  need = 0
 
   constructor(spec: RuleSpec, ctx: Context, node?: any) {
     this.id = ctx.uI++ // Rule ids are unique only to the parse run.
@@ -278,8 +278,8 @@ class RuleSpecImpl implements RuleSpec {
     let F = ctx.F
 
     let mI = 0
-    while (mI++ < rule.back) {
-      ctx.next()
+    while (mI++ < rule.need) {
+      ctx.next(rule)
     }
 
     let is_open = state === 'o'
@@ -442,7 +442,7 @@ class RuleSpecImpl implements RuleSpec {
     //   ctx.next()
     // }
 
-    next.back = rewind
+    next.need = rewind
 
     return next
   }
@@ -759,7 +759,7 @@ class Parser {
     let ignore = ctx.cfg.tokenSetDerived.ignore
 
     // Lex next token.
-    function next() {
+    function next(r: Rule) {
       ctx.v2 = ctx.v1
       ctx.v1 = ctx.t0
       ctx.t0 = ctx.t1
@@ -768,7 +768,7 @@ class Parser {
 
       let t1
       do {
-        t1 = lex(rule)
+        t1 = lex(r)
         ctx.tC++
       } while (ignore[t1.tin] && (i0 = t1))
 
@@ -779,8 +779,9 @@ class Parser {
     }
 
     // Look two tokens ahead
-    next()
-    next()
+    // next()
+    // next()
+    rule.need = 2
 
     // Process rules on tokens
     let rI = 0
