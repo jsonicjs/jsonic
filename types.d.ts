@@ -74,13 +74,15 @@ export declare type Options = {
     };
     comment?: {
         lex?: boolean;
-        marker?: {
-            line?: boolean;
-            start?: string;
-            end?: string;
-            lex?: boolean;
-            suffix?: string | string[] | LexMatcher;
-        }[];
+        def?: {
+            [name: string]: {
+                line?: boolean;
+                start?: string;
+                end?: string;
+                lex?: boolean;
+                suffix?: string | string[] | LexMatcher;
+            } | null | undefined | false;
+        };
     };
     string?: {
         lex?: boolean;
@@ -201,6 +203,7 @@ export interface Rule {
     bc: boolean;
     ac: boolean;
     why?: string;
+    back: number;
     process(ctx: Context): Rule;
 }
 export declare type Context = {
@@ -316,18 +319,21 @@ export declare type Config = {
     };
     comment: {
         lex: boolean;
-        marker: {
-            line: boolean;
-            start: string;
-            end?: string;
-            lex: boolean;
-            suffixMatch?: LexMatcher;
-            getSuffixMatch?: () => LexMatcher | undefined;
-        }[];
+        def: {
+            [name: string]: {
+                name: string;
+                line: boolean;
+                start: string;
+                end?: string;
+                lex: boolean;
+                suffixMatch?: LexMatcher;
+                getSuffixMatch?: () => LexMatcher | undefined;
+            };
+        };
     };
     map: {
         extend: boolean;
-        merge?: (prev: any, curr: any) => any;
+        merge?: (prev: any, curr: any, rule: Rule, ctx: Context) => any;
     };
     list: {
         property: boolean;

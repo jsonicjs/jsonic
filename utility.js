@@ -204,8 +204,8 @@ function configure(jsonic, incfg, opts) {
     let fixedSorted = Object.keys(cfg.fixed.token).sort((a, b) => b.length - a.length);
     let fixedRE = fixedSorted.map((fixed) => escre(fixed)).join('|');
     let commentStartRE = ((_5 = opts.comment) === null || _5 === void 0 ? void 0 : _5.lex)
-        ? (opts.comment.marker || [])
-            .filter((c) => c.lex)
+        ? (opts.comment.def ? values(opts.comment.def) : [])
+            .filter((c) => c && c.lex)
             .map((c) => escre(c.start))
             .join('|')
         : '';

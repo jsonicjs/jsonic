@@ -73,6 +73,8 @@ class RuleImpl implements Rule {
   c0: Token
   c1: Token
 
+  back = 0
+
   constructor(spec: RuleSpec, ctx: Context, node?: any) {
     this.id = ctx.uI++ // Rule ids are unique only to the parse run.
     this.name = spec.name
@@ -195,7 +197,7 @@ class RuleSpecImpl implements RuleSpec {
       }
 
       // Filter out any deletes.
-      ;(this.def as any)[altState] = alts.filter((a: AltSpec) => null != a)
+      ; (this.def as any)[altState] = alts.filter((a: AltSpec) => null != a)
     }
 
     filterRules(this, this.cfg)
@@ -275,6 +277,11 @@ class RuleSpecImpl implements RuleSpec {
     let why = EMPTY
     let F = ctx.F
 
+    let mI = 0
+    while (mI++ < rule.back) {
+      ctx.next()
+    }
+
     let is_open = state === 'o'
     let next = is_open ? rule : ctx.NORULE
 
@@ -319,10 +326,10 @@ class RuleSpecImpl implements RuleSpec {
           0 === alt.n[cn]
             ? 0
             : // First seen, set to 0.
-              (null == rule.n[cn]
-                ? 0
-                : // Increment counter.
-                  rule.n[cn]) + alt.n[cn]
+            (null == rule.n[cn]
+              ? 0
+              : // Increment counter.
+              rule.n[cn]) + alt.n[cn]
       }
     }
 
@@ -408,32 +415,34 @@ class RuleSpecImpl implements RuleSpec {
         rule.name + '~' + rule.id,
         'w=' + why,
         'n:' +
-          entries(rule.n)
-            .filter((n) => n[1])
-            .map((n) => n[0] + '=' + n[1])
-            .join(';'),
+        entries(rule.n)
+          .filter((n) => n[1])
+          .map((n) => n[0] + '=' + n[1])
+          .join(';'),
         'u:' +
-          entries(rule.use)
-            .map((u) => u[0] + '=' + u[1])
-            .join(';'),
+        entries(rule.use)
+          .map((u) => u[0] + '=' + u[1])
+          .join(';'),
         'k:' +
-          entries(rule.keep)
-            .map((k) => k[0] + '=' + k[1])
-            .join(';'),
+        entries(rule.keep)
+          .map((k) => k[0] + '=' + k[1])
+          .join(';'),
         '<' + F(rule.node) + '>'
       )
-
-    // Lex next tokens (up to backtrack).
-    let mI = 0
-    let rewind = rule[is_open ? 'os' : 'cs'] - (alt.b || 0)
-    while (mI++ < rewind) {
-      ctx.next()
-    }
 
     // Must be last as state change is for next process call.
     if (OPEN === rule.state) {
       rule.state = CLOSE
     }
+
+    // Lex next tokens (up to backtrack).
+    // let mI = 0
+    let rewind = rule[is_open ? 'os' : 'cs'] - (alt.b || 0)
+    // while (mI++ < rewind) {
+    //   ctx.next()
+    // }
+
+    next.back = rewind
 
     return next
   }
@@ -561,8 +570,8 @@ class RuleSpecImpl implements RuleSpec {
 
         match && out.g ? 'g:' + out.g + ' ' : '',
         (match && out.p ? 'p:' + out.p + ' ' : '') +
-          (match && out.r ? 'r:' + out.r + ' ' : '') +
-          (match && out.b ? 'b:' + out.b + ' ' : ''),
+        (match && out.r ? 'r:' + out.r + ' ' : '') +
+        (match && out.b ? 'b:' + out.b + ' ' : ''),
 
         (OPEN === rule.state
           ? [rule.o0, rule.o1].slice(0, rule.os)
@@ -573,28 +582,28 @@ class RuleSpecImpl implements RuleSpec {
 
         'c:' + (alt && alt.c ? cond : EMPTY),
         'n:' +
-          entries(out.n)
-            .map((n) => n[0] + '=' + n[1])
-            .join(';'),
+        entries(out.n)
+          .map((n) => n[0] + '=' + n[1])
+          .join(';'),
         'u:' +
-          entries(out.u)
-            .map((u) => u[0] + '=' + u[1])
-            .join(';'),
+        entries(out.u)
+          .map((u) => u[0] + '=' + u[1])
+          .join(';'),
         'k:' +
-          entries(out.k)
-            .map((k) => k[0] + '=' + k[1])
-            .join(';'),
+        entries(out.k)
+          .map((k) => k[0] + '=' + k[1])
+          .join(';'),
 
         altI < alts.length && (alt as any).s
           ? '[' +
-              (alt as any).s
-                .map((pin: Tin) =>
-                  Array.isArray(pin)
-                    ? pin.map((pin: Tin) => t[pin]).join('|')
-                    : t[pin]
-                )
-                .join(' ') +
-              ']'
+          (alt as any).s
+            .map((pin: Tin) =>
+              Array.isArray(pin)
+                ? pin.map((pin: Tin) => t[pin]).join('|')
+                : t[pin]
+            )
+            .join(' ') +
+          ']'
           : '[]',
 
         out
@@ -810,18 +819,18 @@ class Parser {
           rule.name + '~' + rule.id,
           '[' + ctx.F(ctx.t0.src) + ' ' + ctx.F(ctx.t1.src) + ']',
           'n:' +
-            entries(rule.n)
-              .filter((n) => n[1])
-              .map((n) => n[0] + '=' + n[1])
-              .join(';'),
+          entries(rule.n)
+            .filter((n) => n[1])
+            .map((n) => n[0] + '=' + n[1])
+            .join(';'),
           'u:' +
-            entries(rule.use)
-              .map((u) => u[0] + '=' + u[1])
-              .join(';'),
+          entries(rule.use)
+            .map((u) => u[0] + '=' + u[1])
+            .join(';'),
           'k:' +
-            entries(rule.keep)
-              .map((k) => k[0] + '=' + k[1])
-              .join(';'),
+          entries(rule.keep)
+            .map((k) => k[0] + '=' + k[1])
+            .join(';'),
 
           '[' + tn(ctx.t0.tin) + ' ' + tn(ctx.t1.tin) + ']',
 

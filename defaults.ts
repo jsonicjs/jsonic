@@ -111,11 +111,11 @@ const defaults: Options = {
     // balance: true,
 
     // Comment markers.
-    marker: [
-      { line: true, start: '#', lex: true },
-      { line: true, start: '//', lex: true },
-      { line: false, start: '/' + '*', end: '*' + '/', lex: true },
-    ],
+    def: {
+      hash: { line: true, start: '#', lex: true },
+      slash: { line: true, start: '//', lex: true },
+      multi: { line: false, start: '/' + '*', end: '*' + '/', lex: true },
+    },
   },
 
   // String formats.

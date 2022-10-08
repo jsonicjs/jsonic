@@ -122,24 +122,25 @@ let makeFixedMatcher = (cfg, _opts) => {
     };
 };
 exports.makeFixedMatcher = makeFixedMatcher;
-// NOTE 1: matchers return arbitrary tokens and describe lexing using
-// code, rather than a grammar. Thus, for example, some matchers below
-// will check (using subMatchFixed) if their source text actually represents
-// a fixed value.
-// NOTE 2: matchers can place a second token onto the Point tokens,
-// supporting two token lookahead.
 let makeCommentMatcher = (cfg, opts) => {
     let oc = opts.comment;
     cfg.comment = {
         lex: oc ? !!oc.lex : false,
-        marker: ((oc === null || oc === void 0 ? void 0 : oc.marker) || []).map((om) => {
+        def: ((oc === null || oc === void 0 ? void 0 : oc.def) ? (0, utility_1.entries)(oc.def) : [])
+            .reduce((def, [name, om]) => {
+            // Set comment marker to null to remove
+            if (null == om || false === om) {
+                return def;
+            }
             let cm = {
+                name,
                 start: om.start,
                 end: om.end,
                 line: !!om.line,
                 lex: !!om.lex,
                 // Dynamic as cfg.lex.match may not yet be defined
                 suffixMatch: undefined,
+                getSuffixMatch: undefined,
             };
             cm.getSuffixMatch = om.suffix
                 ? () => {
@@ -157,14 +158,15 @@ let makeCommentMatcher = (cfg, opts) => {
                     return sm;
                 }
                 : undefined;
-            return cm;
-        }),
+            def[name] = cm;
+            return def;
+        }, {}),
     };
     let lineComments = cfg.comment.lex
-        ? cfg.comment.marker.filter((c) => c.lex && c.line)
+        ? (0, utility_1.values)(cfg.comment.def).filter((c) => c.lex && c.line)
         : [];
     let blockComments = cfg.comment.lex
-        ? cfg.comment.marker.filter((c) => c.lex && !c.line)
+        ? (0, utility_1.values)(cfg.comment.def).filter((c) => c.lex && !c.line)
         : [];
     return function matchComment(lex, rule) {
         let mcfg = cfg.comment;

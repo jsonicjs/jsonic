@@ -26,8 +26,12 @@ declare const util: {
     deep: typeof deep;
     omap: (o: any, f?: ((e: any) => any) | undefined) => any;
     keys: (x: any) => string[];
-    values: (x: any) => unknown[];
-    entries: (x: any) => [string, unknown][];
+    values: <T>(x: {
+        [key: string]: T;
+    } | null | undefined) => T[];
+    entries: <T_1>(x: {
+        [key: string]: T_1;
+    } | null | undefined) => [string, T_1][];
 };
 declare type Jsonic = JsonicParse & // A function that parses.
 JsonicAPI & {

@@ -22,6 +22,7 @@ declare class RuleImpl implements Rule {
     o1: Token;
     c0: Token;
     c1: Token;
+    back: number;
     constructor(spec: RuleSpec, ctx: Context, node?: any);
     process(ctx: Context): Rule;
     toString(): string;

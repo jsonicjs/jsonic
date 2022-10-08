@@ -158,7 +158,7 @@ function grammar(jsonic) {
             null == prev
                 ? val
                 : ctx.cfg.map.merge
-                    ? ctx.cfg.map.merge(prev, val)
+                    ? ctx.cfg.map.merge(prev, val, r, ctx)
                     : ctx.cfg.map.extend
                         ? deep(prev, val)
                         : val;

@@ -48,7 +48,9 @@ describe('variant', function () {
 
     let jc = Jsonic.make({
       comment: {
-        marker: [{ suffix: 'makeLineMatcher' }],
+        def: {
+          hash: { suffix: 'makeLineMatcher' }
+        },
       },
     })
 
@@ -73,18 +75,18 @@ describe('variant', function () {
     // console.log(''+tknlogC)
 
     expect('' + tknlogS).toEqual(
-      'Token[#TX=10 a 0,1,1],Token[#CM=7 #b  1,1,2],Token[#LN=6 . 4,1,5],Token[#TX=10 c 5,2,1],Token[#ZZ=2  6,2,2],Token[#ZZ=2  6,2,2],Token[#ZZ=2  6,2,2],Token[#ZZ=2  6,2,2]'
+      'Token[#TX=10 a 0,1,1],Token[#CM=7 #b  1,1,2],Token[#LN=6 . 4,1,5],Token[#TX=10 c 5,2,1],Token[#ZZ=2  6,2,2],Token[#ZZ=2  6,2,2],Token[#ZZ=2  6,2,2]' //,Token[#ZZ=2  6,2,2]'
     )
 
     expect('' + tknlogC).toEqual(
-      'Token[#TX=10 a 0,1,1],Token[#CM=7 #b  1,1,2],Token[#TX=10 c 5,2,1],Token[#ZZ=2  6,2,2],Token[#ZZ=2  6,2,2],Token[#ZZ=2  6,2,2],Token[#ZZ=2  6,2,2]'
+      'Token[#TX=10 a 0,1,1],Token[#CM=7 #b  1,1,2],Token[#TX=10 c 5,2,1],Token[#ZZ=2  6,2,2],Token[#ZZ=2  6,2,2],Token[#ZZ=2  6,2,2]' //,Token[#ZZ=2  6,2,2]'
     )
 
     tknlogC.length = 0
     expect(jc('a#b \n\n\nc')).toEqual(['a', 'c'])
     // console.log(''+tknlogC)
     expect('' + tknlogC).toEqual(
-      'Token[#TX=10 a 0,1,1],Token[#CM=7 #b  1,1,2],Token[#TX=10 c 7,4,1],Token[#ZZ=2  8,4,2],Token[#ZZ=2  8,4,2],Token[#ZZ=2  8,4,2],Token[#ZZ=2  8,4,2]'
+      'Token[#TX=10 a 0,1,1],Token[#CM=7 #b  1,1,2],Token[#TX=10 c 7,4,1],Token[#ZZ=2  8,4,2],Token[#ZZ=2  8,4,2],Token[#ZZ=2  8,4,2]' //,Token[#ZZ=2  8,4,2]'
     )
   })
 
@@ -113,7 +115,7 @@ describe('variant', function () {
     expect('' + tknlog).toEqual(
       'Token[#TX=10 a 0,1,1],' +
         'Token[#LN=6 .. 1,1,2],' +
-        'Token[#TX=10 b 3,3,1],Token[#ZZ=2  4,3,2],Token[#ZZ=2  4,3,2],Token[#ZZ=2  4,3,2],Token[#ZZ=2  4,3,2]'
+        'Token[#TX=10 b 3,3,1],Token[#ZZ=2  4,3,2],Token[#ZZ=2  4,3,2],Token[#ZZ=2  4,3,2]' //,Token[#ZZ=2  4,3,2]'
     )
 
     expect(js('a\n\nb')).toEqual(['a', 'b'])
@@ -121,7 +123,7 @@ describe('variant', function () {
     expect('' + tknlogS).toEqual(
       'Token[#TX=10 a 0,1,1],' +
         'Token[#LN=6 . 1,1,2],Token[#LN=6 . 2,2,1],' +
-        'Token[#TX=10 b 3,3,1],Token[#ZZ=2  4,3,2],Token[#ZZ=2  4,3,2],Token[#ZZ=2  4,3,2],Token[#ZZ=2  4,3,2]'
+        'Token[#TX=10 b 3,3,1],Token[#ZZ=2  4,3,2],Token[#ZZ=2  4,3,2],Token[#ZZ=2  4,3,2]' //,Token[#ZZ=2  4,3,2]'
     )
   })
 })

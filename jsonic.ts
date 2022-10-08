@@ -4,6 +4,7 @@
  *  Entry point and API.
  */
 
+// TODO .rule should prepend by default - far more common
 // TODO: Jsonic.options type should not have optionals as definitely defined:
 //   e.g jsonic.options.lex.match is defined!
 // TODO: HIGH: [a:1] should set prop on array, not create [{a:1}]
@@ -204,8 +205,8 @@ function make(param_options?: Bag | string, parent?: Jsonic): Jsonic {
     parent
       ? { ...parent.options }
       : false === (param_options as Bag)?.defaults$
-      ? {}
-      : defaults,
+        ? {}
+        : defaults,
     param_options ? param_options : {}
   )
 

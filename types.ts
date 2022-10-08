@@ -49,17 +49,17 @@ export interface JsonicAPI {
 
   // Token get and set for plugins. Reference by either name or Tin.
   token: { [ref: string]: Tin } & { [ref: number]: string } & (<
-      A extends string | Tin
-    >(
-      ref: A
-    ) => A extends string ? Tin : string)
+    A extends string | Tin
+  >(
+    ref: A
+  ) => A extends string ? Tin : string)
 
   // Fixed token src get and set for plugins. Reference by either src or Tin.
   fixed: { [ref: string]: Tin } & { [ref: number]: string } & (<
-      A extends string | Tin
-    >(
-      ref: A
-    ) => undefined | (A extends string ? Tin : string))
+    A extends string | Tin
+  >(
+    ref: A
+  ) => undefined | (A extends string ? Tin : string))
 
   // Unique identifier string for each Jsonic instance.
   id: string
@@ -119,13 +119,15 @@ export type Options = {
   }
   comment?: {
     lex?: boolean
-    marker?: {
-      line?: boolean
-      start?: string
-      end?: string
-      lex?: boolean
-      suffix?: string | string[] | LexMatcher
-    }[]
+    def?: {
+      [name: string]: {
+        line?: boolean
+        start?: string
+        end?: string
+        lex?: boolean
+        suffix?: string | string[] | LexMatcher
+      } | null | undefined | false
+    }
   }
   string?: {
     lex?: boolean
@@ -270,6 +272,8 @@ export interface Rule {
   bc: boolean // Flag: call bc (before-close).
   ac: boolean // Flag: call ac (after-close).
   why?: string // Internal tracing.
+
+  back: number
 
   // Process the "open" or "close" state of the Rule, returning the
   // next rule to process.
@@ -418,21 +422,25 @@ export type Config = {
     map: { [src: string]: { val: any } }
   }
 
+  // Comment markers
   comment: {
     lex: boolean
-    marker: {
-      line: boolean
-      start: string
-      end?: string
-      lex: boolean
-      suffixMatch?: LexMatcher
-      getSuffixMatch?: () => LexMatcher | undefined
-    }[]
+    def: {
+      [name: string]: {
+        name: string
+        line: boolean
+        start: string
+        end?: string
+        lex: boolean
+        suffixMatch?: LexMatcher
+        getSuffixMatch?: () => LexMatcher | undefined
+      }
+    }
   }
 
   map: {
     extend: boolean
-    merge?: (prev: any, curr: any) => any
+    merge?: (prev: any, curr: any, rule: Rule, ctx: Context) => any
   }
 
   list: {
@@ -520,12 +528,12 @@ export interface AltSpec {
   // Condition function, return true to match alternate.
   // NOTE: Token sequence (s) must also match.
   c?:
-    | AltCond
-    | {
-        // Condition convenience definitions (all must pass).
-        d?: number // - Match if rule stack depth <= d.
-        n?: Counters // - Match if rule counters <= respective given values.
-      }
+  | AltCond
+  | {
+    // Condition convenience definitions (all must pass).
+    d?: number // - Match if rule stack depth <= d.
+    n?: Counters // - Match if rule counters <= respective given values.
+  }
 
   n?: Counters // Increment counters by specified amounts.
   a?: AltAction // Perform an action if this alternate matches.
@@ -534,8 +542,8 @@ export interface AltSpec {
   k?: Bag // Key-value custom data (propagated).
 
   g?:
-    | string // Named group tags for the alternate (allows filtering).
-    | string[] // - comma separated or string array
+  | string // Named group tags for the alternate (allows filtering).
+  | string[] // - comma separated or string array
 
   e?: AltError // Generate an error token (alternate is not allowed).
 }

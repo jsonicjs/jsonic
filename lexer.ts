@@ -19,22 +19,23 @@ import type {
 import { EMPTY, INSPECT } from './types'
 
 import type {
-  // Rule,
   Options,
 } from './jsonic'
 
 import {
   S,
-  tokenize,
-  snip,
-  regexp,
-  escre,
   charset,
   clean,
   deep,
+  defprop,
+  escre,
   keys,
   omap,
-  defprop,
+  regexp,
+  snip,
+  tokenize,
+  entries,
+  values,
 } from './utility'
 
 class PointImpl implements Point {
@@ -199,24 +200,35 @@ let makeFixedMatcher: MakeLexMatcher = (cfg: Config, _opts: Options) => {
 // NOTE 2: matchers can place a second token onto the Point tokens,
 // supporting two token lookahead.
 
+type CommentDef = Config['comment']['def'] extends { [_: string]: infer T } ? T : never
+
 let makeCommentMatcher: MakeLexMatcher = (cfg: Config, opts: Options) => {
   let oc = opts.comment
 
   cfg.comment = {
     lex: oc ? !!oc.lex : false,
-    marker: (oc?.marker || []).map((om) => {
-      let cm: any = {
-        start: om.start as string,
-        end: om.end,
-        line: !!om.line,
-        lex: !!om.lex,
+    def: (oc?.def ? entries(oc.def) : [])
+      .reduce((def: any, [name, om]: [string, any]) => {
 
-        // Dynamic as cfg.lex.match may not yet be defined
-        suffixMatch: undefined,
-      }
+        // Set comment marker to null to remove
+        if (null == om || false === om) {
+          return def
+        }
 
-      cm.getSuffixMatch = om.suffix
-        ? () => {
+        let cm: CommentDef = {
+          name,
+          start: om.start as string,
+          end: om.end,
+          line: !!om.line,
+          lex: !!om.lex,
+
+          // Dynamic as cfg.lex.match may not yet be defined
+          suffixMatch: undefined,
+          getSuffixMatch: undefined,
+        }
+
+        cm.getSuffixMatch = om.suffix
+          ? () => {
             if (om.suffix instanceof Function) {
               return (cm.suffixMatch = om.suffix)
             }
@@ -238,17 +250,18 @@ let makeCommentMatcher: MakeLexMatcher = (cfg: Config, opts: Options) => {
 
             return sm
           }
-        : undefined
+          : undefined
 
-      return cm
-    }),
+        def[name] = cm
+        return def
+      }, {} as any),
   }
 
   let lineComments = cfg.comment.lex
-    ? cfg.comment.marker.filter((c) => c.lex && c.line)
+    ? values(cfg.comment.def).filter((c) => c.lex && c.line)
     : []
   let blockComments = cfg.comment.lex
-    ? cfg.comment.marker.filter((c) => c.lex && !c.line)
+    ? values(cfg.comment.def).filter((c) => c.lex && !c.line)
     : []
 
   return function matchComment(lex: Lex, rule: Rule) {
@@ -337,6 +350,8 @@ let makeCommentMatcher: MakeLexMatcher = (cfg: Config, opts: Options) => {
 // Text strings are terminated by end markers.
 let makeTextMatcher: MakeLexMatcher = (cfg: Config, opts: Options) => {
   let ender = regexp(cfg.line.lex ? null : 's', '^(.*?)', ...cfg.rePart.ender)
+
+
 
   return function textMatcher(lex: Lex) {
     let mcfg = cfg.text

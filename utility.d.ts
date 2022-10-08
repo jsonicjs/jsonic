@@ -1,7 +1,11 @@
 import type { Context, Config, Bag, Chars, Token, AltSpec, NormAltSpec, Lex, Rule, RuleSpec, Tin, Options } from './types';
 declare const keys: (x: any) => string[];
-declare const values: (x: any) => unknown[];
-declare const entries: (x: any) => [string, unknown][];
+declare const values: <T>(x: {
+    [key: string]: T;
+} | null | undefined) => T[];
+declare const entries: <T>(x: {
+    [key: string]: T;
+} | null | undefined) => [string, T][];
 declare const assign: (x: any, ...r: any[]) => any;
 declare const isarr: (x: any) => boolean;
 declare const defprop: <T>(o: T, p: PropertyKey, attributes: PropertyDescriptor & ThisType<any>) => T;

@@ -82,13 +82,13 @@ function grammar(jsonic: Jsonic) {
           // If there's no node,
           undefined === r.node
             ? // ... or no child node (child map or list),
-              undefined === r.child.node
+            undefined === r.child.node
               ? // ... or no matched tokens,
-                0 === r.os
+              0 === r.os
                 ? // ... then the node has no value
-                  undefined
+                undefined
                 : // .. otherwise use the token value
-                  r.o0.resolveVal(r, ctx)
+                r.o0.resolveVal(r, ctx)
               : r.child.node
             : r.node
       })
@@ -194,11 +194,12 @@ function grammar(jsonic: Jsonic) {
       null == prev
         ? val
         : ctx.cfg.map.merge
-        ? ctx.cfg.map.merge(prev, val)
-        : ctx.cfg.map.extend
-        ? deep(prev, val)
-        : val
+          ? ctx.cfg.map.merge(prev, val, r, ctx)
+          : ctx.cfg.map.extend
+            ? deep(prev, val)
+            : val
   }
+
 
   jsonic.rule('val', (rs: RuleSpec) => {
     rs.open(

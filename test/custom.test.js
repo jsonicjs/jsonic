@@ -220,8 +220,8 @@ describe('custom', function () {
     let rsdef = (rs) =>
       rs
         .clear()
-        .open([{ s: [] }])
-        .close([{ s: [AA] }])
+        .open([{ s: [AA] }])
+        //.close([{ s: [AA] }])
 
     j.rule('top', (rs) => rsdef(rs).bo((rule) => (rule.node = 4444)))
 

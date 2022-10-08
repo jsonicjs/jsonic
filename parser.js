@@ -21,6 +21,7 @@ class RuleImpl {
         this.ac = false;
         this.os = 0;
         this.cs = 0;
+        this.back = 0;
         this.id = ctx.uI++; // Rule ids are unique only to the parse run.
         this.name = spec.name;
         this.spec = spec;
@@ -157,6 +158,10 @@ class RuleSpecImpl {
     process(rule, ctx, state) {
         let why = types_1.EMPTY;
         let F = ctx.F;
+        let mI = 0;
+        while (mI++ < rule.back) {
+            ctx.next();
+        }
         let is_open = state === 'o';
         let next = is_open ? rule : ctx.NORULE;
         let def = this.def;
@@ -279,16 +284,17 @@ class RuleSpecImpl {
                 (0, utility_1.entries)(rule.keep)
                     .map((k) => k[0] + '=' + k[1])
                     .join(';'), '<' + F(rule.node) + '>');
-        // Lex next tokens (up to backtrack).
-        let mI = 0;
-        let rewind = rule[is_open ? 'os' : 'cs'] - (alt.b || 0);
-        while (mI++ < rewind) {
-            ctx.next();
-        }
         // Must be last as state change is for next process call.
         if (types_1.OPEN === rule.state) {
             rule.state = types_1.CLOSE;
         }
+        // Lex next tokens (up to backtrack).
+        // let mI = 0
+        let rewind = rule[is_open ? 'os' : 'cs'] - (alt.b || 0);
+        // while (mI++ < rewind) {
+        //   ctx.next()
+        // }
+        next.back = rewind;
         return next;
     }
     // First match wins.
