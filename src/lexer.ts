@@ -192,6 +192,60 @@ let makeFixedMatcher: MakeLexMatcher = (cfg: Config, _opts: Options) => {
   }
 }
 
+
+let makeMatchMatcher: MakeLexMatcher = (cfg: Config, _opts: Options) => {
+  let matchers = values(cfg.match.token)
+
+  // console.log('matchers', matchers)
+
+  // Don't add a matcher if there's nothing to do.
+  if (0 === matchers.length) {
+    return null
+  }
+
+  return function matchMatcher(lex: Lex, rule: Rule) {
+    let mcfg = cfg.match
+    if (!mcfg.lex) return undefined
+
+    let pnt = lex.pnt
+    let fwd = lex.src.substring(pnt.sI)
+
+    for (let matcher of matchers) {
+      // console.log('MATCHER', matcher, matcher instanceof RegExp)
+
+      if (matcher instanceof RegExp) {
+        let m = fwd.match(matcher)
+
+        // console.log('MATCH', m, matcher)
+
+        if (m) {
+          let msrc = m[0]
+          let mlen = msrc.length
+          if (0 < mlen) {
+            let tkn: Token | undefined = undefined
+
+            let tin = (matcher as any).tin$
+            tkn = lex.token(tin, msrc, msrc, pnt)
+
+            pnt.sI += mlen
+            pnt.cI += mlen
+
+            return tkn
+          }
+        }
+      }
+      else {
+        let tkn: any = matcher(lex, rule)
+        if (null != tkn) {
+          return tkn
+        }
+      }
+    }
+  }
+}
+
+
+
 // NOTE 1: matchers return arbitrary tokens and describe lexing using
 // code, rather than a grammar. Thus, for example, some matchers below
 // will check (using subMatchFixed) if their source text actually represents
@@ -907,6 +961,7 @@ export {
   makeLex,
   makePoint,
   makeToken,
+  makeMatchMatcher,
   makeFixedMatcher,
   makeSpaceMatcher,
   makeLineMatcher,

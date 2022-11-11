@@ -138,16 +138,30 @@ function configure(jsonic, incfg, opts) {
         src,
     ]);
     cfg.fixed.ref = Object.assign(cfg.fixed.ref, omap(cfg.fixed.ref, ([tin, src]) => [src, tin]));
+    cfg.match = {
+        lex: !!((_b = opts.match) === null || _b === void 0 ? void 0 : _b.lex),
+        token: opts.match
+            ? omap(clean(opts.match.token), ([name, matcher]) => [
+                tokenize(name, cfg),
+                matcher
+            ])
+            : {},
+    };
+    // Lookup tin directly from matcher
+    omap(cfg.match.token, ([tin, matcher]) => [tin, (matcher.tin$ = +tin, matcher)]);
+    // Convert tokenSet tokens names to tins
     cfg.tokenSet = opts.tokenSet
         ? Object.keys(opts.tokenSet).reduce((a, n) => ((a[n] = opts.tokenSet[n]
             .filter((x) => null != x)
             .map((n) => t(n))),
             a), { ...cfg.tokenSet })
         : {};
-    // console.log('BBB', cfg.tokenSet)
-    cfg.tokenSetDerived = {
-        ignore: Object.fromEntries((((_b = opts.tokenSet) === null || _b === void 0 ? void 0 : _b.ignore) || []).map((tn) => [t(tn), true])),
-    };
+    // Lookup table for token tin in given tokenSet
+    cfg.tokenSetTins = entries(cfg.tokenSet).reduce((a, en) => (a[en[0]] = (a[en[0]] || {}),
+        en[1].map((tin) => a[en[0]][tin] = true),
+        a), {});
+    // The ignore tokenSet is special and should always exist, even if empty.
+    cfg.tokenSetTins.ignore = (cfg.tokenSetTins.ignore || {});
     cfg.space = {
         lex: !!((_c = opts.space) === null || _c === void 0 ? void 0 : _c.lex),
         chars: charset((_d = opts.space) === null || _d === void 0 ? void 0 : _d.chars),
@@ -243,11 +257,15 @@ function configure(jsonic, incfg, opts) {
         empty: !!((_8 = opts.lex) === null || _8 === void 0 ? void 0 : _8.empty),
         emptyResult: (_9 = opts.lex) === null || _9 === void 0 ? void 0 : _9.emptyResult,
         match: ((_10 = opts.lex) === null || _10 === void 0 ? void 0 : _10.match)
-            ? opts.lex.match.map((maker) => {
+            ? opts.lex.match
+                .map((maker) => {
                 let m = maker(cfg, opts);
-                m.maker = maker;
+                if (m) {
+                    m.maker = maker;
+                }
                 return m;
             })
+                .filter(m => null != m && false !== m)
             : [],
     };
     cfg.debug = {

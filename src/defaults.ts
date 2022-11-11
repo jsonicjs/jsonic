@@ -7,6 +7,7 @@
 import { Options } from './jsonic'
 
 import {
+  makeMatchMatcher,
   makeFixedMatcher,
   makeSpaceMatcher,
   makeLineMatcher,
@@ -34,6 +35,11 @@ const defaults: Options = {
       '#CL': ':',
       '#CA': ',',
     },
+  },
+
+  match: {
+    lex: true,
+    token: {}
   },
 
   // Token sets.
@@ -223,6 +229,7 @@ const defaults: Options = {
   // Lexer
   lex: {
     match: [
+      makeMatchMatcher,
       makeFixedMatcher,
       makeSpaceMatcher,
       makeLineMatcher,

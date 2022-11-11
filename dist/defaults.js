@@ -20,6 +20,10 @@ const defaults = {
             '#CA': ',',
         },
     },
+    match: {
+        lex: true,
+        token: {}
+    },
     // Token sets.
     tokenSet: {
         ignore: ['#SP', '#LN', '#CM'],
@@ -170,6 +174,7 @@ const defaults = {
     // Lexer
     lex: {
         match: [
+            lexer_1.makeMatchMatcher,
             lexer_1.makeFixedMatcher,
             lexer_1.makeSpaceMatcher,
             lexer_1.makeLineMatcher,

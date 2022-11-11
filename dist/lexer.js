@@ -1,7 +1,7 @@
 "use strict";
 /* Copyright (c) 2013-2022 Richard Rodger, MIT License */
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.makeTextMatcher = exports.makeNumberMatcher = exports.makeCommentMatcher = exports.makeStringMatcher = exports.makeLineMatcher = exports.makeSpaceMatcher = exports.makeFixedMatcher = exports.makeToken = exports.makePoint = exports.makeLex = exports.makeNoToken = void 0;
+exports.makeTextMatcher = exports.makeNumberMatcher = exports.makeCommentMatcher = exports.makeStringMatcher = exports.makeLineMatcher = exports.makeSpaceMatcher = exports.makeFixedMatcher = exports.makeMatchMatcher = exports.makeToken = exports.makePoint = exports.makeLex = exports.makeNoToken = void 0;
 const types_1 = require("./types");
 const utility_1 = require("./utility");
 class PointImpl {
@@ -122,6 +122,47 @@ let makeFixedMatcher = (cfg, _opts) => {
     };
 };
 exports.makeFixedMatcher = makeFixedMatcher;
+let makeMatchMatcher = (cfg, _opts) => {
+    let matchers = (0, utility_1.values)(cfg.match.token);
+    // console.log('matchers', matchers)
+    // Don't add a matcher if there's nothing to do.
+    if (0 === matchers.length) {
+        return null;
+    }
+    return function matchMatcher(lex, rule) {
+        let mcfg = cfg.match;
+        if (!mcfg.lex)
+            return undefined;
+        let pnt = lex.pnt;
+        let fwd = lex.src.substring(pnt.sI);
+        for (let matcher of matchers) {
+            // console.log('MATCHER', matcher, matcher instanceof RegExp)
+            if (matcher instanceof RegExp) {
+                let m = fwd.match(matcher);
+                // console.log('MATCH', m, matcher)
+                if (m) {
+                    let msrc = m[0];
+                    let mlen = msrc.length;
+                    if (0 < mlen) {
+                        let tkn = undefined;
+                        let tin = matcher.tin$;
+                        tkn = lex.token(tin, msrc, msrc, pnt);
+                        pnt.sI += mlen;
+                        pnt.cI += mlen;
+                        return tkn;
+                    }
+                }
+            }
+            else {
+                let tkn = matcher(lex, rule);
+                if (null != tkn) {
+                    return tkn;
+                }
+            }
+        }
+    };
+};
+exports.makeMatchMatcher = makeMatchMatcher;
 let makeCommentMatcher = (cfg, opts) => {
     let oc = opts.comment;
     cfg.comment = {

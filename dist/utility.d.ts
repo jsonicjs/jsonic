@@ -1,4 +1,4 @@
-import type { Context, Config, Bag, Chars, Token, AltSpec, NormAltSpec, Lex, Rule, RuleSpec, Tin, Options, AltMatch } from './types';
+import type { AltMatch, AltSpec, Bag, Chars, Config, Context, Lex, NormAltSpec, Options, Rule, RuleSpec, Tin, Token } from './types';
 declare const keys: (x: any) => string[];
 declare const values: <T>(x: {
     [key: string]: T;

@@ -1,25 +1,35 @@
-/* Copyright (c) 2013-2021 Richard Rodger, MIT License */
+/* Copyright (c) 2013-2022 Richard Rodger, MIT License */
 
 /*  grammar.ts
  *  Grammar definition.
+ *
+ *  First, a pure JSON grammar is defined. Then it is extended to provide the
+ *  Jsonic format.
  */
+
 
 import { Jsonic, Rule, RuleSpec, Context, AltError } from './jsonic'
 
+
 function grammar(jsonic: Jsonic) {
-  const OB = jsonic.token.OB
-  const CB = jsonic.token.CB
-  const OS = jsonic.token.OS
-  const CS = jsonic.token.CS
-  const CL = jsonic.token.CL
-  const CA = jsonic.token.CA
+  const {
 
-  const TX = jsonic.token.TX
-  // const NR = jsonic.token.NR
-  const ST = jsonic.token.ST
-  // const VL = jsonic.token.VL
+    // Fixed tokens
+    OB, // Open Brace `{`
+    CB, // Close Brace `}`
+    OS, // Open Square `[`
+    CS, // Close Square `]`
+    CL, // Colon `:`
+    CA, // Comma `,`
 
-  const ZZ = jsonic.token.ZZ
+    // Complex tokens
+    TX, // Text (unquoted character sequence)
+    ST, // String (quoted character sequence)
+
+    // Control tokens
+    ZZ, // End-of-source
+  } = jsonic.token
+
 
   const cfg = jsonic.config()
 
@@ -152,6 +162,7 @@ function grammar(jsonic: Jsonic) {
       ])
   })
 
+
   // push onto node
   jsonic.rule('elem', (rs: RuleSpec) => {
     rs.open([
@@ -174,6 +185,7 @@ function grammar(jsonic: Jsonic) {
         { s: [ZZ], e: finish, g: 'list,elem,json' },
       ])
   })
+
 
   // Jsonic syntax extensions.
 

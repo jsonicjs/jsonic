@@ -47,6 +47,12 @@ export declare type Options = {
         lex?: boolean;
         token?: StrMap;
     };
+    match?: {
+        lex?: boolean;
+        token?: {
+            [name: string]: RegExp | LexMatcher;
+        };
+    };
     tokenSet?: {
         [name: string]: string[];
     };
@@ -265,12 +271,16 @@ export declare type Config = {
         token: TokenMap;
         ref: Record<string | Tin, Tin | string>;
     };
+    match: {
+        lex: boolean;
+        token: MatchMap;
+    };
     tokenSet: {
         [name: string]: number[];
     };
-    tokenSetDerived: {
-        ignore: {
-            [name: number]: boolean;
+    tokenSetTins: {
+        [name: string]: {
+            [tin: number]: boolean;
         };
     };
     space: {
@@ -429,6 +439,9 @@ export declare type Tin = number;
 export declare type TokenMap = {
     [name: string]: Tin;
 };
+export declare type MatchMap = {
+    [name: string]: RegExp | LexMatcher;
+};
 export declare type Chars = {
     [char: string]: number;
 };
@@ -438,7 +451,7 @@ export declare type StrMap = {
 export declare type RuleState = 'o' | 'c';
 export declare type RuleStep = 'b' | 'a';
 export declare type LexMatcher = (lex: Lex, rule: Rule) => Token | undefined;
-export declare type MakeLexMatcher = (cfg: Config, opts: Options) => LexMatcher;
+export declare type MakeLexMatcher = (cfg: Config, opts: Options) => LexMatcher | null | undefined | false;
 export declare type RuleSpecMap = {
     [name: string]: RuleSpec;
 };

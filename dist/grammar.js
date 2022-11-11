@@ -1,19 +1,22 @@
 "use strict";
-/* Copyright (c) 2013-2021 Richard Rodger, MIT License */
+/* Copyright (c) 2013-2022 Richard Rodger, MIT License */
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.makeJSON = exports.grammar = void 0;
 function grammar(jsonic) {
-    const OB = jsonic.token.OB;
-    const CB = jsonic.token.CB;
-    const OS = jsonic.token.OS;
-    const CS = jsonic.token.CS;
-    const CL = jsonic.token.CL;
-    const CA = jsonic.token.CA;
-    const TX = jsonic.token.TX;
-    // const NR = jsonic.token.NR
-    const ST = jsonic.token.ST;
-    // const VL = jsonic.token.VL
-    const ZZ = jsonic.token.ZZ;
+    const { 
+    // Fixed tokens
+    OB, // Open Brace `{`
+    CB, // Close Brace `}`
+    OS, // Open Square `[`
+    CS, // Close Square `]`
+    CL, // Colon `:`
+    CA, // Comma `,`
+    // Complex tokens
+    TX, // Text (unquoted character sequence)
+    ST, // String (quoted character sequence)
+    // Control tokens
+    ZZ, // End-of-source
+     } = jsonic.token;
     const cfg = jsonic.config();
     const VAL = cfg.tokenSet.val;
     const KEY = cfg.tokenSet.key;

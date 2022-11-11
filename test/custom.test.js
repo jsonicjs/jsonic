@@ -1,7 +1,7 @@
 /* Copyright (c) 2013-2022 Richard Rodger and other contributors, MIT License */
 'use strict'
 
-const { Jsonic, JsonicError, makeRule, makeFixedMatcher } = require('..')
+const { Jsonic, JsonicError, makeRule, makeFixedMatcher, Debug } = require('..')
 
 let j = Jsonic
 let { keys } = j.util
@@ -49,6 +49,72 @@ describe('custom', function () {
     })
   })
 
+
+  it('tokenset-idenkey', () => {
+    let days = {
+      monday: 'mon',
+      tuesday: 'tue',
+    }
+
+    let j = Jsonic
+        .make({
+          match: {
+            token: {
+              '#DAY': (lex, rule)=>{
+                let pnt = lex.pnt
+                let daystr = lex.src.substring(pnt.sI,pnt.sI+11).toLowerCase()
+                for(let day in days) {
+                  if(daystr.startsWith(day)) {
+                    let daylen = day.length
+                    pnt.sI += daylen
+                    pnt.cI += daylen
+                    
+                    let tkn = lex.token(
+                      '#VL',
+                      days[day],
+                      lex.src.substring(pnt.sI,pnt.sI+daylen),
+                      pnt
+                    )
+                    
+                    // console.log('TKN', tkn)
+                    return tkn
+                  }
+                }
+              },
+              '#ID': /^[a-zA-Z_][a-zA-Z_0-9]*/,
+            }
+          },
+          tokenSet: {
+            // '#ID' is created by tokenize automatically
+            key: ['#ST', '#ID', null, null],
+            val: [,,,,'#ID']
+          }
+        })
+        .use(Debug)
+
+    let DAY = j.token('#DAY')
+
+    j.rule('val', (rs)=>{
+      rs.open([{s:[DAY]}])
+      return rs
+    })
+    
+    // console.log(j.debug.describe())
+    // console.log(j.internal().config)
+
+    // console.log(j.internal().config.lex)
+    
+    expect(j('a:1',{xlog:-1})).toEqual({a:1})
+    expect(j('a:x',{xlog:-1})).toEqual({a:'x'})
+    expect(()=>j('a*:1')).toThrow('unexpected')
+
+    expect(j('a:monday',{xlog:-1})).toEqual({a:'mon'})
+    
+    expect(Jsonic('a:1')).toEqual({a:1})
+    expect(Jsonic('a*:1')).toEqual({'a*':1})
+    expect(Jsonic('b:monday')).toEqual({b:'monday'})
+  })
+  
   it('string-replace', () => {
     expect(Jsonic('a:1')).toEqual({ a: 1 })
 
@@ -123,6 +189,7 @@ describe('custom', function () {
     expect(j('t0')).toEqual('~T0~')
   })
 
+  
   it('parser-handler-actives', () => {
     let b = ''
     let j = make_norules({ rule: { start: 'top' } })

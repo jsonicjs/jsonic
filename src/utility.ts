@@ -5,20 +5,21 @@
  */
 
 import type {
-  Context,
-  Config,
+  AltMatch,
+  AltSpec,
   Bag,
   Chars,
-  Token,
-  AltSpec,
-  NormAltSpec,
+  Config,
+  Context,
   Lex,
+  LexMatcher,
+  NormAltSpec,
+  Options,
   Rule,
   RuleSpec,
   Tin,
-  Options,
+  Token,
   ValModifier,
-  AltMatch,
 } from './types'
 
 import { OPEN, EMPTY, STRING } from './types'
@@ -177,6 +178,23 @@ function configure(
     omap(cfg.fixed.ref, ([tin, src]: [string, string]) => [src, tin])
   )
 
+  cfg.match = {
+    lex: !!opts.match?.lex,
+    token: opts.match
+      ? omap(clean(opts.match.token),
+        ([name, matcher]: [string, RegExp | LexMatcher]) => [
+          tokenize(name, cfg),
+          matcher
+        ])
+      : {},
+  }
+
+  // Lookup tin directly from matcher
+  omap(cfg.match.token, ([tin, matcher]: [number, any]) =>
+    [tin, (matcher.tin$ = +tin, matcher)])
+
+
+  // Convert tokenSet tokens names to tins
   cfg.tokenSet = opts.tokenSet
     ? Object.keys(opts.tokenSet).reduce(
       (a: any, n: string) => (
@@ -189,13 +207,19 @@ function configure(
     )
     : {}
 
-  // console.log('BBB', cfg.tokenSet)
-
-  cfg.tokenSetDerived = {
-    ignore: Object.fromEntries(
-      (opts.tokenSet?.ignore || []).map((tn) => [t(tn), true])
+  // Lookup table for token tin in given tokenSet
+  cfg.tokenSetTins = entries(cfg.tokenSet).reduce(
+    (a: any, en: any[]) => (
+      a[en[0]] = (a[en[0]] || {}),
+      en[1].map((tin: number) => a[en[0]][tin] = true),
+      a
     ),
-  }
+    {}
+  )
+
+  // The ignore tokenSet is special and should always exist, even if empty.
+  cfg.tokenSetTins.ignore = (cfg.tokenSetTins.ignore || {})
+
 
   cfg.space = {
     lex: !!opts.space?.lex,
@@ -326,11 +350,15 @@ function configure(
     empty: !!opts.lex?.empty,
     emptyResult: opts.lex?.emptyResult,
     match: opts.lex?.match
-      ? opts.lex.match.map((maker: any) => {
-        let m = maker(cfg, opts)
-        m.maker = maker
-        return m
-      })
+      ? opts.lex.match
+        .map((maker: any) => {
+          let m = maker(cfg, opts)
+          if (m) {
+            m.maker = maker
+          }
+          return m
+        })
+        .filter(m => null != m && false !== m)
       : [],
   }
 

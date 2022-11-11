@@ -478,7 +478,7 @@ class Parser {
         // virtual (like map, list), and double for safety margin (allows
         // lots of backtracking), and apply a multipler option as a get-out-of-jail.
         let maxr = 2 * (0, utility_1.keys)(this.rsm).length * lex.src.length * 2 * ctx.cfg.rule.maxmul;
-        let ignore = ctx.cfg.tokenSetDerived.ignore;
+        let ignore = ctx.cfg.tokenSetTins.ignore;
         // Lex next token.
         function next(r) {
             ctx.v2 = ctx.v1;

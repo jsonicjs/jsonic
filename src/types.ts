@@ -92,6 +92,10 @@ export type Options = {
     lex?: boolean
     token?: StrMap
   }
+  match?: {
+    lex?: boolean
+    token?: { [name: string]: RegExp | LexMatcher }
+  }
   tokenSet?: {
     [name: string]: string[]
   }
@@ -312,6 +316,7 @@ export type Context = {
   NORULE: Rule // Per parse "null" Rule
 }
 
+
 export interface Lex {
   src: String
   ctx: Context
@@ -335,6 +340,7 @@ export interface Lex {
 
   bad(why: string, pstart: number, pend: number): Token
 }
+
 
 // Internal clean configuration built from options by
 // `utility.configure` and LexMatchers.
@@ -360,17 +366,21 @@ export type Config = {
     ref: Record<string | Tin, Tin | string>
   }
 
+  // Matched tokens (regexp, custom function)
+  match: {
+    lex: boolean
+    token: MatchMap
+  }
+
+
   // Token set derived config.
   tokenSet: {
     [name: string]: number[]
   }
 
   // Token set derived config.
-  tokenSetDerived: {
-    // Tokens ignored by rules.
-    ignore: {
-      [name: number]: boolean
-    }
+  tokenSetTins: {
+    [name: string]: { [tin: number]: boolean }
   }
 
   // Space characters.
@@ -586,6 +596,9 @@ export type Tin = number
 // Map token name to Token index (Tin).
 export type TokenMap = { [name: string]: Tin }
 
+// Map token name to matcher.
+export type MatchMap = { [name: string]: RegExp | LexMatcher }
+
 // Map character to code value.
 export type Chars = { [char: string]: number }
 
@@ -604,7 +617,7 @@ export type RuleStep = 'b' | 'a'
 export type LexMatcher = (lex: Lex, rule: Rule) => Token | undefined
 
 // Construct a lexing function based on configuration.
-export type MakeLexMatcher = (cfg: Config, opts: Options) => LexMatcher
+export type MakeLexMatcher = (cfg: Config, opts: Options) => LexMatcher | null | undefined | false
 
 export type RuleSpecMap = { [name: string]: RuleSpec }
 
