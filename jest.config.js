@@ -5,6 +5,6 @@ module.exports = {
   testTimeout: 9999,
   coveragePathIgnorePatterns: ['test'],
   transform: {
-    "^.+\\.tsx?$": ["es-jest",{sourcemap:true}]
+    "^.+\\.tsx?$": "es-jest"
   },
 };

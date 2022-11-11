@@ -1,7 +1,7 @@
 "use strict";
 /* Copyright (c) 2013-2022 Richard Rodger, MIT License */
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.values = exports.keys = exports.omap = exports.str = exports.prop = exports.normalt = exports.parserwrap = exports.trimstk = exports.tokenize = exports.srcfmt = exports.snip = exports.regexp = exports.mesc = exports.makelog = exports.isarr = exports.filterRules = exports.extract = exports.escre = exports.errinject = exports.errdesc = exports.entries = exports.defprop = exports.deep = exports.configure = exports.clone = exports.clean = exports.charset = exports.badlex = exports.assign = exports.S = exports.JsonicError = void 0;
+exports.log_stack = exports.log_parse = exports.log_node = exports.log_rule = exports.values = exports.keys = exports.omap = exports.str = exports.prop = exports.normalt = exports.parserwrap = exports.trimstk = exports.tokenize = exports.srcfmt = exports.snip = exports.regexp = exports.mesc = exports.makelog = exports.isarr = exports.filterRules = exports.extract = exports.escre = exports.errinject = exports.errdesc = exports.entries = exports.defprop = exports.deep = exports.configure = exports.clone = exports.clean = exports.charset = exports.badlex = exports.assign = exports.S = exports.JsonicError = void 0;
 const types_1 = require("./types");
 const lexer_1 = require("./lexer");
 // Null-safe object and array utilities
@@ -695,6 +695,15 @@ function normalt(a) {
                     .map((part) => bitify(partify(tins1, part), part))
                 : null;
     }
+    if (!a.p) {
+        a.p = null;
+    }
+    if (!a.r) {
+        a.r = null;
+    }
+    if (!a.b) {
+        a.b = null;
+    }
     return a;
 }
 exports.normalt = normalt;
@@ -793,4 +802,71 @@ function parserwrap(parser) {
     };
 }
 exports.parserwrap = parserwrap;
+function log_rule(rule, ctx) {
+    ctx.log(S.indent.repeat(rule.d) + S.rule + S.space, rule.state.toUpperCase(), (rule.prev.id + '/' + rule.parent.id + '/' + rule.child.id).padEnd(12), rule.name + '~' + rule.id, '[' + ctx.F(ctx.t0.src) + ' ' + ctx.F(ctx.t1.src) + ']', 'n:' +
+        entries(rule.n)
+            .filter((n) => n[1])
+            .map((n) => n[0] + '=' + n[1])
+            .join(';'), 'u:' +
+        entries(rule.use)
+            .map((u) => u[0] + '=' + ctx.F(u[1]))
+            .join(';'), 'k:' +
+        entries(rule.keep)
+            .map((k) => k[0] + '=' + ctx.F(k[1]))
+            .join(';'), '[' + tokenize(ctx.t0.tin, ctx.cfg) + ' ' + tokenize(ctx.t1.tin, ctx.cfg) + ']', rule, ctx);
+}
+exports.log_rule = log_rule;
+function log_node(rule, ctx, next) {
+    ctx.log(S.indent.repeat(rule.d) + S.node + S.space, rule.state.toUpperCase(), (rule.prev.id + '/' + rule.parent.id + '/' + rule.child.id).padEnd(12), rule.name + '~' + rule.id, 'w=' + next.why, 'n:' +
+        entries(rule.n)
+            .filter((n) => n[1])
+            .map((n) => n[0] + '=' + n[1])
+            .join(';'), 'u:' +
+        entries(rule.use)
+            .map((u) => u[0] + '=' + ctx.F(u[1]))
+            .join(';'), 'k:' +
+        entries(rule.keep)
+            .map((k) => k[0] + '=' + ctx.F(k[1]))
+            .join(';'), '<' + ctx.F(rule.node) + '>');
+}
+exports.log_node = log_node;
+function log_parse(rule, ctx, match, cond, altI, alt, out) {
+    ctx.log(S.indent.repeat(rule.d) + S.parse, rule.state.toUpperCase(), (rule.prev.id + '/' + rule.parent.id + '/' + rule.child.id).padEnd(12), rule.name + '~' + rule.id, match ? 'alt=' + altI : 'no-alt', match && out.g ? 'g:' + out.g + ' ' : '', (match && out.p ? 'p:' + out.p + ' ' : '') +
+        (match && out.r ? 'r:' + out.r + ' ' : '') +
+        (match && out.b ? 'b:' + out.b + ' ' : ''), (types_1.OPEN === rule.state
+        ? [rule.o0, rule.o1].slice(0, rule.os)
+        : [rule.c0, rule.c1].slice(0, rule.cs))
+        .map((tkn) => tkn.name + '=' + ctx.F(tkn.src))
+        .join(' '), 'c:' + (alt && alt.c ? cond : types_1.EMPTY), 'n:' +
+        entries(out.n)
+            .map((n) => n[0] + '=' + n[1])
+            .join(';'), 'u:' +
+        entries(out.u)
+            .map((u) => u[0] + '=' + u[1])
+            .join(';'), 'k:' +
+        entries(out.k)
+            .map((k) => k[0] + '=' + k[1])
+            .join(';'), 
+    // altI < alts.length && (alt as any).s
+    match && alt.s
+        ? '[' +
+            alt.s
+                .map((pin) => Array.isArray(pin)
+                ? pin.map((pin) => ctx.cfg.t[pin]).join('|')
+                : ctx.cfg.t[pin])
+                .join(' ') +
+            ']'
+        : '[]', out);
+}
+exports.log_parse = log_parse;
+function log_stack(rule, ctx, root) {
+    ctx.log('\n' + S.indent.repeat(rule.d) + S.stack, ctx.rs
+        .slice(0, ctx.rsI)
+        .map((r) => r.name + '~' + r.id)
+        .join('/'), '<<' + ctx.F(root.node) + '>>', ctx.rs
+        .slice(0, ctx.rsI)
+        .map((r) => '<' + ctx.F(r.node) + '>')
+        .join(' '), rule, ctx);
+}
+exports.log_stack = log_stack;
 //# sourceMappingURL=utility.js.map

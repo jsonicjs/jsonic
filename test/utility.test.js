@@ -3,17 +3,7 @@
 
 const Util = require('util')
 
-// let Lab = require('@hapi/lab')
-// Lab = null != Lab.script ? Lab : require('hapi-lab-shim')
-
-// const Code = require('@hapi/code')
-
-// const lab = (exports.lab = Lab.script())
-// const describe = lab.describe
-// const it = lab.it
-// const expect = Code.expect
-
-const { filterRules } = require('../utility')
+const { filterRules } = require('../dist/utility')
 
 const { util, Jsonic, makeToken, makePoint } = require('..')
 

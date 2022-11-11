@@ -1,4 +1,4 @@
-/* Copyright (c) 2013-2021 Richard Rodger and other contributors, MIT License */
+/* Copyright (c) 2013-2022 Richard Rodger and other contributors, MIT License */
 'use strict'
 
 const { Jsonic, JsonicError } = require('..')

@@ -18,9 +18,11 @@ import type {
   Tin,
   Options,
   ValModifier,
+  AltMatch,
 } from './types'
 
-import { EMPTY, STRING } from './types'
+import { OPEN, EMPTY, STRING } from './types'
+
 
 import { makeToken, makePoint } from './lexer'
 
@@ -883,8 +885,21 @@ function normalt(a: AltSpec): NormAltSpec {
         : null
   }
 
+  if (!a.p) {
+    a.p = null
+  }
+
+  if (!a.r) {
+    a.r = null
+  }
+
+  if (!a.b) {
+    a.b = null
+  }
+
   return a as NormAltSpec
 }
+
 
 function prop(obj: any, path: string, val: any): any {
   let root = obj
@@ -1004,6 +1019,143 @@ function parserwrap(parser: any) {
   }
 }
 
+
+function log_rule(rule: Rule, ctx: Context) {
+  (ctx as any).log(
+    S.indent.repeat(rule.d) + S.rule + S.space,
+    rule.state.toUpperCase(),
+    (rule.prev.id + '/' + rule.parent.id + '/' + rule.child.id).padEnd(
+      12
+    ),
+    rule.name + '~' + rule.id,
+    '[' + ctx.F(ctx.t0.src) + ' ' + ctx.F(ctx.t1.src) + ']',
+    'n:' +
+    entries(rule.n)
+      .filter((n) => n[1])
+      .map((n) => n[0] + '=' + n[1])
+      .join(';'),
+    'u:' +
+    entries(rule.use)
+      .map((u) => u[0] + '=' + ctx.F(u[1]))
+      .join(';'),
+    'k:' +
+    entries(rule.keep)
+      .map((k) => k[0] + '=' + ctx.F(k[1]))
+      .join(';'),
+
+    '[' + tokenize(ctx.t0.tin, ctx.cfg) + ' ' + tokenize(ctx.t1.tin, ctx.cfg) + ']',
+
+    rule,
+    ctx
+  )
+
+}
+
+
+function log_node(rule: Rule, ctx: Context, next: Rule) {
+  (ctx as any).log(
+    S.indent.repeat(rule.d) + S.node + S.space,
+    rule.state.toUpperCase(),
+    (rule.prev.id + '/' + rule.parent.id + '/' + rule.child.id).padEnd(12),
+    rule.name + '~' + rule.id,
+    'w=' + next.why,
+    'n:' +
+    entries(rule.n)
+      .filter((n) => n[1])
+      .map((n) => n[0] + '=' + n[1])
+      .join(';'),
+    'u:' +
+    entries(rule.use)
+      .map((u) => u[0] + '=' + ctx.F(u[1]))
+      .join(';'),
+    'k:' +
+    entries(rule.keep)
+      .map((k) => k[0] + '=' + ctx.F(k[1]))
+      .join(';'),
+    '<' + ctx.F(rule.node) + '>'
+  )
+}
+
+
+function log_parse(
+  rule: Rule,
+  ctx: Context,
+  match: boolean,
+  cond: boolean,
+  altI: number,
+  alt: NormAltSpec | null,
+  out: AltMatch
+) {
+  (ctx as any).log(
+    S.indent.repeat(rule.d) + S.parse,
+    rule.state.toUpperCase(),
+    (rule.prev.id + '/' + rule.parent.id + '/' + rule.child.id).padEnd(12),
+    rule.name + '~' + rule.id,
+
+    match ? 'alt=' + altI : 'no-alt',
+
+    match && out.g ? 'g:' + out.g + ' ' : '',
+    (match && out.p ? 'p:' + out.p + ' ' : '') +
+    (match && out.r ? 'r:' + out.r + ' ' : '') +
+    (match && out.b ? 'b:' + out.b + ' ' : ''),
+
+    (OPEN === rule.state
+      ? [rule.o0, rule.o1].slice(0, rule.os)
+      : [rule.c0, rule.c1].slice(0, rule.cs)
+    )
+      .map((tkn: Token) => tkn.name + '=' + ctx.F(tkn.src))
+      .join(' '),
+
+    'c:' + (alt && alt.c ? cond : EMPTY),
+    'n:' +
+    entries(out.n)
+      .map((n) => n[0] + '=' + n[1])
+      .join(';'),
+    'u:' +
+    entries(out.u)
+      .map((u) => u[0] + '=' + u[1])
+      .join(';'),
+    'k:' +
+    entries(out.k)
+      .map((k) => k[0] + '=' + k[1])
+      .join(';'),
+
+    // altI < alts.length && (alt as any).s
+    match && (alt as any).s
+      ? '[' +
+      (alt as any).s
+        .map((pin: Tin) =>
+          Array.isArray(pin)
+            ? pin.map((pin: Tin) => ctx.cfg.t[pin]).join('|')
+            : ctx.cfg.t[pin]
+        )
+        .join(' ') +
+      ']'
+      : '[]',
+
+    out
+  )
+}
+
+
+function log_stack(rule: Rule, ctx: Context, root: Rule) {
+  (ctx as any).log(
+    '\n' + S.indent.repeat(rule.d) + S.stack,
+    ctx.rs
+      .slice(0, ctx.rsI)
+      .map((r: Rule) => r.name + '~' + r.id)
+      .join('/'),
+    '<<' + ctx.F(root.node) + '>>',
+    ctx.rs
+      .slice(0, ctx.rsI)
+      .map((r: Rule) => '<' + ctx.F(r.node) + '>')
+      .join(' '),
+
+    rule,
+    ctx
+  )
+}
+
 export {
   JsonicError,
   S,
@@ -1036,4 +1188,8 @@ export {
   omap,
   keys,
   values,
+  log_rule,
+  log_node,
+  log_parse,
+  log_stack,
 }

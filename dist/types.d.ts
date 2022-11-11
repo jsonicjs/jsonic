@@ -385,9 +385,9 @@ export interface Token {
 }
 export interface AltSpec {
     s?: (Tin | Tin[] | null | undefined)[] | null;
-    p?: string | AltNext;
-    r?: string | AltNext;
-    b?: number | AltBack;
+    p?: string | AltNext | null | false;
+    r?: string | AltNext | null | false;
+    b?: number | AltBack | null | false;
     c?: AltCond | {
         d?: number;
         n?: Counters;
@@ -407,9 +407,9 @@ export declare type AddAltOps = {
     delete?: number[];
 };
 export interface AltMatch {
-    p: string;
-    r: string;
-    b: number;
+    p?: string | null | false | 0;
+    r?: string | null | false | 0;
+    b?: number | null | false;
     c?: AltCond;
     n?: Counters;
     a?: AltAction;
@@ -453,9 +453,9 @@ export interface NormAltSpec extends AltSpec {
 export declare type AltCond = (rule: Rule, ctx: Context, alt: AltMatch) => boolean;
 export declare type AltModifier = (rule: Rule, ctx: Context, alt: AltMatch, next: Rule) => AltMatch;
 export declare type AltAction = (rule: Rule, ctx: Context, alt: AltMatch) => any;
-export declare type AltNext = (rule: Rule, ctx: Context, alt: AltMatch) => string;
-export declare type AltBack = (rule: Rule, ctx: Context, alt: AltMatch) => number;
-export declare type StateAction = (this: RuleSpec, rule: Rule, ctx: Context, next: Rule, out?: Token | void) => Token | void;
+export declare type AltNext = (rule: Rule, ctx: Context, alt: AltMatch) => string | null | false | 0;
+export declare type AltBack = (rule: Rule, ctx: Context, alt: AltMatch) => number | null | false;
+export declare type StateAction = (rule: Rule, ctx: Context, next: Rule, out?: Token | void) => Token | void;
 export declare type AltError = (rule: Rule, ctx: Context, alt: AltMatch) => Token | undefined;
 export declare type ValModifier = (val: any, lex: Lex, cfg: Config, opts: Options) => string;
 export declare type LexSub = (tkn: Token, rule: Rule, ctx: Context) => void;

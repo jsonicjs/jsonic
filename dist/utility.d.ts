@@ -1,4 +1,4 @@
-import type { Context, Config, Bag, Chars, Token, AltSpec, NormAltSpec, Lex, Rule, RuleSpec, Tin, Options } from './types';
+import type { Context, Config, Bag, Chars, Token, AltSpec, NormAltSpec, Lex, Rule, RuleSpec, Tin, Options, AltMatch } from './types';
 declare const keys: (x: any) => string[];
 declare const values: <T>(x: {
     [key: string]: T;
@@ -83,4 +83,8 @@ declare function prop(obj: any, path: string, val: any): any;
 declare function parserwrap(parser: any): {
     start: (src: string, jsonic: any, meta?: any, parent_ctx?: any) => any;
 };
-export { JsonicError, S, assign, badlex, charset, clean, clone, configure, deep, defprop, entries, errdesc, errinject, escre, extract, filterRules, isarr, makelog, mesc, regexp, snip, srcfmt, tokenize, trimstk, parserwrap, normalt, prop, str, omap, keys, values, };
+declare function log_rule(rule: Rule, ctx: Context): void;
+declare function log_node(rule: Rule, ctx: Context, next: Rule): void;
+declare function log_parse(rule: Rule, ctx: Context, match: boolean, cond: boolean, altI: number, alt: NormAltSpec | null, out: AltMatch): void;
+declare function log_stack(rule: Rule, ctx: Context, root: Rule): void;
+export { JsonicError, S, assign, badlex, charset, clean, clone, configure, deep, defprop, entries, errdesc, errinject, escre, extract, filterRules, isarr, makelog, mesc, regexp, snip, srcfmt, tokenize, trimstk, parserwrap, normalt, prop, str, omap, keys, values, log_rule, log_node, log_parse, log_stack, };

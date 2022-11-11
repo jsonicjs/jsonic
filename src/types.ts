@@ -518,13 +518,13 @@ export interface AltSpec {
   s?: (Tin | Tin[] | null | undefined)[] | null
 
   // Push named Rule onto stack (create child).
-  p?: string | AltNext
+  p?: string | AltNext | null | false
 
   // Replace current rule with named Rule on stack (create sibling).
-  r?: string | AltNext
+  r?: string | AltNext | null | false
 
-  // TODO: AltBack as per AltNext?
-  b?: number | AltBack // Move token pointer back by indicated number of steps.
+  // Move token pointer back by indicated number of steps.
+  b?: number | AltBack | null | false
 
   // Condition function, return true to match alternate.
   // NOTE: Token sequence (s) must also match.
@@ -561,9 +561,9 @@ export type AddAltOps = {
 
 // Parse-alternate match (built from current tokens and AltSpec).
 export interface AltMatch {
-  p: string // Push rule (by name).
-  r: string // Replace rule (by name).
-  b: number // Move token position backward.
+  p?: string | null | false | 0 // Push rule (by name).
+  r?: string | null | false | 0 // Replace rule (by name).
+  b?: number | null | false // Move token position backward.
   c?: AltCond // Custom alt match condition.
   n?: Counters // increment named counters.
   a?: AltAction // Match actions.
@@ -634,15 +634,17 @@ export type AltModifier = (
 export type AltAction = (rule: Rule, ctx: Context, alt: AltMatch) => any
 
 // Determine next rule name (for AltSpec r or p properties).
-export type AltNext = (rule: Rule, ctx: Context, alt: AltMatch) => string
+export type AltNext = (rule: Rule, ctx: Context, alt: AltMatch) =>
+  string | null | false | 0
 
 // Determine token push back.
-export type AltBack = (rule: Rule, ctx: Context, alt: AltMatch) => number
+export type AltBack = (rule: Rule, ctx: Context, alt: AltMatch) =>
+  number | null | false
 
 // Execute an action for a given Rule state and step:
 // bo: BEFORE OPEN, ao: AFTER OPEN, bc: BEFORE CLOSE, ac: AFTER CLOSE.
 export type StateAction = (
-  this: RuleSpec,
+  // this: RuleSpec,
   rule: Rule,
   ctx: Context,
   next: Rule,

@@ -35,7 +35,6 @@ import {
   S,
   badlex,
   deep,
-  entries,
   filterRules,
   isarr,
   keys,
@@ -43,6 +42,10 @@ import {
   srcfmt,
   tokenize,
   normalt,
+  log_rule,
+  log_node,
+  log_parse,
+  log_stack,
 } from './utility'
 
 import { makeNoToken, makeLex, makePoint, makeToken } from './lexer'
@@ -112,6 +115,7 @@ const makeRule = (...params: ConstructorParameters<typeof RuleImpl>) =>
 
 const makeNoRule = (ctx: Context) => makeRule(makeRuleSpec(ctx.cfg, {}), ctx)
 
+
 // Parse-alternate match (built from current tokens and AltSpec).
 class AltMatchImpl implements AltMatch {
   p = EMPTY // Push rule (by name).
@@ -130,7 +134,7 @@ class AltMatchImpl implements AltMatch {
 const makeAltMatch = (...params: ConstructorParameters<typeof AltMatchImpl>) =>
   new AltMatchImpl(...params)
 
-const PALT = makeAltMatch() // Only one alt object is created.
+const PALT: AltMatch = makeAltMatch() // Only one alt object is created.
 const EMPTY_ALT = makeAltMatch()
 
 class RuleSpecImpl implements RuleSpec {
@@ -275,12 +279,14 @@ class RuleSpecImpl implements RuleSpec {
 
   process(rule: Rule, ctx: Context, state: RuleState): Rule {
     let why = EMPTY
-    let F = ctx.F
 
     let mI = 0
     while (mI++ < rule.need) {
       ctx.next(rule)
     }
+
+    // Log rule here to ensure next tokens shown are correct.
+    ctx.log && log_rule(rule, ctx)
 
     let is_open = state === 'o'
     let next = is_open ? rule : ctx.NORULE
@@ -344,7 +350,7 @@ class RuleSpecImpl implements RuleSpec {
     // Action call.
     if (alt.a) {
       why += 'A'
-      let tout = alt.a.call(this, rule, ctx, alt)
+      let tout = alt.a(rule, ctx, alt)
       if (tout && tout.isToken && tout.err) {
         return this.bad(tout, rule, ctx, { is_open })
       }
@@ -352,9 +358,7 @@ class RuleSpecImpl implements RuleSpec {
 
     // Push a new rule onto the stack...
     if (alt.p) {
-      // ctx.rs.push(rule)
       ctx.rs[ctx.rsI++] = rule
-
       let rulespec = ctx.rsm[alt.p]
       if (rulespec) {
         next = rule.child = makeRule(rulespec, ctx, rule.node)
@@ -398,7 +402,8 @@ class RuleSpecImpl implements RuleSpec {
       let aout: Token | void = undefined
       // TODO: needed? let aout = after && after.call(this, rule, ctx, alt, next)
       for (let aI = 0; aI < afters.length; aI++) {
-        aout = afters[aI].call(this, rule, ctx, next, aout)
+        // aout = afters[aI].call(this, rule, ctx, next, aout)
+        aout = afters[aI](rule, ctx, next, aout)
         if (aout?.isToken && aout?.err) {
           return this.bad(aout, rule, ctx, { is_open })
         }
@@ -407,28 +412,7 @@ class RuleSpecImpl implements RuleSpec {
 
     next.why = why
 
-    ctx.log &&
-      ctx.log(
-        S.indent.repeat(rule.d) + S.node + S.space,
-        rule.state.toUpperCase(),
-        (rule.prev.id + '/' + rule.parent.id + '/' + rule.child.id).padEnd(12),
-        rule.name + '~' + rule.id,
-        'w=' + why,
-        'n:' +
-        entries(rule.n)
-          .filter((n) => n[1])
-          .map((n) => n[0] + '=' + n[1])
-          .join(';'),
-        'u:' +
-        entries(rule.use)
-          .map((u) => u[0] + '=' + u[1])
-          .join(';'),
-        'k:' +
-        entries(rule.keep)
-          .map((k) => k[0] + '=' + k[1])
-          .join(';'),
-        '<' + F(rule.node) + '>'
-      )
+    ctx.log && log_node(rule, ctx, next)
 
     // Must be last as state change is for next process call.
     if (OPEN === rule.state) {
@@ -436,13 +420,7 @@ class RuleSpecImpl implements RuleSpec {
     }
 
     // Lex next tokens (up to backtrack).
-    // let mI = 0
-    let rewind = rule[is_open ? 'os' : 'cs'] - (alt.b || 0)
-    // while (mI++ < rewind) {
-    //   ctx.next()
-    // }
-
-    next.need = rewind
+    next.need = rule[is_open ? 'os' : 'cs'] - (alt.b || 0)
 
     return next
   }
@@ -469,7 +447,7 @@ class RuleSpecImpl implements RuleSpec {
     let alt: NormAltSpec | null = null
     let altI = 0
     let t = ctx.cfg.t
-    let cond
+    let cond: boolean = true
     let bitAA = 1 << (t.AA - 1)
 
     // TODO: replace with lookup map
@@ -485,7 +463,7 @@ class RuleSpecImpl implements RuleSpec {
 
       if (alt.S0) {
         has0 = true
-        cond = alt.S0[(tin0 / 31) | 0] & ((1 << ((tin0 % 31) - 1)) | bitAA)
+        cond = !!(alt.S0[(tin0 / 31) | 0] & ((1 << ((tin0 % 31) - 1)) | bitAA))
 
         if (cond) {
           has1 = null != alt.S1
@@ -493,7 +471,7 @@ class RuleSpecImpl implements RuleSpec {
           if (alt.S1) {
             has1 = true
             let tin1 = ctx.t1.tin
-            cond = alt.S1[(tin1 / 31) | 0] & ((1 << ((tin1 % 31) - 1)) | bitAA)
+            cond = !!(alt.S1[(tin1 / 31) | 0] & ((1 << ((tin1 % 31) - 1)) | bitAA))
           }
         }
       }
@@ -535,21 +513,21 @@ class RuleSpecImpl implements RuleSpec {
       out.e = (alt.e && alt.e(rule, ctx, out)) || undefined
 
       out.p =
-        null != alt.p
+        null != alt.p && false !== alt.p
           ? 'string' === typeof alt.p
             ? alt.p
             : alt.p(rule, ctx, out)
           : out.p
 
       out.r =
-        null != alt.r
+        null != alt.r && false !== alt.r
           ? 'string' === typeof alt.r
             ? alt.r
             : alt.r(rule, ctx, out)
           : out.r
 
       out.b =
-        null != alt.b
+        null != alt.b && false !== alt.b
           ? 'number' === typeof alt.b
             ? alt.b
             : alt.b(rule, ctx, out)
@@ -559,55 +537,7 @@ class RuleSpecImpl implements RuleSpec {
     let match = altI < alts.length
 
     // TODO: move to debug plugin
-    ctx.log &&
-      ctx.log(
-        S.indent.repeat(rule.d) + S.parse,
-        rule.state.toUpperCase(),
-        (rule.prev.id + '/' + rule.parent.id + '/' + rule.child.id).padEnd(12),
-        rule.name + '~' + rule.id,
-
-        match ? 'alt=' + altI : 'no-alt',
-
-        match && out.g ? 'g:' + out.g + ' ' : '',
-        (match && out.p ? 'p:' + out.p + ' ' : '') +
-        (match && out.r ? 'r:' + out.r + ' ' : '') +
-        (match && out.b ? 'b:' + out.b + ' ' : ''),
-
-        (OPEN === rule.state
-          ? [rule.o0, rule.o1].slice(0, rule.os)
-          : [rule.c0, rule.c1].slice(0, rule.cs)
-        )
-          .map((tkn: Token) => tkn.name + '=' + ctx.F(tkn.src))
-          .join(' '),
-
-        'c:' + (alt && alt.c ? cond : EMPTY),
-        'n:' +
-        entries(out.n)
-          .map((n) => n[0] + '=' + n[1])
-          .join(';'),
-        'u:' +
-        entries(out.u)
-          .map((u) => u[0] + '=' + u[1])
-          .join(';'),
-        'k:' +
-        entries(out.k)
-          .map((k) => k[0] + '=' + k[1])
-          .join(';'),
-
-        altI < alts.length && (alt as any).s
-          ? '[' +
-          (alt as any).s
-            .map((pin: Tin) =>
-              Array.isArray(pin)
-                ? pin.map((pin: Tin) => t[pin]).join('|')
-                : t[pin]
-            )
-            .join(' ') +
-          ']'
-          : '[]',
-
-        out
-      )
+    ctx.log && log_parse(rule, ctx, match, cond, altI, alt, out)
 
     return out
   }
@@ -737,7 +667,7 @@ class Parser {
       }
     }
 
-    let tn = (pin: Tin): string => tokenize(pin, this.cfg)
+    // let tn = (pin: Tin): string => tokenize(pin, this.cfg)
     let lex = badlex(makeLex(ctx), tokenize('#BD', this.cfg), ctx)
     let startspec = this.rsm[this.cfg.rule.start]
 
@@ -752,7 +682,7 @@ class Parser {
     // Maximum rule iterations (prevents infinite loops). Allow for
     // rule open and close, and for each rule on each char to be
     // virtual (like map, list), and double for safety margin (allows
-    // lots of backtracking), and apply a multipler options as a get-out-of-jail.
+    // lots of backtracking), and apply a multipler option as a get-out-of-jail.
     let maxr =
       2 * keys(this.rsm).length * lex.src.length * 2 * ctx.cfg.rule.maxmul
 
@@ -779,12 +709,11 @@ class Parser {
     }
 
     // Look two tokens ahead
-    // next()
-    // next()
     rule.need = 2
 
     // Process rules on tokens
     let rI = 0
+
 
     // This loop is the heart of the engine. Keep processing rule
     // occurrences until there's none left.
@@ -793,51 +722,7 @@ class Parser {
         ctx.sub.rule.map((sub) => sub(rule, ctx))
       }
 
-      ctx.log &&
-        ctx.log(
-          '\n' + S.indent.repeat(rule.d) + S.stack,
-          ctx.rs
-            .slice(0, ctx.rsI)
-            .map((r: Rule) => r.name + '~' + r.id)
-            .join('/'),
-          '<<' + ctx.F(root.node) + '>>',
-          ctx.rs
-            .slice(0, ctx.rsI)
-            .map((r: Rule) => '<' + ctx.F(r.node) + '>')
-            .join(' '),
-
-          rule,
-          ctx
-        )
-
-      ctx.log &&
-        ctx.log(
-          S.indent.repeat(rule.d) + S.rule + S.space,
-          rule.state.toUpperCase(),
-          (rule.prev.id + '/' + rule.parent.id + '/' + rule.child.id).padEnd(
-            12
-          ),
-          rule.name + '~' + rule.id,
-          '[' + ctx.F(ctx.t0.src) + ' ' + ctx.F(ctx.t1.src) + ']',
-          'n:' +
-          entries(rule.n)
-            .filter((n) => n[1])
-            .map((n) => n[0] + '=' + n[1])
-            .join(';'),
-          'u:' +
-          entries(rule.use)
-            .map((u) => u[0] + '=' + u[1])
-            .join(';'),
-          'k:' +
-          entries(rule.keep)
-            .map((k) => k[0] + '=' + k[1])
-            .join(';'),
-
-          '[' + tn(ctx.t0.tin) + ' ' + tn(ctx.t1.tin) + ']',
-
-          rule,
-          ctx
-        )
+      ctx.log && log_stack(rule, ctx, root)
 
       ctx.rule = rule
 
@@ -845,6 +730,7 @@ class Parser {
 
       rI++
     }
+
 
     // TODO: option to allow trailing content
     if (tokenize('#ZZ', this.cfg) !== ctx.t0.tin) {

@@ -1,17 +1,8 @@
-/* Copyright (c) 2013-2021 Richard Rodger and other contributors, MIT License */
+/* Copyright (c) 2013-2022 Richard Rodger and other contributors, MIT License */
 'use strict'
 
-// let Lab = require('@hapi/lab')
-// Lab = null != Lab.script ? Lab : require('hapi-lab-shim')
 
-// const Code = require('@hapi/code')
-
-// const lab = (exports.lab = Lab.script())
-// const describe = lab.describe
-// const it = lab.it
-// const expect = Code.expect
-
-const JsonicCli = require('../jsonic-cli')
+const JsonicCli = require('../dist/jsonic-cli')
 const jr = async (...rest) => await JsonicCli.run(...rest)
 
 describe('cli', function () {
@@ -133,7 +124,7 @@ describe('cli', function () {
 
   it('plugin', async () => {
     let cn = make_cn()
-    await jr([0, 0, '-p', './test/p0', '-o', 'plugin.p0.x=0', 'a:X'], cn)
+    await jr([0, 0, '-p', '../test/p0', '-o', 'plugin.p0.x=0', 'a:X'], cn)
     expect(cn.d.log[0][0]).toEqual('{"a":0}')
 
     cn = make_cn()
@@ -142,7 +133,7 @@ describe('cli', function () {
         0,
         0,
         '-p',
-        './test/p0',
+        '../test/p0',
         '-o',
         'plugin.p0.x=0',
         '-o',
@@ -154,7 +145,7 @@ describe('cli', function () {
     expect(cn.d.log[0][0]).toEqual('{"a":0}')
 
     cn = make_cn()
-    await jr([0, 0, '-o', 'plugin.p1.y=1', '-p', './test/p1', 'a:Y'], cn)
+    await jr([0, 0, '-o', 'plugin.p1.y=1', '-p', '../test/p1', 'a:Y'], cn)
     expect(cn.d.log[0][0]).toEqual('{"a":1}')
 
     cn = make_cn()
@@ -165,11 +156,11 @@ describe('cli', function () {
         '-o',
         'plugin.p0.x=0',
         '-p',
-        './test/p0',
+        '../test/p0',
         '-o',
         'plugin.p1.y=1',
         '-p',
-        './test/p1',
+        '../test/p1',
         'a:X,b:Y',
       ],
       cn
@@ -177,12 +168,12 @@ describe('cli', function () {
     expect(cn.d.log[0][0]).toEqual('{"a":0,"b":1}')
 
     cn = make_cn()
-    await jr([0, 0, '-p', './test/p2', '-o', 'plugin.p2.z=2', 'a:Z'], cn)
+    await jr([0, 0, '-p', '../test/p2', '-o', 'plugin.p2.z=2', 'a:Z'], cn)
     expect(cn.d.log[0][0]).toEqual('{"a":2}')
 
     cn = make_cn()
     await jr(
-      [0, 0, '-p', './test/pa-qa.js', '-o', 'plugin.paqa.q=3', 'a:Q'],
+      [0, 0, '-p', '../test/pa-qa.js', '-o', 'plugin.paqa.q=3', 'a:Q'],
       cn
     )
     expect(cn.d.log[0][0]).toEqual('{"a":3}')

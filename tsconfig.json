@@ -4,8 +4,9 @@
     "isolatedModules": true,
     "module": "commonjs",
     "noEmitOnError": true,
-    "noImplicitAny": true,
+    "outDir":"dist",
     "resolveJsonModule": true,
+    "rootDir":"src",
     "sourceMap": true,
     "strict": true,
     "target": "ES2019"
