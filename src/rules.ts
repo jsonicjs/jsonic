@@ -1,0 +1,574 @@
+/* Copyright (c) 2013-2022 Richard Rodger, MIT License */
+
+/*  rules.ts
+ *  Parser rules.
+ */
+
+import type {
+  RuleState,
+  RuleStep,
+  StateAction,
+  Tin,
+  Token,
+  Config,
+  Context,
+  Rule,
+  RuleSpec,
+  NormAltSpec,
+  AltCond,
+  AltModifier,
+  AltAction,
+  AltMatch,
+  AddAltOps,
+  RuleSpecMap,
+  RuleDefiner,
+  AltSpec,
+  Options,
+  Counters,
+  Bag,
+} from './types'
+
+import { OPEN, CLOSE, BEFORE, AFTER, EMPTY } from './types'
+
+import {
+  JsonicError,
+  S,
+  badlex,
+  deep,
+  filterRules,
+  isarr,
+  keys,
+  makelog,
+  srcfmt,
+  tokenize,
+  normalt,
+  log_rule,
+  log_node,
+  log_parse,
+  log_stack,
+} from './utility'
+
+import { makeNoToken, makeLex, makePoint, makeToken } from './lexer'
+
+class RuleImpl implements Rule {
+  id = -1
+  name = EMPTY
+  node = null
+  state = OPEN
+  n = Object.create(null)
+  d = -1
+  use = Object.create(null)
+  keep = Object.create(null)
+  bo = false
+  ao = false
+  bc = false
+  ac = false
+
+  os = 0
+  cs = 0
+
+  spec: RuleSpec
+  child: Rule
+  parent: Rule
+  prev: Rule
+  o0: Token
+  o1: Token
+  c0: Token
+  c1: Token
+
+  need = 0
+
+  constructor(spec: RuleSpec, ctx: Context, node?: any) {
+    this.id = ctx.uI++ // Rule ids are unique only to the parse run.
+    this.name = spec.name
+    this.spec = spec
+
+    this.child = ctx.NORULE
+    this.parent = ctx.NORULE
+    this.prev = ctx.NORULE
+
+    this.o0 = ctx.NOTOKEN
+    this.o1 = ctx.NOTOKEN
+    this.c0 = ctx.NOTOKEN
+    this.c1 = ctx.NOTOKEN
+
+    this.node = node
+    this.d = ctx.rsI
+    this.bo = null != spec.def.bo
+    this.ao = null != spec.def.ao
+    this.bc = null != spec.def.bc
+    this.ac = null != spec.def.ac
+  }
+
+  process(ctx: Context): Rule {
+    let rule = this.spec.process(this, ctx, this.state)
+    return rule
+  }
+
+  toString() {
+    return '[Rule ' + this.name + '~' + this.id + ']'
+  }
+}
+
+const makeRule = (...params: ConstructorParameters<typeof RuleImpl>) =>
+  new RuleImpl(...params)
+
+const makeNoRule = (ctx: Context) => makeRule(makeRuleSpec(ctx.cfg, {}), ctx)
+
+
+// Parse-alternate match (built from current tokens and AltSpec).
+class AltMatchImpl implements AltMatch {
+  p = EMPTY // Push rule (by name).
+  r = EMPTY // Replace rule (by name).
+  b = 0 // Move token position backward.
+  c?: AltCond // Custom alt match condition.
+  n?: Counters // increment named counters.
+  a?: AltAction // Match actions.
+  h?: AltModifier // Modify alternate match.
+  u?: Bag // Custom props to add to Rule.use.
+  k?: Bag // Custom props to add to Rule.keep and keep via push and replace.
+  g?: string[] // Named group tags (allows plugins to find alts).
+  e?: Token // Errored on this token.
+}
+
+const makeAltMatch = (...params: ConstructorParameters<typeof AltMatchImpl>) =>
+  new AltMatchImpl(...params)
+
+const PALT: AltMatch = makeAltMatch() // Only one alt object is created.
+const EMPTY_ALT = makeAltMatch()
+
+class RuleSpecImpl implements RuleSpec {
+  name = EMPTY // Set by Parser.rule
+  def = {
+    open: [] as AltSpec[],
+    close: [] as AltSpec[],
+    bo: [] as StateAction[],
+    bc: [] as StateAction[],
+    ao: [] as StateAction[],
+    ac: [] as StateAction[],
+  }
+  cfg: Config
+
+  // TODO: is def param used?
+  constructor(cfg: Config, def: any) {
+    this.cfg = cfg
+    this.def = Object.assign(this.def, def)
+
+    // Null Alt entries are allowed and ignored as a convenience.
+    this.def.open = (this.def.open || []).filter((alt: AltSpec) => null != alt)
+    this.def.close = (this.def.close || []).filter(
+      (alt: AltSpec) => null != alt
+    )
+
+    for (let alt of [...this.def.open, ...this.def.close]) {
+      normalt(alt)
+    }
+  }
+
+  // Convenience access to token Tins
+  tin<R extends string | Tin, T extends R extends Tin ? string : Tin>(
+    ref: R
+  ): T {
+    return tokenize(ref, this.cfg)
+  }
+
+  add(state: RuleState, a: AltSpec | AltSpec[], ops: AddAltOps): RuleSpec {
+    let inject = ops?.append ? 'push' : 'unshift'
+    let aa = ((isarr(a) ? a : [a]) as AltSpec[])
+      .filter((alt: AltSpec) => null != alt && 'object' === typeof alt)
+      .map((a) => normalt(a))
+    let altState = 'o' === state ? 'open' : 'close'
+    let alts: any = (this.def as any)[altState]
+    alts[inject](...aa)
+
+    if (ops) {
+      // Delete before move so indexes still make sense, using null to preserve index.
+      if (ops.delete) {
+        for (let i = 0; i < ops.delete.length; i++) {
+          let deleteI = (alts.length + ops.delete[i]) % alts.length
+          alts[deleteI] = null
+        }
+      }
+
+      if (ops.move) {
+        for (let i = 0; i < ops.move.length; i += 2) {
+          let fromI = (alts.length + ops.move[i]) % alts.length
+          let toI = (alts.length + ops.move[i + 1]) % alts.length
+          let alt = alts[fromI]
+          alts.splice(fromI, 1)
+          alts.splice(toI, 0, alt)
+        }
+      }
+
+      // Filter out any deletes.
+      ; (this.def as any)[altState] = alts.filter((a: AltSpec) => null != a)
+    }
+
+    filterRules(this, this.cfg)
+    return this
+  }
+
+  open(a: AltSpec | AltSpec[], flags?: any): RuleSpec {
+    return this.add('o', a, flags)
+  }
+
+  close(a: AltSpec | AltSpec[], flags?: any): RuleSpec {
+    return this.add('c', a, flags)
+  }
+
+  action(
+    append: boolean,
+    step: RuleStep,
+    state: RuleState,
+    action: StateAction
+  ): RuleSpec {
+    let actions = (this.def as any)[step + state]
+    if (append) {
+      actions.push(action)
+    } else {
+      actions.unshift(action)
+    }
+    return this
+  }
+
+  bo(append: StateAction | boolean, action?: StateAction): RuleSpec {
+    return this.action(
+      action ? !!append : true,
+      BEFORE,
+      OPEN,
+      action || (append as StateAction)
+    )
+  }
+
+  ao(append: StateAction | boolean, action?: StateAction): RuleSpec {
+    return this.action(
+      action ? !!append : true,
+      AFTER,
+      OPEN,
+      action || (append as StateAction)
+    )
+  }
+
+  bc(first: StateAction | boolean, second?: StateAction): RuleSpec {
+    return this.action(
+      second ? !!first : true,
+      BEFORE,
+      CLOSE,
+      second || (first as StateAction)
+    )
+  }
+
+  ac(first: StateAction | boolean, second?: StateAction): RuleSpec {
+    return this.action(
+      second ? !!first : true,
+      AFTER,
+      CLOSE,
+      second || (first as StateAction)
+    )
+  }
+
+  clear() {
+    this.def.open.length = 0
+    this.def.close.length = 0
+    this.def.bo.length = 0
+    this.def.ao.length = 0
+    this.def.bc.length = 0
+    this.def.ac.length = 0
+    return this
+  }
+
+  process(rule: Rule, ctx: Context, state: RuleState): Rule {
+    let why = EMPTY
+
+    let mI = 0
+    while (mI++ < rule.need) {
+      ctx.next(rule)
+    }
+
+    // Log rule here to ensure next tokens shown are correct.
+    ctx.log && log_rule(rule, ctx)
+
+    let is_open = state === 'o'
+    let next = is_open ? rule : ctx.NORULE
+
+    let def = this.def
+
+    // Match alternates for current state.
+    let alts = (is_open ? def.open : def.close) as NormAltSpec[]
+
+    // Handle "before" call.
+    let befores = is_open ? (rule.bo ? def.bo : null) : rule.bc ? def.bc : null
+    if (befores) {
+      let bout: Token | void = undefined
+      for (let bI = 0; bI < befores.length; bI++) {
+        bout = befores[bI].call(this, rule, ctx, next, bout)
+        if (bout?.isToken && bout?.err) {
+          return this.bad(bout, rule, ctx, { is_open })
+        }
+      }
+    }
+
+    // Attempt to match one of the alts.
+    // let alt: AltMatch = (bout && bout.alt) ? { ...EMPTY_ALT, ...bout.alt } :
+    let alt: AltMatch =
+      0 < alts.length ? parse_alts(is_open, alts, rule, ctx) : EMPTY_ALT
+
+    // Custom alt handler.
+    if (alt.h) {
+      alt = alt.h(rule, ctx, alt, next) || alt
+      why += 'H'
+    }
+
+    // Unconditional error.
+    if (alt.e) {
+      return this.bad(alt.e, rule, ctx, { is_open })
+    }
+
+    // Update counters.
+    if (alt.n) {
+      for (let cn in alt.n) {
+        rule.n[cn] =
+          // 0 reverts counter to 0.
+          0 === alt.n[cn]
+            ? 0
+            : // First seen, set to 0.
+            (null == rule.n[cn]
+              ? 0
+              : // Increment counter.
+              rule.n[cn]) + alt.n[cn]
+      }
+    }
+
+    // Set custom properties
+    if (alt.u) {
+      rule.use = Object.assign(rule.use, alt.u)
+    }
+    if (alt.k) {
+      rule.keep = Object.assign(rule.keep, alt.k)
+    }
+
+    // Action call.
+    if (alt.a) {
+      why += 'A'
+      let tout = alt.a(rule, ctx, alt)
+      if (tout && tout.isToken && tout.err) {
+        return this.bad(tout, rule, ctx, { is_open })
+      }
+    }
+
+    // Push a new rule onto the stack...
+    if (alt.p) {
+      ctx.rs[ctx.rsI++] = rule
+      let rulespec = ctx.rsm[alt.p]
+      if (rulespec) {
+        next = rule.child = makeRule(rulespec, ctx, rule.node)
+        next.parent = rule
+        next.n = { ...rule.n }
+        if (0 < Object.keys(rule.keep).length) {
+          next.keep = { ...rule.keep }
+        }
+        why += '@p:' + alt.p
+      } else
+        return this.bad(this.unknownRule(ctx.t0, alt.p), rule, ctx, { is_open })
+    }
+
+    // ...or replace with a new rule.
+    else if (alt.r) {
+      let rulespec = ctx.rsm[alt.r]
+      if (rulespec) {
+        next = makeRule(rulespec, ctx, rule.node)
+        next.parent = rule.parent
+        next.prev = rule
+        next.n = { ...rule.n }
+        if (0 < Object.keys(rule.keep).length) {
+          next.keep = { ...rule.keep }
+        }
+        why += '@r:' + alt.r
+      } else
+        return this.bad(this.unknownRule(ctx.t0, alt.r), rule, ctx, { is_open })
+    }
+
+    // Pop closed rule off stack.
+    else {
+      if (!is_open) {
+        next = ctx.rs[--ctx.rsI] || ctx.NORULE
+      }
+      why += 'Z'
+    }
+
+    // Handle "after" call.
+    let afters = is_open ? (rule.ao ? def.ao : null) : rule.ac ? def.ac : null
+    if (afters) {
+      let aout: Token | void = undefined
+      // TODO: needed? let aout = after && after.call(this, rule, ctx, alt, next)
+      for (let aI = 0; aI < afters.length; aI++) {
+        // aout = afters[aI].call(this, rule, ctx, next, aout)
+        aout = afters[aI](rule, ctx, next, aout)
+        if (aout?.isToken && aout?.err) {
+          return this.bad(aout, rule, ctx, { is_open })
+        }
+      }
+    }
+
+    next.why = why
+
+    ctx.log && log_node(rule, ctx, next)
+
+    // Must be last as state change is for next process call.
+    if (OPEN === rule.state) {
+      rule.state = CLOSE
+    }
+
+    // Lex next tokens (up to backtrack).
+    next.need = rule[is_open ? 'os' : 'cs'] - (alt.b || 0)
+
+    return next
+  }
+
+
+  bad(tkn: Token, rule: Rule, ctx: Context, parse: { is_open: boolean }): Rule {
+    throw new JsonicError(
+      tkn.err || S.unexpected,
+      {
+        ...tkn.use,
+        state: parse.is_open ? S.open : S.close,
+      },
+      tkn,
+      rule,
+      ctx
+    )
+  }
+
+  unknownRule(tkn: Token, name: string): Token {
+    tkn.err = 'unknown_rule'
+    tkn.use = tkn.use || {}
+    tkn.use.rulename = name
+    return tkn
+  }
+}
+
+
+const makeRuleSpec = (...params: ConstructorParameters<typeof RuleSpecImpl>) =>
+  new RuleSpecImpl(...params)
+
+
+// First match wins.
+// NOTE: input AltSpecs are used to build the Alt output.
+function parse_alts(
+  is_open: boolean,
+  alts: NormAltSpec[],
+  rule: Rule,
+  ctx: Context
+): AltMatch {
+  let out = PALT
+  out.b = 0 // Backtrack n tokens.
+  out.p = EMPTY // Push named rule onto stack.
+  out.r = EMPTY // Replace current rule with named rule.
+  out.n = undefined // Increment named counters.
+  out.h = undefined // Custom handler function.
+  out.a = undefined // Rule action.
+  out.u = undefined // Custom rule properties.
+  out.k = undefined // Custom rule properties (propagated).
+  out.e = undefined // Error token.
+
+  let alt: NormAltSpec | null = null
+  let altI = 0
+  let t = ctx.cfg.t
+  let cond: boolean = true
+  let bitAA = 1 << (t.AA - 1)
+
+  // TODO: replace with lookup map
+  let len = alts.length
+  for (altI = 0; altI < len; altI++) {
+    alt = alts[altI] as NormAltSpec
+
+    let tin0 = ctx.t0.tin
+    let has0 = false
+    let has1 = false
+
+    cond = true
+
+    if (alt.S0) {
+      has0 = true
+      cond = !!(alt.S0[(tin0 / 31) | 0] & ((1 << ((tin0 % 31) - 1)) | bitAA))
+
+      if (cond) {
+        has1 = null != alt.S1
+
+        if (alt.S1) {
+          has1 = true
+          let tin1 = ctx.t1.tin
+          cond = !!(alt.S1[(tin1 / 31) | 0] & ((1 << ((tin1 % 31) - 1)) | bitAA))
+        }
+      }
+    }
+
+    if (is_open) {
+      rule.o0 = has0 ? ctx.t0 : ctx.NOTOKEN
+      rule.o1 = has1 ? ctx.t1 : ctx.NOTOKEN
+      rule.os = (has0 ? 1 : 0) + (has1 ? 1 : 0)
+    } else {
+      rule.c0 = has0 ? ctx.t0 : ctx.NOTOKEN
+      rule.c1 = has1 ? ctx.t1 : ctx.NOTOKEN
+      rule.cs = (has0 ? 1 : 0) + (has1 ? 1 : 0)
+    }
+
+    // Optional custom condition
+    if (cond && alt.c) {
+      cond = cond && alt.c(rule, ctx, out)
+    }
+
+    if (cond) {
+      break
+    } else {
+      alt = null
+    }
+  }
+
+  if (!cond && t.ZZ !== ctx.t0.tin) {
+    out.e = ctx.t0
+  }
+
+  if (alt) {
+    out.n = null != alt.n ? alt.n : out.n
+    out.h = null != alt.h ? alt.h : out.h
+    out.a = null != alt.a ? alt.a : out.a
+    out.u = null != alt.u ? alt.u : out.u
+    out.k = null != alt.k ? alt.k : out.k
+    out.g = null != alt.g ? alt.g : out.g
+
+    out.e = (alt.e && alt.e(rule, ctx, out)) || undefined
+
+    out.p =
+      null != alt.p && false !== alt.p
+        ? 'string' === typeof alt.p
+          ? alt.p
+          : alt.p(rule, ctx, out)
+        : out.p
+
+    out.r =
+      null != alt.r && false !== alt.r
+        ? 'string' === typeof alt.r
+          ? alt.r
+          : alt.r(rule, ctx, out)
+        : out.r
+
+    out.b =
+      null != alt.b && false !== alt.b
+        ? 'number' === typeof alt.b
+          ? alt.b
+          : alt.b(rule, ctx, out)
+        : out.b
+  }
+
+  let match = altI < alts.length
+
+  // TODO: move to debug plugin
+  ctx.log && log_parse(rule, ctx, match, cond, altI, alt, out)
+
+  return out
+}
+
+
+
+export { makeRule, makeNoRule, makeRuleSpec }
