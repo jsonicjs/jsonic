@@ -65,7 +65,7 @@ async function run(argv, console) {
     }
     let options = handle_props(args.options);
     let meta = handle_props(args.meta);
-    // plugins = { ...plugins, ...handle_plugins(args.plugins) }
+    plugins = { ...plugins, ...handle_plugins(args.plugins) };
     options.debug = options.debug || {};
     options.debug.get_console = () => console;
     let jsonic = jsonic_1.Jsonic.make(options);

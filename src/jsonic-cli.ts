@@ -59,7 +59,7 @@ export async function run(argv: string[], console: Console) {
 
   let options: any = handle_props(args.options)
   let meta: any = handle_props(args.meta)
-  // plugins = { ...plugins, ...handle_plugins(args.plugins) }
+  plugins = { ...plugins, ...handle_plugins(args.plugins) }
 
   options.debug = options.debug || {}
   options.debug.get_console = () => console
