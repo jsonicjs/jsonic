@@ -480,5 +480,6 @@ export interface Parser {
     rule(name?: string, define?: RuleDefiner | null): RuleSpec | RuleSpecMap | undefined;
     start(src: string, jsonic: any, meta?: any, parent_ctx?: any): any;
     clone(options: Options, config: Config): Parser;
+    norm(): void;
 }
 export {};

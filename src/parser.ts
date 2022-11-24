@@ -28,7 +28,9 @@ import {
   srcfmt,
   tokenize,
   log_stack,
+  values,
 } from './utility'
+
 
 import { makeNoToken, makeLex, makePoint, makeToken } from './lexer'
 
@@ -69,11 +71,8 @@ class ParserImpl implements Parser {
       rs = this.rsm[name] = define(this.rsm[name], this) || this.rsm[name]
       rs.name = name
 
-      // for (let alt of [...rs.def.open, ...rs.def.close]) {
-      //   normalt(alt)
-      // }
-
-      // return undefined
+      // Ensures jsonic.rule can chain
+      return undefined
     }
 
     return rs
@@ -225,8 +224,15 @@ class ParserImpl implements Parser {
       {} as any
     )
 
+    parser.norm()
+
     return parser
   }
+
+  norm() {
+    values(this.rsm).map((rs: RuleSpec) => rs.norm())
+  }
+
 }
 
 const makeParser = (...params: ConstructorParameters<typeof ParserImpl>) =>

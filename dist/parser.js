@@ -31,10 +31,8 @@ class ParserImpl {
             rs = this.rsm[name] = this.rsm[name] || (0, rules_1.makeRuleSpec)(this.cfg, {});
             rs = this.rsm[name] = define(this.rsm[name], this) || this.rsm[name];
             rs.name = name;
-            // for (let alt of [...rs.def.open, ...rs.def.close]) {
-            //   normalt(alt)
-            // }
-            // return undefined
+            // Ensures jsonic.rule can chain
+            return undefined;
         }
         return rs;
     }
@@ -141,7 +139,11 @@ class ParserImpl {
         let parser = new ParserImpl(options, config);
         // Inherit rules from parent, filtered by config.rule
         parser.rsm = Object.keys(this.rsm).reduce((a, rn) => ((a[rn] = (0, utility_1.filterRules)(this.rsm[rn], this.cfg)), a), {});
+        parser.norm();
         return parser;
+    }
+    norm() {
+        (0, utility_1.values)(this.rsm).map((rs) => rs.norm());
     }
 }
 const makeParser = (...params) => new ParserImpl(...params);

@@ -51,10 +51,6 @@ describe('custom', function () {
 
 
   it('tokenset-idenkey', () => {
-    // TODO: fix
-    return;
-    
-
     let days = {
       monday: 'mon',
       tuesday: 'tue',
@@ -92,8 +88,8 @@ describe('custom', function () {
           },
           tokenSet: {
             // '#ID' is created by tokenize automatically
-            key: ['#ST', '#ID', null, null],
-            val: [,,,,'#ID']
+            KEY: ['#ST', '#ID', null, null],
+            VAL: [,,,,'#ID']
           }
     })
 
@@ -106,8 +102,8 @@ describe('custom', function () {
       return rs
     })
     
-    console.log(j.debug.describe())
-    console.log(j.internal().config)
+    // console.log(j.debug.describe())
+    // console.log(j.internal().config)
 
     // console.log(j.internal().config.lex)
     
@@ -173,6 +169,7 @@ describe('custom', function () {
     expect(j('a:1')).toEqual(undefined)
   })
 
+  
   it('parser-empty-fixed', () => {
     expect(Jsonic('a:1')).toEqual({ a: 1 })
 

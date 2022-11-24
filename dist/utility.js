@@ -150,12 +150,24 @@ function configure(jsonic, incfg, opts) {
     // Lookup tin directly from matcher
     omap(cfg.match.token, ([tin, matcher]) => [tin, (matcher.tin$ = +tin, matcher)]);
     // Convert tokenSet tokens names to tins
-    cfg.tokenSet = opts.tokenSet
+    const tokenSet = opts.tokenSet
         ? Object.keys(opts.tokenSet).reduce((a, n) => ((a[n] = opts.tokenSet[n]
             .filter((x) => null != x)
             .map((n) => t(n))),
-            a), { ...cfg.tokenSet })
+            a), {})
         : {};
+    cfg.tokenSet = (cfg.tokenSet || {});
+    entries(tokenSet).map((entry) => {
+        let name = entry[0];
+        let tinset = entry[1];
+        if (cfg.tokenSet[name]) {
+            cfg.tokenSet[name].length = 0;
+            cfg.tokenSet[name].push(...tinset);
+        }
+        else {
+            cfg.tokenSet[name] = tinset;
+        }
+    });
     // Lookup table for token tin in given tokenSet
     cfg.tokenSetTins = entries(cfg.tokenSet).reduce((a, en) => (a[en[0]] = (a[en[0]] || {}),
         en[1].map((tin) => a[en[0]][tin] = true),

@@ -196,7 +196,7 @@ function configure(
 
 
   // Convert tokenSet tokens names to tins
-  cfg.tokenSet = opts.tokenSet
+  const tokenSet = opts.tokenSet
     ? Object.keys(opts.tokenSet).reduce(
       (a: any, n: string) => (
         (a[n] = (opts.tokenSet as any)[n]
@@ -204,9 +204,24 @@ function configure(
           .map((n: string) => t(n))),
         a
       ),
-      { ...cfg.tokenSet }
+      {}
     )
     : {}
+
+  cfg.tokenSet = (cfg.tokenSet || {})
+  entries(tokenSet).map((entry: any[]) => {
+    let name = entry[0]
+    let tinset = entry[1]
+
+    if (cfg.tokenSet[name]) {
+      cfg.tokenSet[name].length = 0
+      cfg.tokenSet[name].push(...tinset)
+    }
+    else {
+      cfg.tokenSet[name] = tinset
+    }
+  })
+
 
   // Lookup table for token tin in given tokenSet
   cfg.tokenSetTins = entries(cfg.tokenSet).reduce(

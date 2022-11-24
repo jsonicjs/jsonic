@@ -696,4 +696,6 @@ export interface Parser {
   start(src: string, jsonic: any, meta?: any, parent_ctx?: any): any
 
   clone(options: Options, config: Config): Parser
+
+  norm(): void
 }
