@@ -65,15 +65,14 @@ async function run(argv, console) {
     }
     let options = handle_props(args.options);
     let meta = handle_props(args.meta);
-    // let plugins: any = handle_plugins(args.plugins)
-    plugins = { ...plugins, ...handle_plugins(args.plugins) };
+    // plugins = { ...plugins, ...handle_plugins(args.plugins) }
     options.debug = options.debug || {};
     options.debug.get_console = () => console;
     let jsonic = jsonic_1.Jsonic.make(options);
     for (let pn in plugins) {
         jsonic.use(plugins[pn]);
     }
-    if (plugins.debug) {
+    if (null != plugins.debug) {
         console.log(jsonic.describe() + '\n=== PARSE ===');
     }
     let data = { val: null };

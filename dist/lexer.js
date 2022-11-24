@@ -97,7 +97,6 @@ const makeNoToken = () => makeToken('', -1, undefined, types_1.EMPTY, makePoint(
 exports.makeNoToken = makeNoToken;
 let makeFixedMatcher = (cfg, _opts) => {
     let fixed = (0, utility_1.regexp)(null, '^(', cfg.rePart.fixed, ')');
-    // console.log(fixed)
     return function fixedMatcher(lex) {
         let mcfg = cfg.fixed;
         if (!mcfg.lex)
@@ -124,7 +123,6 @@ let makeFixedMatcher = (cfg, _opts) => {
 exports.makeFixedMatcher = makeFixedMatcher;
 let makeMatchMatcher = (cfg, _opts) => {
     let matchers = (0, utility_1.values)(cfg.match.token);
-    // console.log('matchers', matchers)
     // Don't add a matcher if there's nothing to do.
     if (0 === matchers.length) {
         return null;
@@ -136,10 +134,8 @@ let makeMatchMatcher = (cfg, _opts) => {
         let pnt = lex.pnt;
         let fwd = lex.src.substring(pnt.sI);
         for (let matcher of matchers) {
-            // console.log('MATCHER', matcher, matcher instanceof RegExp)
             if (matcher instanceof RegExp) {
                 let m = fwd.match(matcher);
-                // console.log('MATCH', m, matcher)
                 if (m) {
                     let msrc = m[0];
                     let mlen = msrc.length;
@@ -382,7 +378,6 @@ let makeNumberMatcher = (cfg, _opts) => {
                     }
                 }
             }
-            // console.log('WWW', included, out, tsrc)
             if (included) {
                 out = subMatchFixed(lex, out, tsrc);
             }
@@ -655,7 +650,6 @@ class LexImpl {
         let pnt = this.pnt;
         let sI = pnt.sI;
         let match;
-        // console.log('\nNEXT PNT', pnt, this.src.substring(pnt.sI))
         if (pnt.end) {
             tkn = pnt.end;
         }
@@ -673,7 +667,6 @@ class LexImpl {
                     break;
                 }
             }
-            // console.log('MATCH', match, tkn)
             tkn =
                 tkn ||
                     this.token('#BD', undefined, this.src[pnt.sI], pnt, undefined, 'unexpected');
@@ -686,7 +679,6 @@ class LexImpl {
             pnt.rI + ':' + pnt.cI, // Row and column.
             (match === null || match === void 0 ? void 0 : match.name) || 'none', this.ctx.F(this.src.substring(sI, sI + 16)));
         }
-        // console.log('NEXT TKN', tkn)
         if (this.ctx.sub.lex) {
             this.ctx.sub.lex.map((sub) => sub(tkn, rule, this.ctx));
         }

@@ -4,6 +4,7 @@
  *  Entry point and API.
  */
 
+// TODO: define jsonic.tokenSet for access to tokenSets, same as jsonic.token 
 // TODO .rule should prepend by default - far more common
 // TODO: Jsonic.options type should not have optionals as definitely defined:
 //   e.g jsonic.options.lex.match is defined!
@@ -228,7 +229,7 @@ function make(param_options?: Bag | string, parent?: Jsonic): Jsonic {
   }
 
   // This lets you access options as direct properties,
-  // and set them as a funtion call.
+  // and set them as a function call.
   let options: any = (change_options?: Bag) => {
     if (null != change_options && S.object === typeof change_options) {
       deep(merged_options, change_options)

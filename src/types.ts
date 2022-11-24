@@ -48,18 +48,17 @@ export interface JsonicAPI {
   empty: (options?: Options) => Jsonic
 
   // Token get and set for plugins. Reference by either name or Tin.
-  token: { [ref: string]: Tin } & { [ref: number]: string } & (<
-    A extends string | Tin
-  >(
-    ref: A
-  ) => A extends string ? Tin : string)
+  token: TokenMap & TinMap &
+  (<A extends string | Tin>(ref: A) => A extends string ? Tin : string)
+
+  // TokenSet get and set for plugins. Reference by either name or Tin.
+  // NOTE: name->Tin[], but Tin->name (of containing set)
+  // tokenSet: TokenSetMap & TinSetMap &
+  // (<A extends string | Tin>(ref: A) => A extends string ? Tin[] : string)
 
   // Fixed token src get and set for plugins. Reference by either src or Tin.
-  fixed: { [ref: string]: Tin } & { [ref: number]: string } & (<
-    A extends string | Tin
-  >(
-    ref: A
-  ) => undefined | (A extends string ? Tin : string))
+  fixed: TokenMap & TinMap &
+  (<A extends string | Tin>(ref: A) => undefined | (A extends string ? Tin : string))
 
   // Unique identifier string for each Jsonic instance.
   id: string
@@ -234,13 +233,13 @@ export interface RuleSpec {
 
   process(rule: Rule, ctx: Context, state: RuleState): Rule
 
-  // First alternate to match token stream wins.
-  parse_alts(
-    is_open: boolean,
-    alts: NormAltSpec[],
-    rule: Rule,
-    ctx: Context
-  ): AltMatch
+  // // First alternate to match token stream wins.
+  // parse_alts(
+  //   is_open: boolean,
+  //   alts: NormAltSpec[],
+  //   rule: Rule,
+  //   ctx: Context
+  // ): AltMatch
 
   bad(tkn: Token, rule: Rule, ctx: Context, parse: { is_open: boolean }): Rule
 }
@@ -593,8 +592,17 @@ export type Counters = { [key: string]: number }
 // Unique token identification number (aka "tin").
 export type Tin = number
 
-// Map token name to Token index (Tin).
+// Map token name ('#' prefix removed) to Token index (Tin).
 export type TokenMap = { [name: string]: Tin }
+
+// Map token name ('#' prefix removed) to Token index (Tin) set.
+export type TokenSetMap = { [name: string]: Tin[] }
+
+// Map Token index (Tin) to token name ('#' prefix removed).
+export type TinMap = { [ref: number]: string }
+
+// Map Token index (Tin) to token set name ('#' prefix removed).
+export type TinSetMap = { [ref: number]: string }
 
 // Map token name to matcher.
 export type MatchMap = { [name: string]: RegExp | LexMatcher }

@@ -90,7 +90,7 @@ function make(param_options, parent) {
         return src;
     };
     // This lets you access options as direct properties,
-    // and set them as a funtion call.
+    // and set them as a function call.
     let options = (change_options) => {
         if (null != change_options && utility_1.S.object === typeof change_options) {
             (0, utility_1.deep)(merged_options, change_options);

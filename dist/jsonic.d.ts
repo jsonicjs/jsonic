@@ -33,7 +33,7 @@ declare const util: {
         [key: string]: T_1;
     } | null | undefined) => [string, T_1][];
 };
-declare type Jsonic = JsonicParse & // A function that parses.
+type Jsonic = JsonicParse & // A function that parses.
 JsonicAPI & {
     [prop: string]: any;
 };

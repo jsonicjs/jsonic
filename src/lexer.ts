@@ -162,8 +162,6 @@ const makeNoToken = () => makeToken('', -1, undefined, EMPTY, makePoint(-1))
 let makeFixedMatcher: MakeLexMatcher = (cfg: Config, _opts: Options) => {
   let fixed = regexp(null, '^(', cfg.rePart.fixed, ')')
 
-  // console.log(fixed)
-
   return function fixedMatcher(lex: Lex) {
     let mcfg = cfg.fixed
     if (!mcfg.lex) return undefined
@@ -196,8 +194,6 @@ let makeFixedMatcher: MakeLexMatcher = (cfg: Config, _opts: Options) => {
 let makeMatchMatcher: MakeLexMatcher = (cfg: Config, _opts: Options) => {
   let matchers = values(cfg.match.token)
 
-  // console.log('matchers', matchers)
-
   // Don't add a matcher if there's nothing to do.
   if (0 === matchers.length) {
     return null
@@ -211,12 +207,9 @@ let makeMatchMatcher: MakeLexMatcher = (cfg: Config, _opts: Options) => {
     let fwd = lex.src.substring(pnt.sI)
 
     for (let matcher of matchers) {
-      // console.log('MATCHER', matcher, matcher instanceof RegExp)
 
       if (matcher instanceof RegExp) {
         let m = fwd.match(matcher)
-
-        // console.log('MATCH', m, matcher)
 
         if (m) {
           let msrc = m[0]
@@ -529,8 +522,6 @@ let makeNumberMatcher: MakeLexMatcher = (cfg: Config, _opts: Options) => {
           }
         }
       }
-
-      // console.log('WWW', included, out, tsrc)
 
       if (included) {
         out = subMatchFixed(lex, out, tsrc)
@@ -877,8 +868,6 @@ class LexImpl implements Lex {
     let sI = pnt.sI
     let match
 
-    // console.log('\nNEXT PNT', pnt, this.src.substring(pnt.sI))
-
     if (pnt.end) {
       tkn = pnt.end
     } else if (0 < pnt.token.length) {
@@ -894,8 +883,6 @@ class LexImpl implements Lex {
           break
         }
       }
-
-      // console.log('MATCH', match, tkn)
 
       tkn =
         tkn ||
@@ -923,8 +910,6 @@ class LexImpl implements Lex {
         this.ctx.F(this.src.substring(sI, sI + 16))
       )
     }
-
-    // console.log('NEXT TKN', tkn)
 
     if (this.ctx.sub.lex) {
       this.ctx.sub.lex.map((sub) => sub(tkn as Token, rule, this.ctx))

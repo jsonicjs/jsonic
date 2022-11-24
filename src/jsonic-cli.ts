@@ -59,8 +59,7 @@ export async function run(argv: string[], console: Console) {
 
   let options: any = handle_props(args.options)
   let meta: any = handle_props(args.meta)
-  // let plugins: any = handle_plugins(args.plugins)
-  plugins = { ...plugins, ...handle_plugins(args.plugins) }
+  // plugins = { ...plugins, ...handle_plugins(args.plugins) }
 
   options.debug = options.debug || {}
   options.debug.get_console = () => console
@@ -71,7 +70,7 @@ export async function run(argv: string[], console: Console) {
     jsonic.use(plugins[pn])
   }
 
-  if (plugins.debug) {
+  if (null != plugins.debug) {
     console.log(jsonic.describe() + '\n=== PARSE ===')
   }
 
@@ -100,8 +99,8 @@ export async function run(argv: string[], console: Console) {
   replacer = Array.isArray(replacer)
     ? replacer
     : null == replacer
-    ? null
-    : [replacer]
+      ? null
+      : [replacer]
 
   let json = JSON.stringify(data.val, replacer, space)
 
