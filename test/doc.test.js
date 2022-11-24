@@ -24,7 +24,7 @@ const {
   make,
 } = require('..')
 
-describe('docs', function () {
+describe('doc', function () {
   it('method-jsonic', () => {
     let earth = Jsonic('name: Terra, moons: [{name: Luna}]')
     expect(earth).toEqual({
@@ -133,6 +133,7 @@ describe('docs', function () {
     expect(jsonic.bar()).toEqual(2)
   })
 
+
   it('method-rule', () => {
     let concat = Jsonic.make()
     expect(Object.keys(concat.rule())).toEqual([
@@ -147,11 +148,11 @@ describe('docs', function () {
 
     let ST = concat.token.ST
     concat.rule('val', (rulespec) => {
-      rulespec.def.open.unshift({
+      //rulespec.def.open.unshift({
+      rulespec.open([{
         s: [ST, ST],
-        // a:(rule,ctx)=>rule.node = ctx.t0.val + ctx.t1.val
         a: (rule, ctx) => (rule.node = rule.o0.val + rule.o1.val),
-      })
+      }])
     })
 
     expect(concat('"a" "b"', { xlog: -1 })).toEqual('ab')
@@ -167,12 +168,13 @@ describe('docs', function () {
     concat.rule('hundred', (rs) => rs.ao((rule) => (rule.node = 100)))
 
     concat.rule('val', (rulespec) => {
-      rulespec.def.open.unshift({ s: [HH], p: 'hundred' })
+      rulespec.open([{ s: [HH], p: 'hundred' }])
     })
 
     expect(concat('{x:1, y:%}', { xlog: -1 })).toEqual({ x: 1, y: 100 })
   })
 
+  
   it('method-lex', () => {
     let tens = Jsonic.make()
 

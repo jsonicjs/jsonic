@@ -1,14 +1,14 @@
 "use strict";
 /* Copyright (c) 2013-2022 Richard Rodger, MIT License */
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.Parser = exports.makeRuleSpec = exports.makeRule = void 0;
+exports.makeParser = exports.makeRuleSpec = exports.makeRule = void 0;
 const types_1 = require("./types");
 const utility_1 = require("./utility");
 const lexer_1 = require("./lexer");
 const rules_1 = require("./rules");
 Object.defineProperty(exports, "makeRule", { enumerable: true, get: function () { return rules_1.makeRule; } });
 Object.defineProperty(exports, "makeRuleSpec", { enumerable: true, get: function () { return rules_1.makeRuleSpec; } });
-class Parser {
+class ParserImpl {
     constructor(options, cfg) {
         this.rsm = {};
         this.options = options;
@@ -29,12 +29,12 @@ class Parser {
         // Else add or redefine a rule by name.
         else if (undefined !== define) {
             rs = this.rsm[name] = this.rsm[name] || (0, rules_1.makeRuleSpec)(this.cfg, {});
-            rs = this.rsm[name] = define(this.rsm[name], this.rsm) || this.rsm[name];
+            rs = this.rsm[name] = define(this.rsm[name], this) || this.rsm[name];
             rs.name = name;
-            for (let alt of [...rs.def.open, ...rs.def.close]) {
-                (0, utility_1.normalt)(alt);
-            }
-            return undefined;
+            // for (let alt of [...rs.def.open, ...rs.def.close]) {
+            //   normalt(alt)
+            // }
+            // return undefined
         }
         return rs;
     }
@@ -95,7 +95,7 @@ class Parser {
         // virtual (like map, list), and double for safety margin (allows
         // lots of backtracking), and apply a multipler option as a get-out-of-jail.
         let maxr = 2 * (0, utility_1.keys)(this.rsm).length * lex.src.length * 2 * ctx.cfg.rule.maxmul;
-        let ignore = ctx.cfg.tokenSetTins.ignore;
+        let IGNORE = ctx.cfg.tokenSetTins.IGNORE;
         // Lex next token.
         function next(r) {
             ctx.v2 = ctx.v1;
@@ -106,7 +106,7 @@ class Parser {
             do {
                 t1 = lex(r);
                 ctx.tC++;
-            } while (ignore[t1.tin] && (i0 = t1));
+            } while (IGNORE[t1.tin] && (i0 = t1));
             t1.ignored = i0;
             ctx.t1 = t1;
             return ctx.t0;
@@ -138,11 +138,12 @@ class Parser {
         return result;
     }
     clone(options, config) {
-        let parser = new Parser(options, config);
+        let parser = new ParserImpl(options, config);
         // Inherit rules from parent, filtered by config.rule
         parser.rsm = Object.keys(this.rsm).reduce((a, rn) => ((a[rn] = (0, utility_1.filterRules)(this.rsm[rn], this.cfg)), a), {});
         return parser;
     }
 }
-exports.Parser = Parser;
+const makeParser = (...params) => new ParserImpl(...params);
+exports.makeParser = makeParser;
 //# sourceMappingURL=parser.js.map

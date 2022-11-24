@@ -27,13 +27,13 @@ describe('custom', function () {
     let TRIPLE = j.token['#TRIPLE']
 
     j.rule('val', (rs) => {
-      rs.def.open.unshift(
+      rs.open([
         { s: [NOT], a: (r) => (r.node = '<not>') },
         { s: [IMPLIES], a: (r) => (r.node = '<implies>') },
         { s: [DEFINE], a: (r) => (r.node = '<define>') },
         { s: [MARK], a: (r) => (r.node = '<mark>') },
         { s: [TRIPLE], a: (r) => (r.node = '<triple>') }
-      )
+      ])
     })
     let out = j('a:~,b:1,c:~,d:=>,e::-,f:##,g:///,h:a,i:# foo')
     expect(out).toEqual({
@@ -536,18 +536,18 @@ describe('custom', function () {
       let TX = j.token.TX
 
       j.rule('val', (rs) => {
-        rs.def.open.unshift({
+        rs.open([{
           s: [FS, TX],
           a: (r) => (r.o0.val = '@' + r.o1.val),
-        })
+        }])
       })
 
       j.rule('elem', (rs) => {
-        rs.def.close.unshift({
+        rs.close([{
           s: [FS, TX],
           r: () => 'elem',
           b: 2,
-        })
+        }])
       })
 
       expect(j('[' + c + 'x' + c + 'y]')).toEqual(['@x', '@y'])

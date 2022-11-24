@@ -1,7 +1,7 @@
 "use strict";
 /* Copyright (c) 2013-2022 Richard Rodger, MIT License */
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.EMPTY = exports.AFTER = exports.BEFORE = exports.CLOSE = exports.OPEN = exports.makeTextMatcher = exports.makeNumberMatcher = exports.makeCommentMatcher = exports.makeStringMatcher = exports.makeLineMatcher = exports.makeSpaceMatcher = exports.makeFixedMatcher = exports.makeLex = exports.makeRuleSpec = exports.makeRule = exports.makePoint = exports.makeToken = exports.make = exports.util = exports.Debug = exports.Parser = exports.JsonicError = exports.Jsonic = void 0;
+exports.EMPTY = exports.AFTER = exports.BEFORE = exports.CLOSE = exports.OPEN = exports.makeTextMatcher = exports.makeNumberMatcher = exports.makeCommentMatcher = exports.makeStringMatcher = exports.makeLineMatcher = exports.makeSpaceMatcher = exports.makeFixedMatcher = exports.makeParser = exports.makeLex = exports.makeRuleSpec = exports.makeRule = exports.makePoint = exports.makeToken = exports.make = exports.util = exports.Debug = exports.JsonicError = exports.Jsonic = void 0;
 const types_1 = require("./types");
 Object.defineProperty(exports, "OPEN", { enumerable: true, get: function () { return types_1.OPEN; } });
 Object.defineProperty(exports, "CLOSE", { enumerable: true, get: function () { return types_1.CLOSE; } });
@@ -25,7 +25,7 @@ Object.defineProperty(exports, "makeTextMatcher", { enumerable: true, get: funct
 const parser_1 = require("./parser");
 Object.defineProperty(exports, "makeRule", { enumerable: true, get: function () { return parser_1.makeRule; } });
 Object.defineProperty(exports, "makeRuleSpec", { enumerable: true, get: function () { return parser_1.makeRuleSpec; } });
-Object.defineProperty(exports, "Parser", { enumerable: true, get: function () { return parser_1.Parser; } });
+Object.defineProperty(exports, "makeParser", { enumerable: true, get: function () { return parser_1.makeParser; } });
 const grammar_1 = require("./grammar");
 const debug_1 = require("./debug");
 Object.defineProperty(exports, "Debug", { enumerable: true, get: function () { return debug_1.Debug; } });
@@ -58,12 +58,17 @@ const util = {
 };
 exports.util = util;
 function make(param_options, parent) {
-    if ('json' === param_options) {
+    let injectFullAPI = true;
+    if ('jsonic' === param_options) {
+        injectFullAPI = false;
+    }
+    else if ('json' === param_options) {
         return (0, grammar_1.makeJSON)(root);
     }
+    param_options = 'string' === typeof param_options ? {} : param_options;
     let internal = {
-        parser: {},
-        config: {},
+        parser: null,
+        config: null,
         plugins: [],
         sub: {
             lex: undefined,
@@ -103,6 +108,7 @@ function make(param_options, parent) {
     // Define the API
     let api = {
         token: ((ref) => (0, utility_1.tokenize)(ref, internal.config, jsonic)),
+        tokenSet: ((ref) => (0, utility_1.findTokenSet)(ref, internal.config)),
         fixed: ((ref) => internal.config.fixed.ref[ref]),
         options: (0, utility_1.deep)(options, merged_options),
         config: () => (0, utility_1.deep)(internal.config),
@@ -164,8 +170,19 @@ function make(param_options, parent) {
     };
     // Has to be done indirectly as we are in a fuction named `make`.
     (0, utility_1.defprop)(api.make, utility_1.S.name, { value: utility_1.S.make });
-    // Add API methods to the core utility function.
-    (0, utility_1.assign)(jsonic, api);
+    if (injectFullAPI) {
+        // Add API methods to the core utility function.
+        (0, utility_1.assign)(jsonic, api);
+    }
+    else {
+        (0, utility_1.assign)(jsonic, {
+            empty: api.empty,
+            parse: api.parse,
+            sub: api.sub,
+            id: api.id,
+            toString: api.toString,
+        });
+    }
     // Hide internals where you can still find them.
     (0, utility_1.defprop)(jsonic, 'internal', { value: () => internal });
     if (parent) {
@@ -184,33 +201,30 @@ function make(param_options, parent) {
         internal.parser = parent_internal.parser.clone(merged_options, internal.config);
     }
     else {
-        internal.config = (0, utility_1.configure)(jsonic, undefined, merged_options);
+        let rootWithAPI = { ...jsonic, ...api };
+        internal.config = (0, utility_1.configure)(rootWithAPI, undefined, merged_options);
         internal.plugins = [];
-        internal.parser = new parser_1.Parser(merged_options, internal.config);
+        internal.parser = (0, parser_1.makeParser)(merged_options, internal.config);
+        // console.log('MP', internal.parser)
         if (false !== merged_options.grammar$) {
-            (0, grammar_1.grammar)(jsonic);
+            (0, grammar_1.grammar)(rootWithAPI);
         }
     }
     return jsonic;
 }
 exports.make = make;
 let root = undefined;
-let Jsonic = (root = make());
-exports.Jsonic = Jsonic;
-// The global root Jsonic instance cannot be modified.
+// The global root Jsonic instance parsing rules cannot be modified.
 // use Jsonic.make() to create a modifiable instance.
-delete root.options;
-delete root.use;
-delete root.rule;
-delete root.lex;
-delete root.token;
-delete root.fixed;
+let Jsonic = (root = make('jsonic'));
+exports.Jsonic = Jsonic;
 // Provide deconstruction export names
 root.Jsonic = root;
 root.JsonicError = utility_1.JsonicError;
-root.Parser = parser_1.Parser;
+// root.Parser = Parser
 root.Debug = debug_1.Debug;
 root.makeLex = lexer_1.makeLex;
+root.makeParser = parser_1.makeParser;
 root.makeToken = lexer_1.makeToken;
 root.makePoint = lexer_1.makePoint;
 root.makeRule = parser_1.makeRule;

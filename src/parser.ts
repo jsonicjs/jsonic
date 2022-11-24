@@ -5,30 +5,17 @@
  */
 
 import type {
-  RuleState,
-  RuleStep,
-  StateAction,
-  Tin,
-  Token,
   Config,
   Context,
   Rule,
   RuleSpec,
-  NormAltSpec,
-  AltCond,
-  AltModifier,
-  AltAction,
-  AltMatch,
-  AddAltOps,
   RuleSpecMap,
   RuleDefiner,
-  AltSpec,
+  Parser,
   Options,
-  Counters,
-  Bag,
 } from './types'
 
-import { OPEN, CLOSE, BEFORE, AFTER, EMPTY } from './types'
+import { EMPTY } from './types'
 
 import {
   JsonicError,
@@ -36,15 +23,10 @@ import {
   badlex,
   deep,
   filterRules,
-  isarr,
   keys,
   makelog,
   srcfmt,
   tokenize,
-  normalt,
-  log_rule,
-  log_node,
-  log_parse,
   log_stack,
 } from './utility'
 
@@ -53,7 +35,7 @@ import { makeNoToken, makeLex, makePoint, makeToken } from './lexer'
 import { makeRule, makeNoRule, makeRuleSpec } from './rules'
 
 
-class Parser {
+class ParserImpl implements Parser {
   options: Options
   cfg: Config
   rsm: RuleSpecMap = {}
@@ -84,18 +66,19 @@ class Parser {
     // Else add or redefine a rule by name.
     else if (undefined !== define) {
       rs = this.rsm[name] = this.rsm[name] || makeRuleSpec(this.cfg, {})
-      rs = this.rsm[name] = define(this.rsm[name], this.rsm) || this.rsm[name]
+      rs = this.rsm[name] = define(this.rsm[name], this) || this.rsm[name]
       rs.name = name
 
-      for (let alt of [...rs.def.open, ...rs.def.close]) {
-        normalt(alt)
-      }
+      // for (let alt of [...rs.def.open, ...rs.def.close]) {
+      //   normalt(alt)
+      // }
 
-      return undefined
+      // return undefined
     }
 
     return rs
   }
+
 
   start(src: string, jsonic: any, meta?: any, parent_ctx?: any): any {
     let root: Rule
@@ -173,7 +156,7 @@ class Parser {
     let maxr =
       2 * keys(this.rsm).length * lex.src.length * 2 * ctx.cfg.rule.maxmul
 
-    let ignore = ctx.cfg.tokenSetTins.ignore
+    let IGNORE = ctx.cfg.tokenSetTins.IGNORE
 
     // Lex next token.
     function next(r: Rule) {
@@ -187,7 +170,7 @@ class Parser {
       do {
         t1 = lex(r)
         ctx.tC++
-      } while (ignore[t1.tin] && (i0 = t1))
+      } while (IGNORE[t1.tin] && (i0 = t1))
 
       t1.ignored = i0
       ctx.t1 = t1
@@ -218,7 +201,6 @@ class Parser {
       rI++
     }
 
-
     // TODO: option to allow trailing content
     if (tokenize('#ZZ', this.cfg) !== ctx.t0.tin) {
       throw new JsonicError(S.unexpected, {}, ctx.t0, norule, ctx)
@@ -235,7 +217,7 @@ class Parser {
   }
 
   clone(options: Options, config: Config) {
-    let parser = new Parser(options, config)
+    let parser = new ParserImpl(options, config)
 
     // Inherit rules from parent, filtered by config.rule
     parser.rsm = Object.keys(this.rsm).reduce(
@@ -247,4 +229,8 @@ class Parser {
   }
 }
 
-export { makeRule, makeRuleSpec, Parser }
+const makeParser = (...params: ConstructorParameters<typeof ParserImpl>) =>
+  new ParserImpl(...params)
+
+
+export { makeRule, makeRuleSpec, makeParser }

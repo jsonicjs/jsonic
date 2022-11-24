@@ -13,7 +13,7 @@
 // const it = lab.it
 // const expect = Code.expect
 
-const { Jsonic, Lexer, Parser, JsonicError, make } = require('..')
+const { Jsonic, Lexer, makeParser, JsonicError, make } = require('..')
 
 describe('plugin', function () {
   it('parent-safe', () => {
@@ -118,7 +118,7 @@ describe('plugin', function () {
       rule: { include: [], exclude: [] },
     }
     let opts0 = { opts: true, mark: 0 }
-    let p0 = new Parser(opts0, config0)
+    let p0 = makeParser(opts0, config0)
 
     let config1 = {
       config: true,

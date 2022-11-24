@@ -79,7 +79,7 @@ class RuleSpecImpl {
         this.def.open = (this.def.open || []).filter((alt) => null != alt);
         this.def.close = (this.def.close || []).filter((alt) => null != alt);
         for (let alt of [...this.def.open, ...this.def.close]) {
-            (0, utility_1.normalt)(alt);
+            normalt(alt);
         }
     }
     // Convenience access to token Tins
@@ -90,7 +90,7 @@ class RuleSpecImpl {
         let inject = (ops === null || ops === void 0 ? void 0 : ops.append) ? 'push' : 'unshift';
         let aa = ((0, utility_1.isarr)(a) ? a : [a])
             .filter((alt) => null != alt && 'object' === typeof alt)
-            .map((a) => (0, utility_1.normalt)(a));
+            .map((a) => normalt(a));
         let altState = 'o' === state ? 'open' : 'close';
         let alts = this.def[altState];
         alts[inject](...aa);
@@ -153,6 +153,11 @@ class RuleSpecImpl {
         this.def.ao.length = 0;
         this.def.bc.length = 0;
         this.def.ac.length = 0;
+        return this;
+    }
+    norm() {
+        this.def.open.map(alt => normalt(alt));
+        this.def.close.map(alt => normalt(alt));
         return this;
     }
     process(rule, ctx, state) {
@@ -390,5 +395,82 @@ function parse_alts(is_open, alts, rule, ctx) {
     // TODO: move to debug plugin
     ctx.log && (0, utility_1.log_parse)(rule, ctx, match, cond, altI, alt, out);
     return out;
+}
+// Normalize AltSpec (mutates).
+function normalt(a) {
+    if (null != a.c) {
+        // Convert counter and depth abbrev condition into an actual function.
+        // c: { x:1 } -> rule.n.x <= c.x
+        // c: { d:0 } -> 0 === rule stack depth
+        let counters = a.c.n;
+        let depth = a.c.d;
+        if (null != counters || null != depth) {
+            a.c = function (rule) {
+                let pass = true;
+                //if (null! + counters) {
+                if (null != counters) {
+                    for (let cn in counters) {
+                        // Pass if rule counter <= alt counter, (0 if undef).
+                        pass =
+                            pass &&
+                                (null == rule.n[cn] ||
+                                    rule.n[cn] <= (null == counters[cn] ? 0 : counters[cn]));
+                    }
+                }
+                if (null != depth) {
+                    pass = pass && rule.d <= depth;
+                }
+                return pass;
+            };
+            if (null != counters) {
+                ;
+                a.c.n = counters;
+            }
+            if (null != depth) {
+                ;
+                a.c.d = depth;
+            }
+        }
+    }
+    // Ensure groups are a string[]
+    if (types_1.STRING === typeof a.g) {
+        a.g = a.g.split(/\s*,\s*/);
+    }
+    if (!a.s || 0 === a.s.length) {
+        a.s = null;
+    }
+    else {
+        const tinsify = (s) => s.flat().filter((tin) => 'number' === typeof tin);
+        const partify = (tins, part) => tins.filter((tin) => 31 * part <= tin && tin < 31 * (part + 1));
+        const bitify = (s, part) => s.reduce((bits, tin) => (1 << (tin - (31 * part + 1))) | bits, 0);
+        const tins0 = tinsify([a.s[0]]);
+        const tins1 = tinsify([a.s[1]]);
+        const aa = a;
+        // Create as many bit fields as needed, each of size 31 bits.
+        aa.S0 =
+            0 < tins0.length
+                ? new Array(Math.max(...tins0.map((tin) => (1 + tin / 31) | 0)))
+                    .fill(null)
+                    .map((_, i) => i)
+                    .map((part) => bitify(partify(tins0, part), part))
+                : null;
+        aa.S1 =
+            0 < tins1.length
+                ? new Array(Math.max(...tins1.map((tin) => (1 + tin / 31) | 0)))
+                    .fill(null)
+                    .map((_, i) => i)
+                    .map((part) => bitify(partify(tins1, part), part))
+                : null;
+    }
+    if (!a.p) {
+        a.p = null;
+    }
+    if (!a.r) {
+        a.r = null;
+    }
+    if (!a.b) {
+        a.b = null;
+    }
+    return a;
 }
 //# sourceMappingURL=rules.js.map

@@ -1,7 +1,7 @@
 "use strict";
 /* Copyright (c) 2013-2022 Richard Rodger, MIT License */
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.log_stack = exports.log_parse = exports.log_node = exports.log_rule = exports.values = exports.keys = exports.omap = exports.str = exports.prop = exports.normalt = exports.parserwrap = exports.trimstk = exports.tokenize = exports.srcfmt = exports.snip = exports.regexp = exports.mesc = exports.makelog = exports.isarr = exports.filterRules = exports.extract = exports.escre = exports.errinject = exports.errdesc = exports.entries = exports.defprop = exports.deep = exports.configure = exports.clone = exports.clean = exports.charset = exports.badlex = exports.assign = exports.S = exports.JsonicError = void 0;
+exports.findTokenSet = exports.log_stack = exports.log_parse = exports.log_node = exports.log_rule = exports.values = exports.keys = exports.omap = exports.str = exports.prop = exports.parserwrap = exports.trimstk = exports.tokenize = exports.srcfmt = exports.snip = exports.regexp = exports.mesc = exports.makelog = exports.isarr = exports.filterRules = exports.extract = exports.escre = exports.errinject = exports.errdesc = exports.entries = exports.defprop = exports.deep = exports.configure = exports.clone = exports.clean = exports.charset = exports.badlex = exports.assign = exports.S = exports.JsonicError = void 0;
 const types_1 = require("./types");
 const lexer_1 = require("./lexer");
 // Null-safe object and array utilities
@@ -160,8 +160,8 @@ function configure(jsonic, incfg, opts) {
     cfg.tokenSetTins = entries(cfg.tokenSet).reduce((a, en) => (a[en[0]] = (a[en[0]] || {}),
         en[1].map((tin) => a[en[0]][tin] = true),
         a), {});
-    // The ignore tokenSet is special and should always exist, even if empty.
-    cfg.tokenSetTins.ignore = (cfg.tokenSetTins.ignore || {});
+    // The IGNORE tokenSet is special and should always exist, even if empty.
+    cfg.tokenSetTins.IGNORE = (cfg.tokenSetTins.IGNORE || {});
     cfg.space = {
         lex: !!((_c = opts.space) === null || _c === void 0 ? void 0 : _c.lex),
         chars: charset((_d = opts.space) === null || _d === void 0 ? void 0 : _d.chars),
@@ -294,6 +294,7 @@ function configure(jsonic, incfg, opts) {
     }
     assign(jsonic.options, opts);
     assign(jsonic.token, cfg.t);
+    assign(jsonic.tokenSet, cfg.tokenSet);
     assign(jsonic.fixed, cfg.fixed.ref);
     return cfg;
 }
@@ -315,6 +316,13 @@ function tokenize(ref, cfg, jsonic) {
     return token;
 }
 exports.tokenize = tokenize;
+// Find a tokenSet by name, or find the name of the TokenSet containing a given Tin.
+function findTokenSet(ref, cfg) {
+    let tokenSetMap = cfg.tokenSet;
+    let found = tokenSetMap[ref];
+    return found;
+}
+exports.findTokenSet = findTokenSet;
 // Mark a string for escaping by `util.regexp`.
 function mesc(s, _) {
     return (_ = new String(s)), (_.esc = true), _;
@@ -647,84 +655,6 @@ function filterRules(rs, cfg) {
     return rs;
 }
 exports.filterRules = filterRules;
-// Normalize AltSpec (mutates).
-function normalt(a) {
-    if (null != a.c) {
-        // Convert counter and depth abbrev condition into an actual function.
-        // c: { x:1 } -> rule.n.x <= c.x
-        // c: { d:0 } -> 0 === rule stack depth
-        let counters = a.c.n;
-        let depth = a.c.d;
-        if (null != counters || null != depth) {
-            a.c = function (rule) {
-                let pass = true;
-                //if (null! + counters) {
-                if (null != counters) {
-                    for (let cn in counters) {
-                        // Pass if rule counter <= alt counter, (0 if undef).
-                        pass =
-                            pass &&
-                                (null == rule.n[cn] ||
-                                    rule.n[cn] <= (null == counters[cn] ? 0 : counters[cn]));
-                    }
-                }
-                if (null != depth) {
-                    pass = pass && rule.d <= depth;
-                }
-                return pass;
-            };
-            if (null != counters) {
-                ;
-                a.c.n = counters;
-            }
-            if (null != depth) {
-                ;
-                a.c.d = depth;
-            }
-        }
-    }
-    // Ensure groups are a string[]
-    if (types_1.STRING === typeof a.g) {
-        a.g = a.g.split(/\s*,\s*/);
-    }
-    if (!a.s || 0 === a.s.length) {
-        a.s = null;
-    }
-    else {
-        const tinsify = (s) => s.flat().filter((tin) => 'number' === typeof tin);
-        const partify = (tins, part) => tins.filter((tin) => 31 * part <= tin && tin < 31 * (part + 1));
-        const bitify = (s, part) => s.reduce((bits, tin) => (1 << (tin - (31 * part + 1))) | bits, 0);
-        const tins0 = tinsify([a.s[0]]);
-        const tins1 = tinsify([a.s[1]]);
-        const aa = a;
-        // Create as many bit fields as needed, each of size 31 bits.
-        aa.S0 =
-            0 < tins0.length
-                ? new Array(Math.max(...tins0.map((tin) => (1 + tin / 31) | 0)))
-                    .fill(null)
-                    .map((_, i) => i)
-                    .map((part) => bitify(partify(tins0, part), part))
-                : null;
-        aa.S1 =
-            0 < tins1.length
-                ? new Array(Math.max(...tins1.map((tin) => (1 + tin / 31) | 0)))
-                    .fill(null)
-                    .map((_, i) => i)
-                    .map((part) => bitify(partify(tins1, part), part))
-                : null;
-    }
-    if (!a.p) {
-        a.p = null;
-    }
-    if (!a.r) {
-        a.r = null;
-    }
-    if (!a.b) {
-        a.b = null;
-    }
-    return a;
-}
-exports.normalt = normalt;
 function prop(obj, path, val) {
     let root = obj;
     try {

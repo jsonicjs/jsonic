@@ -16,6 +16,7 @@ export interface JsonicAPI {
     lex: (matchmaker: MakeLexMatcher) => void;
     empty: (options?: Options) => Jsonic;
     token: TokenMap & TinMap & (<A extends string | Tin>(ref: A) => A extends string ? Tin : string);
+    tokenSet: TokenSetMap & TinSetMap & (<A extends string | Tin>(ref: A) => A extends string ? Tin[] : string);
     fixed: TokenMap & TinMap & (<A extends string | Tin>(ref: A) => undefined | (A extends string ? Tin : string));
     id: string;
     toString: () => string;
@@ -171,6 +172,7 @@ export interface RuleSpec {
     bc(first: StateAction | boolean, second?: StateAction): RuleSpec;
     ac(first: StateAction | boolean, second?: StateAction): RuleSpec;
     clear(): RuleSpec;
+    norm(): RuleSpec;
     process(rule: Rule, ctx: Context, state: RuleState): Rule;
     bad(tkn: Token, rule: Rule, ctx: Context, parse: {
         is_open: boolean;
@@ -266,9 +268,7 @@ export type Config = {
         lex: boolean;
         token: MatchMap;
     };
-    tokenSet: {
-        [name: string]: number[];
-    };
+    tokenSet: TokenSetMap;
     tokenSetTins: {
         [name: string]: {
             [tin: number]: boolean;
@@ -455,7 +455,7 @@ export type MakeLexMatcher = (cfg: Config, opts: Options) => LexMatcher | null |
 export type RuleSpecMap = {
     [name: string]: RuleSpec;
 };
-export type RuleDefiner = (rs: RuleSpec, rsm: RuleSpecMap) => void | RuleSpec;
+export type RuleDefiner = (rs: RuleSpec, p: Parser) => void | RuleSpec;
 export interface NormAltSpec extends AltSpec {
     s: (Tin | Tin[] | null | undefined)[];
     S0: number[] | null;
@@ -473,4 +473,12 @@ export type AltError = (rule: Rule, ctx: Context, alt: AltMatch) => Token | unde
 export type ValModifier = (val: any, lex: Lex, cfg: Config, opts: Options) => string;
 export type LexSub = (tkn: Token, rule: Rule, ctx: Context) => void;
 export type RuleSub = (rule: Rule, ctx: Context) => void;
+export interface Parser {
+    options: Options;
+    cfg: Config;
+    rsm: RuleSpecMap;
+    rule(name?: string, define?: RuleDefiner | null): RuleSpec | RuleSpecMap | undefined;
+    start(src: string, jsonic: any, meta?: any, parent_ctx?: any): any;
+    clone(options: Options, config: Config): Parser;
+}
 export {};

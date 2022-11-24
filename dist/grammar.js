@@ -3,6 +3,7 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.makeJSON = exports.grammar = void 0;
 function grammar(jsonic) {
+    const { deep } = jsonic.util;
     const { 
     // Fixed tokens
     OB, // Open Brace `{`
@@ -17,10 +18,9 @@ function grammar(jsonic) {
     // Control tokens
     ZZ, // End-of-source
      } = jsonic.token;
-    const cfg = jsonic.config();
-    const VAL = cfg.tokenSet.val;
-    const KEY = cfg.tokenSet.key;
-    const deep = jsonic.util.deep;
+    const { VAL, // All tokens that make up values
+    KEY, // All tokens that make up keys
+     } = jsonic.tokenSet;
     const finish = (_rule, ctx) => {
         if (!ctx.cfg.rule.finish) {
             // TODO: FIX! needs own error code
@@ -284,7 +284,7 @@ function grammar(jsonic) {
         ], { append: true, delete: [0, 1, 2] });
     });
     // push onto node
-    jsonic.rule('elem', (rs) => {
+    jsonic.rule('elem', (rs, p) => {
         rs.open([
             // Empty commas insert null elements.
             // Note that close consumes a comma, so b:2 works.
@@ -299,7 +299,7 @@ function grammar(jsonic) {
                 a: (r) => r.node.push(null),
                 g: 'list,elem,imp,null,jsonic',
             },
-            cfg.list.property && {
+            p.cfg.list.property && {
                 s: [KEY, CL],
                 p: 'val',
                 n: { pk: 1 },
@@ -352,7 +352,7 @@ function makeJSON(jsonic) {
         rule: { finish: false, include: 'json' },
         result: { fail: [undefined, NaN] },
         tokenSet: {
-            key: ['#ST', null, null, null],
+            KEY: ['#ST', null, null, null],
         },
     });
     grammar(justJSON);

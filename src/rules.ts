@@ -20,35 +20,24 @@ import type {
   AltAction,
   AltMatch,
   AddAltOps,
-  RuleSpecMap,
-  RuleDefiner,
   AltSpec,
-  Options,
   Counters,
   Bag,
 } from './types'
 
-import { OPEN, CLOSE, BEFORE, AFTER, EMPTY } from './types'
+import { OPEN, CLOSE, BEFORE, AFTER, EMPTY, STRING } from './types'
 
 import {
   JsonicError,
   S,
-  badlex,
-  deep,
   filterRules,
   isarr,
-  keys,
-  makelog,
-  srcfmt,
   tokenize,
-  normalt,
   log_rule,
   log_node,
   log_parse,
-  log_stack,
 } from './utility'
 
-import { makeNoToken, makeLex, makePoint, makeToken } from './lexer'
 
 class RuleImpl implements Rule {
   id = -1
@@ -276,6 +265,14 @@ class RuleSpecImpl implements RuleSpec {
     this.def.ac.length = 0
     return this
   }
+
+
+  norm() {
+    this.def.open.map(alt => normalt(alt))
+    this.def.close.map(alt => normalt(alt))
+    return this
+  }
+
 
   process(rule: Rule, ctx: Context, state: RuleState): Rule {
     let why = EMPTY
@@ -567,6 +564,105 @@ function parse_alts(
   ctx.log && log_parse(rule, ctx, match, cond, altI, alt, out)
 
   return out
+}
+
+
+// Normalize AltSpec (mutates).
+function normalt(a: AltSpec): NormAltSpec {
+  if (null != a.c) {
+    // Convert counter and depth abbrev condition into an actual function.
+    // c: { x:1 } -> rule.n.x <= c.x
+    // c: { d:0 } -> 0 === rule stack depth
+
+    let counters = (a.c as any).n
+    let depth = (a.c as any).d
+    if (null != counters || null != depth) {
+      a.c = function(rule: Rule) {
+        let pass = true
+
+        //if (null! + counters) {
+        if (null != counters) {
+          for (let cn in counters) {
+            // Pass if rule counter <= alt counter, (0 if undef).
+            pass =
+              pass &&
+              (null == rule.n[cn] ||
+                rule.n[cn] <= (null == counters[cn] ? 0 : counters[cn]))
+          }
+        }
+
+        if (null != depth) {
+          pass = pass && rule.d <= depth
+        }
+
+        return pass
+      }
+
+      if (null != counters) {
+        ; (a.c as any).n = counters
+      }
+      if (null != depth) {
+        ; (a.c as any).d = depth
+      }
+    }
+  }
+
+  // Ensure groups are a string[]
+  if (STRING === typeof a.g) {
+    a.g = (a as any).g.split(/\s*,\s*/)
+  }
+
+  if (!a.s || 0 === a.s.length) {
+    a.s = null
+  } else {
+    const tinsify = (s: any[]): Tin[] =>
+      s.flat().filter((tin) => 'number' === typeof tin)
+
+    const partify = (tins: Tin[], part: number) =>
+      tins.filter((tin) => 31 * part <= tin && tin < 31 * (part + 1))
+
+    const bitify = (s: Tin[], part: number) =>
+      s.reduce(
+        (bits: number, tin: Tin) => (1 << (tin - (31 * part + 1))) | bits,
+        0
+      )
+
+    const tins0: Tin[] = tinsify([a.s[0]])
+    const tins1: Tin[] = tinsify([a.s[1]])
+
+    const aa = a as any
+
+    // Create as many bit fields as needed, each of size 31 bits.
+    aa.S0 =
+      0 < tins0.length
+        ? new Array(Math.max(...tins0.map((tin) => (1 + tin / 31) | 0)))
+          .fill(null)
+          .map((_, i) => i)
+          .map((part) => bitify(partify(tins0, part), part))
+        : null
+
+    aa.S1 =
+      0 < tins1.length
+        ? new Array(Math.max(...tins1.map((tin) => (1 + tin / 31) | 0)))
+          .fill(null)
+          .map((_, i) => i)
+          .map((part) => bitify(partify(tins1, part), part))
+        : null
+  }
+
+  if (!a.p) {
+    a.p = null
+  }
+
+  if (!a.r) {
+    a.r = null
+  }
+
+  if (!a.b) {
+    a.b = null
+  }
+
+  return a as NormAltSpec
 }
 
 

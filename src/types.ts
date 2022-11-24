@@ -48,13 +48,14 @@ export interface JsonicAPI {
   empty: (options?: Options) => Jsonic
 
   // Token get and set for plugins. Reference by either name or Tin.
+  // NOTE: creates token if not yet defined (but only for name).
   token: TokenMap & TinMap &
   (<A extends string | Tin>(ref: A) => A extends string ? Tin : string)
 
   // TokenSet get and set for plugins. Reference by either name or Tin.
   // NOTE: name->Tin[], but Tin->name (of containing set)
-  // tokenSet: TokenSetMap & TinSetMap &
-  // (<A extends string | Tin>(ref: A) => A extends string ? Tin[] : string)
+  tokenSet: TokenSetMap & TinSetMap &
+  (<A extends string | Tin>(ref: A) => A extends string ? Tin[] : string)
 
   // Fixed token src get and set for plugins. Reference by either src or Tin.
   fixed: TokenMap & TinMap &
@@ -66,6 +67,7 @@ export interface JsonicAPI {
   // Provide identifier for string conversion.
   toString: () => string
 
+  // Subscribe to lexing and parsing events.
   sub: (spec: { lex?: LexSub; rule?: RuleSub }) => Jsonic
 
   util: Bag
@@ -230,16 +232,9 @@ export interface RuleSpec {
   bc(first: StateAction | boolean, second?: StateAction): RuleSpec
   ac(first: StateAction | boolean, second?: StateAction): RuleSpec
   clear(): RuleSpec
+  norm(): RuleSpec
 
   process(rule: Rule, ctx: Context, state: RuleState): Rule
-
-  // // First alternate to match token stream wins.
-  // parse_alts(
-  //   is_open: boolean,
-  //   alts: NormAltSpec[],
-  //   rule: Rule,
-  //   ctx: Context
-  // ): AltMatch
 
   bad(tkn: Token, rule: Rule, ctx: Context, parse: { is_open: boolean }): Rule
 }
@@ -371,11 +366,9 @@ export type Config = {
     token: MatchMap
   }
 
-
   // Token set derived config.
-  tokenSet: {
-    [name: string]: number[]
-  }
+  tokenSet: TokenSetMap
+  // { [name: string]: number[] }
 
   // Token set derived config.
   tokenSetTins: {
@@ -629,7 +622,7 @@ export type MakeLexMatcher = (cfg: Config, opts: Options) => LexMatcher | null |
 
 export type RuleSpecMap = { [name: string]: RuleSpec }
 
-export type RuleDefiner = (rs: RuleSpec, rsm: RuleSpecMap) => void | RuleSpec
+export type RuleDefiner = (rs: RuleSpec, p: Parser) => void | RuleSpec
 
 // Normalized parse-alternate.
 export interface NormAltSpec extends AltSpec {
@@ -665,7 +658,6 @@ export type AltBack = (rule: Rule, ctx: Context, alt: AltMatch) =>
 // Execute an action for a given Rule state and step:
 // bo: BEFORE OPEN, ao: AFTER OPEN, bc: BEFORE CLOSE, ac: AFTER CLOSE.
 export type StateAction = (
-  // this: RuleSpec,
   rule: Rule,
   ctx: Context,
   next: Rule,
@@ -689,3 +681,19 @@ export type ValModifier = (
 
 export type LexSub = (tkn: Token, rule: Rule, ctx: Context) => void
 export type RuleSub = (rule: Rule, ctx: Context) => void
+
+
+export interface Parser {
+  options: Options
+  cfg: Config
+  rsm: RuleSpecMap
+
+  rule(
+    name?: string,
+    define?: RuleDefiner | null
+  ): RuleSpec | RuleSpecMap | undefined
+
+  start(src: string, jsonic: any, meta?: any, parent_ctx?: any): any
+
+  clone(options: Options, config: Config): Parser
+}

@@ -44,9 +44,9 @@ const defaults: Options = {
 
   // Token sets.
   tokenSet: {
-    ignore: ['#SP', '#LN', '#CM'],
-    val: ['#TX', '#NR', '#ST', '#VL'],
-    key: ['#TX', '#NR', '#ST', '#VL'],
+    IGNORE: ['#SP', '#LN', '#CM'],
+    VAL: ['#TX', '#NR', '#ST', '#VL'],
+    KEY: ['#TX', '#NR', '#ST', '#VL'],
   },
 
   // Recognize space characters in the lexer.

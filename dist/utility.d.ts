@@ -1,4 +1,4 @@
-import type { AltMatch, AltSpec, Bag, Chars, Config, Context, Lex, NormAltSpec, Options, Rule, RuleSpec, Tin, Token } from './types';
+import type { AltMatch, Bag, Chars, Config, Context, Lex, NormAltSpec, Options, Rule, RuleSpec, Tin, Token } from './types';
 declare const keys: (x: any) => string[];
 declare const values: <T>(x: {
     [key: string]: T;
@@ -59,6 +59,7 @@ declare class JsonicError extends SyntaxError {
 }
 declare function configure(jsonic: any, incfg: Config | undefined, opts: Options): Config;
 declare function tokenize<R extends string | Tin, T extends R extends Tin ? string : Tin>(ref: R, cfg: Config, jsonic?: any): T;
+declare function findTokenSet<R extends string | Tin, T extends R extends Tin ? string : Tin>(ref: R, cfg: Config): T;
 declare function mesc(s: string, _?: any): any;
 declare function regexp(flags: string | null, ...parts: (string | (String & {
     esc?: boolean;
@@ -78,7 +79,6 @@ declare function clone(class_instance: any): any;
 declare function charset(...parts: (string | object | boolean | undefined)[]): Chars;
 declare function clean<T>(o: T): T;
 declare function filterRules(rs: RuleSpec, cfg: Config): RuleSpec;
-declare function normalt(a: AltSpec): NormAltSpec;
 declare function prop(obj: any, path: string, val: any): any;
 declare function parserwrap(parser: any): {
     start: (src: string, jsonic: any, meta?: any, parent_ctx?: any) => any;
@@ -87,4 +87,4 @@ declare function log_rule(rule: Rule, ctx: Context): void;
 declare function log_node(rule: Rule, ctx: Context, next: Rule): void;
 declare function log_parse(rule: Rule, ctx: Context, match: boolean, cond: boolean, altI: number, alt: NormAltSpec | null, out: AltMatch): void;
 declare function log_stack(rule: Rule, ctx: Context, root: Rule): void;
-export { JsonicError, S, assign, badlex, charset, clean, clone, configure, deep, defprop, entries, errdesc, errinject, escre, extract, filterRules, isarr, makelog, mesc, regexp, snip, srcfmt, tokenize, trimstk, parserwrap, normalt, prop, str, omap, keys, values, log_rule, log_node, log_parse, log_stack, };
+export { JsonicError, S, assign, badlex, charset, clean, clone, configure, deep, defprop, entries, errdesc, errinject, escre, extract, filterRules, isarr, makelog, mesc, regexp, snip, srcfmt, tokenize, trimstk, parserwrap, prop, str, omap, keys, values, log_rule, log_node, log_parse, log_stack, findTokenSet, };

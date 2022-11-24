@@ -4,6 +4,7 @@
  *  Entry point and API.
  */
 
+// TODO: remove the # prefix from token names
 // TODO: define jsonic.tokenSet for access to tokenSets, same as jsonic.token 
 // TODO .rule should prepend by default - far more common
 // TODO: Jsonic.options type should not have optionals as definitely defined:
@@ -84,6 +85,7 @@ import type {
   StateAction,
   LexSub,
   RuleSub,
+  Parser,
 } from './types'
 
 import { OPEN, CLOSE, BEFORE, AFTER, EMPTY } from './types'
@@ -102,6 +104,7 @@ import {
   mesc,
   regexp,
   tokenize,
+  findTokenSet,
   trimstk,
   srcfmt,
   clone,
@@ -135,7 +138,7 @@ import {
   makeTextMatcher,
 } from './lexer'
 
-import { makeRule, makeRuleSpec, Parser } from './parser'
+import { makeRule, makeRuleSpec, makeParser } from './parser'
 
 import { grammar, makeJSON } from './grammar'
 
@@ -176,9 +179,15 @@ type Jsonic = JsonicParse & // A function that parses.
   JsonicAPI & { [prop: string]: any } // A utility with API methods. // Extensible by plugin decoration.
 
 function make(param_options?: Bag | string, parent?: Jsonic): Jsonic {
-  if ('json' === param_options) {
+  let injectFullAPI = true
+  if ('jsonic' === param_options) {
+    injectFullAPI = false
+  }
+  else if ('json' === param_options) {
     return makeJSON(root)
   }
+
+  param_options = 'string' === typeof param_options ? {} : param_options
 
   let internal: {
     parser: Parser
@@ -190,8 +199,8 @@ function make(param_options?: Bag | string, parent?: Jsonic): Jsonic {
     }
     mark: number
   } = {
-    parser: {} as Parser,
-    config: {} as Config,
+    parser: null as unknown as Parser,
+    config: null as unknown as Config,
     plugins: [],
     sub: {
       lex: undefined,
@@ -240,10 +249,14 @@ function make(param_options?: Bag | string, parent?: Jsonic): Jsonic {
     return { ...jsonic.options }
   }
 
+
   // Define the API
   let api: JsonicAPI = {
     token: ((ref: string | Tin) =>
       tokenize(ref, internal.config, jsonic)) as unknown as JsonicAPI['token'],
+
+    tokenSet: ((ref: string | Tin) =>
+      findTokenSet(ref, internal.config)) as unknown as JsonicAPI['tokenSet'],
 
     fixed: ((ref: string | Tin) =>
       internal.config.fixed.ref[ref]) as unknown as JsonicAPI['fixed'],
@@ -327,8 +340,19 @@ function make(param_options?: Bag | string, parent?: Jsonic): Jsonic {
   // Has to be done indirectly as we are in a fuction named `make`.
   defprop(api.make, S.name, { value: S.make })
 
-  // Add API methods to the core utility function.
-  assign(jsonic, api)
+  if (injectFullAPI) {
+    // Add API methods to the core utility function.
+    assign(jsonic, api)
+  }
+  else {
+    assign(jsonic, {
+      empty: api.empty,
+      parse: api.parse,
+      sub: api.sub,
+      id: api.id,
+      toString: api.toString,
+    })
+  }
 
   // Hide internals where you can still find them.
   defprop(jsonic, 'internal', { value: () => internal })
@@ -355,11 +379,15 @@ function make(param_options?: Bag | string, parent?: Jsonic): Jsonic {
       internal.config
     )
   } else {
-    internal.config = configure(jsonic, undefined, merged_options)
+    let rootWithAPI = { ...jsonic, ...api }
+    internal.config = configure(rootWithAPI, undefined, merged_options)
     internal.plugins = []
-    internal.parser = new Parser(merged_options, internal.config)
+    internal.parser = makeParser(merged_options, internal.config)
+
+    // console.log('MP', internal.parser)
+
     if (false !== merged_options.grammar$) {
-      grammar(jsonic)
+      grammar(rootWithAPI)
     }
   }
 
@@ -367,23 +395,18 @@ function make(param_options?: Bag | string, parent?: Jsonic): Jsonic {
 }
 
 let root: any = undefined
-let Jsonic: Jsonic = (root = make())
 
-// The global root Jsonic instance cannot be modified.
+// The global root Jsonic instance parsing rules cannot be modified.
 // use Jsonic.make() to create a modifiable instance.
-delete root.options
-delete root.use
-delete root.rule
-delete root.lex
-delete root.token
-delete root.fixed
+let Jsonic: Jsonic = (root = make('jsonic'))
 
 // Provide deconstruction export names
 root.Jsonic = root
 root.JsonicError = JsonicError
-root.Parser = Parser
+// root.Parser = Parser
 root.Debug = Debug
 root.makeLex = makeLex
+root.makeParser = makeParser
 root.makeToken = makeToken
 root.makePoint = makePoint
 root.makeRule = makeRule
@@ -445,6 +468,7 @@ export {
   makeRule,
   makeRuleSpec,
   makeLex,
+  makeParser,
   makeFixedMatcher,
   makeSpaceMatcher,
   makeLineMatcher,

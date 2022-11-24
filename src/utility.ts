@@ -17,6 +17,7 @@ import type {
   Options,
   Rule,
   RuleSpec,
+  RuleSpecMap,
   Tin,
   Token,
   ValModifier,
@@ -217,8 +218,8 @@ function configure(
     {}
   )
 
-  // The ignore tokenSet is special and should always exist, even if empty.
-  cfg.tokenSetTins.ignore = (cfg.tokenSetTins.ignore || {})
+  // The IGNORE tokenSet is special and should always exist, even if empty.
+  cfg.tokenSetTins.IGNORE = (cfg.tokenSetTins.IGNORE || {})
 
 
   cfg.space = {
@@ -396,6 +397,7 @@ function configure(
 
   assign(jsonic.options, opts)
   assign(jsonic.token, cfg.t)
+  assign(jsonic.tokenSet, cfg.tokenSet)
   assign(jsonic.fixed, cfg.fixed.ref)
 
   return cfg
@@ -423,6 +425,17 @@ function tokenize<
 
   return token as T
 }
+
+// Find a tokenSet by name, or find the name of the TokenSet containing a given Tin.
+function findTokenSet<
+  R extends string | Tin,
+  T extends R extends Tin ? string : Tin
+>(ref: R, cfg: Config): T {
+  let tokenSetMap: any = cfg.tokenSet
+  let found: string | Tin[] = tokenSetMap[ref]
+  return found as T
+}
+
 
 // Mark a string for escaping by `util.regexp`.
 function mesc(s: string, _?: any) {
@@ -830,104 +843,6 @@ function filterRules(rs: RuleSpec, cfg: Config) {
   return rs
 }
 
-// Normalize AltSpec (mutates).
-function normalt(a: AltSpec): NormAltSpec {
-  if (null != a.c) {
-    // Convert counter and depth abbrev condition into an actual function.
-    // c: { x:1 } -> rule.n.x <= c.x
-    // c: { d:0 } -> 0 === rule stack depth
-
-    let counters = (a.c as any).n
-    let depth = (a.c as any).d
-    if (null != counters || null != depth) {
-      a.c = function(rule: Rule) {
-        let pass = true
-
-        //if (null! + counters) {
-        if (null != counters) {
-          for (let cn in counters) {
-            // Pass if rule counter <= alt counter, (0 if undef).
-            pass =
-              pass &&
-              (null == rule.n[cn] ||
-                rule.n[cn] <= (null == counters[cn] ? 0 : counters[cn]))
-          }
-        }
-
-        if (null != depth) {
-          pass = pass && rule.d <= depth
-        }
-
-        return pass
-      }
-
-      if (null != counters) {
-        ; (a.c as any).n = counters
-      }
-      if (null != depth) {
-        ; (a.c as any).d = depth
-      }
-    }
-  }
-
-  // Ensure groups are a string[]
-  if (STRING === typeof a.g) {
-    a.g = (a as any).g.split(/\s*,\s*/)
-  }
-
-  if (!a.s || 0 === a.s.length) {
-    a.s = null
-  } else {
-    const tinsify = (s: any[]): Tin[] =>
-      s.flat().filter((tin) => 'number' === typeof tin)
-
-    const partify = (tins: Tin[], part: number) =>
-      tins.filter((tin) => 31 * part <= tin && tin < 31 * (part + 1))
-
-    const bitify = (s: Tin[], part: number) =>
-      s.reduce(
-        (bits: number, tin: Tin) => (1 << (tin - (31 * part + 1))) | bits,
-        0
-      )
-
-    const tins0: Tin[] = tinsify([a.s[0]])
-    const tins1: Tin[] = tinsify([a.s[1]])
-
-    const aa = a as any
-
-    // Create as many bit fields as needed, each of size 31 bits.
-    aa.S0 =
-      0 < tins0.length
-        ? new Array(Math.max(...tins0.map((tin) => (1 + tin / 31) | 0)))
-          .fill(null)
-          .map((_, i) => i)
-          .map((part) => bitify(partify(tins0, part), part))
-        : null
-
-    aa.S1 =
-      0 < tins1.length
-        ? new Array(Math.max(...tins1.map((tin) => (1 + tin / 31) | 0)))
-          .fill(null)
-          .map((_, i) => i)
-          .map((part) => bitify(partify(tins1, part), part))
-        : null
-  }
-
-  if (!a.p) {
-    a.p = null
-  }
-
-  if (!a.r) {
-    a.r = null
-  }
-
-  if (!a.b) {
-    a.b = null
-  }
-
-  return a as NormAltSpec
-}
-
 
 function prop(obj: any, path: string, val: any): any {
   let root = obj
@@ -1210,7 +1125,6 @@ export {
   tokenize,
   trimstk,
   parserwrap,
-  normalt,
   prop,
   str,
   omap,
@@ -1220,4 +1134,5 @@ export {
   log_node,
   log_parse,
   log_stack,
+  findTokenSet,
 }

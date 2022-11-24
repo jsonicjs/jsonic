@@ -8,10 +8,12 @@
  */
 
 
-import { Jsonic, Rule, RuleSpec, Context, AltError } from './jsonic'
+import { Jsonic, Rule, RuleSpec, Context, Parser, AltError } from './jsonic'
 
 
 function grammar(jsonic: Jsonic) {
+  const { deep } = jsonic.util
+
   const {
 
     // Fixed tokens
@@ -28,15 +30,15 @@ function grammar(jsonic: Jsonic) {
 
     // Control tokens
     ZZ, // End-of-source
+
   } = jsonic.token
 
 
-  const cfg = jsonic.config()
+  const {
+    VAL, // All tokens that make up values
+    KEY, // All tokens that make up keys
+  } = jsonic.tokenSet
 
-  const VAL = cfg.tokenSet.val
-  const KEY = cfg.tokenSet.key
-
-  const deep = jsonic.util.deep
 
   const finish: AltError = (_rule: Rule, ctx: Context) => {
     if (!ctx.cfg.rule.finish) {
@@ -370,7 +372,7 @@ function grammar(jsonic: Jsonic) {
   })
 
   // push onto node
-  jsonic.rule('elem', (rs: RuleSpec) => {
+  jsonic.rule('elem', (rs: RuleSpec, p: Parser) => {
     rs.open([
       // Empty commas insert null elements.
       // Note that close consumes a comma, so b:2 works.
@@ -387,7 +389,7 @@ function grammar(jsonic: Jsonic) {
         g: 'list,elem,imp,null,jsonic',
       },
 
-      cfg.list.property && {
+      p.cfg.list.property && {
         s: [KEY, CL],
         p: 'val',
         n: { pk: 1 },
@@ -447,7 +449,7 @@ function makeJSON(jsonic: any) {
     rule: { finish: false, include: 'json' },
     result: { fail: [undefined, NaN] },
     tokenSet: {
-      key: ['#ST', null, null, null],
+      KEY: ['#ST', null, null, null],
     },
   })
 

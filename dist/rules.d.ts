@@ -51,6 +51,7 @@ declare class RuleSpecImpl implements RuleSpec {
     bc(first: StateAction | boolean, second?: StateAction): RuleSpec;
     ac(first: StateAction | boolean, second?: StateAction): RuleSpec;
     clear(): this;
+    norm(): this;
     process(rule: Rule, ctx: Context, state: RuleState): Rule;
     bad(tkn: Token, rule: Rule, ctx: Context, parse: {
         is_open: boolean;
