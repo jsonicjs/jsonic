@@ -71,7 +71,7 @@ export async function run(argv: string[], console: Console) {
     jsonic.use(plugins[pn])
   }
 
-  if (plugins.debug) {
+  if (null != plugins.debug) {
     console.log(jsonic.describe() + '\n=== PARSE ===')
   }
 
@@ -100,8 +100,8 @@ export async function run(argv: string[], console: Console) {
   replacer = Array.isArray(replacer)
     ? replacer
     : null == replacer
-    ? null
-    : [replacer]
+      ? null
+      : [replacer]
 
   let json = JSON.stringify(data.val, replacer, space)
 

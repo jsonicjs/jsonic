@@ -73,7 +73,7 @@ async function run(argv, console) {
     for (let pn in plugins) {
         jsonic.use(plugins[pn]);
     }
-    if (plugins.debug) {
+    if (null != plugins.debug) {
         console.log(jsonic.describe() + '\n=== PARSE ===');
     }
     let data = { val: null };
