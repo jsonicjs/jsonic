@@ -301,6 +301,10 @@ function grammar(jsonic: Jsonic) {
           // Implicit maps only at top level.
           r.n.im = 1 + (r.n.im ? r.n.im : 0)
         })
+        .open([
+          // Auto-close; fail if rule.finish option is false.
+          { s: [OB, ZZ], b: 1, e: finish, g: 'end,jsonic' },
+        ])
         .open(
           [
             // Pair from implicit map.
@@ -311,13 +315,19 @@ function grammar(jsonic: Jsonic) {
         )
         .close(
           [
+            // Normal end of map, no path dive.
+            { s: [CB], c: { n: { pk: 0 } }, g: 'end,json' },
+
+            // Not yet at end of path dive, keep ascending.
+            { s: [CB], b: 1, g: 'path,jsonic' },
+
             // End of implicit path
             { s: [[CA, CS, ...VAL]], b: 1, g: 'end,path,jsonic' },
 
-            // Fail if rule.finish option is false.
+            // Auto-close; fail if rule.finish option is false.
             { s: [ZZ], e: finish, g: 'end,jsonic' },
           ],
-          { append: true }
+          { append: true, delete: [0] }
         )
     })
 
@@ -326,8 +336,8 @@ function grammar(jsonic: Jsonic) {
       .bo((r: Rule) => {
         // No implicit lists or maps inside lists.
         r.n.il = 1 + (r.n.il ? r.n.il : 0)
-        r.n.pk = 1 + (r.n.pk ? r.n.pk : 0)
         r.n.im = 1 + (r.n.im ? r.n.im : 0)
+        // r.n.pk = 1 + (r.n.pk ? r.n.pk : 0)
       })
       .open(
         [
@@ -349,7 +359,7 @@ function grammar(jsonic: Jsonic) {
   })
 
   // sets key:val on node
-  jsonic.rule('pair', (rs: RuleSpec) => {
+  jsonic.rule('pair', (rs: RuleSpec, p: Parser) => {
     rs.open(
       [
         // Ignore initial comma: {,a:1.
@@ -409,8 +419,9 @@ function grammar(jsonic: Jsonic) {
             ]], b: 1, g: 'map,pair,imp,path,jsonic'
           },
 
-          // Close implicit single prop map inside list: [a:1]
-          { s: [CS], b: 1, g: 'list,pair,imp,jsonic' },
+          // Close pair inside list.
+          // p.cfg.list.property &&
+          // { s: [CS], b: 1, g: 'list,pair,imp,jsonic' },
 
           // Fail if auto-close option is false.
           { s: [ZZ], e: finish, g: 'map,pair,json' },
@@ -437,8 +448,9 @@ function grammar(jsonic: Jsonic) {
         g: 'list,elem,imp,null,jsonic',
       },
 
-      p.cfg.list.property && {
+      {
         s: [KEY, CL],
+        e: p.cfg.list.property ? undefined : ((_r: Rule, ctx: Context) => ctx.t0),
         p: 'val',
         n: { pk: 1 },
         u: { elem: false },

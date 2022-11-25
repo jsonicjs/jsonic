@@ -103,6 +103,7 @@ class RuleSpecImpl {
                     alts[deleteI] = null;
                 }
             }
+            // Format: [from,to, from,to, ...]
             if (ops.move) {
                 for (let i = 0; i < ops.move.length; i += 2) {
                     let fromI = (alts.length + ops.move[i]) % alts.length;

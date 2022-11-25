@@ -6,7 +6,8 @@ const { Jsonic, JsonicError, makeRule, makeFixedMatcher, Debug } = require('..')
 let j = Jsonic
 let { keys } = j.util
 
-describe('custom', function () {
+describe('custom', () => {
+
   it('fixed-tokens', () => {
     let j = Jsonic.make({
       fixed: {
@@ -35,7 +36,9 @@ describe('custom', function () {
         { s: [TRIPLE], a: (r) => (r.node = '<triple>') }
       ])
     })
+    
     let out = j('a:~,b:1,c:~,d:=>,e::-,f:##,g:///,h:a,i:# foo')
+
     expect(out).toEqual({
       a: '<not>',
       b: 1,
@@ -82,6 +85,7 @@ describe('custom', function () {
                     return tkn
                   }
                 }
+		return undefined
               },
               '#ID': /^[a-zA-Z_][a-zA-Z_0-9]*/,
             }
@@ -104,7 +108,6 @@ describe('custom', function () {
     
     // console.log(j.debug.describe())
     // console.log(j.internal().config)
-
     // console.log(j.internal().config.lex)
     
     expect(j('a:1',{xlog:-1})).toEqual({a:1})
@@ -117,6 +120,7 @@ describe('custom', function () {
     expect(Jsonic('a*:1')).toEqual({'a*':1})
     expect(Jsonic('b:monday')).toEqual({b:'monday'})
   })
+
   
   it('string-replace', () => {
     expect(Jsonic('a:1')).toEqual({ a: 1 })
@@ -159,6 +163,7 @@ describe('custom', function () {
     expect(() => j2('x:\n "ac\n\r"')).toThrow(/unprintable.*2:7/s)
   })
 
+  
   it('parser-empty-clean', () => {
     expect(Jsonic('a:1')).toEqual({ a: 1 })
 
@@ -227,6 +232,7 @@ describe('custom', function () {
     expect(b).toEqual('bo;') // m: is too late to avoid bo
   })
 
+  
   it('parser-action-errors', () => {
     let b = ''
     let j = make_norules({ rule: { start: 'top' } })
@@ -260,6 +266,7 @@ describe('custom', function () {
     expect(() => j('a')).toThrow(/foo.*AC/s)
   })
 
+  
   it('parser-before-after-state', () => {
     let j = make_norules({ rule: { start: 'top' } })
     let AA = j.token.AA
@@ -283,6 +290,7 @@ describe('custom', function () {
     expect(j('a')).toEqual('AC')
   })
 
+  
   it('parser-empty-seq', () => {
     let j = make_norules({ rule: { start: 'top' } })
 
@@ -299,6 +307,7 @@ describe('custom', function () {
     expect(j('a')).toEqual(4444)
   })
 
+  
   it('parser-alt-ops', () => {
     let j = make_norules({
       fixed: {
@@ -320,16 +329,24 @@ describe('custom', function () {
     let Td = j.token.Td
     let Te = j.token.Te
 
+    let ZZ = j.token.ZZ
+
     j.use((j) => {
       j.rule('top', (rs) =>
         rs
           .bo((r) => (r.node = r.node || { o: '' }))
-          .open([{ s: [Ta], r: 'top', a: (r) => (r.node.o += 'A'), g: 'ga' }])
+          .open([
+	    { s: [ZZ], g:'E' },
+	    { s: [Ta], r: 'top', a: (r) => (r.node.o += 'A'), g: 'ga' },
+	  ])
       )
     })
 
-    expect(j('a')).toEqual({ o: 'A' })
-    expect(j.rule('top').def.open.map((alt) => alt.g[0])).toEqual(['ga'])
+    // j.use(Debug)
+    // console.log(j.debug.describe())
+    
+    expect(j('a',{xlog:-1})).toEqual({ o: 'A' })
+    expect(j.rule('top').def.open.map((alt) => alt.g[0])).toEqual(['E','ga'])
 
     // Prepend by default
     j.use((j) => {
@@ -339,7 +356,7 @@ describe('custom', function () {
     })
 
     expect(j('ab')).toEqual({ o: 'AB' })
-    expect(j.rule('top').def.open.map((alt) => alt.g[0])).toEqual(['gb', 'ga'])
+    expect(j.rule('top').def.open.map((alt) => alt.g[0])).toEqual(['gb', 'E', 'ga'])
 
     // Append flag
     j.use((j) => {
@@ -353,6 +370,7 @@ describe('custom', function () {
     expect(j('abc')).toEqual({ o: 'ABC' })
     expect(j.rule('top').def.open.map((alt) => alt.g[0])).toEqual([
       'gb',
+      'E',
       'ga',
       'gc',
     ])
@@ -362,7 +380,7 @@ describe('custom', function () {
       j.rule('top', (rs) =>
         rs.open([{ s: [Td], r: 'top', a: (r) => (r.node.o += 'D'), g: 'gd' }], {
           append: true,
-          delete: [1],
+          delete: [2],
         })
       )
     })
@@ -370,6 +388,7 @@ describe('custom', function () {
     expect(j('bcd')).toEqual({ o: 'BCD' })
     expect(j.rule('top').def.open.map((alt) => alt.g[0])).toEqual([
       'gb',
+      'E',
       'gc',
       'gd',
     ])
@@ -386,21 +405,23 @@ describe('custom', function () {
 
     expect(j('bcde')).toEqual({ o: 'BCDE' })
     expect(j.rule('top').def.open.map((alt) => alt.g[0])).toEqual([
-      'gc',
-      'gb',
-      'ge',
+      'E', 
+      'gb', // 0 -> 1
       'gd',
+      'ge',
+      'gc', // 2 -> -1
     ])
 
     // Delete ops
     j.use((j) => {
-      j.rule('top', (rs) => rs.open([], { delete: [1, 2] }))
+      j.rule('top', (rs) => rs.open([], { delete: [1,3] }))
     })
 
     expect(j('cd')).toEqual({ o: 'CD' })
-    expect(j.rule('top').def.open.map((alt) => alt.g[0])).toEqual(['gc', 'gd'])
+    expect(j.rule('top').def.open.map((alt) => alt.g[0])).toEqual(['E','gd','gc'])
   })
 
+  
   it('parser-any-def', () => {
     let j = make_norules({ rule: { start: 'top' } })
     let rsdef = (rs) => rs.clear().open([{ s: [AA, TX] }])
@@ -416,6 +437,7 @@ describe('custom', function () {
     expect(() => j('AAA,')).toThrow(/unexpected.*AAA/)
   })
 
+  
   it('parser-token-error-why', () => {
     let j = make_norules({ rule: { start: 'top' } })
 
@@ -432,6 +454,7 @@ describe('custom', function () {
     expect(() => j('a')).toThrow(/foo.*AAA/s)
   })
 
+  
   it('parser-multi-alts', () => {
     expect(Jsonic('a:1')).toEqual({ a: 1 })
 
@@ -462,6 +485,7 @@ describe('custom', function () {
     expect(() => j('ad')).toThrow(/unexpected.*d/)
   })
 
+  
   it('parser-value', () => {
     function Car() {
       this.m = true
@@ -511,6 +535,7 @@ describe('custom', function () {
     expect(j('ferry') instanceof Car).toEqual(true)
   })
 
+
   it('parser-mixed-token', () => {
     expect(Jsonic('a:1')).toEqual({ a: 1 })
 
@@ -551,6 +576,7 @@ describe('custom', function () {
     }
   })
 
+  
   it('merge', () => {
     // verify standard merges
     expect(Jsonic('a:1,a:2')).toEqual({ a: 2 })
@@ -573,6 +599,7 @@ describe('custom', function () {
     expect(j('a:1,a:2,a:3')).toEqual({ a: 6 })
   })
 
+  
   it('parser-condition-depth', () => {
     expect(Jsonic('a:1')).toEqual({ a: 1 })
 
@@ -608,6 +635,7 @@ describe('custom', function () {
     expect(() => j('fb')).toThrow(/unexpected/)
   })
 
+  
   it('parser-condition-counter', () => {
     expect(Jsonic('a:1')).toEqual({ a: 1 })
 
@@ -650,6 +678,7 @@ describe('custom', function () {
     expect(() => j('fb')).toThrow(/unexpected/)
   })
 
+  
   it('parser-keep-propagates', () => {
     expect(Jsonic('a:1')).toEqual({ a: 1 })
 
@@ -701,6 +730,7 @@ describe('custom', function () {
     })
   })
 })
+
 
 function make_norules(opts) {
   let j = Jsonic.make(opts)

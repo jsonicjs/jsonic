@@ -1,9 +1,20 @@
 let { Jsonic, util, Debug } = require('..')
 
-let j = Jsonic.make().use(Debug)
+let j = Jsonic.make(
+  // {list: { property: false }}
+).use(Debug)
 console.log(j.debug.describe())
 
-console.log(j('a:1,b:2,',{log:-1}))
+console.log(j('[a:1]',{log:-1}))
+// console.log(j('[{}]',{log:-1}))
+// console.log(j('y:{a:b:2},z:0',{log:-1}))
+// console.log(j('{y:{a:b:2},z:0}',{log:-1}))
+// console.log(j('{y:{x:{a:b:2}},z:0}',{log:-1}))
+
+// console.log(j('{,]',{log:-1}))
+// console.log(j('[0,a:1,1,b:2,c:3]',{log:-1}))
+// console.log(j('{',{log:-1}))
+// console.log(j('a:1,b:2,',{log:-1}))
 // console.log(j('a:b:1 c:d:2',{xlog:-1}))
 // console.log(j('a:b:c:1,d:2',{log:-1}))
 // console.log(j('a,b,',{log:-1}))

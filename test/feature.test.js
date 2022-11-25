@@ -38,6 +38,7 @@ describe('feature', function () {
     expect(match([2, 1], [undefined, 1])).toBeUndefined()
   })
 
+  
   it('implicit-comma', () => {
     expect(j('[0,1]')).toEqual([0, 1])
     expect(j('[0,null]')).toEqual([0, null])
@@ -61,6 +62,7 @@ describe('feature', function () {
     expect(j('true\nfalse\nnull')).toEqual([true, false, null])
   })
 
+  
   it('single-char', () => {
     expect(j()).toEqual(undefined)
     expect(j('')).toEqual(undefined)
@@ -804,7 +806,7 @@ describe('feature', function () {
     expect(j('[a:1]').a).toEqual(1)
 
     let k = j.make({ list: { property: false } })
-    expect(k('[a:1]').a).toEqual(undefined)
+    expect(()=>k('[a:1]')).toThrow(/unexpected/)
   })
 
   /* TODO: fix
@@ -989,6 +991,7 @@ describe('feature', function () {
         '{"y":{"x":{"a":{"b":{"c":3}},"d":{"e":{"f":6}}}}}',
       ],
 
+      ['{y:{a:b:2},z:0}', '{"y":{"a":{"b":2}},"z":0}'],
       ['{y:{x:{a:b:2}},z:0}', '{"y":{"x":{"a":{"b":2}}},"z":0}'],
       ['{y:{x:{a:b:c:3}},z:0}', '{"y":{"x":{"a":{"b":{"c":3}}}},"z":0}'],
       ['{y:{x:{a:b:2,c:3}},z:0}', '{"y":{"x":{"a":{"b":2},"c":3}},"z":0}'],
@@ -1089,12 +1092,12 @@ describe('feature', function () {
 
     let count = { pass: 0, fail: 0 }
 
-    cases.forEach((c) => {
+    cases.forEach((c,i) => {
       let out = j(c[0])
       let ok = out === c[1]
       count[ok ? 'pass' : 'fail']++
       if (!ok) {
-        console.log(ok ? '\x1b[0;32mPASS' : '\x1b[1;31mFAIL', c[0], '->', out)
+        console.log(ok ? '\x1b[0;32mPASS' : '\x1b[1;31mFAIL', c[0], '->', out, 'I='+i)
         console.log(' '.repeat(7 + c[0].length), '\x1b[1;34m', c[1])
       }
     })

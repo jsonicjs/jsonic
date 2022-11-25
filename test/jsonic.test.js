@@ -37,6 +37,7 @@ describe('jsonic', function () {
     expect(Jsonic('["a",1]')).toEqual(['a', 1])
   })
 
+  
   it('options', () => {
     let j = Jsonic.make({ x: 1 })
 
@@ -87,9 +88,11 @@ describe('jsonic', function () {
         rule: { exclude: 'json' },
       })
     })
-    expect(k1.rule().val.def.open.length).toEqual(4)
+    // console.log(k1.rule().val.def.open)
+    expect(k1.rule().val.def.open.length).toEqual(5)
   })
 
+  
   it('token-gen', () => {
     let j = Jsonic.make()
 

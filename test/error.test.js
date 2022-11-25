@@ -145,7 +145,7 @@ describe('error', function () {
       // console.log(e)
       expect(
         JSON.stringify(e).includes(
-          '{"code":"unexpected","details":{},' +
+          '{"code":"unexpected","details":{"state":"open"},' +
             '"meta":{},"lineNumber":1,"columnNumber":1'
         )
       ).toBeTruthy()
