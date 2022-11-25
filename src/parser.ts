@@ -47,6 +47,7 @@ class ParserImpl implements Parser {
     this.cfg = cfg
   }
 
+  // TODO: ensure chains properly, both for create and extend rule
   // Multi-functional get/set for rules.
   rule(
     name?: string,
@@ -105,10 +106,12 @@ class ParserImpl implements Parser {
       xs: -1,
       v2: endtkn,
       v1: endtkn,
-      t0: endtkn,
-      t1: endtkn,
+      // t0: endtkn,
+      // t1: endtkn,
+      t0: notoken,
+      t1: notoken,
       tC: -2, // Prepare count for 2-token lookahead.
-      next,
+      // next,
       rs: [],
       rsI: 0,
       rsm: this.rsm,
@@ -136,7 +139,6 @@ class ParserImpl implements Parser {
       }
     }
 
-    // let tn = (pin: Tin): string => tokenize(pin, this.cfg)
     let lex = badlex(makeLex(ctx), tokenize('#BD', this.cfg), ctx)
     let startspec = this.rsm[this.cfg.rule.start]
 
@@ -155,30 +157,30 @@ class ParserImpl implements Parser {
     let maxr =
       2 * keys(this.rsm).length * lex.src.length * 2 * ctx.cfg.rule.maxmul
 
-    let IGNORE = ctx.cfg.tokenSetTins.IGNORE
+    // let IGNORE = ctx.cfg.tokenSetTins.IGNORE
 
     // Lex next token.
-    function next(r: Rule) {
-      ctx.v2 = ctx.v1
-      ctx.v1 = ctx.t0
-      ctx.t0 = ctx.t1
+    // function next(r: Rule) {
+    //   ctx.v2 = ctx.v1
+    //   ctx.v1 = ctx.t0
+    //   ctx.t0 = ctx.t1
 
-      let i0
+    //   let i0
 
-      let t1
-      do {
-        t1 = lex(r)
-        ctx.tC++
-      } while (IGNORE[t1.tin] && (i0 = t1))
+    //   let t1
+    //   do {
+    //     t1 = lex(r)
+    //     ctx.tC++
+    //   } while (IGNORE[t1.tin] && (i0 = t1))
 
-      t1.ignored = i0
-      ctx.t1 = t1
+    //   t1.ignored = i0
+    //   ctx.t1 = t1
 
-      return ctx.t0
-    }
+    //   return ctx.t0
+    // }
 
-    // Look two tokens ahead
-    rule.need = 2
+    // // Look two tokens ahead
+    // rule.need = 2
 
     // Process rules on tokens
     let rI = 0
@@ -195,13 +197,17 @@ class ParserImpl implements Parser {
 
       ctx.rule = rule
 
-      rule = rule.process(ctx)
+      rule = rule.process(ctx, lex)
 
       rI++
     }
 
     // TODO: option to allow trailing content
-    if (tokenize('#ZZ', this.cfg) !== ctx.t0.tin) {
+    // if (tokenize('#ZZ', this.cfg) !== ctx.t0.tin) {
+    // if (tokenize('#ZZ', this.cfg) !== ctx.v1.tin) {
+    // console.log(ctx.v1)
+    // if (endtkn.tin !== ctx.v1.tin) {
+    if (endtkn.tin !== lex.next(rule).tin) {
       throw new JsonicError(S.unexpected, {}, ctx.t0, norule, ctx)
     }
 

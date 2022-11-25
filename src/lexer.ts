@@ -14,6 +14,7 @@ import type {
   Context,
   MakeLexMatcher,
   Bag,
+  NormAltSpec,
 } from './types'
 
 import { EMPTY, INSPECT } from './types'
@@ -36,6 +37,7 @@ import {
   tokenize,
   entries,
   values,
+  log_lex,
 } from './utility'
 
 class PointImpl implements Point {
@@ -202,6 +204,9 @@ let makeMatchMatcher: MakeLexMatcher = (cfg: Config, _opts: Options) => {
   return function matchMatcher(lex: Lex, rule: Rule) {
     let mcfg = cfg.match
     if (!mcfg.lex) return undefined
+
+    // if ('val' === rule.name) return undefined
+
 
     let pnt = lex.pnt
     let fwd = lex.src.substring(pnt.sI)
@@ -862,7 +867,7 @@ class LexImpl implements Lex {
     return tkn
   }
 
-  next(rule: Rule): Token {
+  next(rule: Rule, alt?: NormAltSpec, altI?: number, tI?: number): Token {
     let tkn: Token | undefined
     let pnt = this.pnt
     let sI = pnt.sI
@@ -896,20 +901,7 @@ class LexImpl implements Lex {
         )
     }
 
-    if (this.ctx.log) {
-      this.ctx.log(
-        S.indent.repeat(rule.d) + S.lex, // Log entry prefix.
-
-        // Name of token from tin (token identification numer).
-        tokenize(tkn.tin, this.cfg),
-
-        this.ctx.F(tkn.src), // Format token src for log.
-        pnt.sI, // Current source index.
-        pnt.rI + ':' + pnt.cI, // Row and column.
-        match?.name || 'none',
-        this.ctx.F(this.src.substring(sI, sI + 16))
-      )
-    }
+    this.ctx.log && log_lex(rule, this.ctx, this, pnt, sI, match, tkn, alt, altI, tI)
 
     if (this.ctx.sub.lex) {
       this.ctx.sub.lex.map((sub) => sub(tkn as Token, rule, this.ctx))

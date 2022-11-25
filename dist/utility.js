@@ -1,7 +1,7 @@
 "use strict";
 /* Copyright (c) 2013-2022 Richard Rodger, MIT License */
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.findTokenSet = exports.log_stack = exports.log_parse = exports.log_node = exports.log_rule = exports.values = exports.keys = exports.omap = exports.str = exports.prop = exports.parserwrap = exports.trimstk = exports.tokenize = exports.srcfmt = exports.snip = exports.regexp = exports.mesc = exports.makelog = exports.isarr = exports.filterRules = exports.extract = exports.escre = exports.errinject = exports.errdesc = exports.entries = exports.defprop = exports.deep = exports.configure = exports.clone = exports.clean = exports.charset = exports.badlex = exports.assign = exports.S = exports.JsonicError = void 0;
+exports.descAltSeq = exports.findTokenSet = exports.log_lex = exports.log_stack = exports.log_parse = exports.log_node = exports.log_rule = exports.values = exports.keys = exports.omap = exports.str = exports.prop = exports.parserwrap = exports.trimstk = exports.tokenize = exports.srcfmt = exports.snip = exports.regexp = exports.mesc = exports.makelog = exports.isarr = exports.filterRules = exports.extract = exports.escre = exports.errinject = exports.errdesc = exports.entries = exports.defprop = exports.deep = exports.configure = exports.clone = exports.clean = exports.charset = exports.badlex = exports.assign = exports.S = exports.JsonicError = void 0;
 const types_1 = require("./types");
 const lexer_1 = require("./lexer");
 // Null-safe object and array utilities
@@ -541,9 +541,9 @@ function errdesc(code, details, token, rule, ctx) {
 }
 exports.errdesc = errdesc;
 function badlex(lex, BD, ctx) {
-    let wrap = (rule) => {
-        let token = lex.next(rule);
-        // let token = lex(rule)
+    let next = lex.next.bind(lex);
+    lex.next = (rule, alt, altI, tI) => {
+        let token = next(rule, alt, altI, tI);
         if (BD === token.tin) {
             let details = {};
             if (null != token.use) {
@@ -553,8 +553,7 @@ function badlex(lex, BD, ctx) {
         }
         return token;
     };
-    wrap.src = lex.src;
-    return wrap;
+    return lex;
 }
 exports.badlex = badlex;
 // Special debug logging to console (use Jsonic('...', {log:N})).
@@ -762,8 +761,24 @@ function parserwrap(parser) {
     };
 }
 exports.parserwrap = parserwrap;
+function descAltSeq(alt, cfg) {
+    return '[' +
+        (alt.s || [])
+            .map((tin) => 'number' === typeof tin
+            ? tokenize(tin, cfg)
+            : '[' + tin.map((t) => tokenize(t, cfg)) + ']')
+            .join(' ') +
+        '] ';
+}
+exports.descAltSeq = descAltSeq;
 function log_rule(rule, ctx) {
-    ctx.log(S.indent.repeat(rule.d) + S.rule + S.space, rule.state.toUpperCase(), (rule.prev.id + '/' + rule.parent.id + '/' + rule.child.id).padEnd(12), rule.name + '~' + rule.id, '[' + ctx.F(ctx.t0.src) + ' ' + ctx.F(ctx.t1.src) + ']', 'n:' +
+    ctx.log(S.indent.repeat(rule.d) + S.rule + S.space, rule.name + '~' + rule.id, rule.state.toUpperCase(), (rule.prev.id + '/' + rule.parent.id + '/' + rule.child.id).padEnd(12), '[' +
+        (ctx.NOTOKEN === ctx.t0 ? '' : ctx.F(ctx.t0.src)) +
+        (ctx.NOTOKEN === ctx.t1 ? '' : ' ' + ctx.F(ctx.t1.src)) +
+        ']~[' +
+        (ctx.NOTOKEN === ctx.t0 ? '' : tokenize(ctx.t0.tin, ctx.cfg)) +
+        (ctx.NOTOKEN === ctx.t1 ? '' : ' ' + tokenize(ctx.t1.tin, ctx.cfg)) +
+        ']', 'n:' +
         entries(rule.n)
             .filter((n) => n[1])
             .map((n) => n[0] + '=' + n[1])
@@ -773,11 +788,15 @@ function log_rule(rule, ctx) {
             .join(';'), 'k:' +
         entries(rule.keep)
             .map((k) => k[0] + '=' + ctx.F(k[1]))
-            .join(';'), '[' + tokenize(ctx.t0.tin, ctx.cfg) + ' ' + tokenize(ctx.t1.tin, ctx.cfg) + ']', rule, ctx);
+            .join(';'), rule, ctx);
 }
 exports.log_rule = log_rule;
 function log_node(rule, ctx, next) {
-    ctx.log(S.indent.repeat(rule.d) + S.node + S.space, rule.state.toUpperCase(), (rule.prev.id + '/' + rule.parent.id + '/' + rule.child.id).padEnd(12), rule.name + '~' + rule.id, 'w=' + next.why, 'n:' +
+    ctx.log(S.indent.repeat(rule.d) + S.node + S.space, 
+    // rule.state.toUpperCase(),
+    // (rule.prev.id + '/' + rule.parent.id + '/' + rule.child.id).padEnd(12),
+    // rule.name + '~' + rule.id,
+    'w=' + next.why, 'n:' +
         entries(rule.n)
             .filter((n) => n[1])
             .map((n) => n[0] + '=' + n[1])
@@ -791,7 +810,11 @@ function log_node(rule, ctx, next) {
 }
 exports.log_node = log_node;
 function log_parse(rule, ctx, match, cond, altI, alt, out) {
-    ctx.log(S.indent.repeat(rule.d) + S.parse, rule.state.toUpperCase(), (rule.prev.id + '/' + rule.parent.id + '/' + rule.child.id).padEnd(12), rule.name + '~' + rule.id, match ? 'alt=' + altI : 'no-alt', match && out.g ? 'g:' + out.g + ' ' : '', (match && out.p ? 'p:' + out.p + ' ' : '') +
+    ctx.log(S.indent.repeat(rule.d) + S.parse, 
+    // rule.state.toUpperCase(),
+    // (rule.prev.id + '/' + rule.parent.id + '/' + rule.child.id).padEnd(12),
+    // rule.name + '~' + rule.id,
+    match ? 'alt=' + altI : 'no-alt', match && out.g ? 'g:' + out.g + ' ' : '', (match && out.p ? 'p:' + out.p + ' ' : '') +
         (match && out.r ? 'r:' + out.r + ' ' : '') +
         (match && out.b ? 'b:' + out.b + ' ' : ''), (types_1.OPEN === rule.state
         ? [rule.o0, rule.o1].slice(0, rule.os)
@@ -806,16 +829,16 @@ function log_parse(rule, ctx, match, cond, altI, alt, out) {
             .join(';'), 'k:' +
         entries(out.k)
             .map((k) => k[0] + '=' + k[1])
-            .join(';'), 
-    // altI < alts.length && (alt as any).s
-    match && alt.s
-        ? '[' +
-            alt.s
-                .map((pin) => Array.isArray(pin)
-                ? pin.map((pin) => ctx.cfg.t[pin]).join('|')
-                : ctx.cfg.t[pin])
-                .join(' ') +
-            ']'
+            .join(';'), match && alt ? descAltSeq(alt, ctx.cfg)
+        // ? '[' +
+        // (alt as any).s
+        //   .map((pin: Tin) =>
+        //     Array.isArray(pin)
+        //       ? pin.map((pin: Tin) => ctx.cfg.t[pin]).join('|')
+        //       : ctx.cfg.t[pin]
+        //   )
+        //   .join(' ') +
+        // ']'
         : '[]', out);
 }
 exports.log_parse = log_parse;
@@ -829,4 +852,14 @@ function log_stack(rule, ctx, root) {
         .join(' '), rule, ctx);
 }
 exports.log_stack = log_stack;
+function log_lex(rule, ctx, lex, pnt, sI, match, tkn, alt, altI, tI) {
+    ctx.log(S.indent.repeat(rule.d) + S.lex, // Log entry prefix.
+    // Name of token from tin (token identification numer).
+    tokenize(tkn.tin, ctx.cfg), ctx.F(tkn.src), // Format token src for log.
+    pnt.sI, // Current source index.
+    pnt.rI + ':' + pnt.cI, // Row and column.
+    (match === null || match === void 0 ? void 0 : match.name) || '', alt ? 'on:alt=' + altI + ';' + alt.g + ';t=' + tI + ';' +
+        descAltSeq(alt, ctx.cfg) : '', ctx.F(lex.src.substring(sI, sI + 16)));
+}
+exports.log_lex = log_lex;
 //# sourceMappingURL=utility.js.map

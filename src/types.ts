@@ -234,7 +234,7 @@ export interface RuleSpec {
   clear(): RuleSpec
   norm(): RuleSpec
 
-  process(rule: Rule, ctx: Context, state: RuleState): Rule
+  process(rule: Rule, ctx: Context, lex: Lex, state: RuleState): Rule
 
   bad(tkn: Token, rule: Rule, ctx: Context, parse: { is_open: boolean }): Rule
 }
@@ -276,7 +276,7 @@ export interface Rule {
 
   // Process the "open" or "close" state of the Rule, returning the
   // next rule to process.
-  process(ctx: Context): Rule
+  process(ctx: Context, lex: Lex): Rule
 }
 
 // The current parse state and associated context.
@@ -302,7 +302,7 @@ export type Context = {
   rs: Rule[] // Rule stack.
   rsI: number
   rsm: { [name: string]: RuleSpec } // RuleSpec lookup map (by rule name).
-  next: (r: Rule) => Token // Move to next token.
+  // next: (r: Rule) => Token // Move to next token.
   log?: (...rest: any) => undefined // Log parse/lex step (if defined).
   F: (s: any) => string // Format arbitrary data as length-limited string.
   use: Bag // Custom meta data (for use by plugins)
@@ -326,7 +326,7 @@ export interface Lex {
     why?: string
   ): Token
 
-  next(rule: Rule): Token
+  next(rule: Rule, alt?: NormAltSpec, altI?: number, tI?: number): Token
 
   tokenize<R extends string | Tin, T extends R extends Tin ? string : Tin>(
     ref: R
@@ -335,6 +335,7 @@ export interface Lex {
   bad(why: string, pstart: number, pend: number): Token
 }
 
+export type NextToken = (rule: Rule) => Token
 
 // Internal clean configuration built from options by
 // `utility.configure` and LexMatchers.

@@ -1,4 +1,4 @@
-import type { RuleState, RuleStep, StateAction, Tin, Token, Config, Context, Rule, RuleSpec, AddAltOps, AltSpec } from './types';
+import type { RuleState, RuleStep, StateAction, Tin, Token, Config, Context, Rule, RuleSpec, AddAltOps, AltSpec, Lex } from './types';
 declare class RuleImpl implements Rule {
     id: number;
     name: string;
@@ -24,7 +24,7 @@ declare class RuleImpl implements Rule {
     c1: Token;
     need: number;
     constructor(spec: RuleSpec, ctx: Context, node?: any);
-    process(ctx: Context): Rule;
+    process(ctx: Context, lex: Lex): Rule;
     toString(): string;
 }
 declare const makeRule: (spec: RuleSpec, ctx: Context, node?: any) => RuleImpl;
@@ -52,7 +52,7 @@ declare class RuleSpecImpl implements RuleSpec {
     ac(first: StateAction | boolean, second?: StateAction): RuleSpec;
     clear(): this;
     norm(): this;
-    process(rule: Rule, ctx: Context, state: RuleState): Rule;
+    process(rule: Rule, ctx: Context, lex: Lex, state: RuleState): Rule;
     bad(tkn: Token, rule: Rule, ctx: Context, parse: {
         is_open: boolean;
     }): Rule;

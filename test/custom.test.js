@@ -190,7 +190,7 @@ describe('custom', function () {
       rs.open({ s: [rs.tin('#T0')] }).bc((r) => (r.node = '~T0~'))
     })
 
-    expect(j('t0')).toEqual('~T0~')
+    expect(j('t0',{xlog:-1})).toEqual('~T0~')
   })
 
   

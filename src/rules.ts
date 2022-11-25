@@ -23,6 +23,7 @@ import type {
   AltSpec,
   Counters,
   Bag,
+  Lex,
 } from './types'
 
 import { OPEN, CLOSE, BEFORE, AFTER, EMPTY, STRING } from './types'
@@ -89,8 +90,8 @@ class RuleImpl implements Rule {
     this.ac = null != spec.def.ac
   }
 
-  process(ctx: Context): Rule {
-    let rule = this.spec.process(this, ctx, this.state)
+  process(ctx: Context, lex: Lex): Rule {
+    let rule = this.spec.process(this, ctx, lex, this.state)
     return rule
   }
 
@@ -274,13 +275,13 @@ class RuleSpecImpl implements RuleSpec {
   }
 
 
-  process(rule: Rule, ctx: Context, state: RuleState): Rule {
+  process(rule: Rule, ctx: Context, lex: Lex, state: RuleState): Rule {
     let why = EMPTY
 
-    let mI = 0
-    while (mI++ < rule.need) {
-      ctx.next(rule)
-    }
+    // let mI = 0
+    // while (mI++ < rule.need) {
+    //   ctx.next(rule)
+    // }
 
     // Log rule here to ensure next tokens shown are correct.
     ctx.log && log_rule(rule, ctx)
@@ -308,7 +309,7 @@ class RuleSpecImpl implements RuleSpec {
     // Attempt to match one of the alts.
     // let alt: AltMatch = (bout && bout.alt) ? { ...EMPTY_ALT, ...bout.alt } :
     let alt: AltMatch =
-      0 < alts.length ? parse_alts(is_open, alts, rule, ctx) : EMPTY_ALT
+      0 < alts.length ? parse_alts(is_open, alts, lex, rule, ctx) : EMPTY_ALT
 
     // Custom alt handler.
     if (alt.h) {
@@ -416,8 +417,21 @@ class RuleSpecImpl implements RuleSpec {
       rule.state = CLOSE
     }
 
-    // Lex next tokens (up to backtrack).
-    next.need = rule[is_open ? 'os' : 'cs'] - (alt.b || 0)
+    // Backtrack reduces consumed token count.
+    let consumed = rule[is_open ? 'os' : 'cs'] - (alt.b || 0)
+
+    if (1 === consumed) {
+      ctx.v2 = ctx.v1
+      ctx.v1 = ctx.t0
+      ctx.t0 = ctx.t1
+      ctx.t1 = ctx.NOTOKEN
+    }
+    else if (2 == consumed) {
+      ctx.v2 = ctx.t1
+      ctx.v1 = ctx.t0
+      ctx.t0 = ctx.NOTOKEN
+      ctx.t1 = ctx.NOTOKEN
+    }
 
     return next
   }
@@ -454,6 +468,7 @@ const makeRuleSpec = (...params: ConstructorParameters<typeof RuleSpecImpl>) =>
 function parse_alts(
   is_open: boolean,
   alts: NormAltSpec[],
+  lex: Lex,
   rule: Rule,
   ctx: Context
 ): AltMatch {
@@ -474,18 +489,32 @@ function parse_alts(
   let cond: boolean = true
   let bitAA = 1 << (t.AA - 1)
 
+  // TODO: move up
+  let IGNORE = ctx.cfg.tokenSetTins.IGNORE
+
+  function next(r: Rule, alt: NormAltSpec, altI: number, tI: number) {
+    let tkn
+    do {
+      tkn = lex.next(r, alt, altI, tI)
+      ctx.tC++
+    } while (IGNORE[tkn.tin])
+    return tkn
+  }
+
+
   // TODO: replace with lookup map
   let len = alts.length
   for (altI = 0; altI < len; altI++) {
     alt = alts[altI] as NormAltSpec
 
-    let tin0 = ctx.t0.tin
     let has0 = false
     let has1 = false
 
     cond = true
 
     if (alt.S0) {
+      let tin0 = (ctx.t0 = ctx.NOTOKEN !== ctx.t0 ? ctx.t0 :
+        (ctx.t0 = next(rule, alt, altI, 0))).tin
       has0 = true
       cond = !!(alt.S0[(tin0 / 31) | 0] & ((1 << ((tin0 % 31) - 1)) | bitAA))
 
@@ -493,8 +522,9 @@ function parse_alts(
         has1 = null != alt.S1
 
         if (alt.S1) {
+          let tin1 = (ctx.t1 = ctx.NOTOKEN !== ctx.t1 ? ctx.t1 :
+            (ctx.t1 = next(rule, alt, altI, 1))).tin
           has1 = true
-          let tin1 = ctx.t1.tin
           cond = !!(alt.S1[(tin1 / 31) | 0] & ((1 << ((tin1 % 31) - 1)) | bitAA))
         }
       }
@@ -522,9 +552,14 @@ function parse_alts(
     }
   }
 
-  if (!cond && t.ZZ !== ctx.t0.tin) {
+  // if (!cond && t.ZZ !== ctx.t0.tin) {
+  //   out.e = ctx.t0
+  // }
+
+  if (!cond) {
     out.e = ctx.t0
   }
+
 
   if (alt) {
     out.n = null != alt.n ? alt.n : out.n

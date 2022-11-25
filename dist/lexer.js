@@ -131,6 +131,7 @@ let makeMatchMatcher = (cfg, _opts) => {
         let mcfg = cfg.match;
         if (!mcfg.lex)
             return undefined;
+        // if ('val' === rule.name) return undefined
         let pnt = lex.pnt;
         let fwd = lex.src.substring(pnt.sI);
         for (let matcher of matchers) {
@@ -645,7 +646,7 @@ class LexImpl {
         let tkn = makeToken(name, tin, val, src, pnt || this.pnt, use, why);
         return tkn;
     }
-    next(rule) {
+    next(rule, alt, altI, tI) {
         let tkn;
         let pnt = this.pnt;
         let sI = pnt.sI;
@@ -671,14 +672,7 @@ class LexImpl {
                 tkn ||
                     this.token('#BD', undefined, this.src[pnt.sI], pnt, undefined, 'unexpected');
         }
-        if (this.ctx.log) {
-            this.ctx.log(utility_1.S.indent.repeat(rule.d) + utility_1.S.lex, // Log entry prefix.
-            // Name of token from tin (token identification numer).
-            (0, utility_1.tokenize)(tkn.tin, this.cfg), this.ctx.F(tkn.src), // Format token src for log.
-            pnt.sI, // Current source index.
-            pnt.rI + ':' + pnt.cI, // Row and column.
-            (match === null || match === void 0 ? void 0 : match.name) || 'none', this.ctx.F(this.src.substring(sI, sI + 16)));
-        }
+        this.ctx.log && (0, utility_1.log_lex)(rule, this.ctx, this, pnt, sI, match, tkn, alt, altI, tI);
         if (this.ctx.sub.lex) {
             this.ctx.sub.lex.map((sub) => sub(tkn, rule, this.ctx));
         }

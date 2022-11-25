@@ -38,8 +38,8 @@ class RuleImpl {
         this.bc = null != spec.def.bc;
         this.ac = null != spec.def.ac;
     }
-    process(ctx) {
-        let rule = this.spec.process(this, ctx, this.state);
+    process(ctx, lex) {
+        let rule = this.spec.process(this, ctx, lex, this.state);
         return rule;
     }
     toString() {
@@ -160,12 +160,12 @@ class RuleSpecImpl {
         this.def.close.map(alt => normalt(alt));
         return this;
     }
-    process(rule, ctx, state) {
+    process(rule, ctx, lex, state) {
         let why = types_1.EMPTY;
-        let mI = 0;
-        while (mI++ < rule.need) {
-            ctx.next(rule);
-        }
+        // let mI = 0
+        // while (mI++ < rule.need) {
+        //   ctx.next(rule)
+        // }
         // Log rule here to ensure next tokens shown are correct.
         ctx.log && (0, utility_1.log_rule)(rule, ctx);
         let is_open = state === 'o';
@@ -186,7 +186,7 @@ class RuleSpecImpl {
         }
         // Attempt to match one of the alts.
         // let alt: AltMatch = (bout && bout.alt) ? { ...EMPTY_ALT, ...bout.alt } :
-        let alt = 0 < alts.length ? parse_alts(is_open, alts, rule, ctx) : EMPTY_ALT;
+        let alt = 0 < alts.length ? parse_alts(is_open, alts, lex, rule, ctx) : EMPTY_ALT;
         // Custom alt handler.
         if (alt.h) {
             alt = alt.h(rule, ctx, alt, next) || alt;
@@ -283,8 +283,20 @@ class RuleSpecImpl {
         if (types_1.OPEN === rule.state) {
             rule.state = types_1.CLOSE;
         }
-        // Lex next tokens (up to backtrack).
-        next.need = rule[is_open ? 'os' : 'cs'] - (alt.b || 0);
+        // Backtrack reduces consumed token count.
+        let consumed = rule[is_open ? 'os' : 'cs'] - (alt.b || 0);
+        if (1 === consumed) {
+            ctx.v2 = ctx.v1;
+            ctx.v1 = ctx.t0;
+            ctx.t0 = ctx.t1;
+            ctx.t1 = ctx.NOTOKEN;
+        }
+        else if (2 == consumed) {
+            ctx.v2 = ctx.t1;
+            ctx.v1 = ctx.t0;
+            ctx.t0 = ctx.NOTOKEN;
+            ctx.t1 = ctx.NOTOKEN;
+        }
         return next;
     }
     bad(tkn, rule, ctx, parse) {
@@ -304,7 +316,7 @@ const makeRuleSpec = (...params) => new RuleSpecImpl(...params);
 exports.makeRuleSpec = makeRuleSpec;
 // First match wins.
 // NOTE: input AltSpecs are used to build the Alt output.
-function parse_alts(is_open, alts, rule, ctx) {
+function parse_alts(is_open, alts, lex, rule, ctx) {
     let out = PALT;
     out.b = 0; // Backtrack n tokens.
     out.p = types_1.EMPTY; // Push named rule onto stack.
@@ -320,22 +332,34 @@ function parse_alts(is_open, alts, rule, ctx) {
     let t = ctx.cfg.t;
     let cond = true;
     let bitAA = 1 << (t.AA - 1);
+    // TODO: move up
+    let IGNORE = ctx.cfg.tokenSetTins.IGNORE;
+    function next(r, alt, altI, tI) {
+        let tkn;
+        do {
+            tkn = lex.next(r, alt, altI, tI);
+            ctx.tC++;
+        } while (IGNORE[tkn.tin]);
+        return tkn;
+    }
     // TODO: replace with lookup map
     let len = alts.length;
     for (altI = 0; altI < len; altI++) {
         alt = alts[altI];
-        let tin0 = ctx.t0.tin;
         let has0 = false;
         let has1 = false;
         cond = true;
         if (alt.S0) {
+            let tin0 = (ctx.t0 = ctx.NOTOKEN !== ctx.t0 ? ctx.t0 :
+                (ctx.t0 = next(rule, alt, altI, 0))).tin;
             has0 = true;
             cond = !!(alt.S0[(tin0 / 31) | 0] & ((1 << ((tin0 % 31) - 1)) | bitAA));
             if (cond) {
                 has1 = null != alt.S1;
                 if (alt.S1) {
+                    let tin1 = (ctx.t1 = ctx.NOTOKEN !== ctx.t1 ? ctx.t1 :
+                        (ctx.t1 = next(rule, alt, altI, 1))).tin;
                     has1 = true;
-                    let tin1 = ctx.t1.tin;
                     cond = !!(alt.S1[(tin1 / 31) | 0] & ((1 << ((tin1 % 31) - 1)) | bitAA));
                 }
             }
@@ -361,7 +385,10 @@ function parse_alts(is_open, alts, rule, ctx) {
             alt = null;
         }
     }
-    if (!cond && t.ZZ !== ctx.t0.tin) {
+    // if (!cond && t.ZZ !== ctx.t0.tin) {
+    //   out.e = ctx.t0
+    // }
+    if (!cond) {
         out.e = ctx.t0;
     }
     if (alt) {

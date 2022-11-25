@@ -173,7 +173,7 @@ export interface RuleSpec {
     ac(first: StateAction | boolean, second?: StateAction): RuleSpec;
     clear(): RuleSpec;
     norm(): RuleSpec;
-    process(rule: Rule, ctx: Context, state: RuleState): Rule;
+    process(rule: Rule, ctx: Context, lex: Lex, state: RuleState): Rule;
     bad(tkn: Token, rule: Rule, ctx: Context, parse: {
         is_open: boolean;
     }): Rule;
@@ -203,7 +203,7 @@ export interface Rule {
     ac: boolean;
     why?: string;
     need: number;
-    process(ctx: Context): Rule;
+    process(ctx: Context, lex: Lex): Rule;
 }
 export type Context = {
     uI: number;
@@ -229,7 +229,6 @@ export type Context = {
     rsm: {
         [name: string]: RuleSpec;
     };
-    next: (r: Rule) => Token;
     log?: (...rest: any) => undefined;
     F: (s: any) => string;
     use: Bag;
@@ -242,10 +241,11 @@ export interface Lex {
     cfg: Config;
     pnt: Point;
     token(ref: Tin | string, val: any, src: string, pnt?: Point, use?: any, why?: string): Token;
-    next(rule: Rule): Token;
+    next(rule: Rule, alt?: NormAltSpec, altI?: number, tI?: number): Token;
     tokenize<R extends string | Tin, T extends R extends Tin ? string : Tin>(ref: R): T;
     bad(why: string, pstart: number, pend: number): Token;
 }
+export type NextToken = (rule: Rule) => Token;
 export type Config = {
     lex: {
         match: LexMatcher[];

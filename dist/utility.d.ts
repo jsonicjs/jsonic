@@ -1,4 +1,4 @@
-import type { AltMatch, Bag, Chars, Config, Context, Lex, NormAltSpec, Options, Rule, RuleSpec, Tin, Token } from './types';
+import type { AltMatch, Bag, Chars, Config, Context, Lex, LexMatcher, NormAltSpec, Options, Rule, RuleSpec, Tin, Token, Point } from './types';
 declare const keys: (x: any) => string[];
 declare const values: <T>(x: {
     [key: string]: T;
@@ -70,7 +70,7 @@ declare function errinject(s: string, code: string, details: Bag, token: Token, 
 declare function trimstk(err: Error): void;
 declare function extract(src: string, errtxt: string, token: Token): string;
 declare function errdesc(code: string, details: Bag, token: Token, rule: Rule, ctx: Context): Bag;
-declare function badlex(lex: Lex, BD: Tin, ctx: Context): any;
+declare function badlex(lex: Lex, BD: Tin, ctx: Context): Lex;
 declare function makelog(ctx: Context, meta: any): ((...rest: any) => undefined) | undefined;
 declare function srcfmt(config: Config): (s: any) => string;
 declare function str(o: any, len?: number): string;
@@ -83,8 +83,10 @@ declare function prop(obj: any, path: string, val: any): any;
 declare function parserwrap(parser: any): {
     start: (src: string, jsonic: any, meta?: any, parent_ctx?: any) => any;
 };
+declare function descAltSeq(alt: NormAltSpec, cfg: Config): string;
 declare function log_rule(rule: Rule, ctx: Context): void;
 declare function log_node(rule: Rule, ctx: Context, next: Rule): void;
 declare function log_parse(rule: Rule, ctx: Context, match: boolean, cond: boolean, altI: number, alt: NormAltSpec | null, out: AltMatch): void;
 declare function log_stack(rule: Rule, ctx: Context, root: Rule): void;
-export { JsonicError, S, assign, badlex, charset, clean, clone, configure, deep, defprop, entries, errdesc, errinject, escre, extract, filterRules, isarr, makelog, mesc, regexp, snip, srcfmt, tokenize, trimstk, parserwrap, prop, str, omap, keys, values, log_rule, log_node, log_parse, log_stack, findTokenSet, };
+declare function log_lex(rule: Rule, ctx: Context, lex: Lex, pnt: Point, sI: number, match: LexMatcher | undefined, tkn: Token, alt?: NormAltSpec, altI?: number, tI?: number): void;
+export { JsonicError, S, assign, badlex, charset, clean, clone, configure, deep, defprop, entries, errdesc, errinject, escre, extract, filterRules, isarr, makelog, mesc, regexp, snip, srcfmt, tokenize, trimstk, parserwrap, prop, str, omap, keys, values, log_rule, log_node, log_parse, log_stack, log_lex, findTokenSet, descAltSeq, };

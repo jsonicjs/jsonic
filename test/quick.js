@@ -1,4 +1,18 @@
-let { Jsonic, util } = require('..')
+let { Jsonic, util, Debug } = require('..')
+
+let j = Jsonic.make().use(Debug)
+console.log(j.debug.describe())
+
+console.log(j('a:b:1 c:d:2',{log:-1}))
+// console.log(j('a:b:c:1,d:2',{log:-1}))
+// console.log(j('a,b,',{log:-1}))
+// console.log(j('[a,b,]',{log:-1}))
+// console.log(j('#x',{log:-1}))
+// console.log(j('a:b:1,c:2',{log:-1}))
+// console.log(j('{a:1,b:2}',{log:-1}))
+
+// console.log(j('{,]',{log:-1}))
+
 
 // let json = Jsonic.make('json')
 
@@ -21,4 +35,4 @@ let { Jsonic, util } = require('..')
 // console.log(Jsonic('[{a:1 b:2}]', { log: -1 }))
 
 
-console.log(Jsonic.make().token('#CA'))
+// console.log(Jsonic.make().token('#CA'))

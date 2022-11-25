@@ -17,10 +17,10 @@ import type {
   Options,
   Rule,
   RuleSpec,
-  RuleSpecMap,
   Tin,
   Token,
   ValModifier,
+  Point,
 } from './types'
 
 import { OPEN, EMPTY, STRING } from './types'
@@ -706,9 +706,10 @@ function errdesc(
 }
 
 function badlex(lex: Lex, BD: Tin, ctx: Context) {
-  let wrap: any = (rule: Rule) => {
-    let token = lex.next(rule)
-    // let token = lex(rule)
+  let next = lex.next.bind(lex)
+
+  lex.next = (rule: Rule, alt: NormAltSpec, altI: number, tI: number) => {
+    let token = next(rule, alt, altI, tI)
 
     if (BD === token.tin) {
       let details: any = {}
@@ -726,8 +727,8 @@ function badlex(lex: Lex, BD: Tin, ctx: Context) {
 
     return token
   }
-  wrap.src = lex.src
-  return wrap
+
+  return lex
 }
 
 // Special debug logging to console (use Jsonic('...', {log:N})).
@@ -978,15 +979,37 @@ function parserwrap(parser: any) {
 }
 
 
+function descAltSeq(alt: NormAltSpec, cfg: Config) {
+  return '[' +
+    (alt.s || [])
+      .map((tin: any) =>
+        'number' === typeof tin
+          ? tokenize(tin, cfg)
+          : '[' + tin.map((t: any) => tokenize(t, cfg)) + ']'
+      )
+      .join(' ') +
+    '] '
+}
+
+
 function log_rule(rule: Rule, ctx: Context) {
   (ctx as any).log(
     S.indent.repeat(rule.d) + S.rule + S.space,
+    rule.name + '~' + rule.id,
     rule.state.toUpperCase(),
+
     (rule.prev.id + '/' + rule.parent.id + '/' + rule.child.id).padEnd(
       12
     ),
-    rule.name + '~' + rule.id,
-    '[' + ctx.F(ctx.t0.src) + ' ' + ctx.F(ctx.t1.src) + ']',
+
+    '[' +
+    (ctx.NOTOKEN === ctx.t0 ? '' : ctx.F(ctx.t0.src)) +
+    (ctx.NOTOKEN === ctx.t1 ? '' : ' ' + ctx.F(ctx.t1.src)) +
+    ']~[' +
+    (ctx.NOTOKEN === ctx.t0 ? '' : tokenize(ctx.t0.tin, ctx.cfg)) +
+    (ctx.NOTOKEN === ctx.t1 ? '' : ' ' + tokenize(ctx.t1.tin, ctx.cfg)) +
+    ']',
+
     'n:' +
     entries(rule.n)
       .filter((n) => n[1])
@@ -1001,8 +1024,6 @@ function log_rule(rule: Rule, ctx: Context) {
       .map((k) => k[0] + '=' + ctx.F(k[1]))
       .join(';'),
 
-    '[' + tokenize(ctx.t0.tin, ctx.cfg) + ' ' + tokenize(ctx.t1.tin, ctx.cfg) + ']',
-
     rule,
     ctx
   )
@@ -1013,9 +1034,9 @@ function log_rule(rule: Rule, ctx: Context) {
 function log_node(rule: Rule, ctx: Context, next: Rule) {
   (ctx as any).log(
     S.indent.repeat(rule.d) + S.node + S.space,
-    rule.state.toUpperCase(),
-    (rule.prev.id + '/' + rule.parent.id + '/' + rule.child.id).padEnd(12),
-    rule.name + '~' + rule.id,
+    // rule.state.toUpperCase(),
+    // (rule.prev.id + '/' + rule.parent.id + '/' + rule.child.id).padEnd(12),
+    // rule.name + '~' + rule.id,
     'w=' + next.why,
     'n:' +
     entries(rule.n)
@@ -1046,9 +1067,10 @@ function log_parse(
 ) {
   (ctx as any).log(
     S.indent.repeat(rule.d) + S.parse,
-    rule.state.toUpperCase(),
-    (rule.prev.id + '/' + rule.parent.id + '/' + rule.child.id).padEnd(12),
-    rule.name + '~' + rule.id,
+
+    // rule.state.toUpperCase(),
+    // (rule.prev.id + '/' + rule.parent.id + '/' + rule.child.id).padEnd(12),
+    // rule.name + '~' + rule.id,
 
     match ? 'alt=' + altI : 'no-alt',
 
@@ -1078,17 +1100,16 @@ function log_parse(
       .map((k) => k[0] + '=' + k[1])
       .join(';'),
 
-    // altI < alts.length && (alt as any).s
-    match && (alt as any).s
-      ? '[' +
-      (alt as any).s
-        .map((pin: Tin) =>
-          Array.isArray(pin)
-            ? pin.map((pin: Tin) => ctx.cfg.t[pin]).join('|')
-            : ctx.cfg.t[pin]
-        )
-        .join(' ') +
-      ']'
+    match && alt ? descAltSeq(alt, ctx.cfg)
+      // ? '[' +
+      // (alt as any).s
+      //   .map((pin: Tin) =>
+      //     Array.isArray(pin)
+      //       ? pin.map((pin: Tin) => ctx.cfg.t[pin]).join('|')
+      //       : ctx.cfg.t[pin]
+      //   )
+      //   .join(' ') +
+      // ']'
       : '[]',
 
     out
@@ -1113,6 +1134,38 @@ function log_stack(rule: Rule, ctx: Context, root: Rule) {
     ctx
   )
 }
+
+
+function log_lex(
+  rule: Rule,
+  ctx: Context,
+  lex: Lex,
+  pnt: Point,
+  sI: number,
+  match: LexMatcher | undefined,
+  tkn: Token,
+  alt?: NormAltSpec,
+  altI?: number,
+  tI?: number,
+) {
+  (ctx as any).log(
+    S.indent.repeat(rule.d) + S.lex, // Log entry prefix.
+
+    // Name of token from tin (token identification numer).
+    tokenize(tkn.tin, ctx.cfg),
+
+    ctx.F(tkn.src), // Format token src for log.
+    pnt.sI, // Current source index.
+    pnt.rI + ':' + pnt.cI, // Row and column.
+    match?.name || '',
+
+    alt ? 'on:alt=' + altI + ';' + alt.g + ';t=' + tI + ';' +
+      descAltSeq(alt, ctx.cfg) : '',
+
+    ctx.F(lex.src.substring(sI, sI + 16))
+  )
+}
+
 
 export {
   JsonicError,
@@ -1149,5 +1202,7 @@ export {
   log_node,
   log_parse,
   log_stack,
+  log_lex,
   findTokenSet,
+  descAltSeq,
 }
