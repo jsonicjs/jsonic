@@ -38,6 +38,7 @@ declare class RuleSpecImpl implements RuleSpec {
         bc: StateAction[];
         ao: StateAction[];
         ac: StateAction[];
+        tcol: number[][][];
     };
     cfg: Config;
     constructor(cfg: Config, def: any);

@@ -127,14 +127,19 @@ let makeMatchMatcher = (cfg, _opts) => {
     if (0 === matchers.length) {
         return null;
     }
-    return function matchMatcher(lex, rule) {
+    return function matchMatcher(lex, rule, tI = 0) {
         let mcfg = cfg.match;
         if (!mcfg.lex)
             return undefined;
-        // if ('val' === rule.name) return undefined
         let pnt = lex.pnt;
         let fwd = lex.src.substring(pnt.sI);
+        let oc = 'o' === rule.state ? 0 : 1;
         for (let matcher of matchers) {
+            // Only match Token if present in Rule sequence.
+            if (matcher.tin$ &&
+                !rule.spec.def.tcol[oc][tI].includes(matcher.tin$)) {
+                continue;
+            }
             if (matcher instanceof RegExp) {
                 let m = fwd.match(matcher);
                 if (m) {
@@ -663,7 +668,7 @@ class LexImpl {
         }
         else {
             for (let mat of this.cfg.lex.match) {
-                if ((tkn = mat(this, rule))) {
+                if ((tkn = mat(this, rule, tI))) {
                     match = mat;
                     break;
                 }

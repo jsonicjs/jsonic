@@ -371,6 +371,8 @@ function grammar(jsonic: Jsonic) {
           // Ignore trailing comma at end of map.
           { s: [CA, CB], c: { n: { pk: 0 } }, b: 1, g: 'map,pair,comma,jsonic' },
 
+          { s: [CA, ZZ], g: 'end,jsonic' },
+
           // Comma means a new pair at same pair-key level.
           { s: [CA], c: { n: { pk: 0 } }, r: 'pair', g: 'map,pair,json' },
 
@@ -380,7 +382,8 @@ function grammar(jsonic: Jsonic) {
 
           // Who needs commas anyway?
           {
-            s: [VAL],
+            // s: [VAL],
+            s: [KEY],
             c: { n: { pk: 0 } },
             r: 'pair',
             b: 1,
@@ -390,7 +393,8 @@ function grammar(jsonic: Jsonic) {
           // TODO: try VAL CL ? works anywhere?
           // Value means a new pair if implicit top level map.
           {
-            s: [VAL],
+            // s: [VAL],
+            s: [KEY],
             c: { n: { im: 1 } },
             r: 'pair',
             b: 1,
@@ -398,7 +402,12 @@ function grammar(jsonic: Jsonic) {
           },
 
           // End of implicit path (eg. a:b:1), keep closing until pk=0.
-          { s: [[CB, CA, ...VAL]], b: 1, g: 'map,pair,imp,path,jsonic' },
+          {
+            s: [[CB, CA,
+              // ...VAL
+              ...KEY
+            ]], b: 1, g: 'map,pair,imp,path,jsonic'
+          },
 
           // Close implicit single prop map inside list: [a:1]
           { s: [CS], b: 1, g: 'list,pair,imp,jsonic' },

@@ -201,17 +201,22 @@ let makeMatchMatcher: MakeLexMatcher = (cfg: Config, _opts: Options) => {
     return null
   }
 
-  return function matchMatcher(lex: Lex, rule: Rule) {
+  return function matchMatcher(lex: Lex, rule: Rule, tI: number = 0) {
     let mcfg = cfg.match
     if (!mcfg.lex) return undefined
-
-    // if ('val' === rule.name) return undefined
-
 
     let pnt = lex.pnt
     let fwd = lex.src.substring(pnt.sI)
 
+    let oc = 'o' === rule.state ? 0 : 1
+
     for (let matcher of matchers) {
+
+      // Only match Token if present in Rule sequence.
+      if ((matcher as any).tin$ &&
+        !rule.spec.def.tcol[oc][tI].includes((matcher as any).tin$)) {
+        continue
+      }
 
       if (matcher instanceof RegExp) {
         let m = fwd.match(matcher)
@@ -883,7 +888,7 @@ class LexImpl implements Lex {
       tkn = pnt.end
     } else {
       for (let mat of this.cfg.lex.match) {
-        if ((tkn = mat(this, rule))) {
+        if ((tkn = mat(this, rule, tI))) {
           match = mat
           break
         }

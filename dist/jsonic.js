@@ -205,7 +205,6 @@ function make(param_options, parent) {
         internal.config = (0, utility_1.configure)(rootWithAPI, undefined, merged_options);
         internal.plugins = [];
         internal.parser = (0, parser_1.makeParser)(merged_options, internal.config);
-        // console.log('MP', internal.parser)
         if (false !== merged_options.grammar$) {
             (0, grammar_1.grammar)(rootWithAPI);
         }

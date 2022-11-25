@@ -31,10 +31,7 @@ describe('variant', function () {
     expect(() => json("'a'")).toThrow(/unexpected.*:1:1/s)
     expect(() => json('')).toThrow(/unexpected.*:1:1/s)
     expect(() => json('{"a":1')).toThrow(/unexpected.*:1:7/s)
-
-    // TODO: fix: unexpected on `a` as `,` is already parsed as a valid fixed token
-    expect(() => json('[,a]')).toThrow(/unexpected.*:1:3/s)
-
+    expect(() => json('[,a]')).toThrow(/unexpected.*:1:2/s)
     expect(() => json('')).toThrow(/unexpected/s)
     expect(() => json('00')).toThrow(/unexpected/s)
     expect(() => json('{0:1}')).toThrow(/unexpected/s)

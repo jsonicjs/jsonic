@@ -384,8 +384,6 @@ function make(param_options?: Bag | string, parent?: Jsonic): Jsonic {
     internal.plugins = []
     internal.parser = makeParser(merged_options, internal.config)
 
-    // console.log('MP', internal.parser)
-
     if (false !== merged_options.grammar$) {
       grammar(rootWithAPI)
     }

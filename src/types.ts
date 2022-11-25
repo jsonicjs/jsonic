@@ -214,6 +214,7 @@ export interface RuleSpec {
     bc: StateAction[]
     ao: StateAction[]
     ac: StateAction[]
+    tcol: Tin[][][]
   }
 
   tin<R extends string | Tin, T extends R extends Tin ? string : Tin>(ref: R): T
@@ -616,7 +617,7 @@ export type RuleState = 'o' | 'c'
 export type RuleStep = 'b' | 'a'
 
 // A lexing function that attempts to match tokens.
-export type LexMatcher = (lex: Lex, rule: Rule) => Token | undefined
+export type LexMatcher = (lex: Lex, rule: Rule, tI?: number) => Token | undefined
 
 // Construct a lexing function based on configuration.
 export type MakeLexMatcher = (cfg: Config, opts: Options) => LexMatcher | null | undefined | false

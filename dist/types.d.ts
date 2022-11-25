@@ -161,6 +161,7 @@ export interface RuleSpec {
         bc: StateAction[];
         ao: StateAction[];
         ac: StateAction[];
+        tcol: Tin[][][];
     };
     tin<R extends string | Tin, T extends R extends Tin ? string : Tin>(ref: R): T;
     add(state: RuleState, a: AltSpec | AltSpec[], flags: any): RuleSpec;
@@ -450,7 +451,7 @@ export type StrMap = {
 };
 export type RuleState = 'o' | 'c';
 export type RuleStep = 'b' | 'a';
-export type LexMatcher = (lex: Lex, rule: Rule) => Token | undefined;
+export type LexMatcher = (lex: Lex, rule: Rule, tI?: number) => Token | undefined;
 export type MakeLexMatcher = (cfg: Config, opts: Options) => LexMatcher | null | undefined | false;
 export type RuleSpecMap = {
     [name: string]: RuleSpec;

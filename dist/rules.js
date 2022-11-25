@@ -72,6 +72,7 @@ class RuleSpecImpl {
             bc: [],
             ao: [],
             ac: [],
+            tcol: [],
         };
         this.cfg = cfg;
         this.def = Object.assign(this.def, def);
@@ -116,6 +117,7 @@ class RuleSpecImpl {
             this.def[altState] = alts.filter((a) => null != a);
         }
         (0, utility_1.filterRules)(this, this.cfg);
+        this.norm();
         return this;
     }
     open(a, flags) {
@@ -158,6 +160,31 @@ class RuleSpecImpl {
     norm() {
         this.def.open.map(alt => normalt(alt));
         this.def.close.map(alt => normalt(alt));
+        // [stateI is o=0,c=1][tokenI is t0=0,t1=1][tins]
+        const columns = [];
+        // let name = this.name
+        this.def.open.reduce(...collate(0, 0, columns));
+        this.def.open.reduce(...collate(0, 1, columns));
+        this.def.close.reduce(...collate(1, 0, columns));
+        this.def.close.reduce(...collate(1, 1, columns));
+        this.def.tcol = columns;
+        // console.log('C', this.name, '00', descAltSeq({ s: columns[0][0] } as any, this.cfg))
+        // console.log('C', this.name, '01', descAltSeq({ s: columns[0][1] } as any, this.cfg))
+        // console.log('C', this.name, '10', descAltSeq({ s: columns[1][0] } as any, this.cfg))
+        // console.log('C', this.name, '11', descAltSeq({ s: columns[1][1] } as any, this.cfg))
+        function collate(stateI, tokenI, columns) {
+            columns[stateI] = (columns[stateI] || []);
+            let tins = (columns[stateI][tokenI] = (columns[stateI][tokenI] || []));
+            return [function (tins, alt) {
+                    // console.log(name, tins, alt)
+                    if (alt.s && alt.s[tokenI]) {
+                        let newtins = [...new Set(tins.concat(alt.s[tokenI]))];
+                        tins.length = 0;
+                        tins.push(...newtins);
+                    }
+                    return tins;
+                }, tins];
+        }
         return this;
     }
     process(rule, ctx, lex, state) {

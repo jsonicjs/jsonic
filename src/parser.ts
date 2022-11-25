@@ -203,10 +203,6 @@ class ParserImpl implements Parser {
     }
 
     // TODO: option to allow trailing content
-    // if (tokenize('#ZZ', this.cfg) !== ctx.t0.tin) {
-    // if (tokenize('#ZZ', this.cfg) !== ctx.v1.tin) {
-    // console.log(ctx.v1)
-    // if (endtkn.tin !== ctx.v1.tin) {
     if (endtkn.tin !== lex.next(rule).tin) {
       throw new JsonicError(S.unexpected, {}, ctx.t0, norule, ctx)
     }

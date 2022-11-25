@@ -37,6 +37,7 @@ import {
   log_rule,
   log_node,
   log_parse,
+  descAltSeq,
 } from './utility'
 
 
@@ -136,6 +137,7 @@ class RuleSpecImpl implements RuleSpec {
     bc: [] as StateAction[],
     ao: [] as StateAction[],
     ac: [] as StateAction[],
+    tcol: [] as Tin[][][],
   }
   cfg: Config
 
@@ -195,6 +197,9 @@ class RuleSpecImpl implements RuleSpec {
     }
 
     filterRules(this, this.cfg)
+
+    this.norm()
+
     return this
   }
 
@@ -271,6 +276,42 @@ class RuleSpecImpl implements RuleSpec {
   norm() {
     this.def.open.map(alt => normalt(alt))
     this.def.close.map(alt => normalt(alt))
+
+    // [stateI is o=0,c=1][tokenI is t0=0,t1=1][tins]
+    const columns: Tin[][][] = []
+
+    // let name = this.name
+
+    this.def.open.reduce(...collate(0, 0, columns))
+    this.def.open.reduce(...collate(0, 1, columns))
+    this.def.close.reduce(...collate(1, 0, columns))
+    this.def.close.reduce(...collate(1, 1, columns))
+
+    this.def.tcol = columns
+
+    // console.log('C', this.name, '00', descAltSeq({ s: columns[0][0] } as any, this.cfg))
+    // console.log('C', this.name, '01', descAltSeq({ s: columns[0][1] } as any, this.cfg))
+    // console.log('C', this.name, '10', descAltSeq({ s: columns[1][0] } as any, this.cfg))
+    // console.log('C', this.name, '11', descAltSeq({ s: columns[1][1] } as any, this.cfg))
+
+
+    function collate(stateI: number, tokenI: number, columns: Tin[][][]): [any, any] {
+      columns[stateI] = (columns[stateI] || [])
+      let tins = (columns[stateI][tokenI] = (columns[stateI][tokenI] || []))
+
+      return [function(tins: any, alt: any) {
+        // console.log(name, tins, alt)
+
+        if (alt.s && alt.s[tokenI]) {
+          let newtins = [...new Set(tins.concat(alt.s[tokenI]))]
+          tins.length = 0
+          tins.push(...newtins)
+        }
+        return tins
+      }, tins]
+    }
+
+
     return this
   }
 
