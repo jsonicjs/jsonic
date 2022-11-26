@@ -43,8 +43,9 @@ exports.omap = omap;
 // A bit pedantic, but let's be strict about strings.
 // Also improves minification a little.
 const S = {
-    indent: '  ',
+    indent: '. ',
     space: ' ',
+    gap: '  ',
     Object: 'Object',
     Array: 'Array',
     object: 'object',
@@ -575,7 +576,7 @@ function makelog(ctx, meta) {
                     let logstr = rest
                         .filter((item) => S.object != typeof item)
                         .map((item) => (S.function == typeof item ? item.name : item))
-                        .join(S.indent);
+                        .join(S.gap);
                     ctx.cfg.debug.get_console().log(logstr);
                 }
                 else {
@@ -741,9 +742,10 @@ function parserwrap(parser) {
                             t0: token,
                             t1: token,
                             tC: -1,
+                            kI: -1,
                             rs: [],
                             rsI: 0,
-                            next: () => token,
+                            // next: () => token, // TODO: should be end token
                             rsm: {},
                             n: {},
                             log: meta ? meta.log : undefined,
@@ -771,14 +773,25 @@ function descAltSeq(alt, cfg) {
         '] ';
 }
 exports.descAltSeq = descAltSeq;
-function log_rule(rule, ctx) {
-    ctx.log(S.indent.repeat(rule.d) + S.rule + S.space, rule.name + '~' + rule.id, rule.state.toUpperCase(), (rule.prev.id + '/' + rule.parent.id + '/' + rule.child.id).padEnd(12), '[' +
+function descTokenState(ctx) {
+    return '[' +
         (ctx.NOTOKEN === ctx.t0 ? '' : ctx.F(ctx.t0.src)) +
         (ctx.NOTOKEN === ctx.t1 ? '' : ' ' + ctx.F(ctx.t1.src)) +
         ']~[' +
         (ctx.NOTOKEN === ctx.t0 ? '' : tokenize(ctx.t0.tin, ctx.cfg)) +
         (ctx.NOTOKEN === ctx.t1 ? '' : ' ' + tokenize(ctx.t1.tin, ctx.cfg)) +
-        ']', 'n:' +
+        ']';
+}
+function descParseState(ctx, lex) {
+    return ctx.F(ctx.src()
+        .substring(lex.pnt.sI, lex.pnt.sI + 16)).padEnd(18, ' ') + ' ' +
+        descTokenState(ctx).padEnd(34, ' ') + ' ' +
+        ('' + ctx.rsI).padStart(4, ' ');
+}
+function log_rule(rule, ctx, lex) {
+    ctx.log(S.rule + S.space, descParseState(ctx, lex), S.indent.repeat(rule.d) +
+        // S.indent.repeat(rule.d) + S.rule + S.space,
+        rule.name + '~' + rule.id, rule.state.toUpperCase(), (rule.prev.id + '/' + rule.parent.id + '/' + rule.child.id).padEnd(12), 'n:' +
         entries(rule.n)
             .filter((n) => n[1])
             .map((n) => n[0] + '=' + n[1])
@@ -791,12 +804,9 @@ function log_rule(rule, ctx) {
             .join(';'), rule, ctx);
 }
 exports.log_rule = log_rule;
-function log_node(rule, ctx, next) {
-    ctx.log(S.indent.repeat(rule.d) + S.node + S.space, 
-    // rule.state.toUpperCase(),
-    // (rule.prev.id + '/' + rule.parent.id + '/' + rule.child.id).padEnd(12),
-    // rule.name + '~' + rule.id,
-    'w=' + next.why, 'n:' +
+function log_node(rule, ctx, next, lex) {
+    ctx.log(S.node + S.space, descParseState(ctx, lex), S.indent.repeat(rule.d) +
+        'w=' + next.why, 'n:' +
         entries(rule.n)
             .filter((n) => n[1])
             .map((n) => n[0] + '=' + n[1])
@@ -809,12 +819,9 @@ function log_node(rule, ctx, next) {
             .join(';'), '<' + ctx.F(rule.node) + '>');
 }
 exports.log_node = log_node;
-function log_parse(rule, ctx, match, cond, altI, alt, out) {
-    ctx.log(S.indent.repeat(rule.d) + S.parse, 
-    // rule.state.toUpperCase(),
-    // (rule.prev.id + '/' + rule.parent.id + '/' + rule.child.id).padEnd(12),
-    // rule.name + '~' + rule.id,
-    match ? 'alt=' + altI : 'no-alt', match && out.g ? 'g:' + out.g + ' ' : '', (match && out.p ? 'p:' + out.p + ' ' : '') +
+function log_parse(rule, ctx, lex, match, cond, altI, alt, out) {
+    ctx.log(S.parse, descParseState(ctx, lex), S.indent.repeat(rule.d) +
+        (match ? 'alt=' + altI : 'no-alt'), match && out.g ? 'g:' + out.g + ' ' : '', (match && out.p ? 'p:' + out.p + ' ' : '') +
         (match && out.r ? 'r:' + out.r + ' ' : '') +
         (match && out.b ? 'b:' + out.b + ' ' : ''), (types_1.OPEN === rule.state
         ? [rule.o0, rule.o1].slice(0, rule.os)
@@ -829,33 +836,26 @@ function log_parse(rule, ctx, match, cond, altI, alt, out) {
             .join(';'), 'k:' +
         entries(out.k)
             .map((k) => k[0] + '=' + k[1])
-            .join(';'), match && alt ? descAltSeq(alt, ctx.cfg)
-        // ? '[' +
-        // (alt as any).s
-        //   .map((pin: Tin) =>
-        //     Array.isArray(pin)
-        //       ? pin.map((pin: Tin) => ctx.cfg.t[pin]).join('|')
-        //       : ctx.cfg.t[pin]
-        //   )
-        //   .join(' ') +
-        // ']'
-        : '[]', out);
+            .join(';'), match && alt ? descAltSeq(alt, ctx.cfg) : '');
 }
 exports.log_parse = log_parse;
-function log_stack(rule, ctx, root) {
-    ctx.log('\n' + S.indent.repeat(rule.d) + S.stack, ctx.rs
-        .slice(0, ctx.rsI)
-        .map((r) => r.name + '~' + r.id)
-        .join('/'), '<<' + ctx.F(root.node) + '>>', ctx.rs
+function log_stack(rule, ctx, root, lex) {
+    ctx.log(S.stack, descParseState(ctx, lex), S.indent.repeat(Math.max(rule.d + ('o' === rule.state ? -1 : 1), 0)) +
+        // '\n' + S.indent.repeat(rule.d) + S.stack,
+        ctx.rs
+            .slice(0, ctx.rsI)
+            .map((r) => r.name + '~' + r.id)
+            .join('/'), '<<' + ctx.F(root.node) + '>>', ctx.rs
         .slice(0, ctx.rsI)
         .map((r) => '<' + ctx.F(r.node) + '>')
         .join(' '), rule, ctx);
 }
 exports.log_stack = log_stack;
 function log_lex(rule, ctx, lex, pnt, sI, match, tkn, alt, altI, tI) {
-    ctx.log(S.indent.repeat(rule.d) + S.lex, // Log entry prefix.
-    // Name of token from tin (token identification numer).
-    tokenize(tkn.tin, ctx.cfg), ctx.F(tkn.src), // Format token src for log.
+    ctx.log(S.lex + S.space + S.space, descParseState(ctx, lex), S.indent.repeat(rule.d) +
+        // S.indent.repeat(rule.d) + S.lex, // Log entry prefix.
+        // Name of token from tin (token identification numer).
+        tokenize(tkn.tin, ctx.cfg), ctx.F(tkn.src), // Format token src for log.
     pnt.sI, // Current source index.
     pnt.rI + ':' + pnt.cI, // Row and column.
     (match === null || match === void 0 ? void 0 : match.name) || '', alt ? 'on:alt=' + altI + ';' + alt.g + ';t=' + tI + ';' +

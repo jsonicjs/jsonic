@@ -106,12 +106,10 @@ class ParserImpl implements Parser {
       xs: -1,
       v2: endtkn,
       v1: endtkn,
-      // t0: endtkn,
-      // t1: endtkn,
       t0: notoken,
       t1: notoken,
       tC: -2, // Prepare count for 2-token lookahead.
-      // next,
+      kI: -1,
       rs: [],
       rsI: 0,
       rsm: this.rsm,
@@ -157,49 +155,29 @@ class ParserImpl implements Parser {
     let maxr =
       2 * keys(this.rsm).length * lex.src.length * 2 * ctx.cfg.rule.maxmul
 
-    // let IGNORE = ctx.cfg.tokenSetTins.IGNORE
-
-    // Lex next token.
-    // function next(r: Rule) {
-    //   ctx.v2 = ctx.v1
-    //   ctx.v1 = ctx.t0
-    //   ctx.t0 = ctx.t1
-
-    //   let i0
-
-    //   let t1
-    //   do {
-    //     t1 = lex(r)
-    //     ctx.tC++
-    //   } while (IGNORE[t1.tin] && (i0 = t1))
-
-    //   t1.ignored = i0
-    //   ctx.t1 = t1
-
-    //   return ctx.t0
-    // }
-
-    // // Look two tokens ahead
-    // rule.need = 2
-
     // Process rules on tokens
-    let rI = 0
+    let kI = 0
 
 
     // This loop is the heart of the engine. Keep processing rule
     // occurrences until there's none left.
-    while (norule !== rule && rI < maxr) {
+    while (norule !== rule && kI < maxr) {
+      ctx.kI = kI
+      ctx.rule = rule
+
+      // ctx.log && log_stack(rule, ctx, root, lex)
+
+      ctx.log && ctx.log(ctx.kI + ':')
+
       if (ctx.sub.rule) {
         ctx.sub.rule.map((sub) => sub(rule, ctx))
       }
 
-      ctx.log && log_stack(rule, ctx, root)
-
-      ctx.rule = rule
-
       rule = rule.process(ctx, lex)
 
-      rI++
+      ctx.log && log_stack(rule, ctx, root, lex)
+
+      kI++
     }
 
     // TODO: option to allow trailing content

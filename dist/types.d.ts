@@ -225,6 +225,7 @@ export type Context = {
     t0: Token;
     t1: Token;
     tC: number;
+    kI: number;
     rs: Rule[];
     rsI: number;
     rsm: {

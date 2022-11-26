@@ -712,6 +712,7 @@ describe('feature', function () {
     expect(() => k('[[1')).toThrow(/unexpected/)
   })
 
+  
   it('property-dive', () => {
     expect(j('{a:1,b:2}')).toEqual({ a: 1, b: 2 })
     expect(j('{a:1,b:{c:2}}')).toEqual({ a: 1, b: { c: 2 } })
@@ -802,6 +803,7 @@ describe('feature', function () {
     })
   })
 
+  
   it('list-property', () => {
     expect(j('[a:1]').a).toEqual(1)
 
@@ -809,81 +811,6 @@ describe('feature', function () {
     expect(()=>k('[a:1]')).toThrow(/unexpected/)
   })
 
-  /* TODO: fix
-  it('get-set-rule-and-lex', () => {
-    let p0 = Jsonic.make()
-
-    // Get all the rules
-    let rval = p0.rule()
-    expect(Object.keys(rval)).toEqual(['val', 'map', 'list', 'pair', 'elem'])
-
-    // Get a rule
-    rval = p0.rule('not-a-rule')
-    expect(rval).not.exists()
-    rval = p0.rule('val')
-    expect(rval.name).toEqual('val')
-
-    // Still OK, for now
-    expect(p0('a:1')).toEqual({a:1})
-
-    // Rules can be deleted
-    p0.rule('val', null)
-    rval = p0.rule('val')
-    expect(rval).not.exists()
-
-    // Parent still OK
-    expect(Jsonic('a:1')).toEqual({a:1})
-
-    // New rule
-    p0.rule('foo',()=>{
-      return new RuleSpec()
-    })
-    rval = p0.rule('foo')
-    expect(rval.name).toEqual('foo')
-    rval = p0.rule()
-    expect(Object.keys(rval)).toEqual(['map', 'list', 'pair', 'elem', 'foo'])
-
-
-    // Modify RuleSpec
-    p0.rule('foo',(rs)=>{
-      rs.x = 1
-    })
-    rval = p0.rule('foo')
-    expect(rval.name).toEqual('foo')
-    expect(rval.x).toEqual(1)
-    rval = p0.rule()
-    expect(Object.keys(rval)).toEqual(['map', 'list', 'pair', 'elem', 'foo'])
-
-    
-    // Get all matchers for all states
-    let mm0 = p0.lex()
-    //expect(I(mm0)).toEqual(`{ '19': [], '20': [], '21': [], '22': [] }`)
-    expect(mm0).toEqual({})
-
-    // Add some lex matchers
-    p0.lex(p0.token.LML,function lmA(){})
-    p0.lex(p0.token.LML,function lmB(){})
-    p0.lex(p0.token.LTX,function lmC(){})
-    mm0 = p0.lex()
-    expect(I(mm0)).toEqual(`{
-  '20': [ [Function: lmC] ],
-  '22': [ [Function: lmA], [Function: lmB] ]
-}`)
-
-    // Get lex matchers for a given state
-    mm0 = p0.lex(p0.token.LML)
-    expect(I(mm0)).toEqual(`[ [Function: lmA], [Function: lmB] ]`)
-
-    // Parent still OK
-    expect(Jsonic('a:1')).toEqual({a:1})
-
-    // Lex matchers can be cleared by state
-    p0.lex(p0.token.LML,null)
-    mm0 = p0.lex(p0.token.LML)
-    expect(mm0).not.exists()
-
-  })
-*/
 
   // Test derived from debug sessions using quick.js
   it('debug-cases', () => {

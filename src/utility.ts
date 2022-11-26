@@ -65,8 +65,9 @@ const omap = (o: any, f?: (e: any) => any) => {
 // A bit pedantic, but let's be strict about strings.
 // Also improves minification a little.
 const S = {
-  indent: '  ',
+  indent: '. ',
   space: ' ',
+  gap: '  ',
   Object: 'Object',
   Array: 'Array',
   object: 'object',
@@ -750,7 +751,7 @@ function makelog(ctx: Context, meta: any) {
           let logstr = rest
             .filter((item: any) => S.object != typeof item)
             .map((item: any) => (S.function == typeof item ? item.name : item))
-            .join(S.indent)
+            .join(S.gap)
           ctx.cfg.debug.get_console().log(logstr)
         } else {
           ctx.cfg.debug.get_console().dir(rest, { depth: logdepth })
@@ -958,9 +959,10 @@ function parserwrap(parser: any) {
               t0: token,
               t1: token, // TODO: should be end token
               tC: -1,
+              kI: -1,
               rs: [],
               rsI: 0,
-              next: () => token, // TODO: should be end token
+              // next: () => token, // TODO: should be end token
               rsm: {},
               n: {},
               log: meta ? meta.log : undefined,
@@ -992,23 +994,39 @@ function descAltSeq(alt: NormAltSpec, cfg: Config) {
 }
 
 
-function log_rule(rule: Rule, ctx: Context) {
+function descTokenState(ctx: Context) {
+  return '[' +
+    (ctx.NOTOKEN === ctx.t0 ? '' : ctx.F(ctx.t0.src)) +
+    (ctx.NOTOKEN === ctx.t1 ? '' : ' ' + ctx.F(ctx.t1.src)) +
+    ']~[' +
+    (ctx.NOTOKEN === ctx.t0 ? '' : tokenize(ctx.t0.tin, ctx.cfg)) +
+    (ctx.NOTOKEN === ctx.t1 ? '' : ' ' + tokenize(ctx.t1.tin, ctx.cfg)) +
+    ']'
+}
+
+
+function descParseState(ctx: Context, lex: Lex) {
+  return ctx.F(ctx.src()
+    .substring(lex.pnt.sI, lex.pnt.sI + 16)).padEnd(18, ' ') + ' ' +
+    descTokenState(ctx).padEnd(34, ' ') + ' ' +
+    ('' + ctx.rsI).padStart(4, ' ')
+}
+
+
+function log_rule(rule: Rule, ctx: Context, lex: Lex) {
   (ctx as any).log(
-    S.indent.repeat(rule.d) + S.rule + S.space,
+    S.rule + S.space,
+    descParseState(ctx, lex),
+    S.indent.repeat(rule.d) +
+
+    // S.indent.repeat(rule.d) + S.rule + S.space,
+
     rule.name + '~' + rule.id,
     rule.state.toUpperCase(),
 
     (rule.prev.id + '/' + rule.parent.id + '/' + rule.child.id).padEnd(
       12
     ),
-
-    '[' +
-    (ctx.NOTOKEN === ctx.t0 ? '' : ctx.F(ctx.t0.src)) +
-    (ctx.NOTOKEN === ctx.t1 ? '' : ' ' + ctx.F(ctx.t1.src)) +
-    ']~[' +
-    (ctx.NOTOKEN === ctx.t0 ? '' : tokenize(ctx.t0.tin, ctx.cfg)) +
-    (ctx.NOTOKEN === ctx.t1 ? '' : ' ' + tokenize(ctx.t1.tin, ctx.cfg)) +
-    ']',
 
     'n:' +
     entries(rule.n)
@@ -1031,12 +1049,12 @@ function log_rule(rule: Rule, ctx: Context) {
 }
 
 
-function log_node(rule: Rule, ctx: Context, next: Rule) {
+function log_node(rule: Rule, ctx: Context, next: Rule, lex: Lex) {
   (ctx as any).log(
-    S.indent.repeat(rule.d) + S.node + S.space,
-    // rule.state.toUpperCase(),
-    // (rule.prev.id + '/' + rule.parent.id + '/' + rule.child.id).padEnd(12),
-    // rule.name + '~' + rule.id,
+    S.node + S.space,
+    descParseState(ctx, lex),
+    S.indent.repeat(rule.d) +
+
     'w=' + next.why,
     'n:' +
     entries(rule.n)
@@ -1059,6 +1077,7 @@ function log_node(rule: Rule, ctx: Context, next: Rule) {
 function log_parse(
   rule: Rule,
   ctx: Context,
+  lex: Lex,
   match: boolean,
   cond: boolean,
   altI: number,
@@ -1066,13 +1085,11 @@ function log_parse(
   out: AltMatch
 ) {
   (ctx as any).log(
-    S.indent.repeat(rule.d) + S.parse,
+    S.parse,
+    descParseState(ctx, lex),
+    S.indent.repeat(rule.d) +
 
-    // rule.state.toUpperCase(),
-    // (rule.prev.id + '/' + rule.parent.id + '/' + rule.child.id).padEnd(12),
-    // rule.name + '~' + rule.id,
-
-    match ? 'alt=' + altI : 'no-alt',
+    (match ? 'alt=' + altI : 'no-alt'),
 
     match && out.g ? 'g:' + out.g + ' ' : '',
     (match && out.p ? 'p:' + out.p + ' ' : '') +
@@ -1100,26 +1117,18 @@ function log_parse(
       .map((k) => k[0] + '=' + k[1])
       .join(';'),
 
-    match && alt ? descAltSeq(alt, ctx.cfg)
-      // ? '[' +
-      // (alt as any).s
-      //   .map((pin: Tin) =>
-      //     Array.isArray(pin)
-      //       ? pin.map((pin: Tin) => ctx.cfg.t[pin]).join('|')
-      //       : ctx.cfg.t[pin]
-      //   )
-      //   .join(' ') +
-      // ']'
-      : '[]',
-
-    out
+    match && alt ? descAltSeq(alt, ctx.cfg) : ''
   )
 }
 
 
-function log_stack(rule: Rule, ctx: Context, root: Rule) {
+function log_stack(rule: Rule, ctx: Context, root: Rule, lex: Lex) {
   (ctx as any).log(
-    '\n' + S.indent.repeat(rule.d) + S.stack,
+    S.stack,
+    descParseState(ctx, lex),
+    S.indent.repeat(Math.max(rule.d + ('o' === rule.state ? -1 : 1), 0)) +
+
+    // '\n' + S.indent.repeat(rule.d) + S.stack,
     ctx.rs
       .slice(0, ctx.rsI)
       .map((r: Rule) => r.name + '~' + r.id)
@@ -1149,7 +1158,11 @@ function log_lex(
   tI?: number,
 ) {
   (ctx as any).log(
-    S.indent.repeat(rule.d) + S.lex, // Log entry prefix.
+    S.lex + S.space + S.space,
+    descParseState(ctx, lex),
+    S.indent.repeat(rule.d) +
+
+    // S.indent.repeat(rule.d) + S.lex, // Log entry prefix.
 
     // Name of token from tin (token identification numer).
     tokenize(tkn.tin, ctx.cfg),

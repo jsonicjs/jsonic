@@ -326,7 +326,7 @@ class RuleSpecImpl implements RuleSpec {
     // }
 
     // Log rule here to ensure next tokens shown are correct.
-    ctx.log && log_rule(rule, ctx)
+    ctx.log && log_rule(rule, ctx, lex)
 
     let is_open = state === 'o'
     let next = is_open ? rule : ctx.NORULE
@@ -452,7 +452,7 @@ class RuleSpecImpl implements RuleSpec {
 
     next.why = why
 
-    ctx.log && log_node(rule, ctx, next)
+    ctx.log && log_node(rule, ctx, next, lex)
 
     // Must be last as state change is for next process call.
     if (OPEN === rule.state) {
@@ -638,7 +638,7 @@ function parse_alts(
   let match = altI < alts.length
 
   // TODO: move to debug plugin
-  ctx.log && log_parse(rule, ctx, match, cond, altI, alt, out)
+  ctx.log && log_parse(rule, ctx, lex, match, cond, altI, alt, out)
 
   return out
 }

@@ -13,6 +13,7 @@ declare const omap: (o: any, f?: ((e: any) => any) | undefined) => any;
 declare const S: {
     indent: string;
     space: string;
+    gap: string;
     Object: string;
     Array: string;
     object: string;
@@ -84,9 +85,9 @@ declare function parserwrap(parser: any): {
     start: (src: string, jsonic: any, meta?: any, parent_ctx?: any) => any;
 };
 declare function descAltSeq(alt: NormAltSpec, cfg: Config): string;
-declare function log_rule(rule: Rule, ctx: Context): void;
-declare function log_node(rule: Rule, ctx: Context, next: Rule): void;
-declare function log_parse(rule: Rule, ctx: Context, match: boolean, cond: boolean, altI: number, alt: NormAltSpec | null, out: AltMatch): void;
-declare function log_stack(rule: Rule, ctx: Context, root: Rule): void;
+declare function log_rule(rule: Rule, ctx: Context, lex: Lex): void;
+declare function log_node(rule: Rule, ctx: Context, next: Rule, lex: Lex): void;
+declare function log_parse(rule: Rule, ctx: Context, lex: Lex, match: boolean, cond: boolean, altI: number, alt: NormAltSpec | null, out: AltMatch): void;
+declare function log_stack(rule: Rule, ctx: Context, root: Rule, lex: Lex): void;
 declare function log_lex(rule: Rule, ctx: Context, lex: Lex, pnt: Point, sI: number, match: LexMatcher | undefined, tkn: Token, alt?: NormAltSpec, altI?: number, tI?: number): void;
 export { JsonicError, S, assign, badlex, charset, clean, clone, configure, deep, defprop, entries, errdesc, errinject, escre, extract, filterRules, isarr, makelog, mesc, regexp, snip, srcfmt, tokenize, trimstk, parserwrap, prop, str, omap, keys, values, log_rule, log_node, log_parse, log_stack, log_lex, findTokenSet, descAltSeq, };

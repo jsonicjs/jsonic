@@ -200,7 +200,10 @@ function grammar(jsonic) {
             { s: [ZZ], g: 'jsonic' },
         ], { append: true, delete: [2] }).close([
             // Explicitly close map or list: `}`, `]`
-            { s: [[CB, CS]], b: 1, g: 'val,json,close' },
+            {
+                s: [[CB, CS]], b: 1, g: 'val,json,close',
+                e: (r, c) => 0 === r.d ? c.t0 : undefined
+            },
             // Implicit list (comma sep) only allowed at top level: `1,2`.
             {
                 s: [CA],
@@ -274,7 +277,7 @@ function grammar(jsonic) {
         ], { append: true });
     });
     // sets key:val on node
-    jsonic.rule('pair', (rs, p) => {
+    jsonic.rule('pair', (rs, _p) => {
         rs.open([
             // Ignore initial comma: {,a:1.
             { s: [CA], g: 'map,pair,comma' },
@@ -317,10 +320,8 @@ function grammar(jsonic) {
             },
             // End of implicit path (eg. a:b:1), keep closing until pk=0.
             {
-                s: [[CB, CA,
-                        // ...VAL
-                        ...KEY
-                    ]], b: 1, g: 'map,pair,imp,path,jsonic'
+                s: [[CB, CA, CS, ...KEY]], b: 1, g: 'map,pair,imp,path,jsonic',
+                c: (r) => 0 < r.n.pk
             },
             // Close pair inside list.
             // p.cfg.list.property &&

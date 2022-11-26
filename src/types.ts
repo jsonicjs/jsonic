@@ -300,6 +300,7 @@ export type Context = {
   t0: Token // Current token.
   t1: Token // Next token.
   tC: number // Token count.
+  kI: number // Parser rule iteration count.
   rs: Rule[] // Rule stack.
   rsI: number
   rsm: { [name: string]: RuleSpec } // RuleSpec lookup map (by rule name).

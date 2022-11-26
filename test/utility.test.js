@@ -473,6 +473,7 @@ describe('utility', () => {
     )
   })
 
+  
   it('srcfmt', () => {
     let F = srcfmt({ debug: { maxlen: 4, print: {} } })
     expect(F('a')).toEqual('"a"')
@@ -480,38 +481,19 @@ describe('utility', () => {
     expect(F('abc')).toEqual('"abc...')
   })
 
-  it('badlex', () => {
-    let ctx = {
-      src: () => '',
-      //opts:{error:{unexpected:'unx'},hint:{unexpected:'unx'}},
-      cfg: { t: {}, error: { unexpected: 'unx' }, hint: { unexpected: 'unx' } },
-      plgn: () => [],
-    }
-
-    try {
-      badlex({ next: () => ({ tin: 1 }) }, 1, ctx)({})
-    } catch (e) {
-      expect(e.code).toEqual('unexpected')
-    }
-
-    try {
-      badlex({ next: () => ({ tin: 1, use: { x: 1 } }) }, 1, ctx)({})
-    } catch (e) {
-      expect(e.code).toEqual('unexpected')
-      expect(e.details).toEqual({ use: { x: 1 } })
-    }
-  })
-
+  
   it('trimstk', () => {
     trimstk({})
   })
 
+  
   it('regexp', () => {
     expect(regexp('', 'a')).toEqual(/a/)
     expect(regexp('', 'a*')).toEqual(/a*/)
     expect(regexp('', mesc('ab*'))).toEqual(/ab\*/)
   })
 
+  
   it('prop', () => {
     let o0 = {}
 
