@@ -36,11 +36,11 @@ describe('cli', function () {
     cn = make_cn()
     jr([0, 0, '--meta', 'log=-1', 'a:true'], cn)
     // console.log(cn.d.log.map((e,i)=>i+': '+e))
-    expect(cn.d.log[40][0]).toEqual('{"a":true}')
+    expect(cn.d.log[48][0]).toEqual('{"a":true}')
 
     cn = make_cn()
     jr([0, 0, '-m', 'log=-1', 'a:true'], cn)
-    expect(cn.d.log[40][0]).toEqual('{"a":true}')
+    expect(cn.d.log[48][0]).toEqual('{"a":true}')
 
     cn = make_cn()
     jr([0, 0, '-h'], cn)

@@ -81,7 +81,7 @@ function exhaust(size, print) {
     } catch (e) {
       emc++
       ecc[e.code] = 1 + (ecc[e.code] = ecc[e.code] || 0)
-      //em[''+ts.c+'|`'+ts.s+'`'] = e.name+':'+e.code
+      em[''+ts.c+'|`'+ts.s+'`'] = e.name+':'+e.code
     }
     i++
   }
@@ -92,9 +92,12 @@ function exhaust(size, print) {
 
   if (print) {
     console.log('# dur: ' + dur)
-    console.log('# rm:  ' + rmc)
-    console.log('# em:  ' + emc)
+    console.log('# rmc:  ' + rmc)
+    console.log('# emc:  ' + emc)
     console.log('# ec:  ' + I(ecc))
+
+    console.log('EM:')
+    console.log(em)
   }
 
   return {
