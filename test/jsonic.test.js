@@ -790,8 +790,8 @@ describe('jsonic', function () {
         emc: 2294,
         ecc: {
           unprintable: 91,
-          unexpected: 1501,
-          unterminated_string: 701,
+          unexpected: 1510,
+          unterminated_string: 692,
           unterminated_comment: 1,
         },
       })

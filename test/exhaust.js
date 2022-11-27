@@ -96,8 +96,9 @@ function exhaust(size, print) {
     console.log('# emc:  ' + emc)
     console.log('# ec:  ' + I(ecc))
 
-    console.log('EM:')
-    console.log(em)
+    // Uncomment to see src strings
+    // console.log('EM:')
+    // console.log(em)
   }
 
   return {
