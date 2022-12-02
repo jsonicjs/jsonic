@@ -87,27 +87,28 @@ class RuleSpecImpl {
     tin(ref) {
         return (0, utility_1.tokenize)(ref, this.cfg);
     }
-    add(state, a, ops) {
-        let inject = (ops === null || ops === void 0 ? void 0 : ops.append) ? 'push' : 'unshift';
+    add(state, a, mods) {
+        let inject = (mods === null || mods === void 0 ? void 0 : mods.append) ? 'push' : 'unshift';
         let aa = ((0, utility_1.isarr)(a) ? a : [a])
             .filter((alt) => null != alt && 'object' === typeof alt)
             .map((a) => normalt(a));
         let altState = 'o' === state ? 'open' : 'close';
         let alts = this.def[altState];
+        // console.log('AAA', alts)
         alts[inject](...aa);
-        if (ops) {
+        if (mods) {
             // Delete before move so indexes still make sense, using null to preserve index.
-            if (ops.delete) {
-                for (let i = 0; i < ops.delete.length; i++) {
-                    let deleteI = (alts.length + ops.delete[i]) % alts.length;
+            if (mods.delete) {
+                for (let i = 0; i < mods.delete.length; i++) {
+                    let deleteI = (alts.length + mods.delete[i]) % alts.length;
                     alts[deleteI] = null;
                 }
             }
             // Format: [from,to, from,to, ...]
-            if (ops.move) {
-                for (let i = 0; i < ops.move.length; i += 2) {
-                    let fromI = (alts.length + ops.move[i]) % alts.length;
-                    let toI = (alts.length + ops.move[i + 1]) % alts.length;
+            if (mods.move) {
+                for (let i = 0; i < mods.move.length; i += 2) {
+                    let fromI = (alts.length + mods.move[i]) % alts.length;
+                    let toI = (alts.length + mods.move[i + 1]) % alts.length;
                     let alt = alts[fromI];
                     alts.splice(fromI, 1);
                     alts.splice(toI, 0, alt);
@@ -121,11 +122,11 @@ class RuleSpecImpl {
         this.norm();
         return this;
     }
-    open(a, flags) {
-        return this.add('o', a, flags);
+    open(a, mods) {
+        return this.add('o', a, mods);
     }
-    close(a, flags) {
-        return this.add('c', a, flags);
+    close(a, mods) {
+        return this.add('c', a, mods);
     }
     action(append, step, state, action) {
         let actions = this.def[step + state];

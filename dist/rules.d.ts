@@ -1,4 +1,4 @@
-import type { RuleState, RuleStep, StateAction, Tin, Token, Config, Context, Rule, RuleSpec, AddAltOps, AltSpec, Lex } from './types';
+import type { RuleState, RuleStep, StateAction, Tin, Token, Config, Context, Rule, RuleSpec, ListMods, AltSpec, Lex } from './types';
 declare class RuleImpl implements Rule {
     id: number;
     name: string;
@@ -43,9 +43,9 @@ declare class RuleSpecImpl implements RuleSpec {
     cfg: Config;
     constructor(cfg: Config, def: any);
     tin<R extends string | Tin, T extends R extends Tin ? string : Tin>(ref: R): T;
-    add(state: RuleState, a: AltSpec | AltSpec[], ops: AddAltOps): RuleSpec;
-    open(a: AltSpec | AltSpec[], flags?: any): RuleSpec;
-    close(a: AltSpec | AltSpec[], flags?: any): RuleSpec;
+    add(state: RuleState, a: AltSpec | AltSpec[], mods?: ListMods): RuleSpec;
+    open(a: AltSpec | AltSpec[], mods?: ListMods): RuleSpec;
+    close(a: AltSpec | AltSpec[], mods?: ListMods): RuleSpec;
     action(append: boolean, step: RuleStep, state: RuleState, action: StateAction): RuleSpec;
     bo(append: StateAction | boolean, action?: StateAction): RuleSpec;
     ao(append: StateAction | boolean, action?: StateAction): RuleSpec;

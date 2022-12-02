@@ -3,7 +3,10 @@
 
 const Util = require('util')
 
-const { filterRules } = require('../dist/utility')
+const {
+  filterRules,
+  modlist,
+} = require('../dist/utility')
 
 const { util, Jsonic, makeToken, makePoint } = require('..')
 
@@ -508,6 +511,102 @@ describe('utility', () => {
     )
   })
 
+  
+  it('modlist', () => {
+    expect(modlist([])).toEqual([])
+    expect(modlist(['a'])).toEqual(['a'])
+    expect(modlist(['a','b'])).toEqual(['a','b'])
+    expect(modlist(['a','b','c'])).toEqual(['a','b','c'])
+
+    expect(modlist([],{delete:[]})).toEqual([])
+    expect(modlist([],{delete:[0]})).toEqual([])
+    expect(modlist([],{delete:[1]})).toEqual([])
+    expect(modlist([],{delete:[-1]})).toEqual([])
+    expect(modlist([],{delete:[10]})).toEqual([])
+    expect(modlist([],{delete:[-10]})).toEqual([])
+
+    expect(modlist(['a'],{delete:[]})).toEqual(['a'])
+    expect(modlist(['b'],{delete:[0]})).toEqual([])
+    expect(modlist(['c'],{delete:[1]})).toEqual(['c'])
+    expect(modlist(['d'],{delete:[-1]})).toEqual([]) // NOTE: from end
+    expect(modlist(['e'],{delete:[10]})).toEqual(['e'])
+    expect(modlist(['f'],{delete:[-10]})).toEqual(['f'])
+
+    expect(modlist(['a','z'],{delete:[]})).toEqual(['a','z'])
+    expect(modlist(['b','z'],{delete:[0]})).toEqual(['z'])
+    expect(modlist(['c','z'],{delete:[1]})).toEqual(['c'])
+    expect(modlist(['d','z'],{delete:[-1]})).toEqual(['d']) // NOTE: from end
+    expect(modlist(['e','z'],{delete:[10]})).toEqual(['e','z'])
+    expect(modlist(['f','z'],{delete:[-10]})).toEqual(['f','z'])
+
+    expect(modlist(['a','y','z'],{delete:[]})).toEqual(['a','y','z'])
+    expect(modlist(['b','y','z'],{delete:[0]})).toEqual(['y','z'])
+    expect(modlist(['c','y','z'],{delete:[1]})).toEqual(['c','z'])
+    expect(modlist(['d','y','z'],{delete:[-1]})).toEqual(['d','y']) // NOTE: from end
+    expect(modlist(['e','y','z'],{delete:[10]})).toEqual(['e','y','z'])
+    expect(modlist(['f','y','z'],{delete:[-10]})).toEqual(['f','y','z'])
+
+    expect(modlist([],{delete:[]})).toEqual([])
+    expect(modlist([],{delete:[0]})).toEqual([])
+    expect(modlist([],{delete:[2]})).toEqual([])
+    expect(modlist([],{delete:[-2]})).toEqual([])
+    expect(modlist([],{delete:[20]})).toEqual([])
+    expect(modlist([],{delete:[-20]})).toEqual([])
+
+    expect(modlist(['a'],{delete:[]})).toEqual(['a'])
+    expect(modlist(['b'],{delete:[0]})).toEqual([])
+    expect(modlist(['c'],{delete:[2]})).toEqual(['c'])
+    expect(modlist(['d'],{delete:[-2]})).toEqual(['d'])
+    expect(modlist(['e'],{delete:[20]})).toEqual(['e'])
+    expect(modlist(['f'],{delete:[-20]})).toEqual(['f'])
+
+    expect(modlist(['a','z'],{delete:[]})).toEqual(['a','z'])
+    expect(modlist(['b','z'],{delete:[0]})).toEqual(['z'])
+    expect(modlist(['c','z'],{delete:[2]})).toEqual(['c','z'])
+    expect(modlist(['d','z'],{delete:[-2]})).toEqual(['z'])
+    expect(modlist(['e','z'],{delete:[20]})).toEqual(['e','z'])
+    expect(modlist(['f','z'],{delete:[-20]})).toEqual(['f','z'])
+
+    expect(modlist(['a','y','z'],{delete:[]})).toEqual(['a','y','z'])
+    expect(modlist(['b','y','z'],{delete:[0]})).toEqual(['y','z'])
+    expect(modlist(['c','y','z'],{delete:[2]})).toEqual(['c','y'])
+    expect(modlist(['d','y','z'],{delete:[-2]})).toEqual(['d','z'])
+    expect(modlist(['e','y','z'],{delete:[20]})).toEqual(['e','y','z'])
+    expect(modlist(['f','y','z'],{delete:[-20]})).toEqual(['f','y','z'])
+
+    expect(modlist([],{delete:[]})).toEqual([])
+    expect(modlist([],{delete:[0]})).toEqual([])
+    expect(modlist([],{delete:[3]})).toEqual([])
+    expect(modlist([],{delete:[-3]})).toEqual([])
+    expect(modlist([],{delete:[30]})).toEqual([])
+    expect(modlist([],{delete:[-30]})).toEqual([])
+
+    expect(modlist(['a'],{delete:[]})).toEqual(['a'])
+    expect(modlist(['b'],{delete:[0]})).toEqual([])
+    expect(modlist(['c'],{delete:[3]})).toEqual(['c'])
+    expect(modlist(['d'],{delete:[-3]})).toEqual(['d'])
+    expect(modlist(['e'],{delete:[30]})).toEqual(['e'])
+    expect(modlist(['f'],{delete:[-30]})).toEqual(['f'])
+
+    expect(modlist(['a','z'],{delete:[]})).toEqual(['a','z'])
+    expect(modlist(['b','z'],{delete:[0]})).toEqual(['z'])
+    expect(modlist(['c','z'],{delete:[3]})).toEqual(['c','z'])
+    expect(modlist(['d','z'],{delete:[-3]})).toEqual(['d','z'])
+    expect(modlist(['e','z'],{delete:[30]})).toEqual(['e','z'])
+    expect(modlist(['f','z'],{delete:[-30]})).toEqual(['f','z'])
+
+    expect(modlist(['a','y','z'],{delete:[]})).toEqual(['a','y','z'])
+    expect(modlist(['b','y','z'],{delete:[0]})).toEqual(['y','z'])
+    expect(modlist(['c','y','z'],{delete:[3]})).toEqual(['c','y','z'])
+    expect(modlist(['d','y','z'],{delete:[-3]})).toEqual(['y','z'])
+    expect(modlist(['e','y','z'],{delete:[30]})).toEqual(['e','y','z'])
+    expect(modlist(['f','y','z'],{delete:[-30]})).toEqual(['f','y','z'])
+
+    expect(modlist(['a','y','z'],{move:[0,1]})).toEqual(['y','a','z'])
+    expect(modlist(['a','y','z'],{move:[0,-1]})).toEqual(['y','z','a'])
+  })
+
+  
   it('makelog', () => {
     let log = []
     let dir = []

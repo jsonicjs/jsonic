@@ -21,6 +21,7 @@ import type {
   Token,
   ValModifier,
   Point,
+  ListMods,
 } from './types'
 
 import { OPEN, EMPTY, STRING } from './types'
@@ -889,6 +890,47 @@ function prop(obj: any, path: string, val: any): any {
   }
 }
 
+
+// Mutates list based on ListMods.
+function modlist(list: any[], mods?: ListMods) {
+  // console.log('L', list)
+  if (mods && list && 0 < list.length) {
+    // Delete before move so indexes still make sense, using null to preserve index.
+    if (mods.delete && 0 < mods.delete.length) {
+      for (let i = 0; i < mods.delete.length; i++) {
+        let mdI = mods.delete[i]
+        if (mdI < 0 ? (-1 * mdI) <= list.length : mdI < list.length) {
+          // if (mdI < list.length) {
+          let dI = (list.length + mdI) % list.length
+          // console.log('D', i, list.length, mdI, dI)
+          list[dI] = null
+        }
+      }
+    }
+
+    // Format: [from,to, from,to, ...]
+    if (mods.move) {
+      for (let i = 0; i < mods.move.length; i += 2) {
+        let fromI = (list.length + mods.move[i]) % list.length
+        let toI = (list.length + mods.move[i + 1]) % list.length
+        let entry = list[fromI]
+        list.splice(fromI, 1)
+        list.splice(toI, 0, entry)
+      }
+    }
+
+    // Filter out any deletes.
+    let filtered = list.filter(entry => null != entry)
+    if (filtered.length !== list.length) {
+      list.length = 0
+      list.push(...filtered)
+    }
+  }
+
+  return list
+}
+
+
 function parserwrap(parser: any) {
   return {
     start: function(
@@ -1218,4 +1260,5 @@ export {
   log_lex,
   findTokenSet,
   descAltSeq,
+  modlist,
 }

@@ -19,7 +19,7 @@ import type {
   AltModifier,
   AltAction,
   AltMatch,
-  AddAltOps,
+  ListMods,
   AltSpec,
   Counters,
   Bag,
@@ -37,7 +37,7 @@ import {
   log_rule,
   log_node,
   log_parse,
-  descAltSeq,
+  modlist,
 } from './utility'
 
 
@@ -164,29 +164,32 @@ class RuleSpecImpl implements RuleSpec {
     return tokenize(ref, this.cfg)
   }
 
-  add(state: RuleState, a: AltSpec | AltSpec[], ops: AddAltOps): RuleSpec {
-    let inject = ops?.append ? 'push' : 'unshift'
+  add(state: RuleState, a: AltSpec | AltSpec[], mods?: ListMods): RuleSpec {
+    let inject = mods?.append ? 'push' : 'unshift'
     let aa = ((isarr(a) ? a : [a]) as AltSpec[])
       .filter((alt: AltSpec) => null != alt && 'object' === typeof alt)
       .map((a) => normalt(a))
-    let altState = 'o' === state ? 'open' : 'close'
-    let alts: any = (this.def as any)[altState]
+    let altState: 'open' | 'close' = 'o' === state ? 'open' : 'close'
+    let alts: any = this.def[altState]
+
+    // console.log('AAA', alts)
+
     alts[inject](...aa)
 
-    if (ops) {
+    if (mods) {
       // Delete before move so indexes still make sense, using null to preserve index.
-      if (ops.delete) {
-        for (let i = 0; i < ops.delete.length; i++) {
-          let deleteI = (alts.length + ops.delete[i]) % alts.length
+      if (mods.delete) {
+        for (let i = 0; i < mods.delete.length; i++) {
+          let deleteI = (alts.length + mods.delete[i]) % alts.length
           alts[deleteI] = null
         }
       }
 
       // Format: [from,to, from,to, ...]
-      if (ops.move) {
-        for (let i = 0; i < ops.move.length; i += 2) {
-          let fromI = (alts.length + ops.move[i]) % alts.length
-          let toI = (alts.length + ops.move[i + 1]) % alts.length
+      if (mods.move) {
+        for (let i = 0; i < mods.move.length; i += 2) {
+          let fromI = (alts.length + mods.move[i]) % alts.length
+          let toI = (alts.length + mods.move[i + 1]) % alts.length
           let alt = alts[fromI]
           alts.splice(fromI, 1)
           alts.splice(toI, 0, alt)
@@ -204,12 +207,12 @@ class RuleSpecImpl implements RuleSpec {
     return this
   }
 
-  open(a: AltSpec | AltSpec[], flags?: any): RuleSpec {
-    return this.add('o', a, flags)
+  open(a: AltSpec | AltSpec[], mods?: ListMods): RuleSpec {
+    return this.add('o', a, mods)
   }
 
-  close(a: AltSpec | AltSpec[], flags?: any): RuleSpec {
-    return this.add('c', a, flags)
+  close(a: AltSpec | AltSpec[], mods?: ListMods): RuleSpec {
+    return this.add('c', a, mods)
   }
 
   action(

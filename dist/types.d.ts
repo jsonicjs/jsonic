@@ -404,7 +404,7 @@ export interface AltSpec {
     e?: AltError;
 }
 type AltSpecish = AltSpec | undefined | null | false | 0 | typeof NaN;
-export type AddAltOps = {
+export type ListMods = {
     append?: boolean;
     move?: number[];
     delete?: number[];

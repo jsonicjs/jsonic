@@ -1,4 +1,4 @@
-import type { AltMatch, Bag, Chars, Config, Context, Lex, LexMatcher, NormAltSpec, Options, Rule, RuleSpec, Tin, Token, Point } from './types';
+import type { AltMatch, Bag, Chars, Config, Context, Lex, LexMatcher, NormAltSpec, Options, Rule, RuleSpec, Tin, Token, Point, ListMods } from './types';
 declare const keys: (x: any) => string[];
 declare const values: <T>(x: {
     [key: string]: T;
@@ -81,6 +81,7 @@ declare function charset(...parts: (string | object | boolean | undefined)[]): C
 declare function clean<T>(o: T): T;
 declare function filterRules(rs: RuleSpec, cfg: Config): RuleSpec;
 declare function prop(obj: any, path: string, val: any): any;
+declare function modlist(list: any[], mods?: ListMods): any[];
 declare function parserwrap(parser: any): {
     start: (src: string, jsonic: any, meta?: any, parent_ctx?: any) => any;
 };
@@ -90,4 +91,4 @@ declare function log_node(rule: Rule, ctx: Context, next: Rule, lex: Lex): void;
 declare function log_parse(rule: Rule, ctx: Context, lex: Lex, match: boolean, cond: boolean, altI: number, alt: NormAltSpec | null, out: AltMatch): void;
 declare function log_stack(rule: Rule, ctx: Context, root: Rule, lex: Lex): void;
 declare function log_lex(rule: Rule, ctx: Context, lex: Lex, pnt: Point, sI: number, match: LexMatcher | undefined, tkn: Token, alt?: NormAltSpec, altI?: number, tI?: number): void;
-export { JsonicError, S, assign, badlex, charset, clean, clone, configure, deep, defprop, entries, errdesc, errinject, escre, extract, filterRules, isarr, makelog, mesc, regexp, snip, srcfmt, tokenize, trimstk, parserwrap, prop, str, omap, keys, values, log_rule, log_node, log_parse, log_stack, log_lex, findTokenSet, descAltSeq, };
+export { JsonicError, S, assign, badlex, charset, clean, clone, configure, deep, defprop, entries, errdesc, errinject, escre, extract, filterRules, isarr, makelog, mesc, regexp, snip, srcfmt, tokenize, trimstk, parserwrap, prop, str, omap, keys, values, log_rule, log_node, log_parse, log_stack, log_lex, findTokenSet, descAltSeq, modlist, };

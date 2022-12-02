@@ -1,7 +1,7 @@
 "use strict";
 /* Copyright (c) 2013-2022 Richard Rodger, MIT License */
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.descAltSeq = exports.findTokenSet = exports.log_lex = exports.log_stack = exports.log_parse = exports.log_node = exports.log_rule = exports.values = exports.keys = exports.omap = exports.str = exports.prop = exports.parserwrap = exports.trimstk = exports.tokenize = exports.srcfmt = exports.snip = exports.regexp = exports.mesc = exports.makelog = exports.isarr = exports.filterRules = exports.extract = exports.escre = exports.errinject = exports.errdesc = exports.entries = exports.defprop = exports.deep = exports.configure = exports.clone = exports.clean = exports.charset = exports.badlex = exports.assign = exports.S = exports.JsonicError = void 0;
+exports.modlist = exports.descAltSeq = exports.findTokenSet = exports.log_lex = exports.log_stack = exports.log_parse = exports.log_node = exports.log_rule = exports.values = exports.keys = exports.omap = exports.str = exports.prop = exports.parserwrap = exports.trimstk = exports.tokenize = exports.srcfmt = exports.snip = exports.regexp = exports.mesc = exports.makelog = exports.isarr = exports.filterRules = exports.extract = exports.escre = exports.errinject = exports.errdesc = exports.entries = exports.defprop = exports.deep = exports.configure = exports.clone = exports.clean = exports.charset = exports.badlex = exports.assign = exports.S = exports.JsonicError = void 0;
 const types_1 = require("./types");
 const lexer_1 = require("./lexer");
 // Null-safe object and array utilities
@@ -694,6 +694,42 @@ function prop(obj, path, val) {
     }
 }
 exports.prop = prop;
+// Mutates list based on ListMods.
+function modlist(list, mods) {
+    // console.log('L', list)
+    if (mods && list && 0 < list.length) {
+        // Delete before move so indexes still make sense, using null to preserve index.
+        if (mods.delete && 0 < mods.delete.length) {
+            for (let i = 0; i < mods.delete.length; i++) {
+                let mdI = mods.delete[i];
+                if (mdI < 0 ? (-1 * mdI) <= list.length : mdI < list.length) {
+                    // if (mdI < list.length) {
+                    let dI = (list.length + mdI) % list.length;
+                    // console.log('D', i, list.length, mdI, dI)
+                    list[dI] = null;
+                }
+            }
+        }
+        // Format: [from,to, from,to, ...]
+        if (mods.move) {
+            for (let i = 0; i < mods.move.length; i += 2) {
+                let fromI = (list.length + mods.move[i]) % list.length;
+                let toI = (list.length + mods.move[i + 1]) % list.length;
+                let entry = list[fromI];
+                list.splice(fromI, 1);
+                list.splice(toI, 0, entry);
+            }
+        }
+        // Filter out any deletes.
+        let filtered = list.filter(entry => null != entry);
+        if (filtered.length !== list.length) {
+            list.length = 0;
+            list.push(...filtered);
+        }
+    }
+    return list;
+}
+exports.modlist = modlist;
 function parserwrap(parser) {
     return {
         start: function (src, 

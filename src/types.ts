@@ -557,11 +557,11 @@ export interface AltSpec {
 // Allow AltSpecs to be "empty" and thus ignored.
 type AltSpecish = AltSpec | undefined | null | false | 0 | typeof NaN
 
-// Flags for adding a set of alts using RuleSpec.add.
-export type AddAltOps = {
-  append?: boolean // if `true` apppend alts, otherwise prepend.
-  move?: number[]
-  delete?: number[]
+// List modifications
+export type ListMods = {
+  append?: boolean // if `true` apppend new entries, otherwise prepend.
+  move?: number[] // [from,to,  from,to,  ...]
+  delete?: number[] // [index0, index1, ...]
 }
 
 // Parse-alternate match (built from current tokens and AltSpec).
