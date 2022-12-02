@@ -94,30 +94,9 @@ class RuleSpecImpl {
             .map((a) => normalt(a));
         let altState = 'o' === state ? 'open' : 'close';
         let alts = this.def[altState];
-        // console.log('AAA', alts)
         alts[inject](...aa);
-        if (mods) {
-            // Delete before move so indexes still make sense, using null to preserve index.
-            if (mods.delete) {
-                for (let i = 0; i < mods.delete.length; i++) {
-                    let deleteI = (alts.length + mods.delete[i]) % alts.length;
-                    alts[deleteI] = null;
-                }
-            }
-            // Format: [from,to, from,to, ...]
-            if (mods.move) {
-                for (let i = 0; i < mods.move.length; i += 2) {
-                    let fromI = (alts.length + mods.move[i]) % alts.length;
-                    let toI = (alts.length + mods.move[i + 1]) % alts.length;
-                    let alt = alts[fromI];
-                    alts.splice(fromI, 1);
-                    alts.splice(toI, 0, alt);
-                }
-            }
-            // Filter out any deletes.
-            ;
-            this.def[altState] = alts.filter((a) => null != a);
-        }
+        // this.def[altState] = modlist(alts, mods)
+        (0, utility_1.modlist)(alts, mods);
         (0, utility_1.filterRules)(this, this.cfg);
         this.norm();
         return this;

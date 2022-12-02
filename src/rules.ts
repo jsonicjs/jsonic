@@ -172,33 +172,10 @@ class RuleSpecImpl implements RuleSpec {
     let altState: 'open' | 'close' = 'o' === state ? 'open' : 'close'
     let alts: any = this.def[altState]
 
-    // console.log('AAA', alts)
-
     alts[inject](...aa)
 
-    if (mods) {
-      // Delete before move so indexes still make sense, using null to preserve index.
-      if (mods.delete) {
-        for (let i = 0; i < mods.delete.length; i++) {
-          let deleteI = (alts.length + mods.delete[i]) % alts.length
-          alts[deleteI] = null
-        }
-      }
-
-      // Format: [from,to, from,to, ...]
-      if (mods.move) {
-        for (let i = 0; i < mods.move.length; i += 2) {
-          let fromI = (alts.length + mods.move[i]) % alts.length
-          let toI = (alts.length + mods.move[i + 1]) % alts.length
-          let alt = alts[fromI]
-          alts.splice(fromI, 1)
-          alts.splice(toI, 0, alt)
-        }
-      }
-
-      // Filter out any deletes.
-      ; (this.def as any)[altState] = alts.filter((a: AltSpec) => null != a)
-    }
+    // this.def[altState] = modlist(alts, mods)
+    modlist(alts, mods)
 
     filterRules(this, this.cfg)
 

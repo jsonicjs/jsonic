@@ -696,13 +696,12 @@ function prop(obj, path, val) {
 exports.prop = prop;
 // Mutates list based on ListMods.
 function modlist(list, mods) {
-    // console.log('L', list)
     if (mods && list && 0 < list.length) {
         // Delete before move so indexes still make sense, using null to preserve index.
         if (mods.delete && 0 < mods.delete.length) {
             for (let i = 0; i < mods.delete.length; i++) {
                 let mdI = mods.delete[i];
-                if (mdI < 0 ? (-1 * mdI) <= list.length : mdI < list.length) {
+                if (mdI < 0 ? ((-1 * mdI) <= list.length) : (mdI < list.length)) {
                     // if (mdI < list.length) {
                     let dI = (list.length + mdI) % list.length;
                     // console.log('D', i, list.length, mdI, dI)
@@ -721,6 +720,7 @@ function modlist(list, mods) {
             }
         }
         // Filter out any deletes.
+        // return list.filter((a: AltSpec) => null != a)
         let filtered = list.filter(entry => null != entry);
         if (filtered.length !== list.length) {
             list.length = 0;
