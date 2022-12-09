@@ -181,10 +181,11 @@ function grammar(jsonic: Jsonic) {
   jsonic.rule('elem', (rs: RuleSpec) => {
     rs.open([
       // A list element value. Marker `elem=true` allows flexibility.
-      { p: 'val', u: { elem: true }, g: 'list,elem,val,json' },
+      // { p: 'val', u: { elem: true }, g: 'list,elem,val,json' },
+      { p: 'val', g: 'list,elem,val,json' },
     ])
       .bc((r: Rule) => {
-        if (r.use.elem) {
+        if (true !== r.use.done) {
           r.node.push(r.child.node)
         }
       })
@@ -439,12 +440,14 @@ function grammar(jsonic: Jsonic) {
       {
         s: [CA, CA],
         b: 2,
+        u: { done: true },
         a: (r: Rule) => r.node.push(null),
         g: 'list,elem,imp,null,jsonic',
       },
 
       {
         s: [CA],
+        u: { done: true },
         a: (r: Rule) => r.node.push(null),
         g: 'list,elem,imp,null,jsonic',
       },
@@ -454,13 +457,14 @@ function grammar(jsonic: Jsonic) {
         e: p.cfg.list.property ? undefined : ((_r: Rule, ctx: Context) => ctx.t0),
         p: 'val',
         n: { pk: 1 },
-        u: { elem: false },
+        u: { done: true, pair: true },
         a: pairkey,
         g: 'elem,pair,jsonic',
       },
     ])
       .bc((r: Rule, ctx: Context) => {
-        if (false === r.use.elem) {
+        // if (false === r.use.elem) {
+        if (true === r.use.pair) {
           r.use.prev = r.node[r.use.key]
           pairval(r, ctx)
         }

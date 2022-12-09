@@ -12,6 +12,7 @@ declare const defprop: <T>(o: T, p: PropertyKey, attributes: PropertyDescriptor 
 declare const omap: (o: any, f?: ((e: any) => any) | undefined) => any;
 declare const S: {
     indent: string;
+    logindent: string;
     space: string;
     gap: string;
     Object: string;

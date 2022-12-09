@@ -5,7 +5,10 @@ let j = Jsonic.make(
 ).use(Debug)
 console.log(j.debug.describe())
 
-console.log(j('}"',{log:-1}))
+console.log(j('[a:1]',{log:-1}))
+// console.log(j('[,1]',{log:-1}))
+
+// console.log(j('}"',{log:-1}))
 // console.log(j('a]',{log:-1}))
 // console.log(j('[a:b:c]',{log:-1}))
 // console.log(j('[a:1]',{log:-1}))

@@ -44,6 +44,7 @@ exports.omap = omap;
 // Also improves minification a little.
 const S = {
     indent: '. ',
+    logindent: '  ',
     space: ' ',
     gap: '  ',
     Object: 'Object',
@@ -825,7 +826,7 @@ function descParseState(ctx, lex) {
         ('' + ctx.rsI).padStart(4, ' ');
 }
 function log_rule(rule, ctx, lex) {
-    ctx.log(S.rule + S.space, descParseState(ctx, lex), S.indent.repeat(rule.d) +
+    ctx.log(S.logindent + S.rule + S.space, descParseState(ctx, lex), S.indent.repeat(rule.d) +
         // S.indent.repeat(rule.d) + S.rule + S.space,
         rule.name + '~' + rule.id, rule.state.toUpperCase(), (rule.prev.id + '/' + rule.parent.id + '/' + rule.child.id).padEnd(12), 'n:' +
         entries(rule.n)
@@ -841,7 +842,7 @@ function log_rule(rule, ctx, lex) {
 }
 exports.log_rule = log_rule;
 function log_node(rule, ctx, next, lex) {
-    ctx.log(S.node + S.space, descParseState(ctx, lex), S.indent.repeat(rule.d) +
+    ctx.log(S.logindent + S.node + S.space, descParseState(ctx, lex), S.indent.repeat(rule.d) +
         'w=' + next.why, 'n:' +
         entries(rule.n)
             .filter((n) => n[1])
@@ -856,7 +857,7 @@ function log_node(rule, ctx, next, lex) {
 }
 exports.log_node = log_node;
 function log_parse(rule, ctx, lex, match, cond, altI, alt, out) {
-    ctx.log(S.parse, descParseState(ctx, lex), S.indent.repeat(rule.d) +
+    ctx.log(S.logindent + S.parse, descParseState(ctx, lex), S.indent.repeat(rule.d) +
         (match ? 'alt=' + altI : 'no-alt'), match && out.g ? 'g:' + out.g + ' ' : '', (match && out.p ? 'p:' + out.p + ' ' : '') +
         (match && out.r ? 'r:' + out.r + ' ' : '') +
         (match && out.b ? 'b:' + out.b + ' ' : ''), (types_1.OPEN === rule.state
@@ -876,7 +877,7 @@ function log_parse(rule, ctx, lex, match, cond, altI, alt, out) {
 }
 exports.log_parse = log_parse;
 function log_stack(rule, ctx, root, lex) {
-    ctx.log(S.stack, descParseState(ctx, lex), S.indent.repeat(Math.max(rule.d + ('o' === rule.state ? -1 : 1), 0)) +
+    ctx.log(S.logindent + S.stack, descParseState(ctx, lex), S.indent.repeat(Math.max(rule.d + ('o' === rule.state ? -1 : 1), 0)) +
         // '\n' + S.indent.repeat(rule.d) + S.stack,
         ctx.rs
             .slice(0, ctx.rsI)
@@ -888,7 +889,7 @@ function log_stack(rule, ctx, root, lex) {
 }
 exports.log_stack = log_stack;
 function log_lex(rule, ctx, lex, pnt, sI, match, tkn, alt, altI, tI) {
-    ctx.log(S.lex + S.space + S.space, descParseState(ctx, lex), S.indent.repeat(rule.d) +
+    ctx.log(S.logindent + S.lex + S.space + S.space, descParseState(ctx, lex), S.indent.repeat(rule.d) +
         // S.indent.repeat(rule.d) + S.lex, // Log entry prefix.
         // Name of token from tin (token identification numer).
         tokenize(tkn.tin, ctx.cfg), ctx.F(tkn.src), // Format token src for log.

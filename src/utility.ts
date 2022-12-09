@@ -67,6 +67,7 @@ const omap = (o: any, f?: (e: any) => any) => {
 // Also improves minification a little.
 const S = {
   indent: '. ',
+  logindent: '  ',
   space: ' ',
   gap: '  ',
   Object: 'Object',
@@ -1059,7 +1060,7 @@ function descParseState(ctx: Context, lex: Lex) {
 
 function log_rule(rule: Rule, ctx: Context, lex: Lex) {
   (ctx as any).log(
-    S.rule + S.space,
+    S.logindent + S.rule + S.space,
     descParseState(ctx, lex),
     S.indent.repeat(rule.d) +
 
@@ -1095,7 +1096,7 @@ function log_rule(rule: Rule, ctx: Context, lex: Lex) {
 
 function log_node(rule: Rule, ctx: Context, next: Rule, lex: Lex) {
   (ctx as any).log(
-    S.node + S.space,
+    S.logindent + S.node + S.space,
     descParseState(ctx, lex),
     S.indent.repeat(rule.d) +
 
@@ -1129,7 +1130,7 @@ function log_parse(
   out: AltMatch
 ) {
   (ctx as any).log(
-    S.parse,
+    S.logindent + S.parse,
     descParseState(ctx, lex),
     S.indent.repeat(rule.d) +
 
@@ -1168,7 +1169,7 @@ function log_parse(
 
 function log_stack(rule: Rule, ctx: Context, root: Rule, lex: Lex) {
   (ctx as any).log(
-    S.stack,
+    S.logindent + S.stack,
     descParseState(ctx, lex),
     S.indent.repeat(Math.max(rule.d + ('o' === rule.state ? -1 : 1), 0)) +
 
@@ -1202,7 +1203,7 @@ function log_lex(
   tI?: number,
 ) {
   (ctx as any).log(
-    S.lex + S.space + S.space,
+    S.logindent + S.lex + S.space + S.space,
     descParseState(ctx, lex),
     S.indent.repeat(rule.d) +
 
