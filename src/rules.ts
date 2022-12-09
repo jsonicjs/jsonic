@@ -270,19 +270,11 @@ class RuleSpecImpl implements RuleSpec {
 
     this.def.tcol = columns
 
-    // console.log('C', this.name, '00', descAltSeq({ s: columns[0][0] } as any, this.cfg))
-    // console.log('C', this.name, '01', descAltSeq({ s: columns[0][1] } as any, this.cfg))
-    // console.log('C', this.name, '10', descAltSeq({ s: columns[1][0] } as any, this.cfg))
-    // console.log('C', this.name, '11', descAltSeq({ s: columns[1][1] } as any, this.cfg))
-
-
     function collate(stateI: number, tokenI: number, columns: Tin[][][]): [any, any] {
       columns[stateI] = (columns[stateI] || [])
       let tins = (columns[stateI][tokenI] = (columns[stateI][tokenI] || []))
 
       return [function(tins: any, alt: any) {
-        // console.log(name, tins, alt)
-
         if (alt.s && alt.s[tokenI]) {
           let newtins = [...new Set(tins.concat(alt.s[tokenI]))]
           tins.length = 0
@@ -298,19 +290,12 @@ class RuleSpecImpl implements RuleSpec {
 
 
   process(rule: Rule, ctx: Context, lex: Lex, state: RuleState): Rule {
-    let why = EMPTY
-
-    // let mI = 0
-    // while (mI++ < rule.need) {
-    //   ctx.next(rule)
-    // }
-
     // Log rule here to ensure next tokens shown are correct.
-    ctx.log && log_rule(rule, ctx, lex)
+    ctx.log && log_rule(ctx, rule, lex)
 
     let is_open = state === 'o'
     let next = is_open ? rule : ctx.NORULE
-
+    let why = is_open ? 'O' : 'C'
     let def = this.def
 
     // Match alternates for current state.
@@ -387,7 +372,7 @@ class RuleSpecImpl implements RuleSpec {
         if (0 < Object.keys(rule.keep).length) {
           next.keep = { ...rule.keep }
         }
-        why += '@p:' + alt.p
+        why += 'P`' + alt.p + '`'
       } else
         return this.bad(this.unknownRule(ctx.t0, alt.p), rule, ctx, { is_open })
     }
@@ -403,17 +388,14 @@ class RuleSpecImpl implements RuleSpec {
         if (0 < Object.keys(rule.keep).length) {
           next.keep = { ...rule.keep }
         }
-        why += '@r:' + alt.r
+        why += 'R`' + alt.r + '`'
       } else
         return this.bad(this.unknownRule(ctx.t0, alt.r), rule, ctx, { is_open })
     }
 
     // Pop closed rule off stack.
-    else {
-      if (!is_open) {
-        next = ctx.rs[--ctx.rsI] || ctx.NORULE
-      }
-      why += 'Z'
+    else if (!is_open) {
+      next = ctx.rs[--ctx.rsI] || ctx.NORULE
     }
 
     // Handle "after" call.
@@ -432,7 +414,7 @@ class RuleSpecImpl implements RuleSpec {
 
     next.why = why
 
-    ctx.log && log_node(rule, ctx, next, lex)
+    ctx.log && log_node(ctx, rule, lex, next)
 
     // Must be last as state change is for next process call.
     if (OPEN === rule.state) {
@@ -618,7 +600,7 @@ function parse_alts(
   let match = altI < alts.length
 
   // TODO: move to debug plugin
-  ctx.log && log_parse(rule, ctx, lex, match, cond, altI, alt, out)
+  ctx.log && log_parse(ctx, rule, lex, match, cond, altI, alt, out)
 
   return out
 }

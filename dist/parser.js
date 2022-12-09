@@ -47,7 +47,7 @@ class ParserImpl {
             cfg: this.cfg,
             meta: meta || {},
             src: () => src,
-            root: () => root.node,
+            root: () => root,
             plgn: () => jsonic.internal().plugins,
             rule: {},
             sub: jsonic.internal().sub,
@@ -100,13 +100,12 @@ class ParserImpl {
         while (norule !== rule && kI < maxr) {
             ctx.kI = kI;
             ctx.rule = rule;
-            // ctx.log && log_stack(rule, ctx, root, lex)
             ctx.log && ctx.log(ctx.kI + ':');
             if (ctx.sub.rule) {
                 ctx.sub.rule.map((sub) => sub(rule, ctx));
             }
             rule = rule.process(ctx, lex);
-            ctx.log && (0, utility_1.log_stack)(rule, ctx, root, lex);
+            ctx.log && (0, utility_1.log_stack)(ctx, rule, lex);
             kI++;
         }
         // TODO: option to allow trailing content
@@ -114,7 +113,7 @@ class ParserImpl {
             throw new utility_1.JsonicError(utility_1.S.unexpected, {}, ctx.t0, norule, ctx);
         }
         // NOTE: by returning root, we get implicit closing of maps and lists.
-        const result = ctx.root();
+        const result = ctx.root().node;
         if (this.cfg.result.fail.includes(result)) {
             throw new utility_1.JsonicError(utility_1.S.unexpected, {}, ctx.t0, norule, ctx);
         }

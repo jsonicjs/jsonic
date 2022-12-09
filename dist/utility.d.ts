@@ -49,6 +49,7 @@ declare const S: {
     nUll: string;
     name: string;
     make: string;
+    colon: string;
 };
 declare class JsonicError extends SyntaxError {
     constructor(code: string, details: Bag, token: Token, rule: Rule, ctx: Context);
@@ -87,9 +88,15 @@ declare function parserwrap(parser: any): {
     start: (src: string, jsonic: any, meta?: any, parent_ctx?: any) => any;
 };
 declare function descAltSeq(alt: NormAltSpec, cfg: Config): string;
-declare function log_rule(rule: Rule, ctx: Context, lex: Lex): void;
-declare function log_node(rule: Rule, ctx: Context, next: Rule, lex: Lex): void;
-declare function log_parse(rule: Rule, ctx: Context, lex: Lex, match: boolean, cond: boolean, altI: number, alt: NormAltSpec | null, out: AltMatch): void;
-declare function log_stack(rule: Rule, ctx: Context, root: Rule, lex: Lex): void;
-declare function log_lex(rule: Rule, ctx: Context, lex: Lex, pnt: Point, sI: number, match: LexMatcher | undefined, tkn: Token, alt?: NormAltSpec, altI?: number, tI?: number): void;
-export { JsonicError, S, assign, badlex, charset, clean, clone, configure, deep, defprop, entries, errdesc, errinject, escre, extract, filterRules, isarr, makelog, mesc, regexp, snip, srcfmt, tokenize, trimstk, parserwrap, prop, str, omap, keys, values, log_rule, log_node, log_parse, log_stack, log_lex, findTokenSet, descAltSeq, modlist, };
+declare const LOG: {
+    RuleState: {
+        o: string;
+        c: string;
+    };
+};
+declare function log_rule(ctx: Context, rule: Rule, lex: Lex): void;
+declare function log_node(ctx: Context, rule: Rule, lex: Lex, next: Rule): void;
+declare function log_parse(ctx: Context, rule: Rule, lex: Lex, match: boolean, cond: boolean, altI: number, alt: NormAltSpec | null, out: AltMatch): void;
+declare function log_stack(ctx: Context, rule: Rule, lex: Lex): void;
+declare function log_lex(ctx: Context, rule: Rule, lex: Lex, pnt: Point, sI: number, match: LexMatcher | undefined, tkn: Token, alt?: NormAltSpec, altI?: number, tI?: number): void;
+export { JsonicError, S, LOG, assign, badlex, charset, clean, clone, configure, deep, defprop, entries, errdesc, errinject, escre, extract, filterRules, isarr, makelog, mesc, regexp, snip, srcfmt, tokenize, trimstk, parserwrap, prop, str, omap, keys, values, log_rule, log_node, log_parse, log_stack, log_lex, findTokenSet, descAltSeq, modlist, };

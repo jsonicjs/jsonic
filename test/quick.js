@@ -1,11 +1,19 @@
 let { Jsonic, util, Debug } = require('..')
 
 let j = Jsonic.make(
-  // {list: { property: false }}
+  {
+    // rule: { finish: false },
+    // list: { property: false }
+  }
 ).use(Debug)
 console.log(j.debug.describe())
 
-console.log(j('[a:1]',{log:-1}))
+
+console.log(j('a:1',{log:-1}))
+
+// console.log(j('[1',{log:-1}))
+
+// console.log(j('[9,8,a:1]',{log:-1}))
 // console.log(j('[,1]',{log:-1}))
 
 // console.log(j('}"',{log:-1}))

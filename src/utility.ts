@@ -104,6 +104,7 @@ const S = {
   nUll: 'null',
   name: 'name',
   make: 'make',
+  colon: ':',
 }
 
 // Jsonic errors with nice formatting.
@@ -767,19 +768,26 @@ function makelog(ctx: Context, meta: any) {
   return ctx.log
 }
 
+
 function srcfmt(config: Config): (s: any) => string {
   return 'function' === typeof config.debug.print.src
     ? config.debug.print.src
-    : (s: any, _?: any) => {
+    : (s: any) => {
       let out =
-        null == s
-          ? EMPTY
-          : ((_ = JSON.stringify(s)),
-            _.substring(0, config.debug.maxlen) +
-            (config.debug.maxlen < _.length ? '...' : EMPTY))
+        null == s ? EMPTY :
+          Array.isArray(s) ?
+            (JSON.stringify(s)).replace(/]$/, entries((s as any))
+              .filter((en: any) => isNaN(en[0]))
+              .map((en, i) => ((0 === i ? ', ' : '') + en[0] +
+                ': ' + JSON.stringify(en[1]))) // Just one level of array props!
+              + ']') :
+            JSON.stringify(s)
+      out = out.substring(0, config.debug.maxlen) +
+        (config.debug.maxlen < out.length ? '...' : EMPTY)
       return out
     }
 }
+
 
 function str(o: any, len: number = 44) {
   let s
@@ -1050,78 +1058,85 @@ function descTokenState(ctx: Context) {
 }
 
 
-function descParseState(ctx: Context, lex: Lex) {
+function descParseState(ctx: Context, rule: Rule, lex: Lex) {
   return ctx.F(ctx.src()
     .substring(lex.pnt.sI, lex.pnt.sI + 16)).padEnd(18, ' ') + ' ' +
     descTokenState(ctx).padEnd(34, ' ') + ' ' +
-    ('' + ctx.rsI).padStart(4, ' ')
+    ('' + rule.d).padStart(4, ' ')
 }
 
 
-function log_rule(rule: Rule, ctx: Context, lex: Lex) {
-  (ctx as any).log(
-    S.logindent + S.rule + S.space,
-    descParseState(ctx, lex),
-    S.indent.repeat(rule.d) +
+function descRuleState(ctx: Context, rule: Rule) {
+  let en = entries(rule.n)
+  let eu = entries(rule.use)
+  let ek = entries(rule.keep)
 
-    // S.indent.repeat(rule.d) + S.rule + S.space,
-
-    rule.name + '~' + rule.id,
-    rule.state.toUpperCase(),
-
-    (rule.prev.id + '/' + rule.parent.id + '/' + rule.child.id).padEnd(
-      12
-    ),
-
-    'n:' +
-    entries(rule.n)
+  return '' +
+    (0 === en.length ? '' : ' N<' + en
       .filter((n) => n[1])
       .map((n) => n[0] + '=' + n[1])
-      .join(';'),
-    'u:' +
-    entries(rule.use)
+      .join(';') + '>') +
+    (0 === eu.length ? '' : ' U<' + eu
       .map((u) => u[0] + '=' + ctx.F(u[1]))
-      .join(';'),
-    'k:' +
-    entries(rule.keep)
+      .join(';') + '>') +
+    (0 === ek.length ? '' : ' K<' + ek
       .map((k) => k[0] + '=' + ctx.F(k[1]))
-      .join(';'),
+      .join(';') + '>')
+}
 
+
+const LOG = {
+  RuleState: {
+    o: S.open.toUpperCase(),
+    c: S.close.toUpperCase(),
+  }
+}
+
+
+function log_rule(ctx: Context, rule: Rule, lex: Lex) {
+  (ctx as any).log(
     rule,
-    ctx
+    ctx,
+    lex,
+
+    S.logindent + S.rule + S.space,
+    descParseState(ctx, rule, lex),
+
+    S.indent.repeat(rule.d) +
+    (rule.name + '~' + rule.id + S.colon + LOG.RuleState[rule.state]).padEnd(16),
+
+    ('prev=' + rule.prev.id +
+      ' parent=' + rule.parent.id +
+      ' child=' + rule.child.id)
+      .padEnd(28),
+
+    descRuleState(ctx, rule),
   )
 
 }
 
 
-function log_node(rule: Rule, ctx: Context, next: Rule, lex: Lex) {
+function log_node(ctx: Context, rule: Rule, lex: Lex, next: Rule) {
   (ctx as any).log(
-    S.logindent + S.node + S.space,
-    descParseState(ctx, lex),
-    S.indent.repeat(rule.d) +
+    rule,
+    ctx,
+    lex,
+    next,
 
-    'w=' + next.why,
-    'n:' +
-    entries(rule.n)
-      .filter((n) => n[1])
-      .map((n) => n[0] + '=' + n[1])
-      .join(';'),
-    'u:' +
-    entries(rule.use)
-      .map((u) => u[0] + '=' + ctx.F(u[1]))
-      .join(';'),
-    'k:' +
-    entries(rule.keep)
-      .map((k) => k[0] + '=' + ctx.F(k[1]))
-      .join(';'),
-    '<' + ctx.F(rule.node) + '>'
+    S.logindent + S.node + S.space,
+    descParseState(ctx, rule, lex),
+
+    S.indent.repeat(rule.d) +
+    ('why=' + next.why + S.space + '<' + ctx.F(rule.node) + '>').padEnd(46),
+
+    descRuleState(ctx, rule)
   )
 }
 
 
 function log_parse(
-  rule: Rule,
   ctx: Context,
+  rule: Rule,
   lex: Lex,
   match: boolean,
   cond: boolean,
@@ -1129,70 +1144,84 @@ function log_parse(
   alt: NormAltSpec | null,
   out: AltMatch
 ) {
-  (ctx as any).log(
+  let ns = (match && out.n) ? entries(out.n) : null
+  let us = (match && out.u) ? entries(out.u) : null
+  let ks = (match && out.k) ? entries(out.k) : null
+
+  ctx.log && ctx.log(
+    ctx,
+    rule,
+    lex,
+
     S.logindent + S.parse,
-    descParseState(ctx, lex),
+    descParseState(ctx, rule, lex),
     S.indent.repeat(rule.d) +
 
     (match ? 'alt=' + altI : 'no-alt'),
+
+    match && alt ? descAltSeq(alt, ctx.cfg) : '',
 
     match && out.g ? 'g:' + out.g + ' ' : '',
     (match && out.p ? 'p:' + out.p + ' ' : '') +
     (match && out.r ? 'r:' + out.r + ' ' : '') +
     (match && out.b ? 'b:' + out.b + ' ' : ''),
 
-    (OPEN === rule.state
-      ? [rule.o0, rule.o1].slice(0, rule.os)
-      : [rule.c0, rule.c1].slice(0, rule.cs)
-    )
-      .map((tkn: Token) => tkn.name + '=' + ctx.F(tkn.src))
-      .join(' '),
+    (alt && alt.c ? 'c:' + cond : EMPTY),
 
-    'c:' + (alt && alt.c ? cond : EMPTY),
-    'n:' +
-    entries(out.n)
-      .map((n) => n[0] + '=' + n[1])
-      .join(';'),
-    'u:' +
-    entries(out.u)
-      .map((u) => u[0] + '=' + u[1])
-      .join(';'),
-    'k:' +
-    entries(out.k)
-      .map((k) => k[0] + '=' + k[1])
-      .join(';'),
+    null == ns ? '' : ('n:' +
+      ns
+        .map((p) => p[0] + '=' + p[1])
+        .join(';')),
 
-    match && alt ? descAltSeq(alt, ctx.cfg) : ''
+    null == us ? '' : ('u:' +
+      us
+        .map((p) => p[0] + '=' + p[1])
+        .join(';')),
+
+    null == ks ? '' : ('k:' +
+      ks
+        .map((p) => p[0] + '=' + p[1])
+        .join(';')),
+
   )
 }
 
 
-function log_stack(rule: Rule, ctx: Context, root: Rule, lex: Lex) {
+function log_stack(ctx: Context, rule: Rule, lex: Lex) {
   (ctx as any).log(
     S.logindent + S.stack,
-    descParseState(ctx, lex),
-    S.indent.repeat(Math.max(rule.d + ('o' === rule.state ? -1 : 1), 0)) +
+    descParseState(ctx, rule, lex),
 
-    // '\n' + S.indent.repeat(rule.d) + S.stack,
-    ctx.rs
-      .slice(0, ctx.rsI)
+    // S.indent.repeat(Math.max(rule.d + ('o' === rule.state ? -1 : 1), 0)) +
+    S.indent.repeat(rule.d) +
+
+    '/' + ctx.rs
+      // .slice(0, ctx.rsI)
+      .slice(0, rule.d)
       .map((r: Rule) => r.name + '~' + r.id)
       .join('/'),
-    '<<' + ctx.F(root.node) + '>>',
-    ctx.rs
-      .slice(0, ctx.rsI)
-      .map((r: Rule) => '<' + ctx.F(r.node) + '>')
-      .join(' '),
 
+    '~',
+
+    '/' + ctx.rs
+      // .slice(0, ctx.rsI)
+      .slice(0, rule.d)
+      .map((r: Rule) => ctx.F(r.node))
+      .join('/'),
+
+    // 'd=' + rule.d,
+    //'rsI=' + ctx.rsI,
+
+    ctx,
     rule,
-    ctx
+    lex
   )
 }
 
 
 function log_lex(
-  rule: Rule,
   ctx: Context,
+  rule: Rule,
   lex: Lex,
   pnt: Point,
   sI: number,
@@ -1204,7 +1233,7 @@ function log_lex(
 ) {
   (ctx as any).log(
     S.logindent + S.lex + S.space + S.space,
-    descParseState(ctx, lex),
+    descParseState(ctx, rule, lex),
     S.indent.repeat(rule.d) +
 
     // S.indent.repeat(rule.d) + S.lex, // Log entry prefix.
@@ -1220,7 +1249,11 @@ function log_lex(
     alt ? 'on:alt=' + altI + ';' + alt.g + ';t=' + tI + ';' +
       descAltSeq(alt, ctx.cfg) : '',
 
-    ctx.F(lex.src.substring(sI, sI + 16))
+    ctx.F(lex.src.substring(sI, sI + 16)),
+
+    ctx,
+    rule,
+    lex
   )
 }
 
@@ -1228,6 +1261,7 @@ function log_lex(
 export {
   JsonicError,
   S,
+  LOG,
   assign,
   badlex,
   charset,

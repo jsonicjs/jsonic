@@ -99,7 +99,7 @@ class ParserImpl implements Parser {
       cfg: this.cfg,
       meta: meta || {},
       src: () => src, // Avoid printing src
-      root: () => root.node,
+      root: () => root,
       plgn: () => jsonic.internal().plugins,
       rule: {} as Rule,
       sub: jsonic.internal().sub,
@@ -165,8 +165,6 @@ class ParserImpl implements Parser {
       ctx.kI = kI
       ctx.rule = rule
 
-      // ctx.log && log_stack(rule, ctx, root, lex)
-
       ctx.log && ctx.log(ctx.kI + ':')
 
       if (ctx.sub.rule) {
@@ -175,7 +173,7 @@ class ParserImpl implements Parser {
 
       rule = rule.process(ctx, lex)
 
-      ctx.log && log_stack(rule, ctx, root, lex)
+      ctx.log && log_stack(ctx, rule, lex)
 
       kI++
     }
@@ -186,7 +184,7 @@ class ParserImpl implements Parser {
     }
 
     // NOTE: by returning root, we get implicit closing of maps and lists.
-    const result = ctx.root()
+    const result = ctx.root().node
 
     if (this.cfg.result.fail.includes(result)) {
       throw new JsonicError(S.unexpected, {}, ctx.t0, norule, ctx)
