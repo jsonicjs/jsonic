@@ -128,6 +128,7 @@ function grammar(jsonic) {
                 r.use.prev = r.node[r.use.key];
                 r.node[r.use.key] = r.child.node;
             }
+            // console.log('JSON PAIR BC', r.use, r.node)
         })
             .close([
             // Comma means a new pair at same pair-key level.
@@ -173,6 +174,7 @@ function grammar(jsonic) {
                     : ctx.cfg.map.extend
                         ? deep(prev, val)
                         : val;
+        // console.log('JSONIC PAIRVAL', r.use, r.node)
     };
     jsonic.rule('val', (rs) => {
         rs.open([
@@ -197,8 +199,8 @@ function grammar(jsonic) {
             // Implicit list at top level: a,b.
             {
                 s: [CA],
-                // c: { n: { il: 0 } },
                 c: (r) => 0 === r.d,
+                // c: { n: { dlist: 0 } },
                 p: 'list',
                 b: 1,
                 g: 'list,imp,jsonic',
@@ -216,13 +218,18 @@ function grammar(jsonic) {
             {
                 s: [CA],
                 c: (r) => 0 === r.d,
-                r: 'elem',
-                a: (r) => (r.node = [r.node]),
+                // c: { n: { dlist: 0 } },
+                // r: 'elem',
+                r: 'list',
+                // a: (r: Rule) => (r.node = [r.node]),
+                // a: (r: Rule) => (r.node = r.child.node = [r.node]),
+                u: { prev_elem: true },
                 g: 'list,val,imp,comma,jsonic',
             },
             // Implicit list (space sep) only allowed at top level: `1 2`.
             {
                 c: (r) => 0 === r.d,
+                // c: { n: { dlist: 0 } },
                 r: 'elem',
                 a: (r) => (r.node = [r.node]),
                 g: 'list,val,imp,space,jsonic',
@@ -264,7 +271,16 @@ function grammar(jsonic) {
     jsonic.rule('list', (rs) => {
         rs
             .bo((r) => {
-            // r.n.dmap = 1 + (r.n.dmap ? r.n.dmap : 0)
+            // Increment depth of lists.
+            r.n.dlist = 1 + (r.n.dlist ? r.n.dlist : 0);
+            if (r.prev.use.prev_elem) {
+                r.node.push(r.prev.node);
+                r.prev.node = r.node;
+            }
+        })
+            .open({
+            c: (r) => r.prev.use.prev_elem,
+            p: 'elem',
         })
             .open([
             // Initial comma [, will insert null as [null,
@@ -283,6 +299,7 @@ function grammar(jsonic) {
             // Ignore initial comma: {,a:1.
             { s: [CA], g: 'map,pair,comma' },
         ], { append: true })
+            // NOTE: JSON pair.bc runs first, then this bc may override value.
             .bc((r, ctx) => {
             if (r.use.pair) {
                 pairval(r, ctx);
@@ -326,7 +343,7 @@ function grammar(jsonic) {
             { s: [ZZ], e: finish, g: 'map,pair,json' },
             // Who needs commas anyway?
             {
-                c: { n: { pk: 0 } },
+                // c: { n: { pk: 0 } },
                 r: 'pair',
                 b: 1,
                 g: 'map,pair,imp,jsonic',
@@ -373,8 +390,6 @@ function grammar(jsonic) {
             { s: [CA, [CS, ZZ]], b: 1, g: 'list,elem,comma,jsonic' },
             // Next element.
             { s: [CA], r: 'elem', g: 'list,elem,json' },
-            // Who needs commas anyway?
-            // { s: [[...VAL, OB, OS]], r: 'elem', b: 1, g: 'list,elem,imp,jsonic' },
             // End of list.
             { s: [CS], b: 1, g: 'list,elem,json' },
             // Fail if auto-close option is false.

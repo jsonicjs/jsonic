@@ -6,7 +6,7 @@ const types_1 = require("./types");
 const utility_1 = require("./utility");
 class RuleImpl {
     constructor(spec, ctx, node) {
-        this.id = -1;
+        this.i = -1;
         this.name = types_1.EMPTY;
         this.node = null;
         this.state = types_1.OPEN;
@@ -21,7 +21,7 @@ class RuleImpl {
         this.os = 0;
         this.cs = 0;
         this.need = 0;
-        this.id = ctx.uI++; // Rule ids are unique only to the parse run.
+        this.i = ctx.uI++; // Rule ids are unique only to the parse run.
         this.name = spec.name;
         this.spec = spec;
         this.child = ctx.NORULE;
@@ -43,7 +43,7 @@ class RuleImpl {
         return rule;
     }
     toString() {
-        return '[Rule ' + this.name + '~' + this.id + ']';
+        return '[Rule ' + this.name + '~' + this.i + ']';
     }
 }
 const makeRule = (...params) => new RuleImpl(...params);

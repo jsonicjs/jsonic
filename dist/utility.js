@@ -857,9 +857,9 @@ const LOG = {
 exports.LOG = LOG;
 function log_rule(ctx, rule, lex) {
     ctx.log(rule, ctx, lex, S.logindent + S.rule + S.space, descParseState(ctx, rule, lex), S.indent.repeat(rule.d) +
-        (rule.name + '~' + rule.id + S.colon + LOG.RuleState[rule.state]).padEnd(16), ('prev=' + rule.prev.id +
-        ' parent=' + rule.parent.id +
-        ' child=' + rule.child.id)
+        (rule.name + '~' + rule.i + S.colon + LOG.RuleState[rule.state]).padEnd(16), ('prev=' + rule.prev.i +
+        ' parent=' + rule.parent.i +
+        ' child=' + rule.child.i)
         .padEnd(28), descRuleState(ctx, rule));
 }
 exports.log_rule = log_rule;
@@ -894,7 +894,7 @@ function log_stack(ctx, rule, lex) {
         '/' + ctx.rs
         // .slice(0, ctx.rsI)
         .slice(0, rule.d)
-        .map((r) => r.name + '~' + r.id)
+        .map((r) => r.name + '~' + r.i)
         .join('/'), '~', '/' + ctx.rs
         // .slice(0, ctx.rsI)
         .slice(0, rule.d)

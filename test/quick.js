@@ -9,7 +9,9 @@ let j = Jsonic.make(
 console.log(j.debug.describe())
 
 
-console.log(j('a:1',{log:-1}))
+console.log(j('1, 2',{log:-1}))
+
+// console.log(j('a:1',{log:-1}))
 
 // console.log(j('[1',{log:-1}))
 

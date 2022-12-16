@@ -1,6 +1,6 @@
 import type { RuleState, RuleStep, StateAction, Tin, Token, Config, Context, Rule, RuleSpec, ListMods, AltSpec, Lex } from './types';
 declare class RuleImpl implements Rule {
-    id: number;
+    i: number;
     name: string;
     node: null;
     state: RuleState;

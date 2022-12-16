@@ -1104,11 +1104,11 @@ function log_rule(ctx: Context, rule: Rule, lex: Lex) {
     descParseState(ctx, rule, lex),
 
     S.indent.repeat(rule.d) +
-    (rule.name + '~' + rule.id + S.colon + LOG.RuleState[rule.state]).padEnd(16),
+    (rule.name + '~' + rule.i + S.colon + LOG.RuleState[rule.state]).padEnd(16),
 
-    ('prev=' + rule.prev.id +
-      ' parent=' + rule.parent.id +
-      ' child=' + rule.child.id)
+    ('prev=' + rule.prev.i +
+      ' parent=' + rule.parent.i +
+      ' child=' + rule.child.i)
       .padEnd(28),
 
     descRuleState(ctx, rule),
@@ -1199,7 +1199,7 @@ function log_stack(ctx: Context, rule: Rule, lex: Lex) {
     '/' + ctx.rs
       // .slice(0, ctx.rsI)
       .slice(0, rule.d)
-      .map((r: Rule) => r.name + '~' + r.id)
+      .map((r: Rule) => r.name + '~' + r.i)
       .join('/'),
 
     '~',

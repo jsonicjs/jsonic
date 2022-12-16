@@ -246,7 +246,7 @@ export interface RuleSpec {
 // "open" when first placed on the stack, and "close" when it needs to be
 // removed from the stack.
 export interface Rule {
-  id: number // Rule index (unique to parse).
+  i: number // Rule index (unique to parse).
   name: string // Rule name.
   spec: RuleSpec // RuleSpec for this rule.
   node: any // The parsed value, if any.

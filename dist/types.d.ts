@@ -180,7 +180,7 @@ export interface RuleSpec {
     }): Rule;
 }
 export interface Rule {
-    id: number;
+    i: number;
     name: string;
     spec: RuleSpec;
     node: any;

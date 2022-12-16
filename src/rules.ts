@@ -42,7 +42,7 @@ import {
 
 
 class RuleImpl implements Rule {
-  id = -1
+  i = -1
   name = EMPTY
   node = null
   state = OPEN
@@ -70,7 +70,7 @@ class RuleImpl implements Rule {
   need = 0
 
   constructor(spec: RuleSpec, ctx: Context, node?: any) {
-    this.id = ctx.uI++ // Rule ids are unique only to the parse run.
+    this.i = ctx.uI++ // Rule ids are unique only to the parse run.
     this.name = spec.name
     this.spec = spec
 
@@ -97,7 +97,7 @@ class RuleImpl implements Rule {
   }
 
   toString() {
-    return '[Rule ' + this.name + '~' + this.id + ']'
+    return '[Rule ' + this.name + '~' + this.i + ']'
   }
 }
 
