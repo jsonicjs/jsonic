@@ -159,7 +159,7 @@ function grammar(jsonic) {
     // Counters.
     // * pk (pair-key): depth of the pair-key path
     // * il (implicit list): only allow at top level
-    // * im (implicit map): only allow at top level
+    // * dmap (implicit map): only allow at top level
     const pairval = (r, ctx) => {
         let key = r.use.key;
         let val = r.child.node;
@@ -183,11 +183,17 @@ function grammar(jsonic) {
             // A plain value: `x` `"x"` `1` `true` ....
             { s: [VAL], g: 'val,json' },
             // Implicit ends `{a:}` -> {"a":null}, `[a:]` -> [{"a":null}]
-            { s: [[CB, CS]], b: 1, c: (r) => 0 < r.d, g: 'val,imp,null,jsonic' },
+            {
+                s: [[CB, CS]],
+                b: 1,
+                c: (r) => 0 < r.d,
+                g: 'val,imp,null,jsonic'
+            },
             // Implicit list at top level: a,b.
             {
                 s: [CA],
-                c: { n: { il: 0 } },
+                // c: { n: { il: 0 } },
+                c: (r) => 0 === r.d,
                 p: 'list',
                 b: 1,
                 g: 'list,imp,jsonic',
@@ -204,18 +210,24 @@ function grammar(jsonic) {
             // Implicit list (comma sep) only allowed at top level: `1,2`.
             {
                 s: [CA],
-                c: { n: { il: 0, pk: 0 } },
-                n: { il: 1 },
+                // c: { n: { il: 0, pk: 0 } },
+                c: (r) => 0 === r.d,
+                // n: { il: 1 },
                 r: 'elem',
                 a: (r) => (r.node = [r.node]),
                 g: 'list,val,imp,comma,jsonic',
             },
             // Implicit list (space sep) only allowed at top level: `1 2`.
             {
-                c: { n: { il: 0, pk: 0 } },
-                n: { il: 1 },
+                // c: { n: { il: 0, pk: 0 } },
+                c: (r) => 0 === r.d,
+                // n: { il: 1 },
                 r: 'elem',
-                a: (r) => (r.node = [r.node]),
+                a: (r, _c) => {
+                    (r.node = [r.node]);
+                    // console.log(r)
+                    // console.log(c)
+                },
                 g: 'list,val,imp,space,jsonic',
                 b: 1,
             },
@@ -231,9 +243,9 @@ function grammar(jsonic) {
         rs
             .bo((r) => {
             // Implicit lists only at top level.
-            r.n.il = 1 + (r.n.il ? r.n.il : 0);
+            // r.n.il = 1 + (r.n.il ? r.n.il : 0)
             // Implicit maps only at top level.
-            r.n.im = 1 + (r.n.im ? r.n.im : 0);
+            r.n.dmap = 1 + (r.n.dmap ? r.n.dmap : 0);
         })
             .open([
             // Auto-close; fail if rule.finish option is false.
@@ -258,9 +270,8 @@ function grammar(jsonic) {
         rs
             .bo((r) => {
             // No implicit lists or maps inside lists.
-            r.n.il = 1 + (r.n.il ? r.n.il : 0);
-            r.n.im = 1 + (r.n.im ? r.n.im : 0);
-            // r.n.pk = 1 + (r.n.pk ? r.n.pk : 0)
+            // r.n.il = 1 + (r.n.il ? r.n.il : 0)
+            r.n.dmap = 1 + (r.n.dmap ? r.n.dmap : 0);
         })
             .open([
             // Initial comma [, will insert null as [null,
@@ -295,7 +306,12 @@ function grammar(jsonic) {
             { s: [CA], c: { n: { pk: 0 } }, r: 'pair', g: 'map,pair,json' },
             // TODO: try CA VAL ? works anywhere?
             // Comma means a new pair if implicit top level map.
-            { s: [CA], c: { n: { im: 1 } }, r: 'pair', g: 'map,pair,jsonic' },
+            {
+                s: [CA],
+                c: { n: { dmap: 1 } },
+                r: 'pair',
+                g: 'map,pair,jsonic'
+            },
             // Who needs commas anyway?
             // {
             //   // s: [VAL],
@@ -310,7 +326,7 @@ function grammar(jsonic) {
             {
                 // s: [VAL],
                 s: [KEY],
-                c: { n: { im: 1 } },
+                c: { n: { dmap: 1 } },
                 r: 'pair',
                 b: 1,
                 g: 'map,pair,imp,jsonic',
