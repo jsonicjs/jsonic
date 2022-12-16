@@ -177,11 +177,11 @@ function grammar(jsonic: Jsonic) {
 
   // push onto node
   jsonic.rule('elem', (rs: RuleSpec) => {
-    rs.open([
-      // A list element value. Marker `elem=true` allows flexibility.
-      // { p: 'val', u: { elem: true }, g: 'list,elem,val,json' },
-      { p: 'val', g: 'list,elem,val,json' },
-    ])
+    rs
+      .open([
+        // List elements are values.
+        { p: 'val', g: 'list,elem,val,json' },
+      ])
       .bc((r: Rule) => {
         if (true !== r.use.done) {
           r.node.push(r.child.node)
@@ -200,9 +200,8 @@ function grammar(jsonic: Jsonic) {
   // Jsonic syntax extensions.
 
   // Counters.
-  // * pk (pair-key): depth of the pair-key path
-  // * il (implicit list): only allow at top level
-  // * dmap (implicit map): only allow at top level
+  // * pk: depth of the pair-key path
+  // * dmap: depth of maps
 
   const pairval = (r: Rule, ctx: Context) => {
     let key = r.use.key
@@ -228,7 +227,13 @@ function grammar(jsonic: Jsonic) {
       [
         // A pair key: `a: ...`
         // Increment counter n.pk to indicate pair-key state (for extensions).
-        { s: [KEY, CL], p: 'map', b: 2, n: { pk: 1 }, g: 'pair,jsonic' },
+        {
+          s: [KEY, CL],
+          p: 'map',
+          b: 2,
+          n: { pk: 1 },
+          g: 'pair,jsonic'
+        },
 
         // A plain value: `x` `"x"` `1` `true` ....
         { s: [VAL], g: 'val,json' },
@@ -268,9 +273,7 @@ function grammar(jsonic: Jsonic) {
         // Implicit list (comma sep) only allowed at top level: `1,2`.
         {
           s: [CA],
-          // c: { n: { il: 0, pk: 0 } },
           c: (r) => 0 === r.d,
-          // n: { il: 1 },
           r: 'elem',
           a: (r: Rule) => (r.node = [r.node]),
           g: 'list,val,imp,comma,jsonic',
@@ -278,16 +281,9 @@ function grammar(jsonic: Jsonic) {
 
         // Implicit list (space sep) only allowed at top level: `1 2`.
         {
-          // c: { n: { il: 0, pk: 0 } },
           c: (r) => 0 === r.d,
-          // n: { il: 1 },
           r: 'elem',
-          a: (r: Rule, _c: Context) => {
-            (r.node = [r.node])
-
-            // console.log(r)
-            // console.log(c)
-          },
+          a: (r: Rule) => (r.node = [r.node]),
           g: 'list,val,imp,space,jsonic',
           b: 1,
         },
@@ -307,10 +303,7 @@ function grammar(jsonic: Jsonic) {
     .rule('map', (rs: RuleSpec) => {
       rs
         .bo((r: Rule) => {
-          // Implicit lists only at top level.
-          // r.n.il = 1 + (r.n.il ? r.n.il : 0)
-
-          // Implicit maps only at top level.
+          // Increment depth of maps.
           r.n.dmap = 1 + (r.n.dmap ? r.n.dmap : 0)
         })
         .open([
@@ -346,9 +339,7 @@ function grammar(jsonic: Jsonic) {
   jsonic.rule('list', (rs: RuleSpec) => {
     rs
       .bo((r: Rule) => {
-        // No implicit lists or maps inside lists.
-        // r.n.il = 1 + (r.n.il ? r.n.il : 0)
-        r.n.dmap = 1 + (r.n.dmap ? r.n.dmap : 0)
+        // r.n.dmap = 1 + (r.n.dmap ? r.n.dmap : 0)
       })
       .open(
         [
@@ -406,16 +397,6 @@ function grammar(jsonic: Jsonic) {
             g: 'map,pair,jsonic'
           },
 
-          // Who needs commas anyway?
-          // {
-          //   // s: [VAL],
-          //   s: [KEY],
-          //   c: { n: { pk: 0 } },
-          //   r: 'pair',
-          //   b: 1,
-          //   g: 'map,pair,imp,jsonic',
-          // },
-
           // TODO: try VAL CL ? works anywhere?
           // Value means a new pair if implicit top level map.
           {
@@ -433,10 +414,6 @@ function grammar(jsonic: Jsonic) {
             c: (r) => 0 < r.n.pk
           },
 
-          // Close pair inside list.
-          // p.cfg.list.property &&
-          // { s: [CS], b: 1, g: 'list,pair,imp,jsonic' },
-
           // Can't close a map with `]`
           { s: [CS], e: (r: Rule) => r.c0, g: 'end,jsonic' },
 
@@ -446,8 +423,6 @@ function grammar(jsonic: Jsonic) {
 
           // Who needs commas anyway?
           {
-            // s: [VAL],
-            // s: [KEY],
             c: { n: { pk: 0 } },
             r: 'pair',
             b: 1,
@@ -483,7 +458,7 @@ function grammar(jsonic: Jsonic) {
         s: [KEY, CL],
         e: p.cfg.list.property ? undefined : ((_r: Rule, ctx: Context) => ctx.t0),
         p: 'val',
-        n: { pk: 1 },
+        n: { pk: 1, dmap: 1 },
         u: { done: true, pair: true },
         a: pairkey,
         g: 'elem,pair,jsonic',
