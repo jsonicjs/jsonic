@@ -811,7 +811,8 @@ function descAltSeq(alt, cfg) {
         (alt.s || [])
             .map((tin) => 'number' === typeof tin
             ? tokenize(tin, cfg)
-            : '[' + tin.map((t) => tokenize(t, cfg)) + ']')
+            : Array.isArray(tin) ?
+                '[' + tin.map((t) => tokenize(t, cfg)) + ']' : '')
             .join(' ') +
         '] ';
 }

@@ -71,7 +71,7 @@ export async function run(argv: string[], console: Console) {
   }
 
   if (null != plugins.debug) {
-    console.log(jsonic.describe() + '\n=== PARSE ===')
+    console.log(jsonic.debug.describe() + '\n=== PARSE ===')
   }
 
   let data = { val: null }

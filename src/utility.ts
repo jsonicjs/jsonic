@@ -1040,7 +1040,8 @@ function descAltSeq(alt: NormAltSpec, cfg: Config) {
       .map((tin: any) =>
         'number' === typeof tin
           ? tokenize(tin, cfg)
-          : '[' + tin.map((t: any) => tokenize(t, cfg)) + ']'
+          : Array.isArray(tin) ?
+            '[' + tin.map((t: any) => tokenize(t, cfg)) + ']' : ''
       )
       .join(' ') +
     '] '

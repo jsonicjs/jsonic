@@ -1,2 +1,2 @@
 #!/usr/bin/env node
-require('../jsonic-cli')
+require('../dist/jsonic-cli')

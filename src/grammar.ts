@@ -59,6 +59,7 @@ function grammar(jsonic: Jsonic) {
     r.use.key = key
   }
 
+
   // Plain JSON
 
   jsonic.rule('val', (rs: RuleSpec) => {
@@ -170,9 +171,6 @@ function grammar(jsonic: Jsonic) {
 
         // End of map.
         { s: [CB], b: 1, g: 'map,pair,json' },
-
-        // Fail if rule.finish option is false.
-        // { s: [ZZ], e: finish, g: 'map,pair,json' },
       ])
   })
 
@@ -195,9 +193,6 @@ function grammar(jsonic: Jsonic) {
 
         // End of list.
         { s: [CS], b: 1, g: 'list,elem,json' },
-
-        // Fail if rule.finish option is false.
-        // { s: [ZZ], e: finish, g: 'list,elem,json' },
       ])
   })
 
@@ -395,14 +390,14 @@ function grammar(jsonic: Jsonic) {
           { s: [CA], c: { n: { im: 1 } }, r: 'pair', g: 'map,pair,jsonic' },
 
           // Who needs commas anyway?
-          {
-            // s: [VAL],
-            s: [KEY],
-            c: { n: { pk: 0 } },
-            r: 'pair',
-            b: 1,
-            g: 'map,pair,imp,jsonic',
-          },
+          // {
+          //   // s: [VAL],
+          //   s: [KEY],
+          //   c: { n: { pk: 0 } },
+          //   r: 'pair',
+          //   b: 1,
+          //   g: 'map,pair,imp,jsonic',
+          // },
 
           // TODO: try VAL CL ? works anywhere?
           // Value means a new pair if implicit top level map.
@@ -425,8 +420,23 @@ function grammar(jsonic: Jsonic) {
           // p.cfg.list.property &&
           // { s: [CS], b: 1, g: 'list,pair,imp,jsonic' },
 
+          // Can't close a map with `]`
+          { s: [CS], e: (r: Rule) => r.c0, g: 'end,jsonic' },
+
           // Fail if auto-close option is false.
           { s: [ZZ], e: finish, g: 'map,pair,json' },
+
+
+          // Who needs commas anyway?
+          {
+            // s: [VAL],
+            // s: [KEY],
+            c: { n: { pk: 0 } },
+            r: 'pair',
+            b: 1,
+            g: 'map,pair,imp,jsonic',
+          },
+
         ],
         { append: true, delete: [0, 1] }
       )
@@ -478,13 +488,19 @@ function grammar(jsonic: Jsonic) {
           { s: [CA], r: 'elem', g: 'list,elem,json' },
 
           // Who needs commas anyway?
-          { s: [[...VAL, OB, OS]], r: 'elem', b: 1, g: 'list,elem,imp,jsonic' },
+          // { s: [[...VAL, OB, OS]], r: 'elem', b: 1, g: 'list,elem,imp,jsonic' },
 
           // End of list.
           { s: [CS], b: 1, g: 'list,elem,json' },
 
           // Fail if auto-close option is false.
           { s: [ZZ], e: finish, g: 'list,elem,json' },
+
+          // Can't close a list with `}`
+          { s: [CB], e: (r: Rule) => r.c0, g: 'end,jsonic' },
+
+          // Who needs commas anyway?
+          { r: 'elem', b: 1, g: 'list,elem,imp,jsonic' },
         ],
         { delete: [-1, -2] }
       )
