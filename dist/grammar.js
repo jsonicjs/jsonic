@@ -217,8 +217,8 @@ function grammar(jsonic) {
             // Implicit list (comma sep) only allowed at top level: `1,2`.
             {
                 s: [CA],
-                c: (r) => 0 === r.d,
-                // c: { n: { dlist: 0 } },
+                // c: (r) => 0 === r.d,
+                c: { n: { dlist: 0, dmap: 0 } },
                 // r: 'elem',
                 r: 'list',
                 // a: (r: Rule) => (r.node = [r.node]),
@@ -228,10 +228,13 @@ function grammar(jsonic) {
             },
             // Implicit list (space sep) only allowed at top level: `1 2`.
             {
-                c: (r) => 0 === r.d,
+                // c: (r) => 0 === r.d,
                 // c: { n: { dlist: 0 } },
-                r: 'elem',
-                a: (r) => (r.node = [r.node]),
+                c: { n: { dlist: 0, dmap: 0 } },
+                // r: 'elem',
+                // a: (r: Rule) => (r.node = [r.node]),
+                r: 'list',
+                u: { prev_elem: true },
                 g: 'list,val,imp,space,jsonic',
                 b: 1,
             },
