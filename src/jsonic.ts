@@ -4,6 +4,7 @@
  *  Entry point and API.
  */
 
+// TODO: add rule.next property, referencing next rule
 // TODO: remove the # prefix from token names
 // TODO: define jsonic.tokenSet for access to tokenSets, same as jsonic.token 
 // TODO .rule should prepend by default - far more common
