@@ -223,7 +223,7 @@ function grammar(jsonic) {
                 r: 'list',
                 // a: (r: Rule) => (r.node = [r.node]),
                 // a: (r: Rule) => (r.node = r.child.node = [r.node]),
-                u: { prev_elem: true },
+                u: { implist: true },
                 g: 'list,val,imp,comma,jsonic',
             },
             // Implicit list (space sep) only allowed at top level: `1 2`.
@@ -234,7 +234,7 @@ function grammar(jsonic) {
                 // r: 'elem',
                 // a: (r: Rule) => (r.node = [r.node]),
                 r: 'list',
-                u: { prev_elem: true },
+                u: { implist: true },
                 g: 'list,val,imp,space,jsonic',
                 b: 1,
             },
@@ -276,13 +276,13 @@ function grammar(jsonic) {
             .bo((r) => {
             // Increment depth of lists.
             r.n.dlist = 1 + (r.n.dlist ? r.n.dlist : 0);
-            if (r.prev.use.prev_elem) {
+            if (r.prev.use.implist) {
                 r.node.push(r.prev.node);
                 r.prev.node = r.node;
             }
         })
             .open({
-            c: (r) => r.prev.use.prev_elem,
+            c: (r) => r.prev.use.implist,
             p: 'elem',
         })
             .open([
