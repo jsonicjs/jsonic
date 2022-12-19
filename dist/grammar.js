@@ -83,7 +83,7 @@ function grammar(jsonic) {
         })
             .open([
             // An empty map: {}.
-            { s: [OB, CB], b: 1, g: 'map,json' },
+            { s: [OB, CB], b: 1, n: { pk: 0 }, g: 'map,json' },
             // Start matching map key-value pairs: a:1.
             // Reset counter n.pk as new map (for extensions).
             { s: [OB], p: 'pair', n: { pk: 0 }, g: 'map,json,pair' },
