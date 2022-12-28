@@ -909,9 +909,7 @@ function modlist(list: any[], mods?: ListMods) {
       for (let i = 0; i < mods.delete.length; i++) {
         let mdI = mods.delete[i]
         if (mdI < 0 ? ((-1 * mdI) <= list.length) : (mdI < list.length)) {
-          // if (mdI < list.length) {
           let dI = (list.length + mdI) % list.length
-          // console.log('D', i, list.length, mdI, dI)
           list[dI] = null
         }
       }

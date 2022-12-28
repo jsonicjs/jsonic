@@ -128,7 +128,6 @@ function grammar(jsonic) {
                 r.use.prev = r.node[r.use.key];
                 r.node[r.use.key] = r.child.node;
             }
-            // console.log('JSON PAIR BC', r.use, r.node)
         })
             .close([
             // Comma means a new pair at same pair-key level.
@@ -174,7 +173,6 @@ function grammar(jsonic) {
                     : ctx.cfg.map.extend
                         ? deep(prev, val)
                         : val;
-        // console.log('JSONIC PAIRVAL', r.use, r.node)
     };
     jsonic.rule('val', (rs) => {
         rs.open([
