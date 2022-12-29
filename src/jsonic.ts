@@ -485,6 +485,4 @@ export {
 export default Jsonic
 
 // Build process uncomments this to enable more natural Node.js requires.
-/* $lab:coverage:off$ */
 //-NODE-MODULE-FIX;('undefined' != typeof(module) && (module.exports = exports.Jsonic));
-/* $lab:coverage:on$ */

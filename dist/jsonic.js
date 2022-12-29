@@ -244,7 +244,5 @@ root.util = util;
 root.make = make;
 exports.default = Jsonic;
 // Build process uncomments this to enable more natural Node.js requires.
-/* $lab:coverage:off$ */
-//-NODE-MODULE-FIX;('undefined' != typeof(module) && (module.exports = exports.Jsonic));
-/* $lab:coverage:on$ */
+;('undefined' != typeof(module) && (module.exports = exports.Jsonic));
 //# sourceMappingURL=jsonic.js.map

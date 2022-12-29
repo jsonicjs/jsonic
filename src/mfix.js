@@ -7,6 +7,6 @@
 const Fs = require('fs')
 
 // Inject as part of build step (see package.json).
-let src = Fs.readFileSync('./jsonic.js').toString()
+let src = Fs.readFileSync(__dirname+'/../dist/jsonic.js').toString()
 src = src.replace(/\/\/-NODE-MODULE-FIX/, '')
-Fs.writeFileSync('./jsonic.js', src)
+Fs.writeFileSync(__dirname+'/../dist/jsonic.js', src)
