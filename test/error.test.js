@@ -65,7 +65,7 @@ describe('error', function () {
     */
 
     try {
-      k(src0,{xlog:-1})
+      k(src0, { xlog: -1 })
     } catch (e) {
       expect(e.message).toEqual(
         '\u001b[31m[jsonic/foo]:\u001b[0m foo: "FOO"!\n' +

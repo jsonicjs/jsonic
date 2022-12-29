@@ -7,15 +7,12 @@
  *  Jsonic format.
  */
 
-
 import { Jsonic, Rule, RuleSpec, Context, Parser, AltError } from './jsonic'
-
 
 function grammar(jsonic: Jsonic) {
   const { deep } = jsonic.util
 
   const {
-
     // Fixed tokens
     OB, // Open Brace `{`
     CB, // Close Brace `}`
@@ -30,15 +27,12 @@ function grammar(jsonic: Jsonic) {
 
     // Control tokens
     ZZ, // End-of-source
-
   } = jsonic.token
-
 
   const {
     VAL, // All tokens that make up values
     KEY, // All tokens that make up keys
   } = jsonic.tokenSet
-
 
   const finish: AltError = (_rule: Rule, ctx: Context) => {
     if (!ctx.cfg.rule.finish) {
@@ -58,7 +52,6 @@ function grammar(jsonic: Jsonic) {
 
     r.use.key = key
   }
-
 
   // Plain JSON
 
@@ -95,24 +88,23 @@ function grammar(jsonic: Jsonic) {
           // If there's no node,
           undefined === r.node
             ? // ... or no child node (child map or list),
-            undefined === r.child.node
+              undefined === r.child.node
               ? // ... or no matched tokens,
-              0 === r.os
+                0 === r.os
                 ? // ... then the node has no value
-                undefined
+                  undefined
                 : // .. otherwise use the token value
-                r.o0.resolveVal(r, ctx)
+                  r.o0.resolveVal(r, ctx)
               : r.child.node
             : r.node
       })
   })
 
   jsonic.rule('map', (rs: RuleSpec) => {
-    rs
-      .bo((r: Rule) => {
-        // Create a new empty map.
-        r.node = {}
-      })
+    rs.bo((r: Rule) => {
+      // Create a new empty map.
+      r.node = {}
+    })
       .open([
         // An empty map: {}.
         { s: [OB, CB], b: 1, n: { pk: 0 }, g: 'map,json' },
@@ -128,11 +120,10 @@ function grammar(jsonic: Jsonic) {
   })
 
   jsonic.rule('list', (rs: RuleSpec) => {
-    rs
-      .bo((r: Rule) => {
-        // Create a new empty list.
-        r.node = []
-      })
+    rs.bo((r: Rule) => {
+      // Create a new empty list.
+      r.node = []
+    })
       .open([
         // An empty list: [].
         { s: [OS, CS], b: 1, g: 'list,json' },
@@ -174,14 +165,12 @@ function grammar(jsonic: Jsonic) {
       ])
   })
 
-
   // push onto node
   jsonic.rule('elem', (rs: RuleSpec) => {
-    rs
-      .open([
-        // List elements are values.
-        { p: 'val', g: 'list,elem,val,json' },
-      ])
+    rs.open([
+      // List elements are values.
+      { p: 'val', g: 'list,elem,val,json' },
+    ])
       .bc((r: Rule) => {
         if (true !== r.use.done) {
           r.node.push(r.child.node)
@@ -195,7 +184,6 @@ function grammar(jsonic: Jsonic) {
         { s: [CS], b: 1, g: 'list,elem,json' },
       ])
   })
-
 
   // Jsonic syntax extensions.
 
@@ -215,12 +203,11 @@ function grammar(jsonic: Jsonic) {
       null == prev
         ? val
         : ctx.cfg.map.merge
-          ? ctx.cfg.map.merge(prev, val, r, ctx)
-          : ctx.cfg.map.extend
-            ? deep(prev, val)
-            : val
+        ? ctx.cfg.map.merge(prev, val, r, ctx)
+        : ctx.cfg.map.extend
+        ? deep(prev, val)
+        : val
   }
-
 
   jsonic.rule('val', (rs: RuleSpec) => {
     rs.open(
@@ -232,7 +219,7 @@ function grammar(jsonic: Jsonic) {
           p: 'map',
           b: 2,
           n: { pk: 1 },
-          g: 'pair,jsonic'
+          g: 'pair,jsonic',
         },
 
         // A plain value: `x` `"x"` `1` `true` ....
@@ -243,7 +230,7 @@ function grammar(jsonic: Jsonic) {
           s: [[CB, CS]],
           b: 1,
           c: (r) => 0 < r.d,
-          g: 'val,imp,null,jsonic'
+          g: 'val,imp,null,jsonic',
         },
 
         // Implicit list at top level: a,b.
@@ -266,8 +253,10 @@ function grammar(jsonic: Jsonic) {
       [
         // Explicitly close map or list: `}`, `]`
         {
-          s: [[CB, CS]], b: 1, g: 'val,json,close',
-          e: (r, c) => 0 === r.d ? c.t0 : undefined
+          s: [[CB, CS]],
+          b: 1,
+          g: 'val,json,close',
+          e: (r, c) => (0 === r.d ? c.t0 : undefined),
         },
 
         // Implicit list (comma sep) only allowed at top level: `1,2`.
@@ -307,54 +296,50 @@ function grammar(jsonic: Jsonic) {
     )
   })
 
-  jsonic
-    .rule('map', (rs: RuleSpec) => {
-      rs
-        .bo((r: Rule) => {
-          // Increment depth of maps.
-          r.n.dmap = 1 + (r.n.dmap ? r.n.dmap : 0)
-        })
-        .open([
-          // Auto-close; fail if rule.finish option is false.
-          { s: [OB, ZZ], b: 1, e: finish, g: 'end,jsonic' },
-        ])
-        .open(
-          [
-            // Pair from implicit map.
-            { s: [KEY, CL], p: 'pair', b: 2, g: 'pair,list,val,imp' },
-
-          ],
-          { append: true }
-        )
-        .close(
-          [
-            // Normal end of map, no path dive.
-            { s: [CB], c: { n: { pk: 0 } }, g: 'end,json' },
-
-            // Not yet at end of path dive, keep ascending.
-            { s: [CB], b: 1, g: 'path,jsonic' },
-
-            // End of implicit path
-            { s: [[CA, CS, ...VAL]], b: 1, g: 'end,path,jsonic' },
-
-            // Auto-close; fail if rule.finish option is false.
-            { s: [ZZ], e: finish, g: 'end,jsonic' },
-          ],
-          { append: true, delete: [0] }
-        )
+  jsonic.rule('map', (rs: RuleSpec) => {
+    rs.bo((r: Rule) => {
+      // Increment depth of maps.
+      r.n.dmap = 1 + (r.n.dmap ? r.n.dmap : 0)
     })
+      .open([
+        // Auto-close; fail if rule.finish option is false.
+        { s: [OB, ZZ], b: 1, e: finish, g: 'end,jsonic' },
+      ])
+      .open(
+        [
+          // Pair from implicit map.
+          { s: [KEY, CL], p: 'pair', b: 2, g: 'pair,list,val,imp' },
+        ],
+        { append: true }
+      )
+      .close(
+        [
+          // Normal end of map, no path dive.
+          { s: [CB], c: { n: { pk: 0 } }, g: 'end,json' },
+
+          // Not yet at end of path dive, keep ascending.
+          { s: [CB], b: 1, g: 'path,jsonic' },
+
+          // End of implicit path
+          { s: [[CA, CS, ...VAL]], b: 1, g: 'end,path,jsonic' },
+
+          // Auto-close; fail if rule.finish option is false.
+          { s: [ZZ], e: finish, g: 'end,jsonic' },
+        ],
+        { append: true, delete: [0] }
+      )
+  })
 
   jsonic.rule('list', (rs: RuleSpec) => {
-    rs
-      .bo((r: Rule) => {
-        // Increment depth of lists.
-        r.n.dlist = 1 + (r.n.dlist ? r.n.dlist : 0)
+    rs.bo((r: Rule) => {
+      // Increment depth of lists.
+      r.n.dlist = 1 + (r.n.dlist ? r.n.dlist : 0)
 
-        if (r.prev.use.implist) {
-          r.node.push(r.prev.node)
-          r.prev.node = r.node
-        }
-      })
+      if (r.prev.use.implist) {
+        r.node.push(r.prev.node)
+        r.prev.node = r.node
+      }
+    })
       .open({
         c: (r) => r.prev.use.implist,
         p: 'elem',
@@ -401,7 +386,12 @@ function grammar(jsonic: Jsonic) {
           { s: [CB], c: { n: { pk: 0 } }, b: 1, g: 'map,pair,json' },
 
           // Ignore trailing comma at end of map.
-          { s: [CA, CB], c: { n: { pk: 0 } }, b: 1, g: 'map,pair,comma,jsonic' },
+          {
+            s: [CA, CB],
+            c: { n: { pk: 0 } },
+            b: 1,
+            g: 'map,pair,comma,jsonic',
+          },
 
           { s: [CA, ZZ], g: 'end,jsonic' },
 
@@ -414,7 +404,7 @@ function grammar(jsonic: Jsonic) {
             s: [CA],
             c: { n: { dmap: 1 } },
             r: 'pair',
-            g: 'map,pair,jsonic'
+            g: 'map,pair,jsonic',
           },
 
           // TODO: try VAL CL ? works anywhere?
@@ -430,8 +420,10 @@ function grammar(jsonic: Jsonic) {
 
           // End of implicit path (eg. a:b:1), keep closing until pk=0.
           {
-            s: [[CB, CA, CS, ...KEY]], b: 1, g: 'map,pair,imp,path,jsonic',
-            c: (r) => 0 < r.n.pk
+            s: [[CB, CA, CS, ...KEY]],
+            b: 1,
+            g: 'map,pair,imp,path,jsonic',
+            c: (r) => 0 < r.n.pk,
           },
 
           // Can't close a map with `]`
@@ -440,7 +432,6 @@ function grammar(jsonic: Jsonic) {
           // Fail if auto-close option is false.
           { s: [ZZ], e: finish, g: 'map,pair,json' },
 
-
           // Who needs commas anyway?
           {
             // c: { n: { pk: 0 } },
@@ -448,7 +439,6 @@ function grammar(jsonic: Jsonic) {
             b: 1,
             g: 'map,pair,imp,jsonic',
           },
-
         ],
         { append: true, delete: [0, 1] }
       )
@@ -476,7 +466,7 @@ function grammar(jsonic: Jsonic) {
 
       {
         s: [KEY, CL],
-        e: p.cfg.list.property ? undefined : ((_r: Rule, ctx: Context) => ctx.t0),
+        e: p.cfg.list.property ? undefined : (_r: Rule, ctx: Context) => ctx.t0,
         p: 'val',
         n: { pk: 1, dmap: 1 },
         u: { done: true, pair: true },
@@ -515,7 +505,6 @@ function grammar(jsonic: Jsonic) {
       )
   })
 }
-
 
 function makeJSON(jsonic: any) {
   let justJSON = jsonic.make({

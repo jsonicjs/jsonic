@@ -76,8 +76,7 @@ function grammar(jsonic) {
         });
     });
     jsonic.rule('map', (rs) => {
-        rs
-            .bo((r) => {
+        rs.bo((r) => {
             // Create a new empty map.
             r.node = {};
         })
@@ -94,8 +93,7 @@ function grammar(jsonic) {
         ]);
     });
     jsonic.rule('list', (rs) => {
-        rs
-            .bo((r) => {
+        rs.bo((r) => {
             // Create a new empty list.
             r.node = [];
         })
@@ -138,8 +136,7 @@ function grammar(jsonic) {
     });
     // push onto node
     jsonic.rule('elem', (rs) => {
-        rs
-            .open([
+        rs.open([
             // List elements are values.
             { p: 'val', g: 'list,elem,val,json' },
         ])
@@ -183,7 +180,7 @@ function grammar(jsonic) {
                 p: 'map',
                 b: 2,
                 n: { pk: 1 },
-                g: 'pair,jsonic'
+                g: 'pair,jsonic',
             },
             // A plain value: `x` `"x"` `1` `true` ....
             { s: [VAL], g: 'val,json' },
@@ -192,7 +189,7 @@ function grammar(jsonic) {
                 s: [[CB, CS]],
                 b: 1,
                 c: (r) => 0 < r.d,
-                g: 'val,imp,null,jsonic'
+                g: 'val,imp,null,jsonic',
             },
             // Implicit list at top level: a,b.
             {
@@ -209,8 +206,10 @@ function grammar(jsonic) {
         ], { append: true, delete: [2] }).close([
             // Explicitly close map or list: `}`, `]`
             {
-                s: [[CB, CS]], b: 1, g: 'val,json,close',
-                e: (r, c) => 0 === r.d ? c.t0 : undefined
+                s: [[CB, CS]],
+                b: 1,
+                g: 'val,json,close',
+                e: (r, c) => (0 === r.d ? c.t0 : undefined),
             },
             // Implicit list (comma sep) only allowed at top level: `1,2`.
             {
@@ -243,10 +242,8 @@ function grammar(jsonic) {
             move: [1, -1],
         });
     });
-    jsonic
-        .rule('map', (rs) => {
-        rs
-            .bo((r) => {
+    jsonic.rule('map', (rs) => {
+        rs.bo((r) => {
             // Increment depth of maps.
             r.n.dmap = 1 + (r.n.dmap ? r.n.dmap : 0);
         })
@@ -270,8 +267,7 @@ function grammar(jsonic) {
         ], { append: true, delete: [0] });
     });
     jsonic.rule('list', (rs) => {
-        rs
-            .bo((r) => {
+        rs.bo((r) => {
             // Increment depth of lists.
             r.n.dlist = 1 + (r.n.dlist ? r.n.dlist : 0);
             if (r.prev.use.implist) {
@@ -311,7 +307,12 @@ function grammar(jsonic) {
             // a:b:c:1,d:2 -> {a:{b:{c:1}},d:2}
             { s: [CB], c: { n: { pk: 0 } }, b: 1, g: 'map,pair,json' },
             // Ignore trailing comma at end of map.
-            { s: [CA, CB], c: { n: { pk: 0 } }, b: 1, g: 'map,pair,comma,jsonic' },
+            {
+                s: [CA, CB],
+                c: { n: { pk: 0 } },
+                b: 1,
+                g: 'map,pair,comma,jsonic',
+            },
             { s: [CA, ZZ], g: 'end,jsonic' },
             // Comma means a new pair at same pair-key level.
             { s: [CA], c: { n: { pk: 0 } }, r: 'pair', g: 'map,pair,json' },
@@ -321,7 +322,7 @@ function grammar(jsonic) {
                 s: [CA],
                 c: { n: { dmap: 1 } },
                 r: 'pair',
-                g: 'map,pair,jsonic'
+                g: 'map,pair,jsonic',
             },
             // TODO: try VAL CL ? works anywhere?
             // Value means a new pair if implicit top level map.
@@ -335,8 +336,10 @@ function grammar(jsonic) {
             },
             // End of implicit path (eg. a:b:1), keep closing until pk=0.
             {
-                s: [[CB, CA, CS, ...KEY]], b: 1, g: 'map,pair,imp,path,jsonic',
-                c: (r) => 0 < r.n.pk
+                s: [[CB, CA, CS, ...KEY]],
+                b: 1,
+                g: 'map,pair,imp,path,jsonic',
+                c: (r) => 0 < r.n.pk,
             },
             // Can't close a map with `]`
             { s: [CS], e: (r) => r.c0, g: 'end,jsonic' },
@@ -371,7 +374,7 @@ function grammar(jsonic) {
             },
             {
                 s: [KEY, CL],
-                e: p.cfg.list.property ? undefined : ((_r, ctx) => ctx.t0),
+                e: p.cfg.list.property ? undefined : (_r, ctx) => ctx.t0,
                 p: 'val',
                 n: { pk: 1, dmap: 1 },
                 u: { done: true, pair: true },

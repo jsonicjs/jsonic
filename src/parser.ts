@@ -31,11 +31,9 @@ import {
   values,
 } from './utility'
 
-
 import { makeNoToken, makeLex, makePoint, makeToken } from './lexer'
 
 import { makeRule, makeNoRule, makeRuleSpec } from './rules'
-
 
 class ParserImpl implements Parser {
   options: Options
@@ -78,7 +76,6 @@ class ParserImpl implements Parser {
 
     return rs
   }
-
 
   start(src: string, jsonic: any, meta?: any, parent_ctx?: any): any {
     let root: Rule
@@ -158,7 +155,6 @@ class ParserImpl implements Parser {
     // Process rules on tokens
     let kI = 0
 
-
     // This loop is the heart of the engine. Keep processing rule
     // occurrences until there's none left.
     while (norule !== rule && kI < maxr) {
@@ -210,11 +206,9 @@ class ParserImpl implements Parser {
   norm() {
     values(this.rsm).map((rs: RuleSpec) => rs.norm())
   }
-
 }
 
 const makeParser = (...params: ConstructorParameters<typeof ParserImpl>) =>
   new ParserImpl(...params)
-
 
 export { makeRule, makeRuleSpec, makeParser }

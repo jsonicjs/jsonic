@@ -7,7 +7,6 @@ let j = Jsonic
 let { keys } = j.util
 
 describe('custom', () => {
-
   it('fixed-tokens', () => {
     let j = Jsonic.make({
       fixed: {
@@ -33,10 +32,10 @@ describe('custom', () => {
         { s: [IMPLIES], a: (r) => (r.node = '<implies>') },
         { s: [DEFINE], a: (r) => (r.node = '<define>') },
         { s: [MARK], a: (r) => (r.node = '<mark>') },
-        { s: [TRIPLE], a: (r) => (r.node = '<triple>') }
+        { s: [TRIPLE], a: (r) => (r.node = '<triple>') },
       ])
     })
-    
+
     let out = j('a:~,b:1,c:~,d:=>,e::-,f:##,g:///,h:a,i:# foo')
 
     expect(out).toEqual({
@@ -52,76 +51,73 @@ describe('custom', () => {
     })
   })
 
-
   it('tokenset-idenkey', () => {
     let days = {
       monday: 'mon',
       tuesday: 'tue',
     }
 
-    let j = Jsonic
-        .make()
+    let j = Jsonic.make()
 
     j.options({
-          match: {
-            token: {
-              '#DAY': (lex, rule)=>{
-                let pnt = lex.pnt
-                let daystr = lex.src.substring(pnt.sI,pnt.sI+11).toLowerCase()
-                for(let day in days) {
-                  if(daystr.startsWith(day)) {
-                    let daylen = day.length
-                    pnt.sI += daylen
-                    pnt.cI += daylen
-                    
-                    let tkn = lex.token(
-                      '#VL',
-                      days[day],
-                      lex.src.substring(pnt.sI,pnt.sI+daylen),
-                      pnt
-                    )
-                    
-                    // console.log('TKN', tkn)
-                    return tkn
-                  }
-                }
-		return undefined
-              },
-              '#ID': /^[a-zA-Z_][a-zA-Z_0-9]*/,
+      match: {
+        token: {
+          '#DAY': (lex, rule) => {
+            let pnt = lex.pnt
+            let daystr = lex.src.substring(pnt.sI, pnt.sI + 11).toLowerCase()
+            for (let day in days) {
+              if (daystr.startsWith(day)) {
+                let daylen = day.length
+                pnt.sI += daylen
+                pnt.cI += daylen
+
+                let tkn = lex.token(
+                  '#VL',
+                  days[day],
+                  lex.src.substring(pnt.sI, pnt.sI + daylen),
+                  pnt
+                )
+
+                // console.log('TKN', tkn)
+                return tkn
+              }
             }
+            return undefined
           },
-          tokenSet: {
-            // '#ID' is created by tokenize automatically
-            KEY: ['#ST', '#ID', null, null],
-            VAL: [,,,,'#ID']
-          }
+          '#ID': /^[a-zA-Z_][a-zA-Z_0-9]*/,
+        },
+      },
+      tokenSet: {
+        // '#ID' is created by tokenize automatically
+        KEY: ['#ST', '#ID', null, null],
+        VAL: [, , , , '#ID'],
+      },
     })
 
     j.use(Debug)
 
     let DAY = j.token('#DAY')
 
-    j.rule('val', (rs)=>{
-      rs.open([{s:[DAY]}])
+    j.rule('val', (rs) => {
+      rs.open([{ s: [DAY] }])
       return rs
     })
-    
+
     // console.log(j.debug.describe())
     // console.log(j.internal().config)
     // console.log(j.internal().config.lex)
-    
-    expect(j('a:1',{xlog:-1})).toEqual({a:1})
-    expect(j('a:x',{xlog:-1})).toEqual({a:'x'})
-    expect(()=>j('a*:1')).toThrow('unexpected')
 
-    expect(j('a:monday',{xlog:-1})).toEqual({a:'mon'})
-    
-    expect(Jsonic('a:1')).toEqual({a:1})
-    expect(Jsonic('a*:1')).toEqual({'a*':1})
-    expect(Jsonic('b:monday')).toEqual({b:'monday'})
+    expect(j('a:1', { xlog: -1 })).toEqual({ a: 1 })
+    expect(j('a:x', { xlog: -1 })).toEqual({ a: 'x' })
+    expect(() => j('a*:1')).toThrow('unexpected')
+
+    expect(j('a:monday', { xlog: -1 })).toEqual({ a: 'mon' })
+
+    expect(Jsonic('a:1')).toEqual({ a: 1 })
+    expect(Jsonic('a*:1')).toEqual({ 'a*': 1 })
+    expect(Jsonic('b:monday')).toEqual({ b: 'monday' })
   })
 
-  
   it('string-replace', () => {
     expect(Jsonic('a:1')).toEqual({ a: 1 })
 
@@ -163,7 +159,6 @@ describe('custom', () => {
     expect(() => j2('x:\n "ac\n\r"')).toThrow(/unprintable.*2:7/s)
   })
 
-  
   it('parser-empty-clean', () => {
     expect(Jsonic('a:1')).toEqual({ a: 1 })
 
@@ -174,7 +169,6 @@ describe('custom', () => {
     expect(j('a:1')).toEqual(undefined)
   })
 
-  
   it('parser-empty-fixed', () => {
     expect(Jsonic('a:1')).toEqual({ a: 1 })
 
@@ -195,10 +189,9 @@ describe('custom', () => {
       rs.open({ s: [rs.tin('#T0')] }).bc((r) => (r.node = '~T0~'))
     })
 
-    expect(j('t0',{xlog:-1})).toEqual('~T0~')
+    expect(j('t0', { xlog: -1 })).toEqual('~T0~')
   })
 
-  
   it('parser-handler-actives', () => {
     let b = ''
     let j = make_norules({ rule: { start: 'top' } })
@@ -232,7 +225,6 @@ describe('custom', () => {
     expect(b).toEqual('bo;') // m: is too late to avoid bo
   })
 
-  
   it('parser-action-errors', () => {
     let b = ''
     let j = make_norules({ rule: { start: 'top' } })
@@ -266,7 +258,6 @@ describe('custom', () => {
     expect(() => j('a')).toThrow(/foo.*AC/s)
   })
 
-  
   it('parser-before-after-state', () => {
     let j = make_norules({ rule: { start: 'top' } })
     let AA = j.token.AA
@@ -290,24 +281,19 @@ describe('custom', () => {
     expect(j('a')).toEqual('AC')
   })
 
-  
   it('parser-empty-seq', () => {
     let j = make_norules({ rule: { start: 'top' } })
 
     let AA = j.token.AA
 
-    let rsdef = (rs) =>
-      rs
-        .clear()
-        .open([{ s: [AA] }])
-        //.close([{ s: [AA] }])
+    let rsdef = (rs) => rs.clear().open([{ s: [AA] }])
+    //.close([{ s: [AA] }])
 
     j.rule('top', (rs) => rsdef(rs).bo((rule) => (rule.node = 4444)))
 
     expect(j('a')).toEqual(4444)
   })
 
-  
   it('parser-alt-ops', () => {
     let j = make_norules({
       fixed: {
@@ -336,17 +322,17 @@ describe('custom', () => {
         rs
           .bo((r) => (r.node = r.node || { o: '' }))
           .open([
-	    { s: [ZZ], g:'E' },
-	    { s: [Ta], r: 'top', a: (r) => (r.node.o += 'A'), g: 'ga' },
-	  ])
+            { s: [ZZ], g: 'E' },
+            { s: [Ta], r: 'top', a: (r) => (r.node.o += 'A'), g: 'ga' },
+          ])
       )
     })
 
     // j.use(Debug)
     // console.log(j.debug.describe())
-    
-    expect(j('a',{xlog:-1})).toEqual({ o: 'A' })
-    expect(j.rule('top').def.open.map((alt) => alt.g[0])).toEqual(['E','ga'])
+
+    expect(j('a', { xlog: -1 })).toEqual({ o: 'A' })
+    expect(j.rule('top').def.open.map((alt) => alt.g[0])).toEqual(['E', 'ga'])
 
     // Prepend by default
     j.use((j) => {
@@ -356,7 +342,11 @@ describe('custom', () => {
     })
 
     expect(j('ab')).toEqual({ o: 'AB' })
-    expect(j.rule('top').def.open.map((alt) => alt.g[0])).toEqual(['gb', 'E', 'ga'])
+    expect(j.rule('top').def.open.map((alt) => alt.g[0])).toEqual([
+      'gb',
+      'E',
+      'ga',
+    ])
 
     // Append flag
     j.use((j) => {
@@ -405,7 +395,7 @@ describe('custom', () => {
 
     expect(j('bcde')).toEqual({ o: 'BCDE' })
     expect(j.rule('top').def.open.map((alt) => alt.g[0])).toEqual([
-      'E', 
+      'E',
       'gb', // 0 -> 1
       'gd',
       'ge',
@@ -414,14 +404,17 @@ describe('custom', () => {
 
     // Delete ops
     j.use((j) => {
-      j.rule('top', (rs) => rs.open([], { delete: [1,3] }))
+      j.rule('top', (rs) => rs.open([], { delete: [1, 3] }))
     })
 
     expect(j('cd')).toEqual({ o: 'CD' })
-    expect(j.rule('top').def.open.map((alt) => alt.g[0])).toEqual(['E','gd','gc'])
+    expect(j.rule('top').def.open.map((alt) => alt.g[0])).toEqual([
+      'E',
+      'gd',
+      'gc',
+    ])
   })
 
-  
   it('parser-any-def', () => {
     let j = make_norules({ rule: { start: 'top' } })
     let rsdef = (rs) => rs.clear().open([{ s: [AA, TX] }])
@@ -437,7 +430,6 @@ describe('custom', () => {
     expect(() => j('AAA,')).toThrow(/unexpected.*AAA/)
   })
 
-  
   it('parser-token-error-why', () => {
     let j = make_norules({ rule: { start: 'top' } })
 
@@ -454,7 +446,6 @@ describe('custom', () => {
     expect(() => j('a')).toThrow(/foo.*AAA/s)
   })
 
-  
   it('parser-multi-alts', () => {
     expect(Jsonic('a:1')).toEqual({ a: 1 })
 
@@ -485,7 +476,6 @@ describe('custom', () => {
     expect(() => j('ad')).toThrow(/unexpected.*d/)
   })
 
-  
   it('parser-value', () => {
     function Car() {
       this.m = true
@@ -535,7 +525,6 @@ describe('custom', () => {
     expect(j('ferry') instanceof Car).toEqual(true)
   })
 
-
   it('parser-mixed-token', () => {
     expect(Jsonic('a:1')).toEqual({ a: 1 })
 
@@ -558,25 +547,28 @@ describe('custom', () => {
       let TX = j.token.TX
 
       j.rule('val', (rs) => {
-        rs.open([{
-          s: [FS, TX],
-          a: (r) => (r.o0.val = '@' + r.o1.val),
-        }])
+        rs.open([
+          {
+            s: [FS, TX],
+            a: (r) => (r.o0.val = '@' + r.o1.val),
+          },
+        ])
       })
 
       j.rule('elem', (rs) => {
-        rs.close([{
-          s: [FS, TX],
-          r: () => 'elem',
-          b: 2,
-        }])
+        rs.close([
+          {
+            s: [FS, TX],
+            r: () => 'elem',
+            b: 2,
+          },
+        ])
       })
 
       expect(j('[' + c + 'x' + c + 'y]')).toEqual(['@x', '@y'])
     }
   })
 
-  
   it('merge', () => {
     // verify standard merges
     expect(Jsonic('a:1,a:2')).toEqual({ a: 2 })
@@ -599,7 +591,6 @@ describe('custom', () => {
     expect(j('a:1,a:2,a:3')).toEqual({ a: 6 })
   })
 
-  
   it('parser-condition-depth', () => {
     expect(Jsonic('a:1')).toEqual({ a: 1 })
 
@@ -635,7 +626,6 @@ describe('custom', () => {
     expect(() => j('fb')).toThrow(/unexpected/)
   })
 
-  
   it('parser-condition-counter', () => {
     expect(Jsonic('a:1')).toEqual({ a: 1 })
 
@@ -678,7 +668,6 @@ describe('custom', () => {
     expect(() => j('fb')).toThrow(/unexpected/)
   })
 
-  
   it('parser-keep-propagates', () => {
     expect(Jsonic('a:1')).toEqual({ a: 1 })
 
@@ -730,7 +719,6 @@ describe('custom', () => {
     })
   })
 })
-
 
 function make_norules(opts) {
   let j = Jsonic.make(opts)

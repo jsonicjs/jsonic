@@ -169,8 +169,7 @@ let makeCommentMatcher = (cfg, opts) => {
     let oc = opts.comment;
     cfg.comment = {
         lex: oc ? !!oc.lex : false,
-        def: ((oc === null || oc === void 0 ? void 0 : oc.def) ? (0, utility_1.entries)(oc.def) : [])
-            .reduce((def, [name, om]) => {
+        def: ((oc === null || oc === void 0 ? void 0 : oc.def) ? (0, utility_1.entries)(oc.def) : []).reduce((def, [name, om]) => {
             // Set comment marker to null to remove
             if (null == om || false === om) {
                 return def;
@@ -677,7 +676,8 @@ class LexImpl {
                 tkn ||
                     this.token('#BD', undefined, this.src[pnt.sI], pnt, undefined, 'unexpected');
         }
-        this.ctx.log && (0, utility_1.log_lex)(this.ctx, rule, this, pnt, sI, match, tkn, alt, altI, tI);
+        this.ctx.log &&
+            (0, utility_1.log_lex)(this.ctx, rule, this, pnt, sI, match, tkn, alt, altI, tI);
         if (this.ctx.sub.lex) {
             this.ctx.sub.lex.map((sub) => sub(tkn, rule, this.ctx));
         }

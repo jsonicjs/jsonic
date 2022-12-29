@@ -40,7 +40,6 @@ import {
   modlist,
 } from './utility'
 
-
 class RuleImpl implements Rule {
   i = -1
   name = EMPTY
@@ -105,7 +104,6 @@ const makeRule = (...params: ConstructorParameters<typeof RuleImpl>) =>
   new RuleImpl(...params)
 
 const makeNoRule = (ctx: Context) => makeRule(makeRuleSpec(ctx.cfg, {}), ctx)
-
 
 // Parse-alternate match (built from current tokens and AltSpec).
 class AltMatchImpl implements AltMatch {
@@ -253,10 +251,9 @@ class RuleSpecImpl implements RuleSpec {
     return this
   }
 
-
   norm() {
-    this.def.open.map(alt => normalt(alt))
-    this.def.close.map(alt => normalt(alt))
+    this.def.open.map((alt) => normalt(alt))
+    this.def.close.map((alt) => normalt(alt))
 
     // [stateI is o=0,c=1][tokenI is t0=0,t1=1][tins]
     const columns: Tin[][][] = []
@@ -270,24 +267,29 @@ class RuleSpecImpl implements RuleSpec {
 
     this.def.tcol = columns
 
-    function collate(stateI: number, tokenI: number, columns: Tin[][][]): [any, any] {
-      columns[stateI] = (columns[stateI] || [])
-      let tins = (columns[stateI][tokenI] = (columns[stateI][tokenI] || []))
+    function collate(
+      stateI: number,
+      tokenI: number,
+      columns: Tin[][][]
+    ): [any, any] {
+      columns[stateI] = columns[stateI] || []
+      let tins = (columns[stateI][tokenI] = columns[stateI][tokenI] || [])
 
-      return [function(tins: any, alt: any) {
-        if (alt.s && alt.s[tokenI]) {
-          let newtins = [...new Set(tins.concat(alt.s[tokenI]))]
-          tins.length = 0
-          tins.push(...newtins)
-        }
-        return tins
-      }, tins]
+      return [
+        function (tins: any, alt: any) {
+          if (alt.s && alt.s[tokenI]) {
+            let newtins = [...new Set(tins.concat(alt.s[tokenI]))]
+            tins.length = 0
+            tins.push(...newtins)
+          }
+          return tins
+        },
+        tins,
+      ]
     }
-
 
     return this
   }
-
 
   process(rule: Rule, ctx: Context, lex: Lex, state: RuleState): Rule {
     // Log rule here to ensure next tokens shown are correct.
@@ -337,10 +339,10 @@ class RuleSpecImpl implements RuleSpec {
           0 === alt.n[cn]
             ? 0
             : // First seen, set to 0.
-            (null == rule.n[cn]
-              ? 0
-              : // Increment counter.
-              rule.n[cn]) + alt.n[cn]
+              (null == rule.n[cn]
+                ? 0
+                : // Increment counter.
+                  rule.n[cn]) + alt.n[cn]
       }
     }
 
@@ -429,8 +431,7 @@ class RuleSpecImpl implements RuleSpec {
       ctx.v1 = ctx.t0
       ctx.t0 = ctx.t1
       ctx.t1 = ctx.NOTOKEN
-    }
-    else if (2 == consumed) {
+    } else if (2 == consumed) {
       ctx.v2 = ctx.t1
       ctx.v1 = ctx.t0
       ctx.t0 = ctx.NOTOKEN
@@ -439,7 +440,6 @@ class RuleSpecImpl implements RuleSpec {
 
     return next
   }
-
 
   bad(tkn: Token, rule: Rule, ctx: Context, parse: { is_open: boolean }): Rule {
     throw new JsonicError(
@@ -462,10 +462,8 @@ class RuleSpecImpl implements RuleSpec {
   }
 }
 
-
 const makeRuleSpec = (...params: ConstructorParameters<typeof RuleSpecImpl>) =>
   new RuleSpecImpl(...params)
-
 
 // First match wins.
 // NOTE: input AltSpecs are used to build the Alt output.
@@ -505,7 +503,6 @@ function parse_alts(
     return tkn
   }
 
-
   // TODO: replace with lookup map
   let len = alts.length
   for (altI = 0; altI < len; altI++) {
@@ -517,8 +514,9 @@ function parse_alts(
     cond = true
 
     if (alt.S0) {
-      let tin0 = (ctx.t0 = ctx.NOTOKEN !== ctx.t0 ? ctx.t0 :
-        (ctx.t0 = next(rule, alt, altI, 0))).tin
+      let tin0 = (ctx.t0 =
+        ctx.NOTOKEN !== ctx.t0 ? ctx.t0 : (ctx.t0 = next(rule, alt, altI, 0)))
+        .tin
       has0 = true
       cond = !!(alt.S0[(tin0 / 31) | 0] & ((1 << ((tin0 % 31) - 1)) | bitAA))
 
@@ -526,10 +524,15 @@ function parse_alts(
         has1 = null != alt.S1
 
         if (alt.S1) {
-          let tin1 = (ctx.t1 = ctx.NOTOKEN !== ctx.t1 ? ctx.t1 :
-            (ctx.t1 = next(rule, alt, altI, 1))).tin
+          let tin1 = (ctx.t1 =
+            ctx.NOTOKEN !== ctx.t1
+              ? ctx.t1
+              : (ctx.t1 = next(rule, alt, altI, 1))).tin
           has1 = true
-          cond = !!(alt.S1[(tin1 / 31) | 0] & ((1 << ((tin1 % 31) - 1)) | bitAA))
+          cond = !!(
+            alt.S1[(tin1 / 31) | 0] &
+            ((1 << ((tin1 % 31) - 1)) | bitAA)
+          )
         }
       }
     }
@@ -563,7 +566,6 @@ function parse_alts(
   if (!cond) {
     out.e = ctx.t0
   }
-
 
   if (alt) {
     out.n = null != alt.n ? alt.n : out.n
@@ -605,7 +607,6 @@ function parse_alts(
   return out
 }
 
-
 // Normalize AltSpec (mutates).
 function normalt(a: AltSpec): NormAltSpec {
   if (null != a.c) {
@@ -616,7 +617,7 @@ function normalt(a: AltSpec): NormAltSpec {
     let counters = (a.c as any).n
     let depth = (a.c as any).d
     if (null != counters || null != depth) {
-      a.c = function(rule: Rule) {
+      a.c = function (rule: Rule) {
         let pass = true
 
         //if (null! + counters) {
@@ -638,10 +639,10 @@ function normalt(a: AltSpec): NormAltSpec {
       }
 
       if (null != counters) {
-        ; (a.c as any).n = counters
+        ;(a.c as any).n = counters
       }
       if (null != depth) {
-        ; (a.c as any).d = depth
+        ;(a.c as any).d = depth
       }
     }
   }
@@ -675,17 +676,17 @@ function normalt(a: AltSpec): NormAltSpec {
     aa.S0 =
       0 < tins0.length
         ? new Array(Math.max(...tins0.map((tin) => (1 + tin / 31) | 0)))
-          .fill(null)
-          .map((_, i) => i)
-          .map((part) => bitify(partify(tins0, part), part))
+            .fill(null)
+            .map((_, i) => i)
+            .map((part) => bitify(partify(tins0, part), part))
         : null
 
     aa.S1 =
       0 < tins1.length
         ? new Array(Math.max(...tins1.map((tin) => (1 + tin / 31) | 0)))
-          .fill(null)
-          .map((_, i) => i)
-          .map((part) => bitify(partify(tins1, part), part))
+            .fill(null)
+            .map((_, i) => i)
+            .map((part) => bitify(partify(tins1, part), part))
         : null
   }
 
@@ -703,7 +704,5 @@ function normalt(a: AltSpec): NormAltSpec {
 
   return a as NormAltSpec
 }
-
-
 
 export { makeRule, makeNoRule, makeRuleSpec }

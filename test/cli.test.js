@@ -1,7 +1,6 @@
 /* Copyright (c) 2013-2022 Richard Rodger and other contributors, MIT License */
 'use strict'
 
-
 const JsonicCli = require('../dist/jsonic-cli')
 const jr = async (...rest) => await JsonicCli.run(...rest)
 

@@ -81,7 +81,7 @@ function exhaust(size, print) {
     } catch (e) {
       emc++
       ecc[e.code] = 1 + (ecc[e.code] = ecc[e.code] || 0)
-      em[''+ts.c+'|`'+ts.s+'`'] = e.name+':'+e.code
+      em['' + ts.c + '|`' + ts.s + '`'] = e.name + ':' + e.code
     }
     i++
   }

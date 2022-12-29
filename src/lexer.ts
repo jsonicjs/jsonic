@@ -19,9 +19,7 @@ import type {
 
 import { EMPTY, INSPECT } from './types'
 
-import type {
-  Options,
-} from './jsonic'
+import type { Options } from './jsonic'
 
 import {
   S,
@@ -192,7 +190,6 @@ let makeFixedMatcher: MakeLexMatcher = (cfg: Config, _opts: Options) => {
   }
 }
 
-
 let makeMatchMatcher: MakeLexMatcher = (cfg: Config, _opts: Options) => {
   let matchers = values(cfg.match.token)
 
@@ -211,10 +208,11 @@ let makeMatchMatcher: MakeLexMatcher = (cfg: Config, _opts: Options) => {
     let oc = 'o' === rule.state ? 0 : 1
 
     for (let matcher of matchers) {
-
       // Only match Token if present in Rule sequence.
-      if ((matcher as any).tin$ &&
-        !rule.spec.def.tcol[oc][tI].includes((matcher as any).tin$)) {
+      if (
+        (matcher as any).tin$ &&
+        !rule.spec.def.tcol[oc][tI].includes((matcher as any).tin$)
+      ) {
         continue
       }
 
@@ -236,8 +234,7 @@ let makeMatchMatcher: MakeLexMatcher = (cfg: Config, _opts: Options) => {
             return tkn
           }
         }
-      }
-      else {
+      } else {
         let tkn: any = matcher(lex, rule)
         if (null != tkn) {
           return tkn
@@ -247,8 +244,6 @@ let makeMatchMatcher: MakeLexMatcher = (cfg: Config, _opts: Options) => {
   }
 }
 
-
-
 // NOTE 1: matchers return arbitrary tokens and describe lexing using
 // code, rather than a grammar. Thus, for example, some matchers below
 // will check (using subMatchFixed) if their source text actually represents
@@ -257,16 +252,17 @@ let makeMatchMatcher: MakeLexMatcher = (cfg: Config, _opts: Options) => {
 // NOTE 2: matchers can place a second token onto the Point tokens,
 // supporting two token lookahead.
 
-type CommentDef = Config['comment']['def'] extends { [_: string]: infer T } ? T : never
+type CommentDef = Config['comment']['def'] extends { [_: string]: infer T }
+  ? T
+  : never
 
 let makeCommentMatcher: MakeLexMatcher = (cfg: Config, opts: Options) => {
   let oc = opts.comment
 
   cfg.comment = {
     lex: oc ? !!oc.lex : false,
-    def: (oc?.def ? entries(oc.def) : [])
-      .reduce((def: any, [name, om]: [string, any]) => {
-
+    def: (oc?.def ? entries(oc.def) : []).reduce(
+      (def: any, [name, om]: [string, any]) => {
         // Set comment marker to null to remove
         if (null == om || false === om) {
           return def
@@ -286,32 +282,34 @@ let makeCommentMatcher: MakeLexMatcher = (cfg: Config, opts: Options) => {
 
         cm.getSuffixMatch = om.suffix
           ? () => {
-            if (om.suffix instanceof Function) {
-              return (cm.suffixMatch = om.suffix)
+              if (om.suffix instanceof Function) {
+                return (cm.suffixMatch = om.suffix)
+              }
+
+              let mmnames = (
+                Array.isArray(om.suffix) ? om.suffix : [om.suffix]
+              ) as string[]
+              let matchers = mmnames
+                .map((mmname: string) =>
+                  cfg.lex.match.find((mm: any) => mm.maker?.name == mmname)
+                )
+                .filter((m) => null != m)
+
+              let sm = (...args: any[]) => {
+                matchers.map((m: any) => m(...args))
+              }
+
+              defprop(sm, 'name', { value: '' + om.suffix })
+
+              return sm
             }
-
-            let mmnames = (
-              Array.isArray(om.suffix) ? om.suffix : [om.suffix]
-            ) as string[]
-            let matchers = mmnames
-              .map((mmname: string) =>
-                cfg.lex.match.find((mm: any) => mm.maker?.name == mmname)
-              )
-              .filter((m) => null != m)
-
-            let sm = (...args: any[]) => {
-              matchers.map((m: any) => m(...args))
-            }
-
-            defprop(sm, 'name', { value: '' + om.suffix })
-
-            return sm
-          }
           : undefined
 
         def[name] = cm
         return def
-      }, {} as any),
+      },
+      {} as any
+    ),
   }
 
   let lineComments = cfg.comment.lex
@@ -407,8 +405,6 @@ let makeCommentMatcher: MakeLexMatcher = (cfg: Config, opts: Options) => {
 // Text strings are terminated by end markers.
 let makeTextMatcher: MakeLexMatcher = (cfg: Config, opts: Options) => {
   let ender = regexp(cfg.line.lex ? null : 's', '^(.*?)', ...cfg.rePart.ender)
-
-
 
   return function textMatcher(lex: Lex) {
     let mcfg = cfg.text
@@ -906,7 +902,8 @@ class LexImpl implements Lex {
         )
     }
 
-    this.ctx.log && log_lex(this.ctx, rule, this, pnt, sI, match, tkn, alt, altI, tI)
+    this.ctx.log &&
+      log_lex(this.ctx, rule, this, pnt, sI, match, tkn, alt, altI, tI)
 
     if (this.ctx.sub.lex) {
       this.ctx.sub.lex.map((sub) => sub(tkn as Token, rule, this.ctx))

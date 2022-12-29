@@ -139,8 +139,8 @@ class RuleSpecImpl {
         return this;
     }
     norm() {
-        this.def.open.map(alt => normalt(alt));
-        this.def.close.map(alt => normalt(alt));
+        this.def.open.map((alt) => normalt(alt));
+        this.def.close.map((alt) => normalt(alt));
         // [stateI is o=0,c=1][tokenI is t0=0,t1=1][tins]
         const columns = [];
         // let name = this.name
@@ -150,16 +150,19 @@ class RuleSpecImpl {
         this.def.close.reduce(...collate(1, 1, columns));
         this.def.tcol = columns;
         function collate(stateI, tokenI, columns) {
-            columns[stateI] = (columns[stateI] || []);
-            let tins = (columns[stateI][tokenI] = (columns[stateI][tokenI] || []));
-            return [function (tins, alt) {
+            columns[stateI] = columns[stateI] || [];
+            let tins = (columns[stateI][tokenI] = columns[stateI][tokenI] || []);
+            return [
+                function (tins, alt) {
                     if (alt.s && alt.s[tokenI]) {
                         let newtins = [...new Set(tins.concat(alt.s[tokenI]))];
                         tins.length = 0;
                         tins.push(...newtins);
                     }
                     return tins;
-                }, tins];
+                },
+                tins,
+            ];
         }
         return this;
     }
@@ -346,17 +349,21 @@ function parse_alts(is_open, alts, lex, rule, ctx) {
         let has1 = false;
         cond = true;
         if (alt.S0) {
-            let tin0 = (ctx.t0 = ctx.NOTOKEN !== ctx.t0 ? ctx.t0 :
-                (ctx.t0 = next(rule, alt, altI, 0))).tin;
+            let tin0 = (ctx.t0 =
+                ctx.NOTOKEN !== ctx.t0 ? ctx.t0 : (ctx.t0 = next(rule, alt, altI, 0)))
+                .tin;
             has0 = true;
             cond = !!(alt.S0[(tin0 / 31) | 0] & ((1 << ((tin0 % 31) - 1)) | bitAA));
             if (cond) {
                 has1 = null != alt.S1;
                 if (alt.S1) {
-                    let tin1 = (ctx.t1 = ctx.NOTOKEN !== ctx.t1 ? ctx.t1 :
-                        (ctx.t1 = next(rule, alt, altI, 1))).tin;
+                    let tin1 = (ctx.t1 =
+                        ctx.NOTOKEN !== ctx.t1
+                            ? ctx.t1
+                            : (ctx.t1 = next(rule, alt, altI, 1))).tin;
                     has1 = true;
-                    cond = !!(alt.S1[(tin1 / 31) | 0] & ((1 << ((tin1 % 31) - 1)) | bitAA));
+                    cond = !!(alt.S1[(tin1 / 31) | 0] &
+                        ((1 << ((tin1 % 31) - 1)) | bitAA));
                 }
             }
         }

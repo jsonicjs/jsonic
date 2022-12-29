@@ -39,7 +39,7 @@ const defaults: Options = {
 
   match: {
     lex: true,
-    token: {}
+    token: {},
   },
 
   // Token sets.

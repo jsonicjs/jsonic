@@ -15,7 +15,7 @@ const Debug: Plugin = (jsonic: Jsonic, options: DebugOptions) => {
   const { keys, values, entries } = jsonic.util
 
   jsonic.debug = {
-    describe: function(): string {
+    describe: function (): string {
       let match = jsonic.options.lex?.match
       let rules = jsonic.rule()
       return [
@@ -43,20 +43,20 @@ const Debug: Plugin = (jsonic: Jsonic, options: DebugOptions) => {
         '\n',
         '========= PLUGIN =========',
         '  ' +
-        jsonic
-          .internal()
-          .plugins.map(
-            (p: Plugin) =>
-              p.name +
-              (p.options
-                ? entries(p.options).reduce(
-                  (s: string, e: any[]) =>
-                    (s += '\n    ' + e[0] + ': ' + JSON.stringify(e[1])),
-                  ''
-                )
-                : '')
-          )
-          .join('\n  '),
+          jsonic
+            .internal()
+            .plugins.map(
+              (p: Plugin) =>
+                p.name +
+                (p.options
+                  ? entries(p.options).reduce(
+                      (s: string, e: any[]) =>
+                        (s += '\n    ' + e[0] + ': ' + JSON.stringify(e[1])),
+                      ''
+                    )
+                  : '')
+            )
+            .join('\n  '),
         '\n',
       ].join('\n')
     },
@@ -82,49 +82,49 @@ function descAlt(jsonic: Jsonic, rs: RuleSpec, kind: 'open' | 'close') {
   return 0 === rs.def[kind].length
     ? ''
     : '    ' +
-    kind.toUpperCase() +
-    ':\n' +
-    rs.def[kind]
-      .map(
-        (a: any, i: number) =>
-          '      ' +
-          ('' + i).padStart(5, ' ') +
-          ' ' +
-          (
-            '[' +
-            (a.s || [])
-              .map((tin: any) =>
-                'number' === typeof tin
-                  ? jsonic.token[tin]
-                  : '[' + tin.map((t: any) => jsonic.token[t]) + ']'
-              )
-              .join(' ') +
-            '] '
-          ).padEnd(32, ' ') +
-          (a.r ? ' r=' + ('string' === typeof a.r ? a.r : '<F>') : '') +
-          (a.p ? ' p=' + ('string' === typeof a.p ? a.p : '<F>') : '') +
-          (!a.r && !a.p ? '\t' : '') +
-          '\t' +
-          (null == a.b ? '' : 'b=' + a.b) +
-          '\t' +
-          (null == a.n
-            ? ''
-            : 'n=' +
-            entries(a.n).map(([k, v]: [string, any]) => k + ':' + v)) +
-          '\t' +
-          (null == a.a ? '' : 'A') +
-          (null == a.c ? '' : 'C') +
-          (null == a.h ? '' : 'H') +
-          '\t' +
-          (null == a.c?.n
-            ? '\t'
-            : ' CN=' +
-            entries(a.c.n).map(([k, v]: [string, any]) => k + ':' + v)) +
-          (null == a.c?.d ? '' : ' CD=' + a.c.d) +
-          (a.g ? '\tg=' + a.g : '')
-      )
-      .join('\n') +
-    '\n'
+        kind.toUpperCase() +
+        ':\n' +
+        rs.def[kind]
+          .map(
+            (a: any, i: number) =>
+              '      ' +
+              ('' + i).padStart(5, ' ') +
+              ' ' +
+              (
+                '[' +
+                (a.s || [])
+                  .map((tin: any) =>
+                    'number' === typeof tin
+                      ? jsonic.token[tin]
+                      : '[' + tin.map((t: any) => jsonic.token[t]) + ']'
+                  )
+                  .join(' ') +
+                '] '
+              ).padEnd(32, ' ') +
+              (a.r ? ' r=' + ('string' === typeof a.r ? a.r : '<F>') : '') +
+              (a.p ? ' p=' + ('string' === typeof a.p ? a.p : '<F>') : '') +
+              (!a.r && !a.p ? '\t' : '') +
+              '\t' +
+              (null == a.b ? '' : 'b=' + a.b) +
+              '\t' +
+              (null == a.n
+                ? ''
+                : 'n=' +
+                  entries(a.n).map(([k, v]: [string, any]) => k + ':' + v)) +
+              '\t' +
+              (null == a.a ? '' : 'A') +
+              (null == a.c ? '' : 'C') +
+              (null == a.h ? '' : 'H') +
+              '\t' +
+              (null == a.c?.n
+                ? '\t'
+                : ' CN=' +
+                  entries(a.c.n).map(([k, v]: [string, any]) => k + ':' + v)) +
+              (null == a.c?.d ? '' : ' CD=' + a.c.d) +
+              (a.g ? '\tg=' + a.g : '')
+          )
+          .join('\n') +
+        '\n'
 }
 
 function ruleTree(jsonic: Jsonic, rn: string[], rsm: any) {

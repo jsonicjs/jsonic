@@ -11,7 +11,6 @@ const j = Jsonic
 const JS = (x) => JSON.stringify(x)
 
 describe('comment', function () {
-
   it('single-comment-line', () => {
     expect(j('a#b')).toEqual('a')
     expect(j('a:1#b')).toEqual({ a: 1 })
@@ -47,19 +46,20 @@ describe('comment', function () {
 
   it('comment-off', () => {
     let j0 = Jsonic.make({
-      comment: { def: {
-        hash: null,
-        slash: false,
-        multi: { lex: false },
-      }}
+      comment: {
+        def: {
+          hash: null,
+          slash: false,
+          multi: { lex: false },
+        },
+      },
     })
 
-    expect(j0('a: #b')).toEqual({a:'#b'})
-    expect(j0('a: //b')).toEqual({a:'//b'})
-    expect(j0('a: /*b*/')).toEqual({a:'/*b*/'})
+    expect(j0('a: #b')).toEqual({ a: '#b' })
+    expect(j0('a: //b')).toEqual({ a: '//b' })
+    expect(j0('a: /*b*/')).toEqual({ a: '/*b*/' })
   })
 
-  
   // TODO: PLUGIN
   // it('balanced-multi-comment', () => {
   //   // Active by default
@@ -80,6 +80,4 @@ describe('comment', function () {
   //   // NOTE: no balancing if open === close
   //   expect(coffee('\n###a:1\n###b:2\n###\nc:3\n###\nd:4')).toEqual({b:2,d:4})
   // })
-
 })
-

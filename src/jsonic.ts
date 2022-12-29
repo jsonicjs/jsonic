@@ -6,7 +6,7 @@
 
 // TODO: add rule.next property, referencing next rule
 // TODO: remove the # prefix from token names
-// TODO: define jsonic.tokenSet for access to tokenSets, same as jsonic.token 
+// TODO: define jsonic.tokenSet for access to tokenSets, same as jsonic.token
 // TODO .rule should prepend by default - far more common
 // TODO: Jsonic.options type should not have optionals as definitely defined:
 //   e.g jsonic.options.lex.match is defined!
@@ -183,8 +183,7 @@ function make(param_options?: Bag | string, parent?: Jsonic): Jsonic {
   let injectFullAPI = true
   if ('jsonic' === param_options) {
     injectFullAPI = false
-  }
-  else if ('json' === param_options) {
+  } else if ('json' === param_options) {
     return makeJSON(root)
   }
 
@@ -216,8 +215,8 @@ function make(param_options?: Bag | string, parent?: Jsonic): Jsonic {
     parent
       ? { ...parent.options }
       : false === (param_options as Bag)?.defaults$
-        ? {}
-        : defaults,
+      ? {}
+      : defaults,
     param_options ? param_options : {}
   )
 
@@ -249,7 +248,6 @@ function make(param_options?: Bag | string, parent?: Jsonic): Jsonic {
     }
     return { ...jsonic.options }
   }
-
 
   // Define the API
   let api: JsonicAPI = {
@@ -344,8 +342,7 @@ function make(param_options?: Bag | string, parent?: Jsonic): Jsonic {
   if (injectFullAPI) {
     // Add API methods to the core utility function.
     assign(jsonic, api)
-  }
-  else {
+  } else {
     assign(jsonic, {
       empty: api.empty,
       parse: api.parse,

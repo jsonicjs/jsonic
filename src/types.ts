@@ -49,17 +49,22 @@ export interface JsonicAPI {
 
   // Token get and set for plugins. Reference by either name or Tin.
   // NOTE: creates token if not yet defined (but only for name).
-  token: TokenMap & TinMap &
-  (<A extends string | Tin>(ref: A) => A extends string ? Tin : string)
+  token: TokenMap &
+    TinMap &
+    (<A extends string | Tin>(ref: A) => A extends string ? Tin : string)
 
   // TokenSet get and set for plugins. Reference by either name or Tin.
   // NOTE: name->Tin[], but Tin->name (of containing set)
-  tokenSet: TokenSetMap & TinSetMap &
-  (<A extends string | Tin>(ref: A) => A extends string ? Tin[] : string)
+  tokenSet: TokenSetMap &
+    TinSetMap &
+    (<A extends string | Tin>(ref: A) => A extends string ? Tin[] : string)
 
   // Fixed token src get and set for plugins. Reference by either src or Tin.
-  fixed: TokenMap & TinMap &
-  (<A extends string | Tin>(ref: A) => undefined | (A extends string ? Tin : string))
+  fixed: TokenMap &
+    TinMap &
+    (<A extends string | Tin>(
+      ref: A
+    ) => undefined | (A extends string ? Tin : string))
 
   // Unique identifier string for each Jsonic instance.
   id: string
@@ -125,13 +130,17 @@ export type Options = {
   comment?: {
     lex?: boolean
     def?: {
-      [name: string]: {
-        line?: boolean
-        start?: string
-        end?: string
-        lex?: boolean
-        suffix?: string | string[] | LexMatcher
-      } | null | undefined | false
+      [name: string]:
+        | {
+            line?: boolean
+            start?: string
+            end?: string
+            lex?: boolean
+            suffix?: string | string[] | LexMatcher
+          }
+        | null
+        | undefined
+        | false
     }
   }
   string?: {
@@ -311,7 +320,6 @@ export type Context = {
   NOTOKEN: Token // Per parse "null" Token
   NORULE: Rule // Per parse "null" Rule
 }
-
 
 export interface Lex {
   src: String
@@ -534,12 +542,12 @@ export interface AltSpec {
   // Condition function, return true to match alternate.
   // NOTE: Token sequence (s) must also match.
   c?:
-  | AltCond
-  | {
-    // Condition convenience definitions (all must pass).
-    d?: number // - Match if rule stack depth <= d.
-    n?: Counters // - Match if rule counters <= respective given values.
-  }
+    | AltCond
+    | {
+        // Condition convenience definitions (all must pass).
+        d?: number // - Match if rule stack depth <= d.
+        n?: Counters // - Match if rule counters <= respective given values.
+      }
 
   n?: Counters // Increment counters by specified amounts.
   a?: AltAction // Perform an action if this alternate matches.
@@ -548,8 +556,8 @@ export interface AltSpec {
   k?: Bag // Key-value custom data (propagated).
 
   g?:
-  | string // Named group tags for the alternate (allows filtering).
-  | string[] // - comma separated or string array
+    | string // Named group tags for the alternate (allows filtering).
+    | string[] // - comma separated or string array
 
   e?: AltError // Generate an error token (alternate is not allowed).
 }
@@ -618,10 +626,17 @@ export type RuleState = 'o' | 'c'
 export type RuleStep = 'b' | 'a'
 
 // A lexing function that attempts to match tokens.
-export type LexMatcher = (lex: Lex, rule: Rule, tI?: number) => Token | undefined
+export type LexMatcher = (
+  lex: Lex,
+  rule: Rule,
+  tI?: number
+) => Token | undefined
 
 // Construct a lexing function based on configuration.
-export type MakeLexMatcher = (cfg: Config, opts: Options) => LexMatcher | null | undefined | false
+export type MakeLexMatcher = (
+  cfg: Config,
+  opts: Options
+) => LexMatcher | null | undefined | false
 
 export type RuleSpecMap = { [name: string]: RuleSpec }
 
@@ -651,12 +666,18 @@ export type AltModifier = (
 export type AltAction = (rule: Rule, ctx: Context, alt: AltMatch) => any
 
 // Determine next rule name (for AltSpec r or p properties).
-export type AltNext = (rule: Rule, ctx: Context, alt: AltMatch) =>
-  string | null | false | 0
+export type AltNext = (
+  rule: Rule,
+  ctx: Context,
+  alt: AltMatch
+) => string | null | false | 0
 
 // Determine token push back.
-export type AltBack = (rule: Rule, ctx: Context, alt: AltMatch) =>
-  number | null | false
+export type AltBack = (
+  rule: Rule,
+  ctx: Context,
+  alt: AltMatch
+) => number | null | false
 
 // Execute an action for a given Rule state and step:
 // bo: BEFORE OPEN, ao: AFTER OPEN, bc: BEFORE CLOSE, ac: AFTER CLOSE.
@@ -684,7 +705,6 @@ export type ValModifier = (
 
 export type LexSub = (tkn: Token, rule: Rule, ctx: Context) => void
 export type RuleSub = (rule: Rule, ctx: Context) => void
-
 
 export interface Parser {
   options: Options

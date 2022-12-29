@@ -133,7 +133,6 @@ describe('doc', function () {
     expect(jsonic.bar()).toEqual(2)
   })
 
-
   it('method-rule', () => {
     let concat = Jsonic.make()
     expect(Object.keys(concat.rule())).toEqual([
@@ -149,10 +148,12 @@ describe('doc', function () {
     let ST = concat.token.ST
     concat.rule('val', (rulespec) => {
       //rulespec.def.open.unshift({
-      rulespec.open([{
-        s: [ST, ST],
-        a: (rule, ctx) => (rule.node = rule.o0.val + rule.o1.val),
-      }])
+      rulespec.open([
+        {
+          s: [ST, ST],
+          a: (rule, ctx) => (rule.node = rule.o0.val + rule.o1.val),
+        },
+      ])
     })
 
     expect(concat('"a" "b"', { xlog: -1 })).toEqual('ab')
@@ -174,7 +175,6 @@ describe('doc', function () {
     expect(concat('{x:1, y:%}', { xlog: -1 })).toEqual({ x: 1, y: 100 })
   })
 
-  
   it('method-lex', () => {
     let tens = Jsonic.make()
 

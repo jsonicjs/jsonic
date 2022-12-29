@@ -46,7 +46,7 @@ describe('variant', function () {
     let jc = Jsonic.make({
       comment: {
         def: {
-          hash: { suffix: 'makeLineMatcher' }
+          hash: { suffix: 'makeLineMatcher' },
         },
       },
     })

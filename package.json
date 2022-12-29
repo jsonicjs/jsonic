@@ -1,6 +1,6 @@
 {
   "name": "@jsonic/jsonic-next",
-  "version": "2.4.3",
+  "version": "2.5.0",
   "main": "dist/jsonic.js",
   "type": "commonjs",
   "browser": "dist/jsonic.min.js",
@@ -31,7 +31,7 @@
     "test-web": "echo fix-test-web",
     "test-web-x": "npm run build && browserify -o test-web/test-web.js -e test/web-all.js -s All -im -i assert -i @hapi/lab && open test-web/index.html",
     "coveralls": "lab -s -P test -r lcov | coveralls",
-    "prettier": "prettier --write --no-semi --single-quote *.ts test/*.js",
+    "prettier": "prettier --write --no-semi --single-quote src/*.ts test/*.js",
     "docs-dev": "vuepress dev docs-src",
     "docs-build": "vuepress build docs-src",
     "clean": "rm -rf node_modules dist yarn.lock package-lock.json",

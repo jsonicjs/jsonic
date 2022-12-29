@@ -38,7 +38,6 @@ describe('feature', function () {
     expect(match([2, 1], [undefined, 1])).toBeUndefined()
   })
 
-  
   it('implicit-comma', () => {
     expect(j('[0,1]')).toEqual([0, 1])
     expect(j('[0,null]')).toEqual([0, null])
@@ -62,7 +61,6 @@ describe('feature', function () {
     expect(j('true\nfalse\nnull')).toEqual([true, false, null])
   })
 
-  
   it('single-char', () => {
     expect(j()).toEqual(undefined)
     expect(j('')).toEqual(undefined)
@@ -88,7 +86,6 @@ describe('feature', function () {
     expect(() => j('`')).toThrow(/unterminated/)
     expect(() => j('}')).toThrow(/unexpected/)
   })
-
 
   it('number', () => {
     expect(j('1')).toEqual(1)
@@ -568,87 +565,118 @@ describe('feature', function () {
     expect(j('[[0][1][2]]')).toEqual([[0], [1], [2]])
   })
 
-  
   it('implicit-object', () => {
-    expect(j('a:1')).toEqual({a:1})
+    expect(j('a:1')).toEqual({ a: 1 })
     expect(j('a:1,b:2')).toEqual({ a: 1, b: 2 })
-    expect(j('a:1,b:2,c:3')).toEqual({ a: 1, b: 2,c:3 })
+    expect(j('a:1,b:2,c:3')).toEqual({ a: 1, b: 2, c: 3 })
     expect(j('a:1,b:2,c:3,d:4')).toEqual({ a: 1, b: 2, c: 3, d: 4 })
     expect(j('a:1,b:2,c:3,d:4,e:5')).toEqual({ a: 1, b: 2, c: 3, d: 4, e: 5 })
 
-    expect(j('a:A')).toEqual({a:'A'})
+    expect(j('a:A')).toEqual({ a: 'A' })
     expect(j('a:A,b:true')).toEqual({ a: 'A', b: true })
-    expect(j('a:A,b:true,c:null')).toEqual({ a: 'A', b: true,c:null })
-    expect(j('a:A,b:true,c:null,d:\u0061'))
-      .toEqual({ a: 'A', b: true, c: null, d: '\u0061' })
-    expect(j('a:A,b:true,c:null,d:\u0061,e:0xAA'))
-      .toEqual({ a: 'A', b: true, c: null, d: '\u0061', e: 0xAA })
+    expect(j('a:A,b:true,c:null')).toEqual({ a: 'A', b: true, c: null })
+    expect(j('a:A,b:true,c:null,d:\u0061')).toEqual({
+      a: 'A',
+      b: true,
+      c: null,
+      d: '\u0061',
+    })
+    expect(j('a:A,b:true,c:null,d:\u0061,e:0xAA')).toEqual({
+      a: 'A',
+      b: true,
+      c: null,
+      d: '\u0061',
+      e: 0xaa,
+    })
 
-    expect(j('a:{}')).toEqual({a:{}})
-    expect(j('x:1,a:{}')).toEqual({x:1,a:{}})
-    expect(j('x:1,a:{},y:2')).toEqual({x:1,a:{},y:2})
-    expect(j('a:{},y:2')).toEqual({a:{},y:2})
+    expect(j('a:{}')).toEqual({ a: {} })
+    expect(j('x:1,a:{}')).toEqual({ x: 1, a: {} })
+    expect(j('x:1,a:{},y:2')).toEqual({ x: 1, a: {}, y: 2 })
+    expect(j('a:{},y:2')).toEqual({ a: {}, y: 2 })
 
-    expect(j('a:{},')).toEqual({a:{}})
-    expect(j('x:1,a:{},')).toEqual({x:1,a:{}})
-    expect(j('x:1,a:{},y:2,')).toEqual({x:1,a:{},y:2})
-    expect(j('a:{},y:2,')).toEqual({a:{},y:2})
+    expect(j('a:{},')).toEqual({ a: {} })
+    expect(j('x:1,a:{},')).toEqual({ x: 1, a: {} })
+    expect(j('x:1,a:{},y:2,')).toEqual({ x: 1, a: {}, y: 2 })
+    expect(j('a:{},y:2,')).toEqual({ a: {}, y: 2 })
 
-    expect(j('a:{},b:{}')).toEqual({a:{},b:{}})
-    expect(j('x:1,a:{},b:{}')).toEqual({x:1,a:{},b:{}})
-    expect(j('x:1,a:{},b:{},y:2')).toEqual({x:1,a:{},b:{},y:2})
-    expect(j('a:{},b:{},y:2')).toEqual({a:{},b:{},y:2})
+    expect(j('a:{},b:{}')).toEqual({ a: {}, b: {} })
+    expect(j('x:1,a:{},b:{}')).toEqual({ x: 1, a: {}, b: {} })
+    expect(j('x:1,a:{},b:{},y:2')).toEqual({ x: 1, a: {}, b: {}, y: 2 })
+    expect(j('a:{},b:{},y:2')).toEqual({ a: {}, b: {}, y: 2 })
 
-    expect(j('a:{},b:{},c:{}')).toEqual({a:{},b:{},c:{}})
-    expect(j('x:1,a:{},b:{},c:{}')).toEqual({x:1,a:{},b:{},c:{}})
-    expect(j('x:1,a:{},b:{},c:{},y:2')).toEqual({x:1,a:{},b:{},c:{},y:2})
-    expect(j('a:{},b:{},c:{},y:2')).toEqual({a:{},b:{},c:{},y:2})
+    expect(j('a:{},b:{},c:{}')).toEqual({ a: {}, b: {}, c: {} })
+    expect(j('x:1,a:{},b:{},c:{}')).toEqual({ x: 1, a: {}, b: {}, c: {} })
+    expect(j('x:1,a:{},b:{},c:{},y:2')).toEqual({
+      x: 1,
+      a: {},
+      b: {},
+      c: {},
+      y: 2,
+    })
+    expect(j('a:{},b:{},c:{},y:2')).toEqual({ a: {}, b: {}, c: {}, y: 2 })
 
-    expect(j('a:{},b:{},')).toEqual({a:{},b:{}})
-    expect(j('x:1,a:{},b:{},')).toEqual({x:1,a:{},b:{}})
-    expect(j('x:1,a:{},b:{},y:2,')).toEqual({x:1,a:{},b:{},y:2})
-    expect(j('a:{},b:{},y:2,')).toEqual({a:{},b:{},y:2})
+    expect(j('a:{},b:{},')).toEqual({ a: {}, b: {} })
+    expect(j('x:1,a:{},b:{},')).toEqual({ x: 1, a: {}, b: {} })
+    expect(j('x:1,a:{},b:{},y:2,')).toEqual({ x: 1, a: {}, b: {}, y: 2 })
+    expect(j('a:{},b:{},y:2,')).toEqual({ a: {}, b: {}, y: 2 })
 
-    expect(j('a:{},b:{},c:{},')).toEqual({a:{},b:{},c:{}})
-    expect(j('x:1,a:{},b:{},c:{},')).toEqual({x:1,a:{},b:{},c:{}})
-    expect(j('x:1,a:{},b:{},c:{},y:2,')).toEqual({x:1,a:{},b:{},c:{},y:2})
-    expect(j('a:{},b:{},c:{},y:2,')).toEqual({a:{},b:{},c:{},y:2})
+    expect(j('a:{},b:{},c:{},')).toEqual({ a: {}, b: {}, c: {} })
+    expect(j('x:1,a:{},b:{},c:{},')).toEqual({ x: 1, a: {}, b: {}, c: {} })
+    expect(j('x:1,a:{},b:{},c:{},y:2,')).toEqual({
+      x: 1,
+      a: {},
+      b: {},
+      c: {},
+      y: 2,
+    })
+    expect(j('a:{},b:{},c:{},y:2,')).toEqual({ a: {}, b: {}, c: {}, y: 2 })
 
-    expect(j('a:[]')).toEqual({a:[]})
-    expect(j('x:1,a:[]')).toEqual({x:1,a:[]})
-    expect(j('x:1,a:[],y:2')).toEqual({x:1,a:[],y:2})
-    expect(j('a:[],y:2')).toEqual({a:[],y:2})
+    expect(j('a:[]')).toEqual({ a: [] })
+    expect(j('x:1,a:[]')).toEqual({ x: 1, a: [] })
+    expect(j('x:1,a:[],y:2')).toEqual({ x: 1, a: [], y: 2 })
+    expect(j('a:[],y:2')).toEqual({ a: [], y: 2 })
 
-    expect(j('a:[],')).toEqual({a:[]})
-    expect(j('x:1,a:[],')).toEqual({x:1,a:[]})
-    expect(j('x:1,a:[],y:2,')).toEqual({x:1,a:[],y:2})
-    expect(j('a:[],y:2,')).toEqual({a:[],y:2})
+    expect(j('a:[],')).toEqual({ a: [] })
+    expect(j('x:1,a:[],')).toEqual({ x: 1, a: [] })
+    expect(j('x:1,a:[],y:2,')).toEqual({ x: 1, a: [], y: 2 })
+    expect(j('a:[],y:2,')).toEqual({ a: [], y: 2 })
 
-    expect(j('a:[],b:[]')).toEqual({a:[],b:[]})
-    expect(j('x:1,a:[],b:[]')).toEqual({x:1,a:[],b:[]})
-    expect(j('x:1,a:[],b:[],y:2')).toEqual({x:1,a:[],b:[],y:2})
-    expect(j('a:[],b:[],y:2')).toEqual({a:[],b:[],y:2})
+    expect(j('a:[],b:[]')).toEqual({ a: [], b: [] })
+    expect(j('x:1,a:[],b:[]')).toEqual({ x: 1, a: [], b: [] })
+    expect(j('x:1,a:[],b:[],y:2')).toEqual({ x: 1, a: [], b: [], y: 2 })
+    expect(j('a:[],b:[],y:2')).toEqual({ a: [], b: [], y: 2 })
 
-    expect(j('a:[],b:[],c:[]')).toEqual({a:[],b:[],c:[]})
-    expect(j('x:1,a:[],b:[],c:[]')).toEqual({x:1,a:[],b:[],c:[]})
-    expect(j('x:1,a:[],b:[],c:[],y:2')).toEqual({x:1,a:[],b:[],c:[],y:2})
-    expect(j('a:[],b:[],c:[],y:2')).toEqual({a:[],b:[],c:[],y:2})
+    expect(j('a:[],b:[],c:[]')).toEqual({ a: [], b: [], c: [] })
+    expect(j('x:1,a:[],b:[],c:[]')).toEqual({ x: 1, a: [], b: [], c: [] })
+    expect(j('x:1,a:[],b:[],c:[],y:2')).toEqual({
+      x: 1,
+      a: [],
+      b: [],
+      c: [],
+      y: 2,
+    })
+    expect(j('a:[],b:[],c:[],y:2')).toEqual({ a: [], b: [], c: [], y: 2 })
 
-    expect(j('a:[],b:[],')).toEqual({a:[],b:[]})
-    expect(j('x:1,a:[],b:[],')).toEqual({x:1,a:[],b:[]})
-    expect(j('x:1,a:[],b:[],y:2,')).toEqual({x:1,a:[],b:[],y:2})
-    expect(j('a:[],b:[],y:2,')).toEqual({a:[],b:[],y:2})
+    expect(j('a:[],b:[],')).toEqual({ a: [], b: [] })
+    expect(j('x:1,a:[],b:[],')).toEqual({ x: 1, a: [], b: [] })
+    expect(j('x:1,a:[],b:[],y:2,')).toEqual({ x: 1, a: [], b: [], y: 2 })
+    expect(j('a:[],b:[],y:2,')).toEqual({ a: [], b: [], y: 2 })
 
-    expect(j('a:[],b:[],c:[],')).toEqual({a:[],b:[],c:[]})
-    expect(j('x:1,a:[],b:[],c:[],')).toEqual({x:1,a:[],b:[],c:[]})
-    expect(j('x:1,a:[],b:[],c:[],y:2,')).toEqual({x:1,a:[],b:[],c:[],y:2})
-    expect(j('a:[],b:[],c:[],y:2,')).toEqual({a:[],b:[],c:[],y:2})
+    expect(j('a:[],b:[],c:[],')).toEqual({ a: [], b: [], c: [] })
+    expect(j('x:1,a:[],b:[],c:[],')).toEqual({ x: 1, a: [], b: [], c: [] })
+    expect(j('x:1,a:[],b:[],c:[],y:2,')).toEqual({
+      x: 1,
+      a: [],
+      b: [],
+      c: [],
+      y: 2,
+    })
+    expect(j('a:[],b:[],c:[],y:2,')).toEqual({ a: [], b: [], c: [], y: 2 })
 
-    expect(j('a:{b:1}')).toEqual({a:{b:1}})
-    expect(j('a:{b:{c:1}}')).toEqual({a:{b:{c:1}}})
-    expect(j('a:{b:1},d:{e:2}')).toEqual({a:{b:1},d:{e:2}})
+    expect(j('a:{b:1}')).toEqual({ a: { b: 1 } })
+    expect(j('a:{b:{c:1}}')).toEqual({ a: { b: { c: 1 } } })
+    expect(j('a:{b:1},d:{e:2}')).toEqual({ a: { b: 1 }, d: { e: 2 } })
   })
-  
 
   it('implicit-list', () => {
     // implicit null element preceeds empty comma
@@ -794,7 +822,6 @@ describe('feature', function () {
     expect(() => k('[[1')).toThrow(/unexpected/)
   })
 
-  
   it('property-dive', () => {
     expect(j('{a:1,b:2}')).toEqual({ a: 1, b: 2 })
     expect(j('{a:1,b:{c:2}}')).toEqual({ a: 1, b: { c: 2 } })
@@ -885,14 +912,12 @@ describe('feature', function () {
     })
   })
 
-  
   it('list-property', () => {
     expect(j('[a:1]').a).toEqual(1)
 
     let k = j.make({ list: { property: false } })
-    expect(()=>k('[a:1]')).toThrow(/unexpected/)
+    expect(() => k('[a:1]')).toThrow(/unexpected/)
   })
-
 
   // Test derived from debug sessions using quick.js
   it('debug-cases', () => {
@@ -1101,12 +1126,18 @@ describe('feature', function () {
 
     let count = { pass: 0, fail: 0 }
 
-    cases.forEach((c,i) => {
+    cases.forEach((c, i) => {
       let out = j(c[0])
       let ok = out === c[1]
       count[ok ? 'pass' : 'fail']++
       if (!ok) {
-        console.log(ok ? '\x1b[0;32mPASS' : '\x1b[1;31mFAIL', c[0], '->', out, 'I='+i)
+        console.log(
+          ok ? '\x1b[0;32mPASS' : '\x1b[1;31mFAIL',
+          c[0],
+          '->',
+          out,
+          'I=' + i
+        )
         console.log(' '.repeat(7 + c[0].length), '\x1b[1;34m', c[1])
       }
     })

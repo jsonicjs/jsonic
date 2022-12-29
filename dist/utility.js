@@ -9,7 +9,7 @@ const lexer_1 = require("./lexer");
 // https://github.com/microsoft/TypeScript/tree/main/src/lib
 const keys = (x) => (null == x ? [] : Object.keys(x));
 exports.keys = keys;
-const values = (x) => (null == x ? [] : Object.values(x));
+const values = (x) => null == x ? [] : Object.values(x);
 exports.values = values;
 const entries = (x) => (null == x ? [] : Object.entries(x));
 exports.entries = entries;
@@ -146,12 +146,15 @@ function configure(jsonic, incfg, opts) {
         token: opts.match
             ? omap(clean(opts.match.token), ([name, matcher]) => [
                 tokenize(name, cfg),
-                matcher
+                matcher,
             ])
             : {},
     };
     // Lookup tin directly from matcher
-    omap(cfg.match.token, ([tin, matcher]) => [tin, (matcher.tin$ = +tin, matcher)]);
+    omap(cfg.match.token, ([tin, matcher]) => [
+        tin,
+        ((matcher.tin$ = +tin), matcher),
+    ]);
     // Convert tokenSet tokens names to tins
     const tokenSet = opts.tokenSet
         ? Object.keys(opts.tokenSet).reduce((a, n) => ((a[n] = opts.tokenSet[n]
@@ -159,7 +162,7 @@ function configure(jsonic, incfg, opts) {
             .map((n) => t(n))),
             a), {})
         : {};
-    cfg.tokenSet = (cfg.tokenSet || {});
+    cfg.tokenSet = cfg.tokenSet || {};
     entries(tokenSet).map((entry) => {
         let name = entry[0];
         let tinset = entry[1];
@@ -172,11 +175,11 @@ function configure(jsonic, incfg, opts) {
         }
     });
     // Lookup table for token tin in given tokenSet
-    cfg.tokenSetTins = entries(cfg.tokenSet).reduce((a, en) => (a[en[0]] = (a[en[0]] || {}),
-        en[1].map((tin) => a[en[0]][tin] = true),
+    cfg.tokenSetTins = entries(cfg.tokenSet).reduce((a, en) => ((a[en[0]] = a[en[0]] || {}),
+        en[1].map((tin) => (a[en[0]][tin] = true)),
         a), {});
     // The IGNORE tokenSet is special and should always exist, even if empty.
-    cfg.tokenSetTins.IGNORE = (cfg.tokenSetTins.IGNORE || {});
+    cfg.tokenSetTins.IGNORE = cfg.tokenSetTins.IGNORE || {};
     cfg.space = {
         lex: !!((_c = opts.space) === null || _c === void 0 ? void 0 : _c.lex),
         chars: charset((_d = opts.space) === null || _d === void 0 ? void 0 : _d.chars),
@@ -280,7 +283,7 @@ function configure(jsonic, incfg, opts) {
                 }
                 return m;
             })
-                .filter(m => null != m && false !== m)
+                .filter((m) => null != m && false !== m)
             : [],
     };
     cfg.debug = {
@@ -598,16 +601,20 @@ function srcfmt(config) {
     return 'function' === typeof config.debug.print.src
         ? config.debug.print.src
         : (s) => {
-            let out = null == s ? types_1.EMPTY :
-                Array.isArray(s) ?
-                    (JSON.stringify(s)).replace(/]$/, entries(s)
+            let out = null == s
+                ? types_1.EMPTY
+                : Array.isArray(s)
+                    ? JSON.stringify(s).replace(/]$/, entries(s)
                         .filter((en) => isNaN(en[0]))
-                        .map((en, i) => ((0 === i ? ', ' : '') + en[0] +
-                        ': ' + JSON.stringify(en[1]))) // Just one level of array props!
-                        + ']') :
-                    JSON.stringify(s);
-            out = out.substring(0, config.debug.maxlen) +
-                (config.debug.maxlen < out.length ? '...' : types_1.EMPTY);
+                        .map((en, i) => (0 === i ? ', ' : '') +
+                        en[0] +
+                        ': ' +
+                        JSON.stringify(en[1])) + // Just one level of array props!
+                        ']')
+                    : JSON.stringify(s);
+            out =
+                out.substring(0, config.debug.maxlen) +
+                    (config.debug.maxlen < out.length ? '...' : types_1.EMPTY);
             return out;
         };
 }
@@ -708,7 +715,7 @@ function modlist(list, mods) {
         if (mods.delete && 0 < mods.delete.length) {
             for (let i = 0; i < mods.delete.length; i++) {
                 let mdI = mods.delete[i];
-                if (mdI < 0 ? ((-1 * mdI) <= list.length) : (mdI < list.length)) {
+                if (mdI < 0 ? -1 * mdI <= list.length : mdI < list.length) {
                     let dI = (list.length + mdI) % list.length;
                     list[dI] = null;
                 }
@@ -726,7 +733,7 @@ function modlist(list, mods) {
         }
         // Filter out any deletes.
         // return list.filter((a: AltSpec) => null != a)
-        let filtered = list.filter(entry => null != entry);
+        let filtered = list.filter((entry) => null != entry);
         if (filtered.length !== list.length) {
             list.length = 0;
             list.push(...filtered);
@@ -805,113 +812,126 @@ function parserwrap(parser) {
 }
 exports.parserwrap = parserwrap;
 function descAltSeq(alt, cfg) {
-    return '[' +
+    return ('[' +
         (alt.s || [])
             .map((tin) => 'number' === typeof tin
             ? tokenize(tin, cfg)
-            : Array.isArray(tin) ?
-                '[' + tin.map((t) => tokenize(t, cfg)) + ']' : '')
+            : Array.isArray(tin)
+                ? '[' + tin.map((t) => tokenize(t, cfg)) + ']'
+                : '')
             .join(' ') +
-        '] ';
+        '] ');
 }
 exports.descAltSeq = descAltSeq;
 function descTokenState(ctx) {
-    return '[' +
+    return ('[' +
         (ctx.NOTOKEN === ctx.t0 ? '' : ctx.F(ctx.t0.src)) +
         (ctx.NOTOKEN === ctx.t1 ? '' : ' ' + ctx.F(ctx.t1.src)) +
         ']~[' +
         (ctx.NOTOKEN === ctx.t0 ? '' : tokenize(ctx.t0.tin, ctx.cfg)) +
         (ctx.NOTOKEN === ctx.t1 ? '' : ' ' + tokenize(ctx.t1.tin, ctx.cfg)) +
-        ']';
+        ']');
 }
 function descParseState(ctx, rule, lex) {
-    return ctx.F(ctx.src()
-        .substring(lex.pnt.sI, lex.pnt.sI + 16)).padEnd(18, ' ') + ' ' +
-        descTokenState(ctx).padEnd(34, ' ') + ' ' +
-        ('' + rule.d).padStart(4, ' ');
+    return (ctx.F(ctx.src().substring(lex.pnt.sI, lex.pnt.sI + 16)).padEnd(18, ' ') +
+        ' ' +
+        descTokenState(ctx).padEnd(34, ' ') +
+        ' ' +
+        ('' + rule.d).padStart(4, ' '));
 }
 function descRuleState(ctx, rule) {
     let en = entries(rule.n);
     let eu = entries(rule.use);
     let ek = entries(rule.keep);
-    return '' +
-        (0 === en.length ? '' : ' N<' + en
-            .filter((n) => n[1])
-            .map((n) => n[0] + '=' + n[1])
-            .join(';') + '>') +
-        (0 === eu.length ? '' : ' U<' + eu
-            .map((u) => u[0] + '=' + ctx.F(u[1]))
-            .join(';') + '>') +
-        (0 === ek.length ? '' : ' K<' + ek
-            .map((k) => k[0] + '=' + ctx.F(k[1]))
-            .join(';') + '>');
+    return ('' +
+        (0 === en.length
+            ? ''
+            : ' N<' +
+                en
+                    .filter((n) => n[1])
+                    .map((n) => n[0] + '=' + n[1])
+                    .join(';') +
+                '>') +
+        (0 === eu.length
+            ? ''
+            : ' U<' + eu.map((u) => u[0] + '=' + ctx.F(u[1])).join(';') + '>') +
+        (0 === ek.length
+            ? ''
+            : ' K<' + ek.map((k) => k[0] + '=' + ctx.F(k[1])).join(';') + '>'));
 }
 const LOG = {
     RuleState: {
         o: S.open.toUpperCase(),
         c: S.close.toUpperCase(),
-    }
+    },
 };
 exports.LOG = LOG;
 function log_rule(ctx, rule, lex) {
+    ;
     ctx.log(rule, ctx, lex, S.logindent + S.rule + S.space, descParseState(ctx, rule, lex), S.indent.repeat(rule.d) +
-        (rule.name + '~' + rule.i + S.colon + LOG.RuleState[rule.state]).padEnd(16), ('prev=' + rule.prev.i +
-        ' parent=' + rule.parent.i +
-        ' child=' + rule.child.i)
-        .padEnd(28), descRuleState(ctx, rule));
+        (rule.name + '~' + rule.i + S.colon + LOG.RuleState[rule.state]).padEnd(16), ('prev=' +
+        rule.prev.i +
+        ' parent=' +
+        rule.parent.i +
+        ' child=' +
+        rule.child.i).padEnd(28), descRuleState(ctx, rule));
 }
 exports.log_rule = log_rule;
 function log_node(ctx, rule, lex, next) {
+    ;
     ctx.log(rule, ctx, lex, next, S.logindent + S.node + S.space, descParseState(ctx, rule, lex), S.indent.repeat(rule.d) +
         ('why=' + next.why + S.space + '<' + ctx.F(rule.node) + '>').padEnd(46), descRuleState(ctx, rule));
 }
 exports.log_node = log_node;
 function log_parse(ctx, rule, lex, match, cond, altI, alt, out) {
-    let ns = (match && out.n) ? entries(out.n) : null;
-    let us = (match && out.u) ? entries(out.u) : null;
-    let ks = (match && out.k) ? entries(out.k) : null;
-    ctx.log && ctx.log(ctx, rule, lex, S.logindent + S.parse, descParseState(ctx, rule, lex), S.indent.repeat(rule.d) +
-        (match ? 'alt=' + altI : 'no-alt'), match && alt ? descAltSeq(alt, ctx.cfg) : '', match && out.g ? 'g:' + out.g + ' ' : '', (match && out.p ? 'p:' + out.p + ' ' : '') +
-        (match && out.r ? 'r:' + out.r + ' ' : '') +
-        (match && out.b ? 'b:' + out.b + ' ' : ''), (alt && alt.c ? 'c:' + cond : types_1.EMPTY), null == ns ? '' : ('n:' +
-        ns
-            .map((p) => p[0] + '=' + p[1])
-            .join(';')), null == us ? '' : ('u:' +
-        us
-            .map((p) => p[0] + '=' + p[1])
-            .join(';')), null == ks ? '' : ('k:' +
-        ks
-            .map((p) => p[0] + '=' + p[1])
-            .join(';')));
+    let ns = match && out.n ? entries(out.n) : null;
+    let us = match && out.u ? entries(out.u) : null;
+    let ks = match && out.k ? entries(out.k) : null;
+    ctx.log &&
+        ctx.log(ctx, rule, lex, S.logindent + S.parse, descParseState(ctx, rule, lex), S.indent.repeat(rule.d) + (match ? 'alt=' + altI : 'no-alt'), match && alt ? descAltSeq(alt, ctx.cfg) : '', match && out.g ? 'g:' + out.g + ' ' : '', (match && out.p ? 'p:' + out.p + ' ' : '') +
+            (match && out.r ? 'r:' + out.r + ' ' : '') +
+            (match && out.b ? 'b:' + out.b + ' ' : ''), alt && alt.c ? 'c:' + cond : types_1.EMPTY, null == ns ? '' : 'n:' + ns.map((p) => p[0] + '=' + p[1]).join(';'), null == us ? '' : 'u:' + us.map((p) => p[0] + '=' + p[1]).join(';'), null == ks ? '' : 'k:' + ks.map((p) => p[0] + '=' + p[1]).join(';'));
 }
 exports.log_parse = log_parse;
 function log_stack(ctx, rule, lex) {
+    ;
     ctx.log(S.logindent + S.stack, descParseState(ctx, rule, lex), 
     // S.indent.repeat(Math.max(rule.d + ('o' === rule.state ? -1 : 1), 0)) +
     S.indent.repeat(rule.d) +
-        '/' + ctx.rs
-        // .slice(0, ctx.rsI)
-        .slice(0, rule.d)
-        .map((r) => r.name + '~' + r.i)
-        .join('/'), '~', '/' + ctx.rs
-        // .slice(0, ctx.rsI)
-        .slice(0, rule.d)
-        .map((r) => ctx.F(r.node))
-        .join('/'), 
+        '/' +
+        ctx.rs
+            // .slice(0, ctx.rsI)
+            .slice(0, rule.d)
+            .map((r) => r.name + '~' + r.i)
+            .join('/'), '~', '/' +
+        ctx.rs
+            // .slice(0, ctx.rsI)
+            .slice(0, rule.d)
+            .map((r) => ctx.F(r.node))
+            .join('/'), 
     // 'd=' + rule.d,
     //'rsI=' + ctx.rsI,
     ctx, rule, lex);
 }
 exports.log_stack = log_stack;
 function log_lex(ctx, rule, lex, pnt, sI, match, tkn, alt, altI, tI) {
+    ;
     ctx.log(S.logindent + S.lex + S.space + S.space, descParseState(ctx, rule, lex), S.indent.repeat(rule.d) +
         // S.indent.repeat(rule.d) + S.lex, // Log entry prefix.
         // Name of token from tin (token identification numer).
         tokenize(tkn.tin, ctx.cfg), ctx.F(tkn.src), // Format token src for log.
     pnt.sI, // Current source index.
     pnt.rI + ':' + pnt.cI, // Row and column.
-    (match === null || match === void 0 ? void 0 : match.name) || '', alt ? 'on:alt=' + altI + ';' + alt.g + ';t=' + tI + ';' +
-        descAltSeq(alt, ctx.cfg) : '', ctx.F(lex.src.substring(sI, sI + 16)), ctx, rule, lex);
+    (match === null || match === void 0 ? void 0 : match.name) || '', alt
+        ? 'on:alt=' +
+            altI +
+            ';' +
+            alt.g +
+            ';t=' +
+            tI +
+            ';' +
+            descAltSeq(alt, ctx.cfg)
+        : '', ctx.F(lex.src.substring(sI, sI + 16)), ctx, rule, lex);
 }
 exports.log_lex = log_lex;
 //# sourceMappingURL=utility.js.map

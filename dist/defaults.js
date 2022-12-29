@@ -22,7 +22,7 @@ const defaults = {
     },
     match: {
         lex: true,
-        token: {}
+        token: {},
     },
     // Token sets.
     tokenSet: {
