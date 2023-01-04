@@ -3,10 +3,25 @@ let { Jsonic, util, Debug } = require('..')
 let j = Jsonic.make({
   // rule: { finish: false },
   // list: { property: false }
+  value: {
+    map: {
+      z: {
+	match: /Z(\d)/,
+	val: (res)=>{
+	  console.log('VAL FUNC', res)
+	  // throw new Error('foo')
+	  return +res[1]
+	}
+      }
+    }
+  },
+  // text: { lex: false }
 }).use(Debug)
 console.log(j.debug.describe())
 
-console.log(j('1, 2', { log: -1 }))
+console.log(j('"a": Z1, "b":Z2, "c": q', { log: -1 }))
+
+// console.log(j('1, 2', { log: -1 }))
 
 // console.log(j('a:1',{log:-1}))
 

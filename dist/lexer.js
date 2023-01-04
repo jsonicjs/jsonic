@@ -286,6 +286,7 @@ let makeTextMatcher = (cfg, opts) => {
         let pnt = lex.pnt;
         let fwd = lex.src.substring(pnt.sI);
         let vm = cfg.value.map;
+        let vmre = cfg.value.mapre;
         let m = fwd.match(ender);
         if (m) {
             let msrc = m[1];
@@ -294,13 +295,40 @@ let makeTextMatcher = (cfg, opts) => {
             if (null != msrc) {
                 let mlen = msrc.length;
                 if (0 < mlen) {
+                    // Check for values first.
                     let vs = undefined;
-                    if (cfg.value.lex && undefined !== (vs = vm[msrc])) {
-                        out = lex.token('#VL', vs.val, msrc, pnt);
-                        pnt.sI += mlen;
-                        pnt.cI += mlen;
+                    if (cfg.value.lex) {
+                        // Fixed values (e.g true, false, null).
+                        if (undefined !== (vs = vm[msrc])) {
+                            out = lex.token('#VL', vs.val, msrc, pnt);
+                            pnt.sI += mlen;
+                            pnt.cI += mlen;
+                        }
+                        // Regexp processed values.
+                        else {
+                            for (let vname in vmre) {
+                                let vspec = vmre[vname];
+                                if (vspec.match) {
+                                    let res = vspec.match.exec(msrc);
+                                    // Must match entire text.
+                                    if (res && res[0].length === msrc.length) {
+                                        if (null == vspec.val) {
+                                            out = lex.token('#VL', res[0], msrc, pnt);
+                                        }
+                                        else {
+                                            let val = vspec.val(res);
+                                            out = lex.token('#VL', val, msrc, pnt);
+                                        }
+                                        pnt.sI += mlen;
+                                        pnt.cI += mlen;
+                                    }
+                                }
+                            }
+                        }
                     }
-                    else if (mcfg.lex) {
+                    // Not a value, so plain text.
+                    // NOTEL if !text.lex then only values are matched.
+                    if (null == out && mcfg.lex) {
                         out = lex.token('#TX', msrc, msrc, pnt);
                         pnt.sI += mlen;
                         pnt.cI += mlen;
@@ -654,7 +682,7 @@ class LexImpl {
         let tkn;
         let pnt = this.pnt;
         let sI = pnt.sI;
-        let match;
+        let match = undefined;
         if (pnt.end) {
             tkn = pnt.end;
         }
@@ -666,15 +694,20 @@ class LexImpl {
             tkn = pnt.end;
         }
         else {
-            for (let mat of this.cfg.lex.match) {
-                if ((tkn = mat(this, rule, tI))) {
-                    match = mat;
-                    break;
+            try {
+                for (let mat of this.cfg.lex.match) {
+                    if ((tkn = mat(this, rule, tI))) {
+                        match = mat;
+                        break;
+                    }
                 }
+            }
+            catch (err) {
+                tkn = tkn || this.token('#BD', undefined, this.src[pnt.sI], pnt, { err }, err.code || utility_1.S.unexpected);
             }
             tkn =
                 tkn ||
-                    this.token('#BD', undefined, this.src[pnt.sI], pnt, undefined, 'unexpected');
+                    this.token('#BD', undefined, this.src[pnt.sI], pnt, undefined, utility_1.S.unexpected);
         }
         this.ctx.log &&
             (0, utility_1.log_lex)(this.ctx, rule, this, pnt, sI, match, tkn, alt, altI, tI);

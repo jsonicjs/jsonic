@@ -12,6 +12,7 @@ import type {
   Rule,
   Config,
   Context,
+  LexMatcher,
   MakeLexMatcher,
   Bag,
   NormAltSpec,
@@ -282,27 +283,27 @@ let makeCommentMatcher: MakeLexMatcher = (cfg: Config, opts: Options) => {
 
         cm.getSuffixMatch = om.suffix
           ? () => {
-              if (om.suffix instanceof Function) {
-                return (cm.suffixMatch = om.suffix)
-              }
-
-              let mmnames = (
-                Array.isArray(om.suffix) ? om.suffix : [om.suffix]
-              ) as string[]
-              let matchers = mmnames
-                .map((mmname: string) =>
-                  cfg.lex.match.find((mm: any) => mm.maker?.name == mmname)
-                )
-                .filter((m) => null != m)
-
-              let sm = (...args: any[]) => {
-                matchers.map((m: any) => m(...args))
-              }
-
-              defprop(sm, 'name', { value: '' + om.suffix })
-
-              return sm
+            if (om.suffix instanceof Function) {
+              return (cm.suffixMatch = om.suffix)
             }
+
+            let mmnames = (
+              Array.isArray(om.suffix) ? om.suffix : [om.suffix]
+            ) as string[]
+            let matchers = mmnames
+              .map((mmname: string) =>
+                cfg.lex.match.find((mm: any) => mm.maker?.name == mmname)
+              )
+              .filter((m) => null != m)
+
+            let sm = (...args: any[]) => {
+              matchers.map((m: any) => m(...args))
+            }
+
+            defprop(sm, 'name', { value: '' + om.suffix })
+
+            return sm
+          }
           : undefined
 
         def[name] = cm
@@ -411,6 +412,7 @@ let makeTextMatcher: MakeLexMatcher = (cfg: Config, opts: Options) => {
     let pnt = lex.pnt
     let fwd = lex.src.substring(pnt.sI)
     let vm = cfg.value.map
+    let vmre = cfg.value.mapre
 
     let m = fwd.match(ender)
 
@@ -423,12 +425,46 @@ let makeTextMatcher: MakeLexMatcher = (cfg: Config, opts: Options) => {
       if (null != msrc) {
         let mlen = msrc.length
         if (0 < mlen) {
+
+          // Check for values first.
           let vs = undefined
-          if (cfg.value.lex && undefined !== (vs = vm[msrc])) {
-            out = lex.token('#VL', vs.val, msrc, pnt)
-            pnt.sI += mlen
-            pnt.cI += mlen
-          } else if (mcfg.lex) {
+          if (cfg.value.lex) {
+
+            // Fixed values (e.g true, false, null).
+            if (undefined !== (vs = vm[msrc])) {
+              out = lex.token('#VL', vs.val, msrc, pnt)
+              pnt.sI += mlen
+              pnt.cI += mlen
+            }
+
+            // Regexp processed values.
+            else {
+              for (let vname in vmre) {
+                let vspec = vmre[vname]
+                if (vspec.match) {
+                  let res = vspec.match.exec(msrc)
+
+                  // Must match entire text.
+                  if (res && res[0].length === msrc.length) {
+                    if (null == vspec.val) {
+                      out = lex.token('#VL', res[0], msrc, pnt)
+                    }
+                    else {
+                      let val = vspec.val(res)
+                      out = lex.token('#VL', val, msrc, pnt)
+                    }
+
+                    pnt.sI += mlen
+                    pnt.cI += mlen
+                  }
+                }
+              }
+            }
+          }
+
+          // Not a value, so plain text.
+          // NOTEL if !text.lex then only values are matched.
+          if (null == out && mcfg.lex) {
             out = lex.token('#TX', msrc, msrc, pnt)
             pnt.sI += mlen
             pnt.cI += mlen
@@ -542,7 +578,7 @@ let makeStringMatcher: MakeLexMatcher = (cfg: Config, opts: Options) => {
   // TODO: does `clean` make sense here?
 
   let os = opts.string || {}
-  cfg.string = cfg.string || {}
+  cfg.string = cfg.string || ({} as any)
 
   // TODO: compose with earlier config - do this in other makeFooMatchers?
   cfg.string = deep(cfg.string, {
@@ -872,7 +908,7 @@ class LexImpl implements Lex {
     let tkn: Token | undefined
     let pnt = this.pnt
     let sI = pnt.sI
-    let match
+    let match: LexMatcher | undefined = undefined
 
     if (pnt.end) {
       tkn = pnt.end
@@ -883,11 +919,23 @@ class LexImpl implements Lex {
 
       tkn = pnt.end
     } else {
-      for (let mat of this.cfg.lex.match) {
-        if ((tkn = mat(this, rule, tI))) {
-          match = mat
-          break
+      try {
+        for (let mat of this.cfg.lex.match) {
+          if ((tkn = mat(this, rule, tI))) {
+            match = mat
+            break
+          }
         }
+      }
+      catch (err: any) {
+        tkn = tkn || this.token(
+          '#BD',
+          undefined,
+          this.src[pnt.sI],
+          pnt,
+          { err },
+          err.code || S.unexpected
+        )
       }
 
       tkn =
@@ -898,7 +946,7 @@ class LexImpl implements Lex {
           this.src[pnt.sI],
           pnt,
           undefined,
-          'unexpected'
+          S.unexpected
         )
     }
 

@@ -1,17 +1,5 @@
-/* Copyright (c) 2013-2022 Richard Rodger and other contributors, MIT License */
+/* Copyright (c) 2013-2023 Richard Rodger and other contributors, MIT License */
 'use strict'
-
-// const Util = require('util')
-
-// let Lab = require('@hapi/lab')
-// Lab = null != Lab.script ? Lab : require('hapi-lab-shim')
-
-// const Code = require('@hapi/code')
-
-// const lab = (exports.lab = Lab.script())
-// const describe = lab.describe
-// const it = lab.it
-// const expect = Code.expect
 
 const { Jsonic, Lexer, makeParser, JsonicError, make } = require('..')
 

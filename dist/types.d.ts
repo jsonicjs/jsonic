@@ -106,8 +106,9 @@ export type Options = {
     value?: {
         lex?: boolean;
         map?: {
-            [src: string]: {
+            [src: string]: undefined | null | false | {
                 val: any;
+                match?: RegExp;
             };
         };
     };
@@ -317,6 +318,12 @@ export type Config = {
         map: {
             [src: string]: {
                 val: any;
+            };
+        };
+        mapre: {
+            [src: string]: {
+                val: (res: any) => any;
+                match: RegExp;
             };
         };
     };

@@ -225,7 +225,8 @@ describe('feature', function () {
     expect(j('1_0')).toEqual(10)
   })
 
-  it('value', () => {
+
+  it('value-standard', () => {
     expect(j('')).toEqual(undefined)
 
     expect(j('true')).toEqual(true)
@@ -271,6 +272,49 @@ describe('feature', function () {
       h: [true, false, null],
     })
   })
+
+
+  it('value-custom', () => {
+    let jv0 = j.make({
+      value: {
+	map: {
+	  foo: { val: 99 },
+	  bar: { val: {x:1} },
+	  zed: {
+	    match: /Z(\d)/,
+	    val: (res)=>+res[1]
+	  },
+	  qaz: {
+	    match: /HEX<(.+)>/,
+	    val: (res)=>{
+	      let val = parseInt(res[1],16)
+	      if(isNaN(val)) {
+		let e = new Error('Bad hex: '+res[0])
+		e.code = 'badhex'
+		throw e
+	      }
+	      return val
+	    }
+	  }
+	}
+      }
+    })
+
+    expect(jv0('')).toEqual(undefined)
+    expect(jv0('foo')).toEqual(99)
+    expect(jv0('bar')).toEqual({x:1})
+    expect(jv0('a:foo')).toEqual({a:99})
+    expect(jv0('a:bar')).toEqual({a:{x:1}})
+
+    expect(jv0('a:Z1')).toEqual({a:1})
+    expect(jv0('a:Zx')).toEqual({a:'Zx'})
+
+    expect(jv0('a:HEX<>')).toEqual({a:'HEX<>'})
+    expect(jv0('a:HEX<a>')).toEqual({a:10})
+    expect(()=>jv0('a:HEX<x>')).toThrow(/badhex/)
+
+  })
+
 
   it('null-or-undefined', () => {
     // All ignored, so undefined
