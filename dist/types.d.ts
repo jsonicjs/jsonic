@@ -45,6 +45,12 @@ export type Options = {
         token?: {
             [name: string]: RegExp | LexMatcher;
         };
+        value?: {
+            [name: string]: {
+                match: RegExp | LexMatcher;
+                val?: any;
+            };
+        };
     };
     tokenSet?: {
         [name: string]: string[];
@@ -109,6 +115,7 @@ export type Options = {
             [src: string]: undefined | null | false | {
                 val: any;
                 match?: RegExp;
+                consume?: boolean;
             };
         };
     };
@@ -269,6 +276,12 @@ export type Config = {
     };
     match: {
         lex: boolean;
+        value: {
+            [name: string]: {
+                match: RegExp | LexMatcher;
+                val?: any;
+            };
+        };
         token: MatchMap;
     };
     tokenSet: TokenSetMap;
@@ -324,6 +337,7 @@ export type Config = {
             [src: string]: {
                 val: (res: any) => any;
                 match: RegExp;
+                consume: boolean;
             };
         };
     };

@@ -122,9 +122,10 @@ let makeFixedMatcher = (cfg, _opts) => {
 };
 exports.makeFixedMatcher = makeFixedMatcher;
 let makeMatchMatcher = (cfg, _opts) => {
-    let matchers = (0, utility_1.values)(cfg.match.token);
+    let valueMatchers = (0, utility_1.values)(cfg.match.value);
+    let tokenMatchers = (0, utility_1.values)(cfg.match.token);
     // Don't add a matcher if there's nothing to do.
-    if (0 === matchers.length) {
+    if (0 === valueMatchers.length && 0 === tokenMatchers.length) {
         return null;
     }
     return function matchMatcher(lex, rule, tI = 0) {
@@ -134,20 +135,44 @@ let makeMatchMatcher = (cfg, _opts) => {
         let pnt = lex.pnt;
         let fwd = lex.src.substring(pnt.sI);
         let oc = 'o' === rule.state ? 0 : 1;
-        for (let matcher of matchers) {
-            // Only match Token if present in Rule sequence.
-            if (matcher.tin$ &&
-                !rule.spec.def.tcol[oc][tI].includes(matcher.tin$)) {
-                continue;
-            }
-            if (matcher instanceof RegExp) {
-                let m = fwd.match(matcher);
+        for (let valueMatcher of valueMatchers) {
+            if (valueMatcher.match instanceof RegExp) {
+                // TODO: only match VL if present in rule
+                let m = fwd.match(valueMatcher.match);
                 if (m) {
                     let msrc = m[0];
                     let mlen = msrc.length;
                     if (0 < mlen) {
                         let tkn = undefined;
-                        let tin = matcher.tin$;
+                        let val = valueMatcher.val ? valueMatcher.val(m) : msrc;
+                        tkn = lex.token('#VL', val, msrc, pnt);
+                        pnt.sI += mlen;
+                        pnt.cI += mlen;
+                        return tkn;
+                    }
+                }
+            }
+            else {
+                let tkn = valueMatcher.match(lex, rule);
+                if (null != tkn) {
+                    return tkn;
+                }
+            }
+        }
+        for (let tokenMatcher of tokenMatchers) {
+            // Only match Token if present in Rule sequence.
+            if (tokenMatcher.tin$ &&
+                !rule.spec.def.tcol[oc][tI].includes(tokenMatcher.tin$)) {
+                continue;
+            }
+            if (tokenMatcher instanceof RegExp) {
+                let m = fwd.match(tokenMatcher);
+                if (m) {
+                    let msrc = m[0];
+                    let mlen = msrc.length;
+                    if (0 < mlen) {
+                        let tkn = undefined;
+                        let tin = tokenMatcher.tin$;
                         tkn = lex.token(tin, msrc, msrc, pnt);
                         pnt.sI += mlen;
                         pnt.cI += mlen;
@@ -156,7 +181,7 @@ let makeMatchMatcher = (cfg, _opts) => {
                 }
             }
             else {
-                let tkn = matcher(lex, rule);
+                let tkn = tokenMatcher(lex, rule);
                 if (null != tkn) {
                     return tkn;
                 }
@@ -309,18 +334,20 @@ let makeTextMatcher = (cfg, opts) => {
                             for (let vname in vmre) {
                                 let vspec = vmre[vname];
                                 if (vspec.match) {
-                                    let res = vspec.match.exec(msrc);
+                                    // If consume, assume regexp starts with ^.
+                                    let res = vspec.match.exec(vspec.consume ? fwd : msrc);
                                     // Must match entire text.
-                                    if (res && res[0].length === msrc.length) {
+                                    if (res && (vspec.consume || (res[0].length === msrc.length))) {
+                                        let remsrc = res[0];
                                         if (null == vspec.val) {
-                                            out = lex.token('#VL', res[0], msrc, pnt);
+                                            out = lex.token('#VL', remsrc, remsrc, pnt);
                                         }
                                         else {
                                             let val = vspec.val(res);
-                                            out = lex.token('#VL', val, msrc, pnt);
+                                            out = lex.token('#VL', val, remsrc, pnt);
                                         }
-                                        pnt.sI += mlen;
-                                        pnt.cI += mlen;
+                                        pnt.sI += remsrc.length;
+                                        pnt.cI += remsrc.length;
                                     }
                                 }
                             }

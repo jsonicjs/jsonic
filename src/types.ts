@@ -101,6 +101,13 @@ export type Options = {
   match?: {
     lex?: boolean
     token?: { [name: string]: RegExp | LexMatcher }
+    value?: {
+      [name: string]:
+      {
+        match: RegExp | LexMatcher,
+        val?: any
+      }
+    }
   }
   tokenSet?: {
     [name: string]: string[]
@@ -170,7 +177,12 @@ export type Options = {
       | false
       | {
         val: any
-        match?: RegExp
+
+        // RegExp values will always have lower priority than pure tokens
+        // as they are matched by the TextMatcher. For higher priority
+        // use the `match` option.
+        match?: RegExp,
+        consume?: boolean
       }
     }
   }
@@ -380,9 +392,17 @@ export type Config = {
     ref: Record<string | Tin, Tin | string>
   }
 
-  // Matched tokens (regexp, custom function)
+  // Matched tokens and values (regexp, custom function)
   match: {
     lex: boolean
+    // Values have priority.
+    value: {
+      [name: string]: {
+        // NOTE: RegExp must begin with `^`.
+        match: RegExp | LexMatcher,
+        val?: any
+      }
+    }
     token: MatchMap
   }
 
@@ -455,6 +475,7 @@ export type Config = {
       [src: string]: {
         val: (res: any) => any
         match: RegExp
+        consume: boolean
       }
     }
 

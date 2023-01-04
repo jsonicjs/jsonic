@@ -276,6 +276,7 @@ describe('feature', function () {
 
   it('value-custom', () => {
     let jv0 = j.make({
+      number: { lex: false }, // needed for commadigits
       value: {
 	map: {
 	  foo: { val: 99 },
@@ -295,6 +296,19 @@ describe('feature', function () {
 	      }
 	      return val
 	    }
+	  },
+
+	  // Stops at tokens
+	  cap: {
+	    match: /[A-Z]+/,
+	    val: (res)=>res[0].toLowerCase()
+	  },
+
+	  // Does not stop at tokens
+	  commadigits: {
+	    match: /^\d+(,\d+)+/,
+	    val: (res)=>20*(+(res[0].replace(/,/g,''))),
+	    consume: true,
 	  }
 	}
       }
@@ -313,9 +327,46 @@ describe('feature', function () {
     expect(jv0('a:HEX<a>')).toEqual({a:10})
     expect(()=>jv0('a:HEX<x>')).toThrow(/badhex/)
 
+
+    expect(jv0('[A,B]')).toEqual(['a','b'])
+    expect(jv0('[1 2,3] ')).toEqual(['1', 460])
   })
 
 
+
+  it('match-custom', () => {
+    let jv0 = j
+	.make({
+	  match: {
+	    value: {
+	      foobar: {
+		match: /foobar(\d)/,
+		val: (res)=>+res[1],
+	      },
+
+	      // no need to turn of number lexing
+	      commadigits: {
+		match: /^\d+(,\d+)+/,
+		val: (res)=>20*(+(res[0].replace(/,/g,''))),
+	      }
+	    },
+	    token: {
+	      FOO: /foo/
+	    },
+	  }
+	})
+        .rule('val', (rs,p)=>{
+	  rs.open({s:[p.cfg.t.FOO],a:(r)=>r.node='Foo'})
+	})
+
+    expect(jv0('foo')).toEqual('Foo')
+    expect(jv0('foobar1')).toEqual(1)
+
+    // Still parses numbers
+    expect(jv0('[1 2,3 4]')).toEqual([1, 460, 4])
+  })
+
+  
   it('null-or-undefined', () => {
     // All ignored, so undefined
     expect(j('')).toEqual(undefined)

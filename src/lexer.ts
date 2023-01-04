@@ -192,10 +192,12 @@ let makeFixedMatcher: MakeLexMatcher = (cfg: Config, _opts: Options) => {
 }
 
 let makeMatchMatcher: MakeLexMatcher = (cfg: Config, _opts: Options) => {
-  let matchers = values(cfg.match.token)
+  let valueMatchers = values(cfg.match.value)
+  let tokenMatchers = values(cfg.match.token)
+
 
   // Don't add a matcher if there's nothing to do.
-  if (0 === matchers.length) {
+  if (0 === valueMatchers.length && 0 === tokenMatchers.length) {
     return null
   }
 
@@ -208,17 +210,11 @@ let makeMatchMatcher: MakeLexMatcher = (cfg: Config, _opts: Options) => {
 
     let oc = 'o' === rule.state ? 0 : 1
 
-    for (let matcher of matchers) {
-      // Only match Token if present in Rule sequence.
-      if (
-        (matcher as any).tin$ &&
-        !rule.spec.def.tcol[oc][tI].includes((matcher as any).tin$)
-      ) {
-        continue
-      }
+    for (let valueMatcher of valueMatchers) {
+      if (valueMatcher.match instanceof RegExp) {
+        // TODO: only match VL if present in rule
 
-      if (matcher instanceof RegExp) {
-        let m = fwd.match(matcher)
+        let m = fwd.match(valueMatcher.match)
 
         if (m) {
           let msrc = m[0]
@@ -226,7 +222,43 @@ let makeMatchMatcher: MakeLexMatcher = (cfg: Config, _opts: Options) => {
           if (0 < mlen) {
             let tkn: Token | undefined = undefined
 
-            let tin = (matcher as any).tin$
+            let val = valueMatcher.val ? valueMatcher.val(m) : msrc
+            tkn = lex.token('#VL', val, msrc, pnt)
+
+            pnt.sI += mlen
+            pnt.cI += mlen
+
+            return tkn
+          }
+        }
+      } else {
+        let tkn: any = valueMatcher.match(lex, rule)
+        if (null != tkn) {
+          return tkn
+        }
+      }
+
+    }
+
+    for (let tokenMatcher of tokenMatchers) {
+      // Only match Token if present in Rule sequence.
+      if (
+        (tokenMatcher as any).tin$ &&
+        !rule.spec.def.tcol[oc][tI].includes((tokenMatcher as any).tin$)
+      ) {
+        continue
+      }
+
+      if (tokenMatcher instanceof RegExp) {
+        let m = fwd.match(tokenMatcher)
+
+        if (m) {
+          let msrc = m[0]
+          let mlen = msrc.length
+          if (0 < mlen) {
+            let tkn: Token | undefined = undefined
+
+            let tin = (tokenMatcher as any).tin$
             tkn = lex.token(tin, msrc, msrc, pnt)
 
             pnt.sI += mlen
@@ -236,7 +268,7 @@ let makeMatchMatcher: MakeLexMatcher = (cfg: Config, _opts: Options) => {
           }
         }
       } else {
-        let tkn: any = matcher(lex, rule)
+        let tkn: any = tokenMatcher(lex, rule)
         if (null != tkn) {
           return tkn
         }
@@ -442,20 +474,24 @@ let makeTextMatcher: MakeLexMatcher = (cfg: Config, opts: Options) => {
               for (let vname in vmre) {
                 let vspec = vmre[vname]
                 if (vspec.match) {
-                  let res = vspec.match.exec(msrc)
+
+                  // If consume, assume regexp starts with ^.
+                  let res = vspec.match.exec(vspec.consume ? fwd : msrc)
 
                   // Must match entire text.
-                  if (res && res[0].length === msrc.length) {
+                  if (res && (vspec.consume || (res[0].length === msrc.length))) {
+                    let remsrc = res[0]
+
                     if (null == vspec.val) {
-                      out = lex.token('#VL', res[0], msrc, pnt)
+                      out = lex.token('#VL', remsrc, remsrc, pnt)
                     }
                     else {
                       let val = vspec.val(res)
-                      out = lex.token('#VL', val, msrc, pnt)
+                      out = lex.token('#VL', val, remsrc, pnt)
                     }
 
-                    pnt.sI += mlen
-                    pnt.cI += mlen
+                    pnt.sI += remsrc.length
+                    pnt.cI += remsrc.length
                   }
                 }
               }

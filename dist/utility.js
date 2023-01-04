@@ -143,6 +143,9 @@ function configure(jsonic, incfg, opts) {
     cfg.fixed.ref = Object.assign(cfg.fixed.ref, omap(cfg.fixed.ref, ([tin, src]) => [src, tin]));
     cfg.match = {
         lex: !!((_b = opts.match) === null || _b === void 0 ? void 0 : _b.lex),
+        value: opts.match
+            ? omap(clean(opts.match.value), ([name, spec]) => [name, spec])
+            : {},
         token: opts.match
             ? omap(clean(opts.match.token), ([name, matcher]) => [
                 tokenize(name, cfg),
@@ -212,7 +215,8 @@ function configure(jsonic, incfg, opts) {
             false === e[1] ||
             e[1].match ||
             (a[e[0]] = e[1]), a), {}),
-        mapre: entries(((_x = opts.value) === null || _x === void 0 ? void 0 : _x.map) || {}).reduce((a, e) => (e[1] && e[1].match && (a[e[0]] = e[1]), a), {}),
+        mapre: entries(((_x = opts.value) === null || _x === void 0 ? void 0 : _x.map) || {}).reduce((a, e) => (e[1] && e[1].match &&
+            (a[e[0]] = e[1], a[e[0]].consume = !!a[e[0]].consume), a), {}),
         // TODO: just testing, move to a plugin for extended values
         // 'undefined': { v: undefined },
         // 'NaN': { v: NaN },

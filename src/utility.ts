@@ -185,6 +185,12 @@ function configure(
 
   cfg.match = {
     lex: !!opts.match?.lex,
+    value: opts.match
+      ? omap(
+        clean(opts.match.value),
+        ([name, spec]: [string, any]) => [name, spec]
+      )
+      : {},
     token: opts.match
       ? omap(
         clean(opts.match.token),
@@ -283,7 +289,9 @@ function configure(
       {} as any
     ),
     mapre: entries(opts.value?.map || {}).reduce(
-      (a: any, e: any[]) => (e[1] && e[1].match && (a[e[0]] = e[1]), a),
+      (a: any, e: any[]) =>
+      (e[1] && e[1].match &&
+        (a[e[0]] = e[1], a[e[0]].consume = !!a[e[0]].consume), a),
       {} as any
     ),
 
