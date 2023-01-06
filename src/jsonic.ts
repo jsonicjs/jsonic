@@ -215,8 +215,8 @@ function make(param_options?: Bag | string, parent?: Jsonic): Jsonic {
     parent
       ? { ...parent.options }
       : false === (param_options as Bag)?.defaults$
-      ? {}
-      : defaults,
+        ? {}
+        : defaults,
     param_options ? param_options : {}
   )
 
@@ -290,13 +290,13 @@ function make(param_options?: Bag | string, parent?: Jsonic): Jsonic {
       return jsonic.internal().parser.rule(name, define) || jsonic
     },
 
-    lex: (matchmaker: MakeLexMatcher) => {
-      let match = merged_options.lex.match
-      match.unshift(matchmaker)
-      jsonic.options({
-        lex: { match },
-      })
-    },
+    // lex: (matchmaker: MakeLexMatcher) => {
+    //   let match = merged_options.lex.match
+    //   match.unshift(matchmaker)
+    //   jsonic.options({
+    //     lex: { match },
+    //   })
+    // },
 
     make: (options?: Options) => {
       return make(options, jsonic)

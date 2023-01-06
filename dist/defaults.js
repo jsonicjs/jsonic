@@ -173,16 +173,16 @@ const defaults = {
     hint: make_hint,
     // Lexer
     lex: {
-        match: [
-            lexer_1.makeMatchMatcher,
-            lexer_1.makeFixedMatcher,
-            lexer_1.makeSpaceMatcher,
-            lexer_1.makeLineMatcher,
-            lexer_1.makeStringMatcher,
-            lexer_1.makeCommentMatcher,
-            lexer_1.makeNumberMatcher,
-            lexer_1.makeTextMatcher,
-        ],
+        match: {
+            match: { order: 1e6, make: lexer_1.makeMatchMatcher },
+            fixed: { order: 2e6, make: lexer_1.makeFixedMatcher },
+            space: { order: 3e6, make: lexer_1.makeSpaceMatcher },
+            line: { order: 4e6, make: lexer_1.makeLineMatcher },
+            string: { order: 5e6, make: lexer_1.makeStringMatcher },
+            comment: { order: 6e6, make: lexer_1.makeCommentMatcher },
+            number: { order: 7e6, make: lexer_1.makeNumberMatcher },
+            text: { order: 8e6, make: lexer_1.makeTextMatcher },
+        },
         // Empty string is allowed and returns undefined
         empty: true,
         emptyResult: undefined,

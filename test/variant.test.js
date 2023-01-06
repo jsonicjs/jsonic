@@ -40,6 +40,7 @@ describe('variant', function () {
   })
 
   // TODO: move to plugin
+  /*
   it('comment-suffix', () => {
     let js = Jsonic.make()
 
@@ -86,7 +87,9 @@ describe('variant', function () {
       'Token[#TX=10 a 0,1,1],Token[#CM=7 #b  1,1,2],Token[#TX=10 c 7,4,1],Token[#ZZ=2  8,4,2],Token[#ZZ=2  8,4,2],Token[#ZZ=2  8,4,2],Token[#ZZ=2  8,4,2]'
     )
   })
+  */
 
+  
   it('line-lex-single', () => {
     let j = Jsonic
     let js = Jsonic.make({

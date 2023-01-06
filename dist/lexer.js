@@ -209,22 +209,32 @@ let makeCommentMatcher = (cfg, opts) => {
                 suffixMatch: undefined,
                 getSuffixMatch: undefined,
             };
+            /*
             cm.getSuffixMatch = om.suffix
-                ? () => {
-                    if (om.suffix instanceof Function) {
-                        return (cm.suffixMatch = om.suffix);
-                    }
-                    let mmnames = (Array.isArray(om.suffix) ? om.suffix : [om.suffix]);
-                    let matchers = mmnames
-                        .map((mmname) => cfg.lex.match.find((mm) => { var _a; return ((_a = mm.maker) === null || _a === void 0 ? void 0 : _a.name) == mmname; }))
-                        .filter((m) => null != m);
-                    let sm = (...args) => {
-                        matchers.map((m) => m(...args));
-                    };
-                    (0, utility_1.defprop)(sm, 'name', { value: '' + om.suffix });
-                    return sm;
+              ? () => {
+                if (om.suffix instanceof Function) {
+                  return (cm.suffixMatch = om.suffix)
                 }
-                : undefined;
+    
+                let mmnames = (
+                  Array.isArray(om.suffix) ? om.suffix : [om.suffix]
+                ) as string[]
+                let matchers = mmnames
+                  .map((mmname: string) =>
+                    cfg.lex.match.find((mm: any) => mm.maker?.name == mmname)
+                  )
+                  .filter((m) => null != m)
+    
+                let sm = (...args: any[]) => {
+                  matchers.map((m: any) => m(...args))
+                }
+    
+                defprop(sm, 'name', { value: '' + om.suffix })
+    
+                return sm
+              }
+              : undefined
+            */
             def[name] = cm;
             return def;
         }, {}),
@@ -258,15 +268,16 @@ let makeCommentMatcher = (cfg, opts) => {
                 pnt.sI += csrc.length;
                 pnt.cI = cI;
                 // TODO: move to plugin
+                /*
                 if (mc.suffixMatch) {
-                    mc.suffixMatch(lex, rule);
+                  mc.suffixMatch(lex, rule)
+                } else if (mc.getSuffixMatch) {
+                  mc.suffixMatch = mc.getSuffixMatch()
+                  if (mc.suffixMatch) {
+                    mc.suffixMatch(lex, rule)
+                  }
                 }
-                else if (mc.getSuffixMatch) {
-                    mc.suffixMatch = mc.getSuffixMatch();
-                    if (mc.suffixMatch) {
-                        mc.suffixMatch(lex, rule);
-                    }
-                }
+                */
                 return tkn;
             }
         }

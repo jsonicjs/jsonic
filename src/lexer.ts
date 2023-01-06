@@ -313,6 +313,7 @@ let makeCommentMatcher: MakeLexMatcher = (cfg: Config, opts: Options) => {
           getSuffixMatch: undefined,
         }
 
+        /*
         cm.getSuffixMatch = om.suffix
           ? () => {
             if (om.suffix instanceof Function) {
@@ -337,6 +338,7 @@ let makeCommentMatcher: MakeLexMatcher = (cfg: Config, opts: Options) => {
             return sm
           }
           : undefined
+        */
 
         def[name] = cm
         return def
@@ -381,6 +383,7 @@ let makeCommentMatcher: MakeLexMatcher = (cfg: Config, opts: Options) => {
         pnt.cI = cI
 
         // TODO: move to plugin
+        /*
         if (mc.suffixMatch) {
           mc.suffixMatch(lex, rule)
         } else if (mc.getSuffixMatch) {
@@ -389,6 +392,7 @@ let makeCommentMatcher: MakeLexMatcher = (cfg: Config, opts: Options) => {
             mc.suffixMatch(lex, rule)
           }
         }
+        */
 
         return tkn
       }

@@ -43,7 +43,7 @@ export interface JsonicAPI {
   ) => Jsonic | RuleSpec | RuleSpecMap
 
   // Provide new lex matcher.
-  lex: (matchmaker: MakeLexMatcher) => void
+  // lex: (matchmaker: MakeLexMatcher) => void
 
   empty: (options?: Options) => Jsonic
 
@@ -201,7 +201,12 @@ export type Options = {
   lex?: {
     empty?: boolean
     emptyResult?: any
-    match?: MakeLexMatcher[]
+    match: {
+      [name: string]: {
+        order: number
+        make: MakeLexMatcher
+      }
+    }
   }
   rule?: {
     start?: string

@@ -6,8 +6,7 @@ const Debug = (jsonic, options) => {
     const { keys, values, entries } = jsonic.util;
     jsonic.debug = {
         describe: function () {
-            var _a;
-            let match = (_a = jsonic.options.lex) === null || _a === void 0 ? void 0 : _a.match;
+            let match = jsonic.internal().config.lex.match;
             let rules = jsonic.rule();
             return [
                 '========= RULES =========',
@@ -23,7 +22,9 @@ const Debug = (jsonic, options) => {
                     .join('\n\n'),
                 '\n',
                 '========= LEXER =========',
-                '  ' + ((match && match.map((m) => m.name)) || []).join('\n  '),
+                '  ' + ((match &&
+                    match.map((m) => m.order + ': ' + m.matcher + ' (' + m.make.name + ')')) || [])
+                    .join('\n  '),
                 '\n',
                 '\n',
                 '========= PLUGIN =========',
@@ -66,9 +67,10 @@ function descAlt(jsonic, rs, kind) {
                     ' ' +
                     ('[' +
                         (a.s || [])
-                            .map((tin) => 'number' === typeof tin
-                            ? jsonic.token[tin]
-                            : '[' + tin.map((t) => jsonic.token[t]) + ']')
+                            .map((tin) => null == tin ? '***INVALID***' :
+                            'number' === typeof tin
+                                ? jsonic.token[tin]
+                                : '[' + tin.map((t) => jsonic.token[t]) + ']')
                             .join(' ') +
                         '] ').padEnd(32, ' ') +
                     (a.r ? ' r=' + ('string' === typeof a.r ? a.r : '<F>') : '') +

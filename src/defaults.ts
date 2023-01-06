@@ -228,16 +228,16 @@ const defaults: Options = {
 
   // Lexer
   lex: {
-    match: [
-      makeMatchMatcher,
-      makeFixedMatcher,
-      makeSpaceMatcher,
-      makeLineMatcher,
-      makeStringMatcher,
-      makeCommentMatcher,
-      makeNumberMatcher,
-      makeTextMatcher,
-    ],
+    match: {
+      match: { order: 1e6, make: makeMatchMatcher },
+      fixed: { order: 2e6, make: makeFixedMatcher },
+      space: { order: 3e6, make: makeSpaceMatcher },
+      line: { order: 4e6, make: makeLineMatcher },
+      string: { order: 5e6, make: makeStringMatcher },
+      comment: { order: 6e6, make: makeCommentMatcher },
+      number: { order: 7e6, make: makeNumberMatcher },
+      text: { order: 8e6, make: makeTextMatcher },
+    },
 
     // Empty string is allowed and returns undefined
     empty: true,

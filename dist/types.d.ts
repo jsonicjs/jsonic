@@ -13,7 +13,6 @@ export interface JsonicAPI {
     make: (options?: Options) => Jsonic;
     use: (plugin: Plugin, plugin_options?: Bag) => Jsonic;
     rule: (name?: string, define?: RuleDefiner | null) => Jsonic | RuleSpec | RuleSpecMap;
-    lex: (matchmaker: MakeLexMatcher) => void;
     empty: (options?: Options) => Jsonic;
     token: TokenMap & TinMap & (<A extends string | Tin>(ref: A) => A extends string ? Tin : string);
     tokenSet: TokenSetMap & TinSetMap & (<A extends string | Tin>(ref: A) => A extends string ? Tin[] : string);
@@ -136,7 +135,12 @@ export type Options = {
     lex?: {
         empty?: boolean;
         emptyResult?: any;
-        match?: MakeLexMatcher[];
+        match: {
+            [name: string]: {
+                order: number;
+                make: MakeLexMatcher;
+            };
+        };
     };
     rule?: {
         start?: string;

@@ -131,13 +131,13 @@ function make(param_options, parent) {
         rule: (name, define) => {
             return jsonic.internal().parser.rule(name, define) || jsonic;
         },
-        lex: (matchmaker) => {
-            let match = merged_options.lex.match;
-            match.unshift(matchmaker);
-            jsonic.options({
-                lex: { match },
-            });
-        },
+        // lex: (matchmaker: MakeLexMatcher) => {
+        //   let match = merged_options.lex.match
+        //   match.unshift(matchmaker)
+        //   jsonic.options({
+        //     lex: { match },
+        //   })
+        // },
         make: (options) => {
             return make(options, jsonic);
         },

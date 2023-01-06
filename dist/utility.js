@@ -284,15 +284,23 @@ function configure(jsonic, incfg, opts) {
         empty: !!((_9 = opts.lex) === null || _9 === void 0 ? void 0 : _9.empty),
         emptyResult: (_10 = opts.lex) === null || _10 === void 0 ? void 0 : _10.emptyResult,
         match: ((_11 = opts.lex) === null || _11 === void 0 ? void 0 : _11.match)
-            ? opts.lex.match
-                .map((maker) => {
-                let m = maker(cfg, opts);
-                if (m) {
-                    m.maker = maker;
+            ? entries(opts.lex.match)
+                .reduce((list, entry) => {
+                let name = entry[0];
+                let matchspec = entry[1];
+                if (matchspec) {
+                    let matcher = matchspec.make(cfg, opts);
+                    if (matcher) {
+                        matcher.matcher = name;
+                        matcher.make = matchspec.make;
+                        matcher.order = matchspec.order;
+                    }
+                    list.push(matcher);
                 }
-                return m;
-            })
-                .filter((m) => null != m && false !== m)
+                return list;
+            }, [])
+                .filter((m) => null != m && false !== m && -1 < +m.order)
+                .sort((a, b) => a.order - b.order)
             : [],
     };
     cfg.debug = {

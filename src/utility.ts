@@ -388,15 +388,23 @@ function configure(
     empty: !!opts.lex?.empty,
     emptyResult: opts.lex?.emptyResult,
     match: opts.lex?.match
-      ? opts.lex.match
-        .map((maker: any) => {
-          let m = maker(cfg, opts)
-          if (m) {
-            m.maker = maker
+      ? entries(opts.lex.match)
+        .reduce((list: any[], entry: any) => {
+          let name = entry[0]
+          let matchspec = entry[1]
+          if (matchspec) {
+            let matcher = matchspec.make(cfg, opts)
+            if (matcher) {
+              matcher.matcher = name
+              matcher.make = matchspec.make
+              matcher.order = matchspec.order
+            }
+            list.push(matcher)
           }
-          return m
-        })
-        .filter((m) => null != m && false !== m)
+          return list
+        }, [])
+        .filter((m) => null != m && false !== m && -1 < +m.order)
+        .sort((a, b) => a.order - b.order)
       : [],
   }
 
