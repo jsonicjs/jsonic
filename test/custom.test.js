@@ -499,7 +499,7 @@ describe('custom', () => {
 
     let j = Jsonic.make({
       value: {
-        map: {
+        def: {
           foo: { val: 'FOO' },
           bar: { val: 'BAR' },
           zed: { val: 123 },

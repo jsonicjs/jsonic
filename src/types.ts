@@ -170,7 +170,7 @@ export type Options = {
   }
   value?: {
     lex?: boolean
-    map?: {
+    def?: {
       [src: string]:
       | undefined
       | null
@@ -469,14 +469,14 @@ export type Config = {
     lex: boolean
 
     // Fixed values
-    map: {
+    def: {
       [src: string]: {
         val: any
       }
     }
 
     // Regexp processed values
-    mapre: {
+    defre: {
       [src: string]: {
         val: (res: any) => any
         match: RegExp

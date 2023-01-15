@@ -1,7 +1,7 @@
 module.exports = function p0(jsonic, popts) {
   jsonic.options({
     value: {
-      map: {
+      def: {
         [popts.s || 'X']: { val: popts.x },
       },
     },

@@ -110,7 +110,7 @@ export type Options = {
     };
     value?: {
         lex?: boolean;
-        map?: {
+        def?: {
             [src: string]: undefined | null | false | {
                 val: any;
                 match?: RegExp;
@@ -332,12 +332,12 @@ export type Config = {
     };
     value: {
         lex: boolean;
-        map: {
+        def: {
             [src: string]: {
                 val: any;
             };
         };
-        mapre: {
+        defre: {
             [src: string]: {
                 val: (res: any) => any;
                 match: RegExp;

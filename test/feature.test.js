@@ -278,7 +278,7 @@ describe('feature', function () {
     let jv0 = j.make({
       number: { lex: false }, // needed for commadigits
       value: {
-	map: {
+	def: {
 	  foo: { val: 99 },
 	  bar: { val: {x:1} },
 	  zed: {

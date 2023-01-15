@@ -447,8 +447,8 @@ let makeTextMatcher: MakeLexMatcher = (cfg: Config, opts: Options) => {
     let mcfg = cfg.text
     let pnt = lex.pnt
     let fwd = lex.src.substring(pnt.sI)
-    let vm = cfg.value.map
-    let vmre = cfg.value.mapre
+    let def = cfg.value.def
+    let defre = cfg.value.defre
 
     let m = fwd.match(ender)
 
@@ -467,7 +467,7 @@ let makeTextMatcher: MakeLexMatcher = (cfg: Config, opts: Options) => {
           if (cfg.value.lex) {
 
             // Fixed values (e.g true, false, null).
-            if (undefined !== (vs = vm[msrc])) {
+            if (undefined !== (vs = def[msrc])) {
               out = lex.token('#VL', vs.val, msrc, pnt)
               pnt.sI += mlen
               pnt.cI += mlen
@@ -475,8 +475,8 @@ let makeTextMatcher: MakeLexMatcher = (cfg: Config, opts: Options) => {
 
             // Regexp processed values.
             else {
-              for (let vname in vmre) {
-                let vspec = vmre[vname]
+              for (let vname in defre) {
+                let vspec = defre[vname]
                 if (vspec.match) {
 
                   // If consume, assume regexp starts with ^.
@@ -564,7 +564,7 @@ let makeNumberMatcher: MakeLexMatcher = (cfg: Config, _opts: Options) => {
 
     let pnt = lex.pnt
     let fwd = lex.src.substring(pnt.sI)
-    let vm = cfg.value.map
+    let valdef = cfg.value.def
 
     let m = fwd.match(ender)
     if (m) {
@@ -581,7 +581,7 @@ let makeNumberMatcher: MakeLexMatcher = (cfg: Config, _opts: Options) => {
         let mlen = msrc.length
         if (0 < mlen) {
           let vs = undefined
-          if (cfg.value.lex && undefined !== (vs = vm[msrc])) {
+          if (cfg.value.lex && undefined !== (vs = valdef[msrc])) {
             out = lex.token('#VL', vs.val, msrc, pnt)
           } else {
             let nstr = numberSep ? msrc.replace(numberSep, '') : msrc

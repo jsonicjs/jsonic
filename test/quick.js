@@ -4,19 +4,21 @@ let j = Jsonic.make({
   // rule: { finish: false },
   // list: { property: false }
 
-  match: {
-    value: {
-      commadigits: {
-	match: /^\d+(,\d+)+/,
-	val: (res)=>20*(+(res[0].replace(/,/g,''))),
-      }
-    }
-  },
+  // match: {
+  //   value: {
+  //     commadigits: {
+  //       match: /^\d+(,\d+)+/,
+  //       val: (res)=>20*(+(res[0].replace(/,/g,''))),
+  //     }
+  //   }
+  // },
   // text: { lex: false }
 }).use(Debug)
 console.log(j.debug.describe())
 
-console.log(j('[1 2,3 a, b, 4, 5]', { log: -1 }))
+// console.log(j('[1 2,3 a, b, 4, 5]', { log: -1 }))
+
+console.log(j('# foo', { log: -1 }))
 
 // console.log(j('"a": Z1, "b":Z2, "c": q', { log: -1 }))
 

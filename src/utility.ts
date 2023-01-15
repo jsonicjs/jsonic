@@ -279,7 +279,7 @@ function configure(
   // NOTE: these are not value ending tokens
   cfg.value = {
     lex: !!opts.value?.lex,
-    map: entries(opts.value?.map || {}).reduce(
+    def: entries(opts.value?.def || {}).reduce(
       (a: any, e: any[]) => (
         null == e[1] ||
         false === e[1] ||
@@ -288,7 +288,7 @@ function configure(
       ),
       {} as any
     ),
-    mapre: entries(opts.value?.map || {}).reduce(
+    defre: entries(opts.value?.def || {}).reduce(
       (a: any, e: any[]) =>
       (e[1] && e[1].match &&
         (a[e[0]] = e[1], a[e[0]].consume = !!a[e[0]].consume), a),

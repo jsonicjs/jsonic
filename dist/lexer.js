@@ -321,8 +321,8 @@ let makeTextMatcher = (cfg, opts) => {
         let mcfg = cfg.text;
         let pnt = lex.pnt;
         let fwd = lex.src.substring(pnt.sI);
-        let vm = cfg.value.map;
-        let vmre = cfg.value.mapre;
+        let def = cfg.value.def;
+        let defre = cfg.value.defre;
         let m = fwd.match(ender);
         if (m) {
             let msrc = m[1];
@@ -335,15 +335,15 @@ let makeTextMatcher = (cfg, opts) => {
                     let vs = undefined;
                     if (cfg.value.lex) {
                         // Fixed values (e.g true, false, null).
-                        if (undefined !== (vs = vm[msrc])) {
+                        if (undefined !== (vs = def[msrc])) {
                             out = lex.token('#VL', vs.val, msrc, pnt);
                             pnt.sI += mlen;
                             pnt.cI += mlen;
                         }
                         // Regexp processed values.
                         else {
-                            for (let vname in vmre) {
-                                let vspec = vmre[vname];
+                            for (let vname in defre) {
+                                let vspec = defre[vname];
                                 if (vspec.match) {
                                     // If consume, assume regexp starts with ^.
                                     let res = vspec.match.exec(vspec.consume ? fwd : msrc);
@@ -415,7 +415,7 @@ let makeNumberMatcher = (cfg, _opts) => {
             return undefined;
         let pnt = lex.pnt;
         let fwd = lex.src.substring(pnt.sI);
-        let vm = cfg.value.map;
+        let valdef = cfg.value.def;
         let m = fwd.match(ender);
         if (m) {
             let msrc = m[1];
@@ -427,7 +427,7 @@ let makeNumberMatcher = (cfg, _opts) => {
                 let mlen = msrc.length;
                 if (0 < mlen) {
                     let vs = undefined;
-                    if (cfg.value.lex && undefined !== (vs = vm[msrc])) {
+                    if (cfg.value.lex && undefined !== (vs = valdef[msrc])) {
                         out = lex.token('#VL', vs.val, msrc, pnt);
                     }
                     else {

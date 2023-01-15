@@ -1,7 +1,7 @@
 module.exports = function PaQa(jsonic, popts) {
   jsonic.options({
     value: {
-      map: {
+      def: {
         [popts.s || 'Q']: { val: popts.q },
       },
     },

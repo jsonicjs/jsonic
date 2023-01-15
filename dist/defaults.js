@@ -134,7 +134,7 @@ const defaults = {
     // Keyword values.
     value: {
         lex: true,
-        map: {
+        def: {
             true: { val: true },
             false: { val: false },
             null: { val: null },
