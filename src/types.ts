@@ -50,21 +50,21 @@ export interface JsonicAPI {
   // Token get and set for plugins. Reference by either name or Tin.
   // NOTE: creates token if not yet defined (but only for name).
   token: TokenMap &
-  TinMap &
-  (<A extends string | Tin>(ref: A) => A extends string ? Tin : string)
+    TinMap &
+    (<A extends string | Tin>(ref: A) => A extends string ? Tin : string)
 
   // TokenSet get and set for plugins. Reference by either name or Tin.
   // NOTE: name->Tin[], but Tin->name (of containing set)
   tokenSet: TokenSetMap &
-  TinSetMap &
-  (<A extends string | Tin>(ref: A) => A extends string ? Tin[] : string)
+    TinSetMap &
+    (<A extends string | Tin>(ref: A) => A extends string ? Tin[] : string)
 
   // Fixed token src get and set for plugins. Reference by either src or Tin.
   fixed: TokenMap &
-  TinMap &
-  (<A extends string | Tin>(
-    ref: A
-  ) => undefined | (A extends string ? Tin : string))
+    TinMap &
+    (<A extends string | Tin>(
+      ref: A
+    ) => undefined | (A extends string ? Tin : string))
 
   // Unique identifier string for each Jsonic instance.
   id: string
@@ -102,9 +102,8 @@ export type Options = {
     lex?: boolean
     token?: { [name: string]: RegExp | LexMatcher }
     value?: {
-      [name: string]:
-      {
-        match: RegExp | LexMatcher,
+      [name: string]: {
+        match: RegExp | LexMatcher
         val?: any
       }
     }
@@ -138,16 +137,16 @@ export type Options = {
     lex?: boolean
     def?: {
       [name: string]:
-      | {
-        line?: boolean
-        start?: string
-        end?: string
-        lex?: boolean
-        suffix?: string | string[] | LexMatcher
-      }
-      | null
-      | undefined
-      | false
+        | {
+            line?: boolean
+            start?: string
+            end?: string
+            lex?: boolean
+            suffix?: string | string[] | LexMatcher
+          }
+        | null
+        | undefined
+        | false
     }
   }
   string?: {
@@ -172,18 +171,18 @@ export type Options = {
     lex?: boolean
     def?: {
       [src: string]:
-      | undefined
-      | null
-      | false
-      | {
-        val: any
+        | undefined
+        | null
+        | false
+        | {
+            val: any
 
-        // RegExp values will always have lower priority than pure tokens
-        // as they are matched by the TextMatcher. For higher priority
-        // use the `match` option.
-        match?: RegExp,
-        consume?: boolean
-      }
+            // RegExp values will always have lower priority than pure tokens
+            // as they are matched by the TextMatcher. For higher priority
+            // use the `match` option.
+            match?: RegExp
+            consume?: boolean
+          }
     }
   }
   ender?: string | string[]
@@ -404,7 +403,7 @@ export type Config = {
     value: {
       [name: string]: {
         // NOTE: RegExp must begin with `^`.
-        match: RegExp | LexMatcher,
+        match: RegExp | LexMatcher
         val?: any
       }
     }
@@ -483,7 +482,6 @@ export type Config = {
         consume: boolean
       }
     }
-
   }
 
   // Comment markers
@@ -592,12 +590,12 @@ export interface AltSpec {
   // Condition function, return true to match alternate.
   // NOTE: Token sequence (s) must also match.
   c?:
-  | AltCond
-  | {
-    // Condition convenience definitions (all must pass).
-    d?: number // - Match if rule stack depth <= d.
-    n?: Counters // - Match if rule counters <= respective given values.
-  }
+    | AltCond
+    | {
+        // Condition convenience definitions (all must pass).
+        d?: number // - Match if rule stack depth <= d.
+        n?: Counters // - Match if rule counters <= respective given values.
+      }
 
   n?: Counters // Increment counters by specified amounts.
   a?: AltAction // Perform an action if this alternate matches.
@@ -606,8 +604,8 @@ export interface AltSpec {
   k?: Bag // Key-value custom data (propagated).
 
   g?:
-  | string // Named group tags for the alternate (allows filtering).
-  | string[] // - comma separated or string array
+    | string // Named group tags for the alternate (allows filtering).
+    | string[] // - comma separated or string array
 
   e?: AltError // Generate an error token (alternate is not allowed).
 }

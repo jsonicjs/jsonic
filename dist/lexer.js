@@ -348,7 +348,7 @@ let makeTextMatcher = (cfg, opts) => {
                                     // If consume, assume regexp starts with ^.
                                     let res = vspec.match.exec(vspec.consume ? fwd : msrc);
                                     // Must match entire text.
-                                    if (res && (vspec.consume || (res[0].length === msrc.length))) {
+                                    if (res && (vspec.consume || res[0].length === msrc.length)) {
                                         let remsrc = res[0];
                                         if (null == vspec.val) {
                                             out = lex.token('#VL', remsrc, remsrc, pnt);
@@ -741,7 +741,9 @@ class LexImpl {
                 }
             }
             catch (err) {
-                tkn = tkn || this.token('#BD', undefined, this.src[pnt.sI], pnt, { err }, err.code || utility_1.S.unexpected);
+                tkn =
+                    tkn ||
+                        this.token('#BD', undefined, this.src[pnt.sI], pnt, { err }, err.code || utility_1.S.unexpected);
             }
             tkn =
                 tkn ||

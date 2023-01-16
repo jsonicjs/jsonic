@@ -144,7 +144,10 @@ function configure(jsonic, incfg, opts) {
     cfg.match = {
         lex: !!((_b = opts.match) === null || _b === void 0 ? void 0 : _b.lex),
         value: opts.match
-            ? omap(clean(opts.match.value), ([name, spec]) => [name, spec])
+            ? omap(clean(opts.match.value), ([name, spec]) => [
+                name,
+                spec,
+            ])
             : {},
         token: opts.match
             ? omap(clean(opts.match.token), ([name, matcher]) => [
@@ -211,12 +214,11 @@ function configure(jsonic, incfg, opts) {
     // NOTE: these are not value ending tokens
     cfg.value = {
         lex: !!((_v = opts.value) === null || _v === void 0 ? void 0 : _v.lex),
-        def: entries(((_w = opts.value) === null || _w === void 0 ? void 0 : _w.def) || {}).reduce((a, e) => (null == e[1] ||
-            false === e[1] ||
-            e[1].match ||
-            (a[e[0]] = e[1]), a), {}),
-        defre: entries(((_x = opts.value) === null || _x === void 0 ? void 0 : _x.def) || {}).reduce((a, e) => (e[1] && e[1].match &&
-            (a[e[0]] = e[1], a[e[0]].consume = !!a[e[0]].consume), a), {}),
+        def: entries(((_w = opts.value) === null || _w === void 0 ? void 0 : _w.def) || {}).reduce((a, e) => (null == e[1] || false === e[1] || e[1].match || (a[e[0]] = e[1]), a), {}),
+        defre: entries(((_x = opts.value) === null || _x === void 0 ? void 0 : _x.def) || {}).reduce((a, e) => (e[1] &&
+            e[1].match &&
+            ((a[e[0]] = e[1]), (a[e[0]].consume = !!a[e[0]].consume)),
+            a), {}),
         // TODO: just testing, move to a plugin for extended values
         // 'undefined': { v: undefined },
         // 'NaN': { v: NaN },
@@ -503,7 +505,8 @@ function errdesc(code, details, token, rule, ctx) {
         let cfg = ctx.cfg;
         let meta = ctx.meta;
         let errtxt = errinject(cfg.error[code] ||
-            (((_a = details === null || details === void 0 ? void 0 : details.use) === null || _a === void 0 ? void 0 : _a.err) && (details.use.err.code || details.use.err.message)) ||
+            (((_a = details === null || details === void 0 ? void 0 : details.use) === null || _a === void 0 ? void 0 : _a.err) &&
+                (details.use.err.code || details.use.err.message)) ||
             cfg.error.unknown, code, details, token, rule, ctx);
         if (S.function === typeof cfg.hint) {
             // Only expand the hints on demand. Allows for plugin-defined hints.
@@ -519,10 +522,7 @@ function errdesc(code, details, token, rule, ctx) {
                 token.cI,
             extract(ctx.src(), errtxt, token),
             '',
-            errinject((cfg.hint[code] ||
-                ((_c = (_b = details.use) === null || _b === void 0 ? void 0 : _b.err) === null || _c === void 0 ? void 0 : _c.message) ||
-                cfg.hint.unknown ||
-                '')
+            errinject((cfg.hint[code] || ((_c = (_b = details.use) === null || _b === void 0 ? void 0 : _b.err) === null || _c === void 0 ? void 0 : _c.message) || cfg.hint.unknown || '')
                 .trim()
                 .split('\n')
                 .map((s) => '  ' + s)

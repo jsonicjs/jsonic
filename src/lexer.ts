@@ -195,7 +195,6 @@ let makeMatchMatcher: MakeLexMatcher = (cfg: Config, _opts: Options) => {
   let valueMatchers = values(cfg.match.value)
   let tokenMatchers = values(cfg.match.token)
 
-
   // Don't add a matcher if there's nothing to do.
   if (0 === valueMatchers.length && 0 === tokenMatchers.length) {
     return null
@@ -237,7 +236,6 @@ let makeMatchMatcher: MakeLexMatcher = (cfg: Config, _opts: Options) => {
           return tkn
         }
       }
-
     }
 
     for (let tokenMatcher of tokenMatchers) {
@@ -461,11 +459,9 @@ let makeTextMatcher: MakeLexMatcher = (cfg: Config, opts: Options) => {
       if (null != msrc) {
         let mlen = msrc.length
         if (0 < mlen) {
-
           // Check for values first.
           let vs = undefined
           if (cfg.value.lex) {
-
             // Fixed values (e.g true, false, null).
             if (undefined !== (vs = def[msrc])) {
               out = lex.token('#VL', vs.val, msrc, pnt)
@@ -478,18 +474,16 @@ let makeTextMatcher: MakeLexMatcher = (cfg: Config, opts: Options) => {
               for (let vname in defre) {
                 let vspec = defre[vname]
                 if (vspec.match) {
-
                   // If consume, assume regexp starts with ^.
                   let res = vspec.match.exec(vspec.consume ? fwd : msrc)
 
                   // Must match entire text.
-                  if (res && (vspec.consume || (res[0].length === msrc.length))) {
+                  if (res && (vspec.consume || res[0].length === msrc.length)) {
                     let remsrc = res[0]
 
                     if (null == vspec.val) {
                       out = lex.token('#VL', remsrc, remsrc, pnt)
-                    }
-                    else {
+                    } else {
                       let val = vspec.val(res)
                       out = lex.token('#VL', val, remsrc, pnt)
                     }
@@ -966,16 +960,17 @@ class LexImpl implements Lex {
             break
           }
         }
-      }
-      catch (err: any) {
-        tkn = tkn || this.token(
-          '#BD',
-          undefined,
-          this.src[pnt.sI],
-          pnt,
-          { err },
-          err.code || S.unexpected
-        )
+      } catch (err: any) {
+        tkn =
+          tkn ||
+          this.token(
+            '#BD',
+            undefined,
+            this.src[pnt.sI],
+            pnt,
+            { err },
+            err.code || S.unexpected
+          )
       }
 
       tkn =

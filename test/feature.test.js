@@ -225,7 +225,6 @@ describe('feature', function () {
     expect(j('1_0')).toEqual(10)
   })
 
-
   it('value-standard', () => {
     expect(j('')).toEqual(undefined)
 
@@ -273,91 +272,87 @@ describe('feature', function () {
     })
   })
 
-
   it('value-custom', () => {
     let jv0 = j.make({
       number: { lex: false }, // needed for commadigits
       value: {
-	def: {
-	  foo: { val: 99 },
-	  bar: { val: {x:1} },
-	  zed: {
-	    match: /Z(\d)/,
-	    val: (res)=>+res[1]
-	  },
-	  qaz: {
-	    match: /HEX<(.+)>/,
-	    val: (res)=>{
-	      let val = parseInt(res[1],16)
-	      if(isNaN(val)) {
-		let e = new Error('Bad hex: '+res[0])
-		e.code = 'badhex'
-		throw e
-	      }
-	      return val
-	    }
-	  },
+        def: {
+          foo: { val: 99 },
+          bar: { val: { x: 1 } },
+          zed: {
+            match: /Z(\d)/,
+            val: (res) => +res[1],
+          },
+          qaz: {
+            match: /HEX<(.+)>/,
+            val: (res) => {
+              let val = parseInt(res[1], 16)
+              if (isNaN(val)) {
+                let e = new Error('Bad hex: ' + res[0])
+                e.code = 'badhex'
+                throw e
+              }
+              return val
+            },
+          },
 
-	  // Stops at tokens
-	  cap: {
-	    match: /[A-Z]+/,
-	    val: (res)=>res[0].toLowerCase()
-	  },
+          // Stops at tokens
+          cap: {
+            match: /[A-Z]+/,
+            val: (res) => res[0].toLowerCase(),
+          },
 
-	  // Does not stop at tokens
-	  commadigits: {
-	    match: /^\d+(,\d+)+/,
-	    val: (res)=>20*(+(res[0].replace(/,/g,''))),
-	    consume: true,
-	  }
-	}
-      }
+          // Does not stop at tokens
+          commadigits: {
+            match: /^\d+(,\d+)+/,
+            val: (res) => 20 * +res[0].replace(/,/g, ''),
+            consume: true,
+          },
+        },
+      },
     })
 
     expect(jv0('')).toEqual(undefined)
     expect(jv0('foo')).toEqual(99)
-    expect(jv0('bar')).toEqual({x:1})
-    expect(jv0('a:foo')).toEqual({a:99})
-    expect(jv0('a:bar')).toEqual({a:{x:1}})
+    expect(jv0('bar')).toEqual({ x: 1 })
+    expect(jv0('a:foo')).toEqual({ a: 99 })
+    expect(jv0('a:bar')).toEqual({ a: { x: 1 } })
 
-    expect(jv0('a:Z1')).toEqual({a:1})
-    expect(jv0('a:Zx')).toEqual({a:'Zx'})
+    expect(jv0('a:Z1')).toEqual({ a: 1 })
+    expect(jv0('a:Zx')).toEqual({ a: 'Zx' })
 
-    expect(jv0('a:HEX<>')).toEqual({a:'HEX<>'})
-    expect(jv0('a:HEX<a>')).toEqual({a:10})
-    expect(()=>jv0('a:HEX<x>')).toThrow(/badhex/)
+    expect(jv0('a:HEX<>')).toEqual({ a: 'HEX<>' })
+    expect(jv0('a:HEX<a>')).toEqual({ a: 10 })
+    expect(() => jv0('a:HEX<x>')).toThrow(/badhex/)
 
-
-    expect(jv0('[A,B]')).toEqual(['a','b'])
+    expect(jv0('[A,B]')).toEqual(['a', 'b'])
     expect(jv0('[1 2,3] ')).toEqual(['1', 460])
   })
 
-
-
   it('match-custom', () => {
     let jv0 = j
-	.make({
-	  match: {
-	    value: {
-	      foobar: {
-		match: /foobar(\d)/,
-		val: (res)=>+res[1],
-	      },
+      .make({
+        match: {
+          value: {
+            foobar: {
+              match: /foobar(\d)/,
+              val: (res) => +res[1],
+            },
 
-	      // no need to turn of number lexing
-	      commadigits: {
-		match: /^\d+(,\d+)+/,
-		val: (res)=>20*(+(res[0].replace(/,/g,''))),
-	      }
-	    },
-	    token: {
-	      FOO: /foo/
-	    },
-	  }
-	})
-        .rule('val', (rs,p)=>{
-	  rs.open({s:[p.cfg.t.FOO],a:(r)=>r.node='Foo'})
-	})
+            // no need to turn of number lexing
+            commadigits: {
+              match: /^\d+(,\d+)+/,
+              val: (res) => 20 * +res[0].replace(/,/g, ''),
+            },
+          },
+          token: {
+            FOO: /foo/,
+          },
+        },
+      })
+      .rule('val', (rs, p) => {
+        rs.open({ s: [p.cfg.t.FOO], a: (r) => (r.node = 'Foo') })
+      })
 
     expect(jv0('foo')).toEqual('Foo')
     expect(jv0('foobar1')).toEqual(1)
@@ -366,7 +361,6 @@ describe('feature', function () {
     expect(jv0('[1 2,3 4]')).toEqual([1, 460, 4])
   })
 
-  
   it('null-or-undefined', () => {
     // All ignored, so undefined
     expect(j('')).toEqual(undefined)

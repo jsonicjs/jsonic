@@ -22,9 +22,10 @@ const Debug = (jsonic, options) => {
                     .join('\n\n'),
                 '\n',
                 '========= LEXER =========',
-                '  ' + ((match &&
-                    match.map((m) => m.order + ': ' + m.matcher + ' (' + m.make.name + ')')) || [])
-                    .join('\n  '),
+                '  ' +
+                    ((match &&
+                        match.map((m) => m.order + ': ' + m.matcher + ' (' + m.make.name + ')')) ||
+                        []).join('\n  '),
                 '\n',
                 '\n',
                 '========= PLUGIN =========',
@@ -67,8 +68,9 @@ function descAlt(jsonic, rs, kind) {
                     ' ' +
                     ('[' +
                         (a.s || [])
-                            .map((tin) => null == tin ? '***INVALID***' :
-                            'number' === typeof tin
+                            .map((tin) => null == tin
+                            ? '***INVALID***'
+                            : 'number' === typeof tin
                                 ? jsonic.token[tin]
                                 : '[' + tin.map((t) => jsonic.token[t]) + ']')
                             .join(' ') +

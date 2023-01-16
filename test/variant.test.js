@@ -89,7 +89,6 @@ describe('variant', function () {
   })
   */
 
-  
   it('line-lex-single', () => {
     let j = Jsonic
     let js = Jsonic.make({

@@ -175,7 +175,6 @@ describe('doc', function () {
     expect(concat('{x:1, y:%}', { xlog: -1 })).toEqual({ x: 1, y: 100 })
   })
 
-  
   /* METHOD REMOVED FROM API
   it('method-lex', () => {
     let tens = Jsonic.make()
@@ -196,7 +195,6 @@ describe('doc', function () {
   })
   */
 
-  
   it('method-token', () => {
     let jsonic = Jsonic.make()
     jsonic.token.ST // === 11, String token identification number

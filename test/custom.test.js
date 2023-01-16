@@ -169,7 +169,6 @@ describe('custom', () => {
     expect(j('a:1')).toEqual(undefined)
   })
 
-  
   it('parser-empty-fixed', () => {
     expect(Jsonic('a:1')).toEqual({ a: 1 })
 
@@ -185,15 +184,15 @@ describe('custom', () => {
       },
       lex: {
         match: {
-	  fixed: { order: 0, make: makeFixedMatcher },
-	  match: false,
-	  space: false,
-	  line: false,
-	  string: false,
-	  comment: false,
-	  number: false,
-	  text: false,
-	},
+          fixed: { order: 0, make: makeFixedMatcher },
+          match: false,
+          space: false,
+          line: false,
+          string: false,
+          comment: false,
+          number: false,
+          text: false,
+        },
       },
     }).rule('r0', (rs) => {
       rs.open({ s: [rs.tin('#T0')] }).bc((r) => (r.node = '~T0~'))
@@ -202,7 +201,6 @@ describe('custom', () => {
     expect(j('t0', { xlog: -1 })).toEqual('~T0~')
   })
 
-  
   it('parser-handler-actives', () => {
     let b = ''
     let j = make_norules({ rule: { start: 'top' } })

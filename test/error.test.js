@@ -45,18 +45,18 @@ describe('error', function () {
         hint: {
           foo: 'Foo hint.',
         },
-	lex: {
-	  match: {
-	    foo: {
-	      order: 9e5,
-	      make: () => (lex) => {
-		if (lex.src.substring(lex.pnt.sI).startsWith('FOO')) {
-		  return lex.bad('foo', lex.pnt.sI, lex.pnt.sI + 4)
-		}
-	      }
-	    }
-	  }
-	},
+        lex: {
+          match: {
+            foo: {
+              order: 9e5,
+              make: () => (lex) => {
+                if (lex.src.substring(lex.pnt.sI).startsWith('FOO')) {
+                  return lex.bad('foo', lex.pnt.sI, lex.pnt.sI + 4)
+                }
+              },
+            },
+          },
+        },
       })
       // jsonic.lex(() => (lex) => {
       //   if (lex.src.substring(lex.pnt.sI).startsWith('FOO')) {

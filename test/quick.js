@@ -3,7 +3,6 @@ let { Jsonic, util, Debug } = require('..')
 let j = Jsonic.make({
   // rule: { finish: false },
   // list: { property: false }
-
   // match: {
   //   value: {
   //     commadigits: {

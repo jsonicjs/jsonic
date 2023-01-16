@@ -561,37 +561,35 @@ describe('lex', function () {
     expect(no_line('a,\n1')).toEqual(['a', '\n1'])
   })
 
-  
   it('custom-matcher', () => {
     let tens = Jsonic.make()
 
     tens.options({
       lex: {
-	match: {
-	  x10: {
-	    order: 9e5,
-	    make: () => (lex) => {
-	      let pnt = lex.pnt
-	      let marks = lex.src.substring(pnt.sI).match(/^%+/)
-	      if (marks) {
-		let len = marks[0].length
-		let tkn = lex.token('#VL', 10 * len, marks, lex.pnt)
-		pnt.sI += len
-		pnt.cI += len
-		return tkn
-	      }
-	    }
-	  }
-	}
-      }
+        match: {
+          x10: {
+            order: 9e5,
+            make: () => (lex) => {
+              let pnt = lex.pnt
+              let marks = lex.src.substring(pnt.sI).match(/^%+/)
+              if (marks) {
+                let len = marks[0].length
+                let tkn = lex.token('#VL', 10 * len, marks, lex.pnt)
+                pnt.sI += len
+                pnt.cI += len
+                return tkn
+              }
+            },
+          },
+        },
+      },
     })
 
     // console.dir(tens.internal().config.lex)
-    
+
     expect(tens('a:1,b:%%,c:[%%%%]')).toEqual({ a: 1, b: 20, c: [40] })
   })
 
-  
   function st(tkn) {
     let out = []
 
