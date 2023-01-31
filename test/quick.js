@@ -12,12 +12,14 @@ let j = Jsonic.make({
   //   }
   // },
   // text: { lex: false }
-}).use(Debug)
+}).use(Debug, {trace:true})
 console.log(j.debug.describe())
+
+console.log(j('{,,,}'))
 
 // console.log(j('[1 2,3 a, b, 4, 5]', { log: -1 }))
 
-console.log(j('# foo', { log: -1 }))
+// console.log(j('# foo', { log: -1 }))
 
 // console.log(j('"a": Z1, "b":Z2, "c": q', { log: -1 }))
 
