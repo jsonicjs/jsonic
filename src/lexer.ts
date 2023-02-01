@@ -27,7 +27,7 @@ import {
   charset,
   clean,
   deep,
-  defprop,
+  // defprop,
   escre,
   keys,
   omap,
@@ -36,7 +36,7 @@ import {
   tokenize,
   entries,
   values,
-  log_lex,
+  // log_lex,
 } from './utility'
 
 class PointImpl implements Point {
@@ -986,7 +986,10 @@ class LexImpl implements Lex {
     }
 
     this.ctx.log &&
-      log_lex(this.ctx, rule, this, pnt, sI, match, tkn, alt, altI, tI)
+      this.ctx.log(S.lex, this.ctx, rule, this, pnt, sI, match, tkn, alt, altI, tI)
+
+    // this.ctx.log &&
+    //   log_lex(this.ctx, rule, this, pnt, sI, match, tkn, alt, altI, tI)
 
     if (this.ctx.sub.lex) {
       this.ctx.sub.lex.map((sub) => sub(tkn as Token, rule, this.ctx))

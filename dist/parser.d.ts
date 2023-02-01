@@ -1,4 +1,4 @@
-import type { Config, RuleSpec, RuleSpecMap, RuleDefiner, Parser, Options } from './types';
+import type { Config, Options, Parser, RuleDefiner, RuleSpec, RuleSpecMap } from './types';
 import { makeRule, makeRuleSpec } from './rules';
 declare class ParserImpl implements Parser {
     options: Options;

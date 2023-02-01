@@ -750,7 +750,9 @@ class LexImpl {
                     this.token('#BD', undefined, this.src[pnt.sI], pnt, undefined, utility_1.S.unexpected);
         }
         this.ctx.log &&
-            (0, utility_1.log_lex)(this.ctx, rule, this, pnt, sI, match, tkn, alt, altI, tI);
+            this.ctx.log(utility_1.S.lex, this.ctx, rule, this, pnt, sI, match, tkn, alt, altI, tI);
+        // this.ctx.log &&
+        //   log_lex(this.ctx, rule, this, pnt, sI, match, tkn, alt, altI, tI)
         if (this.ctx.sub.lex) {
             this.ctx.sub.lex.map((sub) => sub(tkn, rule, this.ctx));
         }

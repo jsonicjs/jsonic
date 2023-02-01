@@ -142,6 +142,11 @@ export type Options = {
             };
         };
     };
+    parse?: {
+        prepare?: {
+            [name: string]: ParsePrepare;
+        };
+    };
     rule?: {
         start?: string;
         finish?: boolean;
@@ -243,7 +248,7 @@ export type Context = {
     rsm: {
         [name: string]: RuleSpec;
     };
-    log?: (...rest: any) => undefined;
+    log?: (...rest: any) => void;
     F: (s: any) => string;
     use: Bag;
     NOTOKEN: Token;
@@ -265,6 +270,9 @@ export type Config = {
         match: LexMatcher[];
         empty: boolean;
         emptyResult: any;
+    };
+    parse: {
+        prepare: ParsePrepare[];
     };
     rule: {
         start: string;
@@ -479,6 +487,7 @@ export type RuleState = 'o' | 'c';
 export type RuleStep = 'b' | 'a';
 export type LexMatcher = (lex: Lex, rule: Rule, tI?: number) => Token | undefined;
 export type MakeLexMatcher = (cfg: Config, opts: Options) => LexMatcher | null | undefined | false;
+export type ParsePrepare = (jsonic: Jsonic, ctx: Context, meta?: any) => void;
 export type RuleSpecMap = {
     [name: string]: RuleSpec;
 };

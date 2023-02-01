@@ -168,7 +168,8 @@ class RuleSpecImpl {
     }
     process(rule, ctx, lex, state) {
         // Log rule here to ensure next tokens shown are correct.
-        ctx.log && (0, utility_1.log_rule)(ctx, rule, lex);
+        // ctx.log && log_rule(ctx, rule, lex)
+        ctx.log && ctx.log(utility_1.S.rule, ctx, rule, lex);
         let is_open = state === 'o';
         let next = is_open ? rule : ctx.NORULE;
         let why = is_open ? 'O' : 'C';
@@ -277,7 +278,8 @@ class RuleSpecImpl {
             }
         }
         next.why = why;
-        ctx.log && (0, utility_1.log_node)(ctx, rule, lex, next);
+        // ctx.log && log_node(ctx, rule, lex, next)
+        ctx.log && ctx.log(utility_1.S.node, ctx, rule, lex, next);
         // Must be last as state change is for next process call.
         if (types_1.OPEN === rule.state) {
             rule.state = types_1.CLOSE;
@@ -422,8 +424,8 @@ function parse_alts(is_open, alts, lex, rule, ctx) {
                 : out.b;
     }
     let match = altI < alts.length;
-    // TODO: move to debug plugin
-    ctx.log && (0, utility_1.log_parse)(ctx, rule, lex, match, cond, altI, alt, out);
+    // ctx.log && log_parse(ctx, rule, lex, match, cond, altI, alt, out)
+    ctx.log && ctx.log(utility_1.S.parse, ctx, rule, lex, match, cond, altI, alt, out);
     return out;
 }
 // Normalize AltSpec (mutates).

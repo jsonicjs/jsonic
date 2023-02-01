@@ -1,7 +1,7 @@
 "use strict";
 /* Copyright (c) 2013-2022 Richard Rodger, MIT License */
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.EMPTY = exports.AFTER = exports.BEFORE = exports.CLOSE = exports.OPEN = exports.makeTextMatcher = exports.makeNumberMatcher = exports.makeCommentMatcher = exports.makeStringMatcher = exports.makeLineMatcher = exports.makeSpaceMatcher = exports.makeFixedMatcher = exports.makeParser = exports.makeLex = exports.makeRuleSpec = exports.makeRule = exports.makePoint = exports.makeToken = exports.make = exports.util = exports.Debug = exports.JsonicError = exports.Jsonic = void 0;
+exports.root = exports.foo = exports.S = exports.EMPTY = exports.AFTER = exports.BEFORE = exports.CLOSE = exports.OPEN = exports.makeTextMatcher = exports.makeNumberMatcher = exports.makeCommentMatcher = exports.makeStringMatcher = exports.makeLineMatcher = exports.makeSpaceMatcher = exports.makeFixedMatcher = exports.makeParser = exports.makeLex = exports.makeRuleSpec = exports.makeRule = exports.makePoint = exports.makeToken = exports.make = exports.util = exports.JsonicError = exports.Jsonic = void 0;
 const types_1 = require("./types");
 Object.defineProperty(exports, "OPEN", { enumerable: true, get: function () { return types_1.OPEN; } });
 Object.defineProperty(exports, "CLOSE", { enumerable: true, get: function () { return types_1.CLOSE; } });
@@ -10,6 +10,7 @@ Object.defineProperty(exports, "AFTER", { enumerable: true, get: function () { r
 Object.defineProperty(exports, "EMPTY", { enumerable: true, get: function () { return types_1.EMPTY; } });
 const utility_1 = require("./utility");
 Object.defineProperty(exports, "JsonicError", { enumerable: true, get: function () { return utility_1.JsonicError; } });
+Object.defineProperty(exports, "S", { enumerable: true, get: function () { return utility_1.S; } });
 const defaults_1 = require("./defaults");
 const lexer_1 = require("./lexer");
 Object.defineProperty(exports, "makePoint", { enumerable: true, get: function () { return lexer_1.makePoint; } });
@@ -27,8 +28,6 @@ Object.defineProperty(exports, "makeRule", { enumerable: true, get: function () 
 Object.defineProperty(exports, "makeRuleSpec", { enumerable: true, get: function () { return parser_1.makeRuleSpec; } });
 Object.defineProperty(exports, "makeParser", { enumerable: true, get: function () { return parser_1.makeParser; } });
 const grammar_1 = require("./grammar");
-const debug_1 = require("./debug");
-Object.defineProperty(exports, "Debug", { enumerable: true, get: function () { return debug_1.Debug; } });
 // TODO: remove - too much for an API!
 const util = {
     tokenize: utility_1.tokenize,
@@ -213,15 +212,14 @@ function make(param_options, parent) {
 }
 exports.make = make;
 let root = undefined;
+exports.root = root;
 // The global root Jsonic instance parsing rules cannot be modified.
 // use Jsonic.make() to create a modifiable instance.
-let Jsonic = (root = make('jsonic'));
+let Jsonic = (exports.root = root = make('jsonic'));
 exports.Jsonic = Jsonic;
 // Provide deconstruction export names
 root.Jsonic = root;
 root.JsonicError = utility_1.JsonicError;
-// root.Parser = Parser
-root.Debug = debug_1.Debug;
 root.makeLex = lexer_1.makeLex;
 root.makeParser = parser_1.makeParser;
 root.makeToken = lexer_1.makeToken;
@@ -242,7 +240,8 @@ root.AFTER = types_1.AFTER;
 root.EMPTY = types_1.EMPTY;
 root.util = util;
 root.make = make;
+root.S = utility_1.S;
+const foo = 'FOO';
+exports.foo = foo;
 exports.default = Jsonic;
-// Build process uncomments this to enable more natural Node.js requires.
-//-NODE-MODULE-FIX;('undefined' != typeof(module) && (module.exports = exports.Jsonic));
 //# sourceMappingURL=jsonic.js.map

@@ -1,4 +1,4 @@
-import type { AltMatch, Bag, Chars, Config, Context, Lex, LexMatcher, NormAltSpec, Options, Rule, RuleSpec, Tin, Token, Point, ListMods } from './types';
+import type { Bag, Chars, Config, Context, Lex, Options, Rule, RuleSpec, Tin, Token, ListMods } from './types';
 declare const keys: (x: any) => string[];
 declare const values: <T>(x: {
     [key: string]: T;
@@ -74,7 +74,7 @@ declare function trimstk(err: Error): void;
 declare function extract(src: string, errtxt: string, token: Token): string;
 declare function errdesc(code: string, details: Bag, token: Token, rule: Rule, ctx: Context): Bag;
 declare function badlex(lex: Lex, BD: Tin, ctx: Context): Lex;
-declare function makelog(ctx: Context, meta: any): ((...rest: any) => undefined) | undefined;
+declare function makelog(ctx: Context, meta: any): ((...rest: any) => void) | undefined;
 declare function srcfmt(config: Config): (s: any) => string;
 declare function str(o: any, len?: number): string;
 declare function snip(s: any, len?: number): string;
@@ -87,16 +87,4 @@ declare function modlist(list: any[], mods?: ListMods): any[];
 declare function parserwrap(parser: any): {
     start: (src: string, jsonic: any, meta?: any, parent_ctx?: any) => any;
 };
-declare function descAltSeq(alt: NormAltSpec, cfg: Config): string;
-declare const LOG: {
-    RuleState: {
-        o: string;
-        c: string;
-    };
-};
-declare function log_rule(ctx: Context, rule: Rule, lex: Lex): void;
-declare function log_node(ctx: Context, rule: Rule, lex: Lex, next: Rule): void;
-declare function log_parse(ctx: Context, rule: Rule, lex: Lex, match: boolean, cond: boolean, altI: number, alt: NormAltSpec | null, out: AltMatch): void;
-declare function log_stack(ctx: Context, rule: Rule, lex: Lex): void;
-declare function log_lex(ctx: Context, rule: Rule, lex: Lex, pnt: Point, sI: number, match: LexMatcher | undefined, tkn: Token, alt?: NormAltSpec, altI?: number, tI?: number): void;
-export { JsonicError, S, LOG, assign, badlex, charset, clean, clone, configure, deep, defprop, entries, errdesc, errinject, escre, extract, filterRules, isarr, makelog, mesc, regexp, snip, srcfmt, tokenize, trimstk, parserwrap, prop, str, omap, keys, values, log_rule, log_node, log_parse, log_stack, log_lex, findTokenSet, descAltSeq, modlist, };
+export { JsonicError, S, assign, badlex, charset, clean, clone, configure, deep, defprop, entries, errdesc, errinject, escre, extract, filterRules, isarr, makelog, mesc, regexp, snip, srcfmt, tokenize, trimstk, parserwrap, prop, str, omap, keys, values, findTokenSet, modlist, };

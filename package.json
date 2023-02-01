@@ -26,7 +26,8 @@
     "test-watch": "jest --coverage --watchAll",
     "test-view": "open coverage/lcov-report/index.html",
     "watch": "tsc -w -d",
-    "build": "node src/hint.js && tsc -d && node src/mfix.js && cp dist/jsonic.js dist/jsonic.min.js && browserify -o dist/jsonic.min.js -e dist/jsonic.js -s Jsonic -im -i assert -p tinyify",
+    "build-old": "node src/hint.js && tsc -d && node src/mfix.js && cp dist/jsonic.js dist/jsonic.min.js && browserify -o dist/jsonic.min.js -e dist/jsonic.js -s Jsonic -im -i assert -p tinyify",
+    "build": "node src/hint.js && tsc -d && cp dist/jsonic.js dist/jsonic.min.js && browserify -o dist/jsonic.min.js -e dist/jsonic.js -s Jsonic -im -i assert -p tinyify",
     "diagrams": "docs-src/.vuepress/diagrams/generate.sh",
     "test-web": "echo fix-test-web",
     "test-web-x": "npm run build && browserify -o test-web/test-web.js -e test/web-all.js -s All -im -i assert -i @hapi/lab && open test-web/index.html",
@@ -48,6 +49,10 @@
   ],
   "bin": {
     "jsonic": "bin/jsonic"
+  },
+  "exports": {
+    ".": "./dist/jsonic.js",
+    "./debug": "./dist/debug.js"
   },
   "devDependencies": {
     "@jsonic/directive": "^0.9.0",

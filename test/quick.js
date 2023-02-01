@@ -1,4 +1,9 @@
-let { Jsonic, util, Debug } = require('..')
+// let { Jsonic, util } = require('..')
+
+let Jsonic = require('..')
+let { util } = Jsonic
+
+let { Debug } = require('../dist/debug')
 
 let j = Jsonic.make({
   // rule: { finish: false },
@@ -15,7 +20,9 @@ let j = Jsonic.make({
 }).use(Debug, {trace:true})
 console.log(j.debug.describe())
 
-console.log(j('{,,,}'))
+console.log(j('{a:1,b:2}'))
+
+// console.log(j('{,,,}'))
 
 // console.log(j('[1 2,3 a, b, 4, 5]', { log: -1 }))
 

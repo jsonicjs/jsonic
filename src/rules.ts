@@ -34,9 +34,9 @@ import {
   filterRules,
   isarr,
   tokenize,
-  log_rule,
-  log_node,
-  log_parse,
+  // log_rule,
+  // log_node,
+  // log_parse,
   modlist,
 } from './utility'
 
@@ -276,7 +276,7 @@ class RuleSpecImpl implements RuleSpec {
       let tins = (columns[stateI][tokenI] = columns[stateI][tokenI] || [])
 
       return [
-        function (tins: any, alt: any) {
+        function(tins: any, alt: any) {
           if (alt.s && alt.s[tokenI]) {
             let newtins = [...new Set(tins.concat(alt.s[tokenI]))]
             tins.length = 0
@@ -293,7 +293,8 @@ class RuleSpecImpl implements RuleSpec {
 
   process(rule: Rule, ctx: Context, lex: Lex, state: RuleState): Rule {
     // Log rule here to ensure next tokens shown are correct.
-    ctx.log && log_rule(ctx, rule, lex)
+    // ctx.log && log_rule(ctx, rule, lex)
+    ctx.log && ctx.log(S.rule, ctx, rule, lex)
 
     let is_open = state === 'o'
     let next = is_open ? rule : ctx.NORULE
@@ -339,10 +340,10 @@ class RuleSpecImpl implements RuleSpec {
           0 === alt.n[cn]
             ? 0
             : // First seen, set to 0.
-              (null == rule.n[cn]
-                ? 0
-                : // Increment counter.
-                  rule.n[cn]) + alt.n[cn]
+            (null == rule.n[cn]
+              ? 0
+              : // Increment counter.
+              rule.n[cn]) + alt.n[cn]
       }
     }
 
@@ -416,7 +417,8 @@ class RuleSpecImpl implements RuleSpec {
 
     next.why = why
 
-    ctx.log && log_node(ctx, rule, lex, next)
+    // ctx.log && log_node(ctx, rule, lex, next)
+    ctx.log && ctx.log(S.node, ctx, rule, lex, next)
 
     // Must be last as state change is for next process call.
     if (OPEN === rule.state) {
@@ -601,8 +603,8 @@ function parse_alts(
 
   let match = altI < alts.length
 
-  // TODO: move to debug plugin
-  ctx.log && log_parse(ctx, rule, lex, match, cond, altI, alt, out)
+  // ctx.log && log_parse(ctx, rule, lex, match, cond, altI, alt, out)
+  ctx.log && ctx.log(S.parse, ctx, rule, lex, match, cond, altI, alt, out)
 
   return out
 }
@@ -617,7 +619,7 @@ function normalt(a: AltSpec): NormAltSpec {
     let counters = (a.c as any).n
     let depth = (a.c as any).d
     if (null != counters || null != depth) {
-      a.c = function (rule: Rule) {
+      a.c = function(rule: Rule) {
         let pass = true
 
         //if (null! + counters) {
@@ -639,10 +641,10 @@ function normalt(a: AltSpec): NormAltSpec {
       }
 
       if (null != counters) {
-        ;(a.c as any).n = counters
+        ; (a.c as any).n = counters
       }
       if (null != depth) {
-        ;(a.c as any).d = depth
+        ; (a.c as any).d = depth
       }
     }
   }
@@ -676,17 +678,17 @@ function normalt(a: AltSpec): NormAltSpec {
     aa.S0 =
       0 < tins0.length
         ? new Array(Math.max(...tins0.map((tin) => (1 + tin / 31) | 0)))
-            .fill(null)
-            .map((_, i) => i)
-            .map((part) => bitify(partify(tins0, part), part))
+          .fill(null)
+          .map((_, i) => i)
+          .map((part) => bitify(partify(tins0, part), part))
         : null
 
     aa.S1 =
       0 < tins1.length
         ? new Array(Math.max(...tins1.map((tin) => (1 + tin / 31) | 0)))
-            .fill(null)
-            .map((_, i) => i)
-            .map((part) => bitify(partify(tins1, part), part))
+          .fill(null)
+          .map((_, i) => i)
+          .map((part) => bitify(partify(tins1, part), part))
         : null
   }
 

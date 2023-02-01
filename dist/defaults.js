@@ -187,6 +187,11 @@ const defaults = {
         empty: true,
         emptyResult: undefined,
     },
+    // Parser
+    parse: {
+        // Plugin custom functions to prepare parser context.
+        prepare: {}
+    },
     // Parser rule options.
     rule: {
         // Name of the starting rule.

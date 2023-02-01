@@ -22,7 +22,6 @@
 // TODO: line continuation ("\" at end) should be a feature of standard JSONIC strings
 // TODO: support BigInt numbers: 123n
 // TODO: err if plugin arg is not a plugin
-// TODO: debug log should be in plugin
 // TODO: error msgs for bad names - eg mispelled rule name
 // TODO: http://seriot.ch/projects/parsing_json.html
 // TODO: error if rule name not found when parsing
@@ -86,6 +85,7 @@ import type {
   LexSub,
   RuleSub,
   Parser,
+  NormAltSpec,
 } from './types'
 
 import { OPEN, CLOSE, BEFORE, AFTER, EMPTY } from './types'
@@ -141,8 +141,6 @@ import {
 import { makeRule, makeRuleSpec, makeParser } from './parser'
 
 import { grammar, makeJSON } from './grammar'
-
-import { Debug } from './debug'
 
 // TODO: remove - too much for an API!
 const util = {
@@ -398,8 +396,6 @@ let Jsonic: Jsonic = (root = make('jsonic'))
 // Provide deconstruction export names
 root.Jsonic = root
 root.JsonicError = JsonicError
-// root.Parser = Parser
-root.Debug = Debug
 root.makeLex = makeLex
 root.makeParser = makeParser
 root.makeToken = makeToken
@@ -421,6 +417,7 @@ root.EMPTY = EMPTY
 
 root.util = util
 root.make = make
+root.S = S
 
 // Export most of the types for use by plugins.
 export type {
@@ -448,14 +445,16 @@ export type {
   AltModifier,
   AltError,
   StateAction,
+  NormAltSpec,
 }
+
+const foo = 'FOO'
 
 export {
   // Jsonic is both a type and a value.
   Jsonic as Jsonic,
   JsonicError,
   Parser,
-  Debug,
   util,
   make,
   makeToken,
@@ -476,9 +475,9 @@ export {
   BEFORE,
   AFTER,
   EMPTY,
+  S,
+  foo,
+  root,
 }
 
 export default Jsonic
-
-// Build process uncomments this to enable more natural Node.js requires.
-//-NODE-MODULE-FIX;('undefined' != typeof(module) && (module.exports = exports.Jsonic));

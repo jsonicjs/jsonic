@@ -71,7 +71,11 @@ class ParserImpl {
         let norule = (0, rules_1.makeNoRule)(ctx);
         ctx.NORULE = norule;
         ctx.rule = norule;
-        (0, utility_1.makelog)(ctx, meta);
+        // makelog(ctx, meta)
+        if (meta && utility_1.S.function === typeof meta.log) {
+            ctx.log = meta.log;
+        }
+        this.cfg.parse.prepare.forEach((prep) => prep(jsonic, ctx, meta));
         // Special case - avoids extra per-token tests in main parser rules.
         if ('' === src) {
             if (this.cfg.lex.empty) {
@@ -100,12 +104,13 @@ class ParserImpl {
         while (norule !== rule && kI < maxr) {
             ctx.kI = kI;
             ctx.rule = rule;
-            ctx.log && ctx.log(ctx.kI + ':');
+            ctx.log && ctx.log('', ctx.kI + ':');
             if (ctx.sub.rule) {
                 ctx.sub.rule.map((sub) => sub(rule, ctx));
             }
             rule = rule.process(ctx, lex);
-            ctx.log && (0, utility_1.log_stack)(ctx, rule, lex);
+            // ctx.log && log_stack(ctx, rule, lex)
+            ctx.log && ctx.log(utility_1.S.stack, ctx, rule, lex);
             kI++;
         }
         // TODO: option to allow trailing content

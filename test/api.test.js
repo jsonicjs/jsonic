@@ -2,6 +2,7 @@
 'use strict'
 
 const { Jsonic } = require('..')
+const { Debug } = require('../dist/debug')
 
 describe('api', function () {
   it('standard', () => {
@@ -16,7 +17,6 @@ describe('api', function () {
       'toString',
       'Jsonic',
       'JsonicError',
-      'Debug',
       'makeLex',
       'makeParser',
       'makeToken',
@@ -37,6 +37,9 @@ describe('api', function () {
       'EMPTY',
       'util',
       'make',
+      'S',
     ])
+
+    expect(Debug).toBeDefined()
   })
 })
