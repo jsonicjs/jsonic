@@ -200,7 +200,11 @@ const defaults = {
         finish: true,
         // Multiplier to increase the maximum number of rule occurences.
         maxmul: 3,
+        // Include only those alts with matching group tags (comma sep).
+        // NOTE: applies universally, thus also for subsequent rules.
         include: '',
+        // Exclude alts with matching group tags (comma sep).
+        // NOTE: applies universally, thus also for subsequent rules.
         exclude: '',
     },
     // Result value options.

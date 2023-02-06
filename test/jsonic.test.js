@@ -784,11 +784,11 @@ describe('jsonic', function () {
       // NOTE: if parse algo changes then these may change.
       // But if *not intended* changes here indicate unexpected effects.
       expect(out).toMatchObject({
-        rmc: 62732,
-        emc: 2294,
+        rmc: 62734,
+        emc: 2292,
         ecc: {
           unprintable: 91,
-          unexpected: 1510,
+          unexpected: 1508,
           unterminated_string: 692,
           unterminated_comment: 1,
         },

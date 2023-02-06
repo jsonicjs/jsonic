@@ -400,7 +400,8 @@ let makeNumberMatcher = (cfg, _opts) => {
         ]
             .filter((s) => null != s)
             .join('|'),
-        ')|[.0-9]+([0-9_]*[0-9])?)',
+        // ')|[.0-9]+([0-9_]*[0-9])?)',
+        ')|\\.?[0-9]+([0-9_]*[0-9])?)',
         '(\\.[0-9]?([0-9_]*[0-9])?)?',
         '([eE][-+]?[0-9]+([0-9_]*[0-9])?)?',
     ]
@@ -466,7 +467,7 @@ let makeStringMatcher = (cfg, opts) => {
         lex: !!(os === null || os === void 0 ? void 0 : os.lex),
         quoteMap: (0, utility_1.charset)(os.chars),
         multiChars: (0, utility_1.charset)(os.multiChars),
-        escMap: (0, utility_1.clean)({ ...os.escape }),
+        escMap: { ...os.escape },
         escChar: os.escapeChar,
         escCharCode: null == os.escapeChar ? undefined : os.escapeChar.charCodeAt(0),
         allowUnknown: !!os.allowUnknown,
@@ -476,6 +477,7 @@ let makeStringMatcher = (cfg, opts) => {
         ]),
         hasReplace: false,
     });
+    cfg.string.escMap = (0, utility_1.clean)(cfg.string.escMap);
     cfg.string.hasReplace = 0 < (0, utility_1.keys)(cfg.string.replaceCodeMap).length;
     return function stringMatcher(lex) {
         let mcfg = cfg.string;

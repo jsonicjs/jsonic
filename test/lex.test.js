@@ -448,67 +448,7 @@ describe('lex', function () {
     ])
   })
 
-  /*
-  it('matchers', () => {
-    // console.log(Jsonic('a:1',{log:-1}))
-
-    let m = Jsonic.make()
-    let TX = m.token.TX
-    let LTP = m.token.LTP
-    let LTX = m.token.LTX
-    let LCS = m.token.LCS
-    let LML = m.token.LML
-
-
-    m.lex(LTP, function m_ltp({sI,rI,cI,src,token,ctx,rule,bad}) {
-      token.tin=TX 
-      token.val='A'
-      return { sI:sI+1, rI, cI:cI+1, state: LTX, state_param: 'foo' }
-    })
-    m.lex(LTX, function m_ltx({sI,rI,cI,src,token,ctx,rule,bad}) {
-      token.tin=TX 
-      token.val='B'
-      return { sI:sI+1, rI, cI:cI+1, state: LCS }
-    })
-    m.lex(LCS,({sI,rI,cI,src,token,ctx,rule,bad})=>{
-      token.tin=TX 
-      token.val='C'
-      return { sI:sI+1, rI, cI:cI+1, state: LML }
-    })
-
-    m.lex(LML,({sI,rI,cI,src,token,ctx,rule,bad})=>{
-      token.tin=TX 
-      token.val='D'
-      return { sI:sI+1, rI, cI:cI+1, state: LTP }
-    })
-
-
-    let s = m('1234')
-    expect(s).toEqual(['A', 'B', 'C', 'D' ])
-
-    
-    let log = []
-    let m0 = m.make({debug:{get_console:()=>{
-      return {log:(...r)=>log.push(r)}
-    }}})
-    s = m0('1234',{log:-1})
-    expect(s).toEqual(['A', 'B', 'C', 'D' ])
-
-    // debug logs name of lex function
-    expect(log[0][0]).contains('m_ltp')
-
-    
-    let m1 = Jsonic.make()
-    m1.lex(LTP, function m_ltp({sI,rI,cI,src,token,ctx,rule,bad}) {
-      token.tin=TX 
-      token.val='A'
-      return { sI:sI+1, rI, cI:cI+1, state: -1 }
-    })
-
-    expect(()=>m1('1234')).toThrow(JsonicError,/invalid_lex_state/)
-  })
-  */
-
+  
   it('lex-flags', () => {
     let no_comment = Jsonic.make({ comment: { lex: false } })
     expect(Jsonic('a:1#b')).toEqual({ a: 1 })

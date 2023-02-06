@@ -538,7 +538,8 @@ let makeNumberMatcher: MakeLexMatcher = (cfg: Config, _opts: Options) => {
       ]
         .filter((s) => null != s)
         .join('|'),
-      ')|[.0-9]+([0-9_]*[0-9])?)',
+      // ')|[.0-9]+([0-9_]*[0-9])?)',
+      ')|\\.?[0-9]+([0-9_]*[0-9])?)',
       '(\\.[0-9]?([0-9_]*[0-9])?)?',
       '([eE][-+]?[0-9]+([0-9_]*[0-9])?)?',
     ]
@@ -619,7 +620,7 @@ let makeStringMatcher: MakeLexMatcher = (cfg: Config, opts: Options) => {
     lex: !!os?.lex,
     quoteMap: charset(os.chars),
     multiChars: charset(os.multiChars),
-    escMap: clean({ ...os.escape }),
+    escMap: { ...os.escape },
     escChar: os.escapeChar,
     escCharCode:
       null == os.escapeChar ? undefined : os.escapeChar.charCodeAt(0),
@@ -631,6 +632,7 @@ let makeStringMatcher: MakeLexMatcher = (cfg: Config, opts: Options) => {
     hasReplace: false,
   })
 
+  cfg.string.escMap = clean(cfg.string.escMap)
   cfg.string.hasReplace = 0 < keys(cfg.string.replaceCodeMap).length
 
   return function stringMatcher(lex: Lex) {
