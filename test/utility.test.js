@@ -317,10 +317,9 @@ describe('utility', () => {
     expect(deep({ a: 1 }, null, { c: 3 })).toEqual({ c: 3 })
     expect(deep(null, { b: 2 }, { c: 3 })).toEqual({ b: 2, c: 3 })
 
+    expect(Object.keys(deep({ a: 1 }, { b: 2 }))).toEqual(['a', 'b'])
+    expect(Object.keys(deep({ b: 2 }, { a: 1 }))).toEqual(['b', 'a'])
 
-    expect(Object.keys(deep({a:1},{b:2}))).toEqual(['a','b'])
-    expect(Object.keys(deep({b:2},{a:1}))).toEqual(['b','a'])
-    
     let a = { a: 1 }
     let b = { b: 2 }
     let c = { c: 3 }

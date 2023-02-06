@@ -306,7 +306,7 @@ function configure(jsonic, incfg, opts) {
             : [],
     };
     cfg.parse = {
-        prepare: values((_12 = opts.parse) === null || _12 === void 0 ? void 0 : _12.prepare)
+        prepare: values((_12 = opts.parse) === null || _12 === void 0 ? void 0 : _12.prepare),
     };
     cfg.debug = {
         get_console: ((_13 = opts.debug) === null || _13 === void 0 ? void 0 : _13.get_console) || (() => console),

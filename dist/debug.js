@@ -56,19 +56,20 @@ const Debug = (jsonic, options) => {
             parse: {
                 prepare: {
                     debug: (_jsonic, ctx, _meta) => {
-                        ctx.log = ctx.log ||
-                            ((kind, ...rest) => {
-                                if (LOGKIND[kind]) {
-                                    // console.log('LOGKIND', kind, rest[0])
-                                    ctx.cfg.debug.get_console().log(LOGKIND[kind](...rest)
-                                        .filter((item) => 'object' != typeof item)
-                                        .map((item) => ('function' == typeof item ? item.name : item))
-                                        .join('  '));
-                                }
-                            });
-                    }
-                }
-            }
+                        ctx.log =
+                            ctx.log ||
+                                ((kind, ...rest) => {
+                                    if (LOGKIND[kind]) {
+                                        // console.log('LOGKIND', kind, rest[0])
+                                        ctx.cfg.debug.get_console().log(LOGKIND[kind](...rest)
+                                            .filter((item) => 'object' != typeof item)
+                                            .map((item) => 'function' == typeof item ? item.name : item)
+                                            .join('  '));
+                                    }
+                                });
+                    },
+                },
+            },
         });
     }
 };
@@ -223,7 +224,7 @@ const LOGKIND = {
         //'rsI=' + ctx.rsI,
         ctx,
         rule,
-        lex
+        lex,
     ],
     rule: (ctx, rule, lex) => [
         rule,
@@ -239,7 +240,7 @@ const LOGKIND = {
             rule.parent.i +
             ' child=' +
             rule.child.i).padEnd(28),
-        descRuleState(ctx, rule)
+        descRuleState(ctx, rule),
     ],
     node: (ctx, rule, lex, next) => [
         rule,
@@ -250,7 +251,7 @@ const LOGKIND = {
         descParseState(ctx, rule, lex),
         jsonic_1.S.indent.repeat(rule.d) +
             ('why=' + next.why + jsonic_1.S.space + '<' + ctx.F(rule.node) + '>').padEnd(46),
-        descRuleState(ctx, rule)
+        descRuleState(ctx, rule),
     ],
     parse: (ctx, rule, lex, match, cond, altI, alt, out) => {
         let ns = match && out.n ? entries(out.n) : null;
@@ -271,7 +272,7 @@ const LOGKIND = {
             alt && alt.c ? 'c:' + cond : jsonic_1.EMPTY,
             null == ns ? '' : 'n:' + ns.map((p) => p[0] + '=' + p[1]).join(';'),
             null == us ? '' : 'u:' + us.map((p) => p[0] + '=' + p[1]).join(';'),
-            null == ks ? '' : 'k:' + ks.map((p) => p[0] + '=' + p[1]).join(';')
+            null == ks ? '' : 'k:' + ks.map((p) => p[0] + '=' + p[1]).join(';'),
         ];
     },
     lex: (ctx, rule, lex, pnt, sI, match, tkn, alt, altI, tI) => [
@@ -298,8 +299,8 @@ const LOGKIND = {
         ctx.F(lex.src.substring(sI, sI + 16)),
         ctx,
         rule,
-        lex
-    ]
+        lex,
+    ],
 };
 Debug.defaults = {
     print: true,

@@ -11,7 +11,6 @@ const j = Jsonic
 const JS = (x) => JSON.stringify(x)
 
 describe('comman', function () {
-
   it('implicit-comma', () => {
     expect(j('[0,1]')).toEqual([0, 1])
     expect(j('[0,null]')).toEqual([0, null])
@@ -35,14 +34,13 @@ describe('comman', function () {
     expect(j('true\nfalse\nnull')).toEqual([true, false, null])
   })
 
-  
   it('optional-comma', () => {
     expect(j('[,]')).toEqual([null])
-    expect(j('[,,]')).toEqual([null,null])
-    expect(j('[,,,]')).toEqual([null,null,null])
-    expect(j('[,,,,]')).toEqual([null,null,null,null])
-    expect(j('[,,,,,]')).toEqual([null,null,null,null,null])
-    
+    expect(j('[,,]')).toEqual([null, null])
+    expect(j('[,,,]')).toEqual([null, null, null])
+    expect(j('[,,,,]')).toEqual([null, null, null, null])
+    expect(j('[,,,,,]')).toEqual([null, null, null, null, null])
+
     expect(j('[1,]')).toEqual([1])
     expect(j('[1,,]')).toEqual([1, null])
     expect(j('[1,,,]')).toEqual([1, null, null])
@@ -62,19 +60,18 @@ describe('comman', function () {
     expect(j('{,,,,}')).toEqual({})
     expect(j('{,,,,,}')).toEqual({})
 
-    expect(j('{a:1,}')).toEqual({a:1})
-    expect(j('{a:1,,}')).toEqual({a:1})
-    expect(j('{a:1,,,}')).toEqual({a:1})
-    expect(j('{a:1,,,,}')).toEqual({a:1})
-    expect(j('{a:1,,,,,}')).toEqual({a:1})
+    expect(j('{a:1,}')).toEqual({ a: 1 })
+    expect(j('{a:1,,}')).toEqual({ a: 1 })
+    expect(j('{a:1,,,}')).toEqual({ a: 1 })
+    expect(j('{a:1,,,,}')).toEqual({ a: 1 })
+    expect(j('{a:1,,,,,}')).toEqual({ a: 1 })
 
-    expect(j('{,a:1}')).toEqual({a:1})
-    expect(j('{,a:1,}')).toEqual({a:1})
-    expect(j('{,a:1,,}')).toEqual({a:1})
-    expect(j('{,a:1,,,}')).toEqual({a:1})
-    expect(j('{,a:1,,,,}')).toEqual({a:1})
+    expect(j('{,a:1}')).toEqual({ a: 1 })
+    expect(j('{,a:1,}')).toEqual({ a: 1 })
+    expect(j('{,a:1,,}')).toEqual({ a: 1 })
+    expect(j('{,a:1,,,}')).toEqual({ a: 1 })
+    expect(j('{,a:1,,,,}')).toEqual({ a: 1 })
 
-    
     expect(j('[1\n2]')).toEqual([1, 2])
     expect(j('{a:1},')).toEqual([{ a: 1 }])
 
@@ -108,4 +105,3 @@ describe('comman', function () {
     expect(j('[[0][1][2]]')).toEqual([[0], [1], [2]])
   })
 })
-

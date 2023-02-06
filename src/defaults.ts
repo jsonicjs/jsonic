@@ -246,9 +246,8 @@ const defaults: Options = {
 
   // Parser
   parse: {
-
     // Plugin custom functions to prepare parser context.
-    prepare: {}
+    prepare: {},
   },
 
   // Parser rule options.

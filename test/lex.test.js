@@ -448,7 +448,6 @@ describe('lex', function () {
     ])
   })
 
-  
   it('lex-flags', () => {
     let no_comment = Jsonic.make({ comment: { lex: false } })
     expect(Jsonic('a:1#b')).toEqual({ a: 1 })

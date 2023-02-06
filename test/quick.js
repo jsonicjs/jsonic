@@ -17,7 +17,7 @@ let j = Jsonic.make({
   //   }
   // },
   // text: { lex: false }
-}).use(Debug, {trace:true})
+}).use(Debug, { trace: true })
 console.log(j.debug.describe())
 
 console.log(j('{a:1,b:2}'))

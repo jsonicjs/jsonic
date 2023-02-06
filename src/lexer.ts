@@ -988,7 +988,19 @@ class LexImpl implements Lex {
     }
 
     this.ctx.log &&
-      this.ctx.log(S.lex, this.ctx, rule, this, pnt, sI, match, tkn, alt, altI, tI)
+      this.ctx.log(
+        S.lex,
+        this.ctx,
+        rule,
+        this,
+        pnt,
+        sI,
+        match,
+        tkn,
+        alt,
+        altI,
+        tI
+      )
 
     // this.ctx.log &&
     //   log_lex(this.ctx, rule, this, pnt, sI, match, tkn, alt, altI, tI)

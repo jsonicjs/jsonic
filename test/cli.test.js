@@ -33,7 +33,7 @@ describe('cli', function () {
     // expect(cn.d.log[39][0]).toEqual('{"a":"true"}')
 
     // TODO: review loggin via cli
-    
+
     // cn = make_cn()
     // jr([0, 0, '--meta', 'log=-1', 'a:true'], cn)
     // // console.log(cn.d.log.map((e,i)=>i+': '+e))

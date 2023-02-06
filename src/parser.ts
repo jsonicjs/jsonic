@@ -128,7 +128,9 @@ class ParserImpl implements Parser {
       ctx.log = meta.log
     }
 
-    this.cfg.parse.prepare.forEach((prep: ParsePrepare) => prep(jsonic, ctx, meta))
+    this.cfg.parse.prepare.forEach((prep: ParsePrepare) =>
+      prep(jsonic, ctx, meta)
+    )
 
     // Special case - avoids extra per-token tests in main parser rules.
     if ('' === src) {

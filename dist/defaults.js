@@ -190,7 +190,7 @@ const defaults = {
     // Parser
     parse: {
         // Plugin custom functions to prepare parser context.
-        prepare: {}
+        prepare: {},
     },
     // Parser rule options.
     rule: {

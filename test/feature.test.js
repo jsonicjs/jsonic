@@ -38,7 +38,6 @@ describe('feature', function () {
     expect(match([2, 1], [undefined, 1])).toBeUndefined()
   })
 
-
   it('single-char', () => {
     expect(j()).toEqual(undefined)
     expect(j('')).toEqual(undefined)
@@ -592,7 +591,6 @@ describe('feature', function () {
     // expect(j("'''a\nb'''")).toEqual('a\nb')
   })
 
-  
   it('implicit-object', () => {
     expect(j('a:1')).toEqual({ a: 1 })
     expect(j('a:1,b:2')).toEqual({ a: 1, b: 2 })
