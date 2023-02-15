@@ -1,5 +1,5 @@
 "use strict";
-/* Copyright (c) 2021-2022 Richard Rodger, MIT License */
+/* Copyright (c) 2021-2023 Richard Rodger, MIT License */
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.Debug = void 0;
 const jsonic_1 = require("./jsonic");
@@ -8,9 +8,19 @@ const Debug = (jsonic, options) => {
     const { keys, values, entries } = jsonic.util;
     jsonic.debug = {
         describe: function () {
-            let match = jsonic.internal().config.lex.match;
+            let cfg = jsonic.internal().config;
+            let match = cfg.lex.match;
             let rules = jsonic.rule();
             return [
+                '========= TOKENS ========',
+                Object.entries(cfg.t)
+                    .filter(te => 'string' === typeof te[1])
+                    .map(te => {
+                    return '  ' + te[0] + '\t' + te[1] + '\t' +
+                        (((s) => s ? '"' + s + '"' : '')(cfg.fixed.ref[te[0]] || ''));
+                })
+                    .join('\n'),
+                '\n',
                 '========= RULES =========',
                 ruleTree(jsonic, keys(rules), rules),
                 '\n',
