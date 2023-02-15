@@ -4,6 +4,7 @@
  *  Entry point and API.
  */
 
+// TODO: handle proto
 // TODO: add rule.next property, referencing next rule
 // TODO: remove the # prefix from token names
 // TODO: define jsonic.tokenSet for access to tokenSets, same as jsonic.token
@@ -211,8 +212,8 @@ function make(param_options?: Bag | string, parent?: Jsonic): Jsonic {
     parent
       ? { ...parent.options }
       : false === (param_options as Bag)?.defaults$
-      ? {}
-      : defaults,
+        ? {}
+        : defaults,
     param_options ? param_options : {}
   )
 

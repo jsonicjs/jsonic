@@ -110,7 +110,8 @@ function grammar(jsonic) {
     });
     // sets key:val on node
     jsonic.rule('pair', (rs) => {
-        rs.open([
+        rs
+            .open([
             // Match key-colon start of pair. Marker `pair=true` allows flexibility.
             {
                 s: [KEY, CL],
@@ -253,7 +254,7 @@ function grammar(jsonic) {
         ])
             .open([
             // Pair from implicit map.
-            { s: [KEY, CL], p: 'pair', b: 2, g: 'pair,list,val,imp' },
+            { s: [KEY, CL], p: 'pair', b: 2, g: 'pair,list,val,imp,jsonic' },
         ], { append: true })
             .close([
             // Normal end of map, no path dive.
