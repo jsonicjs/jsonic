@@ -14,10 +14,14 @@ const Debug = (jsonic, options) => {
             return [
                 '========= TOKENS ========',
                 Object.entries(cfg.t)
-                    .filter(te => 'string' === typeof te[1])
-                    .map(te => {
-                    return '  ' + te[0] + '\t' + te[1] + '\t' +
-                        (((s) => s ? '"' + s + '"' : '')(cfg.fixed.ref[te[0]] || ''));
+                    .filter((te) => 'string' === typeof te[1])
+                    .map((te) => {
+                    return ('  ' +
+                        te[0] +
+                        '\t' +
+                        te[1] +
+                        '\t' +
+                        ((s) => (s ? '"' + s + '"' : ''))(cfg.fixed.ref[te[0]] || ''));
                 })
                     .join('\n'),
                 '\n',
