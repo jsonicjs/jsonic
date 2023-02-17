@@ -83,9 +83,11 @@ const defaults = {
         // balance: true,
         // Comment markers.
         def: {
-            hash: { line: true, start: '#', lex: true },
-            slash: { line: true, start: '//', lex: true },
-            multi: { line: false, start: '/' + '*', end: '*' + '/', lex: true },
+            hash: { line: true, start: '#', lex: true, eatline: false },
+            slash: { line: true, start: '//', lex: true, eatline: false },
+            multi: {
+                line: false, start: '/' + '*', end: '*' + '/', lex: true, eatline: false
+            },
         },
     },
     // String formats.

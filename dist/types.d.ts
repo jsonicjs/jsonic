@@ -85,6 +85,7 @@ export type Options = {
                 end?: string;
                 lex?: boolean;
                 suffix?: string | string[] | LexMatcher;
+                eatline: boolean;
             } | null | undefined | false;
         };
     };
@@ -364,8 +365,7 @@ export type Config = {
                 start: string;
                 end?: string;
                 lex: boolean;
-                suffixMatch?: LexMatcher;
-                getSuffixMatch?: () => LexMatcher | undefined;
+                eatline: boolean;
             };
         };
     };

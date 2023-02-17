@@ -205,36 +205,8 @@ let makeCommentMatcher = (cfg, opts) => {
                 end: om.end,
                 line: !!om.line,
                 lex: !!om.lex,
-                // Dynamic as cfg.lex.match may not yet be defined
-                suffixMatch: undefined,
-                getSuffixMatch: undefined,
+                eatline: !!om.eatline,
             };
-            /*
-            cm.getSuffixMatch = om.suffix
-              ? () => {
-                if (om.suffix instanceof Function) {
-                  return (cm.suffixMatch = om.suffix)
-                }
-    
-                let mmnames = (
-                  Array.isArray(om.suffix) ? om.suffix : [om.suffix]
-                ) as string[]
-                let matchers = mmnames
-                  .map((mmname: string) =>
-                    cfg.lex.match.find((mm: any) => mm.maker?.name == mmname)
-                  )
-                  .filter((m) => null != m)
-    
-                let sm = (...args: any[]) => {
-                  matchers.map((m: any) => m(...args))
-                }
-    
-                defprop(sm, 'name', { value: '' + om.suffix })
-    
-                return sm
-              }
-              : undefined
-            */
             def[name] = cm;
             return def;
         }, {}),
@@ -245,7 +217,7 @@ let makeCommentMatcher = (cfg, opts) => {
     let blockComments = cfg.comment.lex
         ? (0, utility_1.values)(cfg.comment.def).filter((c) => c.lex && !c.line)
         : [];
-    return function matchComment(lex, rule) {
+    return function matchComment(lex, _rule) {
         let mcfg = cfg.comment;
         if (!mcfg.lex)
             return undefined;
@@ -263,21 +235,19 @@ let makeCommentMatcher = (cfg, opts) => {
                     cI++;
                     fI++;
                 }
+                if (mc.eatline) {
+                    while (fI < fwdlen && cfg.line.chars[fwd[fI]]) {
+                        if (cfg.line.rowChars[fwd[fI]]) {
+                            rI++;
+                        }
+                        fI++;
+                    }
+                }
                 let csrc = fwd.substring(0, fI);
                 let tkn = lex.token('#CM', undefined, csrc, pnt);
                 pnt.sI += csrc.length;
                 pnt.cI = cI;
-                // TODO: move to plugin
-                /*
-                if (mc.suffixMatch) {
-                  mc.suffixMatch(lex, rule)
-                } else if (mc.getSuffixMatch) {
-                  mc.suffixMatch = mc.getSuffixMatch()
-                  if (mc.suffixMatch) {
-                    mc.suffixMatch(lex, rule)
-                  }
-                }
-                */
+                pnt.rI = rI;
                 return tkn;
             }
         }
@@ -298,6 +268,14 @@ let makeCommentMatcher = (cfg, opts) => {
                 }
                 if (fwd.substring(fI).startsWith(end)) {
                     cI += end.length;
+                    if (mc.eatline) {
+                        while (fI < fwdlen && cfg.line.chars[fwd[fI]]) {
+                            if (cfg.line.rowChars[fwd[fI]]) {
+                                rI++;
+                            }
+                            fI++;
+                        }
+                    }
                     let csrc = fwd.substring(0, fI + end.length);
                     let tkn = lex.token('#CM', undefined, csrc, pnt);
                     pnt.sI += csrc.length;
@@ -631,6 +609,10 @@ let makeLineMatcher = (cfg, _opts) => {
     return function matchLine(lex) {
         if (!cfg.line.lex)
             return undefined;
+        // HOOVER
+        if ('val' === lex.ctx.rule.name) {
+            return undefined;
+        }
         let { chars, rowChars } = cfg.line;
         let { pnt, src } = lex;
         let { sI, rI } = pnt;

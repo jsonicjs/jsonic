@@ -4,6 +4,7 @@
  *  Entry point and API.
  */
 
+// TODO: exception inside matcher needs own error code - too easy to miss!
 // TODO: null proto
 // TODO: handle proto
 // TODO: add rule.next property, referencing next rule

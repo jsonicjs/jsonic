@@ -143,6 +143,7 @@ export type Options = {
         end?: string
         lex?: boolean
         suffix?: string | string[] | LexMatcher
+        eatline: boolean
       }
       | null
       | undefined
@@ -503,8 +504,7 @@ export type Config = {
         start: string
         end?: string
         lex: boolean
-        suffixMatch?: LexMatcher
-        getSuffixMatch?: () => LexMatcher | undefined
+        eatline: boolean
       }
     }
   }

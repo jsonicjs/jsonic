@@ -305,38 +305,8 @@ let makeCommentMatcher: MakeLexMatcher = (cfg: Config, opts: Options) => {
           end: om.end,
           line: !!om.line,
           lex: !!om.lex,
-
-          // Dynamic as cfg.lex.match may not yet be defined
-          suffixMatch: undefined,
-          getSuffixMatch: undefined,
+          eatline: !!om.eatline,
         }
-
-        /*
-        cm.getSuffixMatch = om.suffix
-          ? () => {
-            if (om.suffix instanceof Function) {
-              return (cm.suffixMatch = om.suffix)
-            }
-
-            let mmnames = (
-              Array.isArray(om.suffix) ? om.suffix : [om.suffix]
-            ) as string[]
-            let matchers = mmnames
-              .map((mmname: string) =>
-                cfg.lex.match.find((mm: any) => mm.maker?.name == mmname)
-              )
-              .filter((m) => null != m)
-
-            let sm = (...args: any[]) => {
-              matchers.map((m: any) => m(...args))
-            }
-
-            defprop(sm, 'name', { value: '' + om.suffix })
-
-            return sm
-          }
-          : undefined
-        */
 
         def[name] = cm
         return def
@@ -352,7 +322,7 @@ let makeCommentMatcher: MakeLexMatcher = (cfg: Config, opts: Options) => {
     ? values(cfg.comment.def).filter((c) => c.lex && !c.line)
     : []
 
-  return function matchComment(lex: Lex, rule: Rule) {
+  return function matchComment(lex: Lex, _rule: Rule) {
     let mcfg = cfg.comment
     if (!mcfg.lex) return undefined
 
@@ -374,23 +344,21 @@ let makeCommentMatcher: MakeLexMatcher = (cfg: Config, opts: Options) => {
           fI++
         }
 
+        if (mc.eatline) {
+          while (fI < fwdlen && cfg.line.chars[fwd[fI]]) {
+            if (cfg.line.rowChars[fwd[fI]]) {
+              rI++
+            }
+            fI++
+          }
+        }
+
         let csrc = fwd.substring(0, fI)
         let tkn = lex.token('#CM', undefined, csrc, pnt)
 
         pnt.sI += csrc.length
         pnt.cI = cI
-
-        // TODO: move to plugin
-        /*
-        if (mc.suffixMatch) {
-          mc.suffixMatch(lex, rule)
-        } else if (mc.getSuffixMatch) {
-          mc.suffixMatch = mc.getSuffixMatch()
-          if (mc.suffixMatch) {
-            mc.suffixMatch(lex, rule)
-          }
-        }
-        */
+        pnt.rI = rI
 
         return tkn
       }
@@ -416,6 +384,16 @@ let makeCommentMatcher: MakeLexMatcher = (cfg: Config, opts: Options) => {
 
         if (fwd.substring(fI).startsWith(end)) {
           cI += end.length
+
+          if (mc.eatline) {
+            while (fI < fwdlen && cfg.line.chars[fwd[fI]]) {
+              if (cfg.line.rowChars[fwd[fI]]) {
+                rI++
+              }
+              fI++
+            }
+          }
+
           let csrc = fwd.substring(0, fI + end.length)
           let tkn = lex.token('#CM', undefined, csrc, pnt)
 
@@ -815,6 +793,11 @@ let makeStringMatcher: MakeLexMatcher = (cfg: Config, opts: Options) => {
 let makeLineMatcher: MakeLexMatcher = (cfg: Config, _opts: Options) => {
   return function matchLine(lex: Lex) {
     if (!cfg.line.lex) return undefined
+
+    // HOOVER
+    if ('val' === lex.ctx.rule.name) {
+      return undefined
+    }
 
     let { chars, rowChars } = cfg.line
     let { pnt, src } = lex
