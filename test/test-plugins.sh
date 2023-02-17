@@ -15,6 +15,11 @@ npm link @jsonic/jsonic-next
 npm run build
 npm test
 
+cd ../hoover
+npm link @jsonic/jsonic-next
+npm run build
+npm test
+
 cd ../expr
 npm link @jsonic/jsonic-next
 npm run build
@@ -26,6 +31,11 @@ npm run build
 npm test
 
 cd ../toml
+npm link @jsonic/jsonic-next
+npm run build
+npm test
+
+cd ../ini
 npm link @jsonic/jsonic-next
 npm run build
 npm test

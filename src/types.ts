@@ -97,6 +97,7 @@ export type Options = {
   fixed?: {
     lex?: boolean
     token?: StrMap
+    check?: LexCheck
   }
   match?: {
     lex?: boolean
@@ -107,6 +108,7 @@ export type Options = {
         val?: any
       }
     }
+    check?: LexCheck
   }
   tokenSet?: {
     [name: string]: string[]
@@ -114,16 +116,19 @@ export type Options = {
   space?: {
     lex?: boolean
     chars?: string
+    check?: LexCheck
   }
   line?: {
     lex?: boolean
     chars?: string
     rowChars?: string
     single?: boolean
+    check?: LexCheck
   }
   text?: {
     lex?: boolean
     modify?: ValModifier | ValModifier[]
+    check?: LexCheck
   }
   number?: {
     lex?: boolean
@@ -132,6 +137,7 @@ export type Options = {
     bin?: boolean
     sep?: string | null
     exclude?: RegExp
+    check?: LexCheck
   }
   comment?: {
     lex?: boolean
@@ -149,6 +155,7 @@ export type Options = {
       | undefined
       | false
     }
+    check?: LexCheck
   }
   string?: {
     lex?: boolean
@@ -161,6 +168,7 @@ export type Options = {
     allowUnknown?: boolean
     replace?: { [char: string]: string | null }
     abandon?: boolean
+    check?: LexCheck
   }
   map?: {
     extend?: boolean
@@ -403,6 +411,7 @@ export type Config = {
     lex: boolean
     token: TokenMap
     ref: Record<string | Tin, Tin | string>
+    check?: LexCheck
   }
 
   // Matched tokens and values (regexp, custom function)
@@ -417,6 +426,7 @@ export type Config = {
       }
     }
     token: MatchMap
+    check?: LexCheck
   }
 
   // Token set derived config.
@@ -432,6 +442,7 @@ export type Config = {
   space: {
     lex: boolean
     chars: Chars
+    check?: LexCheck
   }
 
   // Line end characters.
@@ -440,12 +451,14 @@ export type Config = {
     chars: Chars
     rowChars: Chars // Row counting characters.
     single: boolean
+    check?: LexCheck
   }
 
   // Unquoted text
   text: {
     lex: boolean
     modify: ValModifier[]
+    check?: LexCheck
   }
 
   // Numbers
@@ -457,6 +470,7 @@ export type Config = {
     sep: boolean
     exclude?: RegExp
     sepChar?: string | null
+    check?: LexCheck
   }
 
   // String quote characters.
@@ -471,6 +485,7 @@ export type Config = {
     replaceCodeMap: { [charCode: number]: string }
     hasReplace: boolean
     abandon: boolean
+    check?: LexCheck
   }
 
   // Literal values
@@ -507,6 +522,7 @@ export type Config = {
         eatline: boolean
       }
     }
+    check?: LexCheck
   }
 
   map: {
@@ -695,6 +711,10 @@ export type MakeLexMatcher = (
   cfg: Config,
   opts: Options
 ) => LexMatcher | null | undefined | false
+
+
+export type LexCheck = (lex: Lex) =>
+  void | undefined | { done: boolean, token: Token | undefined }
 
 export type ParsePrepare = (jsonic: Jsonic, ctx: Context, meta?: any) => void
 

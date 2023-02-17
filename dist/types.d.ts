@@ -63,6 +63,7 @@ export type Options = {
         chars?: string;
         rowChars?: string;
         single?: boolean;
+        check?: (lex: Lex) => any;
     };
     text?: {
         lex?: boolean;
@@ -313,6 +314,7 @@ export type Config = {
         chars: Chars;
         rowChars: Chars;
         single: boolean;
+        check?: (lex: Lex) => any;
     };
     text: {
         lex: boolean;

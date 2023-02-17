@@ -609,9 +609,11 @@ let makeLineMatcher = (cfg, _opts) => {
     return function matchLine(lex) {
         if (!cfg.line.lex)
             return undefined;
-        // HOOVER
-        if ('val' === lex.ctx.rule.name) {
-            return undefined;
+        if (cfg.line.check) {
+            let check = cfg.line.check(lex);
+            if (check && check.done) {
+                return check.token;
+            }
         }
         let { chars, rowChars } = cfg.line;
         let { pnt, src } = lex;

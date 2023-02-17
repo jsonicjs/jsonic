@@ -27,7 +27,6 @@ import {
   charset,
   clean,
   deep,
-  // defprop,
   escre,
   keys,
   omap,
@@ -36,8 +35,8 @@ import {
   tokenize,
   entries,
   values,
-  // log_lex,
 } from './utility'
+
 
 class PointImpl implements Point {
   len = -1
@@ -167,6 +166,13 @@ let makeFixedMatcher: MakeLexMatcher = (cfg: Config, _opts: Options) => {
     let mcfg = cfg.fixed
     if (!mcfg.lex) return undefined
 
+    if (cfg.fixed.check) {
+      let check = cfg.fixed.check(lex)
+      if (check && check.done) {
+        return check.token
+      }
+    }
+
     let pnt = lex.pnt
     let fwd = lex.src.substring(pnt.sI)
 
@@ -204,6 +210,13 @@ let makeMatchMatcher: MakeLexMatcher = (cfg: Config, _opts: Options) => {
     let mcfg = cfg.match
     if (!mcfg.lex) return undefined
 
+    if (cfg.match.check) {
+      let check = cfg.match.check(lex)
+      if (check && check.done) {
+        return check.token
+      }
+    }
+
     let pnt = lex.pnt
     let fwd = lex.src.substring(pnt.sI)
 
@@ -240,6 +253,7 @@ let makeMatchMatcher: MakeLexMatcher = (cfg: Config, _opts: Options) => {
 
     for (let tokenMatcher of tokenMatchers) {
       // Only match Token if present in Rule sequence.
+
       if (
         (tokenMatcher as any).tin$ &&
         !rule.spec.def.tcol[oc][tI].includes((tokenMatcher as any).tin$)
@@ -325,6 +339,13 @@ let makeCommentMatcher: MakeLexMatcher = (cfg: Config, opts: Options) => {
   return function matchComment(lex: Lex, _rule: Rule) {
     let mcfg = cfg.comment
     if (!mcfg.lex) return undefined
+
+    if (cfg.comment.check) {
+      let check = cfg.comment.check(lex)
+      if (check && check.done) {
+        return check.token
+      }
+    }
 
     let pnt = lex.pnt
     let fwd = lex.src.substring(pnt.sI)
@@ -420,6 +441,14 @@ let makeTextMatcher: MakeLexMatcher = (cfg: Config, opts: Options) => {
   let ender = regexp(cfg.line.lex ? null : 's', '^(.*?)', ...cfg.rePart.ender)
 
   return function textMatcher(lex: Lex) {
+    if (cfg.text.check) {
+      let check = cfg.text.check(lex)
+      if (check && check.done) {
+        return check.token
+      }
+    }
+
+
     let mcfg = cfg.text
     let pnt = lex.pnt
     let fwd = lex.src.substring(pnt.sI)
@@ -535,6 +564,13 @@ let makeNumberMatcher: MakeLexMatcher = (cfg: Config, _opts: Options) => {
     mcfg = cfg.number
     if (!mcfg.lex) return undefined
 
+    if (cfg.number.check) {
+      let check = cfg.number.check(lex)
+      if (check && check.done) {
+        return check.token
+      }
+    }
+
     let pnt = lex.pnt
     let fwd = lex.src.substring(pnt.sI)
     let valdef = cfg.value.def
@@ -617,6 +653,13 @@ let makeStringMatcher: MakeLexMatcher = (cfg: Config, opts: Options) => {
   return function stringMatcher(lex: Lex) {
     let mcfg = cfg.string
     if (!mcfg.lex) return undefined
+
+    if (cfg.string.check) {
+      let check = cfg.string.check(lex)
+      if (check && check.done) {
+        return check.token
+      }
+    }
 
     let {
       quoteMap,
@@ -794,9 +837,11 @@ let makeLineMatcher: MakeLexMatcher = (cfg: Config, _opts: Options) => {
   return function matchLine(lex: Lex) {
     if (!cfg.line.lex) return undefined
 
-    // HOOVER
-    if ('val' === lex.ctx.rule.name) {
-      return undefined
+    if (cfg.line.check) {
+      let check = cfg.line.check(lex)
+      if (check && check.done) {
+        return check.token
+      }
     }
 
     let { chars, rowChars } = cfg.line
@@ -840,6 +885,13 @@ let makeLineMatcher: MakeLexMatcher = (cfg: Config, _opts: Options) => {
 let makeSpaceMatcher: MakeLexMatcher = (cfg: Config, _opts: Options) => {
   return function spaceMatcher(lex: Lex) {
     if (!cfg.space.lex) return undefined
+
+    if (cfg.space.check) {
+      let check = cfg.space.check(lex)
+      if (check && check.done) {
+        return check.token
+      }
+    }
 
     let { chars } = cfg.space
     let { pnt, src } = lex

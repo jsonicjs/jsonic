@@ -263,23 +263,15 @@ function grammar(jsonic: Jsonic) {
         // Implicit list (comma sep) only allowed at top level: `1,2`.
         {
           s: [CA],
-          // c: (r) => 0 === r.d,
           c: { n: { dlist: 0, dmap: 0 } },
-          // r: 'elem',
           r: 'list',
-          // a: (r: Rule) => (r.node = [r.node]),
-          // a: (r: Rule) => (r.node = r.child.node = [r.node]),
           u: { implist: true },
           g: 'list,val,imp,comma,jsonic',
         },
 
         // Implicit list (space sep) only allowed at top level: `1 2`.
         {
-          // c: (r) => 0 === r.d,
-          // c: { n: { dlist: 0 } },
           c: { n: { dlist: 0, dmap: 0 } },
-          // r: 'elem',
-          // a: (r: Rule) => (r.node = [r.node]),
           r: 'list',
           u: { implist: true },
           g: 'list,val,imp,space,jsonic',
@@ -348,10 +340,10 @@ function grammar(jsonic: Jsonic) {
       .open(
         [
           // Initial comma [, will insert null as [null,
-          { s: [CA], p: 'elem', b: 1, g: 'list,elem,val,imp' },
+          { s: [CA], p: 'elem', b: 1, g: 'list,elem,val,imp,jsonic' },
 
           // Another element.
-          { p: 'elem', g: 'list,elem' },
+          { p: 'elem', g: 'list,elem.jsonic' },
         ],
         { append: true }
       )
@@ -369,7 +361,7 @@ function grammar(jsonic: Jsonic) {
     rs.open(
       [
         // Ignore initial comma: {,a:1.
-        { s: [CA], g: 'map,pair,comma' },
+        { s: [CA], g: 'map,pair,comma,jsonic' },
       ],
       { append: true }
     )

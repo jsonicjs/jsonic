@@ -172,6 +172,7 @@ function configure(
       ])
       : {},
     ref: undefined as any,
+    check: opts.fixed?.check,
   }
 
   cfg.fixed.ref = omap(cfg.fixed.token, ([tin, src]: [string, string]) => [
@@ -200,6 +201,7 @@ function configure(
         ]
       )
       : {},
+    check: opts.match?.check,
   }
 
   // Lookup tin directly from matcher
@@ -250,6 +252,7 @@ function configure(
   cfg.space = {
     lex: !!opts.space?.lex,
     chars: charset(opts.space?.chars),
+    check: opts.space?.check,
   }
 
   cfg.line = {
@@ -257,6 +260,7 @@ function configure(
     chars: charset(opts.line?.chars),
     rowChars: charset(opts.line?.rowChars),
     single: !!opts.line?.single,
+    check: opts.line?.check,
   }
 
   cfg.text = {
@@ -264,6 +268,7 @@ function configure(
     modify: (cfg.text?.modify || [])
       .concat(([opts.text?.modify] || []).flat() as ValModifier[])
       .filter((m) => null != m),
+    check: opts.text?.check,
   }
 
   cfg.number = {
@@ -274,6 +279,7 @@ function configure(
     sep: null != opts.number?.sep && '' !== opts.number.sep,
     exclude: opts.number?.exclude,
     sepChar: opts.number?.sep,
+    check: opts.number?.check,
   }
 
   // NOTE: these are not value ending tokens

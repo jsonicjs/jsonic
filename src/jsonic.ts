@@ -88,6 +88,7 @@ import type {
   RuleSub,
   Parser,
   NormAltSpec,
+  LexCheck,
 } from './types'
 
 import { OPEN, CLOSE, BEFORE, AFTER, EMPTY } from './types'
@@ -448,6 +449,7 @@ export type {
   AltError,
   StateAction,
   NormAltSpec,
+  LexCheck,
 }
 
 const foo = 'FOO'
