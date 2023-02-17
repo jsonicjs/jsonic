@@ -687,6 +687,7 @@ function clean(o) {
     return o;
 }
 exports.clean = clean;
+// TODO: rename to filterAlts
 function filterRules(rs, cfg) {
     let rsnames = ['open', 'close'];
     for (let rsn of rsnames) {
@@ -735,33 +736,42 @@ function prop(obj, path, val) {
 exports.prop = prop;
 // Mutates list based on ListMods.
 function modlist(list, mods) {
-    if (mods && list && 0 < list.length) {
-        // Delete before move so indexes still make sense, using null to preserve index.
-        if (mods.delete && 0 < mods.delete.length) {
-            for (let i = 0; i < mods.delete.length; i++) {
-                let mdI = mods.delete[i];
-                if (mdI < 0 ? -1 * mdI <= list.length : mdI < list.length) {
-                    let dI = (list.length + mdI) % list.length;
-                    list[dI] = null;
+    if (mods && list) {
+        if (0 < list.length) {
+            // Delete before move so indexes still make sense, using null to preserve index.
+            if (mods.delete && 0 < mods.delete.length) {
+                for (let i = 0; i < mods.delete.length; i++) {
+                    let mdI = mods.delete[i];
+                    if (mdI < 0 ? -1 * mdI <= list.length : mdI < list.length) {
+                        let dI = (list.length + mdI) % list.length;
+                        list[dI] = null;
+                    }
                 }
             }
-        }
-        // Format: [from,to, from,to, ...]
-        if (mods.move) {
-            for (let i = 0; i < mods.move.length; i += 2) {
-                let fromI = (list.length + mods.move[i]) % list.length;
-                let toI = (list.length + mods.move[i + 1]) % list.length;
-                let entry = list[fromI];
-                list.splice(fromI, 1);
-                list.splice(toI, 0, entry);
+            // Format: [from,to, from,to, ...]
+            if (mods.move) {
+                for (let i = 0; i < mods.move.length; i += 2) {
+                    let fromI = (list.length + mods.move[i]) % list.length;
+                    let toI = (list.length + mods.move[i + 1]) % list.length;
+                    let entry = list[fromI];
+                    list.splice(fromI, 1);
+                    list.splice(toI, 0, entry);
+                }
+            }
+            // Filter out any deletes.
+            // return list.filter((a: AltSpec) => null != a)
+            let filtered = list.filter((entry) => null != entry);
+            if (filtered.length !== list.length) {
+                list.length = 0;
+                list.push(...filtered);
             }
         }
-        // Filter out any deletes.
-        // return list.filter((a: AltSpec) => null != a)
-        let filtered = list.filter((entry) => null != entry);
-        if (filtered.length !== list.length) {
-            list.length = 0;
-            list.push(...filtered);
+        // Custom modification of list.
+        if (mods.custom) {
+            let newlist = mods.custom(list);
+            if (null != newlist) {
+                list = newlist;
+            }
         }
     }
     return list;

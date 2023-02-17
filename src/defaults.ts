@@ -158,6 +158,9 @@ const defaults: Options = {
 
     // Allow unknown escape characters - they are copied to output: '\w' -> 'w'.
     allowUnknown: true,
+
+    // If string lexing fails, instead of error, allow other matchers to try. 
+    abandon: false,
   },
 
   // Object formats.

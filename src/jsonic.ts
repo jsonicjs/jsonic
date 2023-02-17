@@ -4,6 +4,7 @@
  *  Entry point and API.
  */
 
+// TODO: null proto
 // TODO: handle proto
 // TODO: add rule.next property, referencing next rule
 // TODO: remove the # prefix from token names

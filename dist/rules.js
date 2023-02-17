@@ -95,8 +95,7 @@ class RuleSpecImpl {
         let altState = 'o' === state ? 'open' : 'close';
         let alts = this.def[altState];
         alts[inject](...aa);
-        // this.def[altState] = modlist(alts, mods)
-        (0, utility_1.modlist)(alts, mods);
+        alts = this.def[altState] = (0, utility_1.modlist)(alts, mods);
         (0, utility_1.filterRules)(this, this.cfg);
         this.norm();
         return this;
@@ -468,6 +467,10 @@ function normalt(a) {
     if (types_1.STRING === typeof a.g) {
         a.g = a.g.split(/\s*,\s*/);
     }
+    else if (null == a.g) {
+        a.g = [];
+    }
+    a.g = a.g.sort();
     if (!a.s || 0 === a.s.length) {
         a.s = null;
     }

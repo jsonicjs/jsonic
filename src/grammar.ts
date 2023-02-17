@@ -152,7 +152,7 @@ function grammar(jsonic: Jsonic) {
       ])
       .bc((r: Rule, _ctx: Context) => {
         if (r.use.pair) {
-          // Store previous value (if any, for extenstions).
+          // Store previous value (if any, for extentions).
           r.use.prev = r.node[r.use.key]
           r.node[r.use.key] = r.child.node
         }

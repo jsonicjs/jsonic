@@ -40,6 +40,7 @@ import {
   modlist,
 } from './utility'
 
+
 class RuleImpl implements Rule {
   i = -1
   name = EMPTY
@@ -172,8 +173,7 @@ class RuleSpecImpl implements RuleSpec {
 
     alts[inject](...aa)
 
-    // this.def[altState] = modlist(alts, mods)
-    modlist(alts, mods)
+    alts = this.def[altState] = modlist(alts, mods)
 
     filterRules(this, this.cfg)
 
@@ -276,7 +276,7 @@ class RuleSpecImpl implements RuleSpec {
       let tins = (columns[stateI][tokenI] = columns[stateI][tokenI] || [])
 
       return [
-        function (tins: any, alt: any) {
+        function(tins: any, alt: any) {
           if (alt.s && alt.s[tokenI]) {
             let newtins = [...new Set(tins.concat(alt.s[tokenI]))]
             tins.length = 0
@@ -340,10 +340,10 @@ class RuleSpecImpl implements RuleSpec {
           0 === alt.n[cn]
             ? 0
             : // First seen, set to 0.
-              (null == rule.n[cn]
-                ? 0
-                : // Increment counter.
-                  rule.n[cn]) + alt.n[cn]
+            (null == rule.n[cn]
+              ? 0
+              : // Increment counter.
+              rule.n[cn]) + alt.n[cn]
       }
     }
 
@@ -619,7 +619,7 @@ function normalt(a: AltSpec): NormAltSpec {
     let counters = (a.c as any).n
     let depth = (a.c as any).d
     if (null != counters || null != depth) {
-      a.c = function (rule: Rule) {
+      a.c = function(rule: Rule) {
         let pass = true
 
         //if (null! + counters) {
@@ -641,10 +641,10 @@ function normalt(a: AltSpec): NormAltSpec {
       }
 
       if (null != counters) {
-        ;(a.c as any).n = counters
+        ; (a.c as any).n = counters
       }
       if (null != depth) {
-        ;(a.c as any).d = depth
+        ; (a.c as any).d = depth
       }
     }
   }
@@ -653,6 +653,11 @@ function normalt(a: AltSpec): NormAltSpec {
   if (STRING === typeof a.g) {
     a.g = (a as any).g.split(/\s*,\s*/)
   }
+  else if (null == a.g) {
+    a.g = []
+  }
+
+  a.g = (a as any).g.sort()
 
   if (!a.s || 0 === a.s.length) {
     a.s = null
@@ -678,17 +683,17 @@ function normalt(a: AltSpec): NormAltSpec {
     aa.S0 =
       0 < tins0.length
         ? new Array(Math.max(...tins0.map((tin) => (1 + tin / 31) | 0)))
-            .fill(null)
-            .map((_, i) => i)
-            .map((part) => bitify(partify(tins0, part), part))
+          .fill(null)
+          .map((_, i) => i)
+          .map((part) => bitify(partify(tins0, part), part))
         : null
 
     aa.S1 =
       0 < tins1.length
         ? new Array(Math.max(...tins1.map((tin) => (1 + tin / 31) | 0)))
-            .fill(null)
-            .map((_, i) => i)
-            .map((part) => bitify(partify(tins1, part), part))
+          .fill(null)
+          .map((_, i) => i)
+          .map((part) => bitify(partify(tins1, part), part))
         : null
   }
 

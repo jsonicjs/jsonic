@@ -100,6 +100,7 @@ export type Options = {
         replace?: {
             [char: string]: string | null;
         };
+        abandon?: boolean;
     };
     map?: {
         extend?: boolean;
@@ -337,6 +338,7 @@ export type Config = {
             [charCode: number]: string;
         };
         hasReplace: boolean;
+        abandon: boolean;
     };
     value: {
         lex: boolean;
@@ -441,6 +443,7 @@ export type ListMods = {
     append?: boolean;
     move?: number[];
     delete?: number[];
+    custom?: (alts: AltSpec[]) => null | AltSpec[];
 };
 export interface AltMatch {
     p?: string | null | false | 0;
@@ -497,7 +500,7 @@ export interface NormAltSpec extends AltSpec {
     S0: number[] | null;
     S1: number[] | null;
     c?: AltCond;
-    g?: string[];
+    g: string[];
 }
 export type AltCond = (rule: Rule, ctx: Context, alt: AltMatch) => boolean;
 export type AltModifier = (rule: Rule, ctx: Context, alt: AltMatch, next: Rule) => AltMatch;

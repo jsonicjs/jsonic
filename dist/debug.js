@@ -61,7 +61,7 @@ const Debug = (jsonic, options) => {
     jsonic.use = (...args) => {
         let self = origUse(...args);
         if (options.print) {
-            self.internal().config.debug.get_console().log(self.debug.describe());
+            self.internal().config.debug.get_console().log('USE:', args[0].name, '\n\n', self.debug.describe());
         }
         return self;
     };

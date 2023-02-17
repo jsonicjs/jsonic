@@ -630,6 +630,7 @@ let makeStringMatcher: MakeLexMatcher = (cfg: Config, opts: Options) => {
       r,
     ]),
     hasReplace: false,
+    abandon: !!os.abandon
   })
 
   cfg.string.escMap = clean(cfg.string.escMap)
@@ -693,6 +694,7 @@ let makeStringMatcher: MakeLexMatcher = (cfg: Config, opts: Options) => {
             let cc = parseInt(src.substring(sI, sI + 2), 16)
 
             if (isNaN(cc)) {
+              if (mcfg.abandon) { return undefined }
               sI = sI - 2
               cI -= 2
               pnt.sI = sI
@@ -716,6 +718,7 @@ let makeStringMatcher: MakeLexMatcher = (cfg: Config, opts: Options) => {
             let cc = parseInt(src.substring(sI, sI + ulen), 16)
 
             if (isNaN(cc)) {
+              if (mcfg.abandon) { return undefined }
               sI = sI - 2 - ux
               cI -= 2
 
@@ -732,6 +735,7 @@ let makeStringMatcher: MakeLexMatcher = (cfg: Config, opts: Options) => {
           } else if (allowUnknown) {
             s.push(src[sI])
           } else {
+            if (mcfg.abandon) { return undefined }
             pnt.sI = sI
             pnt.cI = cI - 1
             return lex.bad(S.unexpected, sI, sI + 1)
@@ -774,6 +778,7 @@ let makeStringMatcher: MakeLexMatcher = (cfg: Config, opts: Options) => {
               cI = 1
               s.push(src.substring(bI, sI + 1))
             } else {
+              if (mcfg.abandon) { return undefined }
               pnt.sI = sI
               pnt.cI = cI
               return lex.bad(S.unprintable, sI, sI + 1)
@@ -786,6 +791,7 @@ let makeStringMatcher: MakeLexMatcher = (cfg: Config, opts: Options) => {
       }
 
       if (src[sI - 1] !== q || pnt.sI === sI - 1) {
+        if (mcfg.abandon) { return undefined }
         pnt.rI = qrI
         return lex.bad(S.unterminated_string, qI, sI)
       }

@@ -476,6 +476,7 @@ let makeStringMatcher = (cfg, opts) => {
             r,
         ]),
         hasReplace: false,
+        abandon: !!os.abandon
     });
     cfg.string.escMap = (0, utility_1.clean)(cfg.string.escMap);
     cfg.string.hasReplace = 0 < (0, utility_1.keys)(cfg.string.replaceCodeMap).length;
@@ -518,6 +519,9 @@ let makeStringMatcher = (cfg, opts) => {
                         sI++;
                         let cc = parseInt(src.substring(sI, sI + 2), 16);
                         if (isNaN(cc)) {
+                            if (mcfg.abandon) {
+                                return undefined;
+                            }
                             sI = sI - 2;
                             cI -= 2;
                             pnt.sI = sI;
@@ -536,6 +540,9 @@ let makeStringMatcher = (cfg, opts) => {
                         let ulen = ux ? 6 : 4;
                         let cc = parseInt(src.substring(sI, sI + ulen), 16);
                         if (isNaN(cc)) {
+                            if (mcfg.abandon) {
+                                return undefined;
+                            }
                             sI = sI - 2 - ux;
                             cI -= 2;
                             pnt.sI = sI;
@@ -551,6 +558,9 @@ let makeStringMatcher = (cfg, opts) => {
                         s.push(src[sI]);
                     }
                     else {
+                        if (mcfg.abandon) {
+                            return undefined;
+                        }
                         pnt.sI = sI;
                         pnt.cI = cI - 1;
                         return lex.bad(utility_1.S.unexpected, sI, sI + 1);
@@ -586,6 +596,9 @@ let makeStringMatcher = (cfg, opts) => {
                             s.push(src.substring(bI, sI + 1));
                         }
                         else {
+                            if (mcfg.abandon) {
+                                return undefined;
+                            }
                             pnt.sI = sI;
                             pnt.cI = cI;
                             return lex.bad(utility_1.S.unprintable, sI, sI + 1);
@@ -598,6 +611,9 @@ let makeStringMatcher = (cfg, opts) => {
                 }
             }
             if (src[sI - 1] !== q || pnt.sI === sI - 1) {
+                if (mcfg.abandon) {
+                    return undefined;
+                }
                 pnt.rI = qrI;
                 return lex.bad(utility_1.S.unterminated_string, qI, sI);
             }
