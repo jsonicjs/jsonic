@@ -107,7 +107,7 @@ exports.JsonicError = JsonicError;
 // Idempotent normalization of options.
 // See Config type for commentary.
 function configure(jsonic, incfg, opts) {
-    var _a, _b, _c, _d, _e, _f, _g, _h, _j, _k, _l, _o, _p, _q, _r, _s, _t, _u, _v, _w, _x, _y, _z, _0, _1, _2, _3, _4, _5, _6, _7, _8, _9, _10, _11, _12, _13, _14, _15, _16, _17, _18, _19, _20;
+    var _a, _b, _c, _d, _e, _f, _g, _h, _j, _k, _l, _o, _p, _q, _r, _s, _t, _u, _v, _w, _x, _y, _z, _0, _1, _2, _3, _4, _5, _6, _7, _8, _9, _10, _11, _12, _13, _14, _15, _16, _17, _18, _19, _20, _21, _22, _23, _24, _25;
     const cfg = incfg || {};
     cfg.t = cfg.t || {};
     cfg.tI = cfg.tI || 1;
@@ -135,6 +135,7 @@ function configure(jsonic, incfg, opts) {
             ])
             : {},
         ref: undefined,
+        check: (_b = opts.fixed) === null || _b === void 0 ? void 0 : _b.check,
     };
     cfg.fixed.ref = omap(cfg.fixed.token, ([tin, src]) => [
         tin,
@@ -142,7 +143,7 @@ function configure(jsonic, incfg, opts) {
     ]);
     cfg.fixed.ref = Object.assign(cfg.fixed.ref, omap(cfg.fixed.ref, ([tin, src]) => [src, tin]));
     cfg.match = {
-        lex: !!((_b = opts.match) === null || _b === void 0 ? void 0 : _b.lex),
+        lex: !!((_c = opts.match) === null || _c === void 0 ? void 0 : _c.lex),
         value: opts.match
             ? omap(clean(opts.match.value), ([name, spec]) => [
                 name,
@@ -155,6 +156,7 @@ function configure(jsonic, incfg, opts) {
                 matcher,
             ])
             : {},
+        check: (_d = opts.match) === null || _d === void 0 ? void 0 : _d.check,
     };
     // Lookup tin directly from matcher
     omap(cfg.match.token, ([tin, matcher]) => [
@@ -187,36 +189,39 @@ function configure(jsonic, incfg, opts) {
     // The IGNORE tokenSet is special and should always exist, even if empty.
     cfg.tokenSetTins.IGNORE = cfg.tokenSetTins.IGNORE || {};
     cfg.space = {
-        lex: !!((_c = opts.space) === null || _c === void 0 ? void 0 : _c.lex),
-        chars: charset((_d = opts.space) === null || _d === void 0 ? void 0 : _d.chars),
+        lex: !!((_e = opts.space) === null || _e === void 0 ? void 0 : _e.lex),
+        chars: charset((_f = opts.space) === null || _f === void 0 ? void 0 : _f.chars),
+        check: (_g = opts.space) === null || _g === void 0 ? void 0 : _g.check,
     };
     cfg.line = {
-        lex: !!((_e = opts.line) === null || _e === void 0 ? void 0 : _e.lex),
-        chars: charset((_f = opts.line) === null || _f === void 0 ? void 0 : _f.chars),
-        rowChars: charset((_g = opts.line) === null || _g === void 0 ? void 0 : _g.rowChars),
-        single: !!((_h = opts.line) === null || _h === void 0 ? void 0 : _h.single),
-        check: (_j = opts.line) === null || _j === void 0 ? void 0 : _j.check,
+        lex: !!((_h = opts.line) === null || _h === void 0 ? void 0 : _h.lex),
+        chars: charset((_j = opts.line) === null || _j === void 0 ? void 0 : _j.chars),
+        rowChars: charset((_k = opts.line) === null || _k === void 0 ? void 0 : _k.rowChars),
+        single: !!((_l = opts.line) === null || _l === void 0 ? void 0 : _l.single),
+        check: (_o = opts.line) === null || _o === void 0 ? void 0 : _o.check,
     };
     cfg.text = {
-        lex: !!((_k = opts.text) === null || _k === void 0 ? void 0 : _k.lex),
-        modify: (((_l = cfg.text) === null || _l === void 0 ? void 0 : _l.modify) || [])
-            .concat(([(_o = opts.text) === null || _o === void 0 ? void 0 : _o.modify] || []).flat())
+        lex: !!((_p = opts.text) === null || _p === void 0 ? void 0 : _p.lex),
+        modify: (((_q = cfg.text) === null || _q === void 0 ? void 0 : _q.modify) || [])
+            .concat(([(_r = opts.text) === null || _r === void 0 ? void 0 : _r.modify] || []).flat())
             .filter((m) => null != m),
+        check: (_s = opts.text) === null || _s === void 0 ? void 0 : _s.check,
     };
     cfg.number = {
-        lex: !!((_p = opts.number) === null || _p === void 0 ? void 0 : _p.lex),
-        hex: !!((_q = opts.number) === null || _q === void 0 ? void 0 : _q.hex),
-        oct: !!((_r = opts.number) === null || _r === void 0 ? void 0 : _r.oct),
-        bin: !!((_s = opts.number) === null || _s === void 0 ? void 0 : _s.bin),
-        sep: null != ((_t = opts.number) === null || _t === void 0 ? void 0 : _t.sep) && '' !== opts.number.sep,
-        exclude: (_u = opts.number) === null || _u === void 0 ? void 0 : _u.exclude,
-        sepChar: (_v = opts.number) === null || _v === void 0 ? void 0 : _v.sep,
+        lex: !!((_t = opts.number) === null || _t === void 0 ? void 0 : _t.lex),
+        hex: !!((_u = opts.number) === null || _u === void 0 ? void 0 : _u.hex),
+        oct: !!((_v = opts.number) === null || _v === void 0 ? void 0 : _v.oct),
+        bin: !!((_w = opts.number) === null || _w === void 0 ? void 0 : _w.bin),
+        sep: null != ((_x = opts.number) === null || _x === void 0 ? void 0 : _x.sep) && '' !== opts.number.sep,
+        exclude: (_y = opts.number) === null || _y === void 0 ? void 0 : _y.exclude,
+        sepChar: (_z = opts.number) === null || _z === void 0 ? void 0 : _z.sep,
+        check: (_0 = opts.number) === null || _0 === void 0 ? void 0 : _0.check,
     };
     // NOTE: these are not value ending tokens
     cfg.value = {
-        lex: !!((_w = opts.value) === null || _w === void 0 ? void 0 : _w.lex),
-        def: entries(((_x = opts.value) === null || _x === void 0 ? void 0 : _x.def) || {}).reduce((a, e) => (null == e[1] || false === e[1] || e[1].match || (a[e[0]] = e[1]), a), {}),
-        defre: entries(((_y = opts.value) === null || _y === void 0 ? void 0 : _y.def) || {}).reduce((a, e) => (e[1] &&
+        lex: !!((_1 = opts.value) === null || _1 === void 0 ? void 0 : _1.lex),
+        def: entries(((_2 = opts.value) === null || _2 === void 0 ? void 0 : _2.def) || {}).reduce((a, e) => (null == e[1] || false === e[1] || e[1].match || (a[e[0]] = e[1]), a), {}),
+        defre: entries(((_3 = opts.value) === null || _3 === void 0 ? void 0 : _3.def) || {}).reduce((a, e) => (e[1] &&
             e[1].match &&
             ((a[e[0]] = e[1]), (a[e[0]].consume = !!a[e[0]].consume)),
             a), {}),
@@ -228,26 +233,26 @@ function configure(jsonic, incfg, opts) {
         // '-Infinity': { v: -Infinity },
     };
     cfg.rule = {
-        start: null == ((_z = opts.rule) === null || _z === void 0 ? void 0 : _z.start) ? 'val' : opts.rule.start,
-        maxmul: null == ((_0 = opts.rule) === null || _0 === void 0 ? void 0 : _0.maxmul) ? 3 : opts.rule.maxmul,
-        finish: !!((_1 = opts.rule) === null || _1 === void 0 ? void 0 : _1.finish),
-        include: ((_2 = opts.rule) === null || _2 === void 0 ? void 0 : _2.include)
+        start: null == ((_4 = opts.rule) === null || _4 === void 0 ? void 0 : _4.start) ? 'val' : opts.rule.start,
+        maxmul: null == ((_5 = opts.rule) === null || _5 === void 0 ? void 0 : _5.maxmul) ? 3 : opts.rule.maxmul,
+        finish: !!((_6 = opts.rule) === null || _6 === void 0 ? void 0 : _6.finish),
+        include: ((_7 = opts.rule) === null || _7 === void 0 ? void 0 : _7.include)
             ? opts.rule.include.split(/\s*,+\s*/).filter((g) => '' !== g)
             : [],
-        exclude: ((_3 = opts.rule) === null || _3 === void 0 ? void 0 : _3.exclude)
+        exclude: ((_8 = opts.rule) === null || _8 === void 0 ? void 0 : _8.exclude)
             ? opts.rule.exclude.split(/\s*,+\s*/).filter((g) => '' !== g)
             : [],
     };
     cfg.map = {
-        extend: !!((_4 = opts.map) === null || _4 === void 0 ? void 0 : _4.extend),
-        merge: (_5 = opts.map) === null || _5 === void 0 ? void 0 : _5.merge,
+        extend: !!((_9 = opts.map) === null || _9 === void 0 ? void 0 : _9.extend),
+        merge: (_10 = opts.map) === null || _10 === void 0 ? void 0 : _10.merge,
     };
     cfg.list = {
-        property: !!((_6 = opts.list) === null || _6 === void 0 ? void 0 : _6.property),
+        property: !!((_11 = opts.list) === null || _11 === void 0 ? void 0 : _11.property),
     };
     let fixedSorted = Object.keys(cfg.fixed.token).sort((a, b) => b.length - a.length);
     let fixedRE = fixedSorted.map((fixed) => escre(fixed)).join('|');
-    let commentStartRE = ((_7 = opts.comment) === null || _7 === void 0 ? void 0 : _7.lex)
+    let commentStartRE = ((_12 = opts.comment) === null || _12 === void 0 ? void 0 : _12.lex)
         ? (opts.comment.def ? values(opts.comment.def) : [])
             .filter((c) => c && c.lex)
             .map((c) => escre(c.start))
@@ -280,13 +285,13 @@ function configure(jsonic, incfg, opts) {
     cfg.re = {
         ender: regexp(null, ...enderRE),
         // TODO: prebuild these using a property on matcher?
-        rowChars: regexp(null, escre((_8 = opts.line) === null || _8 === void 0 ? void 0 : _8.rowChars)),
-        columns: regexp(null, '[' + escre((_9 = opts.line) === null || _9 === void 0 ? void 0 : _9.chars) + ']', '(.*)$'),
+        rowChars: regexp(null, escre((_13 = opts.line) === null || _13 === void 0 ? void 0 : _13.rowChars)),
+        columns: regexp(null, '[' + escre((_14 = opts.line) === null || _14 === void 0 ? void 0 : _14.chars) + ']', '(.*)$'),
     };
     cfg.lex = {
-        empty: !!((_10 = opts.lex) === null || _10 === void 0 ? void 0 : _10.empty),
-        emptyResult: (_11 = opts.lex) === null || _11 === void 0 ? void 0 : _11.emptyResult,
-        match: ((_12 = opts.lex) === null || _12 === void 0 ? void 0 : _12.match)
+        empty: !!((_15 = opts.lex) === null || _15 === void 0 ? void 0 : _15.empty),
+        emptyResult: (_16 = opts.lex) === null || _16 === void 0 ? void 0 : _16.emptyResult,
+        match: ((_17 = opts.lex) === null || _17 === void 0 ? void 0 : _17.match)
             ? entries(opts.lex.match)
                 .reduce((list, entry) => {
                 let name = entry[0];
@@ -307,20 +312,20 @@ function configure(jsonic, incfg, opts) {
             : [],
     };
     cfg.parse = {
-        prepare: values((_13 = opts.parse) === null || _13 === void 0 ? void 0 : _13.prepare),
+        prepare: values((_18 = opts.parse) === null || _18 === void 0 ? void 0 : _18.prepare),
     };
     cfg.debug = {
-        get_console: ((_14 = opts.debug) === null || _14 === void 0 ? void 0 : _14.get_console) || (() => console),
-        maxlen: null == ((_15 = opts.debug) === null || _15 === void 0 ? void 0 : _15.maxlen) ? 99 : opts.debug.maxlen,
+        get_console: ((_19 = opts.debug) === null || _19 === void 0 ? void 0 : _19.get_console) || (() => console),
+        maxlen: null == ((_20 = opts.debug) === null || _20 === void 0 ? void 0 : _20.maxlen) ? 99 : opts.debug.maxlen,
         print: {
-            config: !!((_17 = (_16 = opts.debug) === null || _16 === void 0 ? void 0 : _16.print) === null || _17 === void 0 ? void 0 : _17.config),
-            src: (_19 = (_18 = opts.debug) === null || _18 === void 0 ? void 0 : _18.print) === null || _19 === void 0 ? void 0 : _19.src,
+            config: !!((_22 = (_21 = opts.debug) === null || _21 === void 0 ? void 0 : _21.print) === null || _22 === void 0 ? void 0 : _22.config),
+            src: (_24 = (_23 = opts.debug) === null || _23 === void 0 ? void 0 : _23.print) === null || _24 === void 0 ? void 0 : _24.src,
         },
     };
     cfg.error = opts.error || {};
     cfg.hint = opts.hint || {};
     // Apply any config modifiers (probably from plugins).
-    if ((_20 = opts.config) === null || _20 === void 0 ? void 0 : _20.modify) {
+    if ((_25 = opts.config) === null || _25 === void 0 ? void 0 : _25.modify) {
         keys(opts.config.modify).forEach((modifer) => opts.config.modify[modifer](cfg, opts));
     }
     // Debug the config - useful for plugin authors.

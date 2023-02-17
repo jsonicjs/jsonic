@@ -101,6 +101,12 @@ let makeFixedMatcher = (cfg, _opts) => {
         let mcfg = cfg.fixed;
         if (!mcfg.lex)
             return undefined;
+        if (cfg.fixed.check) {
+            let check = cfg.fixed.check(lex);
+            if (check && check.done) {
+                return check.token;
+            }
+        }
         let pnt = lex.pnt;
         let fwd = lex.src.substring(pnt.sI);
         let m = fwd.match(fixed);
@@ -132,6 +138,12 @@ let makeMatchMatcher = (cfg, _opts) => {
         let mcfg = cfg.match;
         if (!mcfg.lex)
             return undefined;
+        if (cfg.match.check) {
+            let check = cfg.match.check(lex);
+            if (check && check.done) {
+                return check.token;
+            }
+        }
         let pnt = lex.pnt;
         let fwd = lex.src.substring(pnt.sI);
         let oc = 'o' === rule.state ? 0 : 1;
@@ -221,6 +233,12 @@ let makeCommentMatcher = (cfg, opts) => {
         let mcfg = cfg.comment;
         if (!mcfg.lex)
             return undefined;
+        if (cfg.comment.check) {
+            let check = cfg.comment.check(lex);
+            if (check && check.done) {
+                return check.token;
+            }
+        }
         let pnt = lex.pnt;
         let fwd = lex.src.substring(pnt.sI);
         let rI = pnt.rI;
@@ -296,6 +314,12 @@ exports.makeCommentMatcher = makeCommentMatcher;
 let makeTextMatcher = (cfg, opts) => {
     let ender = (0, utility_1.regexp)(cfg.line.lex ? null : 's', '^(.*?)', ...cfg.rePart.ender);
     return function textMatcher(lex) {
+        if (cfg.text.check) {
+            let check = cfg.text.check(lex);
+            if (check && check.done) {
+                return check.token;
+            }
+        }
         let mcfg = cfg.text;
         let pnt = lex.pnt;
         let fwd = lex.src.substring(pnt.sI);
@@ -392,6 +416,12 @@ let makeNumberMatcher = (cfg, _opts) => {
         mcfg = cfg.number;
         if (!mcfg.lex)
             return undefined;
+        if (cfg.number.check) {
+            let check = cfg.number.check(lex);
+            if (check && check.done) {
+                return check.token;
+            }
+        }
         let pnt = lex.pnt;
         let fwd = lex.src.substring(pnt.sI);
         let valdef = cfg.value.def;
@@ -454,7 +484,7 @@ let makeStringMatcher = (cfg, opts) => {
             r,
         ]),
         hasReplace: false,
-        abandon: !!os.abandon
+        abandon: !!os.abandon,
     });
     cfg.string.escMap = (0, utility_1.clean)(cfg.string.escMap);
     cfg.string.hasReplace = 0 < (0, utility_1.keys)(cfg.string.replaceCodeMap).length;
@@ -462,6 +492,12 @@ let makeStringMatcher = (cfg, opts) => {
         let mcfg = cfg.string;
         if (!mcfg.lex)
             return undefined;
+        if (cfg.string.check) {
+            let check = cfg.string.check(lex);
+            if (check && check.done) {
+                return check.token;
+            }
+        }
         let { quoteMap, escMap, escChar, escCharCode, multiChars, allowUnknown, replaceCodeMap, hasReplace, } = mcfg;
         let { pnt, src } = lex;
         let { sI, rI, cI } = pnt;
@@ -651,6 +687,12 @@ let makeSpaceMatcher = (cfg, _opts) => {
     return function spaceMatcher(lex) {
         if (!cfg.space.lex)
             return undefined;
+        if (cfg.space.check) {
+            let check = cfg.space.check(lex);
+            if (check && check.done) {
+                return check.token;
+            }
+        }
         let { chars } = cfg.space;
         let { pnt, src } = lex;
         let { sI, cI } = pnt;

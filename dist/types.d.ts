@@ -38,6 +38,7 @@ export type Options = {
     fixed?: {
         lex?: boolean;
         token?: StrMap;
+        check?: LexCheck;
     };
     match?: {
         lex?: boolean;
@@ -50,6 +51,7 @@ export type Options = {
                 val?: any;
             };
         };
+        check?: LexCheck;
     };
     tokenSet?: {
         [name: string]: string[];
@@ -57,17 +59,19 @@ export type Options = {
     space?: {
         lex?: boolean;
         chars?: string;
+        check?: LexCheck;
     };
     line?: {
         lex?: boolean;
         chars?: string;
         rowChars?: string;
         single?: boolean;
-        check?: (lex: Lex) => any;
+        check?: LexCheck;
     };
     text?: {
         lex?: boolean;
         modify?: ValModifier | ValModifier[];
+        check?: LexCheck;
     };
     number?: {
         lex?: boolean;
@@ -76,6 +80,7 @@ export type Options = {
         bin?: boolean;
         sep?: string | null;
         exclude?: RegExp;
+        check?: LexCheck;
     };
     comment?: {
         lex?: boolean;
@@ -89,6 +94,7 @@ export type Options = {
                 eatline: boolean;
             } | null | undefined | false;
         };
+        check?: LexCheck;
     };
     string?: {
         lex?: boolean;
@@ -103,6 +109,7 @@ export type Options = {
             [char: string]: string | null;
         };
         abandon?: boolean;
+        check?: LexCheck;
     };
     map?: {
         extend?: boolean;
@@ -288,6 +295,7 @@ export type Config = {
         lex: boolean;
         token: TokenMap;
         ref: Record<string | Tin, Tin | string>;
+        check?: LexCheck;
     };
     match: {
         lex: boolean;
@@ -298,6 +306,7 @@ export type Config = {
             };
         };
         token: MatchMap;
+        check?: LexCheck;
     };
     tokenSet: TokenSetMap;
     tokenSetTins: {
@@ -308,17 +317,19 @@ export type Config = {
     space: {
         lex: boolean;
         chars: Chars;
+        check?: LexCheck;
     };
     line: {
         lex: boolean;
         chars: Chars;
         rowChars: Chars;
         single: boolean;
-        check?: (lex: Lex) => any;
+        check?: LexCheck;
     };
     text: {
         lex: boolean;
         modify: ValModifier[];
+        check?: LexCheck;
     };
     number: {
         lex: boolean;
@@ -328,6 +339,7 @@ export type Config = {
         sep: boolean;
         exclude?: RegExp;
         sepChar?: string | null;
+        check?: LexCheck;
     };
     string: {
         lex: boolean;
@@ -342,6 +354,7 @@ export type Config = {
         };
         hasReplace: boolean;
         abandon: boolean;
+        check?: LexCheck;
     };
     value: {
         lex: boolean;
@@ -370,6 +383,7 @@ export type Config = {
                 eatline: boolean;
             };
         };
+        check?: LexCheck;
     };
     map: {
         extend: boolean;
@@ -492,6 +506,10 @@ export type RuleState = 'o' | 'c';
 export type RuleStep = 'b' | 'a';
 export type LexMatcher = (lex: Lex, rule: Rule, tI?: number) => Token | undefined;
 export type MakeLexMatcher = (cfg: Config, opts: Options) => LexMatcher | null | undefined | false;
+export type LexCheck = (lex: Lex) => void | undefined | {
+    done: boolean;
+    token: Token | undefined;
+};
 export type ParsePrepare = (jsonic: Jsonic, ctx: Context, meta?: any) => void;
 export type RuleSpecMap = {
     [name: string]: RuleSpec;

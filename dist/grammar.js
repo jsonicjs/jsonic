@@ -110,8 +110,7 @@ function grammar(jsonic) {
     });
     // sets key:val on node
     jsonic.rule('pair', (rs) => {
-        rs
-            .open([
+        rs.open([
             // Match key-colon start of pair. Marker `pair=true` allows flexibility.
             {
                 s: [KEY, CL],

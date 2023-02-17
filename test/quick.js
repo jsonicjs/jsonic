@@ -20,10 +20,12 @@ let j = Jsonic.make({
 }).use(Debug, { trace: true })
 // console.log(j.debug.describe())
 
-console.log(j(`
+console.log(
+  j(`
 a:1
 b:2
-`))
+`)
+)
 
 // console.log(j('{a:1,b:2}'))
 

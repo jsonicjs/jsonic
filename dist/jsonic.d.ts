@@ -1,4 +1,4 @@
-import type { Config, Context, Counters, Bag, Tin, Point, Token, Rule, RuleSpec, Lex, RuleDefiner, RuleState, RuleSpecMap, LexMatcher, MakeLexMatcher, AltSpec, AltMatch, AltAction, AltCond, AltModifier, AltError, Options, JsonicAPI, JsonicParse, Plugin, StateAction, Parser, NormAltSpec } from './types';
+import type { Config, Context, Counters, Bag, Tin, Point, Token, Rule, RuleSpec, Lex, RuleDefiner, RuleState, RuleSpecMap, LexMatcher, MakeLexMatcher, AltSpec, AltMatch, AltAction, AltCond, AltModifier, AltError, Options, JsonicAPI, JsonicParse, Plugin, StateAction, Parser, NormAltSpec, LexCheck } from './types';
 import { OPEN, CLOSE, BEFORE, AFTER, EMPTY } from './types';
 import { JsonicError, S, badlex, deep, errdesc, errinject, extract, makelog, mesc, regexp, tokenize, trimstk, srcfmt, clone, charset, configure, escre, parserwrap, prop, str, clean } from './utility';
 import { makePoint, makeToken, makeLex, makeFixedMatcher, makeSpaceMatcher, makeLineMatcher, makeStringMatcher, makeCommentMatcher, makeNumberMatcher, makeTextMatcher } from './lexer';
@@ -39,7 +39,7 @@ JsonicAPI & {
 declare function make(param_options?: Bag | string, parent?: Jsonic): Jsonic;
 declare let root: any;
 declare let Jsonic: Jsonic;
-export type { Plugin, Options, Config, Context, Token, Point, Rule, RuleSpec, Lex, Counters, Bag, Tin, MakeLexMatcher, LexMatcher, RuleDefiner, RuleState, RuleSpecMap, AltSpec, AltMatch, AltCond, AltAction, AltModifier, AltError, StateAction, NormAltSpec, };
+export type { Plugin, Options, Config, Context, Token, Point, Rule, RuleSpec, Lex, Counters, Bag, Tin, MakeLexMatcher, LexMatcher, RuleDefiner, RuleState, RuleSpecMap, AltSpec, AltMatch, AltCond, AltAction, AltModifier, AltError, StateAction, NormAltSpec, LexCheck, };
 declare const foo = "FOO";
 export { Jsonic as Jsonic, JsonicError, Parser, util, make, makeToken, makePoint, makeRule, makeRuleSpec, makeLex, makeParser, makeFixedMatcher, makeSpaceMatcher, makeLineMatcher, makeStringMatcher, makeCommentMatcher, makeNumberMatcher, makeTextMatcher, OPEN, CLOSE, BEFORE, AFTER, EMPTY, S, foo, root, };
 export default Jsonic;

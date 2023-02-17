@@ -121,7 +121,11 @@ const defaults: Options = {
       hash: { line: true, start: '#', lex: true, eatline: false },
       slash: { line: true, start: '//', lex: true, eatline: false },
       multi: {
-        line: false, start: '/' + '*', end: '*' + '/', lex: true, eatline: false
+        line: false,
+        start: '/' + '*',
+        end: '*' + '/',
+        lex: true,
+        eatline: false,
       },
     },
   },
@@ -161,7 +165,7 @@ const defaults: Options = {
     // Allow unknown escape characters - they are copied to output: '\w' -> 'w'.
     allowUnknown: true,
 
-    // If string lexing fails, instead of error, allow other matchers to try. 
+    // If string lexing fails, instead of error, allow other matchers to try.
     abandon: false,
   },
 
