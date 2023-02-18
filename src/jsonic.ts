@@ -215,8 +215,8 @@ function make(param_options?: Bag | string, parent?: Jsonic): Jsonic {
     parent
       ? { ...parent.options }
       : false === (param_options as Bag)?.defaults$
-      ? {}
-      : defaults,
+        ? {}
+        : defaults,
     param_options ? param_options : {}
   )
 
@@ -452,8 +452,6 @@ export type {
   LexCheck,
 }
 
-const foo = 'FOO'
-
 export {
   // Jsonic is both a type and a value.
   Jsonic as Jsonic,
@@ -480,8 +478,11 @@ export {
   AFTER,
   EMPTY,
   S,
-  foo,
   root,
 }
 
 export default Jsonic
+
+if ('undefined' !== typeof module) {
+  module.exports = Jsonic
+}

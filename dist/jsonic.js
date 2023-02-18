@@ -1,7 +1,7 @@
 "use strict";
 /* Copyright (c) 2013-2022 Richard Rodger, MIT License */
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.root = exports.foo = exports.S = exports.EMPTY = exports.AFTER = exports.BEFORE = exports.CLOSE = exports.OPEN = exports.makeTextMatcher = exports.makeNumberMatcher = exports.makeCommentMatcher = exports.makeStringMatcher = exports.makeLineMatcher = exports.makeSpaceMatcher = exports.makeFixedMatcher = exports.makeParser = exports.makeLex = exports.makeRuleSpec = exports.makeRule = exports.makePoint = exports.makeToken = exports.make = exports.util = exports.JsonicError = exports.Jsonic = void 0;
+exports.root = exports.S = exports.EMPTY = exports.AFTER = exports.BEFORE = exports.CLOSE = exports.OPEN = exports.makeTextMatcher = exports.makeNumberMatcher = exports.makeCommentMatcher = exports.makeStringMatcher = exports.makeLineMatcher = exports.makeSpaceMatcher = exports.makeFixedMatcher = exports.makeParser = exports.makeLex = exports.makeRuleSpec = exports.makeRule = exports.makePoint = exports.makeToken = exports.make = exports.util = exports.JsonicError = exports.Jsonic = void 0;
 const types_1 = require("./types");
 Object.defineProperty(exports, "OPEN", { enumerable: true, get: function () { return types_1.OPEN; } });
 Object.defineProperty(exports, "CLOSE", { enumerable: true, get: function () { return types_1.CLOSE; } });
@@ -241,7 +241,8 @@ root.EMPTY = types_1.EMPTY;
 root.util = util;
 root.make = make;
 root.S = utility_1.S;
-const foo = 'FOO';
-exports.foo = foo;
 exports.default = Jsonic;
+if ('undefined' !== typeof module) {
+    module.exports = Jsonic;
+}
 //# sourceMappingURL=jsonic.js.map
