@@ -215,8 +215,8 @@ function make(param_options?: Bag | string, parent?: Jsonic): Jsonic {
     parent
       ? { ...parent.options }
       : false === (param_options as Bag)?.defaults$
-        ? {}
-        : defaults,
+      ? {}
+      : defaults,
     param_options ? param_options : {}
   )
 
