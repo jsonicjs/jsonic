@@ -1,10 +1,17 @@
 module.exports = {
   title: 'Jsonic',
-  description: "A JSON parser for Node.js that isn't strict.",
+  description: "A JSON parser for JS/TS that isn't strict.",
   dest: 'docs',
   evergreen: true,
 
   head: [
+    [
+      'link',
+      {
+        rel: "shortcut icon",
+        href: "/favicon.svg"
+      }
+    ],
     [
       'link',
       {

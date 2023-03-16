@@ -441,8 +441,8 @@ function errinject(s, code, details, token, rule, ctx) {
     let ref = { code, details, token, rule, ctx };
     return null == s
         ? ''
-        : s.replace(/\$([\w_]+)/g, (_m, name) => {
-            let instr = JSON.stringify(null != ref[name]
+        : s.replace(/\$(\{?)([\w_0-9]+)(\}?)/g, (_m, ob, name, cb) => {
+            let inject = null != ref[name]
                 ? ref[name]
                 : null != details[name]
                     ? details[name]
@@ -458,8 +458,10 @@ function errinject(s, code, details, token, rule, ctx) {
                                         ? ctx.cfg[name]
                                         : null != ctx[name]
                                             ? ctx[name]
-                                            : '$' + name);
-            return null == instr ? '' : instr;
+                                            : '$' + name;
+            let instr = (ob && cb) ? inject : JSON.stringify(inject);
+            instr = null == instr ? '' : instr;
+            return instr.replace(/\n/g, '\n  ');
         });
 }
 exports.errinject = errinject;

@@ -4,6 +4,7 @@
  *  Entry point and API.
  */
 
+// TODO: .use needs exc when plugin is bad/non-existent
 // TODO: exception inside matcher needs own error code - too easy to miss!
 // TODO: null proto
 // TODO: handle proto
@@ -215,8 +216,8 @@ function make(param_options?: Bag | string, parent?: Jsonic): Jsonic {
     parent
       ? { ...parent.options }
       : false === (param_options as Bag)?.defaults$
-      ? {}
-      : defaults,
+        ? {}
+        : defaults,
     param_options ? param_options : {}
   )
 
