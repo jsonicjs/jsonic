@@ -1,4 +1,4 @@
-/* Copyright (c) 2013-2022 Richard Rodger, MIT License */
+/* Copyright (c) 2013-2023 Richard Rodger, MIT License */
 
 /*  defaults.ts
  *  Default option values.
@@ -6,6 +6,10 @@
 
 import { Options } from './jsonic'
 
+
+// Functions that create token matching lexers.
+// The `make*Matcher` functions may optionally initialise
+// and validate Config properties specific to their lexing. 
 import {
   makeMatchMatcher,
   makeFixedMatcher,
@@ -17,7 +21,13 @@ import {
   makeTextMatcher,
 } from './lexer'
 
+
 const defaults: Options = {
+  // Prevent prototype pollution
+  safe: {
+    key: true
+  },
+
   // Default tag - set your own!
   tag: '-',
 

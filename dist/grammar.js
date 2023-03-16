@@ -78,7 +78,7 @@ function grammar(jsonic) {
     jsonic.rule('map', (rs) => {
         rs.bo((r) => {
             // Create a new empty map.
-            r.node = {};
+            r.node = Object.create(null);
         })
             .open([
             // An empty map: {}.
@@ -162,6 +162,12 @@ function grammar(jsonic) {
         const prev = r.use.prev;
         // Convert undefined to null when there was no pair value
         val = undefined === val ? null : val;
+        // Do not set unsafe keys on Arrays (Objects are created without a prototype)
+        if (r.use.list && ctx.cfg.safe.key) {
+            if ('__proto__' === key || 'constructor' === key) {
+                return;
+            }
+        }
         r.node[key] =
             null == prev
                 ? val
@@ -369,13 +375,12 @@ function grammar(jsonic) {
                 e: p.cfg.list.property ? undefined : (_r, ctx) => ctx.t0,
                 p: 'val',
                 n: { pk: 1, dmap: 1 },
-                u: { done: true, pair: true },
+                u: { done: true, pair: true, list: true },
                 a: pairkey,
                 g: 'elem,pair,jsonic',
             },
         ])
             .bc((r, ctx) => {
-            // if (false === r.use.elem) {
             if (true === r.use.pair) {
                 r.use.prev = r.node[r.use.key];
                 pairval(r, ctx);

@@ -4,7 +4,6 @@
  *  Entry point and API.
  */
 
-// TODO: .use needs exc when plugin is bad/non-existent
 // TODO: exception inside matcher needs own error code - too easy to miss!
 // TODO: null proto
 // TODO: handle proto
@@ -269,6 +268,11 @@ function make(param_options?: Bag | string, parent?: Jsonic): Jsonic {
 
     // TODO: how to handle null plugin?
     use: function use(plugin: Plugin, plugin_options?: Bag): Jsonic {
+      if (S.function !== typeof plugin) {
+        throw new Error('Jsonic.use: the first argument must be a function ' +
+          'defining a plugin. See https://jsonic.senecajs.org/plugin')
+      }
+
       // Plugin name keys in options.plugin are the lower-cased plugin function name.
       const plugin_name = plugin.name.toLowerCase()
       const full_plugin_options = deep(

@@ -34,6 +34,9 @@ export type Plugin = ((jsonic: Jsonic, plugin_options?: any) => void | Jsonic) &
     options?: Bag;
 };
 export type Options = {
+    safe?: {
+        key: boolean;
+    };
     tag?: string;
     fixed?: {
         lex?: boolean;
@@ -276,6 +279,9 @@ export interface Lex {
 }
 export type NextToken = (rule: Rule) => Token;
 export type Config = {
+    safe: {
+        key: boolean;
+    };
     lex: {
         match: LexMatcher[];
         empty: boolean;

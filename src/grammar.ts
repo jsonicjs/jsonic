@@ -88,13 +88,13 @@ function grammar(jsonic: Jsonic) {
           // If there's no node,
           undefined === r.node
             ? // ... or no child node (child map or list),
-              undefined === r.child.node
+            undefined === r.child.node
               ? // ... or no matched tokens,
-                0 === r.os
+              0 === r.os
                 ? // ... then the node has no value
-                  undefined
+                undefined
                 : // .. otherwise use the token value
-                  r.o0.resolveVal(r, ctx)
+                r.o0.resolveVal(r, ctx)
               : r.child.node
             : r.node
       })
@@ -103,7 +103,7 @@ function grammar(jsonic: Jsonic) {
   jsonic.rule('map', (rs: RuleSpec) => {
     rs.bo((r: Rule) => {
       // Create a new empty map.
-      r.node = {}
+      r.node = Object.create(null)
     })
       .open([
         // An empty map: {}.
@@ -185,6 +185,7 @@ function grammar(jsonic: Jsonic) {
       ])
   })
 
+
   // Jsonic syntax extensions.
 
   // Counters.
@@ -199,14 +200,21 @@ function grammar(jsonic: Jsonic) {
     // Convert undefined to null when there was no pair value
     val = undefined === val ? null : val
 
+    // Do not set unsafe keys on Arrays (Objects are created without a prototype)
+    if (r.use.list && ctx.cfg.safe.key) {
+      if ('__proto__' === key || 'constructor' === key) {
+        return
+      }
+    }
+
     r.node[key] =
       null == prev
         ? val
         : ctx.cfg.map.merge
-        ? ctx.cfg.map.merge(prev, val, r, ctx)
-        : ctx.cfg.map.extend
-        ? deep(prev, val)
-        : val
+          ? ctx.cfg.map.merge(prev, val, r, ctx)
+          : ctx.cfg.map.extend
+            ? deep(prev, val)
+            : val
   }
 
   jsonic.rule('val', (rs: RuleSpec) => {
@@ -461,13 +469,12 @@ function grammar(jsonic: Jsonic) {
         e: p.cfg.list.property ? undefined : (_r: Rule, ctx: Context) => ctx.t0,
         p: 'val',
         n: { pk: 1, dmap: 1 },
-        u: { done: true, pair: true },
+        u: { done: true, pair: true, list: true },
         a: pairkey,
         g: 'elem,pair,jsonic',
       },
     ])
       .bc((r: Rule, ctx: Context) => {
-        // if (false === r.use.elem) {
         if (true === r.use.pair) {
           r.use.prev = r.node[r.use.key]
           pairval(r, ctx)

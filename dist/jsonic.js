@@ -114,6 +114,10 @@ function make(param_options, parent) {
         parse: jsonic,
         // TODO: how to handle null plugin?
         use: function use(plugin, plugin_options) {
+            if (utility_1.S.function !== typeof plugin) {
+                throw new Error('Jsonic.use: the first argument must be a function ' +
+                    'defining a plugin. See https://jsonic.senecajs.org/plugin');
+            }
             // Plugin name keys in options.plugin are the lower-cased plugin function name.
             const plugin_name = plugin.name.toLowerCase();
             const full_plugin_options = (0, utility_1.deep)({}, plugin.defaults || {}, plugin_options || {});

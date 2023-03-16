@@ -163,6 +163,10 @@ function configure(
     t('#VL') // VALUE
   }
 
+  cfg.safe = {
+    key: false === opts.safe?.key ? false : true
+  }
+
   cfg.fixed = {
     lex: !!opts.fixed?.lex,
     token: opts.fixed

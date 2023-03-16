@@ -1,9 +1,16 @@
 "use strict";
-/* Copyright (c) 2013-2022 Richard Rodger, MIT License */
+/* Copyright (c) 2013-2023 Richard Rodger, MIT License */
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.defaults = void 0;
+// Functions that create token matching lexers.
+// The `make*Matcher` functions may optionally initialise
+// and validate Config properties specific to their lexing. 
 const lexer_1 = require("./lexer");
 const defaults = {
+    // Prevent prototype pollution
+    safe: {
+        key: true
+    },
     // Default tag - set your own!
     tag: '-',
     // Fixed token lexing.
