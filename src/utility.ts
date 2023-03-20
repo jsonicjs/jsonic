@@ -1051,6 +1051,8 @@ function parserwrap(parser: any) {
             },
             token,
             {} as Rule,
+
+            // TODO: this smells
             ex.ctx ||
             ({
               uI: -1,
@@ -1061,6 +1063,7 @@ function parserwrap(parser: any) {
               src: () => src,
               root: () => undefined,
               plgn: () => jsonic.internal().plugins,
+              inst: () => jsonic,
               rule: { name: 'no-rule' } as Rule,
               sub: {},
               xs: -1,
@@ -1072,7 +1075,6 @@ function parserwrap(parser: any) {
               kI: -1,
               rs: [],
               rsI: 0,
-              // next: () => token, // TODO: should be end token
               rsm: {},
               n: {},
               log: meta ? meta.log : undefined,

@@ -215,6 +215,7 @@ describe('plugin', function () {
     expect(j.internal().config.fixed.token['#QQ']).toEqual(99)
   })
 
+  
   it('decorate', () => {
     const j = make()
 
@@ -231,6 +232,71 @@ describe('plugin', function () {
     expect(jp0.foo()).toEqual('FOO')
   })
 
+
+  it('context-api', () => {
+    let j0 = Jsonic.make().use(function(jsonic) {
+      
+      jsonic.rule('val', (rs)=>{
+        rs.ac((r,ctx)=>{
+          expect(ctx.uI > 0).toEqual(true)
+
+          const inst = ctx.inst()
+          expect(inst).toEqual(j0)
+          expect(inst).toEqual(jsonic)
+          expect(inst.id).toEqual(j0.id)
+          expect(inst.id).toEqual(jsonic.id)
+          expect(inst!==Jsonic).toEqual(true)
+          expect(inst.id!==Jsonic.id).toEqual(true)
+        })
+      })
+    })
+
+    expect(j0('a:1')).toEqual({a:1})
+  })
+
+
+  it('custom-parser-error', () => {
+    let j = Jsonic.make().use(function foo(jsonic) {
+      jsonic.options({
+        parser: {
+          start: function (src, jsonic, meta) {
+            if ('e:0' === src) {
+              throw new Error('bad-parser:e:0')
+            } else if ('e:1' === src) {
+              let e1 = new SyntaxError('Unexpected token e:1 at position 0')
+              e1.lineNumber = 1
+              e1.columnNumber = 1
+              throw e1
+            } else if ('e:2' === src) {
+              let e2 = new SyntaxError('bad-parser:e:2')
+              e2.code = 'e2'
+              e2.token = {}
+              e2.details = {}
+              e2.ctx = {
+                src: () => '',
+                cfg: { t: {}, error: { e2: 'e:2' }, hint: { e2: 'e:2' } },
+                plgn: () => [],
+              }
+              throw e2
+            }
+          },
+        },
+      })
+    })
+
+    // j('e:1')
+
+    expect(() => j('e:0')).toThrow(/e:0/s)
+    expect(() => j('e:1', { log: () => null })).toThrow(/e:1/s)
+    expect(() => j('e:2')).toThrow(/e:2/s)
+  })
+
+
+
+
+
+  
+  // TODO: implement plugins
   /*
   it('dynamic-basic', () => {
     let d = (x)=>JSON.parse(JSON.stringify(x))
@@ -640,97 +706,7 @@ aa\tbb
     expect( k.stringify([1,undefined,null]) ).toEqual('[1,null,null]')
   })
 */
-
-  it('custom-parser-error', () => {
-    let j = Jsonic.make().use(function foo(jsonic) {
-      jsonic.options({
-        parser: {
-          start: function (src, jsonic, meta) {
-            if ('e:0' === src) {
-              throw new Error('bad-parser:e:0')
-            } else if ('e:1' === src) {
-              let e1 = new SyntaxError('Unexpected token e:1 at position 0')
-              e1.lineNumber = 1
-              e1.columnNumber = 1
-              throw e1
-            } else if ('e:2' === src) {
-              let e2 = new SyntaxError('bad-parser:e:2')
-              e2.code = 'e2'
-              e2.token = {}
-              e2.details = {}
-              e2.ctx = {
-                src: () => '',
-                cfg: { t: {}, error: { e2: 'e:2' }, hint: { e2: 'e:2' } },
-                plgn: () => [],
-              }
-              throw e2
-            }
-          },
-        },
-      })
-    })
-
-    // j('e:1')
-
-    expect(() => j('e:0')).toThrow(/e:0/s)
-    expect(() => j('e:1', { log: () => null })).toThrow(/e:1/s)
-    expect(() => j('e:2')).toThrow(/e:2/s)
-  })
-
-  /*
-  it('hoover', () => {
-    let j = Jsonic.make().use(Hoover)
-    expect(Jsonic('a b')).toEqual(['a','b'])
-
-    expect(j('a b')).toEqual('a b')
-    expect(j('1 b')).toEqual('1 b')
-    expect(j(' a b ')).toEqual('a b')
-    expect(j('a\tb')).toEqual('a\tb')
-    expect(j('\ta\tb\t')).toEqual('a\tb')
-    expect(j('x: a b ')).toEqual({x:'a b'})
-    expect(j('x:a\tb')).toEqual({x:'a\tb'})
-    expect(j('x:\ta\tb\t')).toEqual({x:'a\tb'})
-    expect(j('a: b c')).toEqual({a:'b c'})
-    expect(j('{a: {b: c d}}')).toEqual({a:{b:'c d'}})
-    expect(j('[a b]')).toEqual(['a b'])
-    expect(j('[a b, c d ]')).toEqual(['a b', 'c d'])
-    expect(j('[[a b], [c d ]]')).toEqual([['a b'], ['c d']])
-    expect(j(' x , y z ')).toEqual(['x', 'y z'])
-    expect(j('a: x , b: y z ')).toEqual({a:'x', b:'y z'})
-    expect(j('{x y:1}')).toEqual({'x y':1})
-    expect(j('x y:1')).toEqual({'x y':1})
-    expect(j('[{x y:1}]')).toEqual([{'x y':1}])
-    expect(j('q w')).toEqual('q w')
-    expect(j('a:q w')).toEqual({a:'q w'})
-    expect(j('a:q w, b:1')).toEqual({a:'q w', b:1})
-    expect(j('a: q w , b:1')).toEqual({a:'q w', b:1})
-    expect(j('[q w]')).toEqual(['q w'])
-    expect(j('[ q w ]')).toEqual(['q w'])
-    expect(j('[ q w, 1 ]')).toEqual(['q w', 1])
-    expect(j('[ q w , 1 ]')).toEqual(['q w', 1])
-    expect(j('p:[q w]}')).toEqual({p:['q w']})
-    expect(j('p:[ q w ]')).toEqual({p:['q w']})
-    expect(j('p:[ q w, 1 ]')).toEqual({p:['q w', 1]})
-    expect(j('p:[ q w , 1 ]')).toEqual({p:['q w', 1]})
-    expect(j('p:[ q w , 1 ]')).toEqual({p:['q w', 1]})
-
-    // Jsonic not broken
-    expect(Jsonic('a b')).toEqual(['a','b'])
-    expect(()=>Jsonic('a: b c')).toThrow('JsonicError',/unexpected/)
-    expect(()=>Jsonic('{a: {b: c d}}')).toThrow('JsonicError',/unexpected/)
-    expect(Jsonic(' x , y z ')).toEqual(['x', 'y', 'z'])
-    expect(()=>Jsonic('a: x , b: y z ')).toThrow('JsonicError',/unexpected/)
-
-
-    // coverage
-    let j1 = j.make({
-      line: { lex: false },
-      comment: { lex: false },
-      block: { lex: false },
-    }).use(Hoover)
-    expect(j1('a:x y')).toEqual({a:'x y'})
-  })
-*/
+  
 })
 
 function make_token_plugin(char, val) {

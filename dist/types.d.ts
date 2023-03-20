@@ -244,6 +244,7 @@ export type Context = {
     src: () => string;
     root: () => any;
     plgn: () => Plugin[];
+    inst: () => Jsonic;
     rule: Rule;
     sub: {
         lex?: LexSub[];

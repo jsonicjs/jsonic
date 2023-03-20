@@ -4,53 +4,6 @@
  *  Entry point and API.
  */
 
-// TODO: exception inside matcher needs own error code - too easy to miss!
-// TODO: null proto
-// TODO: handle proto
-// TODO: add rule.next property, referencing next rule
-// TODO: remove the # prefix from token names
-// TODO: define jsonic.tokenSet for access to tokenSets, same as jsonic.token
-// TODO .rule should prepend by default - far more common
-// TODO: Jsonic.options type should not have optionals as definitely defined:
-//   e.g jsonic.options.lex.match is defined!
-// TODO: HIGH: [a:1] should set prop on array, not create [{a:1}]
-// TODO: HIGH: [,,,] syntax should match JS!
-
-// TODO: Option switch to turn Debug plugin off when loaded
-// TODO: document standard g names: open, close, step, start, end, imp, top, val, map, etc
-// TODO: Rule.use should be Rule.u for consistency
-// TODO: remove c: { n: } and c: { d: } conditionals - just use funcs
-// TODO: option for sparse arrays: https://dmitripavlutin.com/javascript-sparse-dense-arrays/
-// TODO: YAML quoted strings: https://yaml-multiline.info/ - via options
-// TODO: line continuation ("\" at end) should be a feature of standard JSONIC strings
-// TODO: support BigInt numbers: 123n
-// TODO: err if plugin arg is not a plugin
-// TODO: error msgs for bad names - eg mispelled rule name
-// TODO: http://seriot.ch/projects/parsing_json.html
-// TODO: error if rule name not found when parsing
-// TODO: error if fixed tokens clash
-// TODO: define explicitly: p in close, r in open, behaviour
-// TODO: is s:[] needed?
-// TODO: implicit lists in pair values: "a:1,2 b:3" -> {a:[1,2], b:3} - pair key terminates (A)
-// TODO: string format for rule def: s:'ST,NR' -> s:[ST,NR], also "s:ST,NR,p:foo,..." - needs (A) - can only used post standard definition (thus not in grammar.ts)
-// TODO: Context provides current jsonic instance: { ..., jsonic: ()=>instance }
-// TODO: docs: ref https://wiki.alopex.li/OnParsers
-// TODO: docs: nice tree diagram of rules (generate?)
-// TODO: rule.use should be rule.u for consistency
-// TODO: Jsonic.make('json') - preset plain JSON options - see variant test just-json
-// TODO: consistent use of clean on options to allow null to mean 'remove property'
-// TODO: rename tokens to be user friendly
-// TODO: if token recognized, error needs to be about token, not characters
-// TODO: test custom alt error: eg.  { e: (r: Rule) => r.close[0] } ??? bug: r.close empty!
-// TODO: multipe merges, also with dynamic
-// TODO: FIX: jsonic script direct invocation in package.json not working
-// TODO: quotes are value enders - x:a"a" is an err! not 'a"a"'
-// TODO: tag should appear in error
-// TODO: remove console colors in browser?
-// post release:
-// TODO: data file to diff exhaust changes
-// TODO: cli - less ambiguous merging at top level
-// TODO: internal errors - e.g. adding a null rulespec
 
 // # Conventions
 //
@@ -280,6 +233,7 @@ function make(param_options?: Bag | string, parent?: Jsonic): Jsonic {
         plugin.defaults || {},
         plugin_options || {}
       )
+
       jsonic.options({
         plugin: {
           [plugin_name]: full_plugin_options,
@@ -288,6 +242,7 @@ function make(param_options?: Bag | string, parent?: Jsonic): Jsonic {
       let merged_plugin_options = jsonic.options.plugin[plugin_name]
       jsonic.internal().plugins.push(plugin)
       plugin.options = merged_plugin_options
+
       return plugin(jsonic, merged_plugin_options) || jsonic
     },
 

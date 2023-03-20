@@ -9,10 +9,9 @@ const fs_1 = __importDefault(require("fs"));
 const jsonic_1 = require("./jsonic");
 const debug_1 = require("./debug");
 // Make sure JsonicError is shown nicely.
-if (require.main === module) {
-    run(process.argv, console).catch((e) => console.error(e));
-}
+run(process.argv, console).catch((e) => console.error(e));
 async function run(argv, console) {
+    var _a;
     const args = {
         help: false,
         stdin: false,
@@ -57,6 +56,7 @@ async function run(argv, console) {
             }
         }
         else {
+            // console.log('SRC<' + arg + '>')
             args.sources.push(arg);
         }
     }
@@ -70,7 +70,7 @@ async function run(argv, console) {
     options.debug.get_console = () => console;
     let jsonic = jsonic_1.Jsonic.make(options);
     for (let pn in plugins) {
-        jsonic.use(plugins[pn]);
+        jsonic.use(plugins[pn], ((_a = options.plugin) === null || _a === void 0 ? void 0 : _a[pn]) || {});
     }
     if (null != plugins.debug) {
         console.log(jsonic.debug.describe() + '\n=== PARSE ===');
@@ -218,20 +218,25 @@ Output:
 Plugins 
   The built-in plugins (found in the ./plugin folder of the distribution) can be 
   specified using the abbreviated references:
-    native, dynamic, csv, hsjon, multifile, legacy-stringify
+    directive, multisource, csv, toml, ...
 
-  Plugin options can be specified using: \`-o plugin.<require>.<name>=<value>\`.
+  Plugin options can be specified using: \`-o plugin.<name>.<option>=<value>\`.
   See the example below.
 
 
 Examples:
 
+# Basic usage
 > jsonic a:1
 {"a":1} 
 
+
+# Merging arguments
 > jsonic a:b:1 a:c:2
 {"a":{"b":1,"c":2}}
 
+
+# Output options
 > jsonic a:b:1 a:c:2 --option JSON.space=2
 {
   "a": {
@@ -240,11 +245,22 @@ Examples:
   }
 }
 
+
+# Piping
 > echo a:1 | jsonic
 {"a":1} 
 
-> jsonic -o plugin.dynamic.markchar=% -p dynamic 'a:%1+1'
-{"a":2}
+
+# Using plugins (e.g. npm install @jsonic/csv)
+> jsonic -p csv  -o plugin.csv.record.separators=^ "a,b^1,2"
+[{"a":"1","b":"2"}]
+
+
+# Full debug tracing
+> jsonic -d -o plugin.debug.trace=true a:1
+... lots of debug info, including token-by-token trace ...
+{"a":1}
+
 
 See also: http://jsonic.senecajs.org
 `;

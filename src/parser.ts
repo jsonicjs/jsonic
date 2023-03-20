@@ -98,6 +98,7 @@ class ParserImpl implements Parser {
       src: () => src, // Avoid printing src
       root: () => root,
       plgn: () => jsonic.internal().plugins,
+      inst: () => jsonic,
       rule: {} as Rule,
       sub: jsonic.internal().sub,
       xs: -1,

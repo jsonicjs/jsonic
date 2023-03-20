@@ -339,6 +339,7 @@ export type Context = {
   src: () => string // source text to parse.
   root: () => any // Root node.
   plgn: () => Plugin[] // Jsonic instance plugins.
+  inst: () => Jsonic // Current Jsonic instance.
   rule: Rule // Current rule instance.
   sub: {
     lex?: LexSub[]

@@ -818,7 +818,9 @@ function parserwrap(parser) {
                         tokenize('#UK', jsonic.internal().config), undefined, tsrc, (0, lexer_1.makePoint)(tsrc.length, loc, ex.lineNumber || row, ex.columnNumber || col));
                     throw new JsonicError(ex.code || 'json', ex.details || {
                         msg: ex.message,
-                    }, token, {}, ex.ctx ||
+                    }, token, {}, 
+                    // TODO: this smells
+                    ex.ctx ||
                         {
                             uI: -1,
                             opts: jsonic.options,
@@ -828,6 +830,7 @@ function parserwrap(parser) {
                             src: () => src,
                             root: () => undefined,
                             plgn: () => jsonic.internal().plugins,
+                            inst: () => jsonic,
                             rule: { name: 'no-rule' },
                             sub: {},
                             xs: -1,
@@ -839,7 +842,6 @@ function parserwrap(parser) {
                             kI: -1,
                             rs: [],
                             rsI: 0,
-                            // next: () => token, // TODO: should be end token
                             rsm: {},
                             n: {},
                             log: meta ? meta.log : undefined,

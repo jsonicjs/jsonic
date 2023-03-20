@@ -49,6 +49,7 @@ class ParserImpl {
             src: () => src,
             root: () => root,
             plgn: () => jsonic.internal().plugins,
+            inst: () => jsonic,
             rule: {},
             sub: jsonic.internal().sub,
             xs: -1,
