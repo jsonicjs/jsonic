@@ -4,12 +4,12 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.defaults = void 0;
 // Functions that create token matching lexers.
 // The `make*Matcher` functions may optionally initialise
-// and validate Config properties specific to their lexing. 
+// and validate Config properties specific to their lexing.
 const lexer_1 = require("./lexer");
 const defaults = {
     // Prevent prototype pollution
     safe: {
-        key: true
+        key: true,
     },
     // Default tag - set your own!
     tag: '-',

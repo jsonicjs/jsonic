@@ -127,7 +127,7 @@ function configure(jsonic, incfg, opts) {
         t('#VL'); // VALUE
     }
     cfg.safe = {
-        key: false === ((_a = opts.safe) === null || _a === void 0 ? void 0 : _a.key) ? false : true
+        key: false === ((_a = opts.safe) === null || _a === void 0 ? void 0 : _a.key) ? false : true,
     };
     cfg.fixed = {
         lex: !!((_b = opts.fixed) === null || _b === void 0 ? void 0 : _b.lex),
@@ -462,7 +462,7 @@ function errinject(s, code, details, token, rule, ctx) {
                                         : null != ctx[name]
                                             ? ctx[name]
                                             : '$' + name;
-            let instr = (ob && cb) ? inject : JSON.stringify(inject);
+            let instr = ob && cb ? inject : JSON.stringify(inject);
             instr = null == instr ? '' : instr;
             return instr.replace(/\n/g, '\n  ');
         });

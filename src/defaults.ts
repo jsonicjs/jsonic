@@ -6,10 +6,9 @@
 
 import { Options } from './jsonic'
 
-
 // Functions that create token matching lexers.
 // The `make*Matcher` functions may optionally initialise
-// and validate Config properties specific to their lexing. 
+// and validate Config properties specific to their lexing.
 import {
   makeMatchMatcher,
   makeFixedMatcher,
@@ -21,11 +20,10 @@ import {
   makeTextMatcher,
 } from './lexer'
 
-
 const defaults: Options = {
   // Prevent prototype pollution
   safe: {
-    key: true
+    key: true,
   },
 
   // Default tag - set your own!

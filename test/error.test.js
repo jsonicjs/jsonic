@@ -212,8 +212,7 @@ describe('error', function () {
     expect(Jsonic('[a:]').a).toEqual(null)
   })
 
-
-  it('api-error', ()=>{
-    expect(()=>Jsonic.make().use(null)).toThrow('Jsonic.use:')
+  it('api-error', () => {
+    expect(() => Jsonic.make().use(null)).toThrow('Jsonic.use:')
   })
 })

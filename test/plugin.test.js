@@ -215,7 +215,6 @@ describe('plugin', function () {
     expect(j.internal().config.fixed.token['#QQ']).toEqual(99)
   })
 
-  
   it('decorate', () => {
     const j = make()
 
@@ -232,12 +231,10 @@ describe('plugin', function () {
     expect(jp0.foo()).toEqual('FOO')
   })
 
-
   it('context-api', () => {
-    let j0 = Jsonic.make().use(function(jsonic) {
-      
-      jsonic.rule('val', (rs)=>{
-        rs.ac((r,ctx)=>{
+    let j0 = Jsonic.make().use(function (jsonic) {
+      jsonic.rule('val', (rs) => {
+        rs.ac((r, ctx) => {
           expect(ctx.uI > 0).toEqual(true)
 
           const inst = ctx.inst()
@@ -245,15 +242,14 @@ describe('plugin', function () {
           expect(inst).toEqual(jsonic)
           expect(inst.id).toEqual(j0.id)
           expect(inst.id).toEqual(jsonic.id)
-          expect(inst!==Jsonic).toEqual(true)
-          expect(inst.id!==Jsonic.id).toEqual(true)
+          expect(inst !== Jsonic).toEqual(true)
+          expect(inst.id !== Jsonic.id).toEqual(true)
         })
       })
     })
 
-    expect(j0('a:1')).toEqual({a:1})
+    expect(j0('a:1')).toEqual({ a: 1 })
   })
-
 
   it('custom-parser-error', () => {
     let j = Jsonic.make().use(function foo(jsonic) {
@@ -291,11 +287,6 @@ describe('plugin', function () {
     expect(() => j('e:2')).toThrow(/e:2/s)
   })
 
-
-
-
-
-  
   // TODO: implement plugins
   /*
   it('dynamic-basic', () => {
@@ -706,7 +697,6 @@ aa\tbb
     expect( k.stringify([1,undefined,null]) ).toEqual('[1,null,null]')
   })
 */
-  
 })
 
 function make_token_plugin(char, val) {

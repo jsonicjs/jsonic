@@ -4,7 +4,6 @@
  *  Entry point and API.
  */
 
-
 // # Conventions
 //
 // ## Token names
@@ -168,8 +167,8 @@ function make(param_options?: Bag | string, parent?: Jsonic): Jsonic {
     parent
       ? { ...parent.options }
       : false === (param_options as Bag)?.defaults$
-        ? {}
-        : defaults,
+      ? {}
+      : defaults,
     param_options ? param_options : {}
   )
 
@@ -222,8 +221,10 @@ function make(param_options?: Bag | string, parent?: Jsonic): Jsonic {
     // TODO: how to handle null plugin?
     use: function use(plugin: Plugin, plugin_options?: Bag): Jsonic {
       if (S.function !== typeof plugin) {
-        throw new Error('Jsonic.use: the first argument must be a function ' +
-          'defining a plugin. See https://jsonic.senecajs.org/plugin')
+        throw new Error(
+          'Jsonic.use: the first argument must be a function ' +
+            'defining a plugin. See https://jsonic.senecajs.org/plugin'
+        )
       }
 
       // Plugin name keys in options.plugin are the lower-cased plugin function name.
