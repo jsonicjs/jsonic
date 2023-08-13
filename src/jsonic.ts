@@ -1,13 +1,8 @@
-/* Copyright (c) 2013-2022 Richard Rodger, MIT License */
+/* Copyright (c) 2013-2023 Richard Rodger, MIT License */
 
 /*  jsonic.ts
  *  Entry point and API.
  */
-
-// # Conventions
-//
-// ## Token names
-// * '#' prefix: parse token
 
 import type {
   Config,
