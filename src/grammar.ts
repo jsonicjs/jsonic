@@ -50,7 +50,7 @@ function grammar(jsonic: Jsonic) {
         ? key_token.val // Was text
         : key_token.src // Was number, use original text
 
-    r.use.key = key
+    r.u.key = key
   }
 
   // Plain JSON
@@ -150,10 +150,10 @@ function grammar(jsonic: Jsonic) {
       },
     ])
       .bc((r: Rule, _ctx: Context) => {
-        if (r.use.pair) {
+        if (r.u.pair) {
           // Store previous value (if any, for extentions).
-          r.use.prev = r.node[r.use.key]
-          r.node[r.use.key] = r.child.node
+          r.u.prev = r.node[r.u.key]
+          r.node[r.u.key] = r.child.node
         }
       })
       .close([
@@ -172,7 +172,7 @@ function grammar(jsonic: Jsonic) {
       { p: 'val', g: 'list,elem,val,json' },
     ])
       .bc((r: Rule) => {
-        if (true !== r.use.done) {
+        if (true !== r.u.done) {
           r.node.push(r.child.node)
         }
       })
@@ -192,15 +192,15 @@ function grammar(jsonic: Jsonic) {
   // * dmap: depth of maps
 
   const pairval = (r: Rule, ctx: Context) => {
-    let key = r.use.key
+    let key = r.u.key
     let val = r.child.node
-    const prev = r.use.prev
+    const prev = r.u.prev
 
     // Convert undefined to null when there was no pair value
     val = undefined === val ? null : val
 
     // Do not set unsafe keys on Arrays (Objects are created without a prototype)
-    if (r.use.list && ctx.cfg.safe.key) {
+    if (r.u.list && ctx.cfg.safe.key) {
       if ('__proto__' === key || 'constructor' === key) {
         return
       }
@@ -341,13 +341,13 @@ function grammar(jsonic: Jsonic) {
       // Increment depth of lists.
       r.n.dlist = 1 + (r.n.dlist ? r.n.dlist : 0)
 
-      if (r.prev.use.implist) {
+      if (r.prev.u.implist) {
         r.node.push(r.prev.node)
         r.prev.node = r.node
       }
     })
       .open({
-        c: (r) => r.prev.use.implist,
+        c: (r) => r.prev.u.implist,
         p: 'elem',
       })
       .open(
@@ -381,7 +381,7 @@ function grammar(jsonic: Jsonic) {
 
       // NOTE: JSON pair.bc runs first, then this bc may override value.
       .bc((r: Rule, ctx: Context) => {
-        if (r.use.pair) {
+        if (r.u.pair) {
           pairval(r, ctx)
         }
       })
@@ -455,7 +455,6 @@ function grammar(jsonic: Jsonic) {
 
           // Who needs commas anyway?
           {
-            // c: { n: { pk: 0 } },
             r: 'pair',
             b: 1,
             g: 'map,pair,imp,jsonic',
@@ -496,8 +495,8 @@ function grammar(jsonic: Jsonic) {
       },
     ])
       .bc((r: Rule, ctx: Context) => {
-        if (true === r.use.pair) {
-          r.use.prev = r.node[r.use.key]
+        if (true === r.u.pair) {
+          r.u.prev = r.node[r.u.key]
           pairval(r, ctx)
         }
       })

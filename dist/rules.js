@@ -12,8 +12,8 @@ class RuleImpl {
         this.state = types_1.OPEN;
         this.n = Object.create(null);
         this.d = -1;
-        this.use = Object.create(null);
-        this.keep = Object.create(null);
+        this.u = Object.create(null);
+        this.k = Object.create(null);
         this.bo = false;
         this.ao = false;
         this.bc = false;
@@ -42,9 +42,25 @@ class RuleImpl {
         let rule = this.spec.process(this, ctx, lex, this.state);
         return rule;
     }
+    eq(counter, limit = 0) {
+        let value = this.n[counter];
+        return null == value || value === limit;
+    }
+    lt(counter, limit = 0) {
+        let value = this.n[counter];
+        return null == value || value < limit;
+    }
+    gt(counter, limit = 0) {
+        let value = this.n[counter];
+        return null == value || value > limit;
+    }
     lte(counter, limit = 0) {
         let value = this.n[counter];
         return null == value || value <= limit;
+    }
+    gte(counter, limit = 0) {
+        let value = this.n[counter];
+        return null == value || value >= limit;
     }
     toString() {
         return '[Rule ' + this.name + '~' + this.i + ']';
@@ -214,10 +230,10 @@ class RuleSpecImpl {
         }
         // Set custom properties
         if (alt.u) {
-            rule.use = Object.assign(rule.use, alt.u);
+            rule.u = Object.assign(rule.u, alt.u);
         }
         if (alt.k) {
-            rule.keep = Object.assign(rule.keep, alt.k);
+            rule.k = Object.assign(rule.k, alt.k);
         }
         // Action call.
         if (alt.a) {
@@ -235,8 +251,8 @@ class RuleSpecImpl {
                 next = rule.child = makeRule(rulespec, ctx, rule.node);
                 next.parent = rule;
                 next.n = { ...rule.n };
-                if (0 < Object.keys(rule.keep).length) {
-                    next.keep = { ...rule.keep };
+                if (0 < Object.keys(rule.k).length) {
+                    next.k = { ...rule.k };
                 }
                 why += 'P`' + alt.p + '`';
             }
@@ -251,8 +267,8 @@ class RuleSpecImpl {
                 next.parent = rule.parent;
                 next.prev = rule;
                 next.n = { ...rule.n };
-                if (0 < Object.keys(rule.keep).length) {
-                    next.keep = { ...rule.keep };
+                if (0 < Object.keys(rule.k).length) {
+                    next.k = { ...rule.k };
                 }
                 why += 'R`' + alt.r + '`';
             }

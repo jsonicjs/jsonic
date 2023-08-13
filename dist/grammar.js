@@ -34,7 +34,7 @@ function grammar(jsonic) {
         const key = ST === key_token.tin || TX === key_token.tin
             ? key_token.val // Was text
             : key_token.src; // Was number, use original text
-        r.use.key = key;
+        r.u.key = key;
     };
     // Plain JSON
     jsonic.rule('val', (rs) => {
@@ -121,10 +121,10 @@ function grammar(jsonic) {
             },
         ])
             .bc((r, _ctx) => {
-            if (r.use.pair) {
+            if (r.u.pair) {
                 // Store previous value (if any, for extentions).
-                r.use.prev = r.node[r.use.key];
-                r.node[r.use.key] = r.child.node;
+                r.u.prev = r.node[r.u.key];
+                r.node[r.u.key] = r.child.node;
             }
         })
             .close([
@@ -141,7 +141,7 @@ function grammar(jsonic) {
             { p: 'val', g: 'list,elem,val,json' },
         ])
             .bc((r) => {
-            if (true !== r.use.done) {
+            if (true !== r.u.done) {
                 r.node.push(r.child.node);
             }
         })
@@ -157,13 +157,13 @@ function grammar(jsonic) {
     // * pk: depth of the pair-key path
     // * dmap: depth of maps
     const pairval = (r, ctx) => {
-        let key = r.use.key;
+        let key = r.u.key;
         let val = r.child.node;
-        const prev = r.use.prev;
+        const prev = r.u.prev;
         // Convert undefined to null when there was no pair value
         val = undefined === val ? null : val;
         // Do not set unsafe keys on Arrays (Objects are created without a prototype)
-        if (r.use.list && ctx.cfg.safe.key) {
+        if (r.u.list && ctx.cfg.safe.key) {
             if ('__proto__' === key || 'constructor' === key) {
                 return;
             }
@@ -275,13 +275,13 @@ function grammar(jsonic) {
         rs.bo((r) => {
             // Increment depth of lists.
             r.n.dlist = 1 + (r.n.dlist ? r.n.dlist : 0);
-            if (r.prev.use.implist) {
+            if (r.prev.u.implist) {
                 r.node.push(r.prev.node);
                 r.prev.node = r.node;
             }
         })
             .open({
-            c: (r) => r.prev.use.implist,
+            c: (r) => r.prev.u.implist,
             p: 'elem',
         })
             .open([
@@ -303,7 +303,7 @@ function grammar(jsonic) {
         ], { append: true })
             // NOTE: JSON pair.bc runs first, then this bc may override value.
             .bc((r, ctx) => {
-            if (r.use.pair) {
+            if (r.u.pair) {
                 pairval(r, ctx);
             }
         })
@@ -367,7 +367,6 @@ function grammar(jsonic) {
             { s: [ZZ], e: finish, g: 'map,pair,json' },
             // Who needs commas anyway?
             {
-                // c: { n: { pk: 0 } },
                 r: 'pair',
                 b: 1,
                 g: 'map,pair,imp,jsonic',
@@ -403,8 +402,8 @@ function grammar(jsonic) {
             },
         ])
             .bc((r, ctx) => {
-            if (true === r.use.pair) {
-                r.use.prev = r.node[r.use.key];
+            if (true === r.u.pair) {
+                r.u.prev = r.node[r.u.key];
                 pairval(r, ctx);
             }
         })

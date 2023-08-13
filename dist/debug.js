@@ -182,8 +182,8 @@ function descParseState(ctx, rule, lex) {
 }
 function descRuleState(ctx, rule) {
     let en = entries(rule.n);
-    let eu = entries(rule.use);
-    let ek = entries(rule.keep);
+    let eu = entries(rule.u);
+    let ek = entries(rule.k);
     return ('' +
         (0 === en.length
             ? ''

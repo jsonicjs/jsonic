@@ -716,26 +716,26 @@ describe('custom', () => {
     j.rule('top', (rs) => {
       rs.open([{ p: 'foo', k: { color: 'red' }, u: { planet: 'mars' } }])
         .bo((r) => (r.node = { out: [] }))
-        .ao((r) => r.node.out.push(`AO-TOP<${r.keep.color},${r.use.planet}>`))
-        .bc((r) => r.node.out.push(`BC-TOP<${r.keep.color},${r.use.planet}>`))
+        .ao((r) => r.node.out.push(`AO-TOP<${r.k.color},${r.u.planet}>`))
+        .bc((r) => r.node.out.push(`BC-TOP<${r.k.color},${r.u.planet}>`))
     })
 
       .rule('foo', (rs) => {
         rs.open([{ s: [FT], p: 'bar' }])
-          .ao((r) => r.node.out.push(`AO-FOO<${r.keep.color},${r.use.planet}>`))
-          .bc((r) => r.node.out.push(`BC-FOO<${r.keep.color},${r.use.planet}>`))
+          .ao((r) => r.node.out.push(`AO-FOO<${r.k.color},${r.u.planet}>`))
+          .bc((r) => r.node.out.push(`BC-FOO<${r.k.color},${r.u.planet}>`))
       })
 
       .rule('bar', (rs) => {
         rs.open([{ s: [BT], p: 'zed', u: { planet: 'earth' } }])
-          .ao((r) => r.node.out.push(`AO-BAR<${r.keep.color},${r.use.planet}>`))
-          .bc((r) => r.node.out.push(`BC-BAR<${r.keep.color},${r.use.planet}>`))
+          .ao((r) => r.node.out.push(`AO-BAR<${r.k.color},${r.u.planet}>`))
+          .bc((r) => r.node.out.push(`BC-BAR<${r.k.color},${r.u.planet}>`))
       })
 
       .rule('zed', (rs) => {
         rs.open([{ s: [ZT], k: { color: 'green' } }])
-          .ao((r) => r.node.out.push(`AO-ZED<${r.keep.color},${r.use.planet}>`))
-          .bc((r) => r.node.out.push(`BC-ZED<${r.keep.color},${r.use.planet}>`))
+          .ao((r) => r.node.out.push(`AO-ZED<${r.k.color},${r.u.planet}>`))
+          .bc((r) => r.node.out.push(`BC-ZED<${r.k.color},${r.u.planet}>`))
       })
 
     expect(j('fbz')).toEqual({

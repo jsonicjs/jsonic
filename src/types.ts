@@ -314,8 +314,8 @@ export interface Rule {
 
   n: Counters // Named counter values.
   d: number // The current stack depth.
-  use: Bag // Custom key-value store, this rule only.
-  keep: Bag // Custom key-value store, propogates via push and replace.
+  u: Bag // Custom key-value store, this rule only.
+  k: Bag // Custom key-value store, propogates via push and replace.
   bo: boolean // Flag: call bo (before-open).
   ao: boolean // Flag: call ao (after-open).
   bc: boolean // Flag: call bc (before-close).
@@ -329,7 +329,12 @@ export interface Rule {
   // next rule to process.
   process(ctx: Context, lex: Lex): Rule
 
+  // Always false if counter is null or undefined; default limit is 0.
+  eq(counter: string, limit?: number): boolean
+  lt(counter: string, limit?: number): boolean
+  gt(counter: string, limit?: number): boolean
   lte(counter: string, limit?: number): boolean
+  gte(counter: string, limit?: number): boolean
 }
 
 // The current parse state and associated context.

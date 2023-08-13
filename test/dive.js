@@ -1,4 +1,5 @@
-let { Jsonic, util, Debug } = require('..')
+const { Jsonic, util } = require('..')
+const { Debug } = require('../dist/debug')
 
 let j = Jsonic.make()
   .use(function dive(jsonic) {
@@ -33,7 +34,7 @@ let j = Jsonic.make()
             u: { dive_end: true },
           },
         ]).bc((r) => {
-          if (r.use.dive_end) {
+          if (r.u.dive_end) {
             r.node[r.o0.val] = r.child.node
           }
         })
@@ -51,6 +52,7 @@ console.log(
   b.c: 2
   d: 3
   e: 4.5
+  f: 127.0.0.1
 }
 `,
     { log: -1 },

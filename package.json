@@ -1,6 +1,6 @@
 {
   "name": "@jsonic/jsonic-next",
-  "version": "2.11.0",
+  "version": "2.12.0",
   "main": "dist/jsonic.js",
   "type": "commonjs",
   "browser": "dist/jsonic.min.js",
@@ -66,9 +66,7 @@
     "prismjs": "rjrodger/prismjs",
     "tinyify": "^4.0.0",
     "typescript": "^5.1.6",
-    "vuepress": "^1.9.9"
-  },
-  "dependencies": {
+    "vuepress": "^1.9.9",
     "@jsonic/csv": "^0.4.0"
   }
 }

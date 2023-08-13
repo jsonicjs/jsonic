@@ -226,8 +226,8 @@ export interface Rule {
     c1: Token;
     n: Counters;
     d: number;
-    use: Bag;
-    keep: Bag;
+    u: Bag;
+    k: Bag;
     bo: boolean;
     ao: boolean;
     bc: boolean;
@@ -235,7 +235,11 @@ export interface Rule {
     why?: string;
     need: number;
     process(ctx: Context, lex: Lex): Rule;
+    eq(counter: string, limit?: number): boolean;
+    lt(counter: string, limit?: number): boolean;
+    gt(counter: string, limit?: number): boolean;
     lte(counter: string, limit?: number): boolean;
+    gte(counter: string, limit?: number): boolean;
 }
 export type Context = {
     uI: number;

@@ -44,8 +44,8 @@ class RuleImpl implements Rule {
   state = OPEN
   n = Object.create(null)
   d = -1
-  use = Object.create(null)
-  keep = Object.create(null)
+  u = Object.create(null)
+  k = Object.create(null)
   bo = false
   ao = false
   bc = false
@@ -92,9 +92,29 @@ class RuleImpl implements Rule {
     return rule
   }
 
+  eq(counter: string, limit: number = 0): boolean {
+    let value = this.n[counter]
+    return null == value || value === limit
+  }
+
+  lt(counter: string, limit: number = 0): boolean {
+    let value = this.n[counter]
+    return null == value || value < limit
+  }
+
+  gt(counter: string, limit: number = 0): boolean {
+    let value = this.n[counter]
+    return null == value || value > limit
+  }
+
   lte(counter: string, limit: number = 0): boolean {
     let value = this.n[counter]
     return null == value || value <= limit
+  }
+
+  gte(counter: string, limit: number = 0): boolean {
+    let value = this.n[counter]
+    return null == value || value >= limit
   }
 
   toString() {
@@ -345,10 +365,10 @@ class RuleSpecImpl implements RuleSpec {
 
     // Set custom properties
     if (alt.u) {
-      rule.use = Object.assign(rule.use, alt.u)
+      rule.u = Object.assign(rule.u, alt.u)
     }
     if (alt.k) {
-      rule.keep = Object.assign(rule.keep, alt.k)
+      rule.k = Object.assign(rule.k, alt.k)
     }
 
     // Action call.
@@ -368,8 +388,8 @@ class RuleSpecImpl implements RuleSpec {
         next = rule.child = makeRule(rulespec, ctx, rule.node)
         next.parent = rule
         next.n = { ...rule.n }
-        if (0 < Object.keys(rule.keep).length) {
-          next.keep = { ...rule.keep }
+        if (0 < Object.keys(rule.k).length) {
+          next.k = { ...rule.k }
         }
         why += 'P`' + alt.p + '`'
       } else
@@ -384,8 +404,8 @@ class RuleSpecImpl implements RuleSpec {
         next.parent = rule.parent
         next.prev = rule
         next.n = { ...rule.n }
-        if (0 < Object.keys(rule.keep).length) {
-          next.keep = { ...rule.keep }
+        if (0 < Object.keys(rule.k).length) {
+          next.k = { ...rule.k }
         }
         why += 'R`' + alt.r + '`'
       } else

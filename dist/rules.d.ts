@@ -6,8 +6,8 @@ declare class RuleImpl implements Rule {
     state: RuleState;
     n: any;
     d: number;
-    use: any;
-    keep: any;
+    u: any;
+    k: any;
     bo: boolean;
     ao: boolean;
     bc: boolean;
@@ -25,7 +25,11 @@ declare class RuleImpl implements Rule {
     need: number;
     constructor(spec: RuleSpec, ctx: Context, node?: any);
     process(ctx: Context, lex: Lex): Rule;
+    eq(counter: string, limit?: number): boolean;
+    lt(counter: string, limit?: number): boolean;
+    gt(counter: string, limit?: number): boolean;
     lte(counter: string, limit?: number): boolean;
+    gte(counter: string, limit?: number): boolean;
     toString(): string;
 }
 declare const makeRule: (spec: RuleSpec, ctx: Context, node?: any) => RuleImpl;
