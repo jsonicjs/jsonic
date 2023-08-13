@@ -1,7 +1,6 @@
 # TODO
 
 * P1; Rule.use should be Rule.u for consistency
-* P1; [,,,] syntax should match JS!
 * P1; add rule.next property, referencing next rule 
   * BUT: circular ref? prev is a sibling, next may not be - inconsistent?
 * P1; exception inside matcher needs own error code - too easy to miss!

@@ -1,4 +1,4 @@
-/* Copyright (c) 2013-2022 Richard Rodger, MIT License */
+/* Copyright (c) 2013-2023 Richard Rodger, MIT License */
 
 /*  grammar.ts
  *  Grammar definition.
@@ -8,6 +8,7 @@
  */
 
 import { Jsonic, Rule, RuleSpec, Context, Parser, AltError } from './jsonic'
+
 
 function grammar(jsonic: Jsonic) {
   const { deep } = jsonic.util
@@ -88,13 +89,13 @@ function grammar(jsonic: Jsonic) {
           // If there's no node,
           undefined === r.node
             ? // ... or no child node (child map or list),
-              undefined === r.child.node
+            undefined === r.child.node
               ? // ... or no matched tokens,
-                0 === r.os
+              0 === r.os
                 ? // ... then the node has no value
-                  undefined
+                undefined
                 : // .. otherwise use the token value
-                  r.o0.resolveVal(r, ctx)
+                r.o0.resolveVal(r, ctx)
               : r.child.node
             : r.node
       })
@@ -139,16 +140,17 @@ function grammar(jsonic: Jsonic) {
 
   // sets key:val on node
   jsonic.rule('pair', (rs: RuleSpec) => {
-    rs.open([
-      // Match key-colon start of pair. Marker `pair=true` allows flexibility.
-      {
-        s: [KEY, CL],
-        p: 'val',
-        u: { pair: true },
-        a: pairkey,
-        g: 'map,pair,key,json',
-      },
-    ])
+    rs
+      .open([
+        // Match key-colon start of pair. Marker `pair=true` allows flexibility.
+        {
+          s: [KEY, CL],
+          p: 'val',
+          u: { pair: true },
+          a: pairkey,
+          g: 'map,pair,key,json',
+        },
+      ])
       .bc((r: Rule, _ctx: Context) => {
         if (r.use.pair) {
           // Store previous value (if any, for extentions).
@@ -167,10 +169,11 @@ function grammar(jsonic: Jsonic) {
 
   // push onto node
   jsonic.rule('elem', (rs: RuleSpec) => {
-    rs.open([
-      // List elements are values.
-      { p: 'val', g: 'list,elem,val,json' },
-    ])
+    rs
+      .open([
+        // List elements are values.
+        { p: 'val', g: 'list,elem,val,json' },
+      ])
       .bc((r: Rule) => {
         if (true !== r.use.done) {
           r.node.push(r.child.node)
@@ -210,89 +213,93 @@ function grammar(jsonic: Jsonic) {
       null == prev
         ? val
         : ctx.cfg.map.merge
-        ? ctx.cfg.map.merge(prev, val, r, ctx)
-        : ctx.cfg.map.extend
-        ? deep(prev, val)
-        : val
+          ? ctx.cfg.map.merge(prev, val, r, ctx)
+          : ctx.cfg.map.extend
+            ? deep(prev, val)
+            : val
   }
 
   jsonic.rule('val', (rs: RuleSpec) => {
-    rs.open(
-      [
-        // A pair key: `a: ...`
-        // Increment counter n.pk to indicate pair-key state (for extensions).
+    rs
+      .open(
+        [
+          // A pair key: `a: ...`
+          // Increment counter n.pk to indicate pair-key state (for extensions).
+          {
+            s: [KEY, CL],
+            p: 'map',
+            b: 2,
+            n: { pk: 1 },
+            g: 'pair,jsonic',
+          },
+
+          // A plain value: `x` `"x"` `1` `true` ....
+          { s: [VAL], g: 'val,json' },
+
+          // Implicit ends `{a:}` -> {"a":null}, `[a:]` -> [{"a":null}]
+          {
+            s: [[CB, CS]],
+            b: 1,
+            c: (r) => 0 < r.d,
+            g: 'val,imp,null,jsonic',
+          },
+
+          // Implicit list at top level: a,b.
+          {
+            s: [CA],
+            c: (r) => 0 === r.d,
+            // c: { n: { dlist: 0 } },
+            p: 'list',
+            b: 1,
+            g: 'list,imp,jsonic',
+          },
+
+          // Value is implicitly null when empty before commas.
+          { s: [CA], b: 1, g: 'list,val,imp,null,jsonic' },
+
+          { s: [ZZ], g: 'jsonic' },
+        ],
+        { append: true, delete: [2] }
+      )
+      .close(
+        [
+          // Explicitly close map or list: `}`, `]`
+          {
+            s: [[CB, CS]],
+            b: 1,
+            g: 'val,json,close',
+            e: (r, c) => (0 === r.d ? c.t0 : undefined),
+          },
+
+          // Implicit list (comma sep) only allowed at top level: `1,2`.
+          {
+            s: [CA],
+            // c: { n: { dlist: 0, dmap: 0 } },
+            c: (r) => r.lte('dlist') && r.lte('dmap'),
+            r: 'list',
+            u: { implist: true },
+            g: 'list,val,imp,comma,jsonic',
+          },
+
+          // Implicit list (space sep) only allowed at top level: `1 2`.
+          {
+            // c: { n: { dlist: 0, dmap: 0 } },
+            c: (r) => r.lte('dlist') && r.lte('dmap'),
+            r: 'list',
+            u: { implist: true },
+            g: 'list,val,imp,space,jsonic',
+            b: 1,
+          },
+
+          { s: [ZZ], g: 'jsonic' },
+        ],
         {
-          s: [KEY, CL],
-          p: 'map',
-          b: 2,
-          n: { pk: 1 },
-          g: 'pair,jsonic',
-        },
+          append: true,
 
-        // A plain value: `x` `"x"` `1` `true` ....
-        { s: [VAL], g: 'val,json' },
-
-        // Implicit ends `{a:}` -> {"a":null}, `[a:]` -> [{"a":null}]
-        {
-          s: [[CB, CS]],
-          b: 1,
-          c: (r) => 0 < r.d,
-          g: 'val,imp,null,jsonic',
-        },
-
-        // Implicit list at top level: a,b.
-        {
-          s: [CA],
-          c: (r) => 0 === r.d,
-          // c: { n: { dlist: 0 } },
-          p: 'list',
-          b: 1,
-          g: 'list,imp,jsonic',
-        },
-
-        // Value is implicitly null when empty before commas.
-        { s: [CA], b: 1, g: 'list,val,imp,null,jsonic' },
-
-        { s: [ZZ], g: 'jsonic' },
-      ],
-      { append: true, delete: [2] }
-    ).close(
-      [
-        // Explicitly close map or list: `}`, `]`
-        {
-          s: [[CB, CS]],
-          b: 1,
-          g: 'val,json,close',
-          e: (r, c) => (0 === r.d ? c.t0 : undefined),
-        },
-
-        // Implicit list (comma sep) only allowed at top level: `1,2`.
-        {
-          s: [CA],
-          c: { n: { dlist: 0, dmap: 0 } },
-          r: 'list',
-          u: { implist: true },
-          g: 'list,val,imp,comma,jsonic',
-        },
-
-        // Implicit list (space sep) only allowed at top level: `1 2`.
-        {
-          c: { n: { dlist: 0, dmap: 0 } },
-          r: 'list',
-          u: { implist: true },
-          g: 'list,val,imp,space,jsonic',
-          b: 1,
-        },
-
-        { s: [ZZ], g: 'jsonic' },
-      ],
-      {
-        append: true,
-
-        // Move "There's more JSON" to end.
-        move: [1, -1],
-      }
-    )
+          // Move "There's more JSON" to end.
+          move: [1, -1],
+        }
+      )
   })
 
   jsonic.rule('map', (rs: RuleSpec) => {
@@ -314,7 +321,12 @@ function grammar(jsonic: Jsonic) {
       .close(
         [
           // Normal end of map, no path dive.
-          { s: [CB], c: { n: { pk: 0 } }, g: 'end,json' },
+          {
+            s: [CB],
+            // c: { n: { pk: 0 } },
+            c: (r) => r.lte('pk'),
+            g: 'end,json'
+          },
 
           // Not yet at end of path dive, keep ascending.
           { s: [CB], b: 1, g: 'path,jsonic' },
@@ -364,13 +376,14 @@ function grammar(jsonic: Jsonic) {
 
   // sets key:val on node
   jsonic.rule('pair', (rs: RuleSpec, _p: Parser) => {
-    rs.open(
-      [
-        // Ignore initial comma: {,a:1.
-        { s: [CA], g: 'map,pair,comma,jsonic' },
-      ],
-      { append: true }
-    )
+    rs
+      .open(
+        [
+          // Ignore initial comma: {,a:1.
+          { s: [CA], g: 'map,pair,comma,jsonic' },
+        ],
+        { append: true }
+      )
 
       // NOTE: JSON pair.bc runs first, then this bc may override value.
       .bc((r: Rule, ctx: Context) => {
@@ -382,12 +395,18 @@ function grammar(jsonic: Jsonic) {
         [
           // End of map, reset implicit depth counter so that
           // a:b:c:1,d:2 -> {a:{b:{c:1}},d:2}
-          { s: [CB], c: { n: { pk: 0 } }, b: 1, g: 'map,pair,json' },
+          {
+            s: [CB],
+            // c: { n: { pk: 0 } },
+            c: (r) => r.lte('pk'),
+            b: 1, g: 'map,pair,json'
+          },
 
           // Ignore trailing comma at end of map.
           {
             s: [CA, CB],
-            c: { n: { pk: 0 } },
+            // c: { n: { pk: 0 } },
+            c: (r) => r.lte('pk'),
             b: 1,
             g: 'map,pair,comma,jsonic',
           },
@@ -395,13 +414,19 @@ function grammar(jsonic: Jsonic) {
           { s: [CA, ZZ], g: 'end,jsonic' },
 
           // Comma means a new pair at same pair-key level.
-          { s: [CA], c: { n: { pk: 0 } }, r: 'pair', g: 'map,pair,json' },
+          {
+            s: [CA],
+            // c: { n: { pk: 0 } },
+            c: (r) => r.lte('pk'),
+            r: 'pair', g: 'map,pair,json'
+          },
 
           // TODO: try CA VAL ? works anywhere?
           // Comma means a new pair if implicit top level map.
           {
             s: [CA],
-            c: { n: { dmap: 1 } },
+            // c: { n: { dmap: 1 } },
+            c: (r) => r.lte('dmap', 1),
             r: 'pair',
             g: 'map,pair,jsonic',
           },
@@ -411,7 +436,8 @@ function grammar(jsonic: Jsonic) {
           {
             // s: [VAL],
             s: [KEY],
-            c: { n: { dmap: 1 } },
+            // c: { n: { dmap: 1 } },
+            c: (r) => r.lte('dmap', 1),
             r: 'pair',
             b: 1,
             g: 'map,pair,imp,jsonic',
@@ -420,9 +446,9 @@ function grammar(jsonic: Jsonic) {
           // End of implicit path (eg. a:b:1), keep closing until pk=0.
           {
             s: [[CB, CA, CS, ...KEY]],
+            c: (r) => 0 < r.n.pk,
             b: 1,
             g: 'map,pair,imp,path,jsonic',
-            c: (r) => 0 < r.n.pk,
           },
 
           // Can't close a map with `]`
@@ -445,34 +471,35 @@ function grammar(jsonic: Jsonic) {
 
   // push onto node
   jsonic.rule('elem', (rs: RuleSpec, p: Parser) => {
-    rs.open([
-      // Empty commas insert null elements.
-      // Note that close consumes a comma, so b:2 works.
-      {
-        s: [CA, CA],
-        b: 2,
-        u: { done: true },
-        a: (r: Rule) => r.node.push(null),
-        g: 'list,elem,imp,null,jsonic',
-      },
+    rs
+      .open([
+        // Empty commas insert null elements.
+        // Note that close consumes a comma, so b:2 works.
+        {
+          s: [CA, CA],
+          b: 2,
+          u: { done: true },
+          a: (r: Rule) => r.node.push(null),
+          g: 'list,elem,imp,null,jsonic',
+        },
 
-      {
-        s: [CA],
-        u: { done: true },
-        a: (r: Rule) => r.node.push(null),
-        g: 'list,elem,imp,null,jsonic',
-      },
+        {
+          s: [CA],
+          u: { done: true },
+          a: (r: Rule) => r.node.push(null),
+          g: 'list,elem,imp,null,jsonic',
+        },
 
-      {
-        s: [KEY, CL],
-        e: p.cfg.list.property ? undefined : (_r: Rule, ctx: Context) => ctx.t0,
-        p: 'val',
-        n: { pk: 1, dmap: 1 },
-        u: { done: true, pair: true, list: true },
-        a: pairkey,
-        g: 'elem,pair,jsonic',
-      },
-    ])
+        {
+          s: [KEY, CL],
+          e: p.cfg.list.property ? undefined : (_r: Rule, ctx: Context) => ctx.t0,
+          p: 'val',
+          n: { pk: 1, dmap: 1 },
+          u: { done: true, pair: true, list: true },
+          a: pairkey,
+          g: 'elem,pair,jsonic',
+        },
+      ])
       .bc((r: Rule, ctx: Context) => {
         if (true === r.use.pair) {
           r.use.prev = r.node[r.use.key]

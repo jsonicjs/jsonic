@@ -235,6 +235,7 @@ export interface Rule {
     why?: string;
     need: number;
     process(ctx: Context, lex: Lex): Rule;
+    lte(counter: string, limit?: number): boolean;
 }
 export type Context = {
     uI: number;
@@ -449,10 +450,7 @@ export interface AltSpec {
     p?: string | AltNext | null | false;
     r?: string | AltNext | null | false;
     b?: number | AltBack | null | false;
-    c?: AltCond | {
-        d?: number;
-        n?: Counters;
-    };
+    c?: AltCond;
     n?: Counters;
     a?: AltAction;
     h?: AltModifier;

@@ -1,4 +1,4 @@
-/* Copyright (c) 2013-2022 Richard Rodger, MIT License */
+/* Copyright (c) 2013-2023 Richard Rodger, MIT License */
 
 /*  rules.ts
  *  Parser rules.
@@ -34,11 +34,9 @@ import {
   filterRules,
   isarr,
   tokenize,
-  // log_rule,
-  // log_node,
-  // log_parse,
   modlist,
 } from './utility'
+
 
 class RuleImpl implements Rule {
   i = -1
@@ -68,6 +66,7 @@ class RuleImpl implements Rule {
 
   need = 0
 
+
   constructor(spec: RuleSpec, ctx: Context, node?: any) {
     this.i = ctx.uI++ // Rule ids are unique only to the parse run.
     this.name = spec.name
@@ -90,20 +89,30 @@ class RuleImpl implements Rule {
     this.ac = null != spec.def.ac
   }
 
+
   process(ctx: Context, lex: Lex): Rule {
     let rule = this.spec.process(this, ctx, lex, this.state)
     return rule
   }
+
+
+  lte(counter: string, limit: number = 0): boolean {
+    let value = this.n[counter]
+    return null == value || value <= limit
+  }
+
 
   toString() {
     return '[Rule ' + this.name + '~' + this.i + ']'
   }
 }
 
+
 const makeRule = (...params: ConstructorParameters<typeof RuleImpl>) =>
   new RuleImpl(...params)
 
 const makeNoRule = (ctx: Context) => makeRule(makeRuleSpec(ctx.cfg, {}), ctx)
+
 
 // Parse-alternate match (built from current tokens and AltSpec).
 class AltMatchImpl implements AltMatch {
@@ -126,6 +135,7 @@ const makeAltMatch = (...params: ConstructorParameters<typeof AltMatchImpl>) =>
 const PALT: AltMatch = makeAltMatch() // Only one alt object is created.
 const EMPTY_ALT = makeAltMatch()
 
+
 class RuleSpecImpl implements RuleSpec {
   name = EMPTY // Set by Parser.rule
   def = {
@@ -138,6 +148,7 @@ class RuleSpecImpl implements RuleSpec {
     tcol: [] as Tin[][][],
   }
   cfg: Config
+
 
   // TODO: is def param used?
   constructor(cfg: Config, def: any) {
@@ -155,12 +166,14 @@ class RuleSpecImpl implements RuleSpec {
     }
   }
 
+
   // Convenience access to token Tins
   tin<R extends string | Tin, T extends R extends Tin ? string : Tin>(
     ref: R
   ): T {
     return tokenize(ref, this.cfg)
   }
+
 
   add(state: RuleState, a: AltSpec | AltSpec[], mods?: ListMods): RuleSpec {
     let inject = mods?.append ? 'push' : 'unshift'
@@ -181,13 +194,16 @@ class RuleSpecImpl implements RuleSpec {
     return this
   }
 
+
   open(a: AltSpec | AltSpec[], mods?: ListMods): RuleSpec {
     return this.add('o', a, mods)
   }
 
+
   close(a: AltSpec | AltSpec[], mods?: ListMods): RuleSpec {
     return this.add('c', a, mods)
   }
+
 
   action(
     append: boolean,
@@ -257,8 +273,6 @@ class RuleSpecImpl implements RuleSpec {
     // [stateI is o=0,c=1][tokenI is t0=0,t1=1][tins]
     const columns: Tin[][][] = []
 
-    // let name = this.name
-
     this.def.open.reduce(...collate(0, 0, columns))
     this.def.open.reduce(...collate(0, 1, columns))
     this.def.close.reduce(...collate(1, 0, columns))
@@ -275,7 +289,7 @@ class RuleSpecImpl implements RuleSpec {
       let tins = (columns[stateI][tokenI] = columns[stateI][tokenI] || [])
 
       return [
-        function (tins: any, alt: any) {
+        function(tins: any, alt: any) {
           if (alt.s && alt.s[tokenI]) {
             let newtins = [...new Set(tins.concat(alt.s[tokenI]))]
             tins.length = 0
@@ -291,8 +305,6 @@ class RuleSpecImpl implements RuleSpec {
   }
 
   process(rule: Rule, ctx: Context, lex: Lex, state: RuleState): Rule {
-    // Log rule here to ensure next tokens shown are correct.
-    // ctx.log && log_rule(ctx, rule, lex)
     ctx.log && ctx.log(S.rule, ctx, rule, lex)
 
     let is_open = state === 'o'
@@ -316,7 +328,6 @@ class RuleSpecImpl implements RuleSpec {
     }
 
     // Attempt to match one of the alts.
-    // let alt: AltMatch = (bout && bout.alt) ? { ...EMPTY_ALT, ...bout.alt } :
     let alt: AltMatch =
       0 < alts.length ? parse_alts(is_open, alts, lex, rule, ctx) : EMPTY_ALT
 
@@ -339,10 +350,10 @@ class RuleSpecImpl implements RuleSpec {
           0 === alt.n[cn]
             ? 0
             : // First seen, set to 0.
-              (null == rule.n[cn]
-                ? 0
-                : // Increment counter.
-                  rule.n[cn]) + alt.n[cn]
+            (null == rule.n[cn]
+              ? 0
+              : // Increment counter.
+              rule.n[cn]) + alt.n[cn]
       }
     }
 
@@ -404,9 +415,7 @@ class RuleSpecImpl implements RuleSpec {
     let afters = is_open ? (rule.ao ? def.ao : null) : rule.ac ? def.ac : null
     if (afters) {
       let aout: Token | void = undefined
-      // TODO: needed? let aout = after && after.call(this, rule, ctx, alt, next)
       for (let aI = 0; aI < afters.length; aI++) {
-        // aout = afters[aI].call(this, rule, ctx, next, aout)
         aout = afters[aI](rule, ctx, next, aout)
         if (aout?.isToken && aout?.err) {
           return this.bad(aout, rule, ctx, { is_open })
@@ -416,7 +425,6 @@ class RuleSpecImpl implements RuleSpec {
 
     next.why = why
 
-    // ctx.log && log_node(ctx, rule, lex, next)
     ctx.log && ctx.log(S.node, ctx, rule, lex, next)
 
     // Must be last as state change is for next process call.
@@ -492,7 +500,6 @@ function parse_alts(
   let cond: boolean = true
   let bitAA = 1 << (t.AA - 1)
 
-  // TODO: move up
   let IGNORE = ctx.cfg.tokenSetTins.IGNORE
 
   function next(r: Rule, alt: NormAltSpec, altI: number, tI: number) {
@@ -560,10 +567,6 @@ function parse_alts(
     }
   }
 
-  // if (!cond && t.ZZ !== ctx.t0.tin) {
-  //   out.e = ctx.t0
-  // }
-
   if (!cond) {
     out.e = ctx.t0
   }
@@ -602,7 +605,6 @@ function parse_alts(
 
   let match = altI < alts.length
 
-  // ctx.log && log_parse(ctx, rule, lex, match, cond, altI, alt, out)
   ctx.log && ctx.log(S.parse, ctx, rule, lex, match, cond, altI, alt, out)
 
   return out
@@ -610,48 +612,12 @@ function parse_alts(
 
 // Normalize AltSpec (mutates).
 function normalt(a: AltSpec): NormAltSpec {
-  if (null != a.c) {
-    // Convert counter and depth abbrev condition into an actual function.
-    // c: { x:1 } -> rule.n.x <= c.x
-    // c: { d:0 } -> 0 === rule stack depth
-
-    let counters = (a.c as any).n
-    let depth = (a.c as any).d
-    if (null != counters || null != depth) {
-      a.c = function (rule: Rule) {
-        let pass = true
-
-        //if (null! + counters) {
-        if (null != counters) {
-          for (let cn in counters) {
-            // Pass if rule counter <= alt counter, (0 if undef).
-            pass =
-              pass &&
-              (null == rule.n[cn] ||
-                rule.n[cn] <= (null == counters[cn] ? 0 : counters[cn]))
-          }
-        }
-
-        if (null != depth) {
-          pass = pass && rule.d <= depth
-        }
-
-        return pass
-      }
-
-      if (null != counters) {
-        ;(a.c as any).n = counters
-      }
-      if (null != depth) {
-        ;(a.c as any).d = depth
-      }
-    }
-  }
 
   // Ensure groups are a string[]
   if (STRING === typeof a.g) {
     a.g = (a as any).g.split(/\s*,\s*/)
-  } else if (null == a.g) {
+  }
+  else if (null == a.g) {
     a.g = []
   }
 
@@ -659,7 +625,8 @@ function normalt(a: AltSpec): NormAltSpec {
 
   if (!a.s || 0 === a.s.length) {
     a.s = null
-  } else {
+  }
+  else {
     const tinsify = (s: any[]): Tin[] =>
       s.flat().filter((tin) => 'number' === typeof tin)
 
@@ -681,17 +648,17 @@ function normalt(a: AltSpec): NormAltSpec {
     aa.S0 =
       0 < tins0.length
         ? new Array(Math.max(...tins0.map((tin) => (1 + tin / 31) | 0)))
-            .fill(null)
-            .map((_, i) => i)
-            .map((part) => bitify(partify(tins0, part), part))
+          .fill(null)
+          .map((_, i) => i)
+          .map((part) => bitify(partify(tins0, part), part))
         : null
 
     aa.S1 =
       0 < tins1.length
         ? new Array(Math.max(...tins1.map((tin) => (1 + tin / 31) | 0)))
-            .fill(null)
-            .map((_, i) => i)
-            .map((part) => bitify(partify(tins1, part), part))
+          .fill(null)
+          .map((_, i) => i)
+          .map((part) => bitify(partify(tins1, part), part))
         : null
   }
 

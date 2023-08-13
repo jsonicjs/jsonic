@@ -35,15 +35,18 @@ import { makeNoToken, makeLex, makePoint, makeToken } from './lexer'
 
 import { makeRule, makeNoRule, makeRuleSpec } from './rules'
 
+
 class ParserImpl implements Parser {
   options: Options
   cfg: Config
   rsm: RuleSpecMap = {}
 
+
   constructor(options: Options, cfg: Config) {
     this.options = options
     this.cfg = cfg
   }
+
 
   // TODO: ensure chains properly, both for create and extend rule
   // Multi-functional get/set for rules.
@@ -76,6 +79,7 @@ class ParserImpl implements Parser {
 
     return rs
   }
+
 
   start(src: string, jsonic: any, meta?: any, parent_ctx?: any): any {
     let root: Rule
@@ -177,7 +181,6 @@ class ParserImpl implements Parser {
 
       rule = rule.process(ctx, lex)
 
-      // ctx.log && log_stack(ctx, rule, lex)
       ctx.log && ctx.log(S.stack, ctx, rule, lex)
 
       kI++
@@ -198,6 +201,7 @@ class ParserImpl implements Parser {
     return result
   }
 
+
   clone(options: Options, config: Config) {
     let parser = new ParserImpl(options, config)
 
@@ -211,6 +215,7 @@ class ParserImpl implements Parser {
 
     return parser
   }
+
 
   norm() {
     values(this.rsm).map((rs: RuleSpec) => rs.norm())

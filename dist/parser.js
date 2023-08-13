@@ -110,7 +110,6 @@ class ParserImpl {
                 ctx.sub.rule.map((sub) => sub(rule, ctx));
             }
             rule = rule.process(ctx, lex);
-            // ctx.log && log_stack(ctx, rule, lex)
             ctx.log && ctx.log(utility_1.S.stack, ctx, rule, lex);
             kI++;
         }

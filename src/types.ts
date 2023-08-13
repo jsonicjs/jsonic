@@ -252,6 +252,7 @@ export type Options = {
   grammar$?: boolean
 }
 
+
 // Parsing rule specification. The rule OPEN and CLOSE state token
 // match alternates, and the associated actions, can be defined with a
 // chainable API.
@@ -328,6 +329,8 @@ export interface Rule {
   // Process the "open" or "close" state of the Rule, returning the
   // next rule to process.
   process(ctx: Context, lex: Lex): Rule
+
+  lte(counter: string, limit?: number): boolean
 }
 
 // The current parse state and associated context.
@@ -622,12 +625,12 @@ export interface AltSpec {
   // Condition function, return true to match alternate.
   // NOTE: Token sequence (s) must also match.
   c?:
-  | AltCond
-  | {
-    // Condition convenience definitions (all must pass).
-    d?: number // - Match if rule stack depth <= d.
-    n?: Counters // - Match if rule counters <= respective given values.
-  }
+  AltCond
+  // | {
+  //   // Condition convenience definitions (all must pass).
+  //   d?: number // - Match if rule stack depth <= d.
+  //   n?: Counters // - Match if rule counters <= respective given values.
+  // }
 
   n?: Counters // Increment counters by specified amounts.
   a?: AltAction // Perform an action if this alternate matches.

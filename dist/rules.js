@@ -1,5 +1,5 @@
 "use strict";
-/* Copyright (c) 2013-2022 Richard Rodger, MIT License */
+/* Copyright (c) 2013-2023 Richard Rodger, MIT License */
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.makeRuleSpec = exports.makeNoRule = exports.makeRule = void 0;
 const types_1 = require("./types");
@@ -41,6 +41,10 @@ class RuleImpl {
     process(ctx, lex) {
         let rule = this.spec.process(this, ctx, lex, this.state);
         return rule;
+    }
+    lte(counter, limit = 0) {
+        let value = this.n[counter];
+        return null == value || value <= limit;
     }
     toString() {
         return '[Rule ' + this.name + '~' + this.i + ']';
@@ -142,7 +146,6 @@ class RuleSpecImpl {
         this.def.close.map((alt) => normalt(alt));
         // [stateI is o=0,c=1][tokenI is t0=0,t1=1][tins]
         const columns = [];
-        // let name = this.name
         this.def.open.reduce(...collate(0, 0, columns));
         this.def.open.reduce(...collate(0, 1, columns));
         this.def.close.reduce(...collate(1, 0, columns));
@@ -166,8 +169,6 @@ class RuleSpecImpl {
         return this;
     }
     process(rule, ctx, lex, state) {
-        // Log rule here to ensure next tokens shown are correct.
-        // ctx.log && log_rule(ctx, rule, lex)
         ctx.log && ctx.log(utility_1.S.rule, ctx, rule, lex);
         let is_open = state === 'o';
         let next = is_open ? rule : ctx.NORULE;
@@ -187,7 +188,6 @@ class RuleSpecImpl {
             }
         }
         // Attempt to match one of the alts.
-        // let alt: AltMatch = (bout && bout.alt) ? { ...EMPTY_ALT, ...bout.alt } :
         let alt = 0 < alts.length ? parse_alts(is_open, alts, lex, rule, ctx) : EMPTY_ALT;
         // Custom alt handler.
         if (alt.h) {
@@ -267,9 +267,7 @@ class RuleSpecImpl {
         let afters = is_open ? (rule.ao ? def.ao : null) : rule.ac ? def.ac : null;
         if (afters) {
             let aout = undefined;
-            // TODO: needed? let aout = after && after.call(this, rule, ctx, alt, next)
             for (let aI = 0; aI < afters.length; aI++) {
-                // aout = afters[aI].call(this, rule, ctx, next, aout)
                 aout = afters[aI](rule, ctx, next, aout);
                 if ((aout === null || aout === void 0 ? void 0 : aout.isToken) && (aout === null || aout === void 0 ? void 0 : aout.err)) {
                     return this.bad(aout, rule, ctx, { is_open });
@@ -277,7 +275,6 @@ class RuleSpecImpl {
             }
         }
         next.why = why;
-        // ctx.log && log_node(ctx, rule, lex, next)
         ctx.log && ctx.log(utility_1.S.node, ctx, rule, lex, next);
         // Must be last as state change is for next process call.
         if (types_1.OPEN === rule.state) {
@@ -332,7 +329,6 @@ function parse_alts(is_open, alts, lex, rule, ctx) {
     let t = ctx.cfg.t;
     let cond = true;
     let bitAA = 1 << (t.AA - 1);
-    // TODO: move up
     let IGNORE = ctx.cfg.tokenSetTins.IGNORE;
     function next(r, alt, altI, tI) {
         let tkn;
@@ -389,9 +385,6 @@ function parse_alts(is_open, alts, lex, rule, ctx) {
             alt = null;
         }
     }
-    // if (!cond && t.ZZ !== ctx.t0.tin) {
-    //   out.e = ctx.t0
-    // }
     if (!cond) {
         out.e = ctx.t0;
     }
@@ -423,46 +416,11 @@ function parse_alts(is_open, alts, lex, rule, ctx) {
                 : out.b;
     }
     let match = altI < alts.length;
-    // ctx.log && log_parse(ctx, rule, lex, match, cond, altI, alt, out)
     ctx.log && ctx.log(utility_1.S.parse, ctx, rule, lex, match, cond, altI, alt, out);
     return out;
 }
 // Normalize AltSpec (mutates).
 function normalt(a) {
-    if (null != a.c) {
-        // Convert counter and depth abbrev condition into an actual function.
-        // c: { x:1 } -> rule.n.x <= c.x
-        // c: { d:0 } -> 0 === rule stack depth
-        let counters = a.c.n;
-        let depth = a.c.d;
-        if (null != counters || null != depth) {
-            a.c = function (rule) {
-                let pass = true;
-                //if (null! + counters) {
-                if (null != counters) {
-                    for (let cn in counters) {
-                        // Pass if rule counter <= alt counter, (0 if undef).
-                        pass =
-                            pass &&
-                                (null == rule.n[cn] ||
-                                    rule.n[cn] <= (null == counters[cn] ? 0 : counters[cn]));
-                    }
-                }
-                if (null != depth) {
-                    pass = pass && rule.d <= depth;
-                }
-                return pass;
-            };
-            if (null != counters) {
-                ;
-                a.c.n = counters;
-            }
-            if (null != depth) {
-                ;
-                a.c.d = depth;
-            }
-        }
-    }
     // Ensure groups are a string[]
     if (types_1.STRING === typeof a.g) {
         a.g = a.g.split(/\s*,\s*/);

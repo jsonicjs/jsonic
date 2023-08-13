@@ -79,7 +79,6 @@ describe('custom', () => {
                   pnt
                 )
 
-                // console.log('TKN', tkn)
                 return tkn
               }
             }
@@ -103,10 +102,6 @@ describe('custom', () => {
       rs.open([{ s: [DAY] }])
       return rs
     })
-
-    // console.log(j.debug.describe())
-    // console.log(j.internal().config)
-    // console.log(j.internal().config.lex)
 
     expect(j('a:1', { xlog: -1 })).toEqual({ a: 1 })
     expect(j('a:x', { xlog: -1 })).toEqual({ a: 'x' })
@@ -202,6 +197,7 @@ describe('custom', () => {
     expect(j('t0', { xlog: -1 })).toEqual('~T0~')
   })
 
+  
   it('parser-handler-actives', () => {
     let b = ''
     let j = make_norules({ rule: { start: 'top' } })
@@ -209,20 +205,21 @@ describe('custom', () => {
 
     let AA = j.token.AA
     j.rule('top', (rs) => {
-      rs.open([
-        {
-          s: [AA, AA],
-          h: (rule, ctx, alt) => {
-            // No effect: rule.bo - bo already called at this point.
-            // rule.bo = false
-            rule.ao = false
-            rule.bc = false
-            rule.ac = false
-            rule.node = 1111
-            return alt
+      rs
+        .open([
+          {
+            s: [AA, AA],
+            h: (rule, ctx, alt) => {
+              // No effect: rule.bo - bo already called at this point.
+              // rule.bo = false
+              rule.ao = false
+              rule.bc = false
+              rule.ac = false
+              rule.node = 1111
+              return alt
+            },
           },
-        },
-      ])
+        ])
         .close([{ s: [AA, AA] }])
         .bo(() => (b += 'bo;'))
         .ao(() => (b += 'ao;'))
@@ -230,11 +227,11 @@ describe('custom', () => {
         .ac(() => (b += 'ac;'))
     })
 
-    //expect(j('a b c d e f')).toEqual(1111)
     expect(j('a')).toEqual(1111)
     expect(b).toEqual('bo;') // m: is too late to avoid bo
   })
 
+  
   it('parser-action-errors', () => {
     let b = ''
     let j = make_norules({ rule: { start: 'top' } })
@@ -291,19 +288,19 @@ describe('custom', () => {
     expect(j('a')).toEqual('AC')
   })
 
+  
   it('parser-empty-seq', () => {
     let j = make_norules({ rule: { start: 'top' } })
 
     let AA = j.token.AA
 
     let rsdef = (rs) => rs.clear().open([{ s: [AA] }])
-    //.close([{ s: [AA] }])
-
     j.rule('top', (rs) => rsdef(rs).bo((rule) => (rule.node = 4444)))
 
     expect(j('a')).toEqual(4444)
   })
 
+  
   it('parser-alt-ops', () => {
     let j = make_norules({
       fixed: {
@@ -337,9 +334,6 @@ describe('custom', () => {
           ])
       )
     })
-
-    // j.use(Debug)
-    // console.log(j.debug.describe())
 
     expect(j('a', { xlog: -1 })).toEqual({ o: 'A' })
     expect(j.rule('top').def.open.map((alt) => alt.g[0])).toEqual(['E', 'ga'])
@@ -601,6 +595,7 @@ describe('custom', () => {
     expect(j('a:1,a:2,a:3')).toEqual({ a: 6 })
   })
 
+  
   it('parser-condition-depth', () => {
     expect(Jsonic('a:1')).toEqual({ a: 1 })
 
@@ -613,15 +608,30 @@ describe('custom', () => {
     let BT = j.token.B
 
     j.rule('top', (rs) =>
-      rs.open([{ p: 'foo', c: { d: 0 } }]).bo((r) => (r.node = { o: 'T' }))
+      rs.open([
+        { p: 'foo',
+          c: (r) => r.d<=0
+        }
+      ]).bo((r) => (r.node = { o: 'T' }))
     )
 
     j.rule('foo', (rs) =>
-      rs.open([{ s: [FT], p: 'bar', c: { d: 1 } }]).ao((r) => (r.node.o += 'F'))
+      rs.open([
+        {
+          s: [FT],
+          p: 'bar',
+          c: (r) => r.d<=1
+        }
+      ]).ao((r) => (r.node.o += 'F'))
     )
 
     j.rule('bar', (rs) =>
-      rs.open([{ s: [BT], c: { d: 2 } }]).ao((r) => (r.node.o += 'B'))
+      rs.open([
+        {
+          s: [BT],
+          c: (r) => r.d<=2
+        }
+      ]).ao((r) => (r.node.o += 'B'))
     )
 
     expect(j('fb')).toEqual({ o: 'TFB' })
@@ -629,13 +639,18 @@ describe('custom', () => {
     j.rule('bar', (rs) =>
       rs
         .clear()
-        .open([{ s: [BT], c: { d: 0 } }])
+        .open([
+          { s: [BT],
+            c: (r) => r.d<=0
+          }
+        ])
         .ao((r) => (r.node.o += 'B'))
     )
 
     expect(() => j('fb')).toThrow(/unexpected/)
   })
 
+  
   it('parser-condition-counter', () => {
     expect(Jsonic('a:1')).toEqual({ a: 1 })
 
@@ -656,13 +671,23 @@ describe('custom', () => {
 
     j.rule('foo', (rs) =>
       rs
-        .open([{ s: [FT], p: 'bar', c: { n: { x: 1, y: 2 } }, n: { y: 0 } }]) // (x <= 1, y <= 2) -> pass
+        .open([
+          { s: [FT], p: 'bar',
+            c: (r)=>r.lte('x',1)&&r.lte('y',2),
+            n: { y: 0 }
+          }
+        ]) // (x <= 1, y <= 2) -> pass
         .ao((r) => (r.node.o += 'F'))
     )
 
     j.rule('bar', (rs) =>
       rs
-        .open([{ s: [BT], c: { n: { x: 1, y: 0 } } }]) // (x <= 1, y <= 0) -> pass
+        .open([
+          {
+            s: [BT],
+            c: (r)=>r.lte('x',1)&&r.lte('y',0),
+          }
+        ]) // (x <= 1, y <= 0) -> pass
         .ao((r) => (r.node.o += 'B'))
     )
 
@@ -671,7 +696,12 @@ describe('custom', () => {
     j.rule('bar', (rs) =>
       rs
         .clear()
-        .open([{ s: [BT], c: { n: { x: 0 } } }]) // !(x <= 0) -> fail
+        .open([
+          {
+            s: [BT],
+            c: (r)=>r.lte('x')
+          }
+        ]) // !(x <= 0) -> fail
         .ao((r) => (r.node.o += 'B'))
     )
 

@@ -25,6 +25,7 @@ declare class RuleImpl implements Rule {
     need: number;
     constructor(spec: RuleSpec, ctx: Context, node?: any);
     process(ctx: Context, lex: Lex): Rule;
+    lte(counter: string, limit?: number): boolean;
     toString(): string;
 }
 declare const makeRule: (spec: RuleSpec, ctx: Context, node?: any) => RuleImpl;

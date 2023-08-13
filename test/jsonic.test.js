@@ -15,7 +15,12 @@
 
 // const I = Util.inspect
 
-const { Jsonic, JsonicError, makeRule, makeRuleSpec } = require('..')
+const {
+  Jsonic,
+  JsonicError,
+  makeRule,
+  makeRuleSpec
+} = require('..')
 const Exhaust = require('./exhaust')
 const Large = require('./large')
 const JsonStandard = require('./json-standard')
@@ -716,6 +721,7 @@ describe('jsonic', function () {
     expect(Jsonic.parse('a:1')).toEqual({ a: 1 })
   })
 
+  
   it('rule-spec', () => {
     let cfg = {}
 
@@ -725,30 +731,46 @@ describe('jsonic', function () {
     expect(rs0.def.close).toEqual([])
 
     let rs1 = j.makeRuleSpec(cfg, {
-      open: [{}, { c: () => true }, { c: { n: {} } }, { c: {} }],
+      open: [
+        {},
+        { c: () => true },
+        // { c: { n: {} } },
+        { c: (r)=>r.lte() },
+        { c: {} }
+      ],
     })
     expect(rs1.def.open[0].c).toEqual(undefined)
     expect(typeof rs1.def.open[1].c === 'function').toBeTruthy()
     expect(typeof rs1.def.open[2].c === 'function').toBeTruthy()
 
     let rs2 = j.makeRuleSpec(cfg, {
-      open: [{ c: { n: { a: 10, b: 20 } } }],
+      open: [
+        // { c: { n: { a: 10, b: 20 } } }
+        { c: (r)=>r.lte('a',10)&&r.lte('b',20) }
+      ],
     })
     let c0 = rs2.def.open[0].c
-    expect(c0({ n: {} })).toEqual(true)
-    expect(c0({ n: { a: 5 } })).toEqual(true)
-    expect(c0({ n: { a: 10 } })).toEqual(true)
-    expect(c0({ n: { a: 15 } })).toEqual(false)
-    expect(c0({ n: { b: 19 } })).toEqual(true)
-    expect(c0({ n: { b: 20 } })).toEqual(true)
-    expect(c0({ n: { b: 21 } })).toEqual(false)
+    // expect(c0({ n: {} })).toEqual(true)
+    let mr = (n)=>{
+      let r = makeRule({name:'',def:{}},{uI:0})
+      r.n = n
+      return r
+    }
+    expect(c0(mr({}))).toEqual(true)
+    expect(c0(mr({ a: 5 } ))).toEqual(true)
+    expect(c0(mr({ a: 10 } ))).toEqual(true)
+    expect(c0(mr({ a: 15 } ))).toEqual(false)
+    expect(c0(mr({ b: 19 } ))).toEqual(true)
+    expect(c0(mr({ b: 20 } ))).toEqual(true)
+    expect(c0(mr({ b: 21 } ))).toEqual(false)
 
-    expect(c0({ n: { a: 10, b: 20 } })).toEqual(true)
-    expect(c0({ n: { a: 10, b: 21 } })).toEqual(false)
-    expect(c0({ n: { a: 11, b: 21 } })).toEqual(false)
-    expect(c0({ n: { a: 11, b: 20 } })).toEqual(false)
+    expect(c0(mr({ a: 10, b: 20 } ))).toEqual(true)
+    expect(c0(mr({ a: 10, b: 21 } ))).toEqual(false)
+    expect(c0(mr({ a: 11, b: 21 } ))).toEqual(false)
+    expect(c0(mr({ a: 11, b: 20 } ))).toEqual(false)
   })
 
+  
   it('id-string', function () {
     let s0 = '' + Jsonic
     expect(s0.match(/Jsonic.*/)).toBeTruthy()
