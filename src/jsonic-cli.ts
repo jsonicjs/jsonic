@@ -1,12 +1,15 @@
-/* Copyright (c) 2020-2022 Richard Rodger, Oliver Sturm, and other contributors, MIT License */
+/* Copyright (c) 2020-2023 Richard Rodger, Oliver Sturm, and other contributors, MIT License */
+
 import Fs from 'fs'
 
 import { Jsonic, Plugin, Bag, util } from './jsonic'
 
 import { Debug } from './debug'
 
-// Make sure JsonicError is shown nicely.
-run(process.argv, console).catch((e) => console.error(e))
+
+if (require.main === module) {
+  run(process.argv, console).catch((e) => console.error(e))
+}
 
 export async function run(argv: string[], console: Console) {
   const args = {
@@ -98,8 +101,8 @@ export async function run(argv: string[], console: Console) {
   replacer = Array.isArray(replacer)
     ? replacer
     : null == replacer
-    ? null
-    : [replacer]
+      ? null
+      : [replacer]
 
   let json = JSON.stringify(data.val, replacer, space)
 

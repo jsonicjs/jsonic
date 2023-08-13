@@ -82,7 +82,7 @@ declare function clone(class_instance: any): any;
 declare function charset(...parts: (string | object | boolean | undefined)[]): Chars;
 declare function clean<T>(o: T): T;
 declare function filterRules(rs: RuleSpec, cfg: Config): RuleSpec;
-declare function prop(obj: any, path: string, val: any): any;
+declare function prop(obj: any, path: string, val?: any): any;
 declare function modlist(list: any[], mods?: ListMods): any[];
 declare function parserwrap(parser: any): {
     start: (src: string, jsonic: any, meta?: any, parent_ctx?: any) => any;

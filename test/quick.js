@@ -20,12 +20,27 @@ let j = Jsonic.make({
 }).use(Debug, { trace: true })
 // console.log(j.debug.describe())
 
+
 console.log(
   j(`
-a:1
-b:2
+srv: {
+  auth:
+    desc: "Authentication service"
+  user:
+    desc: "User profile service"
+  dash:
+    desc: "Dashboard service"
+}
 `)
 )
+
+
+// console.log(
+//   j(`
+// a:1
+// b:2
+// `)
+// )
 
 // console.log(j('{a:1,b:2}'))
 

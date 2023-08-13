@@ -10,7 +10,7 @@ export interface JsonicAPI {
     parse: JsonicParse;
     options: Options & ((change_options?: Bag) => Bag);
     config: () => Config;
-    make: (options?: Options) => Jsonic;
+    make: (options?: Options | string) => Jsonic;
     use: (plugin: Plugin, plugin_options?: Bag) => Jsonic;
     rule: (name?: string, define?: RuleDefiner | null) => Jsonic | RuleSpec | RuleSpecMap;
     empty: (options?: Options) => Jsonic;

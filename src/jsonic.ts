@@ -167,8 +167,8 @@ function make(param_options?: Bag | string, parent?: Jsonic): Jsonic {
     parent
       ? { ...parent.options }
       : false === (param_options as Bag)?.defaults$
-      ? {}
-      : defaults,
+        ? {}
+        : defaults,
     param_options ? param_options : {}
   )
 
@@ -223,7 +223,7 @@ function make(param_options?: Bag | string, parent?: Jsonic): Jsonic {
       if (S.function !== typeof plugin) {
         throw new Error(
           'Jsonic.use: the first argument must be a function ' +
-            'defining a plugin. See https://jsonic.senecajs.org/plugin'
+          'defining a plugin. See https://jsonic.senecajs.org/plugin'
         )
       }
 
@@ -247,21 +247,16 @@ function make(param_options?: Bag | string, parent?: Jsonic): Jsonic {
       return plugin(jsonic, merged_plugin_options) || jsonic
     },
 
+
     rule: (name?: string, define?: RuleDefiner | null) => {
       return jsonic.internal().parser.rule(name, define) || jsonic
     },
 
-    // lex: (matchmaker: MakeLexMatcher) => {
-    //   let match = merged_options.lex.match
-    //   match.unshift(matchmaker)
-    //   jsonic.options({
-    //     lex: { match },
-    //   })
-    // },
 
-    make: (options?: Options) => {
+    make: (options?: Options | string) => {
       return make(options, jsonic)
     },
+
 
     empty: (options?: Options) =>
       make({
@@ -271,6 +266,7 @@ function make(param_options?: Bag | string, parent?: Jsonic): Jsonic {
         ...(options || {}),
       }),
 
+
     id:
       'Jsonic/' +
       Date.now() +
@@ -278,9 +274,11 @@ function make(param_options?: Bag | string, parent?: Jsonic): Jsonic {
       ('' + Math.random()).substring(2, 8).padEnd(6, '0') +
       (null == options.tag ? '' : '/' + options.tag),
 
+
     toString: () => {
       return api.id
     },
+
 
     sub: (spec: { lex?: LexSub; rule?: RuleSub }) => {
       if (spec.lex) {
@@ -296,6 +294,7 @@ function make(param_options?: Bag | string, parent?: Jsonic): Jsonic {
 
     util,
   }
+
 
   // Has to be done indirectly as we are in a fuction named `make`.
   defprop(api.make, S.name, { value: S.make })

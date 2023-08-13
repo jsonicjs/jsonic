@@ -1,15 +1,16 @@
 "use strict";
+/* Copyright (c) 2020-2023 Richard Rodger, Oliver Sturm, and other contributors, MIT License */
 var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.run = void 0;
-/* Copyright (c) 2020-2022 Richard Rodger, Oliver Sturm, and other contributors, MIT License */
 const fs_1 = __importDefault(require("fs"));
 const jsonic_1 = require("./jsonic");
 const debug_1 = require("./debug");
-// Make sure JsonicError is shown nicely.
-run(process.argv, console).catch((e) => console.error(e));
+if (require.main === module) {
+    run(process.argv, console).catch((e) => console.error(e));
+}
 async function run(argv, console) {
     var _a;
     const args = {
