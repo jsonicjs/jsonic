@@ -113,7 +113,7 @@ class ParserImpl implements Parser {
       rsm: this.rsm,
       log: undefined,
       F: srcfmt(this.cfg),
-      use: {},
+      u: {},
       NOTOKEN: notoken,
       NORULE: {} as Rule,
     }

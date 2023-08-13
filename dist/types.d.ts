@@ -269,7 +269,7 @@ export type Context = {
     };
     log?: (...rest: any) => void;
     F: (s: any) => string;
-    use: Bag;
+    u: Bag;
     NOTOKEN: Token;
     NORULE: Rule;
 };

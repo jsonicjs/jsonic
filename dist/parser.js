@@ -64,7 +64,7 @@ class ParserImpl {
             rsm: this.rsm,
             log: undefined,
             F: (0, utility_1.srcfmt)(this.cfg),
-            use: {},
+            u: {},
             NOTOKEN: notoken,
             NORULE: {},
         };

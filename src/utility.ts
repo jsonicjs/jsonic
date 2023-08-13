@@ -1081,7 +1081,7 @@ function parserwrap(parser: any) {
                 n: {},
                 log: meta ? meta.log : undefined,
                 F: srcfmt(jsonic.internal().config),
-                use: {},
+                u: {},
                 NORULE: { name: 'no-rule' } as Rule,
                 NOTOKEN: { name: 'no-token' } as Token,
               } as Context),

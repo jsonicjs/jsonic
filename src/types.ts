@@ -365,7 +365,7 @@ export type Context = {
   // next: (r: Rule) => Token // Move to next token.
   log?: (...rest: any) => void // Log parse/lex step (if defined).
   F: (s: any) => string // Format arbitrary data as length-limited string.
-  use: Bag // Custom meta data (for use by plugins)
+  u: Bag // Custom meta data (for use by plugins)
   NOTOKEN: Token // Per parse "null" Token
   NORULE: Rule // Per parse "null" Rule
 }
