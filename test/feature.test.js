@@ -28,12 +28,12 @@ describe('feature', function () {
     expect(match({ a: { b: 1 } }, { a: { b: 2 } })).toEqual('$.a.b/val:1!=2')
     expect(match({ a: 1, b: 2 }, { a: 1 })).toBeUndefined()
     expect(match({ a: 1, b: 2 }, { a: 1 }, { miss: false })).toEqual(
-      '$/key:{a,b}!={a}'
+      '$/key:{a,b}!={a}',
     )
     expect(match([1], [])).toBeUndefined()
     expect(match([], [1])).toEqual('$[0]/val:undefined!=1')
     expect(match([2, 1], [undefined, 1], { miss: false })).toEqual(
-      '$[0]/val:2!=undefined'
+      '$[0]/val:2!=undefined',
     )
     expect(match([2, 1], [undefined, 1])).toBeUndefined()
   })
@@ -239,7 +239,7 @@ describe('feature', function () {
     expect(j('null,')).toEqual([null])
 
     expect(
-      j('a:true,b:false,c:null,d:{e:true,f:false,g:null},h:[true,false,null]')
+      j('a:true,b:false,c:null,d:{e:true,f:false,g:null},h:[true,false,null]'),
     ).toEqual({
       a: true,
       b: false,
@@ -1162,7 +1162,7 @@ describe('feature', function () {
           c[0],
           '->',
           out,
-          'I=' + i
+          'I=' + i,
         )
         console.log(' '.repeat(7 + c[0].length), '\x1b[1;34m', c[1])
       }

@@ -31,7 +31,7 @@ describe('error', function () {
 
   \u001b[2mhttps://jsonic.senecajs.org\u001b[0m
   \u001b[2m--internal: rule=val~open; token=#BD~foo; plugins=--\u001b[0m'
-`
+`,
       )
     }
   })
@@ -92,7 +92,7 @@ describe('error', function () {
           '\n' +
           '  \u001b[2mhttps://jsonic.senecajs.org\u001b[0m\n' +
           '  \u001b[2m--internal: rule=val~o; token=#BD~foo;' +
-          ' plugins=foo--\u001b[0m\n'
+          ' plugins=foo--\u001b[0m\n',
       )
     }
 
@@ -158,8 +158,8 @@ describe('error', function () {
       expect(
         JSON.stringify(e).includes(
           '{"code":"unexpected","details":{"state":"open"},' +
-            '"meta":{},"lineNumber":1,"columnNumber":1'
-        )
+            '"meta":{},"lineNumber":1,"columnNumber":1',
+        ),
       ).toBeTruthy()
     }
   })

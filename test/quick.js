@@ -20,7 +20,6 @@ let j = Jsonic.make({
 }).use(Debug, { trace: true })
 // console.log(j.debug.describe())
 
-
 console.log(
   j(`
 srv: {
@@ -31,9 +30,8 @@ srv: {
   dash:
     desc: "Dashboard service"
 }
-`)
+`),
 )
-
 
 // console.log(
 //   j(`

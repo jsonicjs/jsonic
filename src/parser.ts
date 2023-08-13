@@ -35,24 +35,21 @@ import { makeNoToken, makeLex, makePoint, makeToken } from './lexer'
 
 import { makeRule, makeNoRule, makeRuleSpec } from './rules'
 
-
 class ParserImpl implements Parser {
   options: Options
   cfg: Config
   rsm: RuleSpecMap = {}
-
 
   constructor(options: Options, cfg: Config) {
     this.options = options
     this.cfg = cfg
   }
 
-
   // TODO: ensure chains properly, both for create and extend rule
   // Multi-functional get/set for rules.
   rule(
     name?: string,
-    define?: RuleDefiner | null
+    define?: RuleDefiner | null,
   ): RuleSpec | RuleSpecMap | undefined {
     // If no name, get all the rules.
     if (null == name) {
@@ -80,7 +77,6 @@ class ParserImpl implements Parser {
     return rs
   }
 
-
   start(src: string, jsonic: any, meta?: any, parent_ctx?: any): any {
     let root: Rule
 
@@ -89,7 +85,7 @@ class ParserImpl implements Parser {
       tokenize('#ZZ', this.cfg),
       undefined,
       EMPTY,
-      makePoint(-1)
+      makePoint(-1),
     )
 
     let notoken = makeNoToken()
@@ -134,7 +130,7 @@ class ParserImpl implements Parser {
     }
 
     this.cfg.parse.prepare.forEach((prep: ParsePrepare) =>
-      prep(jsonic, ctx, meta)
+      prep(jsonic, ctx, meta),
     )
 
     // Special case - avoids extra per-token tests in main parser rules.
@@ -201,21 +197,19 @@ class ParserImpl implements Parser {
     return result
   }
 
-
   clone(options: Options, config: Config) {
     let parser = new ParserImpl(options, config)
 
     // Inherit rules from parent, filtered by config.rule
     parser.rsm = Object.keys(this.rsm).reduce(
       (a, rn) => ((a[rn] = filterRules(this.rsm[rn], this.cfg)), a),
-      {} as any
+      {} as any,
     )
 
     parser.norm()
 
     return parser
   }
-
 
   norm() {
     values(this.rsm).map((rs: RuleSpec) => rs.norm())

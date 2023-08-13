@@ -76,7 +76,7 @@ describe('custom', () => {
                   '#VL',
                   days[day],
                   lex.src.substring(pnt.sI, pnt.sI + daylen),
-                  pnt
+                  pnt,
                 )
 
                 return tkn
@@ -197,7 +197,6 @@ describe('custom', () => {
     expect(j('t0', { xlog: -1 })).toEqual('~T0~')
   })
 
-  
   it('parser-handler-actives', () => {
     let b = ''
     let j = make_norules({ rule: { start: 'top' } })
@@ -205,21 +204,20 @@ describe('custom', () => {
 
     let AA = j.token.AA
     j.rule('top', (rs) => {
-      rs
-        .open([
-          {
-            s: [AA, AA],
-            h: (rule, ctx, alt) => {
-              // No effect: rule.bo - bo already called at this point.
-              // rule.bo = false
-              rule.ao = false
-              rule.bc = false
-              rule.ac = false
-              rule.node = 1111
-              return alt
-            },
+      rs.open([
+        {
+          s: [AA, AA],
+          h: (rule, ctx, alt) => {
+            // No effect: rule.bo - bo already called at this point.
+            // rule.bo = false
+            rule.ao = false
+            rule.bc = false
+            rule.ac = false
+            rule.node = 1111
+            return alt
           },
-        ])
+        },
+      ])
         .close([{ s: [AA, AA] }])
         .bo(() => (b += 'bo;'))
         .ao(() => (b += 'ao;'))
@@ -231,7 +229,6 @@ describe('custom', () => {
     expect(b).toEqual('bo;') // m: is too late to avoid bo
   })
 
-  
   it('parser-action-errors', () => {
     let b = ''
     let j = make_norules({ rule: { start: 'top' } })
@@ -245,22 +242,22 @@ describe('custom', () => {
         .close([{ s: [AA, AA] }])
 
     j.rule('top', (rs) =>
-      rsdef(rs).bo((rule, ctx) => ctx.t0.bad('foo', { bar: 'BO' }))
+      rsdef(rs).bo((rule, ctx) => ctx.t0.bad('foo', { bar: 'BO' })),
     )
     expect(() => j('a')).toThrow(/foo.*BO/s)
 
     j.rule('top', (rs) =>
-      rsdef(rs).ao((rule, ctx) => ctx.t0.bad('foo', { bar: 'AO' }))
+      rsdef(rs).ao((rule, ctx) => ctx.t0.bad('foo', { bar: 'AO' })),
     )
     expect(() => j('a')).toThrow(/foo.*AO/s)
 
     j.rule('top', (rs) =>
-      rsdef(rs).bc((rule, ctx) => ctx.t0.bad('foo', { bar: 'BC' }))
+      rsdef(rs).bc((rule, ctx) => ctx.t0.bad('foo', { bar: 'BC' })),
     )
     expect(() => j('a')).toThrow(/foo.*BC/s)
 
     j.rule('top', (rs) =>
-      rsdef(rs).ac((rule, ctx) => ctx.t0.bad('foo', { bar: 'AC' }))
+      rsdef(rs).ac((rule, ctx) => ctx.t0.bad('foo', { bar: 'AC' })),
     )
     expect(() => j('a')).toThrow(/foo.*AC/s)
   })
@@ -288,7 +285,6 @@ describe('custom', () => {
     expect(j('a')).toEqual('AC')
   })
 
-  
   it('parser-empty-seq', () => {
     let j = make_norules({ rule: { start: 'top' } })
 
@@ -300,7 +296,6 @@ describe('custom', () => {
     expect(j('a')).toEqual(4444)
   })
 
-  
   it('parser-alt-ops', () => {
     let j = make_norules({
       fixed: {
@@ -331,7 +326,7 @@ describe('custom', () => {
           .open([
             { s: [ZZ], g: 'E' },
             { s: [Ta], r: 'top', a: (r) => (r.node.o += 'A'), g: 'ga' },
-          ])
+          ]),
       )
     })
 
@@ -341,7 +336,7 @@ describe('custom', () => {
     // Prepend by default
     j.use((j) => {
       j.rule('top', (rs) =>
-        rs.open([{ s: [Tb], r: 'top', a: (r) => (r.node.o += 'B'), g: 'gb' }])
+        rs.open([{ s: [Tb], r: 'top', a: (r) => (r.node.o += 'B'), g: 'gb' }]),
       )
     })
 
@@ -357,7 +352,7 @@ describe('custom', () => {
       j.rule('top', (rs) =>
         rs.open([{ s: [Tc], r: 'top', a: (r) => (r.node.o += 'C'), g: 'gc' }], {
           append: true,
-        })
+        }),
       )
     })
 
@@ -375,7 +370,7 @@ describe('custom', () => {
         rs.open([{ s: [Td], r: 'top', a: (r) => (r.node.o += 'D'), g: 'gd' }], {
           append: true,
           delete: [2],
-        })
+        }),
       )
     })
 
@@ -393,7 +388,7 @@ describe('custom', () => {
         rs.open([{ s: [Te], r: 'top', a: (r) => (r.node.o += 'E'), g: 'ge' }], {
           append: true,
           move: [2, -1, 0, 1],
-        })
+        }),
       )
     })
 
@@ -427,7 +422,7 @@ describe('custom', () => {
     let TX = j.token.TX
 
     j.rule('top', (rs) =>
-      rsdef(rs).ac((rule) => (rule.node = rule.o0.val + rule.o1.val))
+      rsdef(rs).ac((rule) => (rule.node = rule.o0.val + rule.o1.val)),
     )
 
     expect(j('a\nb')).toEqual('ab')
@@ -444,7 +439,7 @@ describe('custom', () => {
         .clear()
         .open([{ s: [AA] }])
         .close([{ s: [AA] }])
-        .ac((rule, ctx) => ctx.t0.bad('foo', { bar: 'AAA' }))
+        .ac((rule, ctx) => ctx.t0.bad('foo', { bar: 'AAA' })),
     )
 
     expect(() => j('a')).toThrow(/foo.*AAA/s)
@@ -472,7 +467,7 @@ describe('custom', () => {
     j.rule('top', (rs) =>
       rs
         .open([{ s: [Ta, [Tb, Tc]] }])
-        .ac((r) => (r.node = (r.o0.src + r.o1.src).toUpperCase()))
+        .ac((r) => (r.node = (r.o0.src + r.o1.src).toUpperCase())),
     )
 
     expect(j('ab')).toEqual('AB')
@@ -595,7 +590,6 @@ describe('custom', () => {
     expect(j('a:1,a:2,a:3')).toEqual({ a: 6 })
   })
 
-  
   it('parser-condition-depth', () => {
     expect(Jsonic('a:1')).toEqual({ a: 1 })
 
@@ -608,30 +602,32 @@ describe('custom', () => {
     let BT = j.token.B
 
     j.rule('top', (rs) =>
-      rs.open([
-        { p: 'foo',
-          c: (r) => r.d<=0
-        }
-      ]).bo((r) => (r.node = { o: 'T' }))
+      rs
+        .open([{ p: 'foo', c: (r) => r.d <= 0 }])
+        .bo((r) => (r.node = { o: 'T' })),
     )
 
     j.rule('foo', (rs) =>
-      rs.open([
-        {
-          s: [FT],
-          p: 'bar',
-          c: (r) => r.d<=1
-        }
-      ]).ao((r) => (r.node.o += 'F'))
+      rs
+        .open([
+          {
+            s: [FT],
+            p: 'bar',
+            c: (r) => r.d <= 1,
+          },
+        ])
+        .ao((r) => (r.node.o += 'F')),
     )
 
     j.rule('bar', (rs) =>
-      rs.open([
-        {
-          s: [BT],
-          c: (r) => r.d<=2
-        }
-      ]).ao((r) => (r.node.o += 'B'))
+      rs
+        .open([
+          {
+            s: [BT],
+            c: (r) => r.d <= 2,
+          },
+        ])
+        .ao((r) => (r.node.o += 'B')),
     )
 
     expect(j('fb')).toEqual({ o: 'TFB' })
@@ -639,18 +635,13 @@ describe('custom', () => {
     j.rule('bar', (rs) =>
       rs
         .clear()
-        .open([
-          { s: [BT],
-            c: (r) => r.d<=0
-          }
-        ])
-        .ao((r) => (r.node.o += 'B'))
+        .open([{ s: [BT], c: (r) => r.d <= 0 }])
+        .ao((r) => (r.node.o += 'B')),
     )
 
     expect(() => j('fb')).toThrow(/unexpected/)
   })
 
-  
   it('parser-condition-counter', () => {
     expect(Jsonic('a:1')).toEqual({ a: 1 })
 
@@ -666,18 +657,20 @@ describe('custom', () => {
     j.rule('top', (rs) =>
       rs
         .open([{ p: 'foo', n: { x: 1, y: 2 } }]) // incr x=1,y=2
-        .bo((r) => (r.node = { o: 'T' }))
+        .bo((r) => (r.node = { o: 'T' })),
     )
 
     j.rule('foo', (rs) =>
       rs
         .open([
-          { s: [FT], p: 'bar',
-            c: (r)=>r.lte('x',1)&&r.lte('y',2),
-            n: { y: 0 }
-          }
+          {
+            s: [FT],
+            p: 'bar',
+            c: (r) => r.lte('x', 1) && r.lte('y', 2),
+            n: { y: 0 },
+          },
         ]) // (x <= 1, y <= 2) -> pass
-        .ao((r) => (r.node.o += 'F'))
+        .ao((r) => (r.node.o += 'F')),
     )
 
     j.rule('bar', (rs) =>
@@ -685,10 +678,10 @@ describe('custom', () => {
         .open([
           {
             s: [BT],
-            c: (r)=>r.lte('x',1)&&r.lte('y',0),
-          }
+            c: (r) => r.lte('x', 1) && r.lte('y', 0),
+          },
         ]) // (x <= 1, y <= 0) -> pass
-        .ao((r) => (r.node.o += 'B'))
+        .ao((r) => (r.node.o += 'B')),
     )
 
     expect(j('fb')).toEqual({ o: 'TFB' })
@@ -699,10 +692,10 @@ describe('custom', () => {
         .open([
           {
             s: [BT],
-            c: (r)=>r.lte('x')
-          }
+            c: (r) => r.lte('x'),
+          },
         ]) // !(x <= 0) -> fail
-        .ao((r) => (r.node.o += 'B'))
+        .ao((r) => (r.node.o += 'B')),
     )
 
     expect(() => j('fb')).toThrow(/unexpected/)

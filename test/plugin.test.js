@@ -188,7 +188,7 @@ describe('plugin', function () {
       function foo(jsonic) {
         x = jsonic.options.plugin.foo.x
       },
-      { x: 1 }
+      { x: 1 },
     )
     expect(x).toEqual(1)
   })

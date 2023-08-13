@@ -39,7 +39,7 @@ export interface JsonicAPI {
   // Get and set parser rules.
   rule: (
     name?: string,
-    define?: RuleDefiner | null
+    define?: RuleDefiner | null,
   ) => Jsonic | RuleSpec | RuleSpecMap
 
   // Provide new lex matcher.
@@ -50,21 +50,21 @@ export interface JsonicAPI {
   // Token get and set for plugins. Reference by either name or Tin.
   // NOTE: creates token if not yet defined (but only for name).
   token: TokenMap &
-  TinMap &
-  (<A extends string | Tin>(ref: A) => A extends string ? Tin : string)
+    TinMap &
+    (<A extends string | Tin>(ref: A) => A extends string ? Tin : string)
 
   // TokenSet get and set for plugins. Reference by either name or Tin.
   // NOTE: name->Tin[], but Tin->name (of containing set)
   tokenSet: TokenSetMap &
-  TinSetMap &
-  (<A extends string | Tin>(ref: A) => A extends string ? Tin[] : string)
+    TinSetMap &
+    (<A extends string | Tin>(ref: A) => A extends string ? Tin[] : string)
 
   // Fixed token src get and set for plugins. Reference by either src or Tin.
   fixed: TokenMap &
-  TinMap &
-  (<A extends string | Tin>(
-    ref: A
-  ) => undefined | (A extends string ? Tin : string))
+    TinMap &
+    (<A extends string | Tin>(
+      ref: A,
+    ) => undefined | (A extends string ? Tin : string))
 
   // Unique identifier string for each Jsonic instance.
   id: string
@@ -85,7 +85,7 @@ export type Jsonic = JsonicParse & // A function that parses.
 // Define a plugin to extend the provided Jsonic instance.
 export type Plugin = ((
   jsonic: Jsonic,
-  plugin_options?: any
+  plugin_options?: any,
 ) => void | Jsonic) & {
   defaults?: Bag
   options?: Bag // TODO: InstalledPlugin.options is always defined ?
@@ -146,17 +146,17 @@ export type Options = {
     lex?: boolean
     def?: {
       [name: string]:
-      | {
-        line?: boolean
-        start?: string
-        end?: string
-        lex?: boolean
-        suffix?: string | string[] | LexMatcher
-        eatline: boolean
-      }
-      | null
-      | undefined
-      | false
+        | {
+            line?: boolean
+            start?: string
+            end?: string
+            lex?: boolean
+            suffix?: string | string[] | LexMatcher
+            eatline: boolean
+          }
+        | null
+        | undefined
+        | false
     }
     check?: LexCheck
   }
@@ -184,18 +184,18 @@ export type Options = {
     lex?: boolean
     def?: {
       [src: string]:
-      | undefined
-      | null
-      | false
-      | {
-        val: any
+        | undefined
+        | null
+        | false
+        | {
+            val: any
 
-        // RegExp values will always have lower priority than pure tokens
-        // as they are matched by the TextMatcher. For higher priority
-        // use the `match` option.
-        match?: RegExp
-        consume?: boolean
-      }
+            // RegExp values will always have lower priority than pure tokens
+            // as they are matched by the TextMatcher. For higher priority
+            // use the `match` option.
+            match?: RegExp
+            consume?: boolean
+          }
     }
   }
   ender?: string | string[]
@@ -244,14 +244,13 @@ export type Options = {
       src: string,
       jsonic: any,
       meta?: any,
-      parent_ctx?: any
+      parent_ctx?: any,
     ) => any
   }
   standard$?: boolean
   defaults$?: boolean
   grammar$?: boolean
 }
-
 
 // Parsing rule specification. The rule OPEN and CLOSE state token
 // match alternates, and the associated actions, can be defined with a
@@ -277,7 +276,7 @@ export interface RuleSpec {
     prepend: boolean,
     step: RuleStep,
     state: RuleState,
-    action: StateAction
+    action: StateAction,
   ): RuleSpec
   bo(first: StateAction | boolean, second?: StateAction): RuleSpec
   ao(first: StateAction | boolean, second?: StateAction): RuleSpec
@@ -378,13 +377,13 @@ export interface Lex {
     src: string,
     pnt?: Point,
     use?: any,
-    why?: string
+    why?: string,
   ): Token
 
   next(rule: Rule, alt?: NormAltSpec, altI?: number, tI?: number): Token
 
   tokenize<R extends string | Tin, T extends R extends Tin ? string : Tin>(
-    ref: R
+    ref: R,
   ): T
 
   bad(why: string, pstart: number, pend: number): Token
@@ -624,8 +623,7 @@ export interface AltSpec {
 
   // Condition function, return true to match alternate.
   // NOTE: Token sequence (s) must also match.
-  c?:
-  AltCond
+  c?: AltCond
   // | {
   //   // Condition convenience definitions (all must pass).
   //   d?: number // - Match if rule stack depth <= d.
@@ -639,8 +637,8 @@ export interface AltSpec {
   k?: Bag // Key-value custom data (propagated).
 
   g?:
-  | string // Named group tags for the alternate (allows filtering).
-  | string[] // - comma separated or string array
+    | string // Named group tags for the alternate (allows filtering).
+    | string[] // - comma separated or string array
 
   e?: AltError // Generate an error token (alternate is not allowed).
 }
@@ -713,17 +711,17 @@ export type RuleStep = 'b' | 'a'
 export type LexMatcher = (
   lex: Lex,
   rule: Rule,
-  tI?: number
+  tI?: number,
 ) => Token | undefined
 
 // Construct a lexing function based on configuration.
 export type MakeLexMatcher = (
   cfg: Config,
-  opts: Options
+  opts: Options,
 ) => LexMatcher | null | undefined | false
 
 export type LexCheck = (
-  lex: Lex
+  lex: Lex,
 ) => void | undefined | { done: boolean; token: Token | undefined }
 
 export type ParsePrepare = (jsonic: Jsonic, ctx: Context, meta?: any) => void
@@ -749,7 +747,7 @@ export type AltModifier = (
   rule: Rule,
   ctx: Context,
   alt: AltMatch,
-  next: Rule
+  next: Rule,
 ) => AltMatch
 
 // Execute an action when alternate matches.
@@ -759,14 +757,14 @@ export type AltAction = (rule: Rule, ctx: Context, alt: AltMatch) => any
 export type AltNext = (
   rule: Rule,
   ctx: Context,
-  alt: AltMatch
+  alt: AltMatch,
 ) => string | null | false | 0
 
 // Determine token push back.
 export type AltBack = (
   rule: Rule,
   ctx: Context,
-  alt: AltMatch
+  alt: AltMatch,
 ) => number | null | false
 
 // Execute an action for a given Rule state and step:
@@ -775,7 +773,7 @@ export type StateAction = (
   rule: Rule,
   ctx: Context,
   next: Rule,
-  out?: Token | void // TODO: why void?
+  out?: Token | void, // TODO: why void?
 ) => Token | void
 
 // Generate an error token (with an appropriate code).
@@ -783,14 +781,14 @@ export type StateAction = (
 export type AltError = (
   rule: Rule,
   ctx: Context,
-  alt: AltMatch
+  alt: AltMatch,
 ) => Token | undefined
 
 export type ValModifier = (
   val: any,
   lex: Lex,
   cfg: Config,
-  opts: Options
+  opts: Options,
 ) => string
 
 export type LexSub = (tkn: Token, rule: Rule, ctx: Context) => void
@@ -803,7 +801,7 @@ export interface Parser {
 
   rule(
     name?: string,
-    define?: RuleDefiner | null
+    define?: RuleDefiner | null,
   ): RuleSpec | RuleSpecMap | undefined
 
   start(src: string, jsonic: any, meta?: any, parent_ctx?: any): any

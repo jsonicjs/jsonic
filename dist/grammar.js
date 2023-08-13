@@ -110,8 +110,7 @@ function grammar(jsonic) {
     });
     // sets key:val on node
     jsonic.rule('pair', (rs) => {
-        rs
-            .open([
+        rs.open([
             // Match key-colon start of pair. Marker `pair=true` allows flexibility.
             {
                 s: [KEY, CL],
@@ -137,8 +136,7 @@ function grammar(jsonic) {
     });
     // push onto node
     jsonic.rule('elem', (rs) => {
-        rs
-            .open([
+        rs.open([
             // List elements are values.
             { p: 'val', g: 'list,elem,val,json' },
         ])
@@ -180,8 +178,7 @@ function grammar(jsonic) {
                         : val;
     };
     jsonic.rule('val', (rs) => {
-        rs
-            .open([
+        rs.open([
             // A pair key: `a: ...`
             // Increment counter n.pk to indicate pair-key state (for extensions).
             {
@@ -212,8 +209,7 @@ function grammar(jsonic) {
             // Value is implicitly null when empty before commas.
             { s: [CA], b: 1, g: 'list,val,imp,null,jsonic' },
             { s: [ZZ], g: 'jsonic' },
-        ], { append: true, delete: [2] })
-            .close([
+        ], { append: true, delete: [2] }).close([
             // Explicitly close map or list: `}`, `]`
             {
                 s: [[CB, CS]],
@@ -265,7 +261,7 @@ function grammar(jsonic) {
                 s: [CB],
                 // c: { n: { pk: 0 } },
                 c: (r) => r.lte('pk'),
-                g: 'end,json'
+                g: 'end,json',
             },
             // Not yet at end of path dive, keep ascending.
             { s: [CB], b: 1, g: 'path,jsonic' },
@@ -301,8 +297,7 @@ function grammar(jsonic) {
     });
     // sets key:val on node
     jsonic.rule('pair', (rs, _p) => {
-        rs
-            .open([
+        rs.open([
             // Ignore initial comma: {,a:1.
             { s: [CA], g: 'map,pair,comma,jsonic' },
         ], { append: true })
@@ -319,7 +314,8 @@ function grammar(jsonic) {
                 s: [CB],
                 // c: { n: { pk: 0 } },
                 c: (r) => r.lte('pk'),
-                b: 1, g: 'map,pair,json'
+                b: 1,
+                g: 'map,pair,json',
             },
             // Ignore trailing comma at end of map.
             {
@@ -335,7 +331,8 @@ function grammar(jsonic) {
                 s: [CA],
                 // c: { n: { pk: 0 } },
                 c: (r) => r.lte('pk'),
-                r: 'pair', g: 'map,pair,json'
+                r: 'pair',
+                g: 'map,pair,json',
             },
             // TODO: try CA VAL ? works anywhere?
             // Comma means a new pair if implicit top level map.
@@ -379,8 +376,7 @@ function grammar(jsonic) {
     });
     // push onto node
     jsonic.rule('elem', (rs, p) => {
-        rs
-            .open([
+        rs.open([
             // Empty commas insert null elements.
             // Note that close consumes a comma, so b:2 works.
             {

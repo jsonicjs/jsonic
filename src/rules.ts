@@ -37,7 +37,6 @@ import {
   modlist,
 } from './utility'
 
-
 class RuleImpl implements Rule {
   i = -1
   name = EMPTY
@@ -66,7 +65,6 @@ class RuleImpl implements Rule {
 
   need = 0
 
-
   constructor(spec: RuleSpec, ctx: Context, node?: any) {
     this.i = ctx.uI++ // Rule ids are unique only to the parse run.
     this.name = spec.name
@@ -89,30 +87,25 @@ class RuleImpl implements Rule {
     this.ac = null != spec.def.ac
   }
 
-
   process(ctx: Context, lex: Lex): Rule {
     let rule = this.spec.process(this, ctx, lex, this.state)
     return rule
   }
-
 
   lte(counter: string, limit: number = 0): boolean {
     let value = this.n[counter]
     return null == value || value <= limit
   }
 
-
   toString() {
     return '[Rule ' + this.name + '~' + this.i + ']'
   }
 }
 
-
 const makeRule = (...params: ConstructorParameters<typeof RuleImpl>) =>
   new RuleImpl(...params)
 
 const makeNoRule = (ctx: Context) => makeRule(makeRuleSpec(ctx.cfg, {}), ctx)
-
 
 // Parse-alternate match (built from current tokens and AltSpec).
 class AltMatchImpl implements AltMatch {
@@ -135,7 +128,6 @@ const makeAltMatch = (...params: ConstructorParameters<typeof AltMatchImpl>) =>
 const PALT: AltMatch = makeAltMatch() // Only one alt object is created.
 const EMPTY_ALT = makeAltMatch()
 
-
 class RuleSpecImpl implements RuleSpec {
   name = EMPTY // Set by Parser.rule
   def = {
@@ -149,7 +141,6 @@ class RuleSpecImpl implements RuleSpec {
   }
   cfg: Config
 
-
   // TODO: is def param used?
   constructor(cfg: Config, def: any) {
     this.cfg = cfg
@@ -158,7 +149,7 @@ class RuleSpecImpl implements RuleSpec {
     // Null Alt entries are allowed and ignored as a convenience.
     this.def.open = (this.def.open || []).filter((alt: AltSpec) => null != alt)
     this.def.close = (this.def.close || []).filter(
-      (alt: AltSpec) => null != alt
+      (alt: AltSpec) => null != alt,
     )
 
     for (let alt of [...this.def.open, ...this.def.close]) {
@@ -166,14 +157,12 @@ class RuleSpecImpl implements RuleSpec {
     }
   }
 
-
   // Convenience access to token Tins
   tin<R extends string | Tin, T extends R extends Tin ? string : Tin>(
-    ref: R
+    ref: R,
   ): T {
     return tokenize(ref, this.cfg)
   }
-
 
   add(state: RuleState, a: AltSpec | AltSpec[], mods?: ListMods): RuleSpec {
     let inject = mods?.append ? 'push' : 'unshift'
@@ -194,22 +183,19 @@ class RuleSpecImpl implements RuleSpec {
     return this
   }
 
-
   open(a: AltSpec | AltSpec[], mods?: ListMods): RuleSpec {
     return this.add('o', a, mods)
   }
-
 
   close(a: AltSpec | AltSpec[], mods?: ListMods): RuleSpec {
     return this.add('c', a, mods)
   }
 
-
   action(
     append: boolean,
     step: RuleStep,
     state: RuleState,
-    action: StateAction
+    action: StateAction,
   ): RuleSpec {
     let actions = (this.def as any)[step + state]
     if (append) {
@@ -225,7 +211,7 @@ class RuleSpecImpl implements RuleSpec {
       action ? !!append : true,
       BEFORE,
       OPEN,
-      action || (append as StateAction)
+      action || (append as StateAction),
     )
   }
 
@@ -234,7 +220,7 @@ class RuleSpecImpl implements RuleSpec {
       action ? !!append : true,
       AFTER,
       OPEN,
-      action || (append as StateAction)
+      action || (append as StateAction),
     )
   }
 
@@ -243,7 +229,7 @@ class RuleSpecImpl implements RuleSpec {
       second ? !!first : true,
       BEFORE,
       CLOSE,
-      second || (first as StateAction)
+      second || (first as StateAction),
     )
   }
 
@@ -252,7 +238,7 @@ class RuleSpecImpl implements RuleSpec {
       second ? !!first : true,
       AFTER,
       CLOSE,
-      second || (first as StateAction)
+      second || (first as StateAction),
     )
   }
 
@@ -283,13 +269,13 @@ class RuleSpecImpl implements RuleSpec {
     function collate(
       stateI: number,
       tokenI: number,
-      columns: Tin[][][]
+      columns: Tin[][][],
     ): [any, any] {
       columns[stateI] = columns[stateI] || []
       let tins = (columns[stateI][tokenI] = columns[stateI][tokenI] || [])
 
       return [
-        function(tins: any, alt: any) {
+        function (tins: any, alt: any) {
           if (alt.s && alt.s[tokenI]) {
             let newtins = [...new Set(tins.concat(alt.s[tokenI]))]
             tins.length = 0
@@ -350,10 +336,10 @@ class RuleSpecImpl implements RuleSpec {
           0 === alt.n[cn]
             ? 0
             : // First seen, set to 0.
-            (null == rule.n[cn]
-              ? 0
-              : // Increment counter.
-              rule.n[cn]) + alt.n[cn]
+              (null == rule.n[cn]
+                ? 0
+                : // Increment counter.
+                  rule.n[cn]) + alt.n[cn]
       }
     }
 
@@ -459,7 +445,7 @@ class RuleSpecImpl implements RuleSpec {
       },
       tkn,
       rule,
-      ctx
+      ctx,
     )
   }
 
@@ -481,7 +467,7 @@ function parse_alts(
   alts: NormAltSpec[],
   lex: Lex,
   rule: Rule,
-  ctx: Context
+  ctx: Context,
 ): AltMatch {
   let out = PALT
   out.b = 0 // Backtrack n tokens.
@@ -612,12 +598,10 @@ function parse_alts(
 
 // Normalize AltSpec (mutates).
 function normalt(a: AltSpec): NormAltSpec {
-
   // Ensure groups are a string[]
   if (STRING === typeof a.g) {
     a.g = (a as any).g.split(/\s*,\s*/)
-  }
-  else if (null == a.g) {
+  } else if (null == a.g) {
     a.g = []
   }
 
@@ -625,8 +609,7 @@ function normalt(a: AltSpec): NormAltSpec {
 
   if (!a.s || 0 === a.s.length) {
     a.s = null
-  }
-  else {
+  } else {
     const tinsify = (s: any[]): Tin[] =>
       s.flat().filter((tin) => 'number' === typeof tin)
 
@@ -636,7 +619,7 @@ function normalt(a: AltSpec): NormAltSpec {
     const bitify = (s: Tin[], part: number) =>
       s.reduce(
         (bits: number, tin: Tin) => (1 << (tin - (31 * part + 1))) | bits,
-        0
+        0,
       )
 
     const tins0: Tin[] = tinsify([a.s[0]])
@@ -648,17 +631,17 @@ function normalt(a: AltSpec): NormAltSpec {
     aa.S0 =
       0 < tins0.length
         ? new Array(Math.max(...tins0.map((tin) => (1 + tin / 31) | 0)))
-          .fill(null)
-          .map((_, i) => i)
-          .map((part) => bitify(partify(tins0, part), part))
+            .fill(null)
+            .map((_, i) => i)
+            .map((part) => bitify(partify(tins0, part), part))
         : null
 
     aa.S1 =
       0 < tins1.length
         ? new Array(Math.max(...tins1.map((tin) => (1 + tin / 31) | 0)))
-          .fill(null)
-          .map((_, i) => i)
-          .map((part) => bitify(partify(tins1, part), part))
+            .fill(null)
+            .map((_, i) => i)
+            .map((part) => bitify(partify(tins1, part), part))
         : null
   }
 

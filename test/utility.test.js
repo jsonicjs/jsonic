@@ -53,7 +53,7 @@ describe('utility', () => {
 
     // Delete and Add.
     expect(
-      omap(o0, ([k, v]) => [undefined, undefined, 'z' + k, v * 2])
+      omap(o0, ([k, v]) => [undefined, undefined, 'z' + k, v * 2]),
     ).toMatchObject({ zx: 2, zy: 4 })
   })
 
@@ -85,7 +85,9 @@ describe('utility', () => {
     expect(str([1, 2], 4)).toEqual('[...')
 
     expect(
-      str([1, 2, 3, 4, 5, 6, 7, 8, 9, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 0, 1, 2, 3])
+      str([
+        1, 2, 3, 4, 5, 6, 7, 8, 9, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 0, 1, 2, 3,
+      ]),
     ).toEqual('[1,2,3,4,5,6,7,8,9,0,1,2,3,4,5,6,7,8,9,0,...')
   })
 
@@ -127,7 +129,7 @@ describe('utility', () => {
         config: null,
         debug: null,
         map: null,
-      }
+      },
     )
 
     configure({}, {}, { debug: { print: null }, comment: { lex: true } })
@@ -289,7 +291,7 @@ describe('utility', () => {
       c: [{ d: 3 }],
     })
     expect(
-      deep({ a: 1, b: [2], c: [{ d: 3 }] }, { a: 4, b: [5], c: [{ d: 6 }] })
+      deep({ a: 1, b: [2], c: [{ d: 3 }] }, { a: 4, b: [5], c: [{ d: 6 }] }),
     ).toEqual({ a: 4, b: [5], c: [{ d: 6 }] })
 
     expect(deep([], {})).toEqual({})
@@ -354,7 +356,7 @@ describe('utility', () => {
     expect(I(kx)).toEqual('{ a: 1 }')
 
     expect(I(deep({}, { f: () => {}, a: 1 }))).toEqual(
-      '{ f: [Function: f], a: 1 }'
+      '{ f: [Function: f], a: 1 }',
     )
 
     class C0 {
@@ -472,7 +474,7 @@ describe('utility', () => {
       { d: 4, meta: { g: 7 }, opts: { e: 5 }, cfg: { f: 6 } },
     ]
     expect(errinject('x $code $a $b $c $d $e $f $g $Z x', ...args)).toEqual(
-      'x "c0" 1 2 3 4 5 6 7 "$Z" x'
+      'x "c0" 1 2 3 4 5 6 7 "$Z" x',
     )
   })
 
@@ -503,7 +505,7 @@ describe('utility', () => {
     expect(o0).toEqual({ a: 1, b: { c: 2 } })
 
     expect(() => prop(o0, 'a.d', 3)).toThrow(
-      'Cannot set path a.d on object: {"a":1,"b":{"c":2}} to value: 3'
+      'Cannot set path a.d on object: {"a":1,"b":{"c":2}} to value: 3',
     )
   })
 
@@ -854,7 +856,7 @@ describe('utility', () => {
       { x: 1 },
       { tin: 1 },
       {},
-      { ...ctx0, meta: { mode: 'm0', fileName: 'fn0' } }
+      { ...ctx0, meta: { mode: 'm0', fileName: 'fn0' } },
     )
     //console.log(d1)
     expect(d1.code).toEqual('not-a-code')

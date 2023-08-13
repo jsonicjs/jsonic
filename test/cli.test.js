@@ -141,7 +141,7 @@ describe('cli', function () {
         'plugin.p0.s=W',
         'a:W',
       ],
-      cn
+      cn,
     )
     expect(cn.d.log[0][0]).toEqual('{"a":0}')
 
@@ -164,7 +164,7 @@ describe('cli', function () {
         '../test/p1',
         'a:X,b:Y',
       ],
-      cn
+      cn,
     )
     expect(cn.d.log[0][0]).toEqual('{"a":0,"b":1}')
 
@@ -175,7 +175,7 @@ describe('cli', function () {
     cn = make_cn()
     await jr(
       [0, 0, '-p', '../test/pa-qa.js', '-o', 'plugin.paqa.q=3', 'a:Q'],
-      cn
+      cn,
     )
     expect(cn.d.log[0][0]).toEqual('{"a":3}')
 
@@ -196,7 +196,7 @@ describe('cli', function () {
         'plugin.directive.action=custom.x',
         'a:X',
       ],
-      cn
+      cn,
     )
     expect(cn.d.log[0][0]).toEqual('{"a":4}')
 
@@ -217,7 +217,7 @@ describe('cli', function () {
         'plugin.directive.action=custom.x',
         'a:X',
       ],
-      cn
+      cn,
     )
     expect(cn.d.log[0][0]).toEqual('{"a":5}')
   })

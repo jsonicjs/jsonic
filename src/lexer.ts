@@ -97,7 +97,7 @@ class TokenImpl implements Token {
     src: string,
     pnt: Point,
     use?: any,
-    why?: string
+    why?: string,
   ) {
     this.name = name
     this.tin = tin
@@ -324,7 +324,7 @@ let makeCommentMatcher: MakeLexMatcher = (cfg: Config, opts: Options) => {
         def[name] = cm
         return def
       },
-      {} as any
+      {} as any,
     ),
   }
 
@@ -426,7 +426,7 @@ let makeCommentMatcher: MakeLexMatcher = (cfg: Config, opts: Options) => {
           return lex.bad(
             S.unterminated_comment,
             pnt.sI,
-            pnt.sI + 9 * mc.start.length
+            pnt.sI + 9 * mc.start.length,
           )
         }
       }
@@ -551,7 +551,7 @@ let makeNumberMatcher: MakeLexMatcher = (cfg: Config, _opts: Options) => {
       .join('')
       .replace(/_/g, mcfg.sep ? escre(mcfg.sepChar as string) : ''),
     ')',
-    ...cfg.rePart.ender
+    ...cfg.rePart.ender,
   )
 
   let numberSep = mcfg.sep
@@ -829,7 +829,7 @@ let makeStringMatcher: MakeLexMatcher = (cfg: Config, opts: Options) => {
         '#ST',
         s.join(EMPTY),
         src.substring(pnt.sI, sI),
-        pnt
+        pnt,
       )
 
       pnt.sI = sI
@@ -923,7 +923,7 @@ let makeSpaceMatcher: MakeLexMatcher = (cfg: Config, _opts: Options) => {
 function subMatchFixed(
   lex: Lex,
   first: Token | undefined,
-  tsrc: string | undefined
+  tsrc: string | undefined,
 ): Token | undefined {
   let pnt = lex.pnt
   let out = first
@@ -972,7 +972,7 @@ class LexImpl implements Lex {
     src: string,
     pnt?: Point,
     use?: any,
-    why?: string
+    why?: string,
   ): Token {
     let tin: Tin
     let name: string
@@ -1020,7 +1020,7 @@ class LexImpl implements Lex {
             this.src[pnt.sI],
             pnt,
             { err },
-            err.code || S.unexpected
+            err.code || S.unexpected,
           )
       }
 
@@ -1032,7 +1032,7 @@ class LexImpl implements Lex {
           this.src[pnt.sI],
           pnt,
           undefined,
-          S.unexpected
+          S.unexpected,
         )
     }
 
@@ -1048,7 +1048,7 @@ class LexImpl implements Lex {
         tkn,
         alt,
         altI,
-        tI
+        tI,
       )
 
     // this.ctx.log &&
@@ -1062,7 +1062,7 @@ class LexImpl implements Lex {
   }
 
   tokenize<R extends string | Tin, T extends R extends Tin ? string : Tin>(
-    ref: R
+    ref: R,
   ): T {
     return tokenize(ref, this.cfg)
   }
@@ -1076,7 +1076,7 @@ class LexImpl implements Lex {
         : this.src[this.pnt.sI],
       undefined,
       undefined,
-      why
+      why,
     )
   }
 }

@@ -13,7 +13,7 @@ const strs = [
     gen: (r) =>
       '{' +
       Array.from({ length: r }).map(
-        (x) => '"' + Math.random() + '":' + Math.random()
+        (x) => '"' + Math.random() + '":' + Math.random(),
       ) +
       '}',
   },
@@ -57,7 +57,7 @@ function run(print, size, step) {
       }
       Fs.writeFileSync(
         './long-' + sI + '.csv',
-        d.map((x) => x.join('\t')).join('\n')
+        d.map((x) => x.join('\t')).join('\n'),
       )
     }
   } else {
@@ -78,7 +78,7 @@ function long(print, str, count, lencheck) {
   print && console.log(dur, Object.keys(d0).length)
   if (lencheck && Object.keys(d0).length !== count) {
     throw new Error(
-      str.substring(0, 76) + ' ' + count + '!==' + Object.keys(d0).length
+      str.substring(0, 76) + ' ' + count + '!==' + Object.keys(d0).length,
     )
   }
   return { dur, ms, me }

@@ -50,7 +50,7 @@ for (; i < end; i++) {
       'DUR',
       (now - startTime) / 1000,
       'MATCH',
-      Math.round((10000000 * (d - mismatch.length)) / d) / 100000
+      Math.round((10000000 * (d - mismatch.length)) / d) / 100000,
     )
   }
 
@@ -147,7 +147,7 @@ console.log(
   'DUR',
   (endTime - startTime) / 1000,
   'MATCH',
-  Math.round((10000000 * (d - mismatch.length)) / d) / 100000
+  Math.round((10000000 * (d - mismatch.length)) / d) / 100000,
 )
 
 Fs.closeSync(fd)

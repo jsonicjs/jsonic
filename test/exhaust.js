@@ -39,7 +39,7 @@ function exhaust(size, print) {
         ...mp.map((x) => 'lo_' + x),
         ...mp.map((x) => 'hi_' + x),
         ...mp.map((x) => 'in_' + x),
-      ].join(', ')
+      ].join(', '),
     )
   }
 
@@ -70,7 +70,7 @@ function exhaust(size, print) {
             ...mb,
             ...mt,
             ...m,
-          ].join(',')
+          ].join(','),
         )
       }
     }

@@ -50,7 +50,7 @@ describe('first-version', function () {
   it('fv-funky-input', function () {
     // Object values are just returned
     expect('{"foo":1,"bar":"zed"}').toEqual(
-      JSON.stringify(j({ foo: 1, bar: 'zed' }))
+      JSON.stringify(j({ foo: 1, bar: 'zed' })),
     )
 
     expect('["a","b"]').toEqual(JSON.stringify(j(['a', 'b'])))
@@ -88,7 +88,7 @@ describe('first-version', function () {
 
   it('fv-types', function () {
     let out = j(
-      't:{null:null,int:100,dec:9.9,t:true,f:false,qs:"a\\"a\'a",as:\'a"a\\\'a\'}'
+      't:{null:null,int:100,dec:9.9,t:true,f:false,qs:"a\\"a\'a",as:\'a"a\\\'a\'}',
     )
     expect(out).toEqual({
       t: {
@@ -103,7 +103,7 @@ describe('first-version', function () {
     })
 
     let out1 = j(
-      'null:null,int:100,dec:9.9,t:true,f:false,qs:"a\\"a\'a",as:\'a"a\\\'a\''
+      'null:null,int:100,dec:9.9,t:true,f:false,qs:"a\\"a\'a",as:\'a"a\\\'a\'',
     )
     expect(out1).toEqual({
       null: null,
@@ -204,8 +204,8 @@ describe('first-version', function () {
 
     expect(
       j(
-        "a:'x', aa: 'x' , b:'y\"z', bb: 'y\"z' ,bbb:\"y'z\", bbbb: \"y'z\", c:\"\\n\", d:'\\n'"
-      )
+        "a:'x', aa: 'x' , b:'y\"z', bb: 'y\"z' ,bbb:\"y'z\", bbbb: \"y'z\", c:\"\\n\", d:'\\n'",
+      ),
     ).toEqual({
       a: 'x',
       aa: 'x',
@@ -235,8 +235,8 @@ describe('first-version', function () {
 
     expect(
       j(
-        'x:0,a:102,b:1.2,c:1e2,d:1.2e3,e:1e+2,f:1e-2,g:1.2e+3,h:1.2e-3,i:-1.2e+3,j:-1.2e-3'
-      )
+        'x:0,a:102,b:1.2,c:1e2,d:1.2e3,e:1e+2,f:1e-2,g:1.2e+3,h:1.2e-3,i:-1.2e+3,j:-1.2e-3',
+      ),
     ).toEqual({
       x: 0,
       a: 102,

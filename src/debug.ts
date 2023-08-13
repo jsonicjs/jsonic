@@ -49,7 +49,7 @@ const Debug: Plugin = (jsonic: Jsonic, options: DebugOptions) => {
               te[1] +
               '\t' +
               ((s: string) => (s ? '"' + s + '"' : ''))(
-                cfg.fixed.ref[te[0] as string] || ''
+                cfg.fixed.ref[te[0] as string] || '',
               )
             )
           })
@@ -68,7 +68,7 @@ const Debug: Plugin = (jsonic: Jsonic, options: DebugOptions) => {
               rs.name +
               ':\n' +
               descAlt(jsonic, rs, 'open') +
-              descAlt(jsonic, rs, 'close')
+              descAlt(jsonic, rs, 'close'),
           )
           .join('\n\n'),
 
@@ -79,7 +79,7 @@ const Debug: Plugin = (jsonic: Jsonic, options: DebugOptions) => {
             (match &&
               match.map(
                 (m: any) =>
-                  m.order + ': ' + m.matcher + ' (' + m.make.name + ')'
+                  m.order + ': ' + m.matcher + ' (' + m.make.name + ')',
               )) ||
             []
           ).join('\n  '),
@@ -97,9 +97,9 @@ const Debug: Plugin = (jsonic: Jsonic, options: DebugOptions) => {
                   ? entries(p.options).reduce(
                       (s: string, e: any[]) =>
                         (s += '\n    ' + e[0] + ': ' + JSON.stringify(e[1])),
-                      ''
+                      '',
                     )
-                  : '')
+                  : ''),
             )
             .join('\n  '),
         '\n',
@@ -134,9 +134,9 @@ const Debug: Plugin = (jsonic: Jsonic, options: DebugOptions) => {
                     LOGKIND[kind](...rest)
                       .filter((item: any) => 'object' != typeof item)
                       .map((item: any) =>
-                        'function' == typeof item ? item.name : item
+                        'function' == typeof item ? item.name : item,
                       )
-                      .join('  ')
+                      .join('  '),
                   )
                 }
               })
@@ -169,7 +169,7 @@ function descAlt(jsonic: Jsonic, rs: RuleSpec, kind: 'open' | 'close') {
                       ? '***INVALID***'
                       : 'number' === typeof tin
                       ? jsonic.token[tin]
-                      : '[' + tin.map((t: any) => jsonic.token[t]) + ']'
+                      : '[' + tin.map((t: any) => jsonic.token[t]) + ']',
                   )
                   .join(' ') +
                 '] '
@@ -194,7 +194,7 @@ function descAlt(jsonic: Jsonic, rs: RuleSpec, kind: 'open' | 'close') {
                 : ' CN=' +
                   entries(a.c.n).map(([k, v]: [string, any]) => k + ':' + v)) +
               (null == a.c?.d ? '' : ' CD=' + a.c.d) +
-              (a.g ? '\tg=' + a.g : '')
+              (a.g ? '\tg=' + a.g : ''),
           )
           .join('\n') +
         '\n'
@@ -220,13 +220,13 @@ function ruleTree(jsonic: Jsonic, rn: string[], rsm: any) {
             ([n, d]: [string, string]) => [
               1 < d.length ? n : undefined,
               n + ': ' + d,
-            ]
-          )
+            ],
+          ),
         ).join('\n    ') +
         '\n'),
       a
     ),
-    ''
+    '',
   )
 }
 
@@ -234,14 +234,14 @@ function ruleTreeStep(
   rsm: any,
   name: string,
   state: 'open' | 'close',
-  step: 'p' | 'r'
+  step: 'p' | 'r',
 ) {
   return [
     ...new Set(
       rsm[name].def[state]
         .filter((alt: any) => alt[step])
         .map((alt: any) => alt[step])
-        .map((step: any) => ('string' === typeof step ? step : '<F>'))
+        .map((step: any) => ('string' === typeof step ? step : '<F>')),
     ),
   ].join(' ')
 }
@@ -301,7 +301,7 @@ function descAltSeq(alt: NormAltSpec, cfg: Config) {
           ? tokenize(tin, cfg)
           : Array.isArray(tin)
           ? '[' + tin.map((t: any) => tokenize(t, cfg)) + ']'
-          : ''
+          : '',
       )
       .join(' ') +
     '] '
@@ -358,7 +358,7 @@ const LOGKIND: any = {
 
     S.indent.repeat(rule.d) +
       (rule.name + '~' + rule.i + S.colon + LOG.RuleState[rule.state]).padEnd(
-        16
+        16,
       ),
 
     (
@@ -396,7 +396,7 @@ const LOGKIND: any = {
     cond: boolean,
     altI: number,
     alt: NormAltSpec | null,
-    out: AltMatch
+    out: AltMatch,
   ) => {
     let ns = match && out.n ? entries(out.n) : null
     let us = match && out.u ? entries(out.u) : null
@@ -437,7 +437,7 @@ const LOGKIND: any = {
     tkn: Token,
     alt?: NormAltSpec,
     altI?: number,
-    tI?: number
+    tI?: number,
   ) => [
     S.logindent + S.lex + S.space + S.space,
     descParseState(ctx, rule, lex),

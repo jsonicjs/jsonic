@@ -11,7 +11,7 @@ describe('variant', function () {
 
     expect(json('{"a":1}')).toEqual({ a: 1 })
     expect(
-      json('{"a":1,"b":"x","c":true,"d":{"e":[-1.1e2,{"f":null}]}}')
+      json('{"a":1,"b":"x","c":true,"d":{"e":[-1.1e2,{"f":null}]}}'),
     ).toEqual({ a: 1, b: 'x', c: true, d: { e: [-1.1e2, { f: null }] } })
     expect(json(' "a" ')).toEqual('a')
     expect(json('\r\n\t1.0\n')).toEqual(1.0)
@@ -114,7 +114,7 @@ describe('variant', function () {
     expect('' + tknlog).toEqual(
       'Token[#TX=10 a 0,1,1],' +
         'Token[#LN=6 .. 1,1,2],' +
-        'Token[#TX=10 b 3,3,1],Token[#ZZ=2  4,3,2],Token[#ZZ=2  4,3,2],Token[#ZZ=2  4,3,2],Token[#ZZ=2  4,3,2]'
+        'Token[#TX=10 b 3,3,1],Token[#ZZ=2  4,3,2],Token[#ZZ=2  4,3,2],Token[#ZZ=2  4,3,2],Token[#ZZ=2  4,3,2]',
     )
 
     expect(js('a\n\nb')).toEqual(['a', 'b'])
@@ -122,7 +122,7 @@ describe('variant', function () {
     expect('' + tknlogS).toEqual(
       'Token[#TX=10 a 0,1,1],' +
         'Token[#LN=6 . 1,1,2],Token[#LN=6 . 2,2,1],' +
-        'Token[#TX=10 b 3,3,1],Token[#ZZ=2  4,3,2],Token[#ZZ=2  4,3,2],Token[#ZZ=2  4,3,2],Token[#ZZ=2  4,3,2]'
+        'Token[#TX=10 b 3,3,1],Token[#ZZ=2  4,3,2],Token[#ZZ=2  4,3,2],Token[#ZZ=2  4,3,2],Token[#ZZ=2  4,3,2]',
     )
   })
 })

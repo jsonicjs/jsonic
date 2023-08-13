@@ -51,7 +51,7 @@ function run_parse() {
       ('' + Number(json_count / count).toFixed(1)).padEnd(6),
       JSON.stringify(out) === JSON.stringify(input.out)
         ? true
-        : 'FAIL: ' + JSON.stringify(out) + ' != ' + JSON.stringify(input.out)
+        : 'FAIL: ' + JSON.stringify(out) + ' != ' + JSON.stringify(input.out),
     )
   })
 }

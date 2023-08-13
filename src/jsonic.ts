@@ -162,16 +162,16 @@ function make(param_options?: Bag | string, parent?: Jsonic): Jsonic {
     parent
       ? { ...parent.options }
       : false === (param_options as Bag)?.defaults$
-        ? {}
-        : defaults,
-    param_options ? param_options : {}
+      ? {}
+      : defaults,
+    param_options ? param_options : {},
   )
 
   // Create primary parsing function
   let jsonic: any = function Jsonic(
     src: any,
     meta?: any,
-    parent_ctx?: any
+    parent_ctx?: any,
   ): any {
     if (S.string === typeof src) {
       let internal = jsonic.internal()
@@ -218,7 +218,7 @@ function make(param_options?: Bag | string, parent?: Jsonic): Jsonic {
       if (S.function !== typeof plugin) {
         throw new Error(
           'Jsonic.use: the first argument must be a function ' +
-          'defining a plugin. See https://jsonic.senecajs.org/plugin'
+            'defining a plugin. See https://jsonic.senecajs.org/plugin',
         )
       }
 
@@ -227,7 +227,7 @@ function make(param_options?: Bag | string, parent?: Jsonic): Jsonic {
       const full_plugin_options = deep(
         {},
         plugin.defaults || {},
-        plugin_options || {}
+        plugin_options || {},
       )
 
       jsonic.options({
@@ -242,16 +242,13 @@ function make(param_options?: Bag | string, parent?: Jsonic): Jsonic {
       return plugin(jsonic, merged_plugin_options) || jsonic
     },
 
-
     rule: (name?: string, define?: RuleDefiner | null) => {
       return jsonic.internal().parser.rule(name, define) || jsonic
     },
 
-
     make: (options?: Options | string) => {
       return make(options, jsonic)
     },
-
 
     empty: (options?: Options) =>
       make({
@@ -261,7 +258,6 @@ function make(param_options?: Bag | string, parent?: Jsonic): Jsonic {
         ...(options || {}),
       }),
 
-
     id:
       'Jsonic/' +
       Date.now() +
@@ -269,11 +265,9 @@ function make(param_options?: Bag | string, parent?: Jsonic): Jsonic {
       ('' + Math.random()).substring(2, 8).padEnd(6, '0') +
       (null == options.tag ? '' : '/' + options.tag),
 
-
     toString: () => {
       return api.id
     },
-
 
     sub: (spec: { lex?: LexSub; rule?: RuleSub }) => {
       if (spec.lex) {
@@ -289,7 +283,6 @@ function make(param_options?: Bag | string, parent?: Jsonic): Jsonic {
 
     util,
   }
-
 
   // Has to be done indirectly as we are in a fuction named `make`.
   defprop(api.make, S.name, { value: S.make })
@@ -329,7 +322,7 @@ function make(param_options?: Bag | string, parent?: Jsonic): Jsonic {
     internal.plugins = [...parent_internal.plugins]
     internal.parser = parent_internal.parser.clone(
       merged_options,
-      internal.config
+      internal.config,
     )
   } else {
     let rootWithAPI = { ...jsonic, ...api }
