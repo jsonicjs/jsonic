@@ -46,7 +46,7 @@ class ParserImpl {
             opts: this.options,
             cfg: this.cfg,
             meta: meta || {},
-            src: () => src,
+            src: () => src, // Avoid printing src
             root: () => root,
             plgn: () => jsonic.internal().plugins,
             inst: () => jsonic,
@@ -57,7 +57,7 @@ class ParserImpl {
             v1: endtkn,
             t0: notoken,
             t1: notoken,
-            tC: -2,
+            tC: -2, // Prepare count for 2-token lookahead.
             kI: -1,
             rs: [],
             rsI: 0,

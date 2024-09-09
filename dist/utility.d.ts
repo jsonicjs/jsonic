@@ -2,14 +2,14 @@ import type { Bag, Chars, Config, Context, Lex, Options, Rule, RuleSpec, Tin, To
 declare const keys: (x: any) => string[];
 declare const values: <T>(x: {
     [key: string]: T;
-} | null | undefined) => T[];
+} | undefined | null) => T[];
 declare const entries: <T>(x: {
     [key: string]: T;
-} | null | undefined) => [string, T][];
+} | undefined | null) => [string, T][];
 declare const assign: (x: any, ...r: any[]) => any;
-declare const isarr: (x: any) => boolean;
+declare const isarr: (x: any) => x is any[];
 declare const defprop: <T>(o: T, p: PropertyKey, attributes: PropertyDescriptor & ThisType<any>) => T;
-declare const omap: (o: any, f?: ((e: any) => any) | undefined) => any;
+declare const omap: (o: any, f?: (e: any) => any) => any;
 declare const S: {
     indent: string;
     logindent: string;

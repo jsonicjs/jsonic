@@ -1,4 +1,0 @@
-# Reference
-
-Lorem ipsum
-

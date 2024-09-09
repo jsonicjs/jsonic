@@ -299,9 +299,9 @@ const LOGKIND = {
             // S.indent.repeat(rule.d) + S.lex, // Log entry prefix.
             // Name of token from tin (token identification numer).
             tokenize(tkn.tin, ctx.cfg),
-        ctx.F(tkn.src),
-        pnt.sI,
-        pnt.rI + ':' + pnt.cI,
+        ctx.F(tkn.src), // Format token src for log.
+        pnt.sI, // Current source index.
+        pnt.rI + ':' + pnt.cI, // Row and column.
         (match === null || match === void 0 ? void 0 : match.name) || '',
         alt
             ? 'on:alt=' +

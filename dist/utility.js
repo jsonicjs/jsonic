@@ -1,7 +1,30 @@
 "use strict";
 /* Copyright (c) 2013-2022 Richard Rodger, MIT License */
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.modlist = exports.findTokenSet = exports.values = exports.keys = exports.omap = exports.str = exports.prop = exports.parserwrap = exports.trimstk = exports.tokenize = exports.srcfmt = exports.snip = exports.regexp = exports.mesc = exports.makelog = exports.isarr = exports.filterRules = exports.extract = exports.escre = exports.errinject = exports.errdesc = exports.entries = exports.defprop = exports.deep = exports.configure = exports.clone = exports.clean = exports.charset = exports.badlex = exports.assign = exports.S = exports.JsonicError = void 0;
+exports.values = exports.keys = exports.omap = exports.isarr = exports.entries = exports.defprop = exports.assign = exports.S = exports.JsonicError = void 0;
+exports.badlex = badlex;
+exports.charset = charset;
+exports.clean = clean;
+exports.clone = clone;
+exports.configure = configure;
+exports.deep = deep;
+exports.errdesc = errdesc;
+exports.errinject = errinject;
+exports.escre = escre;
+exports.extract = extract;
+exports.filterRules = filterRules;
+exports.makelog = makelog;
+exports.mesc = mesc;
+exports.regexp = regexp;
+exports.snip = snip;
+exports.srcfmt = srcfmt;
+exports.tokenize = tokenize;
+exports.trimstk = trimstk;
+exports.parserwrap = parserwrap;
+exports.prop = prop;
+exports.str = str;
+exports.findTokenSet = findTokenSet;
+exports.modlist = modlist;
 const types_1 = require("./types");
 const lexer_1 = require("./lexer");
 // Null-safe object and array utilities
@@ -206,7 +229,7 @@ function configure(jsonic, incfg, opts) {
     cfg.text = {
         lex: !!((_q = opts.text) === null || _q === void 0 ? void 0 : _q.lex),
         modify: (((_r = cfg.text) === null || _r === void 0 ? void 0 : _r.modify) || [])
-            .concat(([(_s = opts.text) === null || _s === void 0 ? void 0 : _s.modify] || []).flat())
+            .concat((((_s = opts.text) === null || _s === void 0 ? void 0 : _s.modify) ? [opts.text.modify] : []).flat())
             .filter((m) => null != m),
         check: (_t = opts.text) === null || _t === void 0 ? void 0 : _t.check,
     };
@@ -347,7 +370,6 @@ function configure(jsonic, incfg, opts) {
     assign(jsonic.fixed, cfg.fixed.ref);
     return cfg;
 }
-exports.configure = configure;
 // Uniquely resolve or assign token by name (string) or identification number (Tin),
 // returning the associated Tin (for the name) or name (for the Tin).
 function tokenize(ref, cfg, jsonic) {
@@ -364,19 +386,16 @@ function tokenize(ref, cfg, jsonic) {
     }
     return token;
 }
-exports.tokenize = tokenize;
 // Find a tokenSet by name, or find the name of the TokenSet containing a given Tin.
 function findTokenSet(ref, cfg) {
     let tokenSetMap = cfg.tokenSet;
     let found = tokenSetMap[ref];
     return found;
 }
-exports.findTokenSet = findTokenSet;
 // Mark a string for escaping by `util.regexp`.
 function mesc(s, _) {
     return (_ = new String(s)), (_.esc = true), _;
 }
-exports.mesc = mesc;
 // Construct a RegExp. Use mesc to mark string for escaping.
 // NOTE: flags first allows concatenated parts to be rest.
 function regexp(flags, ...parts) {
@@ -387,7 +406,6 @@ function regexp(flags, ...parts) {
         : p)
         .join(types_1.EMPTY), null == flags ? '' : flags);
 }
-exports.regexp = regexp;
 function escre(s) {
     return null == s
         ? ''
@@ -397,7 +415,6 @@ function escre(s) {
             .replace(/\r/g, '\\r')
             .replace(/\n/g, '\\n');
 }
-exports.escre = escre;
 // Deep override for plain data. Mutates base object and array.
 // Array merge by `over` index, `over` wins non-matching types, except:
 // `undefined` always loses, `over` plain objects inject into functions,
@@ -436,7 +453,6 @@ function deep(base, ...rest) {
     }
     return base;
 }
-exports.deep = deep;
 // Inject value text into an error message. The value is taken from
 // the `details` parameter to JsonicError. If not defined, the value is
 // determined heuristically from the Token and Context.
@@ -467,7 +483,6 @@ function errinject(s, code, details, token, rule, ctx) {
             return instr.replace(/\n/g, '\n  ');
         });
 }
-exports.errinject = errinject;
 // Remove Jsonic internal lines as spurious for caller.
 function trimstk(err) {
     if (err.stack) {
@@ -478,7 +493,6 @@ function trimstk(err) {
             .join('\n');
     }
 }
-exports.trimstk = trimstk;
 function extract(src, errtxt, token) {
     let loc = 0 < token.sI ? token.sI : 0;
     let row = 0 < token.rI ? token.rI : 1;
@@ -512,7 +526,6 @@ function extract(src, errtxt, token) {
         .join('\n');
     return lines;
 }
-exports.extract = extract;
 function errdesc(code, details, token, rule, ctx) {
     var _a, _b, _c;
     try {
@@ -581,7 +594,6 @@ function errdesc(code, details, token, rule, ctx) {
         return {};
     }
 }
-exports.errdesc = errdesc;
 function badlex(lex, BD, ctx) {
     let next = lex.next.bind(lex);
     lex.next = (rule, alt, altI, tI) => {
@@ -597,7 +609,6 @@ function badlex(lex, BD, ctx) {
     };
     return lex;
 }
-exports.badlex = badlex;
 // Special debug logging to console (use Jsonic('...', {log:N})).
 // log:N -> console.dir to depth N
 // log:-1 -> console.dir to depth 1, omitting objects (good summary!)
@@ -632,7 +643,6 @@ function makelog(ctx, meta) {
     }
     return ctx.log;
 }
-exports.makelog = makelog;
 function srcfmt(config) {
     return 'function' === typeof config.debug.print.src
         ? config.debug.print.src
@@ -654,7 +664,6 @@ function srcfmt(config) {
             return out;
         };
 }
-exports.srcfmt = srcfmt;
 function str(o, len = 44) {
     let s;
     try {
@@ -665,17 +674,14 @@ function str(o, len = 44) {
     }
     return snip(len < s.length ? s.substring(0, len - 3) + '...' : s, len);
 }
-exports.str = str;
 function snip(s, len = 5) {
     return undefined === s
         ? ''
         : ('' + s).substring(0, len).replace(/[\r\n\t]/g, '.');
 }
-exports.snip = snip;
 function clone(class_instance) {
     return deep(Object.create(Object.getPrototypeOf(class_instance)), class_instance);
 }
-exports.clone = clone;
 // Lookup map for a set of chars.
 function charset(...parts) {
     return null == parts
@@ -687,7 +693,6 @@ function charset(...parts) {
             .split(types_1.EMPTY)
             .reduce((a, c) => ((a[c] = c.charCodeAt(0)), a), {});
 }
-exports.charset = charset;
 // Remove all properties with values null or undefined. Note: mutates argument.
 function clean(o) {
     for (let p in o) {
@@ -697,7 +702,6 @@ function clean(o) {
     }
     return o;
 }
-exports.clean = clean;
 // TODO: rename to filterAlts
 function filterRules(rs, cfg) {
     let rsnames = ['open', 'close'];
@@ -717,7 +721,6 @@ function filterRules(rs, cfg) {
     }
     return rs;
 }
-exports.filterRules = filterRules;
 function prop(obj, path, val) {
     let root = obj;
     try {
@@ -744,7 +747,6 @@ function prop(obj, path, val) {
             (undefined === val ? '' : ' to value: ' + str(val, 22)));
     }
 }
-exports.prop = prop;
 // Mutates list based on ListMods.
 function modlist(list, mods) {
     if (mods && list) {
@@ -787,7 +789,6 @@ function modlist(list, mods) {
     }
     return list;
 }
-exports.modlist = modlist;
 function parserwrap(parser) {
     return {
         start: function (src, 
@@ -837,7 +838,7 @@ function parserwrap(parser) {
                             v2: token,
                             v1: token,
                             t0: token,
-                            t1: token,
+                            t1: token, // TODO: should be end token
                             tC: -1,
                             kI: -1,
                             rs: [],
@@ -858,5 +859,4 @@ function parserwrap(parser) {
         },
     };
 }
-exports.parserwrap = parserwrap;
 //# sourceMappingURL=utility.js.map

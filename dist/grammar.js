@@ -1,7 +1,8 @@
 "use strict";
 /* Copyright (c) 2013-2023 Richard Rodger, MIT License */
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.makeJSON = exports.grammar = void 0;
+exports.grammar = grammar;
+exports.makeJSON = makeJSON;
 function grammar(jsonic) {
     const { deep } = jsonic.util;
     const { 
@@ -423,7 +424,6 @@ function grammar(jsonic) {
         ], { delete: [-1, -2] });
     });
 }
-exports.grammar = grammar;
 function makeJSON(jsonic) {
     let justJSON = jsonic.make({
         grammar$: false,
@@ -453,5 +453,4 @@ function makeJSON(jsonic) {
     grammar(justJSON);
     return justJSON;
 }
-exports.makeJSON = makeJSON;
 //# sourceMappingURL=grammar.js.map

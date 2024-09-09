@@ -23,14 +23,14 @@ declare const util: {
     str: typeof str;
     clean: typeof clean;
     deep: typeof deep;
-    omap: (o: any, f?: ((e: any) => any) | undefined) => any;
+    omap: (o: any, f?: (e: any) => any) => any;
     keys: (x: any) => string[];
     values: <T>(x: {
         [key: string]: T;
-    } | null | undefined) => T[];
-    entries: <T_1>(x: {
-        [key: string]: T_1;
-    } | null | undefined) => [string, T_1][];
+    } | undefined | null) => T[];
+    entries: <T>(x: {
+        [key: string]: T;
+    } | undefined | null) => [string, T][];
 };
 type Jsonic = JsonicParse & // A function that parses.
 JsonicAPI & {
