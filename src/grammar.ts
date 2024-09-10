@@ -1,4 +1,4 @@
-/* Copyright (c) 2013-2023 Richard Rodger, MIT License */
+/* Copyright (c) 2013-2024 Richard Rodger, MIT License */
 
 /*  grammar.ts
  *  Grammar definition.
@@ -8,6 +8,7 @@
  */
 
 import { Jsonic, Rule, RuleSpec, Context, Parser, AltError } from './jsonic'
+
 
 function grammar(jsonic: Jsonic) {
   const { deep } = jsonic.util
@@ -36,8 +37,8 @@ function grammar(jsonic: Jsonic) {
 
   const finish: AltError = (_rule: Rule, ctx: Context) => {
     if (!ctx.cfg.rule.finish) {
-      // TODO: FIX! needs own error code
-      ctx.t0.src = 'END_OF_SOURCE'
+      // TODO: pass missing end char for replacement in error message
+      ctx.t0.err = 'end_of_source'
       return ctx.t0
     }
   }
@@ -88,13 +89,13 @@ function grammar(jsonic: Jsonic) {
           // If there's no node,
           undefined === r.node
             ? // ... or no child node (child map or list),
-              undefined === r.child.node
+            undefined === r.child.node
               ? // ... or no matched tokens,
-                0 === r.os
+              0 === r.os
                 ? // ... then the node has no value
-                  undefined
+                undefined
                 : // .. otherwise use the token value
-                  r.o0.resolveVal(r, ctx)
+                r.o0.resolveVal(r, ctx)
               : r.child.node
             : r.node
       })
@@ -210,10 +211,10 @@ function grammar(jsonic: Jsonic) {
       null == prev
         ? val
         : ctx.cfg.map.merge
-        ? ctx.cfg.map.merge(prev, val, r, ctx)
-        : ctx.cfg.map.extend
-        ? deep(prev, val)
-        : val
+          ? ctx.cfg.map.merge(prev, val, r, ctx)
+          : ctx.cfg.map.extend
+            ? deep(prev, val)
+            : val
   }
 
   jsonic.rule('val', (rs: RuleSpec) => {

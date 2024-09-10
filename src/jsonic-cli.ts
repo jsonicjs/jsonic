@@ -1,14 +1,10 @@
-/* Copyright (c) 2020-2023 Richard Rodger, Oliver Sturm, and other contributors, MIT License */
+/* Copyright (c) 2020-2024 Richard Rodger, Oliver Sturm, and other contributors, MIT License */
 
-import Fs from 'fs'
+import Fs from 'node:fs'
 
 import { Jsonic, Plugin, Bag, util } from './jsonic'
 
 import { Debug } from './debug'
-
-if (require.main === module) {
-  run(process.argv, console).catch((e) => console.error(e))
-}
 
 export async function run(argv: string[], console: Console) {
   const args = {
@@ -30,26 +26,37 @@ export async function run(argv: string[], console: Console) {
     if (accept_args && arg.startsWith('-')) {
       if ('-' === arg) {
         args.stdin = true
-      } else if ('--' === arg) {
+      } //
+      else if ('--' === arg) {
         accept_args = false
-      } else if ('--file' === arg || '-f' === arg) {
+      } //
+      else if ('--file' === arg || '-f' === arg) {
         args.files.push(argv[++aI])
-      } else if ('--option' === arg || '-o' === arg) {
+      } //
+      else if ('--option' === arg || '-o' === arg) {
         args.options.push(argv[++aI])
-      } else if ('--meta' === arg || '-m' === arg) {
+      } //
+      else if ('--meta' === arg || '-m' === arg) {
         args.meta.push(argv[++aI])
-      } else if ('--debug' === arg || '-d' === arg) {
+      } //
+      else if ('--debug' === arg || '-d' === arg) {
         plugins.debug = Debug
         args.meta.push('log=-1')
-      } else if ('--help' === arg || '-h' === arg) {
+      } //
+      else if ('--help' === arg || '-h' === arg) {
         args.help = true
-      } else if ('--plugin' === arg || '-p' === arg) {
+      } //
+      else if ('--plugin' === arg || '-p' === arg) {
         args.plugins.push(argv[++aI])
-      } else {
+      } //
+      else if ('--nice' === arg || '-n' === arg) {
+        args.options.push('JSON.space=2')
+      } //
+      else {
         args.sources.push(arg)
       }
-    } else {
-      // console.log('SRC<' + arg + '>')
+    } //
+    else {
       args.sources.push(arg)
     }
   }
@@ -100,8 +107,8 @@ export async function run(argv: string[], console: Console) {
   replacer = Array.isArray(replacer)
     ? replacer
     : null == replacer
-    ? null
-    : [replacer]
+      ? null
+      : [replacer]
 
   let json = JSON.stringify(data.val, replacer, space)
 
@@ -162,7 +169,8 @@ function handle_plugins(plugins: string[]): Bag {
       // See test plugin test/p1.js
       if ('function' == typeof out[name].default) {
         out[name] = out[name].default
-      } else if (
+      } //
+      else if (
         null != refname &&
         'function' == typeof out[name][camel(refname) as string]
       ) {
@@ -176,7 +184,8 @@ function handle_plugins(plugins: string[]): Bag {
       ) {
         out[refname] = out[name][refname]
         delete out[name]
-      } else {
+      } //
+      else {
         throw new Error('Plugin is not a function: ' + name)
       }
     }
@@ -216,6 +225,9 @@ where
     --option <name=value>  Set option <name> to <value>, where <name> 
     -o <name=value>          can be a dotted path (see example below).
 
+    --nice                 Print JSON indented over multiple lines.
+    -n
+
     --meta <meta=value>    Set parse meta data <name> to <value>, where <name> 
     -m <meta=value>          can be a dotted path (see option example).
 
@@ -248,6 +260,11 @@ Examples:
 # Basic usage
 > jsonic a:1
 {"a":1} 
+
+> jsonic -n a:1
+{
+  "a": 1
+}
 
 
 # Merging arguments

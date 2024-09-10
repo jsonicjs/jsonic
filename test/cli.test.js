@@ -87,10 +87,9 @@ describe('cli', function () {
     await jr([0, 0, '-', 'b:2'], cn)
     // console.log(cn.d.log)
     expect(cn.d.log[0][0]).toEqual('{"a":1,"b":2}')
-
-    // return;
   })
 
+  
   it('bad-args', async () => {
     let cn = make_cn()
     jr([0, 0, '-f', { bad: 1 }, 'a:1'], cn)
@@ -123,6 +122,7 @@ describe('cli', function () {
     // }
   })
 
+  
   it('plugin', async () => {
     let cn = make_cn()
     await jr([0, 0, '-p', '../test/p0', '-o', 'plugin.p0.x=0', 'a:X'], cn)
@@ -222,9 +222,14 @@ describe('cli', function () {
     expect(cn.d.log[0][0]).toEqual('{"a":5}')
   })
 
+  
   it('stringify', async () => {
     let cn = make_cn()
     jr([0, 0, '-o', 'JSON.space=2', 'a:1'], cn)
+    expect(cn.d.log[0][0]).toEqual('{\n  "a": 1\n}')
+
+    cn = make_cn()
+    jr([0, 0, '-n', 'a:1'], cn)
     expect(cn.d.log[0][0]).toEqual('{\n  "a": 1\n}')
 
     cn = make_cn()
@@ -236,6 +241,7 @@ describe('cli', function () {
     expect(cn.d.log[0][0]).toEqual('{"b":2}')
   })
 })
+
 
 function make_cn() {
   let d = {

@@ -168,8 +168,8 @@ function descAlt(jsonic: Jsonic, rs: RuleSpec, kind: 'open' | 'close') {
                     null == tin
                       ? '***INVALID***'
                       : 'number' === typeof tin
-                      ? jsonic.token[tin]
-                      : '[' + tin.map((t: any) => jsonic.token[t]) + ']',
+                        ? jsonic.token[tin]
+                        : '[' + tin.map((t: any) => jsonic.token[t]) + ']',
                   )
                   .join(' ') +
                 '] '
@@ -300,8 +300,8 @@ function descAltSeq(alt: NormAltSpec, cfg: Config) {
         'number' === typeof tin
           ? tokenize(tin, cfg)
           : Array.isArray(tin)
-          ? '[' + tin.map((t: any) => tokenize(t, cfg)) + ']'
-          : '',
+            ? '[' + tin.map((t: any) => tokenize(t, cfg)) + ']'
+            : '',
       )
       .join(' ') +
     '] '

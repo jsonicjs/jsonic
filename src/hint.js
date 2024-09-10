@@ -58,6 +58,10 @@ become corrupted.`,
   unknown_rule:
   ` No rule named $rulename is defined. This is probably an error in the
 grammar of a plugin.`,
+
+  end_of_source:
+  ` Unexpected end of source.`,
+
 }
 
 

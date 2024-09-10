@@ -1,2 +1,2 @@
 #!/usr/bin/env node
-require('../dist/jsonic-cli')
+require('../dist/jsonic-cli').run(process.argv, console).catch((e) => console.error(e))

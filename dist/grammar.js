@@ -1,5 +1,5 @@
 "use strict";
-/* Copyright (c) 2013-2023 Richard Rodger, MIT License */
+/* Copyright (c) 2013-2024 Richard Rodger, MIT License */
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.grammar = grammar;
 exports.makeJSON = makeJSON;
@@ -24,8 +24,8 @@ function grammar(jsonic) {
      } = jsonic.tokenSet;
     const finish = (_rule, ctx) => {
         if (!ctx.cfg.rule.finish) {
-            // TODO: FIX! needs own error code
-            ctx.t0.src = 'END_OF_SOURCE';
+            // TODO: pass missing end char for replacement in error message
+            ctx.t0.err = 'end_of_source';
             return ctx.t0;
         }
     };

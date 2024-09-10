@@ -836,18 +836,19 @@ describe('feature', function () {
     expect(k('a:{b:1,c:2},a:{c:3,e:4}')).toEqual({ a: { c: 3, e: 4 } })
   })
 
+  
   it('finish', () => {
     expect(j('a:{b:')).toEqual({ a: { b: null } })
     expect(j('{a:{b:{c:1}')).toEqual({ a: { b: { c: 1 } } })
     expect(j('[[1')).toEqual([[1]])
 
-    // TODO: needs own error code
     let k = j.make({ rule: { finish: false } })
-    expect(() => k('a:{b:')).toThrow(/unexpected/)
-    expect(() => k('{a:{b:{c:1}')).toThrow(/unexpected/)
-    expect(() => k('[[1')).toThrow(/unexpected/)
+    expect(() => k('a:{b:')).toThrow(/end_of_source/)
+    expect(() => k('{a:{b:{c:1}')).toThrow(/end_of_source/)
+    expect(() => k('[[1')).toThrow(/end_of_source/)
   })
 
+  
   it('property-dive', () => {
     expect(j('{a:1,b:2}')).toEqual({ a: 1, b: 2 })
     expect(j('{a:1,b:{c:2}}')).toEqual({ a: 1, b: { c: 2 } })

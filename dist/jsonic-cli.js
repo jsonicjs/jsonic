@@ -1,16 +1,13 @@
 "use strict";
-/* Copyright (c) 2020-2023 Richard Rodger, Oliver Sturm, and other contributors, MIT License */
+/* Copyright (c) 2020-2024 Richard Rodger, Oliver Sturm, and other contributors, MIT License */
 var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.run = run;
-const fs_1 = __importDefault(require("fs"));
+const node_fs_1 = __importDefault(require("node:fs"));
 const jsonic_1 = require("./jsonic");
 const debug_1 = require("./debug");
-if (require.main === module) {
-    run(process.argv, console).catch((e) => console.error(e));
-}
 async function run(argv, console) {
     var _a;
     const args = {
@@ -29,35 +26,37 @@ async function run(argv, console) {
         if (accept_args && arg.startsWith('-')) {
             if ('-' === arg) {
                 args.stdin = true;
-            }
+            } //
             else if ('--' === arg) {
                 accept_args = false;
-            }
+            } //
             else if ('--file' === arg || '-f' === arg) {
                 args.files.push(argv[++aI]);
-            }
+            } //
             else if ('--option' === arg || '-o' === arg) {
                 args.options.push(argv[++aI]);
-            }
+            } //
             else if ('--meta' === arg || '-m' === arg) {
                 args.meta.push(argv[++aI]);
-            }
+            } //
             else if ('--debug' === arg || '-d' === arg) {
                 plugins.debug = debug_1.Debug;
                 args.meta.push('log=-1');
-            }
+            } //
             else if ('--help' === arg || '-h' === arg) {
                 args.help = true;
-            }
+            } //
             else if ('--plugin' === arg || '-p' === arg) {
                 args.plugins.push(argv[++aI]);
-            }
+            } //
+            else if ('--nice' === arg || '-n' === arg) {
+                args.options.push('JSON.space=2');
+            } //
             else {
                 args.sources.push(arg);
             }
-        }
+        } //
         else {
-            // console.log('SRC<' + arg + '>')
             args.sources.push(arg);
         }
     }
@@ -79,7 +78,7 @@ async function run(argv, console) {
     let data = { val: null };
     for (let fp of args.files) {
         if ('string' === typeof fp && '' !== fp) {
-            jsonic_1.util.deep(data, { val: jsonic(fs_1.default.readFileSync(fp).toString(), meta) });
+            jsonic_1.util.deep(data, { val: jsonic(node_fs_1.default.readFileSync(fp).toString(), meta) });
         }
     }
     if (0 === args.sources.length || args.stdin) {
@@ -151,7 +150,7 @@ function handle_plugins(plugins) {
             // See test plugin test/p1.js
             if ('function' == typeof out[name].default) {
                 out[name] = out[name].default;
-            }
+            } //
             else if (null != refname &&
                 'function' == typeof out[name][camel(refname)]) {
                 out[name] = out[name][camel(refname)];
@@ -161,7 +160,7 @@ function handle_plugins(plugins) {
                 'function' == typeof out[name][refname]) {
                 out[refname] = out[name][refname];
                 delete out[name];
-            }
+            } //
             else {
                 throw new Error('Plugin is not a function: ' + name);
             }
@@ -197,6 +196,9 @@ where
     --option <name=value>  Set option <name> to <value>, where <name> 
     -o <name=value>          can be a dotted path (see example below).
 
+    --nice                 Print JSON indented over multiple lines.
+    -n
+
     --meta <meta=value>    Set parse meta data <name> to <value>, where <name> 
     -m <meta=value>          can be a dotted path (see option example).
 
@@ -229,6 +231,11 @@ Examples:
 # Basic usage
 > jsonic a:1
 {"a":1} 
+
+> jsonic -n a:1
+{
+  "a": 1
+}
 
 
 # Merging arguments
