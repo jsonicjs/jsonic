@@ -473,9 +473,9 @@ describe('utility', () => {
       { c: 3 },
       { d: 4, meta: { g: 7 }, opts: { e: 5 }, cfg: { f: 6 } },
     ]
-    expect(errinject('x {code} {a} {b} {c} {d} {e} {f} {g} {Z} x', ...args)).toEqual(
-      'x c0 1 2 3 4 5 6 7 {Z} x',
-    )
+    expect(
+      errinject('x {code} {a} {b} {c} {d} {e} {f} {g} {Z} x', ...args),
+    ).toEqual('x c0 1 2 3 4 5 6 7 {Z} x')
   })
 
   it('srcfmt', () => {
@@ -644,7 +644,6 @@ describe('utility', () => {
     expect(dir[0].debug.print.config).toBeTruthy()
   })
 
-
   it('errdesc', () => {
     let ctx0 = {
       cfg: {
@@ -663,8 +662,8 @@ describe('utility', () => {
       src: () => 'src',
       plgn: () => [{ name: 'p0' }],
       opts: {
-        tag: 'zed'
-      }
+        tag: 'zed',
+      },
     }
 
     let d0 = errdesc('foo', {}, { tin: 1 }, {}, ctx0)
@@ -761,46 +760,51 @@ describe('utility', () => {
     })
   })
 
-
   it('strinject', () => {
-    expect(strinject('a{b}c',{b:'B'})).toEqual('aBc')
-    expect(strinject('a{b}c{d}e',{b:'B',d:'D'})).toEqual('aBcDe')
-    
+    expect(strinject('a{b}c', { b: 'B' })).toEqual('aBc')
+    expect(strinject('a{b}c{d}e', { b: 'B', d: 'D' })).toEqual('aBcDe')
+
     expect(strinject()).toEqual('')
     expect(strinject('')).toEqual('')
-    expect(strinject('',{})).toEqual('')
-    expect(strinject('',[])).toEqual('')
-    expect(strinject('','')).toEqual('')
+    expect(strinject('', {})).toEqual('')
+    expect(strinject('', [])).toEqual('')
+    expect(strinject('', '')).toEqual('')
 
-    expect(strinject('a{b}c',{})).toEqual('a{b}c')
-    expect(strinject('a{b}c',[])).toEqual('a{b}c')
+    expect(strinject('a{b}c', {})).toEqual('a{b}c')
+    expect(strinject('a{b}c', [])).toEqual('a{b}c')
     expect(strinject('a{b}c')).toEqual('a{b}c')
-    expect(strinject('a{b}c',1)).toEqual('a{b}c')
-    expect(strinject('a{b}c','x')).toEqual('a{b}c')
-    expect(strinject('a{b}c',null)).toEqual('a{b}c')
-    expect(strinject('a{b}c',undefined)).toEqual('a{b}c')
-    expect(strinject('a{b}c',NaN)).toEqual('a{b}c')
-    expect(strinject('a{b}c',/x/)).toEqual('a{b}c')
-    
-    expect(strinject('a{b}c',{b:'x\ny'},{indent:'+'})).toEqual('ax\n+yc')
-    expect(strinject('a{b}c',{b:'x\ny\nz'},{indent:'+'})).toEqual('ax\n+y\n+zc')
+    expect(strinject('a{b}c', 1)).toEqual('a{b}c')
+    expect(strinject('a{b}c', 'x')).toEqual('a{b}c')
+    expect(strinject('a{b}c', null)).toEqual('a{b}c')
+    expect(strinject('a{b}c', undefined)).toEqual('a{b}c')
+    expect(strinject('a{b}c', NaN)).toEqual('a{b}c')
+    expect(strinject('a{b}c', /x/)).toEqual('a{b}c')
 
-    expect(strinject('a{b.d}c',{b:{d:'B'}})).toEqual('aBc')
-    expect(strinject('a{b.d.e}c',{b:{d:{e:'B'}}})).toEqual('aBc')
+    expect(strinject('a{b}c', { b: 'x\ny' }, { indent: '+' })).toEqual(
+      'ax\n+yc',
+    )
+    expect(strinject('a{b}c', { b: 'x\ny\nz' }, { indent: '+' })).toEqual(
+      'ax\n+y\n+zc',
+    )
 
-    expect(strinject('a{0}c',['B'])).toEqual('aBc')
-    expect(strinject('a{1}c',['A','B'])).toEqual('aBc')
+    expect(strinject('a{b.d}c', { b: { d: 'B' } })).toEqual('aBc')
+    expect(strinject('a{b.d.e}c', { b: { d: { e: 'B' } } })).toEqual('aBc')
 
-    expect(strinject('a{b.0}c',{b:['B']})).toEqual('aBc')
-    expect(strinject('a{0.b}c',[{b:'B'}])).toEqual('aBc')
+    expect(strinject('a{0}c', ['B'])).toEqual('aBc')
+    expect(strinject('a{1}c', ['A', 'B'])).toEqual('aBc')
 
-    expect(strinject('{a}',{a:'A'})).toEqual('A')
-    expect(strinject('{a}',{a:11})).toEqual('11')
-    expect(strinject('{a}',{a:2.2})).toEqual('2.2')
-    expect(strinject('{a}',{a:NaN})).toEqual('NaN')
-    expect(strinject('{a}',{a:/x/})).toEqual('/x/')
-    expect(strinject('{a}',{a:[11,22]})).toEqual('[11,22]')
-    expect(strinject('{a}',{a:{b:1}})).toEqual('{b:1}')
-    expect(strinject('{a}',{a:{b:[{c:{d:1}}]}})).toEqual('{b:[{c:{d:1}}]}')
+    expect(strinject('a{b.0}c', { b: ['B'] })).toEqual('aBc')
+    expect(strinject('a{0.b}c', [{ b: 'B' }])).toEqual('aBc')
+
+    expect(strinject('{a}', { a: 'A' })).toEqual('A')
+    expect(strinject('{a}', { a: 11 })).toEqual('11')
+    expect(strinject('{a}', { a: 2.2 })).toEqual('2.2')
+    expect(strinject('{a}', { a: NaN })).toEqual('NaN')
+    expect(strinject('{a}', { a: /x/ })).toEqual('/x/')
+    expect(strinject('{a}', { a: [11, 22] })).toEqual('[11,22]')
+    expect(strinject('{a}', { a: { b: 1 } })).toEqual('{b:1}')
+    expect(strinject('{a}', { a: { b: [{ c: { d: 1 } }] } })).toEqual(
+      '{b:[{c:{d:1}}]}',
+    )
   })
 })

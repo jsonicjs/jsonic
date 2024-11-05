@@ -243,15 +243,13 @@ const defaults: Options = {
 
   // Error hints: {error-code: hint-text}.
   hint: {
-    unknown:
-      ` Since the error is unknown, this is probably a bug inside jsonic
+    unknown: ` Since the error is unknown, this is probably a bug inside jsonic
 itself, or a plugin. Please consider posting a github issue - thanks!
 
 Code: {code}, Details: 
 {details}`,
 
-    unexpected:
-      ` The character(s) {src} were not expected at this point as they do not
+    unexpected: ` The character(s) {src} were not expected at this point as they do not
 match the expected syntax, even under the relaxed jsonic rules. If it
 is not obviously wrong, the actual syntax error may be elsewhere. Try
 commenting out larger areas around this point until you get no errors,
@@ -259,39 +257,31 @@ then remove the comments in small sections until you find the
 offending syntax. NOTE: Also check if any plugins you are using
 expect different syntax in this case.`,
 
-    invalid_unicode:
-      ` The escape sequence {src} does not encode a valid unicode code point
+    invalid_unicode: ` The escape sequence {src} does not encode a valid unicode code point
 number. You may need to validate your string data manually using test
 code to see how JavaScript will interpret it. Also consider that your
 data may have become corrupted, or the escape sequence has not been
 generated correctly.`,
 
-    invalid_ascii:
-      ` The escape sequence {src} does not encode a valid ASCII character. You
+    invalid_ascii: ` The escape sequence {src} does not encode a valid ASCII character. You
 may need to validate your string data manually using test code to see
 how JavaScript will interpret it. Also consider that your data may
 have become corrupted, or the escape sequence has not been generated
 correctly.`,
 
-    unprintable:
-      ` String values cannot contain unprintable characters (character codes
+    unprintable: ` String values cannot contain unprintable characters (character codes
 below 32). The character {src} is unprintable. You may need to remove
 these characters from your source data. Also check that it has not
 become corrupted.`,
 
-    unterminated_string:
-      ` This string has no end quote.`,
+    unterminated_string: ` This string has no end quote.`,
 
-    unterminated_comment:
-      ` This comment is never closed.`,
+    unterminated_comment: ` This comment is never closed.`,
 
-    unknown_rule:
-      ` No rule named $rulename is defined. This is probably an error in the
+    unknown_rule: ` No rule named $rulename is defined. This is probably an error in the
 grammar of a plugin.`,
 
-    end_of_source:
-      ` Unexpected end of source.`,
-
+    end_of_source: ` Unexpected end of source.`,
   },
 
   // Lexer

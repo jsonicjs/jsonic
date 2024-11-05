@@ -466,7 +466,7 @@ function errinject(s, code, details, token, rule, ctx) {
         ...(rule || {}),
         ...(ctx.meta || {}),
         ...(details || {}),
-        ...({ code, details, token, rule, ctx }),
+        ...{ code, details, token, rule, ctx },
     };
     return strinject(s, ref, { indent: '  ' });
 }

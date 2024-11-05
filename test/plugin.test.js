@@ -272,7 +272,7 @@ describe('plugin', function () {
                 src: () => '',
                 cfg: { t: {}, error: { e2: 'e:2' }, hint: { e2: 'e:2' } },
                 plgn: () => [],
-                opts: {}
+                opts: {},
               }
               throw e2
             }
