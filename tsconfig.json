@@ -2,7 +2,7 @@
   "compilerOptions": {
     "esModuleInterop": true,
     "isolatedModules": true,
-    "module": "commonjs",
+    "module": "nodenext",
     "noEmitOnError": true,
     "outDir":"dist",
     "resolveJsonModule": true,

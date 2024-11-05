@@ -1,11 +1,7 @@
 # TODO
 
-* P1; Rule.use should be Rule.u for consistency
-* P1; add rule.next property, referencing next rule 
-  * BUT: circular ref? prev is a sibling, next may not be - inconsistent?
 * P1; exception inside matcher needs own error code - too easy to miss!
 * P1; remove console colors in browser? option
-* P1; tag should appear in error
 * P2; quotes are value enders - x:a"a" is an err! not 'a"a"', option?
 * P3; Consider: option to control comma null insertion
 * P3; YAML quoted strings: https://yaml-multiline.info/ - via options 

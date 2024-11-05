@@ -229,6 +229,7 @@ describe('custom', () => {
     expect(b).toEqual('bo;') // m: is too late to avoid bo
   })
 
+  
   it('parser-action-errors', () => {
     let b = ''
     let j = make_norules({ rule: { start: 'top' } })
@@ -262,6 +263,7 @@ describe('custom', () => {
     expect(() => j('a')).toThrow(/foo.*AC/s)
   })
 
+  
   it('parser-before-after-state', () => {
     let j = make_norules({ rule: { start: 'top' } })
     let AA = j.token.AA

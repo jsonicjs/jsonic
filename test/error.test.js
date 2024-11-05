@@ -39,8 +39,9 @@ describe('error', function () {
   it('plugin-errors', () => {
     let k = Jsonic.make().use(function foo(jsonic) {
       jsonic.options({
+        tag: 'zed',
         error: {
-          foo: 'foo: $src!',
+          foo: 'foo: {src}!',
         },
         hint: {
           foo: 'Foo hint.',
@@ -80,18 +81,18 @@ describe('error', function () {
       k(src0, { xlog: -1 })
     } catch (e) {
       expect(e.message).toEqual(
-        '\u001b[31m[jsonic/foo]:\u001b[0m foo: "FOO"!\n' +
+        '\u001b[31m[jsonic/foo]:\u001b[0m foo: FOO!\n' +
           '  \u001b[34m-->\u001b[0m <no-file>:2:3\n' +
           '\u001b[34m  1 | \u001b[0ma:1,\n' +
           '\u001b[34m  2 | \u001b[0mb:FOO\n' +
-          '        \u001b[31m^^^ foo: "FOO"!\u001b[0m\n' +
+          '        \u001b[31m^^^ foo: FOO!\u001b[0m\n' +
           '\u001b[34m  3 | \u001b[0m\n' +
           '\u001b[34m  4 | \u001b[0m\n' +
           '\n' +
           '  Foo hint.\n' +
           '\n' +
           '  \u001b[2mhttps://jsonic.senecajs.org\u001b[0m\n' +
-          '  \u001b[2m--internal: rule=val~o; token=#BD~foo;' +
+          '  \u001b[2m--internal: tag=zed; rule=val~o; token=#BD~foo;' +
           ' plugins=foo--\u001b[0m\n',
       )
     }

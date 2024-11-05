@@ -3,7 +3,7 @@
 
 const Util = require('util')
 
-const { filterRules, modlist } = require('../dist/utility')
+const { filterRules, modlist, strinject } = require('../dist/utility')
 
 const { util, Jsonic, makeToken, makePoint } = require('..')
 
@@ -473,8 +473,8 @@ describe('utility', () => {
       { c: 3 },
       { d: 4, meta: { g: 7 }, opts: { e: 5 }, cfg: { f: 6 } },
     ]
-    expect(errinject('x $code $a $b $c $d $e $f $g $Z x', ...args)).toEqual(
-      'x "c0" 1 2 3 4 5 6 7 "$Z" x',
+    expect(errinject('x {code} {a} {b} {c} {d} {e} {f} {g} {Z} x', ...args)).toEqual(
+      'x c0 1 2 3 4 5 6 7 {Z} x',
     )
   })
 
@@ -644,187 +644,6 @@ describe('utility', () => {
     expect(dir[0].debug.print.config).toBeTruthy()
   })
 
-  //   it('logging', () => {
-  //     let log = []
-  //     let j0 = Jsonic.make()
-  //     j0('a:1',{log:(...r)=>log.push(r)})
-
-  //     expect(log.map(x=>x[0]+' '+x[1]+' '+x[2])).toEqual([
-  //       'lex #TX \"a\"',
-  //       'lex #CL \":\"',
-  //       'rule  O 0/0/0 val~1',
-  //       'parse O 0/0/0 val~1',
-  //       'node  O 0/0/2 val~1',
-  //       'stack val~1 [object Object]',
-  //       'rule  O 0/1/0 map~2',
-  //       'parse O 0/1/0 map~2',
-  //       'node  O 0/1/3 map~2',
-  //       'stack val~1/map~2 [object Object]',
-  //       'rule  O 0/2/0 pair~3',
-  //       'parse O 0/2/0 pair~3',
-  //       'node  O 0/2/4 pair~3',
-  //       'lex #NR \"1\"',
-  //       'lex #ZZ \"\"',
-  //       'stack val~1/map~2/pair~3 [object Object]',
-  //       'rule  O 0/3/0 val~4',
-  //       'parse O 0/3/0 val~4',
-  //       'node  O 0/3/0 val~4',
-  //       'lex #ZZ \"\"',
-  //       'stack val~1/map~2/pair~3 [object Object]',
-  //       'rule  C 0/3/0 val~4',
-  //       'parse C 0/3/0 val~4',
-  //       'node  C 0/3/0 val~4',
-  //       'lex #ZZ \"\"',
-  //       'stack val~1/map~2 [object Object]',
-  //       'rule  C 0/2/4 pair~3',
-  //       'parse C 0/2/4 pair~3',
-  //       'node  C 0/2/4 pair~3',
-  //       'lex #ZZ \"\"',
-  //       'stack val~1 [object Object]',
-  //       'rule  C 0/1/3 map~2',
-  //       'node  C 0/1/3 map~2',
-  //       'stack  [object Object]',
-  //       'rule  C 0/0/2 val~1',
-  //       'parse C 0/0/2 val~1',
-  //       'node  C 0/0/2 val~1',
-  //       'lex #ZZ \"\"',
-  //       'stack  [object Object]',
-  //     ])
-
-  //     log = []
-  //     expect(()=>j0('{{',{log:(...r)=>log.push(r)})).toThrow()
-
-  //     expect(log.map(x=>x[0]+' '+x[1]+' '+x[2])).toEqual([
-  //       'lex #OB \"{\"',
-  //       'lex #OB \"{\"',
-  //       'rule  O 0/0/0 val~1',
-  //       'parse O 0/0/0 val~1',
-  //       'node  O 0/0/2 val~1',
-  //       'stack val~1 [object Object]',
-  //       'rule  O 0/1/0 map~2',
-  //       'parse O 0/1/0 map~2',
-  //       'node  O 0/1/3 map~2',
-  //       'lex #ZZ \"\"',
-  //       'stack val~1/map~2 [object Object]',
-  //       'rule  O 0/2/0 pair~3',
-  //       'parse O 0/2/0 pair~3',    ])
-
-  //     log = []
-  //     let d0 = j0(`
-  // "a", 0x10, 0o20, 0b10000, true, b,
-  // ' c',
-  //   #...
-  //   /*
-  //    *
-  //    */
-  // `,{log:(...r)=>log.push(r)})
-  //     expect(d0).toEqual(['a', 16, 16, 16, true, 'b', ' c'])
-
-  //     log = []
-  //     try {
-  //       j0('"',{log:(...r)=>log.push(r)})
-  //       Code.fail()
-  //     } catch(e) {
-  //       // console.log(e)
-  //       expect(e.code).toEqual('unterminated_string')
-  //       expect(log.map(x=>x[0]+' '+x[1]+' '+x[2])).toEqual([
-  //         'lex #BD "\\""'
-  //       ])
-  //     }
-
-  //     let j1 = Jsonic.make()
-  //     j1.use(function uppercaser(jsonic) {
-  //       //j1.lex(jsonic.token.LTX, ({sI,rI,cI,src,token,ctx})=>{
-  //       j1.lex(()=>(lex)=>{
-  //         let pnt = lex.pnt
-  //         let sI = pnt.sI
-  //         let rI = pnt.rI
-  //         let cI = pnt.cI
-  //         let pI = sI
-  //         let src = lex.src
-  //         let srclen = src.length
-
-  //         if('<'===src[pI]) {
-  //           while(pI < srclen && '>'!==src[pI]) {
-  //             if(jsonic.options.line.row = src[pI]) {
-  //               rI++
-  //               cI = 1
-  //             }
-  //             else {
-  //               cI++
-  //             }
-  //             pI++
-  //           }
-
-  //           let tkn = lex.token(
-  //             '#TX',
-  //             src.substring(sI+1, pI).toUpperCase(),
-  //             src.substring(sI, pI+1),
-  //             lex.pnt
-  //           )
-
-  //           // token.len = pI - sI + 1
-  //           // token.tin = jsonic.token.TX
-  //           // token.val = src.substring(sI+1, pI).toUpperCase()
-  //           // token.src = src.substring(sI, pI+1)
-  //           // sI = pI + 1
-
-  //           pnt.sI = pI+1
-  //           pnt.rI = rI
-  //           pnt.cI = cI
-  //           // console.log('T', token)
-
-  //           return tkn
-  //         }
-  //       })
-  //     })
-
-  //     log = []
-  //     let d1 = j1('a:<x\ny>',{log:(...r)=>log.push(r)})
-  //     expect(d1).toEqual({a:'X\nY'})
-
-  //     expect(log.map(x=>x[0]+' '+x[1]+' '+x[2])).toEqual([
-  //       'lex #TX \"a\"',
-  //       'lex #CL \":\"',
-  //       'rule  O 0/0/0 val~1',
-  //       'parse O 0/0/0 val~1',
-  //       'node  O 0/0/2 val~1',
-  //       'stack val~1 [object Object]',
-  //       'rule  O 0/1/0 map~2',
-  //       'parse O 0/1/0 map~2',
-  //       'node  O 0/1/3 map~2',
-  //       'stack val~1/map~2 [object Object]',
-  //       'rule  O 0/2/0 pair~3',
-  //       'parse O 0/2/0 pair~3',
-  //       'node  O 0/2/4 pair~3',
-  //       'lex #TX \"<x\\ny>\"',
-  //       'lex #ZZ \"\"',
-  //       'stack val~1/map~2/pair~3 [object Object]',
-  //       'rule  O 0/3/0 val~4',
-  //       'parse O 0/3/0 val~4',
-  //       'node  O 0/3/0 val~4',
-  //       'lex #ZZ \"\"',
-  //       'stack val~1/map~2/pair~3 [object Object]',
-  //       'rule  C 0/3/0 val~4',
-  //       'parse C 0/3/0 val~4',
-  //       'node  C 0/3/0 val~4',
-  //       'lex #ZZ \"\"',
-  //       'stack val~1/map~2 [object Object]',
-  //       'rule  C 0/2/4 pair~3',
-  //       'parse C 0/2/4 pair~3',
-  //       'node  C 0/2/4 pair~3',
-  //       'lex #ZZ \"\"',
-  //       'stack val~1 [object Object]',
-  //       'rule  C 0/1/3 map~2',
-  //       'node  C 0/1/3 map~2',
-  //       'stack  [object Object]',
-  //       'rule  C 0/0/2 val~1',
-  //       'parse C 0/0/2 val~1',
-  //       'node  C 0/0/2 val~1',
-  //       'lex #ZZ \"\"',
-  //       'stack  [object Object]',
-  //     ])
-  //   })
 
   it('errdesc', () => {
     let ctx0 = {
@@ -843,6 +662,9 @@ describe('utility', () => {
       },
       src: () => 'src',
       plgn: () => [{ name: 'p0' }],
+      opts: {
+        tag: 'zed'
+      }
     }
 
     let d0 = errdesc('foo', {}, { tin: 1 }, {}, ctx0)
@@ -937,5 +759,48 @@ describe('utility', () => {
       open: '4',
       close: '',
     })
+  })
+
+
+  it('strinject', () => {
+    expect(strinject('a{b}c',{b:'B'})).toEqual('aBc')
+    expect(strinject('a{b}c{d}e',{b:'B',d:'D'})).toEqual('aBcDe')
+    
+    expect(strinject()).toEqual('')
+    expect(strinject('')).toEqual('')
+    expect(strinject('',{})).toEqual('')
+    expect(strinject('',[])).toEqual('')
+    expect(strinject('','')).toEqual('')
+
+    expect(strinject('a{b}c',{})).toEqual('a{b}c')
+    expect(strinject('a{b}c',[])).toEqual('a{b}c')
+    expect(strinject('a{b}c')).toEqual('a{b}c')
+    expect(strinject('a{b}c',1)).toEqual('a{b}c')
+    expect(strinject('a{b}c','x')).toEqual('a{b}c')
+    expect(strinject('a{b}c',null)).toEqual('a{b}c')
+    expect(strinject('a{b}c',undefined)).toEqual('a{b}c')
+    expect(strinject('a{b}c',NaN)).toEqual('a{b}c')
+    expect(strinject('a{b}c',/x/)).toEqual('a{b}c')
+    
+    expect(strinject('a{b}c',{b:'x\ny'},{indent:'+'})).toEqual('ax\n+yc')
+    expect(strinject('a{b}c',{b:'x\ny\nz'},{indent:'+'})).toEqual('ax\n+y\n+zc')
+
+    expect(strinject('a{b.d}c',{b:{d:'B'}})).toEqual('aBc')
+    expect(strinject('a{b.d.e}c',{b:{d:{e:'B'}}})).toEqual('aBc')
+
+    expect(strinject('a{0}c',['B'])).toEqual('aBc')
+    expect(strinject('a{1}c',['A','B'])).toEqual('aBc')
+
+    expect(strinject('a{b.0}c',{b:['B']})).toEqual('aBc')
+    expect(strinject('a{0.b}c',[{b:'B'}])).toEqual('aBc')
+
+    expect(strinject('{a}',{a:'A'})).toEqual('A')
+    expect(strinject('{a}',{a:11})).toEqual('11')
+    expect(strinject('{a}',{a:2.2})).toEqual('2.2')
+    expect(strinject('{a}',{a:NaN})).toEqual('NaN')
+    expect(strinject('{a}',{a:/x/})).toEqual('/x/')
+    expect(strinject('{a}',{a:[11,22]})).toEqual('[11,22]')
+    expect(strinject('{a}',{a:{b:1}})).toEqual('{b:1}')
+    expect(strinject('{a}',{a:{b:[{c:{d:1}}]}})).toEqual('{b:[{c:{d:1}}]}')
   })
 })
