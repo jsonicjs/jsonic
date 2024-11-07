@@ -35,12 +35,11 @@ describe('safe', function () {
     expect(('' + p1a.toString).startsWith('FAIL')).toEqual(true)
   })
 
-
   it('prop', () => {
     const { prop } = Jsonic.util
     const v = {}
 
-    expect(()=>prop({}, "__proto__.x", 11)).toThrow('Cannot')
+    expect(() => prop({}, '__proto__.x', 11)).toThrow('Cannot')
     expect(v.x).toEqual(undefined)
   })
 })

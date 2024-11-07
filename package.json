@@ -1,6 +1,6 @@
 {
   "name": "@jsonic/jsonic-next",
-  "version": "2.13.0",
+  "version": "2.14.0",
   "main": "dist/jsonic.js",
   "type": "commonjs",
   "browser": "dist/jsonic.min.js",

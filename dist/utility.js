@@ -465,12 +465,11 @@ function errinject(s, code, details, token, rule, ctx) {
 // Remove Jsonic internal lines as spurious for caller.
 function trimstk(err) {
     if (err.stack) {
-        err.stack =
-            err.stack
-                .split('\n')
-                .filter((s) => !s.includes('jsonic/jsonic'))
-                .map((s) => s.replace(/    at /, 'at '))
-                .join('\n');
+        err.stack = err.stack
+            .split('\n')
+            .filter((s) => !s.includes('jsonic/jsonic'))
+            .map((s) => s.replace(/    at /, 'at '))
+            .join('\n');
     }
 }
 // Extract error site in source text and mark error point. */
@@ -478,8 +477,16 @@ function errsite(spec) {
     let { src, sub, msg, cline, row, col, pos } = spec;
     row = null != row && 0 < row ? row : 1;
     col = null != col && 0 < col ? col : 1;
-    pos = null != pos && 0 < pos ? pos : null == src ? 0 : (src.split('\n')
-        .reduce((pos, line, i) => (pos += (i < row - 1 ? (line.length + 1) : i === row - 1 ? col : 0), pos), 0));
+    pos =
+        null != pos && 0 < pos
+            ? pos
+            : null == src
+                ? 0
+                : src
+                    .split('\n')
+                    .reduce((pos, line, i) => ((pos +=
+                    i < row - 1 ? line.length + 1 : i === row - 1 ? col : 0),
+                    pos), 0);
     let tsrc = null == sub ? types_1.EMPTY : sub;
     let behind = src.substring(Math.max(0, pos - 333), pos).split('\n');
     let ahead = src.substring(pos, pos + 333).split('\n');
@@ -487,7 +494,8 @@ function errsite(spec) {
     let rc = row < 3 ? 1 : row - 2;
     let ln = (s) => (null == cline ? '' : cline) +
         (types_1.EMPTY + rc++).padStart(pad, ' ') +
-        ' | ' + (null == cline ? '' : '\x1b[0m') +
+        ' | ' +
+        (null == cline ? '' : '\x1b[0m') +
         (null == s ? types_1.EMPTY : s);
     let blen = behind.length;
     let lines = [
@@ -510,7 +518,9 @@ function errsite(spec) {
     return lines;
 }
 function errmsg(spec) {
-    const colorSpec = (null != spec.color && 'object' === typeof spec.color) ? spec.color : undefined;
+    const colorSpec = null != spec.color && 'object' === typeof spec.color
+        ? spec.color
+        : undefined;
     const hasColor = true === spec.color || colorSpec;
     const color = {
         reset: hasColor ? '\x1b[0m' : '',
@@ -520,19 +530,35 @@ function errmsg(spec) {
         ...(colorSpec || {}),
     };
     let message = [
-        (null == spec.prefix ? null :
-            'function' === typeof spec.prefix ? spec.prefix(color, spec) : '' + spec.prefix),
-        (null == spec.code ? '' : color.hi +
-            '[' + (null == spec.name ? '' : spec.name + '/') + spec.code + ']:') + color.reset + ' ' +
+        null == spec.prefix
+            ? null
+            : 'function' === typeof spec.prefix
+                ? spec.prefix(color, spec)
+                : '' + spec.prefix,
+        (null == spec.code
+            ? ''
+            : color.hi +
+                '[' +
+                (null == spec.name ? '' : spec.name + '/') +
+                spec.code +
+                ']:') +
+            color.reset +
+            ' ' +
             (null == spec.msg ? '' : spec.msg),
-        ((null != spec.row && null != spec.col) || null != spec.file) ?
-            '  ' + color.line + '-->' + color.reset + ' ' +
+        (null != spec.row && null != spec.col) || null != spec.file
+            ? '  ' +
+                color.line +
+                '-->' +
+                color.reset +
+                ' ' +
                 (null == spec.file ? '<no-file>' : spec.file) +
-                (null == spec.row || null == spec.col ? '' :
-                    ':' + spec.row + ':' + spec.col)
+                (null == spec.row || null == spec.col
+                    ? ''
+                    : ':' + spec.row + ':' + spec.col)
             : null,
-        (null == spec.src ? '' :
-            errsite({
+        null == spec.src
+            ? ''
+            : errsite({
                 src: spec.src,
                 sub: spec.sub,
                 msg: spec.smsg || spec.msg,
@@ -540,11 +566,16 @@ function errmsg(spec) {
                 row: spec.row,
                 col: spec.col,
                 pos: spec.pos,
-            }) + '\n'),
-        (null == spec.hint ? null : spec.hint),
-        (null == spec.suffix ? null :
-            'function' === typeof spec.suffix ? spec.suffix(color, spec) : '' + spec.suffix),
-    ].filter(n => null != n).join('\n');
+            }) + '\n',
+        null == spec.hint ? null : spec.hint,
+        null == spec.suffix
+            ? null
+            : 'function' === typeof spec.suffix
+                ? spec.suffix(color, spec)
+                : '' + spec.suffix,
+    ]
+        .filter((n) => null != n)
+        .join('\n');
     return message;
 }
 function errdesc(code, details, token, rule, ctx) {
@@ -557,7 +588,10 @@ function errdesc(code, details, token, rule, ctx) {
                 (((_a = details === null || details === void 0 ? void 0 : details.use) === null || _a === void 0 ? void 0 : _a.err) &&
                     (details.use.err.code || details.use.err.message)) ||
                 cfg.error.unknown,
-            hint: (cfg.hint[code] || ((_c = (_b = details.use) === null || _b === void 0 ? void 0 : _b.err) === null || _c === void 0 ? void 0 : _c.message) || cfg.hint.unknown || '')
+            hint: (cfg.hint[code] ||
+                ((_c = (_b = details.use) === null || _b === void 0 ? void 0 : _b.err) === null || _c === void 0 ? void 0 : _c.message) ||
+                cfg.hint.unknown ||
+                '')
                 .trim()
                 .split('\n')
                 .map((s) => '  ' + s)
@@ -578,7 +612,9 @@ function errdesc(code, details, token, rule, ctx) {
             suffix: (color) => [
                 '',
                 '  ' + color.lo + 'https://jsonic.senecajs.org' + color.reset + '',
-                '  ' + color.lo + '--internal: tag=' +
+                '  ' +
+                    color.lo +
+                    '--internal: tag=' +
                     (ctx.opts.tag || '') +
                     '; rule=' +
                     rule.name +
@@ -592,8 +628,9 @@ function errdesc(code, details, token, rule, ctx) {
                         .plgn()
                         .map((p) => p.name)
                         .join(',') +
-                    '--' + color.reset,
-            ].join('\n')
+                    '--' +
+                    color.reset,
+            ].join('\n'),
         });
         let desc = {
             internal: {
@@ -893,32 +930,45 @@ function parserwrap(parser) {
 // Inject value into text by key using "{key}" syntax.
 function strinject(s, m, f) {
     let st = typeof s;
-    let t = Array.isArray(s) ? 'array' : null == s ? 'string' : 'object' === st ? st : 'string';
-    let so = 'object' === t ? s : 'array' === t ? s.reduce((a, n, i) => (a[i] = n, a), {}) : { _: s };
+    let t = Array.isArray(s)
+        ? 'array'
+        : null == s
+            ? 'string'
+            : 'object' === st
+                ? st
+                : 'string';
+    let so = 'object' === t
+        ? s
+        : 'array' === t
+            ? s.reduce((a, n, i) => ((a[i] = n), a), {})
+            : { _: s };
     let mo = null == m ? {} : m;
-    Object.entries(so).map((n) => so[n[0]] = null == n[1] ? '' : ('' + n[1]).replace(/\{([\w_0-9.]+)}/g, (match, keypath) => {
-        var _a;
-        let inject = prop(mo, keypath);
-        inject = undefined === inject ? match : inject;
-        if ('object' === typeof inject) {
-            let cn = (_a = inject === null || inject === void 0 ? void 0 : inject.constructor) === null || _a === void 0 ? void 0 : _a.name;
-            if ('Object' === cn || 'Array' === cn) {
-                inject = JSON.stringify(inject).replace(/([^"])"/g, '$1');
-            }
-            else {
-                inject = inject.toString();
-            }
-        }
-        else {
-            inject = '' + inject;
-        }
-        if (f) {
-            if ('string' === typeof f.indent) {
-                inject = inject.replace(/\n/g, '\n' + f.indent);
-            }
-        }
-        return inject;
-    }));
+    Object.entries(so).map((n) => (so[n[0]] =
+        null == n[1]
+            ? ''
+            : ('' + n[1]).replace(/\{([\w_0-9.]+)}/g, (match, keypath) => {
+                var _a;
+                let inject = prop(mo, keypath);
+                inject = undefined === inject ? match : inject;
+                if ('object' === typeof inject) {
+                    let cn = (_a = inject === null || inject === void 0 ? void 0 : inject.constructor) === null || _a === void 0 ? void 0 : _a.name;
+                    if ('Object' === cn || 'Array' === cn) {
+                        inject = JSON.stringify(inject).replace(/([^"])"/g, '$1');
+                    }
+                    else {
+                        inject = inject.toString();
+                    }
+                }
+                else {
+                    inject = '' + inject;
+                }
+                if (f) {
+                    if ('string' === typeof f.indent) {
+                        inject = inject.replace(/\n/g, '\n' + f.indent);
+                    }
+                }
+                return inject;
+            })));
     return 'string' === t ? so._ : 'array' === t ? Object.values(so) : so;
 }
 //# sourceMappingURL=utility.js.map
