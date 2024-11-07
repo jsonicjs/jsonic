@@ -1,6 +1,6 @@
 {
-  "name": "@jsonic/jsonic-next",
-  "version": "2.14.0",
+  "name": "jsonic",
+  "version": "2.15.0",
   "main": "dist/jsonic.js",
   "type": "commonjs",
   "browser": "dist/jsonic.min.js",
@@ -27,11 +27,8 @@
     "test-watch": "jest --coverage --watchAll",
     "test-view": "open coverage/lcov-report/index.html",
     "watch": "tsc -w -d",
-    "build-old": "tsc -d && node src/mfix.js && cp dist/jsonic.js dist/jsonic.min.js && browserify -o dist/jsonic.min.js -e dist/jsonic.js -s Jsonic -im -i assert -p tinyify",
-    "build": "tsc -d && cp dist/jsonic.js dist/jsonic.min.js && browserify -o dist/jsonic.min.js -e dist/jsonic.js -s Jsonic -im -i assert -p tinyify",
+    "build": "tsc -d",
     "diagrams": "docs-src/.vuepress/diagrams/generate.sh",
-    "test-web": "echo fix-test-web",
-    "test-web-x": "npm run build && browserify -o test-web/test-web.js -e test/web-all.js -s All -im -i assert -i @hapi/lab && open test-web/index.html",
     "coveralls": "lab -s -P test -r lcov | coveralls",
     "prettier": "prettier --write --no-semi --single-quote src/*.ts test/*.js",
     "docs-dev": "vuepress dev docs-src",
@@ -40,7 +37,7 @@
     "reset": "npm run clean && npm i && npm run build && npm test",
     "repo-tag": "REPO_VERSION=`node -e \"console.log(require('./package').version)\"` && echo TAG: v$REPO_VERSION && git commit -a -m v$REPO_VERSION && git push && git tag v$REPO_VERSION && git push --tags;",
     "repo-publish": "npm run clean && npm i && npm run repo-publish-quick",
-    "repo-publish-quick": "npm run prettier && npm run build && npm run test && npm run test-web && npm run repo-tag && npm publish --registry https://registry.npmjs.org --access=public"
+    "repo-publish-quick": "npm run prettier && npm run build && npm run test && npm run repo-tag && npm publish --registry https://registry.npmjs.org --access=public"
   },
   "license": "MIT",
   "files": [
@@ -58,12 +55,10 @@
   "devDependencies": {
     "@jsonic/directive": "^0.12.0",
     "@types/jest": "^29.5.14",
-    "browserify": "^17.0.1",
     "es-jest": "^2.1.0",
     "esbuild": "^0.24.0",
     "jest": "^29.7.0",
     "prettier": "^3.3.3",
-    "tinyify": "^4.0.0",
     "typescript": "^5.6.3",
     "@jsonic/csv": "^0.5.0"
   }
