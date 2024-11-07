@@ -3,6 +3,7 @@
 * P1; exception inside matcher needs own error code - too easy to miss!
 * P1; remove console colors in browser? option
 * P2; quotes are value enders - x:a"a" is an err! not 'a"a"', option?
+* P2: fix type chaining with jsonic.rule
 * P3; Consider: option to control comma null insertion
 * P3; YAML quoted strings: https://yaml-multiline.info/ - via options 
   * provide in yaml plugin

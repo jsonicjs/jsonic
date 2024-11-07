@@ -50,21 +50,21 @@ export interface JsonicAPI {
   // Token get and set for plugins. Reference by either name or Tin.
   // NOTE: creates token if not yet defined (but only for name).
   token: TokenMap &
-    TinMap &
-    (<A extends string | Tin>(ref: A) => A extends string ? Tin : string)
+  TinMap &
+  (<A extends string | Tin>(ref: A) => A extends string ? Tin : string)
 
   // TokenSet get and set for plugins. Reference by either name or Tin.
   // NOTE: name->Tin[], but Tin->name (of containing set)
   tokenSet: TokenSetMap &
-    TinSetMap &
-    (<A extends string | Tin>(ref: A) => A extends string ? Tin[] : string)
+  TinSetMap &
+  (<A extends string | Tin>(ref: A) => A extends string ? Tin[] : string)
 
   // Fixed token src get and set for plugins. Reference by either src or Tin.
   fixed: TokenMap &
-    TinMap &
-    (<A extends string | Tin>(
-      ref: A,
-    ) => undefined | (A extends string ? Tin : string))
+  TinMap &
+  (<A extends string | Tin>(
+    ref: A,
+  ) => undefined | (A extends string ? Tin : string))
 
   // Unique identifier string for each Jsonic instance.
   id: string
@@ -146,17 +146,17 @@ export type Options = {
     lex?: boolean
     def?: {
       [name: string]:
-        | {
-            line?: boolean
-            start?: string
-            end?: string
-            lex?: boolean
-            suffix?: string | string[] | LexMatcher
-            eatline: boolean
-          }
-        | null
-        | undefined
-        | false
+      | {
+        line?: boolean
+        start?: string
+        end?: string
+        lex?: boolean
+        suffix?: string | string[] | LexMatcher
+        eatline: boolean
+      }
+      | null
+      | undefined
+      | false
     }
     check?: LexCheck
   }
@@ -184,18 +184,18 @@ export type Options = {
     lex?: boolean
     def?: {
       [src: string]:
-        | undefined
-        | null
-        | false
-        | {
-            val: any
+      | undefined
+      | null
+      | false
+      | {
+        val: any
 
-            // RegExp values will always have lower priority than pure tokens
-            // as they are matched by the TextMatcher. For higher priority
-            // use the `match` option.
-            match?: RegExp
-            consume?: boolean
-          }
+        // RegExp values will always have lower priority than pure tokens
+        // as they are matched by the TextMatcher. For higher priority
+        // use the `match` option.
+        match?: RegExp
+        consume?: boolean
+      }
     }
   }
   ender?: string | string[]
@@ -315,7 +315,7 @@ export interface Rule {
   n: Counters // Named counter values.
   d: number // The current stack depth.
   u: Bag // Custom key-value store, this rule only.
-  k: Bag // Custom key-value store, propogates via push and replace.
+  k: Bag // Custom key-value store, propagates via push and replace (keep!).
   bo: boolean // Flag: call bo (before-open).
   ao: boolean // Flag: call ao (after-open).
   bc: boolean // Flag: call bc (before-close).
@@ -642,8 +642,8 @@ export interface AltSpec {
   k?: Bag // Key-value custom data (propagated).
 
   g?:
-    | string // Named group tags for the alternate (allows filtering).
-    | string[] // - comma separated or string array
+  | string // Named group tags for the alternate (allows filtering).
+  | string[] // - comma separated or string array
 
   e?: AltError // Generate an error token (alternate is not allowed).
 }

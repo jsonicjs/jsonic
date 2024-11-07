@@ -14,12 +14,12 @@ describe('error', function () {
       Jsonic(src0)
     } catch (e) {
       expect(e.message).toEqual(
-        `\u001b[31m[jsonic/invalid_unicode]:\u001b[0m invalid unicode escape: "\\\\u0000"
+        `\u001b[91m[jsonic/invalid_unicode]:\u001b[0m invalid unicode escape: "\\\\u0000"
   \u001b[34m-->\u001b[0m <no-file>:10:6
 \u001b[34m   8 | \u001b[0m
 \u001b[34m   9 | \u001b[0m
 \u001b[34m  10 | \u001b[0m   "\\u0000"
-             \u001b[31m^^^^^^ invalid unicode escape: "\\\\u0000"\u001b[0m
+             \u001b[91m^^^^^^ invalid unicode escape: "\\\\u0000"\u001b[0m
 \u001b[34m  11 | \u001b[0m
 \u001b[34m  12 | \u001b[0m
 
@@ -81,11 +81,11 @@ describe('error', function () {
       k(src0, { xlog: -1 })
     } catch (e) {
       expect(e.message).toEqual(
-        '\u001b[31m[jsonic/foo]:\u001b[0m foo: FOO!\n' +
+        '\u001b[91m[jsonic/foo]:\u001b[0m foo: FOO!\n' +
           '  \u001b[34m-->\u001b[0m <no-file>:2:3\n' +
           '\u001b[34m  1 | \u001b[0ma:1,\n' +
           '\u001b[34m  2 | \u001b[0mb:FOO\n' +
-          '        \u001b[31m^^^ foo: FOO!\u001b[0m\n' +
+          '        \u001b[34m^^^ foo: FOO!\u001b[0m\n' +
           '\u001b[34m  3 | \u001b[0m\n' +
           '\u001b[34m  4 | \u001b[0m\n' +
           '\n' +
@@ -93,7 +93,7 @@ describe('error', function () {
           '\n' +
           '  \u001b[2mhttps://jsonic.senecajs.org\u001b[0m\n' +
           '  \u001b[2m--internal: tag=zed; rule=val~o; token=#BD~foo;' +
-          ' plugins=foo--\u001b[0m\n',
+          ' plugins=foo--\u001b[0m',
       )
     }
 

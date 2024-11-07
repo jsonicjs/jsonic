@@ -38,7 +38,7 @@ const util = {
     trimstk: utility_1.trimstk,
     makelog: utility_1.makelog,
     badlex: utility_1.badlex,
-    extract: utility_1.extract,
+    errsite: utility_1.errsite,
     errinject: utility_1.errinject,
     errdesc: utility_1.errdesc,
     configure: utility_1.configure,
@@ -49,6 +49,7 @@ const util = {
     prop: utility_1.prop,
     str: utility_1.str,
     clean: utility_1.clean,
+    errmsg: utility_1.errmsg,
     // TODO: validated to include in util API:
     deep: utility_1.deep,
     omap: utility_1.omap,

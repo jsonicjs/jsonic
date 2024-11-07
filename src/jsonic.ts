@@ -49,7 +49,7 @@ import {
   defprop,
   errdesc,
   errinject,
-  extract,
+  errsite,
   makelog,
   mesc,
   regexp,
@@ -65,6 +65,7 @@ import {
   prop,
   str,
   clean,
+  errmsg,
 
   // Exported with jsonic.util
   omap,
@@ -101,7 +102,7 @@ const util = {
   trimstk,
   makelog,
   badlex,
-  extract,
+  errsite,
   errinject,
   errdesc,
   configure,
@@ -112,6 +113,7 @@ const util = {
   prop,
   str,
   clean,
+  errmsg,
 
   // TODO: validated to include in util API:
   deep,
@@ -218,7 +220,7 @@ function make(param_options?: Bag | string, parent?: Jsonic): Jsonic {
       if (S.function !== typeof plugin) {
         throw new Error(
           'Jsonic.use: the first argument must be a function ' +
-            'defining a plugin. See https://jsonic.senecajs.org/plugin',
+          'defining a plugin. See https://jsonic.senecajs.org/plugin',
         )
       }
 
