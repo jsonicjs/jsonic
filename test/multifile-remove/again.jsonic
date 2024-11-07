@@ -1,0 +1,6 @@
+foo:$1+1
+red_name: $.red.name
+item0: $.red
+item0: {extra:0}
+item1: $.red
+item1: {extra:1}

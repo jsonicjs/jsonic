@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="en-US">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <title>Syntax introduction | Jsonic</title>
+    <meta name="generator" content="VuePress 1.9.8">
+    <link rel="stylesheet" href="/railroad-diagrams.css">
+    <meta name="description" content="A JSON parser for Node.js that isn&#39;t strict.">
+    
+    <link rel="preload" href="/assets/css/0.styles.610e9dca.css" as="style"><link rel="preload" href="/assets/js/app.0c621e62.js" as="script"><link rel="preload" href="/assets/js/2.34930047.js" as="script"><link rel="preload" href="/assets/js/14.f56c2700.js" as="script"><link rel="preload" href="/assets/js/3.6ce1235a.js" as="script"><link rel="prefetch" href="/assets/js/10.88d9a57b.js"><link rel="prefetch" href="/assets/js/11.7988a5fa.js"><link rel="prefetch" href="/assets/js/12.d9f3d941.js"><link rel="prefetch" href="/assets/js/13.775f91ca.js"><link rel="prefetch" href="/assets/js/15.00058088.js"><link rel="prefetch" href="/assets/js/16.70a6eea0.js"><link rel="prefetch" href="/assets/js/17.0d1f36b1.js"><link rel="prefetch" href="/assets/js/18.0f184e32.js"><link rel="prefetch" href="/assets/js/19.57ad231b.js"><link rel="prefetch" href="/assets/js/20.58c8b075.js"><link rel="prefetch" href="/assets/js/21.0c46ffa9.js"><link rel="prefetch" href="/assets/js/22.965cbc0d.js"><link rel="prefetch" href="/assets/js/23.18c270f0.js"><link rel="prefetch" href="/assets/js/24.5895d76a.js"><link rel="prefetch" href="/assets/js/25.a347f1d6.js"><link rel="prefetch" href="/assets/js/26.c7b8345d.js"><link rel="prefetch" href="/assets/js/27.4e6f90b7.js"><link rel="prefetch" href="/assets/js/28.6e0fa7bc.js"><link rel="prefetch" href="/assets/js/29.77b8e3b6.js"><link rel="prefetch" href="/assets/js/30.69b1b865.js"><link rel="prefetch" href="/assets/js/31.c68f976d.js"><link rel="prefetch" href="/assets/js/32.0a08a140.js"><link rel="prefetch" href="/assets/js/4.064b2ac3.js"><link rel="prefetch" href="/assets/js/5.46815478.js"><link rel="prefetch" href="/assets/js/6.f03d59ff.js"><link rel="prefetch" href="/assets/js/7.6be3acca.js"><link rel="prefetch" href="/assets/js/8.0a081a71.js"><link rel="prefetch" href="/assets/js/9.9b6e31d5.js">
+    <link rel="stylesheet" href="/assets/css/0.styles.610e9dca.css">
+  </head>
+  <body>
+    <div id="app" data-server-rendered="true"><div class="theme-container"><header class="navbar"><div class="sidebar-button"><svg xmlns="http://www.w3.org/2000/svg" aria-hidden="true" role="img" viewBox="0 0 448 512" class="icon"><path fill="currentColor" d="M436 124H12c-6.627 0-12-5.373-12-12V80c0-6.627 5.373-12 12-12h424c6.627 0 12 5.373 12 12v32c0 6.627-5.373 12-12 12zm0 160H12c-6.627 0-12-5.373-12-12v-32c0-6.627 5.373-12 12-12h424c6.627 0 12 5.373 12 12v32c0 6.627-5.373 12-12 12zm0 160H12c-6.627 0-12-5.373-12-12v-32c0-6.627 5.373-12 12-12h424c6.627 0 12 5.373 12 12v32c0 6.627-5.373 12-12 12z"></path></svg></div> <a href="/" class="home-link router-link-active"><!----> <span class="site-name">Jsonic</span></a> <div class="links"><div class="search-box"><input aria-label="Search" autocomplete="off" spellcheck="false" value=""> <!----></div> <nav class="nav-links can-hide"><div class="nav-item"><a href="/" class="nav-link">
+  Home
+</a></div><div class="nav-item"><a href="/guide/" class="nav-link router-link-active">
+  Guide
+</a></div><div class="nav-item"><a href="/ref/" class="nav-link">
+  Reference
+</a></div><div class="nav-item"><a href="/plugin/" class="nav-link">
+  Plugins
+</a></div><div class="nav-item"><a href="/community/" class="nav-link">
+  Community
+</a></div><div class="nav-item"><a href="https://github.com/jsonicjs/jsonic" target="_blank" rel="noopener noreferrer" class="nav-link external">
+  Github
+  <span><svg xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false" x="0px" y="0px" viewBox="0 0 100 100" width="15" height="15" class="icon outbound"><path fill="currentColor" d="M18.8,85.1h56l0,0c2.2,0,4-1.8,4-4v-32h-8v28h-48v-48h28v-8h-32l0,0c-2.2,0-4,1.8-4,4v56C14.8,83.3,16.6,85.1,18.8,85.1z"></path> <polygon fill="currentColor" points="45.7,48.7 51.3,54.3 77.2,28.5 77.2,37.2 85.2,37.2 85.2,14.9 62.8,14.9 62.8,22.9 71.5,22.9"></polygon></svg> <span class="sr-only">(opens new window)</span></span></a></div> <!----></nav></div></header> <div class="sidebar-mask"></div> <aside class="sidebar"><nav class="nav-links"><div class="nav-item"><a href="/" class="nav-link">
+  Home
+</a></div><div class="nav-item"><a href="/guide/" class="nav-link router-link-active">
+  Guide
+</a></div><div class="nav-item"><a href="/ref/" class="nav-link">
+  Reference
+</a></div><div class="nav-item"><a href="/plugin/" class="nav-link">
+  Plugins
+</a></div><div class="nav-item"><a href="/community/" class="nav-link">
+  Community
+</a></div><div class="nav-item"><a href="https://github.com/jsonicjs/jsonic" target="_blank" rel="noopener noreferrer" class="nav-link external">
+  Github
+  <span><svg xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false" x="0px" y="0px" viewBox="0 0 100 100" width="15" height="15" class="icon outbound"><path fill="currentColor" d="M18.8,85.1h56l0,0c2.2,0,4-1.8,4-4v-32h-8v28h-48v-48h28v-8h-32l0,0c-2.2,0-4,1.8-4,4v56C14.8,83.3,16.6,85.1,18.8,85.1z"></path> <polygon fill="currentColor" points="45.7,48.7 51.3,54.3 77.2,28.5 77.2,37.2 85.2,37.2 85.2,14.9 62.8,14.9 62.8,22.9 71.5,22.9"></polygon></svg> <span class="sr-only">(opens new window)</span></span></a></div> <!----></nav>  <ul class="sidebar-links"><li><a href="/guide/install.html" class="sidebar-link">Install</a></li><li><a href="/guide/getting-started.html" class="sidebar-link">Getting Started</a></li><li><a href="/guide/syntax-introduction.html" aria-current="page" class="active sidebar-link">Syntax introduction</a><ul class="sidebar-sub-headers"><li class="sidebar-sub-header"><a href="/guide/syntax-introduction.html#developer-experience" class="sidebar-link">Developer experience</a></li><li class="sidebar-sub-header"><a href="/guide/syntax-introduction.html#walkthrough" class="sidebar-link">Walkthrough</a></li></ul></li><li><a href="/guide/alternatives.html" class="sidebar-link">Alternatives</a></li><li><a href="/guide/custom-parsers.html" class="sidebar-link">Custom parsers</a></li><li><a href="/guide/tutorials.html" class="sidebar-link">Tutorials</a></li></ul> </aside> <main class="page"> <div class="theme-default-content content__default"><h1 id="syntax-introduction"><a href="#syntax-introduction" class="header-anchor">#</a> Syntax introduction</h1> <p>The syntax that <span class="jsn-name-self">Jsonic</span> uses is configurable. There is a standard
+version that you will learn about first in this guide.</p> <p>​<span class="jsn-name-self">Jsonic</span> syntax is a super set of traditional
+<em>JSON</em>. Every valid <em>JSON</em> document is also a valid <span class="jsn-name-self">Jsonic</span>
+document.</p> <h2 id="developer-experience"><a href="#developer-experience" class="header-anchor">#</a> Developer experience</h2> <p>The developer experience when using <em>JSON</em> is OK but not great. When
+<em>JSON</em> is used for editable documents, say for configuration, things
+get tricky. The lack of comments make life more difficult than it
+needs to be. The ceremony of quoting all strings is tedious. And
+dealing with multi-line strings is really nasty.</p> <p>There are many extensions to <em>JSON</em> that solve these problems (and
+others) in various ways.  All the alternatives that I know about are
+listed on the <a href="/guide/alternatives">alternatives</a> page.</p> <p>I have taken as many of the good ideas as possible, and combined them
+into a configurable <em>JSON</em> parser. The basic guiding is: if it isn't
+ambiguous, it's cool.</p> <p>​<span class="jsn-name-self">Jsonic</span> is also something else&amp;emdash;an
+extensible parser. If you want to add your own little Domain Specific
+Languages (DSL) into your <em>JSON</em> documents, <span class="jsn-name-self">Jsonic</span> is built
+exactly for that purpose! See
+the <a href="/guide/custom-parsers">custom parsers</a> section for a guide to
+writing your own <em>JSON</em>-based DSLs with <span class="jsn-name-self">Jsonic</span></p> <h2 id="walkthrough"><a href="#walkthrough" class="header-anchor">#</a> Walkthrough</h2> <p>Let's first informally describe the syntax extensions that
+<span class="jsn-name-self">Jsonic</span> provides. For a slightly more formal description, See
+the <a href="/ref/#railroad-diagrams">railroad diagrams</a> section.</p> <p>​<span class="jsn-name-self">Jsonic</span> is an extension
+of <a href="https://json.org" target="_blank" rel="noopener noreferrer">JSON<span><svg xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false" x="0px" y="0px" viewBox="0 0 100 100" width="15" height="15" class="icon outbound"><path fill="currentColor" d="M18.8,85.1h56l0,0c2.2,0,4-1.8,4-4v-32h-8v28h-48v-48h28v-8h-32l0,0c-2.2,0-4,1.8-4,4v56C14.8,83.3,16.6,85.1,18.8,85.1z"></path> <polygon fill="currentColor" points="45.7,48.7 51.3,54.3 77.2,28.5 77.2,37.2 85.2,37.2 85.2,14.9 62.8,14.9 62.8,22.9 71.5,22.9"></polygon></svg> <span class="sr-only">(opens new window)</span></span></a>, so all the usual rules of <em>JSON</em> syntax
+still work.</p> <h3 id="comments"><a href="#comments" class="header-anchor">#</a> Comments</h3> <p>Single line comments can be introduced by <code>#</code> or <code>//</code> and run to the
+end of the current line:</p> <div class="language-jsonic extra-class"><pre class="language-text"><code>{
+  &quot;a&quot;: 1, # a comment
+  &quot;b&quot;: 2, // also a comment
+}
+</code></pre></div><p>You also get multi-line comments with:</p> <div class="language-jsonic extra-class"><pre class="language-text"><code>{
+  &quot;a&quot;: 1,
+  /* 
+   * A Multiline comment
+   */
+  &quot;b&quot;: 2,
+  &quot;foo&quot;: foo,
+}
+
+</code></pre></div><p>Sometimes you need to comment out a section that already has a
+multi-line comment within it. This can be annoying with traditional
+multi-line syntax, as the multi-line comment ends with the first end
+marker (<code>*/</code>) seen.  <span class="jsn-name-self">Jsonic</span> allows multi-line comments to nest
+so you don't have to worry about this anymore:</p> <div class="language-jsonic extra-class"><pre class="language-text"><code>{
+  &quot;a&quot;: 1,
+  /* 
+   * /* a multi-line comment
+   *  * inside a multi-line comment.
+   *  */
+   */
+  &quot;b&quot;: 2,
+}
+
+</code></pre></div><p style="color:#888;text-align:right;margin-top:-20px;"><small style="font-size:10px;">(Even the syntax highlighter struggles with this one!)</small></p> <h3 id="keys"><a href="#keys" class="header-anchor">#</a> Keys</h3> <p>You don't have to quote keys. This deals with the most tedious part of
+editing pure <em>JSON</em> by hand. We go a little easier than pure
+<code>JavaScript</code> too—you only have to quote keys if they contain
+spaces or punctuation.</p> <div class="language-jsonic extra-class"><pre class="language-text"><code>// jsonic       // JSON
+{               {
+  a: 1,           &quot;a&quot;: 1,
+  1: 2,           &quot;1&quot;: 2,
+  1a: 3,          &quot;1a&quot;: 3,
+  &quot;1 a&quot;: 4,       &quot;1 a&quot;: 4,
+  &quot;{}&quot;: 5,         &quot;{}&quot;: 5,
+  true: 6         &quot;true&quot;: 6
+}               }
+</code></pre></div><h3 id="commas"><a href="#commas" class="header-anchor">#</a> Commas</h3> <p>This is another essential convenience. You can having trailing commas,
+which makes cut-and-paste editing much easier.</p> <div class="language-jsonic extra-class"><pre class="language-text"><code>// jsonic       // JSON
+{               {
+  a: 1,           &quot;a&quot;: 1,
+  1: 2,           &quot;1&quot;: 2
+}               }
+</code></pre></div><p>Actually, you don't need commas at all. Spaces, tabs, new lines and <em>nothing</em> also
+separate elements for you:</p> <div class="language-jsonic extra-class"><pre class="language-text"><code>// jsonic       // JSON
+{               {
+  a: 1           &quot;a&quot;: 1,
+  1: 2           &quot;1&quot;: 2,
+  b: [3 4]       &quot;b&quot;: [3, 4]
+  c: [[5][6]]    &quot;c&quot;: [[5], [6]] 
+}               }
+</code></pre></div><p>Repeated commas do have a special meaning. Any comma without a
+<strong>preceding value</strong> generates a <code>null</code> value (<em>JSON</em> only has <code>null</code>, not
+<code>undefined</code>):</p> <div class="language-jsonic extra-class"><pre class="language-text"><code>// jsonic       // JSON
+[a,]           [&quot;a&quot;]
+[,a]           [null, &quot;a&quot;]
+[,a,]          [null, &quot;a&quot;]
+[,a,,]         [null, &quot;a&quot;, null]
+[,,,]          [null, null, null]
+[,,]           [null, null]
+[,]            [null]
+</code></pre></div><p>You also get <code>null</code> when a property value is missing:</p> <div class="language-jsonic extra-class"><pre class="language-text"><code>// jsonic       // JSON
+{a:,b:}         {&quot;a&quot;:null, &quot;b&quot;:null}
+</code></pre></div><h3 id="strings"><a href="#strings" class="header-anchor">#</a> Strings</h3> <p>Single and double quoted strings work the same way as in JavaScript:</p> <div class="language-jsonic extra-class"><pre class="language-text"><code>// jsonic       // JSON
+&quot;a&quot;             &quot;a&quot;
+'b'             &quot;b&quot;
+&quot;c'c&quot;           &quot;c'c&quot;
+'d&quot;d'           &quot;d\&quot;d&quot;
+'e\te'          &quot;e\te&quot;
+</code></pre></div><p>You also get backticks, which are multi-line:</p> <div class="language-jsonic extra-class"><pre class="language-text"><code>// jsonic       // JSON
+`a             &quot;a\nb&quot;
+b`           
+</code></pre></div><p>And a convenience syntax for indented blocks of text:</p> <div class="language-jsonic extra-class"><pre class="language-text"><code>// jsonic       // JSON
+  '''           &quot;red\ngreen\nblue&quot;
+  red                          
+  green
+  blue
+  '''
+</code></pre></div><h3 id="numbers"><a href="#numbers" class="header-anchor">#</a> Numbers</h3> <p>You get all the JavaScript number formats:</p> <div class="language-jsonic extra-class"><pre class="language-text"><code>// jsonic       // JSON
+20              20
+20.0            20
+2e1             20
+0x14            20
+0o24            20
+0b10100         20
+</code></pre></div><p>And underscore as way to make large numbers easier to read:</p> <div class="language-jsonic extra-class"><pre class="language-text"><code>// jsonic       // JSON
+2_000_000       2000000
+</code></pre></div><p>The special JavaScript number value literals (such as <code>Infinity</code>) are
+not supported, but you can have them (and other things, like
+<code>undefined</code>) if you use the <a href="/plugin/native">native</a> plugin.</p> <h3 id="merges"><a href="#merges" class="header-anchor">#</a> Merges</h3> <p>Duplicate keys merge their values when they are objects or arrays,
+otherwise the last value wins.</p> <div class="language-jsonic extra-class"><pre class="language-text"><code>// jsonic                  // JSON
+{a:1, a:2}                 {&quot;a&quot;:2}
+{a:{b:1}, a:{c:2}}         {&quot;a&quot;:{&quot;b&quot;:1, &quot;c&quot;:2}}
+{a:[1,2], a:[3]}           {&quot;a&quot;:[3, 2]}
+</code></pre></div><h3 id="shortcuts"><a href="#shortcuts" class="header-anchor">#</a> Shortcuts</h3> <p>At the top level, you can skip braces and square brackets:</p> <div class="language-jsonic extra-class"><pre class="language-text"><code>// jsonic       // JSON
+a:1,b:2         {&quot;a&quot;:1, &quot;b&quot;:2}
+1,2             [1, 2]
+</code></pre></div><p>You can use repeated key-colon pairs to set a single deep property:</p> <div class="language-jsonic extra-class"><pre class="language-text"><code>// jsonic       // JSON
+a:b:1           {&quot;a&quot;: {&quot;b&quot;:1}}
+a:b:[2]         {&quot;a&quot;: {&quot;b&quot;: [2]}}
+a:b:2, a:c:3    {&quot;a&quot;: {&quot;b&quot;: 2, &quot;c&quot;:3}}
+</code></pre></div><p>Open objects and arrays close themselves:</p> <div class="language-jsonic extra-class"><pre class="language-text"><code>// jsonic       // JSON
+{a:{b:{c:[1     {&quot;a&quot;:{&quot;b&quot;:{&quot;c&quot;:[1]}}}
+</code></pre></div><h3 id="things-that-still-aren-t-allowed"><a href="#things-that-still-aren-t-allowed" class="header-anchor">#</a> Things that still aren't allowed</h3> <p>You still need to be able to detect actual syntax errors, like misused
+punctuation in property keys or array elements:</p> <div class="language-jsonic extra-class"><pre class="language-text"><code>a{b:1           // nope!
+a}b:1           // nope!
+a[b:1           // nope!
+a]b:1           // nope!
+[{]             // nope!
+[}]             // nope!
+</code></pre></div><p>Punctuation cannot occur in property values either as it terminates
+the value (which is what you want).</p> <div class="language-jsonic extra-class"><pre class="language-text"><code>// jsonic       // JSON
+{a:}            {&quot;a&quot;: null}
+{a:{}           {&quot;a&quot;: {}}
+{a:]}           // nope!
+{a:[}           // nope!
+</code></pre></div></div> <footer class="page-edit"><!----> <!----></footer> <div class="page-nav"><p class="inner"><span class="prev">
+      ←
+      <a href="/guide/getting-started.html" class="prev">
+        Getting Started
+      </a></span> <span class="next"><a href="/guide/alternatives.html">
+        Alternatives
+      </a>
+      →
+    </span></p></div> </main></div><div class="global-ui"></div></div>
+    <script src="/assets/js/app.0c621e62.js" defer></script><script src="/assets/js/2.34930047.js" defer></script><script src="/assets/js/14.f56c2700.js" defer></script><script src="/assets/js/3.6ce1235a.js" defer></script>
+  </body>
+</html>

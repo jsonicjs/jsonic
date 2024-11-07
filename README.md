@@ -1,116 +1,269 @@
 # jsonic
 
-[![npm version][npm-badge]][npm-url]
-[![Build Status][travis-badge]][travis-url]
-[![Dependency Status][david-badge]][david-url]
+NOTE: PREVIEW VERSION OF NEXT RELEASE
+
+*A JSON parser for JavaScript that isn't strict. 
+Also, it's very __very__ extensible.* 
+
+`a:1,foo:bar` &rarr; `{"a": 1, "foo": "bar"}`
+
+[Site](https://jsonic.com/) |
+[Docs](https://jsonic.com/docs) |
+[FP Guide](https://github.com/jsonic/jsonic/wiki/FP-Guide) |
+[Contributing](https://github.com/jsonic/jsonic/blob/master/.github/CONTRIBUTING.md) |
+[Wiki](https://github.com/jsonic/jsonic/wiki "Changelog, Roadmap, etc.") |
+[Code of Conduct](https://code-of-conduct.openjsf.org) |
+[Twitter](https://twitter.com/bestiejs) |
+[Chat](https://gitter.im/jsonic/jsonic)
 
 
-### A JSON parser for Node.js that isn't strict.
+[![npm version](https://badge.fury.io/js/jsonic.svg)](https://badge.fury.io/js/jsonic)
+[![dependencies Status](https://status.david-dm.org/gh/rjrodger/jsonic.svg)](https://david-dm.org/rjrodger/jsonic)
 
+# Quick start
 
-A JSON parser that can parse "bad" JSON. Mostly, this is about
-avoiding the need to quote everything!
-
-Strict JSON requires you to do this:
-
-```JavaScript
-{ "foo":"bar", "red":1 }
-```
-
-The JavaScript language itself is a little easier:
-
-```JavaScript
-{ foo:"bar", red:1, }
-```
-
-But if you really want to be lazy, jsonic lets you say:
-
-```JavaScript
-foo:bar, red:1,
-```
-
-See below for the relaxed JSON rules.
-
-
-
-This module is used by the [Seneca](http://senecajs.org) framework to
-provide an abbreviated command syntax.
-
-### Support
-
-If you're using this module, feel free to contact me on twitter if you have any questions! :) [@rjrodger](http://twitter.com/rjrodger)
-
-### Quick example
-
-```JavaScript
-var jsonic = require('jsonic')
-
-// parse a string into a JavaScript object
-var obj = jsonic('foo:1, bar:zed')
-
-// prints { foo: 1, bar: 'zed' }
-console.dir( obj )
+Install:
 
 ```
-
-## Install
-
-```sh
-npm install jsonic
+> npm install jsonic
 ```
 
-
-# Relaxed Rules
-
-JSONIC format is just standard JSON, with a few rule relaxations:
-
-   * You don't need to quote property names: <code>{ foo:"bar baz", red:255 }</code>
-   * You don't need the top level braces: <code>foo:"bar baz", red:255</code>
-   * You don't need to quote strings with spaces: <code>foo:bar baz, red:255</code>
-   * You _do_ need to quote strings if they contain a comma or closing brace or square bracket: <code>icky:"_,}]_"</code>
-   * You can use single quotes for strings: <code>Jules:'Cry "Havoc," and let slip the dogs of war!'</code>
-   * You can have trailing commas: <code>foo:bar, red:255, </code>
-
-
-# Stringify
-
-The _jsonic_ module provides a `stringify` method:
-
-``` js
-console.log( jsonic.stringify( {a:"bc",d:1} ) ) // prints {a:bc,d:1} 
+Node.js:
+```
+const Jsonic = require('jsonic')
+console.log(Jsonic('a:b'))  // prints {a:'b'}
 ```
 
-The `stringify` method converts a plain JavaScript object into a
-string that can be parsed by _jsonic_. It has two parameters:
-
-   * `value`: plain object
-   * `options`: optional options object
-
-For example, you can limit the depth of the object tree printed:
-
-``` js
-console.log( jsonic.stringify( {a:{b:{c:1}}}, {depth:2} ) ) // prints {a:{b:{}}} 
+TypeScript:
+```
+import { Jsonic } from 'jsonic'
+console.log(Jsonic('a:b'))  // prints {a:'b'}
 ```
 
-__NOTE: `jsonic.stringify` is intended for debug printing, not data exchange, so the defaults are conservative in the amount of data printed__
+Browser:
+```
+<script src="jsonic.min.js"></script>
+<script>
+console.log(Jsonic('a:b'))  // prints {a:'b'}
+</script>
+```
 
-The options are:
-
-   * _depth_:    default: __3__; maximum depth of sub-objects printed; _NOTE: there is no infinite-cycle protection, just this finite depth_
-   * _maxitems_: default: __11__; maximum number of array elements or object key/value pairs printed
-   * _maxchars_: default: __111__; maximum number of characters printed
-   * _omit_: default:__[]__; omit listed keys from objects
-   * _exclude_: default:__['$']__; omit keys from objects if they contain any of the listed values
+(Although in the real world you'll probably be packaging _jsonic_ as a dependency with _webpack_ or similar.)
 
 
-## How it Works
 
-The parser uses [PEG.js](http://pegjs.majda.cz/) and is an extension of the example JSON parser included in that project.
+# What can jsonic do?
 
-[npm-badge]: https://badge.fury.io/js/jsonic.svg
-[npm-url]: https://badge.fury.io/js/jsonic
-[travis-badge]: https://api.travis-ci.org/rjrodger/jsonic.svg
-[travis-url]: https://travis-ci.org/rjrodger/jsonic
-[david-badge]: https://david-dm.org/rjrodger/jsonic.svg
-[david-url]: https://david-dm.org/rjrodger/jsonic
+All of the examples below parse beautifully to `{"a": 1, "b": "B"}`.
+
+
+*short and sweet*
+```
+a:1,b:B
+```
+
+*no commas, no problem*
+```
+a:1
+b:B
+```
+
+*comments are cool*
+```
+a:1
+// a:2
+# a:3
+
+/* b wants 
+ * to B
+ */
+b:B
+```
+
+*strings and things*
+
+```
+{ "a": 100e-2, '\u0062':`\x42`, }
+```
+
+The syntax of _jsonic_ is just easy-going JSON:
+* simple no-quotes-needed property names: `{a:1}` &rarr; `{"a": 1}`
+* implicit top level (optional): `a:1,b:2` &rarr; `{"a": 1, "b": 2}`, `a,b` &rarr; `["a", "b"]`
+* graceful trailing commas: `a:1,b:2,` &rarr; `{"a": 1, "b": 2}`, `a,b,` &rarr; `["a", "b"]`
+* all the number formats: `1e1 === 0xa === 0o12 === 0b1010`
+
+
+But that is not all! Oh, no. That is not all...
+
+This:
+
+
+```
+# Merge, baby, merge!
+cat: { hat: true }
+cat: { fish: null }
+cat: who: ['sally', 'me']
+  
+# Who needs quotes anyway?
+holds up: [
+  cup and a cake,
+
+  `TWO books!
+   the fish!`,
+
+  '''
+  ship!
+  dish!
+  ball!
+  '''
+  ]
+}
+```
+
+parses into this:
+
+```
+{
+  "cat": {
+    "hat": true,
+    "fish": null,
+    "who": ["sally","me"]
+  },
+  
+  "holds up": [
+    "cup and a cake",
+    "TWO books!\n   the fish!",
+    "ship!\ndish!\nball!"
+  ]
+}
+```
+
+Meaning you also get:
+* quotes can be single or double ': `'a',"b"` &rarr; `['a', 'b']`
+* quotes are optional, even with spaces: `{a: cup cake }` &rarr; `{"a": "cup cake"}`
+* object merging: `a:{b:1},a:{c:2}` &rarr; `{"a": {"b": 1, "c": 2}}`
+* object construction: `a:b:1,a:c:2` &rarr; `{"a": {"b": 1, "c": 2}}`
+* multi-line strings: 
+```
+`a
+b` 
+``` 
+&rarr; `"a\nb"`
+* indent-adjusted strings: 
+```
+  '''
+  a
+  b
+  '''
+``` 
+&rarr; `"a\nb"`
+
+
+And we haven't even begun to talk about all the fun stuff you can do
+with options and plugins, including support for multiple files,
+CSV (or TSV), and dynamic content.
+
+
+<details open="open">
+  <summary>Table of Contents</summary>
+  <ol>
+    <li>
+      <a href="#about-the-project">About The Project</a>
+      <ul>
+        <li><a href="#built-with">Built With</a></li>
+      </ul>
+    </li>
+    <li>
+      <a href="#getting-started">Getting Started</a>
+      <ul>
+        <li><a href="#prerequisites">Prerequisites</a></li>
+        <li><a href="#installation">Installation</a></li>
+      </ul>
+    </li>
+    <li><a href="#usage">Usage</a></li>
+    <li><a href="#roadmap">Roadmap</a></li>
+    <li><a href="#contributing">Contributing</a></li>
+    <li><a href="#license">License</a></li>
+    <li><a href="#contact">Contact</a></li>
+    <li><a href="#acknowledgements">Acknowledgements</a></li>
+  </ol>
+</details>
+
+
+
+a
+
+a
+
+a
+
+a
+
+a
+
+a
+
+a
+
+a
+
+a
+
+a
+
+a
+
+a
+
+a
+
+a
+
+a
+
+a
+
+a
+
+a
+
+a
+
+a
+
+a
+
+a
+
+a
+
+a
+
+a
+
+a
+
+a
+
+a
+
+a
+
+a
+
+a
+
+a
+
+
+
+# Usage
+
+
+
+
+
+# Breaking Changes
+
+* unterminated strings?
 

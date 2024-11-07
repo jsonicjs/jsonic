@@ -17,3 +17,13 @@ npm-debug.log
 node_modules
 
 .idea/
+
+
+trial
+
+test/coverage.html
+
+coverage
+
+package-lock.json
+yarn.lock

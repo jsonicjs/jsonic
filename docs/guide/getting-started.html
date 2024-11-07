@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="en-US">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <title>Getting Started | Jsonic</title>
+    <meta name="generator" content="VuePress 1.9.8">
+    <link rel="stylesheet" href="/railroad-diagrams.css">
+    <meta name="description" content="A JSON parser for Node.js that isn&#39;t strict.">
+    
+    <link rel="preload" href="/assets/css/0.styles.610e9dca.css" as="style"><link rel="preload" href="/assets/js/app.0c621e62.js" as="script"><link rel="preload" href="/assets/js/2.34930047.js" as="script"><link rel="preload" href="/assets/js/11.7988a5fa.js" as="script"><link rel="preload" href="/assets/js/3.6ce1235a.js" as="script"><link rel="prefetch" href="/assets/js/10.88d9a57b.js"><link rel="prefetch" href="/assets/js/12.d9f3d941.js"><link rel="prefetch" href="/assets/js/13.775f91ca.js"><link rel="prefetch" href="/assets/js/14.f56c2700.js"><link rel="prefetch" href="/assets/js/15.00058088.js"><link rel="prefetch" href="/assets/js/16.70a6eea0.js"><link rel="prefetch" href="/assets/js/17.0d1f36b1.js"><link rel="prefetch" href="/assets/js/18.0f184e32.js"><link rel="prefetch" href="/assets/js/19.57ad231b.js"><link rel="prefetch" href="/assets/js/20.58c8b075.js"><link rel="prefetch" href="/assets/js/21.0c46ffa9.js"><link rel="prefetch" href="/assets/js/22.965cbc0d.js"><link rel="prefetch" href="/assets/js/23.18c270f0.js"><link rel="prefetch" href="/assets/js/24.5895d76a.js"><link rel="prefetch" href="/assets/js/25.a347f1d6.js"><link rel="prefetch" href="/assets/js/26.c7b8345d.js"><link rel="prefetch" href="/assets/js/27.4e6f90b7.js"><link rel="prefetch" href="/assets/js/28.6e0fa7bc.js"><link rel="prefetch" href="/assets/js/29.77b8e3b6.js"><link rel="prefetch" href="/assets/js/30.69b1b865.js"><link rel="prefetch" href="/assets/js/31.c68f976d.js"><link rel="prefetch" href="/assets/js/32.0a08a140.js"><link rel="prefetch" href="/assets/js/4.064b2ac3.js"><link rel="prefetch" href="/assets/js/5.46815478.js"><link rel="prefetch" href="/assets/js/6.f03d59ff.js"><link rel="prefetch" href="/assets/js/7.6be3acca.js"><link rel="prefetch" href="/assets/js/8.0a081a71.js"><link rel="prefetch" href="/assets/js/9.9b6e31d5.js">
+    <link rel="stylesheet" href="/assets/css/0.styles.610e9dca.css">
+  </head>
+  <body>
+    <div id="app" data-server-rendered="true"><div class="theme-container"><header class="navbar"><div class="sidebar-button"><svg xmlns="http://www.w3.org/2000/svg" aria-hidden="true" role="img" viewBox="0 0 448 512" class="icon"><path fill="currentColor" d="M436 124H12c-6.627 0-12-5.373-12-12V80c0-6.627 5.373-12 12-12h424c6.627 0 12 5.373 12 12v32c0 6.627-5.373 12-12 12zm0 160H12c-6.627 0-12-5.373-12-12v-32c0-6.627 5.373-12 12-12h424c6.627 0 12 5.373 12 12v32c0 6.627-5.373 12-12 12zm0 160H12c-6.627 0-12-5.373-12-12v-32c0-6.627 5.373-12 12-12h424c6.627 0 12 5.373 12 12v32c0 6.627-5.373 12-12 12z"></path></svg></div> <a href="/" class="home-link router-link-active"><!----> <span class="site-name">Jsonic</span></a> <div class="links"><div class="search-box"><input aria-label="Search" autocomplete="off" spellcheck="false" value=""> <!----></div> <nav class="nav-links can-hide"><div class="nav-item"><a href="/" class="nav-link">
+  Home
+</a></div><div class="nav-item"><a href="/guide/" class="nav-link router-link-active">
+  Guide
+</a></div><div class="nav-item"><a href="/ref/" class="nav-link">
+  Reference
+</a></div><div class="nav-item"><a href="/plugin/" class="nav-link">
+  Plugins
+</a></div><div class="nav-item"><a href="/community/" class="nav-link">
+  Community
+</a></div><div class="nav-item"><a href="https://github.com/jsonicjs/jsonic" target="_blank" rel="noopener noreferrer" class="nav-link external">
+  Github
+  <span><svg xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false" x="0px" y="0px" viewBox="0 0 100 100" width="15" height="15" class="icon outbound"><path fill="currentColor" d="M18.8,85.1h56l0,0c2.2,0,4-1.8,4-4v-32h-8v28h-48v-48h28v-8h-32l0,0c-2.2,0-4,1.8-4,4v56C14.8,83.3,16.6,85.1,18.8,85.1z"></path> <polygon fill="currentColor" points="45.7,48.7 51.3,54.3 77.2,28.5 77.2,37.2 85.2,37.2 85.2,14.9 62.8,14.9 62.8,22.9 71.5,22.9"></polygon></svg> <span class="sr-only">(opens new window)</span></span></a></div> <!----></nav></div></header> <div class="sidebar-mask"></div> <aside class="sidebar"><nav class="nav-links"><div class="nav-item"><a href="/" class="nav-link">
+  Home
+</a></div><div class="nav-item"><a href="/guide/" class="nav-link router-link-active">
+  Guide
+</a></div><div class="nav-item"><a href="/ref/" class="nav-link">
+  Reference
+</a></div><div class="nav-item"><a href="/plugin/" class="nav-link">
+  Plugins
+</a></div><div class="nav-item"><a href="/community/" class="nav-link">
+  Community
+</a></div><div class="nav-item"><a href="https://github.com/jsonicjs/jsonic" target="_blank" rel="noopener noreferrer" class="nav-link external">
+  Github
+  <span><svg xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false" x="0px" y="0px" viewBox="0 0 100 100" width="15" height="15" class="icon outbound"><path fill="currentColor" d="M18.8,85.1h56l0,0c2.2,0,4-1.8,4-4v-32h-8v28h-48v-48h28v-8h-32l0,0c-2.2,0-4,1.8-4,4v56C14.8,83.3,16.6,85.1,18.8,85.1z"></path> <polygon fill="currentColor" points="45.7,48.7 51.3,54.3 77.2,28.5 77.2,37.2 85.2,37.2 85.2,14.9 62.8,14.9 62.8,22.9 71.5,22.9"></polygon></svg> <span class="sr-only">(opens new window)</span></span></a></div> <!----></nav>  <ul class="sidebar-links"><li><a href="/guide/install.html" class="sidebar-link">Install</a></li><li><a href="/guide/getting-started.html" aria-current="page" class="active sidebar-link">Getting Started</a><ul class="sidebar-sub-headers"><li class="sidebar-sub-header"><a href="/guide/getting-started.html#parse-some-easy-going-json" class="sidebar-link">Parse some easy-going JSON!</a></li><li class="sidebar-sub-header"><a href="/guide/getting-started.html#what-does-jsonic-syntax-give-you" class="sidebar-link">What does jsonic syntax give you?</a></li><li class="sidebar-sub-header"><a href="/guide/getting-started.html#developer-friendly-error-messages" class="sidebar-link">Developer-friendly error messages</a></li><li class="sidebar-sub-header"><a href="/guide/getting-started.html#nice-but-what-does-it-all-cost" class="sidebar-link">Nice, but what does it all cost?</a></li><li class="sidebar-sub-header"><a href="/guide/getting-started.html#customizable-and-extendable" class="sidebar-link">Customizable and extendable</a></li></ul></li><li><a href="/guide/syntax-introduction.html" class="sidebar-link">Syntax introduction</a></li><li><a href="/guide/alternatives.html" class="sidebar-link">Alternatives</a></li><li><a href="/guide/custom-parsers.html" class="sidebar-link">Custom parsers</a></li><li><a href="/guide/tutorials.html" class="sidebar-link">Tutorials</a></li></ul> </aside> <main class="page"> <div class="theme-default-content content__default"><h1 id="getting-started"><a href="#getting-started" class="header-anchor">#</a> Getting Started</h1> <p>Make sure you have <span class="jsn-name-self">Jsonic</span> <a href="install">installed</a>. The installation
+instructions cover your various options and environments in more
+detail.</p> <p>Then load into your source code:</p> <h6 id="use-require-if-you-re-writing-for-node-hjs"><a href="#use-require-if-you-re-writing-for-node-hjs" class="header-anchor">#</a> use <code>require</code> if you're writing for Node.hjs:</h6> <div class="language-js extra-class"><pre class="language-js"><code><span class="token keyword">const</span> <span class="token punctuation">{</span> Jsonic <span class="token punctuation">}</span> <span class="token operator">=</span> <span class="token function">require</span><span class="token punctuation">(</span><span class="token string">'jsonic'</span><span class="token punctuation">)</span>
+</code></pre></div><h6 id="use-import-if-you-re-writing-for-a-browser"><a href="#use-import-if-you-re-writing-for-a-browser" class="header-anchor">#</a> use <code>import</code> if you're writing for a browser:</h6> <div class="language-js extra-class"><pre class="language-js"><code><span class="token keyword">import</span> <span class="token punctuation">{</span> Jsonic <span class="token punctuation">}</span> <span class="token keyword">from</span> <span class="token string">'jsonic'</span>
+</code></pre></div><h2 id="parse-some-easy-going-json"><a href="#parse-some-easy-going-json" class="header-anchor">#</a> Parse some easy-going JSON!</h2> <p>The <code>Jsonic</code> variable is a function that takes in a string and returns
+an object:</p> <div class="language-js extra-class"><pre class="language-js"><code><span class="token keyword">let</span> data <span class="token operator">=</span> <span class="token function">Jsonic</span><span class="token punctuation">(</span><span class="token string">'a:1'</span><span class="token punctuation">)</span>
+console<span class="token punctuation">.</span><span class="token function">log</span><span class="token punctuation">(</span> <span class="token constant">JSON</span><span class="token punctuation">.</span><span class="token function">stringify</span><span class="token punctuation">(</span>data<span class="token punctuation">)</span> <span class="token punctuation">)</span> <span class="token comment">// prints {&quot;a&quot;:1}</span>
+</code></pre></div><p>You pass in your jsonic source as a string. The string is parsed and
+converted into a JavaScript variable.</p> <h2 id="what-does-jsonic-syntax-give-you"><a href="#what-does-jsonic-syntax-give-you" class="header-anchor">#</a> What does <em>jsonic</em> syntax give you?</h2> <p>Standard JSON syntax <em>almost</em> provides a good developer experience,
+but not quite. We need a few extra things:</p> <h3 id="trailing-commas-are-ignored"><a href="#trailing-commas-are-ignored" class="header-anchor">#</a> Trailing commas are ignored</h3> <div class="language-js extra-class"><pre class="language-js"><code><span class="token function">Jsonic</span><span class="token punctuation">(</span><span class="token string">'[ 1, 2, ]'</span><span class="token punctuation">)</span> <span class="token comment">// === [1, 2]</span>
+<span class="token function">Jsonic</span><span class="token punctuation">(</span><span class="token string">'{ &quot;a&quot;:3, &quot;b&quot;:4, }'</span><span class="token punctuation">)</span> <span class="token comment">// === {&quot;a&quot;:3, &quot;b&quot;:4}</span>
+</code></pre></div><p>Just like a modern JavaScript. This one you can't live without.</p> <h3 id="object-keys-don-t-need-to-to-be-quoted"><a href="#object-keys-don-t-need-to-to-be-quoted" class="header-anchor">#</a> Object keys don't need to to be quoted</h3> <div class="language-js extra-class"><pre class="language-js"><code><span class="token function">Jsonic</span><span class="token punctuation">(</span><span class="token string">'{a:1}'</span><span class="token punctuation">)</span> <span class="token comment">// === {&quot;a&quot;:1}</span>
+</code></pre></div><p>Now object keys are more readable.</p> <h3 id="single-quote-strings-work"><a href="#single-quote-strings-work" class="header-anchor">#</a> Single quote strings work</h3> <div class="language-js extra-class"><pre class="language-js"><code><span class="token function">Jsonic</span><span class="token punctuation">(</span><span class="token string">'&quot;a&quot;'</span><span class="token punctuation">)</span> <span class="token comment">// === 'a'</span>
+<span class="token function">Jsonic</span><span class="token punctuation">(</span><span class="token string">&quot;'a'&quot;</span><span class="token punctuation">)</span> <span class="token comment">// === 'a'</span>
+</code></pre></div><p>Just like normal JavaScript.</p> <h3 id="backtick-multi-line-strings-work"><a href="#backtick-multi-line-strings-work" class="header-anchor">#</a> Backtick multi-line strings work</h3> <div class="language-js extra-class"><pre class="language-js"><code><span class="token comment">// === {&quot;a&quot;:1, &quot;b&quot;:2}</span>
+<span class="token function">Jsonic</span><span class="token punctuation">(</span><span class="token template-string"><span class="token template-punctuation string">`</span><span class="token string">{
+  a: 1,
+  b: 2,
+</span><span class="token template-punctuation string">`</span></span><span class="token punctuation">)</span>
+</code></pre></div><p>Again, just like JavaScript.</p> <h3 id="you-get-all-the-comments"><a href="#you-get-all-the-comments" class="header-anchor">#</a> You get all the comments</h3> <div class="language-js extra-class"><pre class="language-js"><code><span class="token comment">// === {&quot;a&quot;:1, &quot;b&quot;:2}</span>
+<span class="token function">Jsonic</span><span class="token punctuation">(</span><span class="token template-string"><span class="token template-punctuation string">`</span><span class="token string">{
+  a: 1,
+  // A comment
+  # Also a comment
+  /*
+   * Still a comment
+   */
+  b: 2,
+</span><span class="token template-punctuation string">`</span></span><span class="token punctuation">)</span>
+</code></pre></div><p>Now you can comment your configuration files properly.</p> <h3 id="actually-who-needs-commas-when-newlines-will-do"><a href="#actually-who-needs-commas-when-newlines-will-do" class="header-anchor">#</a> Actually, who needs commas when newlines will do</h3> <div class="language-js extra-class"><pre class="language-js"><code><span class="token comment">// === { &quot;a&quot;: 1, &quot;b&quot;: [ 2, 3 ] }</span>
+<span class="token function">Jsonic</span><span class="token punctuation">(</span><span class="token template-string"><span class="token template-punctuation string">`</span><span class="token string">{
+  a: 1
+  b: [
+    2
+    3
+  ]
+</span><span class="token template-punctuation string">`</span></span><span class="token punctuation">)</span>
+</code></pre></div><p>Why should YAML have all the fun?</p> <h3 id="and-quoting-every-string-is-tedious-right"><a href="#and-quoting-every-string-is-tedious-right" class="header-anchor">#</a> And quoting every string is tedious, right?</h3> <div class="language-js extra-class"><pre class="language-js"><code><span class="token comment">// === {&quot;a&quot;:&quot;foo&quot;, &quot;b&quot;:&quot;bar&quot;}</span>
+<span class="token function">Jsonic</span><span class="token punctuation">(</span><span class="token string">'{a:foo, b:bar}'</span><span class="token punctuation">)</span>
+</code></pre></div><p>When a value isn't a number, <code>true</code>, <code>false</code>, or <code>null</code>, it has to be a string.</p> <h3 id="don-t-worry-about-spaces-inside-text-either"><a href="#don-t-worry-about-spaces-inside-text-either" class="header-anchor">#</a> Don't worry about spaces inside text either</h3> <div class="language-js extra-class"><pre class="language-js"><code><span class="token comment">// === { &quot;a&quot;: &quot;foo bar&quot; }</span>
+<span class="token function">Jsonic</span><span class="token punctuation">(</span><span class="token string">'{a: foo bar }'</span><span class="token punctuation">)</span>
+</code></pre></div><p>Surrounding space is trimmed as you would expect.</p> <h3 id="implicit-objects-and-arrays-at-the-top-level"><a href="#implicit-objects-and-arrays-at-the-top-level" class="header-anchor">#</a> Implicit objects and arrays at the top level</h3> <div class="language-js extra-class"><pre class="language-js"><code><span class="token comment">// === {&quot;a&quot;:1, &quot;b&quot;:2}</span>
+<span class="token function">Jsonic</span><span class="token punctuation">(</span><span class="token string">'a:1,b:2'</span><span class="token punctuation">)</span>
+
+<span class="token comment">// === [&quot;a&quot;, &quot;b&quot;]</span>
+<span class="token function">Jsonic</span><span class="token punctuation">(</span><span class="token string">'a,b'</span><span class="token punctuation">)</span>
+</code></pre></div><p>This is very convenient for quickly defining small objects.</p> <h3 id="all-the-javascript-numbers-and-string-escapes"><a href="#all-the-javascript-numbers-and-string-escapes" class="header-anchor">#</a> All the JavaScript numbers and string escapes</h3> <div class="language-js extra-class"><pre class="language-js"><code><span class="token comment">// === [20.0, 20, 20, 20, 20]</span>
+<span class="token function">Jsonic</span><span class="token punctuation">(</span><span class="token string">'20.0, 2e1, 0x14, 0o24, 0b10100'</span><span class="token punctuation">)</span>
+
+<span class="token comment">// === ['a', 'a', 'a']</span>
+<span class="token function">Jsonic</span><span class="token punctuation">(</span><span class="token string">'&quot;\x61&quot;, &quot;\u0061&quot;, &quot;\u{000061}&quot;'</span><span class="token punctuation">)</span>
+</code></pre></div><p>Parity with JavaScript string handling is important to <span class="jsn-name-self">Jsonic</span>.</p> <h3 id="block-text-with-indent-removal"><a href="#block-text-with-indent-removal" class="header-anchor">#</a> Block text with indent removal</h3> <div class="language-js extra-class"><pre class="language-js"><code><span class="token comment">// === 'ship!\ndish!\nball!'</span>
+<span class="token function">Jsonic</span><span class="token punctuation">(</span><span class="token template-string"><span class="token template-punctuation string">`</span><span class="token string">
+  '''
+  ship!
+  dish!
+  ball!
+  '''
+</span><span class="token template-punctuation string">`</span></span><span class="token punctuation">)</span>
+</code></pre></div><p>A great idea from <a href="https://hjson.github.io/" target="_blank" rel="noopener noreferrer">HJson<span><svg xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false" x="0px" y="0px" viewBox="0 0 100 100" width="15" height="15" class="icon outbound"><path fill="currentColor" d="M18.8,85.1h56l0,0c2.2,0,4-1.8,4-4v-32h-8v28h-48v-48h28v-8h-32l0,0c-2.2,0-4,1.8-4,4v56C14.8,83.3,16.6,85.1,18.8,85.1z"></path> <polygon fill="currentColor" points="45.7,48.7 51.3,54.3 77.2,28.5 77.2,37.2 85.2,37.2 85.2,14.9 62.8,14.9 62.8,22.9 71.5,22.9"></polygon></svg> <span class="sr-only">(opens new window)</span></span></a>, so we had to have it!</p> <h3 id="deep-property-one-liners"><a href="#deep-property-one-liners" class="header-anchor">#</a> Deep property one liners</h3> <div class="language-js extra-class"><pre class="language-js"><code><span class="token comment">// === { &quot;a&quot;: { &quot;b&quot;: { &quot;c&quot;: 1 } } }</span>
+<span class="token function">Jsonic</span><span class="token punctuation">(</span><span class="token string">'a: b: c: 1'</span><span class="token punctuation">)</span>
+</code></pre></div><p>Also a great idea from the <a href="https://cuelang.org/" target="_blank" rel="noopener noreferrer">Cue configuration language<span><svg xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false" x="0px" y="0px" viewBox="0 0 100 100" width="15" height="15" class="icon outbound"><path fill="currentColor" d="M18.8,85.1h56l0,0c2.2,0,4-1.8,4-4v-32h-8v28h-48v-48h28v-8h-32l0,0c-2.2,0-4,1.8-4,4v56C14.8,83.3,16.6,85.1,18.8,85.1z"></path> <polygon fill="currentColor" points="45.7,48.7 51.3,54.3 77.2,28.5 77.2,37.2 85.2,37.2 85.2,14.9 62.8,14.9 62.8,22.9 71.5,22.9"></polygon></svg> <span class="sr-only">(opens new window)</span></span></a>.</p> <h3 id="merging-of-duplicate-properties"><a href="#merging-of-duplicate-properties" class="header-anchor">#</a> Merging of duplicate properties</h3> <div class="language-js extra-class"><pre class="language-js"><code><span class="token comment">// === {&quot;a&quot;: {&quot;b&quot;:1, &quot;c&quot;:2, &quot;d&quot;: 3}}</span>
+<span class="token function">Jsonic</span><span class="token punctuation">(</span><span class="token template-string"><span class="token template-punctuation string">`</span><span class="token string">
+  a: {b: 1}
+  a: {c: 2}
+  a: d: 3
+</span><span class="token template-punctuation string">`</span></span><span class="token punctuation">)</span>
+</code></pre></div><p>This is super useful when writing system specifications.</p> <h2 id="developer-friendly-error-messages"><a href="#developer-friendly-error-messages" class="header-anchor">#</a> Developer-friendly error messages</h2> <p>Let's give <span class="jsn-name-self">Jsonic</span> a syntax error:</p> <div class="language-js extra-class"><pre class="language-js"><code><span class="token function">Jsonic</span><span class="token punctuation">(</span><span class="token template-string"><span class="token template-punctuation string">`</span><span class="token string">{
+  a: 1
+  ]
+}</span><span class="token template-punctuation string">`</span></span><span class="token punctuation">)</span>
+</code></pre></div><p>Here's what the error looks like:</p> <div class="language-sh extra-class"><pre class="language-sh"><code>JsonicError <span class="token punctuation">[</span>SyntaxError<span class="token punctuation">]</span>: <span class="token punctuation">[</span>jsonic/unexpected<span class="token punctuation">]</span>: unexpected character<span class="token punctuation">(</span>s<span class="token punctuation">)</span>: <span class="token string">&quot;]&quot;</span>
+  --<span class="token operator">&gt;</span> <span class="token operator">&lt;</span>no-file<span class="token operator">&gt;</span>:2:2
+  <span class="token number">0</span> <span class="token operator">|</span> <span class="token punctuation">{</span>
+  <span class="token number">1</span> <span class="token operator">|</span>   a: <span class="token number">1</span>
+  <span class="token number">2</span> <span class="token operator">|</span>   <span class="token punctuation">]</span>
+        ^ unexpected character<span class="token punctuation">(</span>s<span class="token punctuation">)</span>: <span class="token string">&quot;]&quot;</span>
+  <span class="token number">3</span> <span class="token operator">|</span> <span class="token punctuation">}</span>
+  <span class="token number">4</span> <span class="token operator">|</span> 
+  The character<span class="token punctuation">(</span>s<span class="token punctuation">)</span> <span class="token string">&quot;]&quot;</span> were not expected at this point as they <span class="token keyword">do</span> not
+  match the expected syntax, even under the relaxed jsonic rules. If it
+  is not obviously wrong, the actual syntax error may be elsewhere. Try
+  commenting out larger areas around this point <span class="token keyword">until</span> you get no errors,
+  <span class="token keyword">then</span> remove the comments <span class="token keyword">in</span> small sections <span class="token keyword">until</span> you <span class="token function">find</span> the
+  offending syntax. NOTE: Also check <span class="token keyword">if</span> any plugins you are using
+  <span class="token function">expect</span> different syntax <span class="token keyword">in</span> this case.
+  https://jsonic.richardrodger.com
+  --internal: <span class="token assign-left variable">rule</span><span class="token operator">=</span>pair~close<span class="token punctuation">;</span> <span class="token assign-left variable">token</span><span class="token operator">=</span><span class="token comment">#CS; plugins=--</span>
+
+at Object.<span class="token operator">&lt;</span>anonymous<span class="token operator">&gt;</span> <span class="token punctuation">(</span>~/jsonic/test/syntax-error.js:2:1<span class="token punctuation">)</span>
+<span class="token punctuation">..</span>.
+  code: <span class="token string">'unexpected'</span>,
+  details: <span class="token punctuation">{</span> state: <span class="token string">'close'</span> <span class="token punctuation">}</span>,
+  meta: <span class="token punctuation">{</span><span class="token punctuation">}</span>,
+  fileName: undefined,
+  lineNumber: <span class="token number">2</span>,
+  columnNumber: <span class="token number">2</span>
+<span class="token punctuation">}</span>
+
+</code></pre></div><h2 id="nice-but-what-does-it-all-cost"><a href="#nice-but-what-does-it-all-cost" class="header-anchor">#</a> Nice, but what does it all cost?</h2> <p>Jsonic is not going to be as fast at the builtin in JSON
+parser. Jsonic is for inline data in source code, settings, options,
+and configuration. Even if you have tens of thousands of line of
+configuration, Jsonic is <a href="/ref/performance">plenty fast enough</a>.</p> <p>Fine, but does it scale? Yes, Jsonic is <code>O(n)</code>. Larger and larger
+source text won't make the world implode.</p> <p>Memory usage? It doesn't leak.</p> <p>What about the call stack? All good. <span class="jsn-name-self">Jsonic</span> doesn't use
+recursive functions (it's iterative) so can handle data of any depth,
+at any depth in the call stack of your system.</p> <p>Every <span class="jsn-name-self">Jsonic</span> release is measured for complexity, memory, and
+stack safety.</p> <p>Bugs that break this commitment get the highest priority.</p> <h2 id="customizable-and-extendable"><a href="#customizable-and-extendable" class="header-anchor">#</a> Customizable and extendable</h2> <p>All of the JSON enhancements can be <a href="/guide/customize">customized</a>.</p> <p>The top level <code>Jsonic</code> function cannot be customized. First, create a
+new instance with:</p> <div class="language-js extra-class"><pre class="language-js"><code><span class="token keyword">let</span> myjsonic <span class="token operator">=</span> Jsonic<span class="token punctuation">.</span><span class="token function">make</span><span class="token punctuation">(</span><span class="token punctuation">)</span>
+</code></pre></div><p>Then you can set some options. let's turn off comments:</p> <div class="language- extra-class"><pre class="language-text"><code>myjsonic.options({comment:{lex:false}})
+
+myjsonic('a:1,#b:2') // === {&quot;a&quot;:1, &quot;#b&quot;:2}
+Jsonic('a:1,#b:2') // === {&quot;a&quot;:1}
+</code></pre></div><p>Maybe you're just against <code>#</code> style comments, but fine with <code>//</code>?  OK,
+let's get rid of just <code>#</code> comments:</p> <div class="language- extra-class"><pre class="language-text"><code>let nohash = Jsonic.make({comment:{marker:{'#':false}})
+
+nohash('a:1,#b:2') // === {&quot;a&quot;:1, &quot;#b&quot;:2}
+nohash('a:1,//b:2') // === {&quot;a&quot;:1}
+</code></pre></div><p>You can pass custom options directly to <code>Jsonic.make</code> when creating a
+new instance.`</p> <p>All the options are explained in the <a href="/ref/options">options reference</a>.</p> <p>​<span class="jsn-name-self">Jsonic</span> can be extended with plugins. A few are included
+in the standard package to get you started.</p> <p>Let's parse some CSV:</p> <div class="language-js extra-class"><pre class="language-js"><code><span class="token keyword">const</span> <span class="token punctuation">{</span> Csv <span class="token punctuation">}</span> <span class="token operator">=</span> <span class="token function">require</span><span class="token punctuation">(</span><span class="token string">'jsonic/plugin/csv'</span><span class="token punctuation">)</span>
+<span class="token keyword">let</span> csv <span class="token operator">=</span> Jsonic<span class="token punctuation">.</span><span class="token function">use</span><span class="token punctuation">(</span>Csv<span class="token punctuation">)</span>
+
+<span class="token comment">// === [{&quot;a&quot;: 1, &quot;b&quot;: 2}, {&quot;a&quot;: 3, &quot;b&quot;: 4}]</span>
+<span class="token function">csv</span><span class="token punctuation">(</span><span class="token template-string"><span class="token template-punctuation string">`</span><span class="token string">
+a, b
+1, 2
+3, 4
+</span><span class="token template-punctuation string">`</span></span><span class="token punctuation">)</span>
+</code></pre></div><p>The available plugins are listed in the <a href="/plugin/">plugins section</a>,
+along with tutorials to help you write your own plugins.</p> <h1 id="where-to-go-next"><a href="#where-to-go-next" class="header-anchor">#</a> Where to go next</h1> <p>If you want to write custom parsers with <span class="jsn-name-self">Jsonic</span>, start by
+following the <a href="/guide/tutorials">tutorials</a>.</p></div> <footer class="page-edit"><!----> <!----></footer> <div class="page-nav"><p class="inner"><span class="prev">
+      ←
+      <a href="/guide/install.html" class="prev">
+        Install
+      </a></span> <span class="next"><a href="/guide/syntax-introduction.html">
+        Syntax introduction
+      </a>
+      →
+    </span></p></div> </main></div><div class="global-ui"></div></div>
+    <script src="/assets/js/app.0c621e62.js" defer></script><script src="/assets/js/2.34930047.js" defer></script><script src="/assets/js/11.7988a5fa.js" defer></script><script src="/assets/js/3.6ce1235a.js" defer></script>
+  </body>
+</html>
