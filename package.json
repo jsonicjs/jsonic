@@ -1,9 +1,8 @@
 {
   "name": "jsonic",
-  "version": "2.15.1",
+  "version": "2.15.2",
   "main": "dist/jsonic.js",
   "type": "commonjs",
-  "browser": "dist/jsonic.min.js",
   "types": "dist/jsonic.d.ts",
   "description": "A dynamic JSON parser that isn't strict and can be customized.",
   "homepage": "https://github.com/rjrodger/jsonic",
