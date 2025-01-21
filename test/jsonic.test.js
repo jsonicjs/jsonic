@@ -88,7 +88,7 @@ describe('jsonic', function () {
       })
     })
     // console.log(k1.rule().val.def.open)
-    expect(k1.rule().val.def.open.length).toEqual(5)
+    expect(k1.rule().val.def.open.length).toEqual(6)
   })
 
   it('token-gen', () => {
