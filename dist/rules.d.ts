@@ -32,7 +32,7 @@ declare class RuleImpl implements Rule {
     gte(counter: string, limit?: number): boolean;
     toString(): string;
 }
-declare const makeRule: (spec: RuleSpec, ctx: Context, node?: any) => RuleImpl;
+declare const makeRule: (...params: ConstructorParameters<typeof RuleImpl>) => RuleImpl;
 declare const makeNoRule: (ctx: Context) => RuleImpl;
 declare class RuleSpecImpl implements RuleSpec {
     name: string;
@@ -64,5 +64,5 @@ declare class RuleSpecImpl implements RuleSpec {
     }): Rule;
     unknownRule(tkn: Token, name: string): Token;
 }
-declare const makeRuleSpec: (cfg: Config, def: any) => RuleSpecImpl;
+declare const makeRuleSpec: (...params: ConstructorParameters<typeof RuleSpecImpl>) => RuleSpecImpl;
 export { makeRule, makeNoRule, makeRuleSpec };

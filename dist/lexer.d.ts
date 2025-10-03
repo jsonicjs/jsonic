@@ -11,7 +11,7 @@ declare class PointImpl implements Point {
     toString(): string;
     [INSPECT](): string;
 }
-declare const makePoint: (len: number, sI?: number | undefined, rI?: number | undefined, cI?: number | undefined) => PointImpl;
+declare const makePoint: (...params: ConstructorParameters<typeof PointImpl>) => PointImpl;
 declare class TokenImpl implements Token {
     isToken: boolean;
     name: string;
@@ -31,7 +31,7 @@ declare class TokenImpl implements Token {
     toString(): string;
     [INSPECT](): string;
 }
-declare const makeToken: (name: string, tin: number, val: any, src: string, pnt: Point, use?: any, why?: string | undefined) => TokenImpl;
+declare const makeToken: (...params: ConstructorParameters<typeof TokenImpl>) => TokenImpl;
 declare const makeNoToken: () => TokenImpl;
 declare let makeFixedMatcher: MakeLexMatcher;
 declare let makeMatchMatcher: MakeLexMatcher;
@@ -52,5 +52,5 @@ declare class LexImpl implements Lex {
     tokenize<R extends string | Tin, T extends R extends Tin ? string : Tin>(ref: R): T;
     bad(why: string, pstart: number, pend: number): Token;
 }
-declare const makeLex: (ctx: Context) => LexImpl;
+declare const makeLex: (...params: ConstructorParameters<typeof LexImpl>) => LexImpl;
 export { makeNoToken, makeLex, makePoint, makeToken, makeMatchMatcher, makeFixedMatcher, makeSpaceMatcher, makeLineMatcher, makeStringMatcher, makeCommentMatcher, makeNumberMatcher, makeTextMatcher, };

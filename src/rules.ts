@@ -295,7 +295,7 @@ class RuleSpecImpl implements RuleSpec {
       let tins = (columns[stateI][tokenI] = columns[stateI][tokenI] || [])
 
       return [
-        function (tins: any, alt: any) {
+        function(tins: any, alt: any) {
           if (alt.s && alt.s[tokenI]) {
             let newtins = [...new Set(tins.concat(alt.s[tokenI]))]
             tins.length = 0
@@ -356,10 +356,10 @@ class RuleSpecImpl implements RuleSpec {
           0 === alt.n[cn]
             ? 0
             : // First seen, set to 0.
-              (null == rule.n[cn]
-                ? 0
-                : // Increment counter.
-                  rule.n[cn]) + alt.n[cn]
+            (null == rule.n[cn]
+              ? 0
+              : // Increment counter.
+              rule.n[cn]) + alt.n[cn]
       }
     }
 
@@ -651,17 +651,17 @@ function normalt(a: AltSpec): NormAltSpec {
     aa.S0 =
       0 < tins0.length
         ? new Array(Math.max(...tins0.map((tin) => (1 + tin / 31) | 0)))
-            .fill(null)
-            .map((_, i) => i)
-            .map((part) => bitify(partify(tins0, part), part))
+          .fill(null)
+          .map((_, i) => i)
+          .map((part) => bitify(partify(tins0, part), part))
         : null
 
     aa.S1 =
       0 < tins1.length
         ? new Array(Math.max(...tins1.map((tin) => (1 + tin / 31) | 0)))
-            .fill(null)
-            .map((_, i) => i)
-            .map((part) => bitify(partify(tins1, part), part))
+          .fill(null)
+          .map((_, i) => i)
+          .map((part) => bitify(partify(tins1, part), part))
         : null
   }
 

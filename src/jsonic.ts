@@ -220,7 +220,7 @@ function make(param_options?: Bag | string, parent?: Jsonic): Jsonic {
       if (S.function !== typeof plugin) {
         throw new Error(
           'Jsonic.use: the first argument must be a function ' +
-            'defining a plugin. See https://jsonic.senecajs.org/plugin',
+          'defining a plugin. See https://jsonic.senecajs.org/plugin',
         )
       }
 

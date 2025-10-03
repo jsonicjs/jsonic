@@ -969,6 +969,6 @@ function strinject(s, m, f) {
                 }
                 return inject;
             })));
-    return 'string' === t ? so._ : 'array' === t ? Object.values(so) : so;
+    return ('string' === t ? so._ : 'array' === t ? Object.values(so) : so);
 }
 //# sourceMappingURL=utility.js.map

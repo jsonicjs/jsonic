@@ -29,14 +29,13 @@
     "build": "tsc -d",
     "diagrams": "docs-src/.vuepress/diagrams/generate.sh",
     "coveralls": "lab -s -P test -r lcov | coveralls",
-    "prettier": "prettier --write --no-semi --single-quote src/*.ts test/*.js",
     "docs-dev": "vuepress dev docs-src",
     "docs-build": "vuepress build docs-src",
     "clean": "rm -rf node_modules dist yarn.lock package-lock.json",
     "reset": "npm run clean && npm i && npm run build && npm test",
     "repo-tag": "REPO_VERSION=`node -e \"console.log(require('./package').version)\"` && echo TAG: v$REPO_VERSION && git commit -a -m v$REPO_VERSION && git push && git tag v$REPO_VERSION && git push --tags;",
     "repo-publish": "npm run clean && npm i && npm run repo-publish-quick",
-    "repo-publish-quick": "npm run prettier && npm run build && npm run test && npm run repo-tag && npm publish --registry https://registry.npmjs.org --access=public"
+    "repo-publish-quick": "npm run build && npm run test && npm run repo-tag && npm publish --registry https://registry.npmjs.org --access=public"
   },
   "license": "MIT",
   "files": [
@@ -52,13 +51,12 @@
     "./debug": "./dist/debug.js"
   },
   "devDependencies": {
-    "@jsonic/directive": "^1.0.1",
-    "@types/jest": "^29.5.14",
+    "@jsonic/directive": "^1.1.0",
+    "@types/jest": "^30.0.0",
     "es-jest": "^2.1.0",
-    "esbuild": "^0.24.2",
-    "jest": "^29.7.0",
-    "prettier": "^3.4.2",
-    "typescript": "^5.7.3",
+    "esbuild": "^0.25.10",
+    "jest": "^30.2.0",
+    "typescript": "^5.9.3",
     "@jsonic/csv": "^0.7.0"
   }
 }

@@ -10,5 +10,5 @@ declare class ParserImpl implements Parser {
     clone(options: Options, config: Config): ParserImpl;
     norm(): void;
 }
-declare const makeParser: (options: Options, cfg: Config) => ParserImpl;
+declare const makeParser: (...params: ConstructorParameters<typeof ParserImpl>) => ParserImpl;
 export { makeRule, makeRuleSpec, makeParser };

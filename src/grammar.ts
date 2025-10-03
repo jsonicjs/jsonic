@@ -88,13 +88,13 @@ function grammar(jsonic: Jsonic) {
           // If there's no node,
           undefined === r.node
             ? // ... or no child node (child map or list),
-              undefined === r.child.node
+            undefined === r.child.node
               ? // ... or no matched tokens,
-                0 === r.os
+              0 === r.os
                 ? // ... then the node has no value
-                  undefined
+                undefined
                 : // .. otherwise use the token value
-                  r.o0.resolveVal(r, ctx)
+                r.o0.resolveVal(r, ctx)
               : r.child.node
             : r.node
       })
