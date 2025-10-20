@@ -526,7 +526,7 @@ function errsite(spec) {
     return lines;
 }
 function errmsg(spec) {
-    var _a;
+    var _a, _b;
     const color = {
         active: false,
         reset: '',
@@ -538,9 +538,9 @@ function errmsg(spec) {
         Object.assign(color, spec.color);
     }
     const txts = {
-        msg: '',
-        hint: '',
-        site: '',
+        msg: null,
+        hint: null,
+        site: null,
         ...(spec.txts || {})
     };
     let message = [
@@ -573,16 +573,15 @@ function errmsg(spec) {
             : null,
         null == spec.src
             ? ''
-            : ((_a = txts.site) !== null && _a !== void 0 ? _a : '') /*errsite({
-              src: spec.src,
-              sub: spec.sub,
-              msg: spec.smsg || spec.msg,
-              cline: color.line,
-              row: spec.row,
-              col: spec.col,
-              pos: spec.pos,
-            })*/
-                + '\n',
+            : ((_a = txts.site) !== null && _a !== void 0 ? _a : errsite({
+                src: spec.src,
+                sub: spec.sub,
+                msg: spec.smsg || ((_b = spec.txts) === null || _b === void 0 ? void 0 : _b.msg),
+                cline: color.line,
+                row: spec.row,
+                col: spec.col,
+                pos: spec.pos,
+            }) + '\n'),
         // null == spec.hint ? null : spec.hint,
         txts.hint,
         null == spec.suffix

@@ -313,6 +313,7 @@ export interface Rule {
   child: Rule // The current child rule, created with the `p` command.
   parent: Rule // The parent rule, that pushed this rule onto the stack.
   prev: Rule // The previous sibling rule, that issued an `r` command.
+  next: Rule
 
   os: number // Number of open state tokens (# 'opens').
   o0: Token // First open state token.

@@ -27,6 +27,7 @@ class RuleImpl {
         this.child = ctx.NORULE;
         this.parent = ctx.NORULE;
         this.prev = ctx.NORULE;
+        this.next = ctx.NORULE;
         this.o0 = ctx.NOTOKEN;
         this.o1 = ctx.NOTOKEN;
         this.c0 = ctx.NOTOKEN;
@@ -235,6 +236,8 @@ class RuleSpecImpl {
         if (alt.k) {
             rule.k = Object.assign(rule.k, alt.k);
         }
+        // TODO: move after rule.next resolution
+        // (breaks Expr! - fix first)
         // Action call.
         if (alt.a) {
             why += 'A';
@@ -256,8 +259,9 @@ class RuleSpecImpl {
                 }
                 why += 'P`' + alt.p + '`';
             }
-            else
+            else {
                 return this.bad(this.unknownRule(ctx.t0, alt.p), rule, ctx, { is_open });
+            }
         }
         // ...or replace with a new rule.
         else if (alt.r) {
@@ -272,8 +276,9 @@ class RuleSpecImpl {
                 }
                 why += 'R`' + alt.r + '`';
             }
-            else
+            else {
                 return this.bad(this.unknownRule(ctx.t0, alt.r), rule, ctx, { is_open });
+            }
         }
         // Pop closed rule off stack.
         else if (!is_open) {
@@ -281,6 +286,7 @@ class RuleSpecImpl {
         }
         // TODO: move action call here (alt.a)
         // and set r.next = next, so that action has access to next
+        rule.next = next;
         // Handle "after" call.
         let afters = is_open ? (rule.ao ? def.ao : null) : rule.ac ? def.ac : null;
         if (afters) {

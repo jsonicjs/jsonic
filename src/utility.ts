@@ -717,9 +717,9 @@ function errmsg(spec: {
   }
 
   const txts = {
-    msg: '',
-    hint: '',
-    site: '',
+    msg: null,
+    hint: null,
+    site: null,
     ...(spec.txts || {})
   }
 
@@ -756,15 +756,15 @@ function errmsg(spec: {
 
     null == spec.src
       ? ''
-      : (txts.site ?? '') /*errsite({
+      : (txts.site ?? errsite({
         src: spec.src,
         sub: spec.sub,
-        msg: spec.smsg || spec.msg,
+        msg: spec.smsg || spec.txts?.msg,
         cline: color.line,
         row: spec.row,
         col: spec.col,
         pos: spec.pos,
-      })*/ + '\n',
+      }) + '\n'),
 
     // null == spec.hint ? null : spec.hint,
     txts.hint,

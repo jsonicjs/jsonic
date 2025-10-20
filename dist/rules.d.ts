@@ -18,6 +18,7 @@ declare class RuleImpl implements Rule {
     child: Rule;
     parent: Rule;
     prev: Rule;
+    next: Rule;
     o0: Token;
     o1: Token;
     c0: Token;

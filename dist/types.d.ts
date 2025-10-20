@@ -225,6 +225,7 @@ export interface Rule {
     child: Rule;
     parent: Rule;
     prev: Rule;
+    next: Rule;
     os: number;
     o0: Token;
     o1: Token;

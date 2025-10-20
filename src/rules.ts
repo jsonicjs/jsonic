@@ -58,6 +58,8 @@ class RuleImpl implements Rule {
   child: Rule
   parent: Rule
   prev: Rule
+  next: Rule
+
   o0: Token
   o1: Token
   c0: Token
@@ -73,6 +75,7 @@ class RuleImpl implements Rule {
     this.child = ctx.NORULE
     this.parent = ctx.NORULE
     this.prev = ctx.NORULE
+    this.next = ctx.NORULE
 
     this.o0 = ctx.NOTOKEN
     this.o1 = ctx.NOTOKEN
@@ -371,6 +374,8 @@ class RuleSpecImpl implements RuleSpec {
       rule.k = Object.assign(rule.k, alt.k)
     }
 
+    // TODO: move after rule.next resolution
+    // (breaks Expr! - fix first)
     // Action call.
     if (alt.a) {
       why += 'A'
@@ -392,8 +397,10 @@ class RuleSpecImpl implements RuleSpec {
           next.k = { ...rule.k }
         }
         why += 'P`' + alt.p + '`'
-      } else
+      }
+      else {
         return this.bad(this.unknownRule(ctx.t0, alt.p), rule, ctx, { is_open })
+      }
     }
 
     // ...or replace with a new rule.
@@ -408,8 +415,10 @@ class RuleSpecImpl implements RuleSpec {
           next.k = { ...rule.k }
         }
         why += 'R`' + alt.r + '`'
-      } else
+      }
+      else {
         return this.bad(this.unknownRule(ctx.t0, alt.r), rule, ctx, { is_open })
+      }
     }
 
     // Pop closed rule off stack.
@@ -420,6 +429,8 @@ class RuleSpecImpl implements RuleSpec {
 
     // TODO: move action call here (alt.a)
     // and set r.next = next, so that action has access to next
+
+    rule.next = next
 
 
     // Handle "after" call.
