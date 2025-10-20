@@ -5,7 +5,6 @@
  */
 
 import type {
-  AltMatch,
   AltSpec,
   Bag,
   Chars,
@@ -20,11 +19,10 @@ import type {
   Tin,
   Token,
   ValModifier,
-  Point,
   ListMods,
 } from './types'
 
-import { OPEN, EMPTY, STRING } from './types'
+import { EMPTY, STRING } from './types'
 
 import { makeToken, makePoint } from './lexer'
 
@@ -457,6 +455,14 @@ function configure(
     cfg.result.fail = [...opts.result.fail]
   }
 
+  const optscolor = opts.color ?? {}
+  cfg.color = cfg.color ?? {}
+  cfg.color.active = optscolor.active ?? cfg.color.active ?? true
+  cfg.color.reset = optscolor.reset ?? cfg.color.reset ?? '\x1b[0m'
+  cfg.color.hi = optscolor.hi ?? cfg.color.hi ?? '\x1b[91m'
+  cfg.color.lo = optscolor.lo ?? cfg.color.lo ?? '\x1b[2m'
+  cfg.color.line = optscolor.line ?? cfg.color.line ?? '\x1b[34m'
+
   assign(jsonic.options, opts)
   assign(jsonic.token, cfg.t)
   assign(jsonic.tokenSet, cfg.tokenSet)
@@ -674,33 +680,47 @@ function errsite(spec: {
   return lines
 }
 
+
 function errmsg(spec: {
   code?: string
   name?: string
-  msg?: string
+
+  txts?: {
+    msg?: string
+    hint?: string
+    site?: string
+  }
+
   smsg?: string
-  hint?: string
   src?: string
   file?: string
   row?: number
   col?: number
   pos?: number
+  site?: string
   sub?: string
   prefix?: string | Function
   suffix?: string | Function
-  color?: boolean | { reset?: string; hi?: string; lo?: string; line?: string }
+  color?: { active?: boolean, reset?: string; hi?: string; lo?: string; line?: string }
 }) {
-  const colorSpec =
-    null != spec.color && 'object' === typeof spec.color
-      ? spec.color
-      : undefined
-  const hasColor = true === spec.color || colorSpec
+
   const color = {
-    reset: hasColor ? '\x1b[0m' : '',
-    hi: hasColor ? '\x1b[91m' : '',
-    lo: hasColor ? '\x1b[2m' : '',
-    line: hasColor ? '\x1b[34m' : '',
-    ...(colorSpec || {}),
+    active: false,
+    reset: '',
+    hi: '',
+    lo: '',
+    line: '',
+  }
+
+  if (spec.color && spec.color.active) {
+    Object.assign(color, spec.color)
+  }
+
+  const txts = {
+    msg: '',
+    hint: '',
+    site: '',
+    ...(spec.txts || {})
   }
 
   let message = [
@@ -719,7 +739,8 @@ function errmsg(spec: {
       ']:') +
     color.reset +
     ' ' +
-    (null == spec.msg ? '' : spec.msg),
+    // (null == spec.msg ? '' : spec.msg),
+    txts.msg,
 
     (null != spec.row && null != spec.col) || null != spec.file
       ? '  ' +
@@ -735,7 +756,7 @@ function errmsg(spec: {
 
     null == spec.src
       ? ''
-      : errsite({
+      : (txts.site ?? '') /*errsite({
         src: spec.src,
         sub: spec.sub,
         msg: spec.smsg || spec.msg,
@@ -743,8 +764,10 @@ function errmsg(spec: {
         row: spec.row,
         col: spec.col,
         pos: spec.pos,
-      }) + '\n',
-    null == spec.hint ? null : spec.hint,
+      })*/ + '\n',
+
+    // null == spec.hint ? null : spec.hint,
+    txts.hint,
 
     null == spec.suffix
       ? null
@@ -758,6 +781,7 @@ function errmsg(spec: {
   return message
 }
 
+
 function errdesc(
   code: string,
   details: Bag,
@@ -766,10 +790,10 @@ function errdesc(
   ctx: Context,
 ): Bag {
   try {
-    let cfg = ctx.cfg
-    let meta = ctx.meta
-
-    let txts = errinject(
+    const src = ctx.src()
+    const cfg = ctx.cfg
+    const meta = ctx.meta
+    const txts = errinject(
       {
         msg:
           cfg.error[code] ||
@@ -787,6 +811,7 @@ function errdesc(
           .split('\n')
           .map((s: string) => '  ' + s)
           .join('\n'),
+        site: '',
       },
       code,
       details,
@@ -795,18 +820,29 @@ function errdesc(
       ctx,
     )
 
+
+    txts.site = errsite({
+      src,
+      msg: txts.msg,
+      cline: cfg.color.active ? cfg.color.line : '',
+      row: token.rI,
+      col: token.cI,
+      pos: token.sI,
+      sub: token.src,
+
+    })
+
     let message = errmsg({
       code,
       name: 'jsonic',
-      msg: txts.msg,
-      hint: txts.hint,
-      src: ctx.src(),
+      txts,
+      src,
       file: meta ? meta.fileName : undefined,
       row: token.rI,
       col: token.cI,
       pos: token.sI,
       sub: token.src,
-      color: true,
+      color: cfg.color,
       suffix: (color: any) =>
         [
           '',
@@ -848,6 +884,7 @@ function errdesc(
       fileName: meta ? meta.fileName : undefined,
       lineNumber: token.rI,
       columnNumber: token.cI,
+      txts: () => txts
     }
 
     return desc
@@ -1263,7 +1300,6 @@ function strinject<T extends string | string[] | { [key: string]: string }>(
 export {
   JsonicError,
   S,
-  // LOG,
   assign,
   badlex,
   charset,

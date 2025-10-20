@@ -80,18 +80,23 @@ declare function errsite(spec: {
 declare function errmsg(spec: {
     code?: string;
     name?: string;
-    msg?: string;
+    txts?: {
+        msg?: string;
+        hint?: string;
+        site?: string;
+    };
     smsg?: string;
-    hint?: string;
     src?: string;
     file?: string;
     row?: number;
     col?: number;
     pos?: number;
+    site?: string;
     sub?: string;
     prefix?: string | Function;
     suffix?: string | Function;
-    color?: boolean | {
+    color?: {
+        active?: boolean;
         reset?: string;
         hi?: string;
         lo?: string;

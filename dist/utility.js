@@ -124,7 +124,7 @@ exports.JsonicError = JsonicError;
 // Idempotent normalization of options.
 // See Config type for commentary.
 function configure(jsonic, incfg, opts) {
-    var _a, _b, _c, _d, _e, _f, _g, _h, _j, _k, _l, _m, _o, _p, _q, _r, _s, _t, _u, _v, _w, _x, _y, _z, _0, _1, _2, _3, _4, _5, _6, _7, _8, _9, _10, _11, _12, _13, _14, _15, _16, _17, _18, _19, _20, _21, _22, _23, _24, _25;
+    var _a, _b, _c, _d, _e, _f, _g, _h, _j, _k, _l, _m, _o, _p, _q, _r, _s, _t, _u, _v, _w, _x, _y, _z, _0, _1, _2, _3, _4, _5, _6, _7, _8, _9, _10, _11, _12, _13, _14, _15, _16, _17, _18, _19, _20, _21, _22, _23, _24, _25, _26, _27, _28, _29, _30, _31, _32, _33, _34, _35, _36, _37;
     const cfg = incfg || {};
     cfg.t = cfg.t || {};
     cfg.tI = cfg.tI || 1;
@@ -358,6 +358,13 @@ function configure(jsonic, incfg, opts) {
     if (opts.result) {
         cfg.result.fail = [...opts.result.fail];
     }
+    const optscolor = (_26 = opts.color) !== null && _26 !== void 0 ? _26 : {};
+    cfg.color = (_27 = cfg.color) !== null && _27 !== void 0 ? _27 : {};
+    cfg.color.active = (_29 = (_28 = optscolor.active) !== null && _28 !== void 0 ? _28 : cfg.color.active) !== null && _29 !== void 0 ? _29 : true;
+    cfg.color.reset = (_31 = (_30 = optscolor.reset) !== null && _30 !== void 0 ? _30 : cfg.color.reset) !== null && _31 !== void 0 ? _31 : '\x1b[0m';
+    cfg.color.hi = (_33 = (_32 = optscolor.hi) !== null && _32 !== void 0 ? _32 : cfg.color.hi) !== null && _33 !== void 0 ? _33 : '\x1b[91m';
+    cfg.color.lo = (_35 = (_34 = optscolor.lo) !== null && _34 !== void 0 ? _34 : cfg.color.lo) !== null && _35 !== void 0 ? _35 : '\x1b[2m';
+    cfg.color.line = (_37 = (_36 = optscolor.line) !== null && _36 !== void 0 ? _36 : cfg.color.line) !== null && _37 !== void 0 ? _37 : '\x1b[34m';
     assign(jsonic.options, opts);
     assign(jsonic.token, cfg.t);
     assign(jsonic.tokenSet, cfg.tokenSet);
@@ -519,16 +526,22 @@ function errsite(spec) {
     return lines;
 }
 function errmsg(spec) {
-    const colorSpec = null != spec.color && 'object' === typeof spec.color
-        ? spec.color
-        : undefined;
-    const hasColor = true === spec.color || colorSpec;
+    var _a;
     const color = {
-        reset: hasColor ? '\x1b[0m' : '',
-        hi: hasColor ? '\x1b[91m' : '',
-        lo: hasColor ? '\x1b[2m' : '',
-        line: hasColor ? '\x1b[34m' : '',
-        ...(colorSpec || {}),
+        active: false,
+        reset: '',
+        hi: '',
+        lo: '',
+        line: '',
+    };
+    if (spec.color && spec.color.active) {
+        Object.assign(color, spec.color);
+    }
+    const txts = {
+        msg: '',
+        hint: '',
+        site: '',
+        ...(spec.txts || {})
     };
     let message = [
         null == spec.prefix
@@ -545,7 +558,8 @@ function errmsg(spec) {
                 ']:') +
             color.reset +
             ' ' +
-            (null == spec.msg ? '' : spec.msg),
+            // (null == spec.msg ? '' : spec.msg),
+            txts.msg,
         (null != spec.row && null != spec.col) || null != spec.file
             ? '  ' +
                 color.line +
@@ -559,16 +573,18 @@ function errmsg(spec) {
             : null,
         null == spec.src
             ? ''
-            : errsite({
-                src: spec.src,
-                sub: spec.sub,
-                msg: spec.smsg || spec.msg,
-                cline: color.line,
-                row: spec.row,
-                col: spec.col,
-                pos: spec.pos,
-            }) + '\n',
-        null == spec.hint ? null : spec.hint,
+            : ((_a = txts.site) !== null && _a !== void 0 ? _a : '') /*errsite({
+              src: spec.src,
+              sub: spec.sub,
+              msg: spec.smsg || spec.msg,
+              cline: color.line,
+              row: spec.row,
+              col: spec.col,
+              pos: spec.pos,
+            })*/
+                + '\n',
+        // null == spec.hint ? null : spec.hint,
+        txts.hint,
         null == spec.suffix
             ? null
             : 'function' === typeof spec.suffix
@@ -582,9 +598,10 @@ function errmsg(spec) {
 function errdesc(code, details, token, rule, ctx) {
     var _a, _b, _c;
     try {
-        let cfg = ctx.cfg;
-        let meta = ctx.meta;
-        let txts = errinject({
+        const src = ctx.src();
+        const cfg = ctx.cfg;
+        const meta = ctx.meta;
+        const txts = errinject({
             msg: cfg.error[code] ||
                 (((_a = details === null || details === void 0 ? void 0 : details.use) === null || _a === void 0 ? void 0 : _a.err) &&
                     (details.use.err.code || details.use.err.message)) ||
@@ -597,19 +614,28 @@ function errdesc(code, details, token, rule, ctx) {
                 .split('\n')
                 .map((s) => '  ' + s)
                 .join('\n'),
+            site: '',
         }, code, details, token, rule, ctx);
+        txts.site = errsite({
+            src,
+            msg: txts.msg,
+            cline: cfg.color.active ? cfg.color.line : '',
+            row: token.rI,
+            col: token.cI,
+            pos: token.sI,
+            sub: token.src,
+        });
         let message = errmsg({
             code,
             name: 'jsonic',
-            msg: txts.msg,
-            hint: txts.hint,
-            src: ctx.src(),
+            txts,
+            src,
             file: meta ? meta.fileName : undefined,
             row: token.rI,
             col: token.cI,
             pos: token.sI,
             sub: token.src,
-            color: true,
+            color: cfg.color,
             suffix: (color) => [
                 '',
                 '  ' + color.lo + 'https://jsonic.senecajs.org' + color.reset + '',
@@ -648,6 +674,7 @@ function errdesc(code, details, token, rule, ctx) {
             fileName: meta ? meta.fileName : undefined,
             lineNumber: token.rI,
             columnNumber: token.cI,
+            txts: () => txts
         };
         return desc;
     }

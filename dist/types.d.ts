@@ -181,6 +181,13 @@ export type Options = {
     standard$?: boolean;
     defaults$?: boolean;
     grammar$?: boolean;
+    color?: {
+        active?: boolean;
+        reset?: string;
+        hi?: string;
+        lo?: string;
+        line?: string;
+    };
 };
 export interface RuleSpec {
     name: string;
@@ -423,6 +430,13 @@ export type Config = {
     re: any;
     tI: number;
     t: any;
+    color: {
+        active: boolean;
+        reset: string;
+        hi: string;
+        lo: string;
+        line: string;
+    };
 };
 export interface Point {
     len: number;

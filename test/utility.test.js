@@ -658,6 +658,9 @@ describe('utility', () => {
           foo: 'foo-hint',
           unknown: 'unknown-hint',
         },
+        color: {
+          active: false
+        }
       },
       src: () => 'src',
       plgn: () => [{ name: 'p0' }],

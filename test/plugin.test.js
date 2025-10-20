@@ -270,7 +270,7 @@ describe('plugin', function () {
               e2.details = {}
               e2.ctx = {
                 src: () => '',
-                cfg: { t: {}, error: { e2: 'e:2' }, hint: { e2: 'e:2' } },
+                cfg: { t: {}, error: { e2: 'e:2' }, hint: { e2: 'e:2' }, color: {active:false} },
                 plgn: () => [],
                 opts: {},
               }
