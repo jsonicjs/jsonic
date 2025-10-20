@@ -21,14 +21,39 @@ import type {
 
 import { S, util, EMPTY } from './jsonic'
 
+
+// TODO: custom stringify for nodes
 type DebugOptions = {
   print: boolean
-  trace: boolean
+  trace: Record<string, boolean> & {
+    step: boolean,
+    rule: boolean,
+    lex: boolean,
+    parse: boolean,
+    node: boolean,
+    stack: boolean,
+  }
+}
+
+
+const DEFAULTS: DebugOptions = {
+  print: true,
+  trace: {
+    step: true,
+    rule: true,
+    lex: true,
+    parse: true,
+    node: true,
+    stack: true,
+  },
 }
 
 const { entries, tokenize } = util
 
 const Debug: Plugin = (jsonic: Jsonic, options: DebugOptions) => {
+  options.trace =
+    true === (options.trace as any) ? { ...DEFAULTS.trace } : options.trace
+
   const { keys, values, entries } = jsonic.util
 
   jsonic.debug = {
@@ -120,17 +145,19 @@ const Debug: Plugin = (jsonic: Jsonic, options: DebugOptions) => {
     return self
   }
 
+
   if (options.trace) {
     jsonic.options({
       parse: {
         prepare: {
           debug: (_jsonic: Jsonic, ctx: Context, _meta: any) => {
+            const console_log = ctx.cfg.debug.get_console().log
+            console_log('\n========= TRACE ==========')
             ctx.log =
               ctx.log ||
               ((kind: string, ...rest: any) => {
-                if (LOGKIND[kind]) {
-                  // console.log('LOGKIND', kind, rest[0])
-                  ctx.cfg.debug.get_console().log(
+                if (LOGKIND[kind] && options.trace[kind]) {
+                  console_log(
                     LOGKIND[kind](...rest)
                       .filter((item: any) => 'object' != typeof item)
                       .map((item: any) =>
@@ -316,7 +343,7 @@ const LOG = {
 }
 
 const LOGKIND: any = {
-  '': (...rest: any[]) => rest,
+  step: (...rest: any[]) => rest,
 
   stack: (ctx: Context, rule: Rule, lex: Lex) => [
     S.logindent + S.stack,
@@ -471,9 +498,6 @@ const LOGKIND: any = {
     ],
 }
 
-Debug.defaults = {
-  print: true,
-  trace: false,
-} as DebugOptions
+Debug.defaults = DEFAULTS as DebugOptions
 
 export { Debug }

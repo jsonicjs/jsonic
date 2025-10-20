@@ -105,7 +105,7 @@ class ParserImpl {
         while (norule !== rule && kI < maxr) {
             ctx.kI = kI;
             ctx.rule = rule;
-            ctx.log && ctx.log('', ctx.kI + ':');
+            ctx.log && ctx.log(utility_1.S.step, ctx.kI + ':');
             if (ctx.sub.rule) {
                 ctx.sub.rule.map((sub) => sub(rule, ctx));
             }

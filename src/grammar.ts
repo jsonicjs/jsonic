@@ -42,6 +42,8 @@ function grammar(jsonic: Jsonic) {
     }
   }
 
+  // TODO: define a way to "export" rule actions or other functions so that
+  // other plugins can use them.
   const pairkey = (r: Rule) => {
     // Get key string value from first matching token of `Open` state.
     const key_token = r.o0
@@ -151,7 +153,7 @@ function grammar(jsonic: Jsonic) {
     ])
       .bc((r: Rule, _ctx: Context) => {
         if (r.u.pair) {
-          // Store previous value (if any, for extentions).
+          // Store previous value (if any, for extensions).
           r.u.prev = r.node[r.u.key]
           r.node[r.u.key] = r.child.node
         }
@@ -206,14 +208,15 @@ function grammar(jsonic: Jsonic) {
       }
     }
 
-    r.node[key] =
-      null == prev
-        ? val
-        : ctx.cfg.map.merge
-          ? ctx.cfg.map.merge(prev, val, r, ctx)
-          : ctx.cfg.map.extend
-            ? deep(prev, val)
-            : val
+    val = null == prev
+      ? val
+      : ctx.cfg.map.merge
+        ? ctx.cfg.map.merge(prev, val, r, ctx)
+        : ctx.cfg.map.extend
+          ? deep(prev, val)
+          : val
+
+    r.node[key] = val
   }
 
   jsonic.rule('val', (rs: RuleSpec) => {

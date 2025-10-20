@@ -54,7 +54,7 @@
     "@jsonic/directive": "^1.1.0",
     "@types/jest": "^30.0.0",
     "es-jest": "^2.1.0",
-    "esbuild": "^0.25.10",
+    "esbuild": "^0.25.11",
     "jest": "^30.2.0",
     "typescript": "^5.9.3",
     "@jsonic/csv": "^0.7.0"

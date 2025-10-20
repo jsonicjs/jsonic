@@ -279,6 +279,8 @@ class RuleSpecImpl {
         else if (!is_open) {
             next = ctx.rs[--ctx.rsI] || ctx.NORULE;
         }
+        // TODO: move action call here (alt.a)
+        // and set r.next = next, so that action has access to next
         // Handle "after" call.
         let afters = is_open ? (rule.ao ? def.ao : null) : rule.ac ? def.ac : null;
         if (afters) {

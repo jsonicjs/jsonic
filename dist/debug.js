@@ -3,8 +3,21 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.Debug = void 0;
 const jsonic_1 = require("./jsonic");
+const DEFAULTS = {
+    print: true,
+    trace: {
+        step: true,
+        rule: true,
+        lex: true,
+        parse: true,
+        node: true,
+        stack: true,
+    },
+};
 const { entries, tokenize } = jsonic_1.util;
 const Debug = (jsonic, options) => {
+    options.trace =
+        true === options.trace ? { ...DEFAULTS.trace } : options.trace;
     const { keys, values, entries } = jsonic.util;
     jsonic.debug = {
         describe: function () {
@@ -73,12 +86,13 @@ const Debug = (jsonic, options) => {
             parse: {
                 prepare: {
                     debug: (_jsonic, ctx, _meta) => {
+                        const console_log = ctx.cfg.debug.get_console().log;
+                        console_log('\n========= TRACE ==========');
                         ctx.log =
                             ctx.log ||
                                 ((kind, ...rest) => {
-                                    if (LOGKIND[kind]) {
-                                        // console.log('LOGKIND', kind, rest[0])
-                                        ctx.cfg.debug.get_console().log(LOGKIND[kind](...rest)
+                                    if (LOGKIND[kind] && options.trace[kind]) {
+                                        console_log(LOGKIND[kind](...rest)
                                             .filter((item) => 'object' != typeof item)
                                             .map((item) => 'function' == typeof item ? item.name : item)
                                             .join('  '));
@@ -218,7 +232,7 @@ const LOG = {
     },
 };
 const LOGKIND = {
-    '': (...rest) => rest,
+    step: (...rest) => rest,
     stack: (ctx, rule, lex) => [
         jsonic_1.S.logindent + jsonic_1.S.stack,
         descParseState(ctx, rule, lex),
@@ -319,8 +333,5 @@ const LOGKIND = {
         lex,
     ],
 };
-Debug.defaults = {
-    print: true,
-    trace: false,
-};
+Debug.defaults = DEFAULTS;
 //# sourceMappingURL=debug.js.map

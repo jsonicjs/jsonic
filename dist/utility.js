@@ -107,6 +107,7 @@ const S = {
     name: 'name',
     make: 'make',
     colon: ':',
+    step: 'step',
 };
 exports.S = S;
 // Jsonic errors with nice formatting.

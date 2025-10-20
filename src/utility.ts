@@ -105,6 +105,7 @@ const S = {
   name: 'name',
   make: 'make',
   colon: ':',
+  step: 'step',
 }
 
 // Jsonic errors with nice formatting.

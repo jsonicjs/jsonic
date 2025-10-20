@@ -50,6 +50,7 @@ declare const S: {
     name: string;
     make: string;
     colon: string;
+    step: string;
 };
 declare class JsonicError extends SyntaxError {
     constructor(code: string, details: Bag, token: Token, rule: Rule, ctx: Context);
