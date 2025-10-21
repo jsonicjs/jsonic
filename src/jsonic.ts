@@ -41,31 +41,24 @@ import type {
 import { OPEN, CLOSE, BEFORE, AFTER, EMPTY } from './types'
 
 import {
-  JsonicError,
   S,
   assign,
   badlex,
   deep,
   defprop,
-  errdesc,
-  errinject,
-  errsite,
   makelog,
   mesc,
   regexp,
   tokenize,
   findTokenSet,
-  trimstk,
   srcfmt,
   clone,
   charset,
   configure,
   escre,
   parserwrap,
-  prop,
   str,
   clean,
-  errmsg,
 
   // Exported with jsonic.util
   omap,
@@ -73,6 +66,17 @@ import {
   values,
   keys,
 } from './utility'
+
+import {
+  JsonicError,
+  errdesc,
+  errinject,
+  errsite,
+  errmsg,
+  trimstk,
+  strinject,
+  prop,
+} from './error'
 
 import { defaults } from './defaults'
 
@@ -114,6 +118,7 @@ const util = {
   str,
   clean,
   errmsg,
+  strinject,
 
   // TODO: validated to include in util API:
   deep,

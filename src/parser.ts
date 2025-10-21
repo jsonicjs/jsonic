@@ -19,7 +19,6 @@ import type {
 import { EMPTY } from './types'
 
 import {
-  JsonicError,
   S,
   badlex,
   deep,
@@ -30,6 +29,8 @@ import {
   // log_stack,
   values,
 } from './utility'
+
+import { JsonicError } from './error'
 
 import { makeNoToken, makeLex, makePoint, makeToken } from './lexer'
 

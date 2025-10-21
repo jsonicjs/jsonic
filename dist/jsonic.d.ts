@@ -1,6 +1,7 @@
 import type { Config, Context, Counters, Bag, Tin, Point, Token, Rule, RuleSpec, Lex, RuleDefiner, RuleState, RuleSpecMap, LexMatcher, MakeLexMatcher, AltSpec, AltMatch, AltAction, AltCond, AltModifier, AltError, Options, JsonicAPI, JsonicParse, Plugin, StateAction, Parser, NormAltSpec, LexCheck } from './types';
 import { OPEN, CLOSE, BEFORE, AFTER, EMPTY } from './types';
-import { JsonicError, S, badlex, deep, errdesc, errinject, errsite, makelog, mesc, regexp, tokenize, trimstk, srcfmt, clone, charset, configure, escre, parserwrap, prop, str, clean, errmsg } from './utility';
+import { S, badlex, deep, makelog, mesc, regexp, tokenize, srcfmt, clone, charset, configure, escre, parserwrap, str, clean } from './utility';
+import { JsonicError, errdesc, errinject, errsite, errmsg, trimstk, strinject, prop } from './error';
 import { makePoint, makeToken, makeLex, makeFixedMatcher, makeSpaceMatcher, makeLineMatcher, makeStringMatcher, makeCommentMatcher, makeNumberMatcher, makeTextMatcher } from './lexer';
 import { makeRule, makeRuleSpec, makeParser } from './parser';
 declare const util: {
@@ -23,6 +24,7 @@ declare const util: {
     str: typeof str;
     clean: typeof clean;
     errmsg: typeof errmsg;
+    strinject: typeof strinject;
     deep: typeof deep;
     omap: (o: any, f?: (e: any) => any) => any;
     keys: (x: any) => string[];

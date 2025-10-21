@@ -4,6 +4,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.makeParser = exports.makeRuleSpec = exports.makeRule = void 0;
 const types_1 = require("./types");
 const utility_1 = require("./utility");
+const error_1 = require("./error");
 const lexer_1 = require("./lexer");
 const rules_1 = require("./rules");
 Object.defineProperty(exports, "makeRule", { enumerable: true, get: function () { return rules_1.makeRule; } });
@@ -83,7 +84,7 @@ class ParserImpl {
                 return this.cfg.lex.emptyResult;
             }
             else {
-                throw new utility_1.JsonicError(utility_1.S.unexpected, { src }, ctx.t0, norule, ctx);
+                throw new error_1.JsonicError(utility_1.S.unexpected, { src }, ctx.t0, norule, ctx);
             }
         }
         let lex = (0, utility_1.badlex)((0, lexer_1.makeLex)(ctx), (0, utility_1.tokenize)('#BD', this.cfg), ctx);
@@ -115,12 +116,12 @@ class ParserImpl {
         }
         // TODO: option to allow trailing content
         if (endtkn.tin !== lex.next(rule).tin) {
-            throw new utility_1.JsonicError(utility_1.S.unexpected, {}, ctx.t0, norule, ctx);
+            throw new error_1.JsonicError(utility_1.S.unexpected, {}, ctx.t0, norule, ctx);
         }
         // NOTE: by returning root, we get implicit closing of maps and lists.
         const result = ctx.root().node;
         if (this.cfg.result.fail.includes(result)) {
-            throw new utility_1.JsonicError(utility_1.S.unexpected, {}, ctx.t0, norule, ctx);
+            throw new error_1.JsonicError(utility_1.S.unexpected, {}, ctx.t0, norule, ctx);
         }
         return result;
     }

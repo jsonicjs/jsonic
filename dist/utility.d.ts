@@ -1,4 +1,4 @@
-import type { Bag, Chars, Config, Context, Lex, Options, Rule, RuleSpec, Tin, Token, ListMods } from './types';
+import type { Chars, Config, Context, Lex, Options, RuleSpec, Tin, ListMods } from './types';
 declare const keys: (x: any) => string[];
 declare const values: <T>(x: {
     [key: string]: T;
@@ -52,9 +52,6 @@ declare const S: {
     colon: string;
     step: string;
 };
-declare class JsonicError extends SyntaxError {
-    constructor(code: string, details: Bag, token: Token, rule: Rule, ctx: Context);
-}
 declare function configure(jsonic: any, incfg: Config | undefined, opts: Options): Config;
 declare function tokenize<R extends string | Tin, T extends R extends Tin ? string : Tin>(ref: R, cfg: Config, jsonic?: any): T;
 declare function findTokenSet<R extends string | Tin, T extends R extends Tin ? string : Tin>(ref: R, cfg: Config): T;
@@ -64,46 +61,6 @@ declare function regexp(flags: string | null, ...parts: (string | (String & {
 }))[]): RegExp;
 declare function escre(s: string | undefined): string;
 declare function deep(base?: any, ...rest: any): any;
-declare function errinject<T extends string | string[] | {
-    [key: string]: string;
-}>(s: T, code: string, details: Bag, token: Token, rule: Rule, ctx: Context): T;
-declare function trimstk(err: Error): void;
-declare function errsite(spec: {
-    src: string;
-    sub?: string;
-    msg?: string;
-    row?: number;
-    col?: number;
-    pos?: number;
-    cline?: string;
-}): string;
-declare function errmsg(spec: {
-    code?: string;
-    name?: string;
-    txts?: {
-        msg?: string;
-        hint?: string;
-        site?: string;
-    };
-    smsg?: string;
-    src?: string;
-    file?: string;
-    row?: number;
-    col?: number;
-    pos?: number;
-    site?: string;
-    sub?: string;
-    prefix?: string | Function;
-    suffix?: string | Function;
-    color?: {
-        active?: boolean;
-        reset?: string;
-        hi?: string;
-        lo?: string;
-        line?: string;
-    };
-}): string;
-declare function errdesc(code: string, details: Bag, token: Token, rule: Rule, ctx: Context): Bag;
 declare function badlex(lex: Lex, BD: Tin, ctx: Context): Lex;
 declare function makelog(ctx: Context, meta: any): ((...rest: any) => void) | undefined;
 declare function srcfmt(config: Config): (s: any) => string;
@@ -113,14 +70,8 @@ declare function clone(class_instance: any): any;
 declare function charset(...parts: (string | object | boolean | undefined)[]): Chars;
 declare function clean<T>(o: T): T;
 declare function filterRules(rs: RuleSpec, cfg: Config): RuleSpec;
-declare function prop(obj: any, path: string, val?: any): any;
 declare function modlist(list: any[], mods?: ListMods): any[];
 declare function parserwrap(parser: any): {
     start: (src: string, jsonic: any, meta?: any, parent_ctx?: any) => any;
 };
-declare function strinject<T extends string | string[] | {
-    [key: string]: string;
-}>(s: T, m: Bag, f?: {
-    indent?: string;
-}): T;
-export { JsonicError, S, assign, badlex, charset, clean, clone, configure, deep, defprop, entries, errdesc, errinject, escre, errsite, filterRules, isarr, makelog, mesc, regexp, snip, srcfmt, tokenize, trimstk, parserwrap, prop, str, omap, keys, values, findTokenSet, modlist, strinject, errmsg, };
+export { S, assign, badlex, charset, clean, clone, configure, deep, defprop, entries, escre, filterRules, isarr, makelog, mesc, regexp, snip, srcfmt, tokenize, parserwrap, str, omap, keys, values, findTokenSet, modlist, };

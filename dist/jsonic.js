@@ -10,8 +10,9 @@ Object.defineProperty(exports, "BEFORE", { enumerable: true, get: function () { 
 Object.defineProperty(exports, "AFTER", { enumerable: true, get: function () { return types_1.AFTER; } });
 Object.defineProperty(exports, "EMPTY", { enumerable: true, get: function () { return types_1.EMPTY; } });
 const utility_1 = require("./utility");
-Object.defineProperty(exports, "JsonicError", { enumerable: true, get: function () { return utility_1.JsonicError; } });
 Object.defineProperty(exports, "S", { enumerable: true, get: function () { return utility_1.S; } });
+const error_1 = require("./error");
+Object.defineProperty(exports, "JsonicError", { enumerable: true, get: function () { return error_1.JsonicError; } });
 const defaults_1 = require("./defaults");
 const lexer_1 = require("./lexer");
 Object.defineProperty(exports, "makePoint", { enumerable: true, get: function () { return lexer_1.makePoint; } });
@@ -35,21 +36,22 @@ const util = {
     srcfmt: utility_1.srcfmt,
     clone: utility_1.clone,
     charset: utility_1.charset,
-    trimstk: utility_1.trimstk,
+    trimstk: error_1.trimstk,
     makelog: utility_1.makelog,
     badlex: utility_1.badlex,
-    errsite: utility_1.errsite,
-    errinject: utility_1.errinject,
-    errdesc: utility_1.errdesc,
+    errsite: error_1.errsite,
+    errinject: error_1.errinject,
+    errdesc: error_1.errdesc,
     configure: utility_1.configure,
     parserwrap: utility_1.parserwrap,
     mesc: utility_1.mesc,
     escre: utility_1.escre,
     regexp: utility_1.regexp,
-    prop: utility_1.prop,
+    prop: error_1.prop,
     str: utility_1.str,
     clean: utility_1.clean,
-    errmsg: utility_1.errmsg,
+    errmsg: error_1.errmsg,
+    strinject: error_1.strinject,
     // TODO: validated to include in util API:
     deep: utility_1.deep,
     omap: utility_1.omap,
@@ -217,7 +219,7 @@ let Jsonic = (exports.root = root = make('jsonic'));
 exports.Jsonic = Jsonic;
 // Provide deconstruction export names
 root.Jsonic = root;
-root.JsonicError = utility_1.JsonicError;
+root.JsonicError = error_1.JsonicError;
 root.makeLex = lexer_1.makeLex;
 root.makeParser = parser_1.makeParser;
 root.makeToken = lexer_1.makeToken;

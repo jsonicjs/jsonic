@@ -29,13 +29,14 @@ import type {
 import { OPEN, CLOSE, BEFORE, AFTER, EMPTY, STRING } from './types'
 
 import {
-  JsonicError,
   S,
   filterRules,
   isarr,
   tokenize,
   modlist,
 } from './utility'
+
+import { JsonicError } from './error'
 
 class RuleImpl implements Rule {
   i = -1

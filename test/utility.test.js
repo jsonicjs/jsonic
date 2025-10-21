@@ -3,7 +3,8 @@
 
 const Util = require('util')
 
-const { filterRules, modlist, strinject } = require('../dist/utility')
+const { filterRules, modlist } = require('../dist/utility')
+const { strinject } = require('../dist/error')
 
 const { util, Jsonic, makeToken, makePoint } = require('..')
 

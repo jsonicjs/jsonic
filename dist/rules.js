@@ -4,6 +4,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.makeRuleSpec = exports.makeNoRule = exports.makeRule = void 0;
 const types_1 = require("./types");
 const utility_1 = require("./utility");
+const error_1 = require("./error");
 class RuleImpl {
     constructor(spec, ctx, node) {
         this.i = -1;
@@ -321,7 +322,7 @@ class RuleSpecImpl {
         return next;
     }
     bad(tkn, rule, ctx, parse) {
-        throw new utility_1.JsonicError(tkn.err || utility_1.S.unexpected, {
+        throw new error_1.JsonicError(tkn.err || utility_1.S.unexpected, {
             ...tkn.use,
             state: parse.is_open ? utility_1.S.open : utility_1.S.close,
         }, tkn, rule, ctx);
