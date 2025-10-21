@@ -526,7 +526,7 @@ function errsite(spec) {
     return lines;
 }
 function errmsg(spec) {
-    var _a, _b;
+    var _a;
     const color = {
         active: false,
         reset: '',
@@ -559,7 +559,7 @@ function errmsg(spec) {
             color.reset +
             ' ' +
             // (null == spec.msg ? '' : spec.msg),
-            txts.msg,
+            (null == txts.msg ? '' : txts.msg),
         (null != spec.row && null != spec.col) || null != spec.file
             ? '  ' +
                 color.line +
@@ -573,17 +573,19 @@ function errmsg(spec) {
             : null,
         null == spec.src
             ? ''
-            : ((_a = txts.site) !== null && _a !== void 0 ? _a : errsite({
+            : (null == txts.site ? '' : errsite({
                 src: spec.src,
                 sub: spec.sub,
-                msg: spec.smsg || ((_b = spec.txts) === null || _b === void 0 ? void 0 : _b.msg),
+                msg: spec.smsg || ((_a = spec.txts) === null || _a === void 0 ? void 0 : _a.msg),
                 cline: color.line,
                 row: spec.row,
                 col: spec.col,
                 pos: spec.pos,
-            }) + '\n'),
+            })),
+        '',
         // null == spec.hint ? null : spec.hint,
-        txts.hint,
+        // txts.hint,
+        (null == txts.hint ? '' : txts.hint),
         null == spec.suffix
             ? null
             : 'function' === typeof spec.suffix

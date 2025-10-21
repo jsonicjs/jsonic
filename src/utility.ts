@@ -740,7 +740,7 @@ function errmsg(spec: {
     color.reset +
     ' ' +
     // (null == spec.msg ? '' : spec.msg),
-    txts.msg,
+    (null == txts.msg ? '' : txts.msg),
 
     (null != spec.row && null != spec.col) || null != spec.file
       ? '  ' +
@@ -756,7 +756,7 @@ function errmsg(spec: {
 
     null == spec.src
       ? ''
-      : (txts.site ?? errsite({
+      : (null == txts.site ? '' : errsite({
         src: spec.src,
         sub: spec.sub,
         msg: spec.smsg || spec.txts?.msg,
@@ -764,10 +764,13 @@ function errmsg(spec: {
         row: spec.row,
         col: spec.col,
         pos: spec.pos,
-      }) + '\n'),
+      })),
+
+    '',
 
     // null == spec.hint ? null : spec.hint,
-    txts.hint,
+    // txts.hint,
+    (null == txts.hint ? '' : txts.hint),
 
     null == spec.suffix
       ? null
