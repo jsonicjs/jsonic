@@ -104,7 +104,6 @@ function errsite(spec) {
     return lines;
 }
 function errmsg(spec) {
-    var _a;
     const color = {
         active: false,
         reset: '',
@@ -154,7 +153,7 @@ function errmsg(spec) {
             : (null == txts.site ? '' : errsite({
                 src: spec.src,
                 sub: spec.sub,
-                msg: spec.smsg || ((_a = spec.txts) === null || _a === void 0 ? void 0 : _a.msg),
+                msg: spec.smsg || spec.txts?.msg,
                 cline: color.line,
                 row: spec.row,
                 col: spec.col,
@@ -175,18 +174,17 @@ function errmsg(spec) {
     return message;
 }
 function errdesc(code, details, token, rule, ctx) {
-    var _a, _b, _c;
     try {
         const src = ctx.src();
         const cfg = ctx.cfg;
         const meta = ctx.meta;
         const txts = errinject({
             msg: cfg.error[code] ||
-                (((_a = details === null || details === void 0 ? void 0 : details.use) === null || _a === void 0 ? void 0 : _a.err) &&
+                (details?.use?.err &&
                     (details.use.err.code || details.use.err.message)) ||
                 cfg.error.unknown,
             hint: (cfg.hint[code] ||
-                ((_c = (_b = details.use) === null || _b === void 0 ? void 0 : _b.err) === null || _c === void 0 ? void 0 : _c.message) ||
+                details.use?.err?.message ||
                 cfg.hint.unknown ||
                 '')
                 .trim()
@@ -283,11 +281,10 @@ function strinject(s, m, f) {
         null == n[1]
             ? ''
             : ('' + n[1]).replace(/\{([\w_0-9.]+)}/g, (match, keypath) => {
-                var _a;
                 let inject = prop(mo, keypath);
                 inject = undefined === inject ? match : inject;
                 if ('object' === typeof inject) {
-                    let cn = (_a = inject === null || inject === void 0 ? void 0 : inject.constructor) === null || _a === void 0 ? void 0 : _a.name;
+                    let cn = inject?.constructor?.name;
                     if ('Object' === cn || 'Array' === cn) {
                         inject = JSON.stringify(inject).replace(/([^"])"/g, '$1');
                     }

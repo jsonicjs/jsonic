@@ -206,7 +206,7 @@ let makeCommentMatcher = (cfg, opts) => {
     let oc = opts.comment;
     cfg.comment = {
         lex: oc ? !!oc.lex : false,
-        def: ((oc === null || oc === void 0 ? void 0 : oc.def) ? (0, utility_1.entries)(oc.def) : []).reduce((def, [name, om]) => {
+        def: (oc?.def ? (0, utility_1.entries)(oc.def) : []).reduce((def, [name, om]) => {
             // Set comment marker to null to remove
             if (null == om || false === om) {
                 return def;
@@ -472,7 +472,7 @@ let makeStringMatcher = (cfg, opts) => {
     cfg.string = cfg.string || {};
     // TODO: compose with earlier config - do this in other makeFooMatchers?
     cfg.string = (0, utility_1.deep)(cfg.string, {
-        lex: !!(os === null || os === void 0 ? void 0 : os.lex),
+        lex: !!os?.lex,
         quoteMap: (0, utility_1.charset)(os.chars),
         multiChars: (0, utility_1.charset)(os.multiChars),
         escMap: { ...os.escape },

@@ -19,14 +19,12 @@
     "url": "git://github.com/rjrodger/jsonic.git"
   },
   "scripts": {
-    "test": "jest --coverage",
-    "test-open": "jest --coverage --detectOpenHandles",
-    "test-pure": "jest --coverage --config jest.config.pure.js",
-    "test-some": "jest -t",
-    "test-watch": "jest --coverage --watchAll",
+    "test": "node --enable-source-maps --test test/**/*.test.js",
+    "test-some": "node --enable-source-maps --test-name-pattern=\"$npm_config_pattern\" --test \"test/**/*.test.js\"",
+    "test-watch": "node --test --watch test/**/*.test.js",
     "test-view": "open coverage/lcov-report/index.html",
-    "watch": "tsc -w -d",
-    "build": "tsc -d",
+    "watch": "tsc --build src test -w",
+    "build": "tsc --build src test",
     "diagrams": "docs-src/.vuepress/diagrams/generate.sh",
     "coveralls": "lab -s -P test -r lcov | coveralls",
     "docs-dev": "vuepress dev docs-src",
@@ -51,12 +49,11 @@
     "./debug": "./dist/debug.js"
   },
   "devDependencies": {
+    "@hapi/code": "^9.0.3",
+    "@jsonic/csv": "^0.7.0",
     "@jsonic/directive": "^1.1.0",
-    "@types/jest": "^30.0.0",
-    "es-jest": "^2.1.0",
+    "@types/node": "^24.9.1",
     "esbuild": "^0.25.11",
-    "jest": "^30.2.0",
-    "typescript": "^5.9.3",
-    "@jsonic/csv": "^0.7.0"
+    "typescript": "^5.9.3"
   }
 }

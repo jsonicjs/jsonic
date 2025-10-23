@@ -144,7 +144,7 @@ function grammar(jsonic) {
             { p: 'val', g: 'list,elem,val,json' },
         ])
             .bc((r) => {
-            if (true !== r.u.done) {
+            if (true !== r.u.done && undefined !== r.child.node) {
                 r.node.push(r.child.node);
             }
         })
@@ -156,6 +156,7 @@ function grammar(jsonic) {
         ]);
     });
     // Jsonic syntax extensions.
+    // NOTE: undefined values are still removed, as JSON does not have "undefined", only null.
     // Counters.
     // * pk: depth of the pair-key path
     // * dmap: depth of maps

@@ -107,7 +107,6 @@ exports.S = S;
 // Idempotent normalization of options.
 // See Config type for commentary.
 function configure(jsonic, incfg, opts) {
-    var _a, _b, _c, _d, _e, _f, _g, _h, _j, _k, _l, _m, _o, _p, _q, _r, _s, _t, _u, _v, _w, _x, _y, _z, _0, _1, _2, _3, _4, _5, _6, _7, _8, _9, _10, _11, _12, _13, _14, _15, _16, _17, _18, _19, _20, _21, _22, _23, _24, _25, _26, _27, _28, _29, _30, _31, _32, _33, _34, _35, _36, _37;
     const cfg = incfg || {};
     cfg.t = cfg.t || {};
     cfg.tI = cfg.tI || 1;
@@ -127,10 +126,10 @@ function configure(jsonic, incfg, opts) {
         t('#VL'); // VALUE
     }
     cfg.safe = {
-        key: false === ((_a = opts.safe) === null || _a === void 0 ? void 0 : _a.key) ? false : true,
+        key: false === opts.safe?.key ? false : true,
     };
     cfg.fixed = {
-        lex: !!((_b = opts.fixed) === null || _b === void 0 ? void 0 : _b.lex),
+        lex: !!opts.fixed?.lex,
         token: opts.fixed
             ? omap(clean(opts.fixed.token), ([name, src]) => [
                 src,
@@ -138,7 +137,7 @@ function configure(jsonic, incfg, opts) {
             ])
             : {},
         ref: undefined,
-        check: (_c = opts.fixed) === null || _c === void 0 ? void 0 : _c.check,
+        check: opts.fixed?.check,
     };
     cfg.fixed.ref = omap(cfg.fixed.token, ([tin, src]) => [
         tin,
@@ -146,7 +145,7 @@ function configure(jsonic, incfg, opts) {
     ]);
     cfg.fixed.ref = Object.assign(cfg.fixed.ref, omap(cfg.fixed.ref, ([tin, src]) => [src, tin]));
     cfg.match = {
-        lex: !!((_d = opts.match) === null || _d === void 0 ? void 0 : _d.lex),
+        lex: !!opts.match?.lex,
         value: opts.match
             ? omap(clean(opts.match.value), ([name, spec]) => [
                 name,
@@ -159,7 +158,7 @@ function configure(jsonic, incfg, opts) {
                 matcher,
             ])
             : {},
-        check: (_e = opts.match) === null || _e === void 0 ? void 0 : _e.check,
+        check: opts.match?.check,
     };
     // Lookup tin directly from matcher
     omap(cfg.match.token, ([tin, matcher]) => [
@@ -192,39 +191,39 @@ function configure(jsonic, incfg, opts) {
     // The IGNORE tokenSet is special and should always exist, even if empty.
     cfg.tokenSetTins.IGNORE = cfg.tokenSetTins.IGNORE || {};
     cfg.space = {
-        lex: !!((_f = opts.space) === null || _f === void 0 ? void 0 : _f.lex),
-        chars: charset((_g = opts.space) === null || _g === void 0 ? void 0 : _g.chars),
-        check: (_h = opts.space) === null || _h === void 0 ? void 0 : _h.check,
+        lex: !!opts.space?.lex,
+        chars: charset(opts.space?.chars),
+        check: opts.space?.check,
     };
     cfg.line = {
-        lex: !!((_j = opts.line) === null || _j === void 0 ? void 0 : _j.lex),
-        chars: charset((_k = opts.line) === null || _k === void 0 ? void 0 : _k.chars),
-        rowChars: charset((_l = opts.line) === null || _l === void 0 ? void 0 : _l.rowChars),
-        single: !!((_m = opts.line) === null || _m === void 0 ? void 0 : _m.single),
-        check: (_o = opts.line) === null || _o === void 0 ? void 0 : _o.check,
+        lex: !!opts.line?.lex,
+        chars: charset(opts.line?.chars),
+        rowChars: charset(opts.line?.rowChars),
+        single: !!opts.line?.single,
+        check: opts.line?.check,
     };
     cfg.text = {
-        lex: !!((_p = opts.text) === null || _p === void 0 ? void 0 : _p.lex),
-        modify: (((_q = cfg.text) === null || _q === void 0 ? void 0 : _q.modify) || [])
-            .concat((((_r = opts.text) === null || _r === void 0 ? void 0 : _r.modify) ? [opts.text.modify] : []).flat())
+        lex: !!opts.text?.lex,
+        modify: (cfg.text?.modify || [])
+            .concat((opts.text?.modify ? [opts.text.modify] : []).flat())
             .filter((m) => null != m),
-        check: (_s = opts.text) === null || _s === void 0 ? void 0 : _s.check,
+        check: opts.text?.check,
     };
     cfg.number = {
-        lex: !!((_t = opts.number) === null || _t === void 0 ? void 0 : _t.lex),
-        hex: !!((_u = opts.number) === null || _u === void 0 ? void 0 : _u.hex),
-        oct: !!((_v = opts.number) === null || _v === void 0 ? void 0 : _v.oct),
-        bin: !!((_w = opts.number) === null || _w === void 0 ? void 0 : _w.bin),
-        sep: null != ((_x = opts.number) === null || _x === void 0 ? void 0 : _x.sep) && '' !== opts.number.sep,
-        exclude: (_y = opts.number) === null || _y === void 0 ? void 0 : _y.exclude,
-        sepChar: (_z = opts.number) === null || _z === void 0 ? void 0 : _z.sep,
-        check: (_0 = opts.number) === null || _0 === void 0 ? void 0 : _0.check,
+        lex: !!opts.number?.lex,
+        hex: !!opts.number?.hex,
+        oct: !!opts.number?.oct,
+        bin: !!opts.number?.bin,
+        sep: null != opts.number?.sep && '' !== opts.number.sep,
+        exclude: opts.number?.exclude,
+        sepChar: opts.number?.sep,
+        check: opts.number?.check,
     };
     // NOTE: these are not value ending tokens
     cfg.value = {
-        lex: !!((_1 = opts.value) === null || _1 === void 0 ? void 0 : _1.lex),
-        def: entries(((_2 = opts.value) === null || _2 === void 0 ? void 0 : _2.def) || {}).reduce((a, e) => (null == e[1] || false === e[1] || e[1].match || (a[e[0]] = e[1]), a), {}),
-        defre: entries(((_3 = opts.value) === null || _3 === void 0 ? void 0 : _3.def) || {}).reduce((a, e) => (e[1] &&
+        lex: !!opts.value?.lex,
+        def: entries(opts.value?.def || {}).reduce((a, e) => (null == e[1] || false === e[1] || e[1].match || (a[e[0]] = e[1]), a), {}),
+        defre: entries(opts.value?.def || {}).reduce((a, e) => (e[1] &&
             e[1].match &&
             ((a[e[0]] = e[1]), (a[e[0]].consume = !!a[e[0]].consume)),
             a), {}),
@@ -236,26 +235,26 @@ function configure(jsonic, incfg, opts) {
         // '-Infinity': { v: -Infinity },
     };
     cfg.rule = {
-        start: null == ((_4 = opts.rule) === null || _4 === void 0 ? void 0 : _4.start) ? 'val' : opts.rule.start,
-        maxmul: null == ((_5 = opts.rule) === null || _5 === void 0 ? void 0 : _5.maxmul) ? 3 : opts.rule.maxmul,
-        finish: !!((_6 = opts.rule) === null || _6 === void 0 ? void 0 : _6.finish),
-        include: ((_7 = opts.rule) === null || _7 === void 0 ? void 0 : _7.include)
+        start: null == opts.rule?.start ? 'val' : opts.rule.start,
+        maxmul: null == opts.rule?.maxmul ? 3 : opts.rule.maxmul,
+        finish: !!opts.rule?.finish,
+        include: opts.rule?.include
             ? opts.rule.include.split(/\s*,+\s*/).filter((g) => '' !== g)
             : [],
-        exclude: ((_8 = opts.rule) === null || _8 === void 0 ? void 0 : _8.exclude)
+        exclude: opts.rule?.exclude
             ? opts.rule.exclude.split(/\s*,+\s*/).filter((g) => '' !== g)
             : [],
     };
     cfg.map = {
-        extend: !!((_9 = opts.map) === null || _9 === void 0 ? void 0 : _9.extend),
-        merge: (_10 = opts.map) === null || _10 === void 0 ? void 0 : _10.merge,
+        extend: !!opts.map?.extend,
+        merge: opts.map?.merge,
     };
     cfg.list = {
-        property: !!((_11 = opts.list) === null || _11 === void 0 ? void 0 : _11.property),
+        property: !!opts.list?.property,
     };
     let fixedSorted = Object.keys(cfg.fixed.token).sort((a, b) => b.length - a.length);
     let fixedRE = fixedSorted.map((fixed) => escre(fixed)).join('|');
-    let commentStartRE = ((_12 = opts.comment) === null || _12 === void 0 ? void 0 : _12.lex)
+    let commentStartRE = opts.comment?.lex
         ? (opts.comment.def ? values(opts.comment.def) : [])
             .filter((c) => c && c.lex)
             .map((c) => escre(c.start))
@@ -288,13 +287,13 @@ function configure(jsonic, incfg, opts) {
     cfg.re = {
         ender: regexp(null, ...enderRE),
         // TODO: prebuild these using a property on matcher?
-        rowChars: regexp(null, escre((_13 = opts.line) === null || _13 === void 0 ? void 0 : _13.rowChars)),
-        columns: regexp(null, '[' + escre((_14 = opts.line) === null || _14 === void 0 ? void 0 : _14.chars) + ']', '(.*)$'),
+        rowChars: regexp(null, escre(opts.line?.rowChars)),
+        columns: regexp(null, '[' + escre(opts.line?.chars) + ']', '(.*)$'),
     };
     cfg.lex = {
-        empty: !!((_15 = opts.lex) === null || _15 === void 0 ? void 0 : _15.empty),
-        emptyResult: (_16 = opts.lex) === null || _16 === void 0 ? void 0 : _16.emptyResult,
-        match: ((_17 = opts.lex) === null || _17 === void 0 ? void 0 : _17.match)
+        empty: !!opts.lex?.empty,
+        emptyResult: opts.lex?.emptyResult,
+        match: opts.lex?.match
             ? entries(opts.lex.match)
                 .reduce((list, entry) => {
                 let name = entry[0];
@@ -315,20 +314,20 @@ function configure(jsonic, incfg, opts) {
             : [],
     };
     cfg.parse = {
-        prepare: values((_18 = opts.parse) === null || _18 === void 0 ? void 0 : _18.prepare),
+        prepare: values(opts.parse?.prepare),
     };
     cfg.debug = {
-        get_console: ((_19 = opts.debug) === null || _19 === void 0 ? void 0 : _19.get_console) || (() => console),
-        maxlen: null == ((_20 = opts.debug) === null || _20 === void 0 ? void 0 : _20.maxlen) ? 99 : opts.debug.maxlen,
+        get_console: opts.debug?.get_console || (() => console),
+        maxlen: null == opts.debug?.maxlen ? 99 : opts.debug.maxlen,
         print: {
-            config: !!((_22 = (_21 = opts.debug) === null || _21 === void 0 ? void 0 : _21.print) === null || _22 === void 0 ? void 0 : _22.config),
-            src: (_24 = (_23 = opts.debug) === null || _23 === void 0 ? void 0 : _23.print) === null || _24 === void 0 ? void 0 : _24.src,
+            config: !!opts.debug?.print?.config,
+            src: opts.debug?.print?.src,
         },
     };
     cfg.error = opts.error || {};
     cfg.hint = opts.hint || {};
     // Apply any config modifiers (probably from plugins).
-    if ((_25 = opts.config) === null || _25 === void 0 ? void 0 : _25.modify) {
+    if (opts.config?.modify) {
         keys(opts.config.modify).forEach((modifer) => opts.config.modify[modifer](cfg, opts));
     }
     // Debug the config - useful for plugin authors.
@@ -341,13 +340,13 @@ function configure(jsonic, incfg, opts) {
     if (opts.result) {
         cfg.result.fail = [...opts.result.fail];
     }
-    const optscolor = (_26 = opts.color) !== null && _26 !== void 0 ? _26 : {};
-    cfg.color = (_27 = cfg.color) !== null && _27 !== void 0 ? _27 : {};
-    cfg.color.active = (_29 = (_28 = optscolor.active) !== null && _28 !== void 0 ? _28 : cfg.color.active) !== null && _29 !== void 0 ? _29 : true;
-    cfg.color.reset = (_31 = (_30 = optscolor.reset) !== null && _30 !== void 0 ? _30 : cfg.color.reset) !== null && _31 !== void 0 ? _31 : '\x1b[0m';
-    cfg.color.hi = (_33 = (_32 = optscolor.hi) !== null && _32 !== void 0 ? _32 : cfg.color.hi) !== null && _33 !== void 0 ? _33 : '\x1b[91m';
-    cfg.color.lo = (_35 = (_34 = optscolor.lo) !== null && _34 !== void 0 ? _34 : cfg.color.lo) !== null && _35 !== void 0 ? _35 : '\x1b[2m';
-    cfg.color.line = (_37 = (_36 = optscolor.line) !== null && _36 !== void 0 ? _36 : cfg.color.line) !== null && _37 !== void 0 ? _37 : '\x1b[34m';
+    const optscolor = opts.color ?? {};
+    cfg.color = cfg.color ?? {};
+    cfg.color.active = optscolor.active ?? cfg.color.active ?? true;
+    cfg.color.reset = optscolor.reset ?? cfg.color.reset ?? '\x1b[0m';
+    cfg.color.hi = optscolor.hi ?? cfg.color.hi ?? '\x1b[91m';
+    cfg.color.lo = optscolor.lo ?? cfg.color.lo ?? '\x1b[2m';
+    cfg.color.line = optscolor.line ?? cfg.color.line ?? '\x1b[34m';
     assign(jsonic.options, opts);
     assign(jsonic.token, cfg.t);
     assign(jsonic.tokenSet, cfg.tokenSet);
@@ -456,12 +455,11 @@ function badlex(lex, BD, ctx) {
 // log:N -> console.dir to depth N
 // log:-1 -> console.dir to depth 1, omitting objects (good summary!)
 function makelog(ctx, meta) {
-    var _a, _b, _c;
-    let trace = (_c = (_b = (_a = ctx.opts) === null || _a === void 0 ? void 0 : _a.plugin) === null || _b === void 0 ? void 0 : _b.debug) === null || _c === void 0 ? void 0 : _c.trace;
+    let trace = ctx.opts?.plugin?.debug?.trace;
     if (meta || trace) {
-        if ('number' === typeof (meta === null || meta === void 0 ? void 0 : meta.log) || trace) {
+        if ('number' === typeof meta?.log || trace) {
             let exclude_objects = false;
-            let logdepth = meta === null || meta === void 0 ? void 0 : meta.log;
+            let logdepth = meta?.log;
             if (-1 === logdepth || trace) {
                 logdepth = 1;
                 exclude_objects = true;

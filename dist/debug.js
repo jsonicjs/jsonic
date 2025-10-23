@@ -113,42 +113,39 @@ function descAlt(jsonic, rs, kind) {
             kind.toUpperCase() +
             ':\n' +
             rs.def[kind]
-                .map((a, i) => {
-                var _a, _b;
-                return '      ' +
-                    ('' + i).padStart(5, ' ') +
-                    ' ' +
-                    ('[' +
-                        (a.s || [])
-                            .map((tin) => null == tin
-                            ? '***INVALID***'
-                            : 'number' === typeof tin
-                                ? jsonic.token[tin]
-                                : '[' + tin.map((t) => jsonic.token[t]) + ']')
-                            .join(' ') +
-                        '] ').padEnd(32, ' ') +
-                    (a.r ? ' r=' + ('string' === typeof a.r ? a.r : '<F>') : '') +
-                    (a.p ? ' p=' + ('string' === typeof a.p ? a.p : '<F>') : '') +
-                    (!a.r && !a.p ? '\t' : '') +
-                    '\t' +
-                    (null == a.b ? '' : 'b=' + a.b) +
-                    '\t' +
-                    (null == a.n
-                        ? ''
-                        : 'n=' +
-                            entries(a.n).map(([k, v]) => k + ':' + v)) +
-                    '\t' +
-                    (null == a.a ? '' : 'A') +
-                    (null == a.c ? '' : 'C') +
-                    (null == a.h ? '' : 'H') +
-                    '\t' +
-                    (null == ((_a = a.c) === null || _a === void 0 ? void 0 : _a.n)
-                        ? '\t'
-                        : ' CN=' +
-                            entries(a.c.n).map(([k, v]) => k + ':' + v)) +
-                    (null == ((_b = a.c) === null || _b === void 0 ? void 0 : _b.d) ? '' : ' CD=' + a.c.d) +
-                    (a.g ? '\tg=' + a.g : '');
-            })
+                .map((a, i) => '      ' +
+                ('' + i).padStart(5, ' ') +
+                ' ' +
+                ('[' +
+                    (a.s || [])
+                        .map((tin) => null == tin
+                        ? '***INVALID***'
+                        : 'number' === typeof tin
+                            ? jsonic.token[tin]
+                            : '[' + tin.map((t) => jsonic.token[t]) + ']')
+                        .join(' ') +
+                    '] ').padEnd(32, ' ') +
+                (a.r ? ' r=' + ('string' === typeof a.r ? a.r : '<F>') : '') +
+                (a.p ? ' p=' + ('string' === typeof a.p ? a.p : '<F>') : '') +
+                (!a.r && !a.p ? '\t' : '') +
+                '\t' +
+                (null == a.b ? '' : 'b=' + a.b) +
+                '\t' +
+                (null == a.n
+                    ? ''
+                    : 'n=' +
+                        entries(a.n).map(([k, v]) => k + ':' + v)) +
+                '\t' +
+                (null == a.a ? '' : 'A') +
+                (null == a.c ? '' : 'C') +
+                (null == a.h ? '' : 'H') +
+                '\t' +
+                (null == a.c?.n
+                    ? '\t'
+                    : ' CN=' +
+                        entries(a.c.n).map(([k, v]) => k + ':' + v)) +
+                (null == a.c?.d ? '' : ' CD=' + a.c.d) +
+                (a.g ? '\tg=' + a.g : ''))
                 .join('\n') +
             '\n';
 }
@@ -316,7 +313,7 @@ const LOGKIND = {
         ctx.F(tkn.src), // Format token src for log.
         pnt.sI, // Current source index.
         pnt.rI + ':' + pnt.cI, // Row and column.
-        (match === null || match === void 0 ? void 0 : match.name) || '',
+        match?.name || '',
         alt
             ? 'on:alt=' +
                 altI +

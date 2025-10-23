@@ -110,7 +110,7 @@ class RuleSpecImpl {
         return (0, utility_1.tokenize)(ref, this.cfg);
     }
     add(state, a, mods) {
-        let inject = (mods === null || mods === void 0 ? void 0 : mods.append) ? 'push' : 'unshift';
+        let inject = mods?.append ? 'push' : 'unshift';
         let aa = ((0, utility_1.isarr)(a) ? a : [a])
             .filter((alt) => null != alt && 'object' === typeof alt)
             .map((a) => normalt(a));
@@ -200,7 +200,7 @@ class RuleSpecImpl {
             let bout = undefined;
             for (let bI = 0; bI < befores.length; bI++) {
                 bout = befores[bI].call(this, rule, ctx, next, bout);
-                if ((bout === null || bout === void 0 ? void 0 : bout.isToken) && (bout === null || bout === void 0 ? void 0 : bout.err)) {
+                if (bout?.isToken && bout?.err) {
                     return this.bad(bout, rule, ctx, { is_open });
                 }
             }
@@ -294,7 +294,7 @@ class RuleSpecImpl {
             let aout = undefined;
             for (let aI = 0; aI < afters.length; aI++) {
                 aout = afters[aI](rule, ctx, next, aout);
-                if ((aout === null || aout === void 0 ? void 0 : aout.isToken) && (aout === null || aout === void 0 ? void 0 : aout.err)) {
+                if (aout?.isToken && aout?.err) {
                     return this.bad(aout, rule, ctx, { is_open });
                 }
             }

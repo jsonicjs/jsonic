@@ -82,15 +82,14 @@ function make(param_options, parent) {
     // Merge options.
     let merged_options = (0, utility_1.deep)({}, parent
         ? { ...parent.options }
-        : false === (param_options === null || param_options === void 0 ? void 0 : param_options.defaults$)
+        : false === param_options?.defaults$
             ? {}
             : defaults_1.defaults, param_options ? param_options : {});
     // Create primary parsing function
     let jsonic = function Jsonic(src, meta, parent_ctx) {
-        var _a;
         if (utility_1.S.string === typeof src) {
             let internal = jsonic.internal();
-            let parser = ((_a = options.parser) === null || _a === void 0 ? void 0 : _a.start)
+            let parser = options.parser?.start
                 ? (0, utility_1.parserwrap)(options.parser)
                 : internal.parser;
             return parser.start(src, jsonic, meta, parent_ctx);

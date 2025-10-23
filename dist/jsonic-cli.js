@@ -9,7 +9,6 @@ const node_fs_1 = __importDefault(require("node:fs"));
 const jsonic_1 = require("./jsonic");
 const debug_1 = require("./debug");
 async function run(argv, console) {
-    var _a;
     const args = {
         help: false,
         stdin: false,
@@ -70,7 +69,7 @@ async function run(argv, console) {
     options.debug.get_console = () => console;
     let jsonic = jsonic_1.Jsonic.make(options);
     for (let pn in plugins) {
-        jsonic.use(plugins[pn], ((_a = options.plugin) === null || _a === void 0 ? void 0 : _a[pn]) || {});
+        jsonic.use(plugins[pn], options.plugin?.[pn] || {});
     }
     if (null != plugins.debug) {
         console.log(jsonic.debug.describe() + '\n=== PARSE ===');

@@ -1,19 +1,15 @@
 {
   "compilerOptions": {
     "esModuleInterop": true,
-    "isolatedModules": true,
     "module": "nodenext",
     "noEmitOnError": true,
-    "outDir":"dist",
+    "outDir":"../dist",
+    "rootDir":".",
     "resolveJsonModule": true,
-    "rootDir":"src",
     "sourceMap": true,
     "strict": true,
-    "target": "ES2019"
-  },
-  "exclude": [
-    "dist",
-    "node_modules"
-  ]
+    "target": "es2021",
+    "declaration": true,
+    "declarationDir": "../dist"
+  }
 }
-
