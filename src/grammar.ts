@@ -220,6 +220,7 @@ function grammar(jsonic: Jsonic) {
     r.node[key] = val
   }
 
+
   jsonic.rule('val', (rs: RuleSpec) => {
     rs.open(
       [
@@ -308,6 +309,7 @@ function grammar(jsonic: Jsonic) {
       },
     )
   })
+
 
   jsonic.rule('map', (rs: RuleSpec) => {
     rs.bo((r: Rule) => {

@@ -6,7 +6,6 @@
 
 import type {
   AltSpec,
-  Bag,
   Chars,
   Config,
   Context,
@@ -408,8 +407,9 @@ function configure(
     },
   }
 
-  cfg.error = opts.error || {}
-  cfg.hint = opts.hint || {}
+  cfg.error = opts.error ?? {}
+  cfg.errmsg = (opts.errmsg ?? { suffix: true }) as any
+  cfg.hint = opts.hint ?? {}
 
   // Apply any config modifiers (probably from plugins).
   if (opts.config?.modify) {

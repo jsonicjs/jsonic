@@ -144,6 +144,10 @@ export type Options = {
     error?: {
         [code: string]: string;
     };
+    errmsg?: {
+        name?: string;
+        suffix?: boolean | string | ((color?: any, spec?: any) => string);
+    };
     hint?: any;
     lex?: {
         empty?: boolean;
@@ -425,6 +429,10 @@ export type Config = {
     };
     error: {
         [code: string]: string;
+    };
+    errmsg: {
+        name: string;
+        suffix: boolean | string | ((color?: any, spec?: any) => string);
     };
     hint: any;
     rePart: any;

@@ -661,6 +661,10 @@ describe('utility', () => {
           foo: 'foo-code',
           unknown: 'unknown-code',
         },
+        errmsg: {
+          name: 'jsonic',
+          suffix: true,
+        },
         hint: {
           foo: 'foo-hint',
           unknown: 'unknown-hint',
@@ -677,7 +681,7 @@ describe('utility', () => {
     }
 
     let d0 = errdesc('foo', {}, { tin: 1 }, {}, ctx0)
-    //console.log(d0)
+    // console.log(d0)
     expect(d0.code).equal('foo')
     expect(d0.message.includes('foo-code')).equal(true)
     expect(d0.message.includes('foo-hint')).equal(true)

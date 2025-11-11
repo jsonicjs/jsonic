@@ -28,7 +28,6 @@ class JsonicError extends SyntaxError {
         let desc = errdesc(code, details, token, rule, ctx);
         super(desc.message);
         (0, utility_1.assign)(this, desc);
-        // trimstk(this)
     }
 }
 exports.JsonicError = JsonicError;
@@ -202,9 +201,35 @@ function errdesc(code, details, token, rule, ctx) {
             pos: token.sI,
             sub: token.src,
         });
+        const suffix = true === cfg.errmsg.suffix ? (color) => [
+            '',
+            '  ' + color.lo + 'https://jsonic.senecajs.org' + color.reset + '',
+            '  ' +
+                color.lo +
+                '--internal: tag=' +
+                (ctx.opts.tag || '') +
+                '; rule=' +
+                rule.name +
+                '~' +
+                rule.state +
+                '; token=' +
+                (0, utility_1.tokenize)(token.tin, ctx.cfg) +
+                (null == token.why ? '' : '~' + token.why) +
+                '; plugins=' +
+                ctx
+                    .plgn()
+                    .map((p) => p.name)
+                    .join(',') +
+                '--' +
+                color.reset,
+        ].join('\n') :
+            ('string' === typeof cfg.errmsg.suffix || 'function' === typeof cfg.errmsg.suffix) ?
+                cfg.errmsg.suffix :
+                undefined;
         let message = errmsg({
             code,
-            name: 'jsonic',
+            // name: 'jsonic',
+            name: cfg.errmsg.name,
             txts,
             src,
             file: meta ? meta.fileName : undefined,
@@ -213,28 +238,7 @@ function errdesc(code, details, token, rule, ctx) {
             pos: token.sI,
             sub: token.src,
             color: cfg.color,
-            suffix: (color) => [
-                '',
-                '  ' + color.lo + 'https://jsonic.senecajs.org' + color.reset + '',
-                '  ' +
-                    color.lo +
-                    '--internal: tag=' +
-                    (ctx.opts.tag || '') +
-                    '; rule=' +
-                    rule.name +
-                    '~' +
-                    rule.state +
-                    '; token=' +
-                    (0, utility_1.tokenize)(token.tin, ctx.cfg) +
-                    (null == token.why ? '' : '~' + token.why) +
-                    '; plugins=' +
-                    ctx
-                        .plgn()
-                        .map((p) => p.name)
-                        .join(',') +
-                    '--' +
-                    color.reset,
-            ].join('\n'),
+            suffix,
         });
         let desc = {
             internal: {

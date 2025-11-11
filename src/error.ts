@@ -27,6 +27,7 @@ const S = {
   no_re_flags: EMPTY,
 }
 
+
 // Jsonic errors with nice formatting.
 class JsonicError extends SyntaxError {
   constructor(
@@ -40,19 +41,9 @@ class JsonicError extends SyntaxError {
     let desc = errdesc(code, details, token, rule, ctx)
     super(desc.message)
     assign(this, desc)
-    // trimstk(this)
   }
-
-  // toJSON() {
-  //   return {
-  //     ...this,
-  //     __error: true,
-  //     name: this.name,
-  //     message: this.message,
-  //     stack: this.stack,
-  //   }
-  // }
 }
+
 
 // Inject value text into an error message. The value is taken from
 // the `details` parameter to JsonicError. If not defined, the value is
@@ -310,18 +301,8 @@ function errdesc(
 
     })
 
-    let message = errmsg({
-      code,
-      name: 'jsonic',
-      txts,
-      src,
-      file: meta ? meta.fileName : undefined,
-      row: token.rI,
-      col: token.cI,
-      pos: token.sI,
-      sub: token.src,
-      color: cfg.color,
-      suffix: (color: any) =>
+    const suffix =
+      true === cfg.errmsg.suffix ? (color: any) =>
         [
           '',
           '  ' + color.lo + 'https://jsonic.senecajs.org' + color.reset + '',
@@ -343,7 +324,24 @@ function errdesc(
             .join(',') +
           '--' +
           color.reset,
-        ].join('\n'),
+        ].join('\n') :
+        ('string' === typeof cfg.errmsg.suffix || 'function' === typeof cfg.errmsg.suffix) ?
+          cfg.errmsg.suffix :
+          undefined
+
+    let message = errmsg({
+      code,
+      // name: 'jsonic',
+      name: cfg.errmsg.name,
+      txts,
+      src,
+      file: meta ? meta.fileName : undefined,
+      row: token.rI,
+      col: token.cI,
+      pos: token.sI,
+      sub: token.src,
+      color: cfg.color,
+      suffix,
     })
 
     let desc: any = {
