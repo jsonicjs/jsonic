@@ -13,4 +13,12 @@ describe('spec', function () {
       /spec file not found/,
     )
   })
+
+  it('loadTSV-returns-rows', () => {
+    const entries = loadTSV('happy')
+    expect(entries.length).greaterThan(0)
+    expect(entries[0]).contain({ row: 1 })
+    expect(entries[0].cols).be.an.array()
+    expect(entries[0].cols.length).equal(2)
+  })
 })

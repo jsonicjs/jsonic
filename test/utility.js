@@ -9,7 +9,10 @@ function loadTSV(name) {
   }
 
   const lines = readFileSync(specPath, 'utf8').split('\n').filter(Boolean)
-  return lines.slice(1).map((line) => line.split('\t'))
+  return lines.slice(1).map((line, i) => {
+    const cols = line.split('\t')
+    return { cols, row: i + 1 }
+  })
 }
 
 module.exports = { loadTSV }
