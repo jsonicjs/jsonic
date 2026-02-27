@@ -16,10 +16,8 @@ const expect = Code.expect
 
 // const I = Util.inspect
 
-const { readFileSync } = require('fs')
-const { join } = require('path')
-
 const { Jsonic, JsonicError, makeRule, makeRuleSpec } = require('..')
+const { loadTSV } = require('./utility')
 const Exhaust = require('./exhaust')
 const Large = require('./large')
 const JsonStandard = require('./json-standard')
@@ -28,9 +26,7 @@ let j = Jsonic
 
 describe('jsonic', function () {
   it('happy', () => {
-    const specPath = join(__dirname, 'spec', 'happy.tsv')
-    const lines = readFileSync(specPath, 'utf8').split('\n').filter(Boolean)
-    const rows = lines.slice(1).map((line) => line.split('\t'))
+    const rows = loadTSV('happy.tsv')
 
     for (const [input, expected] of rows) {
       expect(Jsonic(input)).equal(JSON.parse(expected))
