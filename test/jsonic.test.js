@@ -26,7 +26,7 @@ let j = Jsonic
 
 describe('jsonic', function () {
   it('happy', () => {
-    const rows = loadTSV('happy.tsv')
+    const rows = loadTSV('happy')
 
     for (const [input, expected] of rows) {
       expect(Jsonic(input)).equal(JSON.parse(expected))
