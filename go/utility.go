@@ -44,14 +44,16 @@ func deepMerge(base, over any) any {
 	}
 
 	if baseIsArr && overIsArr {
-		// Both arrays: overlay elements (over replaces at same index, base fills rest)
+		// Both arrays: recursively merge elements at same index
 		maxLen := len(baseArr)
 		if len(overArr) > maxLen {
 			maxLen = len(overArr)
 		}
 		result := make([]any, maxLen)
 		for i := 0; i < maxLen; i++ {
-			if i < len(overArr) {
+			if i < len(baseArr) && i < len(overArr) {
+				result[i] = deepMerge(deepClone(baseArr[i]), overArr[i])
+			} else if i < len(overArr) {
 				result[i] = deepClone(overArr[i])
 			} else if i < len(baseArr) {
 				result[i] = deepClone(baseArr[i])
