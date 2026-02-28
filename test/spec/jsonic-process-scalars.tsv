@@ -1,0 +1,9 @@
+input	expected
+null	null
+true	true
+false	false
+123	123
+"a"	"a"
+'b'	"b"
+q	"q"
+x	"x"

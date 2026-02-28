@@ -17,14 +17,31 @@ const expect = Code.expect
 // const I = Util.inspect
 
 const { Jsonic, JsonicError, makeRule, makeRuleSpec } = require('..')
+const { loadTSV } = require('./utility')
 const Exhaust = require('./exhaust')
 const Large = require('./large')
 const JsonStandard = require('./json-standard')
 
 let j = Jsonic
 
+function tsvTest(name) {
+  const entries = loadTSV(name)
+  for (const { cols: [input, expected], row } of entries) {
+    try {
+      expect(Jsonic(input)).equal(JSON.parse(expected))
+    } catch (err) {
+      err.message = `${name} row ${row}: input=${input} expected=${expected}\n${err.message}`
+      throw err
+    }
+  }
+}
+
 describe('jsonic', function () {
   it('happy', () => {
+    tsvTest('happy')
+  })
+
+  it('happy-old', () => {
     expect(Jsonic('{a:1}')).equal({ a: 1 })
     expect(Jsonic('{a:1,b:2}')).equal({ a: 1, b: 2 })
     expect(Jsonic('a:1')).equal({ a: 1 })
@@ -200,6 +217,10 @@ describe('jsonic', function () {
   })
 
   it('basic-json', () => {
+    tsvTest('jsonic-basic-json')
+  })
+
+  it('basic-json-old', () => {
     expect(Jsonic('"a"')).equal('a')
     expect(Jsonic('{"a":1}')).equal({ a: 1 })
     expect(Jsonic('{"a":"1"}')).equal({ a: '1' })
@@ -229,6 +250,10 @@ describe('jsonic', function () {
   })
 
   it('basic-object-tree', () => {
+    tsvTest('jsonic-basic-object-tree')
+  })
+
+  it('basic-object-tree-old', () => {
     expect(Jsonic('{}')).equal({})
     expect(Jsonic('{a:{}}')).equal({ a: {} })
     expect(Jsonic('{a:{b:{}}}')).equal({ a: { b: {} } })
@@ -301,6 +326,10 @@ describe('jsonic', function () {
   })
 
   it('basic-array-tree', () => {
+    tsvTest('jsonic-basic-array-tree')
+  })
+
+  it('basic-array-tree-old', () => {
     expect(Jsonic('[]')).equal([])
     expect(Jsonic('[0]')).equal([0])
     expect(Jsonic('[0,1]')).equal([0, 1])
@@ -347,6 +376,10 @@ describe('jsonic', function () {
   })
 
   it('basic-mixed-tree', () => {
+    tsvTest('jsonic-basic-mixed-tree')
+  })
+
+  it('basic-mixed-tree-old', () => {
     expect(Jsonic('[{}]')).equal([{}])
     expect(Jsonic('{a:[]}')).equal({ a: [] })
 
@@ -370,6 +403,10 @@ describe('jsonic', function () {
   })
 
   it('process-scalars', () => {
+    tsvTest('jsonic-process-scalars')
+  })
+
+  it('process-scalars-old', () => {
     expect(j('')).equal(undefined)
     expect(j('null')).equal(null)
     expect(j('true')).equal(true)
@@ -382,6 +419,10 @@ describe('jsonic', function () {
   })
 
   it('process-text', () => {
+    tsvTest('jsonic-process-text')
+  })
+
+  it('process-text-old', () => {
     //expect(j('{x y:1}')).equal({'x y':1})
     //expect(j('x y:1')).equal({'x y':1})
     //expect(j('[{x y:1}]')).equal([{'x y':1}])
@@ -408,11 +449,19 @@ describe('jsonic', function () {
   })
 
   it('process-implicit-object', () => {
+    tsvTest('jsonic-process-implicit-object')
+  })
+
+  it('process-implicit-object-old', () => {
     expect(j('a:1')).equal({ a: 1 })
     expect(j('a:1,b:2')).equal({ a: 1, b: 2 })
   })
 
   it('process-object-tree', () => {
+    tsvTest('jsonic-process-object-tree')
+  })
+
+  it('process-object-tree-old', () => {
     expect(j('{}')).equal({})
     expect(j('{a:1}')).equal({ a: 1 })
     expect(j('{a:1,b:q}')).equal({ a: 1, b: 'q' })
@@ -468,6 +517,10 @@ describe('jsonic', function () {
   })
 
   it('process-array', () => {
+    tsvTest('jsonic-process-array')
+  })
+
+  it('process-array-old', () => {
     expect(j('[a]')).equal(['a'])
     expect(j('[a,]')).equal(['a'])
     expect(j('[a,,]')).equal(['a', null])
@@ -548,6 +601,10 @@ describe('jsonic', function () {
   })
 
   it('process-mixed-nodes', () => {
+    tsvTest('jsonic-process-mixed-nodes')
+  })
+
+  it('process-mixed-nodes-old', () => {
     expect(j('a:[{b:1}]')).equal({ a: [{ b: 1 }] })
     expect(j('{a:[{b:1}]}')).equal({ a: [{ b: 1 }] })
 
@@ -615,6 +672,10 @@ describe('jsonic', function () {
   })
 
   it('process-whitespace', () => {
+    tsvTest('jsonic-process-whitespace')
+  })
+
+  it('process-whitespace-old', () => {
     expect(j('[0,1]')).equal([0, 1])
     expect(j('[0, 1]')).equal([0, 1])
     expect(j('[0 ,1]')).equal([0, 1])
@@ -702,6 +763,10 @@ describe('jsonic', function () {
   })
 
   it('funky-keys', () => {
+    tsvTest('jsonic-funky-keys')
+  })
+
+  it('funky-keys-old', () => {
     expect(j('x:1')).equal({ x: 1 })
     expect(j('null:1')).equal({ null: 1 })
     expect(j('true:1')).equal({ true: 1 })
