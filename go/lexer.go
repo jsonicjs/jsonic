@@ -2,7 +2,6 @@ package jsonic
 
 import (
 	"math"
-	"strconv"
 	"strings"
 	"unicode"
 )
@@ -14,6 +13,7 @@ type Lex struct {
 	end    *Token    // End-of-source token (cached)
 	tokens []*Token  // Lookahead token queue
 	Config *LexConfig
+	Err    error     // First error encountered during lexing
 }
 
 // LexConfig holds lexer configuration.
@@ -69,17 +69,38 @@ func (l *Lex) Token(name string, tin Tin, val any, src string) *Token {
 }
 
 // Next returns the next non-IGNORE token.
-// This is the core lexing method called by the parser.
-// rule and tI are provided for context but not currently used in the simplified port.
+// On error (unterminated string, unterminated comment, unexpected character),
+// the error is stored in l.Err and a ZZ (end) token is returned to allow
+// the parser to wind down gracefully.
 func (l *Lex) Next() *Token {
 	for {
+		// If an error has already occurred, return end-of-source to stop parsing
+		if l.Err != nil {
+			return &Token{Name: "#ZZ", Tin: TinZZ, Val: Undefined, SI: l.pnt.SI, RI: l.pnt.RI, CI: l.pnt.CI}
+		}
+
 		tkn := l.nextRaw()
 		if tkn == nil {
-			panic("jsonic: unexpected character at position " + strconv.Itoa(l.pnt.SI))
+			l.Err = &JsonicError{
+				Code:   "unexpected",
+				Detail: "unexpected character",
+				Pos:    l.pnt.SI,
+				Row:    l.pnt.RI,
+				Col:    l.pnt.CI,
+			}
+			return &Token{Name: "#ZZ", Tin: TinZZ, Val: Undefined, SI: l.pnt.SI, RI: l.pnt.RI, CI: l.pnt.CI}
 		}
-		// Bad token → panic with error details
+		// Bad token → store error and return end-of-source
 		if tkn.Tin == TinBD {
-			panic("jsonic: " + tkn.Why + " at position " + strconv.Itoa(tkn.SI))
+			l.Err = &JsonicError{
+				Code:   tkn.Why,
+				Detail: tkn.Why,
+				Pos:    tkn.SI,
+				Row:    tkn.RI,
+				Col:    tkn.CI,
+				Src:    tkn.Src,
+			}
+			return &Token{Name: "#ZZ", Tin: TinZZ, Val: Undefined, SI: tkn.SI, RI: tkn.RI, CI: tkn.CI}
 		}
 		// Skip IGNORE tokens (space, line, comment)
 		if TinSetIGNORE[tkn.Tin] {

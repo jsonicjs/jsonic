@@ -12,35 +12,45 @@ import (
 
 // --- helpers ---
 
-// expectParse asserts Parse(input) == expected.
+// expectParse asserts Parse(input) returns expected with no error.
 func expectParse(t *testing.T, input string, expected any) {
 	t.Helper()
-	got := Parse(input)
+	got, err := Parse(input)
+	if err != nil {
+		t.Errorf("Parse(%q) unexpected error: %v", input, err)
+		return
+	}
 	if !valuesEqual(got, expected) {
 		t.Errorf("Parse(%q)\n  got:      %s\n  expected: %s",
 			input, formatValue(got), formatValue(expected))
 	}
 }
 
-// expectParseNil asserts Parse(input) == nil.
+// expectParseNil asserts Parse(input) returns nil with no error.
 func expectParseNil(t *testing.T, input string) {
 	t.Helper()
-	got := Parse(input)
+	got, err := Parse(input)
+	if err != nil {
+		t.Errorf("Parse(%q) unexpected error: %v", input, err)
+		return
+	}
 	if got != nil {
 		t.Errorf("Parse(%q)\n  got:      %s\n  expected: nil",
 			input, formatValue(got))
 	}
 }
 
-// expectParsePanics asserts Parse(input) panics.
-func expectParsePanics(t *testing.T, input string) {
+// expectParseError asserts Parse(input) returns a *JsonicError.
+func expectParseError(t *testing.T, input string) {
 	t.Helper()
-	defer func() {
-		if r := recover(); r == nil {
-			t.Errorf("Parse(%q) should have panicked but did not", input)
-		}
-	}()
-	Parse(input)
+	_, err := Parse(input)
+	if err == nil {
+		t.Errorf("Parse(%q) should have returned an error but did not", input)
+		return
+	}
+	if _, ok := err.(*JsonicError); !ok {
+		t.Errorf("Parse(%q) error should be *JsonicError, got %T: %v", input, err, err)
+	}
 }
 
 // m is shorthand for map[string]any.
@@ -84,10 +94,10 @@ func TestCommentMultiLine(t *testing.T) {
 	expectParse(t, "b:2,\n/*\na:1,\n*/\nc:3", m("b", 2.0, "c", 3.0))
 
 	// Unterminated block comments should panic
-	expectParsePanics(t, "/*")
-	expectParsePanics(t, "\n/*")
-	expectParsePanics(t, "a/*")
-	expectParsePanics(t, "\na/*")
+	expectParseError(t, "/*")
+	expectParseError(t, "\n/*")
+	expectParseError(t, "a/*")
+	expectParseError(t, "\na/*")
 }
 
 // --- Number tests (from feature.test.js) ---
@@ -371,20 +381,20 @@ func TestValueString(t *testing.T) {
 	expectParse(t, `"\0"`, "0")
 
 	// Unterminated strings should panic
-	expectParsePanics(t, `"x`)
-	expectParsePanics(t, ` "x`)
-	expectParsePanics(t, `  "x`)
-	expectParsePanics(t, `a:"x`)
+	expectParseError(t, `"x`)
+	expectParseError(t, ` "x`)
+	expectParseError(t, `  "x`)
+	expectParseError(t, `a:"x`)
 
-	expectParsePanics(t, `'x`)
-	expectParsePanics(t, ` 'x`)
-	expectParsePanics(t, `  'x`)
-	expectParsePanics(t, `a:'x`)
+	expectParseError(t, `'x`)
+	expectParseError(t, ` 'x`)
+	expectParseError(t, `  'x`)
+	expectParseError(t, `a:'x`)
 
-	expectParsePanics(t, "`x")
-	expectParsePanics(t, " `x")
-	expectParsePanics(t, "  `x")
-	expectParsePanics(t, "a:`x")
+	expectParseError(t, "`x")
+	expectParseError(t, " `x")
+	expectParseError(t, "  `x")
+	expectParseError(t, "a:`x")
 }
 
 // --- Multiline string tests (from feature.test.js) ---
@@ -399,8 +409,8 @@ func TestMultilineString(t *testing.T) {
 	expectParse(t, "`a\r\n\r\nb`", "a\r\n\r\nb")
 
 	// Unterminated multiline strings
-	expectParsePanics(t, "`\n")
-	expectParsePanics(t, " `\n")
+	expectParseError(t, "`\n")
+	expectParseError(t, " `\n")
 }
 
 // --- Single-char tests (from feature.test.js) ---
@@ -418,12 +428,12 @@ func TestSingleChar(t *testing.T) {
 	expectParseNil(t, "\r")         // carriage return
 
 	// Error cases
-	expectParsePanics(t, `"`)       // unterminated string
-	expectParsePanics(t, "'")       // unterminated string
-	expectParsePanics(t, ":")       // unexpected
-	expectParsePanics(t, "]")       // unexpected
-	expectParsePanics(t, "`")       // unterminated string
-	expectParsePanics(t, "}")       // unexpected
+	expectParseError(t, `"`)       // unterminated string
+	expectParseError(t, "'")       // unterminated string
+	expectParseError(t, ":")       // unexpected
+	expectParseError(t, "]")       // unexpected
+	expectParseError(t, "`")       // unterminated string
+	expectParseError(t, "}")       // unexpected
 }
 
 // --- Implicit list tests (from feature.test.js) ---
@@ -571,14 +581,14 @@ func TestPropertyDive(t *testing.T) {
 
 func TestSyntaxErrors(t *testing.T) {
 	// Bad close
-	expectParsePanics(t, "}")
-	expectParsePanics(t, "]")
+	expectParseError(t, "}")
+	expectParseError(t, "]")
 
 	// Top level already is a map
-	expectParsePanics(t, "a:1,2")
+	expectParseError(t, "a:1,2")
 
 	// Values not valid inside map
-	expectParsePanics(t, "x:{1,2}")
+	expectParseError(t, "x:{1,2}")
 }
 
 // --- Process-comment tests (from jsonic.test.js) ---
@@ -591,7 +601,10 @@ func TestProcessComment(t *testing.T) {
 // --- NaN handling ---
 
 func TestNaN(t *testing.T) {
-	got := Parse("NaN")
+	got, err := Parse("NaN")
+	if err != nil {
+		t.Fatalf("Parse(\"NaN\") error: %v", err)
+	}
 	f, ok := got.(float64)
 	if !ok || !math.IsNaN(f) {
 		t.Errorf("Parse(\"NaN\") expected NaN, got %v", got)
@@ -617,7 +630,10 @@ func TestPlatformMismatch_ArrayProperties(t *testing.T) {
 	// In TS, arrays are objects and can have arbitrary named properties.
 	// In Go, slices are strictly ordered collections.
 
-	got := Parse("[a:1]")
+	got, err := Parse("[a:1]")
+	if err != nil {
+		t.Fatalf("Parse(\"[a:1]\") error: %v", err)
+	}
 	// In Go we get an empty array (the named property is lost)
 	if arr, ok := got.([]any); ok {
 		if len(arr) != 0 {
@@ -640,8 +656,14 @@ func TestPlatformMismatch_UndefinedVsNull(t *testing.T) {
 	// This means consumers cannot distinguish "no value" from "null value"
 	// at the API level. For most practical uses this is acceptable.
 
-	emptyResult := Parse("")
-	nullResult := Parse("null")
+	emptyResult, err := Parse("")
+	if err != nil {
+		t.Fatalf("Parse(\"\") error: %v", err)
+	}
+	nullResult, err := Parse("null")
+	if err != nil {
+		t.Fatalf("Parse(\"null\") error: %v", err)
+	}
 	if emptyResult != nil {
 		t.Errorf("Parse(\"\") should be nil, got %v", emptyResult)
 	}
@@ -669,28 +691,23 @@ func TestPlatformMismatch_NonStringInput(t *testing.T) {
 }
 
 func TestPlatformMismatch_ErrorDetails(t *testing.T) {
-	// PLATFORM MISMATCH: Error handling
-	//
-	// In TypeScript: Errors are JsonicError objects with structured
-	// information including line/column positions, error codes
-	// (e.g., "unterminated_string", "unexpected"), and formatted messages.
-	//
-	// In Go: Errors are panics with string messages. The error messages
-	// do not include line/column position information, and the format
-	// differs from the TypeScript implementation.
-	//
-	// Applications requiring detailed error information would need
-	// an enhanced error type in the Go implementation.
+	// Go returns *JsonicError with structured information including
+	// line/column positions and error codes, matching TypeScript behavior.
 
-	defer func() {
-		r := recover()
-		if r == nil {
-			t.Error("Expected panic for unterminated string")
-			return
-		}
-		t.Logf("MISMATCH NOTE: Go panic message: %v (TS would give structured JsonicError with line:col)", r)
-	}()
-	Parse(`"unterminated`)
+	_, err := Parse(`"unterminated`)
+	if err == nil {
+		t.Fatal("Expected error for unterminated string")
+	}
+	je, ok := err.(*JsonicError)
+	if !ok {
+		t.Fatalf("Expected *JsonicError, got %T: %v", err, err)
+	}
+	if je.Code != "unterminated_string" {
+		t.Errorf("Expected code \"unterminated_string\", got %q", je.Code)
+	}
+	if je.Row < 1 || je.Col < 1 {
+		t.Errorf("Expected positive row/col, got row=%d col=%d", je.Row, je.Col)
+	}
 }
 
 func TestPlatformMismatch_CustomConfig(t *testing.T) {

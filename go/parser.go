@@ -34,9 +34,10 @@ func NewParser() *Parser {
 }
 
 // Start parses the source string and returns the result.
-func (p *Parser) Start(src string) any {
+// Returns a *JsonicError if parsing fails.
+func (p *Parser) Start(src string) (any, error) {
 	if src == "" {
-		return nil
+		return nil, nil
 	}
 
 	// Check if all whitespace
@@ -48,7 +49,7 @@ func (p *Parser) Start(src string) any {
 		}
 	}
 	if allWS {
-		return nil
+		return nil, nil
 	}
 
 	lex := NewLex(src, p.Config)
@@ -66,7 +67,7 @@ func (p *Parser) Start(src string) any {
 
 	startSpec := p.RSM["val"]
 	if startSpec == nil {
-		return nil
+		return nil, nil
 	}
 
 	rule := MakeRule(startSpec, ctx, nil)
@@ -85,9 +86,21 @@ func (p *Parser) Start(src string) any {
 		kI++
 	}
 
+	// Check for lexer errors (unterminated strings, comments, etc.)
+	if lex.Err != nil {
+		return nil, lex.Err
+	}
+
 	// Check for unconsumed tokens (syntax error)
 	if ctx.T0 != nil && !ctx.T0.IsNoToken() && ctx.T0.Tin != TinZZ {
-		panic("jsonic: unexpected '" + ctx.T0.Src + "'")
+		return nil, &JsonicError{
+			Code:   "unexpected",
+			Detail: "unexpected '" + ctx.T0.Src + "'",
+			Pos:    ctx.T0.SI,
+			Row:    ctx.T0.RI,
+			Col:    ctx.T0.CI,
+			Src:    ctx.T0.Src,
+		}
 	}
 
 	// Follow replacement chain: when val is replaced by list (implicit list),
@@ -98,9 +111,9 @@ func (p *Parser) Start(src string) any {
 	}
 
 	if IsUndefined(result.Node) {
-		return nil
+		return nil, nil
 	}
-	return result.Node
+	return result.Node, nil
 }
 
 // parseNumericString converts a numeric string to float64.

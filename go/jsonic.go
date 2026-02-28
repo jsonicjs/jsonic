@@ -6,6 +6,23 @@
 // the same matcher-based lexer and rule-based parser architecture.
 package jsonic
 
+import "strconv"
+
+// JsonicError is the error type returned by Parse when parsing fails.
+// It includes structured details about the error location and cause.
+type JsonicError struct {
+	Code   string // Error code: "unterminated_string", "unterminated_comment", "unexpected"
+	Detail string // Human-readable detail message
+	Pos    int    // 0-based character position in source
+	Row    int    // 1-based line number
+	Col    int    // 1-based column number
+	Src    string // Source fragment around the error
+}
+
+func (e *JsonicError) Error() string {
+	return "jsonic: " + e.Code + " at " + strconv.Itoa(e.Row) + ":" + strconv.Itoa(e.Col)
+}
+
 // Parse parses a jsonic string and returns the resulting Go value.
 // The returned value can be:
 //   - map[string]any for objects
@@ -14,7 +31,9 @@ package jsonic
 //   - string for strings
 //   - bool for booleans
 //   - nil for null or empty input
-func Parse(src string) any {
+//
+// Returns a *JsonicError if the input contains a syntax error.
+func Parse(src string) (any, error) {
 	p := NewParser()
 	return p.Start(src)
 }
