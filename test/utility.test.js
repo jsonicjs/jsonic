@@ -217,6 +217,27 @@ describe('utility', () => {
   })
 
   it('deep', () => {
+    const entries = loadTSV('utility-deep')
+    for (const { cols, row } of entries) {
+      try {
+        const args = []
+        for (let i = 0; i < 4; i++) {
+          if (cols[i] !== undefined && cols[i] !== '') {
+            args.push(JSON.parse(cols[i]))
+          } else {
+            break
+          }
+        }
+        const expected = JSON.parse(cols[4])
+        expect(deep(...args)).equal(expected)
+      } catch (err) {
+        err.message = `utility-deep row ${row}: args=${cols.slice(0, 4).join(',')} expected=${cols[4]}\n${err.message}`
+        throw err
+      }
+    }
+  })
+
+  it('deep-old', () => {
     let fa = function a() {}
     let fb = function b() {}
 
