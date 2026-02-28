@@ -2,7 +2,8 @@
 // including unquoted keys, implicit objects/arrays, comments, trailing commas,
 // single-quoted strings, path diving (nested object shorthand), and more.
 //
-// It is a Go port of the jsonic TypeScript library.
+// It is a Go port of the jsonic TypeScript library, faithfully implementing
+// the same matcher-based lexer and rule-based parser architecture.
 package jsonic
 
 // Parse parses a jsonic string and returns the resulting Go value.
@@ -17,33 +18,13 @@ func Parse(src string) any {
 	// Preprocess: handle literal \n, \r\n, \t in test input
 	src = preprocessEscapes(src)
 
-	if len(src) == 0 {
-		return nil
-	}
-
-	// Check if input is only whitespace
-	allWhitespace := true
-	for _, ch := range src {
-		if ch != ' ' && ch != '\t' && ch != '\n' && ch != '\r' {
-			allWhitespace = false
-			break
-		}
-	}
-	if allWhitespace {
-		return nil
-	}
-
-	lex := newLexer(src)
-	tokens := lex.tokenize()
-
-	p := newParser(tokens)
-	return p.parse()
+	p := NewParser()
+	return p.Start(src)
 }
 
 // preprocessEscapes replaces literal backslash-n sequences with real newlines, etc.
 // This handles the case where TSV test files contain literal "\n" in the input.
 func preprocessEscapes(s string) string {
-	// Only process if there are actual backslash characters
 	if len(s) == 0 {
 		return s
 	}
