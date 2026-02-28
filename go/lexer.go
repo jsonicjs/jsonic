@@ -18,6 +18,16 @@ type Lex struct {
 
 // LexConfig holds lexer configuration.
 type LexConfig struct {
+	// Lex enable/disable flags (matching TS options.*.lex)
+	FixedLex   bool // Enable fixed token recognition. Default: true.
+	SpaceLex   bool // Enable space lexing. Default: true.
+	LineLex    bool // Enable line lexing. Default: true.
+	TextLex    bool // Enable text matching. Default: true.
+	NumberLex  bool // Enable number matching. Default: true.
+	CommentLex bool // Enable comment matching. Default: true.
+	StringLex  bool // Enable string matching. Default: true.
+	ValueLex   bool // Enable value keyword matching. Default: true.
+
 	StringChars  map[rune]bool // Quote characters
 	MultiChars   map[rune]bool // Multiline quote characters
 	EscapeChar   rune
@@ -31,26 +41,55 @@ type LexConfig struct {
 	NumberBin    bool
 	NumberSep    rune // Separator char (underscore)
 	AllowUnknownEscape bool
-	FinishRule   bool // Auto-close unclosed structures at EOF
+
+	// Value definitions: keyword → value (e.g. "true" → true)
+	// If nil, uses built-in defaults (true, false, null, NaN, Infinity).
+	ValueDef map[string]any
+
+	// Map/List options
+	MapExtend    bool // Deep-merge duplicate keys. Default: true.
+	ListProperty bool // Allow named properties in arrays. Default: true.
+
+	// Safe options
+	SafeKey bool // Prevent __proto__ keys. Default: true.
+
+	// Rule options
+	FinishRule bool // Auto-close unclosed structures at EOF
+	RuleStart  string // Starting rule name. Default: "val".
 }
 
 // DefaultLexConfig returns the default lexer configuration matching jsonic defaults.
 func DefaultLexConfig() *LexConfig {
 	return &LexConfig{
-		StringChars:  map[rune]bool{'\'': true, '"': true, '`': true},
-		MultiChars:   map[rune]bool{'`': true},
-		EscapeChar:   '\\',
-		SpaceChars:   map[rune]bool{' ': true, '\t': true},
-		LineChars:    map[rune]bool{'\r': true, '\n': true},
-		RowChars:     map[rune]bool{'\n': true},
-		CommentLine:  []string{"#", "//"},
-		CommentBlock: [][2]string{{"/*", "*/"}},
-		NumberHex:    true,
-		NumberOct:    true,
-		NumberBin:    true,
-		NumberSep:    '_',
+		FixedLex:     true,
+		SpaceLex:     true,
+		LineLex:      true,
+		TextLex:      true,
+		NumberLex:    true,
+		CommentLex:   true,
+		StringLex:    true,
+		ValueLex:     true,
+
+		StringChars:        map[rune]bool{'\'': true, '"': true, '`': true},
+		MultiChars:         map[rune]bool{'`': true},
+		EscapeChar:         '\\',
+		SpaceChars:         map[rune]bool{' ': true, '\t': true},
+		LineChars:          map[rune]bool{'\r': true, '\n': true},
+		RowChars:           map[rune]bool{'\n': true},
+		CommentLine:        []string{"#", "//"},
+		CommentBlock:       [][2]string{{"/*", "*/"}},
+		NumberHex:          true,
+		NumberOct:          true,
+		NumberBin:          true,
+		NumberSep:          '_',
 		AllowUnknownEscape: true,
-		FinishRule:   true,
+
+		MapExtend:    true,
+		ListProperty: true,
+		SafeKey:      true,
+
+		FinishRule: true,
+		RuleStart:  "val",
 	}
 }
 
@@ -121,33 +160,47 @@ func (l *Lex) nextRaw() *Token {
 		return l.end
 	}
 
-	// Try matchers in order: match, fixed, space, line, string, comment, number, text
-	// (We skip 'match' as it's for plugins only)
+	// Try matchers in order (matching TS lex.match ordering):
+	// fixed(2e6), space(3e6), line(4e6), string(5e6), comment(6e6), number(7e6), text(8e6)
 
-	if tkn := l.matchFixed(); tkn != nil {
-		return tkn
+	if l.Config.FixedLex {
+		if tkn := l.matchFixed(); tkn != nil {
+			return tkn
+		}
 	}
-	if tkn := l.matchSpace(); tkn != nil {
-		return tkn
+	if l.Config.SpaceLex {
+		if tkn := l.matchSpace(); tkn != nil {
+			return tkn
+		}
 	}
-	if tkn := l.matchLine(); tkn != nil {
-		return tkn
+	if l.Config.LineLex {
+		if tkn := l.matchLine(); tkn != nil {
+			return tkn
+		}
 	}
-	if tkn := l.matchString(); tkn != nil {
-		return tkn
+	if l.Config.StringLex {
+		if tkn := l.matchString(); tkn != nil {
+			return tkn
+		}
 	}
-	if tkn := l.matchComment(); tkn != nil {
-		return tkn
+	if l.Config.CommentLex {
+		if tkn := l.matchComment(); tkn != nil {
+			return tkn
+		}
 	}
-	if tkn := l.matchNumber(); tkn != nil {
-		return tkn
+	if l.Config.NumberLex {
+		if tkn := l.matchNumber(); tkn != nil {
+			return tkn
+		}
 	}
-	if tkn := l.matchText(); tkn != nil {
-		return tkn
+	if l.Config.TextLex {
+		if tkn := l.matchText(); tkn != nil {
+			return tkn
+		}
 	}
 
-	// Bad token - no matcher matched
-	return l.bad("unexpected", l.pnt.SI, l.pnt.SI+1)
+	// No matcher matched
+	return nil
 }
 
 func (l *Lex) bad(why string, pstart, pend int) *Token {
@@ -685,37 +738,50 @@ func (l *Lex) matchText() *Token {
 	mlen := len(msrc)
 
 	// Check for value keywords
-	switch msrc {
-	case "true":
-		tkn := l.Token("#VL", TinVL, true, msrc)
-		l.pnt.SI += mlen
-		l.pnt.CI += mlen
-		return tkn
-	case "false":
-		tkn := l.Token("#VL", TinVL, false, msrc)
-		l.pnt.SI += mlen
-		l.pnt.CI += mlen
-		return tkn
-	case "null":
-		tkn := l.Token("#VL", TinVL, nil, msrc)
-		l.pnt.SI += mlen
-		l.pnt.CI += mlen
-		return tkn
-	case "NaN":
-		tkn := l.Token("#VL", TinVL, math.NaN(), msrc)
-		l.pnt.SI += mlen
-		l.pnt.CI += mlen
-		return tkn
-	case "Infinity":
-		tkn := l.Token("#VL", TinVL, math.Inf(1), msrc)
-		l.pnt.SI += mlen
-		l.pnt.CI += mlen
-		return tkn
-	case "-Infinity":
-		tkn := l.Token("#VL", TinVL, math.Inf(-1), msrc)
-		l.pnt.SI += mlen
-		l.pnt.CI += mlen
-		return tkn
+	if l.Config.ValueLex {
+		if l.Config.ValueDef != nil {
+			// Custom value definitions
+			if val, ok := l.Config.ValueDef[msrc]; ok {
+				tkn := l.Token("#VL", TinVL, val, msrc)
+				l.pnt.SI += mlen
+				l.pnt.CI += mlen
+				return tkn
+			}
+		} else {
+			// Default value keywords
+			switch msrc {
+			case "true":
+				tkn := l.Token("#VL", TinVL, true, msrc)
+				l.pnt.SI += mlen
+				l.pnt.CI += mlen
+				return tkn
+			case "false":
+				tkn := l.Token("#VL", TinVL, false, msrc)
+				l.pnt.SI += mlen
+				l.pnt.CI += mlen
+				return tkn
+			case "null":
+				tkn := l.Token("#VL", TinVL, nil, msrc)
+				l.pnt.SI += mlen
+				l.pnt.CI += mlen
+				return tkn
+			case "NaN":
+				tkn := l.Token("#VL", TinVL, math.NaN(), msrc)
+				l.pnt.SI += mlen
+				l.pnt.CI += mlen
+				return tkn
+			case "Infinity":
+				tkn := l.Token("#VL", TinVL, math.Inf(1), msrc)
+				l.pnt.SI += mlen
+				l.pnt.CI += mlen
+				return tkn
+			case "-Infinity":
+				tkn := l.Token("#VL", TinVL, math.Inf(-1), msrc)
+				l.pnt.SI += mlen
+				l.pnt.CI += mlen
+				return tkn
+			}
+		}
 	}
 
 	// Plain text

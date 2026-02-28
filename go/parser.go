@@ -21,8 +21,10 @@ type Context struct {
 
 // Parser orchestrates the parsing process.
 type Parser struct {
-	Config *LexConfig
-	RSM    map[string]*RuleSpec
+	Config        *LexConfig
+	RSM           map[string]*RuleSpec
+	MaxMul        int               // Max rule occurrence multiplier. Default: 3.
+	ErrorMessages map[string]string  // Custom error message templates.
 }
 
 // NewParser creates a parser with default configuration.
@@ -30,7 +32,12 @@ func NewParser() *Parser {
 	cfg := DefaultLexConfig()
 	rsm := make(map[string]*RuleSpec)
 	Grammar(rsm, cfg)
-	return &Parser{Config: cfg, RSM: rsm}
+	// Copy global error messages as defaults.
+	msgs := make(map[string]string, len(errorMessages))
+	for k, v := range errorMessages {
+		msgs[k] = v
+	}
+	return &Parser{Config: cfg, RSM: rsm, MaxMul: 3, ErrorMessages: msgs}
 }
 
 // Start parses the source string and returns the result.
@@ -65,7 +72,11 @@ func (p *Parser) Start(src string) (any, error) {
 		RSM: p.RSM,
 	}
 
-	startSpec := p.RSM["val"]
+	startName := p.Config.RuleStart
+	if startName == "" {
+		startName = "val"
+	}
+	startSpec := p.RSM[startName]
 	if startSpec == nil {
 		return nil, nil
 	}
@@ -73,8 +84,12 @@ func (p *Parser) Start(src string) (any, error) {
 	rule := MakeRule(startSpec, ctx, nil)
 	root := rule
 
-	// Maximum iterations: 2 * numRules * srcLen * 2 * maxmul(3)
-	maxr := 2 * len(p.RSM) * len(src) * 2 * 3
+	// Maximum iterations: 2 * numRules * srcLen * 2 * maxmul
+	maxmul := p.MaxMul
+	if maxmul <= 0 {
+		maxmul = 3
+	}
+	maxr := 2 * len(p.RSM) * len(src) * 2 * maxmul
 	if maxr < 100 {
 		maxr = 100
 	}
@@ -93,7 +108,7 @@ func (p *Parser) Start(src string) (any, error) {
 
 	// Check for unconsumed tokens (syntax error)
 	if ctx.T0 != nil && !ctx.T0.IsNoToken() && ctx.T0.Tin != TinZZ {
-		return nil, makeJsonicError("unexpected", ctx.T0.Src, src, ctx.T0.SI, ctx.T0.RI, ctx.T0.CI)
+		return nil, p.makeError("unexpected", ctx.T0.Src, src, ctx.T0.SI, ctx.T0.RI, ctx.T0.CI)
 	}
 
 	// Follow replacement chain: when val is replaced by list (implicit list),
@@ -107,6 +122,32 @@ func (p *Parser) Start(src string) (any, error) {
 		return nil, nil
 	}
 	return result.Node, nil
+}
+
+// makeError creates a JsonicError using this parser's error messages.
+func (p *Parser) makeError(code, src, fullSource string, pos, row, col int) *JsonicError {
+	msgs := p.ErrorMessages
+	if msgs == nil {
+		msgs = errorMessages
+	}
+	tmpl, ok := msgs[code]
+	if !ok {
+		tmpl = msgs["unknown"]
+		if tmpl == "" {
+			tmpl = errorMessages["unknown"]
+		}
+	}
+	detail := tmpl + src
+
+	return &JsonicError{
+		Code:       code,
+		Detail:     detail,
+		Pos:        pos,
+		Row:        row,
+		Col:        col,
+		Src:        src,
+		fullSource: fullSource,
+	}
 }
 
 // parseNumericString converts a numeric string to float64.
