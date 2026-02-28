@@ -2,6 +2,7 @@ package jsonic
 
 import (
 	"math"
+	"sort"
 	"strings"
 	"unicode"
 )
@@ -31,6 +32,7 @@ type LexConfig struct {
 	StringChars  map[rune]bool // Quote characters
 	MultiChars   map[rune]bool // Multiline quote characters
 	EscapeChar   rune
+	EscapeMap    map[string]string // Custom escape mappings, e.g. {"n": "\n"}.
 	SpaceChars   map[rune]bool
 	LineChars    map[rune]bool
 	RowChars     map[rune]bool
@@ -57,9 +59,16 @@ type LexConfig struct {
 	FinishRule bool // Auto-close unclosed structures at EOF
 	RuleStart  string // Starting rule name. Default: "val".
 
+	// EnderChars lists additional characters that end text and number tokens.
+	EnderChars map[rune]bool
+
 	// Per-instance fixed token map (cloned from global FixedTokens).
-	// Plugins can add custom fixed tokens here.
+	// Plugins can add custom fixed tokens here. Supports multi-char keys.
 	FixedTokens map[string]Tin
+
+	// FixedSorted is the list of fixed token strings sorted by length (longest first).
+	// Rebuilt by SortFixedTokens() after adding custom tokens.
+	FixedSorted []string
 
 	// Custom token names: Tin → name for plugin-defined tokens.
 	TinNames map[Tin]string
@@ -106,7 +115,24 @@ func DefaultLexConfig() *LexConfig {
 			"[": TinOS, "]": TinCS,
 			":": TinCL, ",": TinCA,
 		},
+		FixedSorted: []string{"{", "}", "[", "]", ":", ","},
 	}
+}
+
+// SortFixedTokens rebuilds FixedSorted from FixedTokens, sorted by length descending.
+// Call this after adding multi-char fixed tokens to ensure longest-match-first behavior.
+func (cfg *LexConfig) SortFixedTokens() {
+	sorted := make([]string, 0, len(cfg.FixedTokens))
+	for k := range cfg.FixedTokens {
+		sorted = append(sorted, k)
+	}
+	sort.Slice(sorted, func(i, j int) bool {
+		if len(sorted[i]) != len(sorted[j]) {
+			return len(sorted[i]) > len(sorted[j]) // longer first
+		}
+		return sorted[i] < sorted[j] // stable tie-break
+	})
+	cfg.FixedSorted = sorted
 }
 
 // NewLex creates a new lexer for the given source.
@@ -257,17 +283,35 @@ func (l *Lex) bad(why string, pstart, pend int) *Token {
 	return tkn
 }
 
-// matchFixed matches fixed tokens: { } [ ] : , and any custom fixed tokens.
+// matchFixed matches fixed tokens, including multi-character tokens.
+// Tokens are tried longest-first to ensure greedy matching (e.g. "=>" before "=").
 func (l *Lex) matchFixed() *Token {
 	if l.pnt.SI >= l.pnt.Len {
 		return nil
 	}
-	ch := l.Src[l.pnt.SI]
-	src := string(ch)
 	ftoks := l.Config.FixedTokens
 	if ftoks == nil {
 		ftoks = FixedTokens
 	}
+	remaining := l.Src[l.pnt.SI:]
+
+	// Use sorted list for longest-match-first. Fall back to single-char lookup
+	// if no sorted list (e.g. standalone lexer without Jsonic).
+	if len(l.Config.FixedSorted) > 0 {
+		for _, fs := range l.Config.FixedSorted {
+			if strings.HasPrefix(remaining, fs) {
+				tin := ftoks[fs]
+				tkn := l.Token(l.tinNameFor(tin), tin, nil, fs)
+				l.pnt.SI += len(fs)
+				l.pnt.CI += len(fs)
+				return tkn
+			}
+		}
+		return nil
+	}
+
+	// Fallback: single-char lookup.
+	src := string(l.Src[l.pnt.SI])
 	tin, ok := ftoks[src]
 	if !ok {
 		return nil
@@ -409,6 +453,16 @@ func (l *Lex) matchString() *Token {
 				break
 			}
 			esc := src[sI]
+
+			// Check custom escape map first.
+			if l.Config.EscapeMap != nil {
+				if rep, ok := l.Config.EscapeMap[string(esc)]; ok {
+					sb.WriteString(rep)
+					sI++
+					continue
+				}
+			}
+
 			switch esc {
 			case 'b':
 				sb.WriteByte('\b')
@@ -746,15 +800,31 @@ func (l *Lex) matchText() *Token {
 
 	for sI < len(src) {
 		ch := rune(src[sI])
-		// Stop at: fixed tokens, whitespace, quotes, line chars
-		if ch == '{' || ch == '}' || ch == '[' || ch == ']' ||
-			ch == ':' || ch == ',' ||
-			l.Config.SpaceChars[ch] || l.Config.LineChars[ch] ||
-			l.Config.StringChars[ch] {
+		// Stop at: whitespace, quotes, line chars, ender chars
+		if l.Config.SpaceChars[ch] || l.Config.LineChars[ch] ||
+			l.Config.StringChars[ch] || l.Config.EnderChars[ch] {
+			break
+		}
+		// Stop at fixed tokens (check multi-char first, then single-char)
+		rest := src[sI:]
+		isFixed := false
+		for _, fs := range l.Config.FixedSorted {
+			if strings.HasPrefix(rest, fs) {
+				isFixed = true
+				break
+			}
+		}
+		if !isFixed && len(l.Config.FixedSorted) == 0 {
+			// Fallback for standalone lexer without sorted list
+			if ch == '{' || ch == '}' || ch == '[' || ch == ']' ||
+				ch == ':' || ch == ',' {
+				isFixed = true
+			}
+		}
+		if isFixed {
 			break
 		}
 		// Comment starters
-		rest := src[sI:]
 		isComment := false
 		for _, cs := range l.Config.CommentLine {
 			if strings.HasPrefix(rest, cs) {
@@ -835,18 +905,38 @@ func (l *Lex) matchText() *Token {
 	l.pnt.SI += mlen
 	l.pnt.CI += mlen
 
-	// Check if next char is a fixed token - push as lookahead (subMatchFixed)
+	// Check if next chars are a fixed token - push as lookahead (subMatchFixed)
 	if l.pnt.SI < l.pnt.Len {
-		nextCh := string(src[l.pnt.SI])
-		ftoks := l.Config.FixedTokens
-		if ftoks == nil {
-			ftoks = FixedTokens
+		remaining := src[l.pnt.SI:]
+		matched := false
+		for _, fs := range l.Config.FixedSorted {
+			if strings.HasPrefix(remaining, fs) {
+				ftoks := l.Config.FixedTokens
+				if ftoks == nil {
+					ftoks = FixedTokens
+				}
+				tin := ftoks[fs]
+				fixTkn := l.Token(l.tinNameFor(tin), tin, nil, fs)
+				l.pnt.SI += len(fs)
+				l.pnt.CI += len(fs)
+				l.tokens = append(l.tokens, fixTkn)
+				matched = true
+				break
+			}
 		}
-		if tin, ok := ftoks[nextCh]; ok {
-			fixTkn := l.Token(l.tinNameFor(tin), tin, nil, nextCh)
-			l.pnt.SI++
-			l.pnt.CI++
-			l.tokens = append(l.tokens, fixTkn)
+		if !matched && len(l.Config.FixedSorted) == 0 {
+			// Fallback for standalone lexer
+			nextCh := string(src[l.pnt.SI])
+			ftoks := l.Config.FixedTokens
+			if ftoks == nil {
+				ftoks = FixedTokens
+			}
+			if tin, ok := ftoks[nextCh]; ok {
+				fixTkn := l.Token(l.tinNameFor(tin), tin, nil, nextCh)
+				l.pnt.SI++
+				l.pnt.CI++
+				l.tokens = append(l.tokens, fixTkn)
+			}
 		}
 	}
 
@@ -892,21 +982,46 @@ func isHexDigitByte(ch byte) bool {
 	return (ch >= '0' && ch <= '9') || (ch >= 'a' && ch <= 'f') || (ch >= 'A' && ch <= 'F')
 }
 
-// isTextContinuation returns true if the character can continue a text token
-// (i.e., it's not a delimiter).
-func isTextContinuation(ch byte) bool {
-	r := rune(ch)
-	return !unicode.IsSpace(r) && ch != '{' && ch != '}' && ch != '[' && ch != ']' &&
-		ch != ':' && ch != ',' && ch != '"' && ch != '\'' && ch != '`'
-}
-
-// isFollowingText returns true if the character at pos would continue a text token,
-// taking into account comment starters (which are not text continuation).
-func (l *Lex) isFollowingText(pos int) bool {
+// isTextChar returns true if the character can continue a text token,
+// checking against the config's fixed tokens, ender chars, and string chars.
+func (l *Lex) isTextChar(pos int) bool {
 	if pos >= len(l.Src) {
 		return false
 	}
-	if !isTextContinuation(l.Src[pos]) {
+	ch := l.Src[pos]
+	r := rune(ch)
+	if unicode.IsSpace(r) {
+		return false
+	}
+	// Check string chars
+	if l.Config.StringChars[r] {
+		return false
+	}
+	// Check ender chars
+	if l.Config.EnderChars[r] {
+		return false
+	}
+	// Check fixed tokens (multi-char: check if any fixed token starts here)
+	rest := l.Src[pos:]
+	for _, fs := range l.Config.FixedSorted {
+		if strings.HasPrefix(rest, fs) {
+			return false
+		}
+	}
+	// Fallback for standalone lexer without sorted list
+	if len(l.Config.FixedSorted) == 0 {
+		if ch == '{' || ch == '}' || ch == '[' || ch == ']' ||
+			ch == ':' || ch == ',' {
+			return false
+		}
+	}
+	return true
+}
+
+// isFollowingText returns true if the character at pos would continue a text token,
+// taking into account fixed tokens, ender chars, and comment starters.
+func (l *Lex) isFollowingText(pos int) bool {
+	if !l.isTextChar(pos) {
 		return false
 	}
 	// Comment starters are not text continuation

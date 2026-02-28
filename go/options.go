@@ -148,6 +148,8 @@ type Jsonic struct {
 	tinByName map[string]Tin     // Custom token name → Tin
 	nameByTin map[Tin]string     // Custom Tin → token name
 	nextTin   Tin                // Next available Tin for allocation
+	lexSubs   []LexSub           // Lex event subscribers
+	ruleSubs  []RuleSub          // Rule event subscribers
 }
 
 // Make creates a new Jsonic parser instance with the given options.
@@ -172,6 +174,7 @@ func Make(opts ...Options) *Jsonic {
 	for k, v := range FixedTokens {
 		cfg.FixedTokens[k] = v
 	}
+	cfg.SortFixedTokens()
 
 	// Copy global error messages as defaults.
 	msgs := make(map[string]string, len(errorMessages))
@@ -214,7 +217,7 @@ func Make(opts ...Options) *Jsonic {
 
 // Parse parses a jsonic string using this instance's configuration.
 func (j *Jsonic) Parse(src string) (any, error) {
-	return j.parser.Start(src)
+	return j.parser.StartMeta(src, nil, j.lexSubs, j.ruleSubs)
 }
 
 // Options returns a copy of this instance's options.
@@ -326,6 +329,22 @@ func buildConfig(o *Options) *LexConfig {
 		cfg.EscapeChar = '\\'
 	}
 	cfg.AllowUnknownEscape = boolVal(optBool(o.String, func(s *StringOptions) *bool { return s.AllowUnknown }), true)
+	if o.String != nil && o.String.Escape != nil {
+		cfg.EscapeMap = make(map[string]string, len(o.String.Escape))
+		for k, v := range o.String.Escape {
+			cfg.EscapeMap[k] = v
+		}
+	}
+
+	// Ender
+	if len(o.Ender) > 0 {
+		cfg.EnderChars = make(map[rune]bool)
+		for _, e := range o.Ender {
+			for _, r := range e {
+				cfg.EnderChars[r] = true
+			}
+		}
+	}
 
 	// Value
 	cfg.ValueLex = boolVal(optBool(o.Value, func(v *ValueOptions) *bool { return v.Lex }), true)

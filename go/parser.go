@@ -8,15 +8,18 @@ import (
 
 // Context holds the parse state.
 type Context struct {
-	UI  int               // Unique rule ID counter
-	T0  *Token            // First lookahead token
-	T1  *Token            // Second lookahead token
-	V1  *Token            // Previous token 1
-	V2  *Token            // Previous token 2
-	RS  []*Rule           // Rule stack
-	RSI int               // Rule stack index
-	RSM map[string]*RuleSpec // Rule spec map
-	KI  int               // Iteration counter
+	UI       int               // Unique rule ID counter
+	T0       *Token            // First lookahead token
+	T1       *Token            // Second lookahead token
+	V1       *Token            // Previous token 1
+	V2       *Token            // Previous token 2
+	RS       []*Rule           // Rule stack
+	RSI      int               // Rule stack index
+	RSM      map[string]*RuleSpec // Rule spec map
+	KI       int               // Iteration counter
+	Meta     map[string]any    // Parse metadata from ParseMeta()
+	LexSubs  []LexSub          // Lex event subscribers
+	RuleSubs []RuleSub         // Rule event subscribers
 }
 
 // Parser orchestrates the parsing process.
@@ -43,6 +46,11 @@ func NewParser() *Parser {
 // Start parses the source string and returns the result.
 // Returns a *JsonicError if parsing fails.
 func (p *Parser) Start(src string) (any, error) {
+	return p.StartMeta(src, nil, nil, nil)
+}
+
+// StartMeta parses the source string with metadata and subscriptions.
+func (p *Parser) StartMeta(src string, meta map[string]any, lexSubs []LexSub, ruleSubs []RuleSub) (any, error) {
 	if src == "" {
 		return nil, nil
 	}
@@ -62,14 +70,17 @@ func (p *Parser) Start(src string) (any, error) {
 	lex := NewLex(src, p.Config)
 
 	ctx := &Context{
-		UI:  0,
-		T0:  NoToken,
-		T1:  NoToken,
-		V1:  NoToken,
-		V2:  NoToken,
-		RS:  make([]*Rule, len(src)*4+100),
-		RSI: 0,
-		RSM: p.RSM,
+		UI:       0,
+		T0:       NoToken,
+		T1:       NoToken,
+		V1:       NoToken,
+		V2:       NoToken,
+		RS:       make([]*Rule, len(src)*4+100),
+		RSI:      0,
+		RSM:      p.RSM,
+		Meta:     meta,
+		LexSubs:  lexSubs,
+		RuleSubs: ruleSubs,
 	}
 
 	startName := p.Config.RuleStart
@@ -98,6 +109,14 @@ func (p *Parser) Start(src string) (any, error) {
 	for rule != NoRule && kI < maxr {
 		ctx.KI = kI
 		rule = rule.Process(ctx, lex)
+
+		// Fire rule subscribers.
+		if len(ctx.RuleSubs) > 0 && rule != NoRule {
+			for _, sub := range ctx.RuleSubs {
+				sub(rule, ctx)
+			}
+		}
+
 		kI++
 	}
 

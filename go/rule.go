@@ -323,6 +323,12 @@ func ParseAlts(isOpen bool, alts []*AltSpec, lex *Lex, rule *Rule, ctx *Context)
 		if len(alt.S) > 0 && len(alt.S[0]) > 0 {
 			if ctx.T0.IsNoToken() {
 				ctx.T0 = lex.Next()
+				// Fire lex subscribers.
+				if len(ctx.LexSubs) > 0 {
+					for _, sub := range ctx.LexSubs {
+						sub(ctx.T0, rule, ctx)
+					}
+				}
 			}
 			has0 = true
 			cond = tinMatch(ctx.T0.Tin, alt.S[0])
@@ -330,6 +336,11 @@ func ParseAlts(isOpen bool, alts []*AltSpec, lex *Lex, rule *Rule, ctx *Context)
 			if cond && len(alt.S) > 1 && len(alt.S[1]) > 0 {
 				if ctx.T1.IsNoToken() {
 					ctx.T1 = lex.Next()
+					if len(ctx.LexSubs) > 0 {
+						for _, sub := range ctx.LexSubs {
+							sub(ctx.T1, rule, ctx)
+						}
+					}
 				}
 				has1 = true
 				cond = tinMatch(ctx.T1.Tin, alt.S[1])

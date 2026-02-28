@@ -1,6 +1,9 @@
 package jsonic
 
-import "sort"
+import (
+	"sort"
+	"strings"
+)
 
 // Plugin is a function that modifies a Jsonic instance.
 // Plugins can add custom tokens, matchers, and rule modifications.
@@ -26,6 +29,12 @@ type MatcherEntry struct {
 // RuleDefiner is a callback that modifies a RuleSpec.
 // Plugins use this to add alternates, actions, or conditions to grammar rules.
 type RuleDefiner func(rs *RuleSpec)
+
+// LexSub is a subscriber callback invoked after each token is lexed.
+type LexSub func(tkn *Token, rule *Rule, ctx *Context)
+
+// RuleSub is a subscriber callback invoked after each rule step.
+type RuleSub func(rule *Rule, ctx *Context)
 
 // pluginEntry stores a registered plugin and its options.
 type pluginEntry struct {
@@ -99,6 +108,7 @@ func (j *Jsonic) Token(name string, src ...string) Tin {
 				j.parser.Config.FixedTokens = make(map[string]Tin)
 			}
 			j.parser.Config.FixedTokens[src[0]] = tin
+			j.parser.Config.SortFixedTokens()
 		}
 		return tin
 	}
@@ -122,6 +132,7 @@ func (j *Jsonic) Token(name string, src ...string) Tin {
 			j.parser.Config.FixedTokens = make(map[string]Tin)
 		}
 		j.parser.Config.FixedTokens[src[0]] = tin
+		j.parser.Config.SortFixedTokens()
 	}
 
 	return tin
@@ -176,4 +187,222 @@ func (j *Jsonic) TinName(tin Tin) string {
 		return name
 	}
 	return tinName(tin)
+}
+
+// Sub subscribes to lex and/or rule events.
+// LexSub fires after each non-ignored token is lexed.
+// RuleSub fires after each rule processing step.
+// Returns the Jsonic instance for chaining.
+func (j *Jsonic) Sub(lexSub LexSub, ruleSub RuleSub) *Jsonic {
+	if lexSub != nil {
+		j.lexSubs = append(j.lexSubs, lexSub)
+	}
+	if ruleSub != nil {
+		j.ruleSubs = append(j.ruleSubs, ruleSub)
+	}
+	return j
+}
+
+// Derive creates a new Jsonic instance inheriting this instance's config,
+// rules, plugins, and custom tokens. Changes to the child do not affect the parent.
+// This matches TypeScript's jsonic.make(options, parent).
+func (j *Jsonic) Derive(opts ...Options) *Jsonic {
+	// Start with parent's options, merge with new ones.
+	child := Make(opts...)
+
+	// Copy parent's custom fixed tokens.
+	for k, v := range j.parser.Config.FixedTokens {
+		child.parser.Config.FixedTokens[k] = v
+	}
+	child.parser.Config.SortFixedTokens()
+
+	// Copy parent's custom token names.
+	for k, v := range j.tinByName {
+		child.tinByName[k] = v
+	}
+	for k, v := range j.nameByTin {
+		child.nameByTin[k] = v
+	}
+	if child.nextTin < j.nextTin {
+		child.nextTin = j.nextTin
+	}
+
+	// Copy TinNames into child config.
+	if j.parser.Config.TinNames != nil {
+		if child.parser.Config.TinNames == nil {
+			child.parser.Config.TinNames = make(map[Tin]string)
+		}
+		for k, v := range j.parser.Config.TinNames {
+			child.parser.Config.TinNames[k] = v
+		}
+	}
+
+	// Copy parent's custom matchers.
+	for _, m := range j.parser.Config.CustomMatchers {
+		child.parser.Config.CustomMatchers = append(child.parser.Config.CustomMatchers, m)
+	}
+
+	// Copy parent's ender chars.
+	if j.parser.Config.EnderChars != nil {
+		if child.parser.Config.EnderChars == nil {
+			child.parser.Config.EnderChars = make(map[rune]bool)
+		}
+		for k, v := range j.parser.Config.EnderChars {
+			child.parser.Config.EnderChars[k] = v
+		}
+	}
+
+	// Copy parent's escape map.
+	if j.parser.Config.EscapeMap != nil {
+		if child.parser.Config.EscapeMap == nil {
+			child.parser.Config.EscapeMap = make(map[string]string)
+		}
+		for k, v := range j.parser.Config.EscapeMap {
+			child.parser.Config.EscapeMap[k] = v
+		}
+	}
+
+	// Re-apply parent's plugins on the child.
+	for _, pe := range j.plugins {
+		child.plugins = append(child.plugins, pe)
+		pe.plugin(child, pe.opts)
+	}
+
+	// Copy subscriptions.
+	child.lexSubs = append(child.lexSubs, j.lexSubs...)
+	child.ruleSubs = append(child.ruleSubs, j.ruleSubs...)
+
+	return child
+}
+
+// SetOptions merges new options into this instance and rebuilds the config.
+// This allows dynamic reconfiguration after construction.
+func (j *Jsonic) SetOptions(opts Options) *Jsonic {
+	// Merge individual option fields.
+	if opts.Safe != nil {
+		j.options.Safe = opts.Safe
+	}
+	if opts.Fixed != nil {
+		j.options.Fixed = opts.Fixed
+	}
+	if opts.Space != nil {
+		j.options.Space = opts.Space
+	}
+	if opts.Line != nil {
+		j.options.Line = opts.Line
+	}
+	if opts.Text != nil {
+		j.options.Text = opts.Text
+	}
+	if opts.Number != nil {
+		j.options.Number = opts.Number
+	}
+	if opts.Comment != nil {
+		j.options.Comment = opts.Comment
+	}
+	if opts.String != nil {
+		j.options.String = opts.String
+	}
+	if opts.Map != nil {
+		j.options.Map = opts.Map
+	}
+	if opts.List != nil {
+		j.options.List = opts.List
+	}
+	if opts.Value != nil {
+		j.options.Value = opts.Value
+	}
+	if opts.Rule != nil {
+		j.options.Rule = opts.Rule
+	}
+	if len(opts.Ender) > 0 {
+		j.options.Ender = opts.Ender
+	}
+	if opts.Error != nil {
+		j.options.Error = opts.Error
+	}
+	if opts.Tag != "" {
+		j.options.Tag = opts.Tag
+	}
+
+	// Rebuild config from merged options.
+	cfg := buildConfig(j.options)
+
+	// Preserve per-instance state.
+	cfg.FixedTokens = j.parser.Config.FixedTokens
+	cfg.FixedSorted = j.parser.Config.FixedSorted
+	cfg.TinNames = j.parser.Config.TinNames
+	cfg.CustomMatchers = j.parser.Config.CustomMatchers
+
+	j.parser.Config = cfg
+
+	// Rebuild grammar.
+	rsm := make(map[string]*RuleSpec)
+	Grammar(rsm, cfg)
+	j.parser.RSM = rsm
+
+	// Re-apply plugins.
+	for _, pe := range j.plugins {
+		pe.plugin(j, pe.opts)
+	}
+
+	// Apply error messages.
+	if j.options.Error != nil {
+		for k, v := range j.options.Error {
+			j.parser.ErrorMessages[k] = v
+		}
+	}
+
+	return j
+}
+
+// Exclude removes grammar alternates tagged with any of the given group names.
+// Group names are comma-separated in AltSpec.G fields.
+// Use Exclude("json") to strip all jsonic extensions and get strict JSON parsing.
+// Returns the Jsonic instance for chaining.
+func (j *Jsonic) Exclude(groups ...string) *Jsonic {
+	excludeSet := make(map[string]bool)
+	for _, g := range groups {
+		for _, part := range strings.Split(g, ",") {
+			part = strings.TrimSpace(part)
+			if part != "" {
+				excludeSet[part] = true
+			}
+		}
+	}
+
+	for _, rs := range j.parser.RSM {
+		rs.Open = filterAlts(rs.Open, excludeSet)
+		rs.Close = filterAlts(rs.Close, excludeSet)
+	}
+	return j
+}
+
+// filterAlts removes alternates whose G tags overlap with the exclude set.
+func filterAlts(alts []*AltSpec, excludeSet map[string]bool) []*AltSpec {
+	result := make([]*AltSpec, 0, len(alts))
+	for _, alt := range alts {
+		if alt.G == "" {
+			result = append(result, alt)
+			continue
+		}
+		excluded := false
+		for _, tag := range strings.Split(alt.G, ",") {
+			tag = strings.TrimSpace(tag)
+			if excludeSet[tag] {
+				excluded = true
+				break
+			}
+		}
+		if !excluded {
+			result = append(result, alt)
+		}
+	}
+	return result
+}
+
+// ParseMeta parses a jsonic string with metadata passed through to the parse context.
+// The meta map is accessible in rule actions/conditions via ctx.Meta.
+func (j *Jsonic) ParseMeta(src string, meta map[string]any) (any, error) {
+	return j.parser.StartMeta(src, meta, j.lexSubs, j.ruleSubs)
 }
