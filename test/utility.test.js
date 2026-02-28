@@ -11,6 +11,7 @@ const { filterRules, modlist } = require('../dist/utility')
 const { strinject } = require('../dist/error')
 
 const { util, Jsonic, makeToken, makePoint } = require('..')
+const { loadTSV } = require('./utility')
 
 const {
   deep,
@@ -65,6 +66,20 @@ describe('utility', () => {
   
 
   it('str', () => {
+    const entries = loadTSV('utility-str')
+    for (const { cols, row } of entries) {
+      try {
+        const val = JSON.parse(cols[0])
+        const result = cols[1] !== '' ? str(val, Number(cols[1])) : str(val)
+        expect(result).equal(cols[2] || '')
+      } catch (err) {
+        err.message = `utility-str row ${row}: input=${cols[0]} maxlen=${cols[1]} expected=${cols[2]}\n${err.message}`
+        throw err
+      }
+    }
+  })
+
+  it('str-old', () => {
     expect(str('12345', 6)).equal('12345')
     expect(str('12345', 5)).equal('12345')
     expect(str('12345', 4)).equal('1...')
@@ -517,6 +532,20 @@ describe('utility', () => {
   })
 
   it('modlist', () => {
+    const entries = loadTSV('utility-modlist')
+    for (const { cols, row } of entries) {
+      try {
+        const list = JSON.parse(cols[0])
+        const result = cols[1] !== '' ? modlist(list, JSON.parse(cols[1])) : modlist(list)
+        expect(result).equal(JSON.parse(cols[2]))
+      } catch (err) {
+        err.message = `utility-modlist row ${row}: input=${cols[0]} opts=${cols[1]} expected=${cols[2]}\n${err.message}`
+        throw err
+      }
+    }
+  })
+
+  it('modlist-old', () => {
     expect(modlist([])).equal([])
     expect(modlist(['a'])).equal(['a'])
     expect(modlist(['a', 'b'])).equal(['a', 'b'])
@@ -775,6 +804,20 @@ describe('utility', () => {
   })
 
   it('strinject', () => {
+    const entries = loadTSV('utility-strinject')
+    for (const { cols, row } of entries) {
+      try {
+        const template = cols[0]
+        const values = cols[1] !== '' ? JSON.parse(cols[1]) : undefined
+        expect(strinject(template, values)).equal(cols[2] || '')
+      } catch (err) {
+        err.message = `utility-strinject row ${row}: template=${cols[0]} values=${cols[1]} expected=${cols[2]}\n${err.message}`
+        throw err
+      }
+    }
+  })
+
+  it('strinject-old', () => {
     expect(strinject('a{b}c', { b: 'B' })).equal('aBc')
     expect(strinject('a{b}c{d}e', { b: 'B', d: 'D' })).equal('aBcDe')
 
