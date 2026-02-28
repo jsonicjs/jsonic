@@ -1,6 +1,8 @@
 package jsonic
 
 import (
+	"math"
+	"strconv"
 	"strings"
 	"unicode"
 )
@@ -73,7 +75,11 @@ func (l *Lex) Next() *Token {
 	for {
 		tkn := l.nextRaw()
 		if tkn == nil {
-			return l.bad("unexpected", l.pnt.SI, l.pnt.SI+1)
+			panic("jsonic: unexpected character at position " + strconv.Itoa(l.pnt.SI))
+		}
+		// Bad token → panic with error details
+		if tkn.Tin == TinBD {
+			panic("jsonic: " + tkn.Why + " at position " + strconv.Itoa(tkn.SI))
 		}
 		// Skip IGNORE tokens (space, line, comment)
 		if TinSetIGNORE[tkn.Tin] {
@@ -271,6 +277,7 @@ func (l *Lex) matchString() *Token {
 
 	var sb strings.Builder
 	srclen := len(src)
+	foundClose := false
 
 	for sI < srclen {
 		cI++
@@ -279,11 +286,12 @@ func (l *Lex) matchString() *Token {
 		// End quote
 		if c == q {
 			sI++
+			foundClose = true
 			break
 		}
 
-		// Escape character
-		if c == l.Config.EscapeChar && q != '`' {
+		// Escape character (all string types process escapes)
+		if c == l.Config.EscapeChar {
 			sI++
 			cI++
 			if sI >= srclen {
@@ -389,8 +397,7 @@ func (l *Lex) matchString() *Token {
 	}
 
 	// Check for unterminated string
-	if sI > l.pnt.SI+1 && (sI <= l.pnt.Len && src[sI-1] != byte(q)) {
-		// Unterminated string
+	if !foundClose {
 		return l.bad("unterminated_string", l.pnt.SI, sI)
 	}
 
@@ -445,7 +452,7 @@ func (l *Lex) matchNumber() *Token {
 			return nil
 		}
 		// Check trailing text
-		if sI < len(src) && isTextContinuation(src[sI]) {
+		if l.isFollowingText(sI) {
 			return nil
 		}
 		msrc := src[start:sI]
@@ -473,7 +480,7 @@ func (l *Lex) matchNumber() *Token {
 		if sI == octStart {
 			return nil
 		}
-		if sI < len(src) && isTextContinuation(src[sI]) {
+		if l.isFollowingText(sI) {
 			return nil
 		}
 		msrc := src[start:sI]
@@ -501,7 +508,7 @@ func (l *Lex) matchNumber() *Token {
 		if sI == binStart {
 			return nil
 		}
-		if sI < len(src) && isTextContinuation(src[sI]) {
+		if l.isFollowingText(sI) {
 			return nil
 		}
 		msrc := src[start:sI]
@@ -553,7 +560,7 @@ func (l *Lex) matchNumber() *Token {
 			for sI < len(src) && (isDigit(src[sI]) || (l.Config.NumberSep != 0 && rune(src[sI]) == l.Config.NumberSep)) {
 				sI++
 			}
-		} else if sI+1 < len(src) && isTextContinuation(src[sI+1]) && src[sI+1] != '.' {
+		} else if sI+1 < len(src) && l.isFollowingText(sI+1) && src[sI+1] != '.' {
 			// "0.a" → not a number, let text handle it
 			return nil
 		} else {
@@ -575,19 +582,19 @@ func (l *Lex) matchNumber() *Token {
 		}
 		if sI == expStart {
 			// No exponent digits - check if trailing makes it text
-			if sI < len(src) && isTextContinuation(src[sI]) {
+			if l.isFollowingText(sI) {
 				return nil
 			}
 			sI = eSI // backtrack, 'e' is not part of number
 		}
 		// Check for trailing text after exponent
-		if sI < len(src) && isTextContinuation(src[sI]) {
+		if l.isFollowingText(sI) {
 			return nil
 		}
 	}
 
 	// Check for trailing alpha/text that would make this text
-	if sI < len(src) && isTextContinuation(src[sI]) {
+	if l.isFollowingText(sI) {
 		return nil
 	}
 
@@ -682,6 +689,21 @@ func (l *Lex) matchText() *Token {
 		l.pnt.SI += mlen
 		l.pnt.CI += mlen
 		return tkn
+	case "NaN":
+		tkn := l.Token("#VL", TinVL, math.NaN(), msrc)
+		l.pnt.SI += mlen
+		l.pnt.CI += mlen
+		return tkn
+	case "Infinity":
+		tkn := l.Token("#VL", TinVL, math.Inf(1), msrc)
+		l.pnt.SI += mlen
+		l.pnt.CI += mlen
+		return tkn
+	case "-Infinity":
+		tkn := l.Token("#VL", TinVL, math.Inf(-1), msrc)
+		l.pnt.SI += mlen
+		l.pnt.CI += mlen
+		return tkn
 	}
 
 	// Plain text
@@ -738,6 +760,30 @@ func isTextContinuation(ch byte) bool {
 	r := rune(ch)
 	return !unicode.IsSpace(r) && ch != '{' && ch != '}' && ch != '[' && ch != ']' &&
 		ch != ':' && ch != ',' && ch != '"' && ch != '\'' && ch != '`'
+}
+
+// isFollowingText returns true if the character at pos would continue a text token,
+// taking into account comment starters (which are not text continuation).
+func (l *Lex) isFollowingText(pos int) bool {
+	if pos >= len(l.Src) {
+		return false
+	}
+	if !isTextContinuation(l.Src[pos]) {
+		return false
+	}
+	// Comment starters are not text continuation
+	rest := l.Src[pos:]
+	for _, cs := range l.Config.CommentLine {
+		if strings.HasPrefix(rest, cs) {
+			return false
+		}
+	}
+	for _, cb := range l.Config.CommentBlock {
+		if strings.HasPrefix(rest, cb[0]) {
+			return false
+		}
+	}
+	return true
 }
 
 func parseHexInt(s string) int {

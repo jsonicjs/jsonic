@@ -284,28 +284,27 @@ func (r *Rule) Process(ctx *Context, lex *Lex) *Rule {
 		r.State = CLOSE
 	}
 
-	// Token consumption with backtrack
-	backtrack := 0
+	// Token consumption with backtrack (only when an alt matched)
 	if alt != nil {
-		backtrack = alt.B
-	}
-	var consumed int
-	if isOpen {
-		consumed = r.OS - backtrack
-	} else {
-		consumed = r.CS - backtrack
-	}
+		backtrack := alt.B
+		var consumed int
+		if isOpen {
+			consumed = r.OS - backtrack
+		} else {
+			consumed = r.CS - backtrack
+		}
 
-	if consumed == 1 {
-		ctx.V2 = ctx.V1
-		ctx.V1 = ctx.T0
-		ctx.T0 = ctx.T1
-		ctx.T1 = NoToken
-	} else if consumed == 2 {
-		ctx.V2 = ctx.T1
-		ctx.V1 = ctx.T0
-		ctx.T0 = NoToken
-		ctx.T1 = NoToken
+		if consumed == 1 {
+			ctx.V2 = ctx.V1
+			ctx.V1 = ctx.T0
+			ctx.T0 = ctx.T1
+			ctx.T1 = NoToken
+		} else if consumed == 2 {
+			ctx.V2 = ctx.T1
+			ctx.V1 = ctx.T0
+			ctx.T0 = NoToken
+			ctx.T1 = NoToken
+		}
 	}
 
 	return next

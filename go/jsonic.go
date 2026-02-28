@@ -15,9 +15,6 @@ package jsonic
 //   - bool for booleans
 //   - nil for null or empty input
 func Parse(src string) any {
-	// Preprocess: handle literal \n, \r\n, \t in test input
-	src = preprocessEscapes(src)
-
 	p := NewParser()
 	return p.Start(src)
 }

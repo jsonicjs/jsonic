@@ -85,6 +85,11 @@ func (p *Parser) Start(src string) any {
 		kI++
 	}
 
+	// Check for unconsumed tokens (syntax error)
+	if ctx.T0 != nil && !ctx.T0.IsNoToken() && ctx.T0.Tin != TinZZ {
+		panic("jsonic: unexpected '" + ctx.T0.Src + "'")
+	}
+
 	// Follow replacement chain: when val is replaced by list (implicit list),
 	// root.Node is stale. Follow Next/Prev links to find the actual result.
 	result := root

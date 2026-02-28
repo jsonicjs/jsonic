@@ -216,7 +216,7 @@ func TestParserTSVFiles(t *testing.T) {
 					continue
 				}
 
-				got := Parse(input)
+				got := Parse(preprocessEscapes(input))
 
 				if !valuesEqual(got, expected) {
 					t.Errorf("line %d: Parse(%q)\n  got:      %s\n  expected: %s",
