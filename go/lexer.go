@@ -56,6 +56,16 @@ type LexConfig struct {
 	// Rule options
 	FinishRule bool // Auto-close unclosed structures at EOF
 	RuleStart  string // Starting rule name. Default: "val".
+
+	// Per-instance fixed token map (cloned from global FixedTokens).
+	// Plugins can add custom fixed tokens here.
+	FixedTokens map[string]Tin
+
+	// Custom token names: Tin → name for plugin-defined tokens.
+	TinNames map[Tin]string
+
+	// Custom lexer matchers added by plugins, sorted by priority.
+	CustomMatchers []*MatcherEntry
 }
 
 // DefaultLexConfig returns the default lexer configuration matching jsonic defaults.
@@ -90,6 +100,12 @@ func DefaultLexConfig() *LexConfig {
 
 		FinishRule: true,
 		RuleStart:  "val",
+
+		FixedTokens: map[string]Tin{
+			"{": TinOB, "}": TinCB,
+			"[": TinOS, "]": TinCS,
+			":": TinCL, ",": TinCA,
+		},
 	}
 }
 
@@ -100,6 +116,12 @@ func NewLex(src string, cfg *LexConfig) *Lex {
 		pnt:    Point{Len: len(src), SI: 0, RI: 1, CI: 1},
 		Config: cfg,
 	}
+}
+
+// Cursor returns a pointer to the lexer's current position.
+// Custom matchers use this to read and advance the position.
+func (l *Lex) Cursor() *Point {
+	return &l.pnt
 }
 
 // Token creates a new token at the current point.
@@ -161,7 +183,17 @@ func (l *Lex) nextRaw() *Token {
 	}
 
 	// Try matchers in order (matching TS lex.match ordering):
-	// fixed(2e6), space(3e6), line(4e6), string(5e6), comment(6e6), number(7e6), text(8e6)
+	// custom(<2e6), fixed(2e6), space(3e6), line(4e6), string(5e6), comment(6e6), number(7e6), text(8e6)
+
+	// Run custom matchers with priority < 2000000 (before fixed).
+	for _, m := range l.Config.CustomMatchers {
+		if m.Priority >= 2000000 {
+			break
+		}
+		if tkn := m.Match(l); tkn != nil {
+			return tkn
+		}
+	}
 
 	if l.Config.FixedLex {
 		if tkn := l.matchFixed(); tkn != nil {
@@ -199,6 +231,16 @@ func (l *Lex) nextRaw() *Token {
 		}
 	}
 
+	// Run custom matchers with priority >= 8000000 (after text).
+	for _, m := range l.Config.CustomMatchers {
+		if m.Priority < 8000000 {
+			continue
+		}
+		if tkn := m.Match(l); tkn != nil {
+			return tkn
+		}
+	}
+
 	// No matcher matched
 	return nil
 }
@@ -215,18 +257,22 @@ func (l *Lex) bad(why string, pstart, pend int) *Token {
 	return tkn
 }
 
-// matchFixed matches fixed tokens: { } [ ] : ,
+// matchFixed matches fixed tokens: { } [ ] : , and any custom fixed tokens.
 func (l *Lex) matchFixed() *Token {
 	if l.pnt.SI >= l.pnt.Len {
 		return nil
 	}
 	ch := l.Src[l.pnt.SI]
 	src := string(ch)
-	tin, ok := FixedTokens[src]
+	ftoks := l.Config.FixedTokens
+	if ftoks == nil {
+		ftoks = FixedTokens
+	}
+	tin, ok := ftoks[src]
 	if !ok {
 		return nil
 	}
-	tkn := l.Token(tinName(tin), tin, nil, src)
+	tkn := l.Token(l.tinNameFor(tin), tin, nil, src)
 	l.pnt.SI++
 	l.pnt.CI++
 	return tkn
@@ -792,8 +838,12 @@ func (l *Lex) matchText() *Token {
 	// Check if next char is a fixed token - push as lookahead (subMatchFixed)
 	if l.pnt.SI < l.pnt.Len {
 		nextCh := string(src[l.pnt.SI])
-		if tin, ok := FixedTokens[nextCh]; ok {
-			fixTkn := l.Token(tinName(tin), tin, nil, nextCh)
+		ftoks := l.Config.FixedTokens
+		if ftoks == nil {
+			ftoks = FixedTokens
+		}
+		if tin, ok := ftoks[nextCh]; ok {
+			fixTkn := l.Token(l.tinNameFor(tin), tin, nil, nextCh)
 			l.pnt.SI++
 			l.pnt.CI++
 			l.tokens = append(l.tokens, fixTkn)
@@ -804,6 +854,16 @@ func (l *Lex) matchText() *Token {
 }
 
 // Helper functions
+
+// tinNameFor returns the name for a Tin, checking custom names first.
+func (l *Lex) tinNameFor(tin Tin) string {
+	if l.Config.TinNames != nil {
+		if name, ok := l.Config.TinNames[tin]; ok {
+			return name
+		}
+	}
+	return tinName(tin)
+}
 
 func tinName(tin Tin) string {
 	switch tin {

@@ -142,8 +142,12 @@ type RuleOptions struct {
 
 // Jsonic is a configured parser instance, equivalent to TypeScript's Jsonic.make().
 type Jsonic struct {
-	options *Options
-	parser  *Parser
+	options   *Options
+	parser    *Parser
+	plugins   []pluginEntry      // Registered plugins
+	tinByName map[string]Tin     // Custom token name → Tin
+	nameByTin map[Tin]string     // Custom Tin → token name
+	nextTin   Tin                // Next available Tin for allocation
 }
 
 // Make creates a new Jsonic parser instance with the given options.
@@ -163,11 +167,39 @@ func Make(opts ...Options) *Jsonic {
 		maxmul = *o.Rule.MaxMul
 	}
 
-	p := &Parser{Config: cfg, RSM: rsm, MaxMul: maxmul}
+	// Copy global FixedTokens into the config for per-instance customization.
+	cfg.FixedTokens = make(map[string]Tin, len(FixedTokens))
+	for k, v := range FixedTokens {
+		cfg.FixedTokens[k] = v
+	}
+
+	// Copy global error messages as defaults.
+	msgs := make(map[string]string, len(errorMessages))
+	for k, v := range errorMessages {
+		msgs[k] = v
+	}
+
+	p := &Parser{Config: cfg, RSM: rsm, MaxMul: maxmul, ErrorMessages: msgs}
+
+	// Initialize built-in token name mappings.
+	tinByName := map[string]Tin{
+		"#BD": TinBD, "#ZZ": TinZZ, "#UK": TinUK, "#AA": TinAA,
+		"#SP": TinSP, "#LN": TinLN, "#CM": TinCM, "#NR": TinNR,
+		"#ST": TinST, "#TX": TinTX, "#VL": TinVL, "#OB": TinOB,
+		"#CB": TinCB, "#OS": TinOS, "#CS": TinCS, "#CL": TinCL,
+		"#CA": TinCA,
+	}
+	nameByTin := make(map[Tin]string, len(tinByName))
+	for name, tin := range tinByName {
+		nameByTin[tin] = name
+	}
 
 	j := &Jsonic{
-		options: &o,
-		parser:  p,
+		options:   &o,
+		parser:    p,
+		tinByName: tinByName,
+		nameByTin: nameByTin,
+		nextTin:   TinMAX,
 	}
 
 	// Apply custom error messages.
