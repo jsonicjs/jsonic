@@ -81,25 +81,16 @@ func (l *Lex) Next() *Token {
 
 		tkn := l.nextRaw()
 		if tkn == nil {
-			l.Err = &JsonicError{
-				Code:   "unexpected",
-				Detail: "unexpected character",
-				Pos:    l.pnt.SI,
-				Row:    l.pnt.RI,
-				Col:    l.pnt.CI,
+			src := ""
+			if l.pnt.SI < len(l.Src) {
+				src = string(l.Src[l.pnt.SI])
 			}
+			l.Err = makeJsonicError("unexpected", src, l.Src, l.pnt.SI, l.pnt.RI, l.pnt.CI)
 			return &Token{Name: "#ZZ", Tin: TinZZ, Val: Undefined, SI: l.pnt.SI, RI: l.pnt.RI, CI: l.pnt.CI}
 		}
 		// Bad token → store error and return end-of-source
 		if tkn.Tin == TinBD {
-			l.Err = &JsonicError{
-				Code:   tkn.Why,
-				Detail: tkn.Why,
-				Pos:    tkn.SI,
-				Row:    tkn.RI,
-				Col:    tkn.CI,
-				Src:    tkn.Src,
-			}
+			l.Err = makeJsonicError(tkn.Why, tkn.Src, l.Src, tkn.SI, tkn.RI, tkn.CI)
 			return &Token{Name: "#ZZ", Tin: TinZZ, Val: Undefined, SI: tkn.SI, RI: tkn.RI, CI: tkn.CI}
 		}
 		// Skip IGNORE tokens (space, line, comment)

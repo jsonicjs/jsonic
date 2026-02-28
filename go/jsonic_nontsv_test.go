@@ -7,6 +7,7 @@ package jsonic
 
 import (
 	"math"
+	"strings"
 	"testing"
 )
 
@@ -690,24 +691,142 @@ func TestPlatformMismatch_NonStringInput(t *testing.T) {
 		"TS Jsonic() passes through non-string inputs ({}, [], true, etc.)")
 }
 
-func TestPlatformMismatch_ErrorDetails(t *testing.T) {
-	// Go returns *JsonicError with structured information including
-	// line/column positions and error codes, matching TypeScript behavior.
+func TestErrorFormat(t *testing.T) {
+	// Verify error format matches TypeScript JsonicError output.
 
-	_, err := Parse(`"unterminated`)
-	if err == nil {
-		t.Fatal("Expected error for unterminated string")
-	}
-	je, ok := err.(*JsonicError)
-	if !ok {
-		t.Fatalf("Expected *JsonicError, got %T: %v", err, err)
-	}
-	if je.Code != "unterminated_string" {
-		t.Errorf("Expected code \"unterminated_string\", got %q", je.Code)
-	}
-	if je.Row < 1 || je.Col < 1 {
-		t.Errorf("Expected positive row/col, got row=%d col=%d", je.Row, je.Col)
-	}
+	t.Run("unterminated_string", func(t *testing.T) {
+		_, err := Parse(`"unterminated`)
+		if err == nil {
+			t.Fatal("Expected error")
+		}
+		je := err.(*JsonicError)
+		if je.Code != "unterminated_string" {
+			t.Errorf("Code: got %q, want %q", je.Code, "unterminated_string")
+		}
+		if je.Row != 1 || je.Col != 1 {
+			t.Errorf("Position: got %d:%d, want 1:1", je.Row, je.Col)
+		}
+		// Detail should match TS format: "unterminated string: <src>"
+		if !strings.Contains(je.Detail, "unterminated string:") {
+			t.Errorf("Detail should contain 'unterminated string:', got %q", je.Detail)
+		}
+		// Error() should contain [jsonic/<code>] header
+		msg := je.Error()
+		if !strings.Contains(msg, "[jsonic/unterminated_string]:") {
+			t.Errorf("Error() should contain '[jsonic/unterminated_string]:', got:\n%s", msg)
+		}
+		// Error() should contain --> row:col
+		if !strings.Contains(msg, "--> 1:1") {
+			t.Errorf("Error() should contain '--> 1:1', got:\n%s", msg)
+		}
+	})
+
+	t.Run("unterminated_comment", func(t *testing.T) {
+		_, err := Parse("/*")
+		if err == nil {
+			t.Fatal("Expected error")
+		}
+		je := err.(*JsonicError)
+		if je.Code != "unterminated_comment" {
+			t.Errorf("Code: got %q, want %q", je.Code, "unterminated_comment")
+		}
+		if !strings.Contains(je.Detail, "unterminated comment:") {
+			t.Errorf("Detail should contain 'unterminated comment:', got %q", je.Detail)
+		}
+		msg := je.Error()
+		if !strings.Contains(msg, "[jsonic/unterminated_comment]:") {
+			t.Errorf("Error() missing code header, got:\n%s", msg)
+		}
+	})
+
+	t.Run("unexpected_close", func(t *testing.T) {
+		_, err := Parse("}")
+		if err == nil {
+			t.Fatal("Expected error")
+		}
+		je := err.(*JsonicError)
+		if je.Code != "unexpected" {
+			t.Errorf("Code: got %q, want %q", je.Code, "unexpected")
+		}
+		if !strings.Contains(je.Detail, "unexpected character(s):") {
+			t.Errorf("Detail should contain 'unexpected character(s):', got %q", je.Detail)
+		}
+		msg := je.Error()
+		if !strings.Contains(msg, "[jsonic/unexpected]:") {
+			t.Errorf("Error() missing code header, got:\n%s", msg)
+		}
+	})
+
+	t.Run("multiline_source_extract", func(t *testing.T) {
+		// Match the TS test: error on line 11 with context lines
+		src := "\n\n\n\n\n\n\n\n\n\n   }"
+		_, err := Parse(src)
+		if err == nil {
+			t.Fatal("Expected error")
+		}
+		je := err.(*JsonicError)
+		msg := je.Error()
+		// Should show --> row:col
+		if !strings.Contains(msg, "--> 11:4") {
+			t.Errorf("Error() should show '--> 11:4', got:\n%s", msg)
+		}
+		// Should contain line numbers in the source extract
+		if !strings.Contains(msg, "11 |") {
+			t.Errorf("Error() should contain '11 |' line marker, got:\n%s", msg)
+		}
+		// Should contain caret marker
+		if !strings.Contains(msg, "^") {
+			t.Errorf("Error() should contain '^' caret marker, got:\n%s", msg)
+		}
+	})
+
+	t.Run("multiline_with_context", func(t *testing.T) {
+		// Error in middle of source - verify context lines before and after
+		src := "a:1\nb:2\nc:3\nd:\"unterminated\ne:5"
+		_, err := Parse(src)
+		if err == nil {
+			t.Fatal("Expected error")
+		}
+		je := err.(*JsonicError)
+		msg := je.Error()
+		// Should show context lines
+		if !strings.Contains(msg, "|") {
+			t.Errorf("Error() should contain '|' line markers, got:\n%s", msg)
+		}
+		// Should contain caret marker
+		if !strings.Contains(msg, "^") {
+			t.Errorf("Error() should contain '^' caret, got:\n%s", msg)
+		}
+	})
+
+	t.Run("error_fields_match_ts", func(t *testing.T) {
+		// Verify all structured fields are present (matching TS JsonicError)
+		_, err := Parse(`"abc`)
+		if err == nil {
+			t.Fatal("Expected error")
+		}
+		je := err.(*JsonicError)
+		// Code matches TS error code
+		if je.Code == "" {
+			t.Error("Code should not be empty")
+		}
+		// Detail matches TS message format
+		if je.Detail == "" {
+			t.Error("Detail should not be empty")
+		}
+		// Row is 1-based (matches TS rI / lineNumber)
+		if je.Row < 1 {
+			t.Errorf("Row should be >= 1, got %d", je.Row)
+		}
+		// Col is 1-based (matches TS cI / columnNumber)
+		if je.Col < 1 {
+			t.Errorf("Col should be >= 1, got %d", je.Col)
+		}
+		// Src contains the token text (matches TS token.src)
+		if je.Src == "" {
+			t.Error("Src should not be empty")
+		}
+	})
 }
 
 func TestPlatformMismatch_CustomConfig(t *testing.T) {

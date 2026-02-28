@@ -93,14 +93,7 @@ func (p *Parser) Start(src string) (any, error) {
 
 	// Check for unconsumed tokens (syntax error)
 	if ctx.T0 != nil && !ctx.T0.IsNoToken() && ctx.T0.Tin != TinZZ {
-		return nil, &JsonicError{
-			Code:   "unexpected",
-			Detail: "unexpected '" + ctx.T0.Src + "'",
-			Pos:    ctx.T0.SI,
-			Row:    ctx.T0.RI,
-			Col:    ctx.T0.CI,
-			Src:    ctx.T0.Src,
-		}
+		return nil, makeJsonicError("unexpected", ctx.T0.Src, src, ctx.T0.SI, ctx.T0.RI, ctx.T0.CI)
 	}
 
 	// Follow replacement chain: when val is replaced by list (implicit list),
