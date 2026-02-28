@@ -43,9 +43,22 @@ type Options struct {
 	// Rule controls parser rule behavior.
 	Rule *RuleOptions
 
+	// Lex controls global lexer behavior (empty source, etc.).
+	Lex *LexOptions
+
+	// Parser allows custom parser overrides.
+	Parser *ParserOptions
+
 	// Error provides custom error message templates keyed by error code.
 	// e.g. {"unexpected": "unexpected character(s): {src}"}
 	Error map[string]string
+
+	// Hint provides additional explanatory text per error code.
+	Hint map[string]string
+
+	// Config modifier callbacks, keyed by name.
+	// Called after config construction to allow dynamic customization.
+	ConfigModify map[string]ConfigModifier
 
 	// Tag is an instance identifier tag.
 	Tag string
@@ -135,21 +148,40 @@ type ValueOptions struct {
 
 // RuleOptions controls parser rule behavior.
 type RuleOptions struct {
-	Start  string // Starting rule name. Default: "val".
-	Finish *bool  // Auto-close unclosed structures at EOF. Default: true.
-	MaxMul *int   // Max rule occurrence multiplier. Default: 3.
+	Start   string   // Starting rule name. Default: "val".
+	Finish  *bool    // Auto-close unclosed structures at EOF. Default: true.
+	MaxMul  *int     // Max rule occurrence multiplier. Default: 3.
+	Exclude string   // Comma-separated group tags to exclude from grammar.
 }
+
+// LexOptions controls global lex behavior.
+type LexOptions struct {
+	Empty       *bool // Allow empty source. Default: true.
+	EmptyResult any   // Result for empty source. Default: nil.
+}
+
+// ParserOptions allows custom parser overrides.
+type ParserOptions struct {
+	Start func(src string, j *Jsonic, meta map[string]any) (any, error)
+}
+
+// ConfigModifier is a function that modifies the LexConfig after construction.
+type ConfigModifier func(cfg *LexConfig, opts *Options)
 
 // Jsonic is a configured parser instance, equivalent to TypeScript's Jsonic.make().
 type Jsonic struct {
-	options   *Options
-	parser    *Parser
-	plugins   []pluginEntry      // Registered plugins
-	tinByName map[string]Tin     // Custom token name → Tin
-	nameByTin map[Tin]string     // Custom Tin → token name
-	nextTin   Tin                // Next available Tin for allocation
-	lexSubs   []LexSub           // Lex event subscribers
-	ruleSubs  []RuleSub          // Rule event subscribers
+	options     *Options
+	parser      *Parser
+	plugins     []pluginEntry      // Registered plugins
+	tinByName   map[string]Tin     // Custom token name → Tin
+	nameByTin   map[Tin]string     // Custom Tin → token name
+	nextTin     Tin                // Next available Tin for allocation
+	lexSubs     []LexSub           // Lex event subscribers
+	ruleSubs    []RuleSub          // Rule event subscribers
+	hints       map[string]string  // Error hints per error code
+	emptyAllow  bool               // Allow empty source
+	emptyResult any                // Result for empty source
+	parserStart func(src string, j *Jsonic, meta map[string]any) (any, error)
 }
 
 // Make creates a new Jsonic parser instance with the given options.
@@ -198,11 +230,12 @@ func Make(opts ...Options) *Jsonic {
 	}
 
 	j := &Jsonic{
-		options:   &o,
-		parser:    p,
-		tinByName: tinByName,
-		nameByTin: nameByTin,
-		nextTin:   TinMAX,
+		options:     &o,
+		parser:      p,
+		tinByName:   tinByName,
+		nameByTin:   nameByTin,
+		nextTin:     TinMAX,
+		emptyAllow:  true, // default: allow empty source
 	}
 
 	// Apply custom error messages.
@@ -212,12 +245,73 @@ func Make(opts ...Options) *Jsonic {
 		}
 	}
 
+	// Apply error hints.
+	if o.Hint != nil {
+		j.hints = make(map[string]string, len(o.Hint))
+		j.parser.Hints = make(map[string]string, len(o.Hint))
+		for k, v := range o.Hint {
+			j.hints[k] = v
+			j.parser.Hints[k] = v
+		}
+	}
+
+	// Apply lex options (empty source handling).
+	if o.Lex != nil {
+		if o.Lex.Empty != nil {
+			j.emptyAllow = *o.Lex.Empty
+		}
+		j.emptyResult = o.Lex.EmptyResult
+	}
+
+	// Apply custom parser start.
+	if o.Parser != nil && o.Parser.Start != nil {
+		j.parserStart = o.Parser.Start
+	}
+
+	// Apply rule exclude.
+	if o.Rule != nil && o.Rule.Exclude != "" {
+		j.Exclude(o.Rule.Exclude)
+	}
+
 	return j
 }
 
 // Parse parses a jsonic string using this instance's configuration.
 func (j *Jsonic) Parse(src string) (any, error) {
-	return j.parser.StartMeta(src, nil, j.lexSubs, j.ruleSubs)
+	return j.parseInternal(src, nil)
+}
+
+// parseInternal handles empty source, custom parser.start, and delegation.
+func (j *Jsonic) parseInternal(src string, meta map[string]any) (any, error) {
+	// Handle empty source.
+	if src == "" {
+		if !j.emptyAllow {
+			return nil, j.parser.makeError("unexpected", "", src, 0, 1, 1)
+		}
+		return j.emptyResult, nil
+	}
+
+	// Custom parser start.
+	if j.parserStart != nil {
+		result, err := j.parserStart(src, j, meta)
+		return result, j.attachHint(err)
+	}
+
+	result, err := j.parser.StartMeta(src, meta, j.lexSubs, j.ruleSubs)
+	return result, j.attachHint(err)
+}
+
+// attachHint adds hint text to a JsonicError if hints are configured.
+func (j *Jsonic) attachHint(err error) error {
+	if err == nil || j.hints == nil {
+		return err
+	}
+	if je, ok := err.(*JsonicError); ok && je.Hint == "" {
+		if hint, ok := j.hints[je.Code]; ok {
+			je.Hint = hint
+		}
+	}
+	return err
 }
 
 // Options returns a copy of this instance's options.
@@ -373,6 +467,13 @@ func buildConfig(o *Options) *LexConfig {
 
 	// Safe
 	cfg.SafeKey = boolVal(optBool(o.Safe, func(s *SafeOptions) *bool { return s.Key }), true)
+
+	// Apply config modifiers.
+	if o.ConfigModify != nil {
+		for _, mod := range o.ConfigModify {
+			mod(cfg, o)
+		}
+	}
 
 	return cfg
 }

@@ -28,6 +28,7 @@ type Parser struct {
 	RSM           map[string]*RuleSpec
 	MaxMul        int               // Max rule occurrence multiplier. Default: 3.
 	ErrorMessages map[string]string  // Custom error message templates.
+	Hints         map[string]string  // Explanatory hints per error code.
 }
 
 // NewParser creates a parser with default configuration.
@@ -158,6 +159,11 @@ func (p *Parser) makeError(code, src, fullSource string, pos, row, col int) *Jso
 	}
 	detail := tmpl + src
 
+	hint := ""
+	if p.Hints != nil {
+		hint = p.Hints[code]
+	}
+
 	return &JsonicError{
 		Code:       code,
 		Detail:     detail,
@@ -165,6 +171,7 @@ func (p *Parser) makeError(code, src, fullSource string, pos, row, col int) *Jso
 		Row:        row,
 		Col:        col,
 		Src:        src,
+		Hint:       hint,
 		fullSource: fullSource,
 	}
 }

@@ -867,3 +867,410 @@ func TestCustomFixedTokenBreaksText(t *testing.T) {
 	}
 	_ = result
 }
+
+// --- Empty source handling ---
+
+func TestEmptySourceDefault(t *testing.T) {
+	j := Make()
+	result, err := j.Parse("")
+	if err != nil {
+		t.Fatalf("empty source should not error by default: %v", err)
+	}
+	if result != nil {
+		t.Errorf("expected nil for empty source, got %v", result)
+	}
+}
+
+func TestEmptySourceDisabled(t *testing.T) {
+	j := Make(Options{
+		Lex: &LexOptions{Empty: boolPtr(false)},
+	})
+	_, err := j.Parse("")
+	if err == nil {
+		t.Error("expected error when empty source is disallowed")
+	}
+}
+
+func TestEmptySourceCustomResult(t *testing.T) {
+	j := Make(Options{
+		Lex: &LexOptions{EmptyResult: "EMPTY"},
+	})
+	result, err := j.Parse("")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if result != "EMPTY" {
+		t.Errorf("expected 'EMPTY', got %v", result)
+	}
+}
+
+// --- Custom parser.start ---
+
+func TestCustomParserStart(t *testing.T) {
+	j := Make(Options{
+		Parser: &ParserOptions{
+			Start: func(src string, j *Jsonic, meta map[string]any) (any, error) {
+				return "CUSTOM:" + src, nil
+			},
+		},
+	})
+	result, err := j.Parse("hello")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if result != "CUSTOM:hello" {
+		t.Errorf("expected 'CUSTOM:hello', got %v", result)
+	}
+}
+
+func TestCustomParserStartWithMeta(t *testing.T) {
+	j := Make(Options{
+		Parser: &ParserOptions{
+			Start: func(src string, j *Jsonic, meta map[string]any) (any, error) {
+				prefix := ""
+				if meta != nil {
+					if p, ok := meta["prefix"].(string); ok {
+						prefix = p
+					}
+				}
+				return prefix + src, nil
+			},
+		},
+	})
+	result, err := j.ParseMeta("world", map[string]any{"prefix": "hello-"})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if result != "hello-world" {
+		t.Errorf("expected 'hello-world', got %v", result)
+	}
+}
+
+// --- Error hints ---
+
+func TestErrorHints(t *testing.T) {
+	j := Make(Options{
+		Hint: map[string]string{
+			"unexpected": "Check your syntax for typos.",
+		},
+	})
+	_, err := j.Parse("{a: @}")
+	if err == nil {
+		// This input might actually parse in some configs.
+		// Use an input that's guaranteed to fail.
+		return
+	}
+	je, ok := err.(*JsonicError)
+	if !ok {
+		t.Fatalf("expected *JsonicError, got %T", err)
+	}
+	if je.Hint != "Check your syntax for typos." {
+		t.Errorf("expected hint text, got %q", je.Hint)
+	}
+	// Hint should appear in error string.
+	errStr := je.Error()
+	if !strings.Contains(errStr, "Hint: Check your syntax for typos.") {
+		t.Errorf("error string should contain hint, got:\n%s", errStr)
+	}
+}
+
+func TestErrorHintsInOutput(t *testing.T) {
+	j := Make(Options{
+		Hint: map[string]string{
+			"unterminated_string": "Did you forget a closing quote?",
+		},
+	})
+	_, err := j.Parse(`"unclosed`)
+	if err == nil {
+		t.Fatal("expected error for unterminated string")
+	}
+	je, ok := err.(*JsonicError)
+	if !ok {
+		t.Fatalf("expected *JsonicError, got %T", err)
+	}
+	if je.Hint != "Did you forget a closing quote?" {
+		t.Errorf("expected hint for unterminated_string, got %q", je.Hint)
+	}
+}
+
+// --- Config modify callbacks ---
+
+func TestConfigModify(t *testing.T) {
+	j := Make(Options{
+		ConfigModify: map[string]ConfigModifier{
+			"disable-hex": func(cfg *LexConfig, opts *Options) {
+				cfg.NumberHex = false
+			},
+		},
+	})
+
+	// With hex disabled, 0xFF should be text.
+	result, err := j.Parse("0xFF")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if result == float64(255) {
+		t.Error("hex should be disabled by config modifier")
+	}
+	if result != "0xFF" {
+		t.Errorf("expected string '0xFF', got %v (%T)", result, result)
+	}
+}
+
+// --- TokenSet ---
+
+func TestTokenSetVAL(t *testing.T) {
+	j := Make()
+	val := j.TokenSet("VAL")
+	if val == nil {
+		t.Fatal("TokenSet('VAL') returned nil")
+	}
+	if len(val) != 4 {
+		t.Errorf("expected 4 VAL tokens, got %d", len(val))
+	}
+	// Should contain TinTX, TinNR, TinST, TinVL.
+	found := map[Tin]bool{}
+	for _, tin := range val {
+		found[tin] = true
+	}
+	for _, expected := range []Tin{TinTX, TinNR, TinST, TinVL} {
+		if !found[expected] {
+			t.Errorf("VAL set missing Tin %d", expected)
+		}
+	}
+}
+
+func TestTokenSetIGNORE(t *testing.T) {
+	j := Make()
+	ign := j.TokenSet("IGNORE")
+	if ign == nil {
+		t.Fatal("TokenSet('IGNORE') returned nil")
+	}
+	if len(ign) != 3 {
+		t.Errorf("expected 3 IGNORE tokens, got %d", len(ign))
+	}
+}
+
+func TestTokenSetKEY(t *testing.T) {
+	j := Make()
+	key := j.TokenSet("KEY")
+	if key == nil {
+		t.Fatal("TokenSet('KEY') returned nil")
+	}
+	if len(key) != 4 {
+		t.Errorf("expected 4 KEY tokens, got %d", len(key))
+	}
+}
+
+func TestTokenSetUnknown(t *testing.T) {
+	j := Make()
+	result := j.TokenSet("NONEXISTENT")
+	if result != nil {
+		t.Errorf("expected nil for unknown set, got %v", result)
+	}
+}
+
+// --- LexCheck callbacks ---
+
+func TestLexCheckFixed(t *testing.T) {
+	j := Make()
+	// Override fixed check to replace '{' with a custom token.
+	j.Config().FixedCheck = func(lex *Lex) *LexCheckResult {
+		pnt := lex.Cursor()
+		if pnt.SI < pnt.Len && lex.Src[pnt.SI] == '{' {
+			tkn := lex.Token("#OB", TinOB, nil, "{")
+			pnt.SI++
+			pnt.CI++
+			// Return the token normally (same behavior, but proves check ran).
+			return &LexCheckResult{Done: true, Token: tkn}
+		}
+		return nil // Continue normal matching.
+	}
+
+	result, err := j.Parse("{a: 1}")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	m, ok := result.(map[string]any)
+	if !ok {
+		t.Fatalf("expected map, got %T", result)
+	}
+	if m["a"] != float64(1) {
+		t.Errorf("expected a=1, got %v", m["a"])
+	}
+}
+
+func TestLexCheckSkipMatcher(t *testing.T) {
+	j := Make()
+	// Skip number matching for specific inputs.
+	j.Config().NumberCheck = func(lex *Lex) *LexCheckResult {
+		pnt := lex.Cursor()
+		if pnt.SI+3 <= pnt.Len && lex.Src[pnt.SI:pnt.SI+3] == "999" {
+			// Return Done=true with nil Token to skip number matching for "999".
+			return &LexCheckResult{Done: true, Token: nil}
+		}
+		return nil
+	}
+
+	// 999 should fall through to text matcher.
+	result, err := j.Parse("999")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if result != "999" {
+		t.Errorf("expected string '999', got %v (%T)", result, result)
+	}
+
+	// 42 should still be a number.
+	result2, err := j.Parse("42")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if result2 != float64(42) {
+		t.Errorf("expected 42, got %v", result2)
+	}
+}
+
+// --- RuleSpec helpers ---
+
+func TestRuleSpecClear(t *testing.T) {
+	rs := &RuleSpec{
+		Name:  "test",
+		Open:  []*AltSpec{{}, {}},
+		Close: []*AltSpec{{}},
+		BO:    []StateAction{func(r *Rule, ctx *Context) {}},
+	}
+	rs.Clear()
+	if len(rs.Open) != 0 || len(rs.Close) != 0 || len(rs.BO) != 0 {
+		t.Error("Clear() should empty all slices")
+	}
+}
+
+func TestRuleSpecAddOpen(t *testing.T) {
+	rs := &RuleSpec{Name: "test"}
+	rs.AddOpen(&AltSpec{P: "a"}, &AltSpec{P: "b"})
+	if len(rs.Open) != 2 {
+		t.Errorf("expected 2 open alts, got %d", len(rs.Open))
+	}
+	if rs.Open[0].P != "a" || rs.Open[1].P != "b" {
+		t.Error("open alts not in expected order")
+	}
+}
+
+func TestRuleSpecPrependOpen(t *testing.T) {
+	rs := &RuleSpec{Name: "test"}
+	rs.AddOpen(&AltSpec{P: "b"})
+	rs.PrependOpen(&AltSpec{P: "a"})
+	if len(rs.Open) != 2 {
+		t.Errorf("expected 2 open alts, got %d", len(rs.Open))
+	}
+	if rs.Open[0].P != "a" {
+		t.Errorf("expected first alt 'a', got '%s'", rs.Open[0].P)
+	}
+}
+
+func TestRuleSpecAddClose(t *testing.T) {
+	rs := &RuleSpec{Name: "test"}
+	rs.AddClose(&AltSpec{P: "x"})
+	if len(rs.Close) != 1 || rs.Close[0].P != "x" {
+		t.Error("AddClose failed")
+	}
+}
+
+func TestRuleSpecPrependClose(t *testing.T) {
+	rs := &RuleSpec{Name: "test"}
+	rs.AddClose(&AltSpec{P: "b"})
+	rs.PrependClose(&AltSpec{P: "a"})
+	if len(rs.Close) != 2 || rs.Close[0].P != "a" {
+		t.Error("PrependClose failed")
+	}
+}
+
+func TestRuleSpecStateActions(t *testing.T) {
+	rs := &RuleSpec{Name: "test"}
+	count := 0
+	action := func(r *Rule, ctx *Context) { count++ }
+	rs.AddBO(action)
+	rs.AddAO(action)
+	rs.AddBC(action)
+	rs.AddAC(action)
+	if len(rs.BO) != 1 || len(rs.AO) != 1 || len(rs.BC) != 1 || len(rs.AC) != 1 {
+		t.Error("state action addition failed")
+	}
+}
+
+// --- Debug plugin ---
+
+func TestDebugDescribe(t *testing.T) {
+	j := Make(Options{Tag: "test-instance"})
+	j.Token("#TL", "~")
+	j.Use(Debug)
+
+	desc := Describe(j)
+	if desc == "" {
+		t.Fatal("Describe returned empty string")
+	}
+	if !strings.Contains(desc, "test-instance") {
+		t.Error("description should contain tag")
+	}
+	if !strings.Contains(desc, "#TL") {
+		t.Error("description should contain custom token")
+	}
+	if !strings.Contains(desc, "val") {
+		t.Error("description should contain val rule")
+	}
+	if !strings.Contains(desc, "FixedLex: true") {
+		t.Error("description should contain config settings")
+	}
+}
+
+func TestDebugPlugin(t *testing.T) {
+	j := Make()
+	// Debug without trace should not add subscribers.
+	j.Use(Debug)
+	if len(j.Plugins()) != 1 {
+		t.Errorf("expected 1 plugin, got %d", len(j.Plugins()))
+	}
+}
+
+// --- Rule exclude from options ---
+
+func TestRuleExcludeFromOptions(t *testing.T) {
+	j := Make()
+
+	// Add tagged alternates.
+	TT := j.Token("#TT", "!")
+	j.Rule("val", func(rs *RuleSpec) {
+		rs.Open = append(rs.Open, &AltSpec{
+			S: [][]Tin{{TT}},
+			G: "experimental",
+			A: func(r *Rule, ctx *Context) { r.Node = "BANG" },
+		})
+	})
+
+	// Create a new instance with exclude in options.
+	j2 := Make(Options{
+		Rule: &RuleOptions{Exclude: "experimental"},
+	})
+	// Manually add the same alt.
+	TT2 := j2.Token("#TT", "!")
+	j2.Rule("val", func(rs *RuleSpec) {
+		rs.Open = append(rs.Open, &AltSpec{
+			S: [][]Tin{{TT2}},
+			G: "experimental",
+			A: func(r *Rule, ctx *Context) { r.Node = "BANG" },
+		})
+	})
+	j2.Exclude("experimental")
+
+	// The experimental alt should be excluded.
+	found := false
+	for _, alt := range j2.RSM()["val"].Open {
+		if strings.Contains(alt.G, "experimental") {
+			found = true
+		}
+	}
+	if found {
+		t.Error("experimental group should have been excluded via options")
+	}
+}

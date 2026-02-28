@@ -78,6 +78,65 @@ type RuleSpec struct {
 	AC    []StateAction // After-close actions
 }
 
+// Clear removes all alternates and state actions from this RuleSpec.
+func (rs *RuleSpec) Clear() *RuleSpec {
+	rs.Open = rs.Open[:0]
+	rs.Close = rs.Close[:0]
+	rs.BO = rs.BO[:0]
+	rs.BC = rs.BC[:0]
+	rs.AO = rs.AO[:0]
+	rs.AC = rs.AC[:0]
+	return rs
+}
+
+// AddOpen appends alternates to the open list (at the end).
+func (rs *RuleSpec) AddOpen(alts ...*AltSpec) *RuleSpec {
+	rs.Open = append(rs.Open, alts...)
+	return rs
+}
+
+// AddClose appends alternates to the close list (at the end).
+func (rs *RuleSpec) AddClose(alts ...*AltSpec) *RuleSpec {
+	rs.Close = append(rs.Close, alts...)
+	return rs
+}
+
+// PrependOpen inserts alternates at the beginning of the open list.
+func (rs *RuleSpec) PrependOpen(alts ...*AltSpec) *RuleSpec {
+	rs.Open = append(alts, rs.Open...)
+	return rs
+}
+
+// PrependClose inserts alternates at the beginning of the close list.
+func (rs *RuleSpec) PrependClose(alts ...*AltSpec) *RuleSpec {
+	rs.Close = append(alts, rs.Close...)
+	return rs
+}
+
+// AddBO appends a before-open action.
+func (rs *RuleSpec) AddBO(action StateAction) *RuleSpec {
+	rs.BO = append(rs.BO, action)
+	return rs
+}
+
+// AddAO appends an after-open action.
+func (rs *RuleSpec) AddAO(action StateAction) *RuleSpec {
+	rs.AO = append(rs.AO, action)
+	return rs
+}
+
+// AddBC appends a before-close action.
+func (rs *RuleSpec) AddBC(action StateAction) *RuleSpec {
+	rs.BC = append(rs.BC, action)
+	return rs
+}
+
+// AddAC appends an after-close action.
+func (rs *RuleSpec) AddAC(action StateAction) *RuleSpec {
+	rs.AC = append(rs.AC, action)
+	return rs
+}
+
 // Rule represents a rule instance during parsing.
 type Rule struct {
 	I      int

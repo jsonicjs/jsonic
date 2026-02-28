@@ -189,6 +189,31 @@ func (j *Jsonic) TinName(tin Tin) string {
 	return tinName(tin)
 }
 
+// TokenSet returns a named set of Tin values.
+// Built-in sets: "IGNORE" (space, line, comment), "VAL" (text, number, string, value),
+// "KEY" (text, number, string, value).
+// Returns nil if the set name is not recognized.
+func (j *Jsonic) TokenSet(name string) []Tin {
+	switch name {
+	case "IGNORE":
+		tins := make([]Tin, 0, len(TinSetIGNORE))
+		for tin := range TinSetIGNORE {
+			tins = append(tins, tin)
+		}
+		return tins
+	case "VAL":
+		result := make([]Tin, len(TinSetVAL))
+		copy(result, TinSetVAL)
+		return result
+	case "KEY":
+		result := make([]Tin, len(TinSetKEY))
+		copy(result, TinSetKEY)
+		return result
+	default:
+		return nil
+	}
+}
+
 // Sub subscribes to lex and/or rule events.
 // LexSub fires after each non-ignored token is lexed.
 // RuleSub fires after each rule processing step.
@@ -404,5 +429,5 @@ func filterAlts(alts []*AltSpec, excludeSet map[string]bool) []*AltSpec {
 // ParseMeta parses a jsonic string with metadata passed through to the parse context.
 // The meta map is accessible in rule actions/conditions via ctx.Meta.
 func (j *Jsonic) ParseMeta(src string, meta map[string]any) (any, error) {
-	return j.parser.StartMeta(src, meta, j.lexSubs, j.ruleSubs)
+	return j.parseInternal(src, meta)
 }

@@ -75,6 +75,26 @@ type LexConfig struct {
 
 	// Custom lexer matchers added by plugins, sorted by priority.
 	CustomMatchers []*MatcherEntry
+
+	// LexCheck callbacks allow plugins to intercept and override matchers.
+	// Each returns nil to continue normal matching, or a LexCheckResult to short-circuit.
+	FixedCheck   LexCheck
+	SpaceCheck   LexCheck
+	LineCheck    LexCheck
+	StringCheck  LexCheck
+	CommentCheck LexCheck
+	NumberCheck  LexCheck
+	TextCheck    LexCheck
+}
+
+// LexCheck is a function that can intercept a matcher before it runs.
+// Return nil to continue normal matching, or a LexCheckResult to override.
+type LexCheck func(lex *Lex) *LexCheckResult
+
+// LexCheckResult controls matcher behavior from a LexCheck callback.
+type LexCheckResult struct {
+	Done  bool   // If true, use Token as the match result (even if nil).
+	Token *Token // The token to return (nil means "no match").
 }
 
 // DefaultLexConfig returns the default lexer configuration matching jsonic defaults.
@@ -222,39 +242,53 @@ func (l *Lex) nextRaw() *Token {
 	}
 
 	if l.Config.FixedLex {
-		if tkn := l.matchFixed(); tkn != nil {
-			return tkn
-		}
+		if l.Config.FixedCheck != nil {
+			if cr := l.Config.FixedCheck(l); cr != nil && cr.Done {
+				if cr.Token != nil { return cr.Token }
+			} else if tkn := l.matchFixed(); tkn != nil { return tkn }
+		} else if tkn := l.matchFixed(); tkn != nil { return tkn }
 	}
 	if l.Config.SpaceLex {
-		if tkn := l.matchSpace(); tkn != nil {
-			return tkn
-		}
+		if l.Config.SpaceCheck != nil {
+			if cr := l.Config.SpaceCheck(l); cr != nil && cr.Done {
+				if cr.Token != nil { return cr.Token }
+			} else if tkn := l.matchSpace(); tkn != nil { return tkn }
+		} else if tkn := l.matchSpace(); tkn != nil { return tkn }
 	}
 	if l.Config.LineLex {
-		if tkn := l.matchLine(); tkn != nil {
-			return tkn
-		}
+		if l.Config.LineCheck != nil {
+			if cr := l.Config.LineCheck(l); cr != nil && cr.Done {
+				if cr.Token != nil { return cr.Token }
+			} else if tkn := l.matchLine(); tkn != nil { return tkn }
+		} else if tkn := l.matchLine(); tkn != nil { return tkn }
 	}
 	if l.Config.StringLex {
-		if tkn := l.matchString(); tkn != nil {
-			return tkn
-		}
+		if l.Config.StringCheck != nil {
+			if cr := l.Config.StringCheck(l); cr != nil && cr.Done {
+				if cr.Token != nil { return cr.Token }
+			} else if tkn := l.matchString(); tkn != nil { return tkn }
+		} else if tkn := l.matchString(); tkn != nil { return tkn }
 	}
 	if l.Config.CommentLex {
-		if tkn := l.matchComment(); tkn != nil {
-			return tkn
-		}
+		if l.Config.CommentCheck != nil {
+			if cr := l.Config.CommentCheck(l); cr != nil && cr.Done {
+				if cr.Token != nil { return cr.Token }
+			} else if tkn := l.matchComment(); tkn != nil { return tkn }
+		} else if tkn := l.matchComment(); tkn != nil { return tkn }
 	}
 	if l.Config.NumberLex {
-		if tkn := l.matchNumber(); tkn != nil {
-			return tkn
-		}
+		if l.Config.NumberCheck != nil {
+			if cr := l.Config.NumberCheck(l); cr != nil && cr.Done {
+				if cr.Token != nil { return cr.Token }
+			} else if tkn := l.matchNumber(); tkn != nil { return tkn }
+		} else if tkn := l.matchNumber(); tkn != nil { return tkn }
 	}
 	if l.Config.TextLex {
-		if tkn := l.matchText(); tkn != nil {
-			return tkn
-		}
+		if l.Config.TextCheck != nil {
+			if cr := l.Config.TextCheck(l); cr != nil && cr.Done {
+				if cr.Token != nil { return cr.Token }
+			} else if tkn := l.matchText(); tkn != nil { return tkn }
+		} else if tkn := l.matchText(); tkn != nil { return tkn }
 	}
 
 	// Run custom matchers with priority >= 8000000 (after text).

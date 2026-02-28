@@ -28,6 +28,7 @@ type JsonicError struct {
 	Row    int    // 1-based line number
 	Col    int    // 1-based column number
 	Src    string // Source fragment at the error (the token text)
+	Hint   string // Additional explanatory text for this error code
 
 	fullSource string // Complete input source (for generating site extract)
 }
@@ -66,6 +67,12 @@ func (e *JsonicError) Error() string {
 			b.WriteString("\n")
 			b.WriteString(site)
 		}
+	}
+
+	// Hint
+	if e.Hint != "" {
+		b.WriteString("\n  Hint: ")
+		b.WriteString(e.Hint)
 	}
 
 	return b.String()
