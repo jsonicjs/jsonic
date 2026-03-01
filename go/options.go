@@ -60,6 +60,11 @@ type Options struct {
 	// Called after config construction to allow dynamic customization.
 	ConfigModify map[string]ConfigModifier
 
+	// TextInfo enables extended text info in output.
+	// When true, string and text values are wrapped in Text structs
+	// that include the quote character used. Default: false.
+	TextInfo *bool
+
 	// Tag is an instance identifier tag.
 	Tag string
 }
@@ -467,6 +472,9 @@ func buildConfig(o *Options) *LexConfig {
 
 	// Safe
 	cfg.SafeKey = boolVal(optBool(o.Safe, func(s *SafeOptions) *bool { return s.Key }), true)
+
+	// TextInfo
+	cfg.TextInfo = boolVal(o.TextInfo, false)
 
 	// Apply config modifiers.
 	if o.ConfigModify != nil {

@@ -86,7 +86,16 @@ func Grammar(rsm map[string]*RuleSpec, cfg *LexConfig) {
 					if r.OS == 0 {
 						r.Node = Undefined // no value
 					} else {
-						r.Node = r.O0.ResolveVal()
+						val := r.O0.ResolveVal()
+						if cfg.TextInfo && (r.O0.Tin == TinST || r.O0.Tin == TinTX) {
+							quote := ""
+							if r.O0.Tin == TinST && len(r.O0.Src) > 0 {
+								quote = string(r.O0.Src[0])
+							}
+							str, _ := val.(string)
+							val = Text{Quote: quote, Str: str}
+						}
+						r.Node = val
 					}
 				} else {
 					r.Node = r.Child.Node
