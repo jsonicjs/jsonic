@@ -24,8 +24,19 @@ func deepMerge(base, over any) any {
 	baseMap, baseIsMap := base.(map[string]any)
 	overMap, overIsMap := over.(map[string]any)
 
+	// Extract arrays from ListRef if present.
 	baseArr, baseIsArr := base.([]any)
+	baseLR, baseIsLR := base.(ListRef)
+	if baseIsLR {
+		baseArr = baseLR.Val
+		baseIsArr = true
+	}
 	overArr, overIsArr := over.([]any)
+	overLR, overIsLR := over.(ListRef)
+	if overIsLR {
+		overArr = overLR.Val
+		overIsArr = true
+	}
 
 	if baseIsMap && overIsMap {
 		// Both maps: recursively merge
@@ -59,6 +70,10 @@ func deepMerge(base, over any) any {
 				result[i] = deepClone(baseArr[i])
 			}
 		}
+		// Preserve ListRef wrapper if the over value was a ListRef.
+		if overIsLR {
+			return ListRef{Val: result, Implicit: overLR.Implicit}
+		}
 		return result
 	}
 
@@ -87,6 +102,12 @@ func deepClone(val any) any {
 			result[i] = deepClone(val)
 		}
 		return result
+	case ListRef:
+		result := make([]any, len(v.Val))
+		for i, val := range v.Val {
+			result[i] = deepClone(val)
+		}
+		return ListRef{Val: result, Implicit: v.Implicit}
 	default:
 		return v
 	}

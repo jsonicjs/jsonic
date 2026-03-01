@@ -65,6 +65,11 @@ type Options struct {
 	// that include the quote character used. Default: false.
 	TextInfo *bool
 
+	// ListRef enables returning lists as ListRef structs instead of []any.
+	// When true, list values include an Implicit flag indicating whether
+	// the list was created implicitly (without brackets). Default: false.
+	ListRef *bool
+
 	// Tag is an instance identifier tag.
 	Tag string
 }
@@ -475,6 +480,9 @@ func buildConfig(o *Options) *LexConfig {
 
 	// TextInfo
 	cfg.TextInfo = boolVal(o.TextInfo, false)
+
+	// ListRef
+	cfg.ListRef = boolVal(o.ListRef, false)
 
 	// Apply config modifiers.
 	if o.ConfigModify != nil {

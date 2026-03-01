@@ -79,6 +79,9 @@ type LexConfig struct {
 	// TextInfo wraps string/text output values in Text structs.
 	TextInfo bool
 
+	// ListRef wraps list output values in ListRef structs.
+	ListRef bool
+
 	// LexCheck callbacks allow plugins to intercept and override matchers.
 	// Each returns nil to continue normal matching, or a LexCheckResult to short-circuit.
 	FixedCheck   LexCheck

@@ -255,6 +255,20 @@ func Grammar(rsm map[string]*RuleSpec, cfg *LexConfig) {
 		},
 	}
 
+	// BC callbacks:
+	listSpec.BC = []StateAction{
+		// Wrap list in ListRef if option is enabled.
+		func(r *Rule, ctx *Context) {
+			_ = ctx
+			if cfg.ListRef {
+				implicit := !(r.O0 != NoToken && r.O0.Tin == TinOS)
+				if arr, ok := r.Node.([]any); ok {
+					r.Node = ListRef{Val: arr, Implicit: implicit}
+				}
+			}
+		},
+	}
+
 	// list.Open ordering (Jsonic unshift + JSON + Jsonic append):
 	// [0] implist condition (Jsonic, unshifted as single object)
 	// [1] OS CS empty list (JSON)
