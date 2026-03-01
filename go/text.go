@@ -12,3 +12,16 @@ type Text struct {
 	// Str is the actual string value (with escapes processed for quoted strings).
 	Str string
 }
+
+// ListRef wraps a list value with metadata about how it was created.
+// When the ListRef option is enabled, list values in the output are
+// returned as ListRef instead of plain []any slices.
+type ListRef struct {
+	// Val is the list contents.
+	Val []any
+
+	// Implicit is true when the list was created implicitly
+	// (e.g. comma-separated or space-separated values without brackets),
+	// and false when brackets were used explicitly.
+	Implicit bool
+}
