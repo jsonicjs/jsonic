@@ -76,6 +76,9 @@ type LexConfig struct {
 	// Custom lexer matchers added by plugins, sorted by priority.
 	CustomMatchers []*MatcherEntry
 
+	// TextInfo wraps string/text output values in Text structs.
+	TextInfo bool
+
 	// LexCheck callbacks allow plugins to intercept and override matchers.
 	// Each returns nil to continue normal matching, or a LexCheckResult to short-circuit.
 	FixedCheck   LexCheck
