@@ -306,15 +306,38 @@ function grammar(jsonic) {
         ], { append: true });
     });
     // sets key:val on node
-    jsonic.rule('pair', (rs, _p) => {
+    jsonic.rule('pair', (rs, p) => {
         rs.open([
             // Ignore initial comma: {,a:1.
             { s: [CA], g: 'map,pair,comma,jsonic' },
+            // map.child: bare colon `:value` stores value on child$ property.
+            p.cfg.map.child && {
+                s: [CL],
+                p: 'val',
+                u: { done: true, child: true },
+                g: 'map,pair,child,jsonic',
+            },
         ], { append: true })
             // NOTE: JSON pair.bc runs first, then this bc may override value.
             .bc((r, ctx) => {
             if (r.u.pair) {
                 pairval(r, ctx);
+            }
+            if (true === r.u.child) {
+                let val = r.child.node;
+                val = undefined === val ? null : val;
+                let prev = r.node['child$'];
+                if (undefined === prev) {
+                    r.node['child$'] = val;
+                }
+                else {
+                    r.node['child$'] =
+                        ctx.cfg.map.merge
+                            ? ctx.cfg.map.merge(prev, val, r, ctx)
+                            : ctx.cfg.map.extend
+                                ? deep(prev, val)
+                                : val;
+                }
             }
         })
             .close([

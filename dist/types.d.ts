@@ -117,6 +117,7 @@ export type Options = {
     map?: {
         extend?: boolean;
         merge?: (prev: any, curr: any) => any;
+        child?: boolean;
     };
     list?: {
         property: boolean;
@@ -414,6 +415,7 @@ export type Config = {
     map: {
         extend: boolean;
         merge?: (prev: any, curr: any, rule: Rule, ctx: Context) => any;
+        child: boolean;
     };
     list: {
         property: boolean;

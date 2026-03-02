@@ -187,6 +187,9 @@ const defaults: Options = {
     // Custom merge function for duplicates (optional).
     // TODO: needs function signature
     merge: undefined,
+
+    // Allow bare colon `:value` in maps, stored as `child$` property.
+    child: false,
   },
 
   // Array formats.

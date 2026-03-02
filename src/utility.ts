@@ -304,6 +304,7 @@ function configure(
   cfg.map = {
     extend: !!opts.map?.extend,
     merge: opts.map?.merge,
+    child: !!opts.map?.child,
   }
 
   cfg.list = {

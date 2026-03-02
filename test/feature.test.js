@@ -1151,6 +1151,91 @@ describe('feature', function () {
     expect(r20[1]['child$']).equal(4)
   })
 
+  it('map-child', () => {
+    tsvTestWith('feature-map-child', { map: { child: true } })
+  })
+
+  it('map-child-deep', () => {
+    tsvTestWith('feature-map-child-deep', { map: { child: true }, list: { child: true } })
+  })
+
+  it('map-child-interaction', () => {
+    // === child=false (default): bare colon in map is an error ===
+    expect(() => j('{:1}')).throw(/unexpected/)
+    expect(() => j('{:1,a:2}')).throw(/unexpected/)
+
+    // === child=true: bare colon stores child$ ===
+    let mc = j.make({ map: { child: true } })
+    expect(mc('{:1,a:2}')).equal({ child$: 1, a: 2 })
+    expect(mc('{:1,a:2}')['child$']).equal(1)
+
+    // === child$ merge: objects deep-merge, primitives last-wins ===
+    expect(mc('{:1,:2}')['child$']).equal(2)
+    expect(mc('{:{a:1},:{b:2}}')['child$']).equal({ a: 1, b: 2 })
+    expect(mc('{:{a:{x:1}},:{a:{y:2}}}')['child$']).equal({ a: { x: 1, y: 2 } })
+
+    // === child$ without map.extend: last value wins ===
+    let mc_noext = j.make({ map: { child: true, extend: false } })
+    expect(mc_noext('{:{a:1},:{b:2}}')['child$']).equal({ b: 2 })
+    expect(mc_noext('{:1,:2}')['child$']).equal(2)
+
+    // === Lists outside maps are unaffected by map.child ===
+    expect(mc('[1,2,3]')).equal([1, 2, 3])
+
+    // === Nested maps: child$ at each level ===
+    let r1 = mc('{:1,a:{:2,b:{:3}}}')
+    expect(r1['child$']).equal(1)
+    expect(r1.a['child$']).equal(2)
+    expect(r1.a.b['child$']).equal(3)
+
+    // === map.child + list.child both enabled ===
+    let both = j.make({ map: { child: true }, list: { child: true } })
+
+    // Map with child, containing list with child
+    let r2 = both('{a:[:1,2],:3}')
+    expect(r2['child$']).equal(3)
+    expect(r2.a['child$']).equal(1)
+    expect(JS(r2.a)).equal('[2]')
+
+    // List with child, containing map with child
+    let r3 = both('[{:1,a:2},:3]')
+    expect(r3['child$']).equal(3)
+    expect(r3[0]['child$']).equal(1)
+    expect(JS(r3[0])).equal('{"child$":1,"a":2}')
+
+    // Deep: map -> list -> map, each with child$
+    let r4 = both('{a:[{:1}],:2}')
+    expect(r4['child$']).equal(2)
+    expect(r4.a[0]['child$']).equal(1)
+
+    // List child value is a map with child$
+    let r5 = both('[:{ a: 1 }]')
+    expect(JS(r5)).equal('[]')
+    expect(r5['child$']).equal({ a: 1 })
+
+    // 3-level: map -> map -> list -> map with child at each
+    let r6 = both('{:1,x:{:2,y:[{:3}]}}')
+    expect(r6['child$']).equal(1)
+    expect(r6.x['child$']).equal(2)
+    expect(r6.x.y[0]['child$']).equal(3)
+
+    // Array of maps, each with their own child$
+    let r7 = both('[{:1,a:10},{:2,b:20}]')
+    expect(r7[0]['child$']).equal(1)
+    expect(r7[1]['child$']).equal(2)
+
+    // map.child only (no list.child): list bare colon still errors
+    expect(() => mc('[:1]')).throw(/unexpected/)
+
+    // list.child only (no map.child): map bare colon still errors
+    let lc = j.make({ list: { child: true } })
+    expect(() => lc('{:1}')).throw(/unexpected/)
+
+    // Implicit map with child$
+    expect(mc('a:1,:2')).equal({ a: 1, child$: 2 })
+    expect(mc('a:1,:2,b:3')).equal({ a: 1, child$: 2, b: 3 })
+  })
+
   // Test derived from debug sessions using quick.js
   it('debug-cases', () => {
     tsvTest('feature-debug-cases')

@@ -248,6 +248,7 @@ function configure(jsonic, incfg, opts) {
     cfg.map = {
         extend: !!opts.map?.extend,
         merge: opts.map?.merge,
+        child: !!opts.map?.child,
     };
     cfg.list = {
         property: !!opts.list?.property,
