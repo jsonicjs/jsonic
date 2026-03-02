@@ -27,6 +27,19 @@ function tsvTest(name) {
   }
 }
 
+function tsvTestWith(name, opts) {
+  const instance = Jsonic.make(opts)
+  const entries = loadTSV(name)
+  for (const { cols: [input, expected], row } of entries) {
+    try {
+      expect(instance(input)).equal(JSON.parse(expected))
+    } catch (err) {
+      err.message = `${name} row ${row}: input=${input} expected=${expected}\n${err.message}`
+      throw err
+    }
+  }
+}
+
 describe('feature', function () {
   it('test-util-match', () => {
     expect(match(1, 1)).not.exist()
@@ -835,54 +848,92 @@ describe('feature', function () {
   })
 
   it('list-pair', () => {
+    tsvTestWith('feature-list-pair', { list: { pair: true } })
+  })
+
+  it('list-pair-interaction', () => {
+    // === pair=false, property=true (default behavior) ===
+    // Pairs become properties on the array object, not elements
+    expect(JS(j('[a:1]'))).equal('[]')
+    expect(j('[a:1]').a).equal(1)
+    expect(JS(j('[a:1,b:2]'))).equal('[]')
+    expect({ ...j('[a:1,b:2]') }).equal({ a: 1, b: 2 })
+    // Mixed: properties on array, values as elements
+    expect(JS(j('[a:1,2,b:3]'))).equal('[2]')
+    expect({ ...j('[a:1,2,b:3]') }).equal({ 0: 2, a: 1, b: 3 })
+
+    // === pair=false, property=false ===
+    // Pairs in lists are errors
+    let pp_ff = j.make({ list: { pair: false, property: false } })
+    expect(() => pp_ff('[a:1]')).throw(/unexpected/)
+    expect(() => pp_ff('[a:1,b:2]')).throw(/unexpected/)
+    // Plain list values still work
+    expect(pp_ff('[1,2,3]')).equal([1, 2, 3])
+    expect(pp_ff('[]')).equal([])
+    // Explicit maps inside lists still work
+    expect(pp_ff('[{a:1}]')).equal([{ a: 1 }])
+    expect(pp_ff('[{a:1},{b:2}]')).equal([{ a: 1 }, { b: 2 }])
+
+    // === pair=true, property=true ===
+    // pair takes precedence: pairs become elements, not properties
+    let pp_tt = j.make({ list: { pair: true, property: true } })
+    expect(pp_tt('[a:1]')).equal([{ a: 1 }])
+    expect(pp_tt('[a:1,b:2]')).equal([{ a: 1 }, { b: 2 }])
+    expect(pp_tt('[a:1,2,b:3]')).equal([{ a: 1 }, 2, { b: 3 }])
+    expect(pp_tt('[a:1,a:2]')).equal([{ a: 1 }, { a: 2 }])
+    // Verify elements exist at numeric indices
+    expect(pp_tt('[a:1]')[0]).equal({ a: 1 })
+    expect(JS(pp_tt('[a:1]'))).equal('[{"a":1}]')
+
+    // === pair=true, property=false ===
+    // pair takes precedence: pairs become elements (property disabled doesn't matter)
+    let pp_tf = j.make({ list: { pair: true, property: false } })
+    expect(pp_tf('[a:1]')).equal([{ a: 1 }])
+    expect(pp_tf('[a:1,b:2]')).equal([{ a: 1 }, { b: 2 }])
+    expect(pp_tf('[a:1,2,b:3]')).equal([{ a: 1 }, 2, { b: 3 }])
+    expect(pp_tf('[a:b:c]')).equal([{ a: { b: 'c' } }])
+
+    // === Braces: explicit maps interact correctly with list.pair ===
     let lp = j.make({ list: { pair: true } })
+    // Explicit map as list element (no pairs involved)
+    expect(lp('[{a:1}]')).equal([{ a: 1 }])
+    expect(lp('[{a:1,b:2}]')).equal([{ a: 1, b: 2 }])
+    // Mix of explicit maps and implicit pair objects
+    expect(lp('[{a:1},b:2]')).equal([{ a: 1 }, { b: 2 }])
+    expect(lp('[a:1,{b:2}]')).equal([{ a: 1 }, { b: 2 }])
+    expect(lp('[{a:1},b:2,{c:3}]')).equal([{ a: 1 }, { b: 2 }, { c: 3 }])
+    // Pair value is an explicit map
+    expect(lp('[a:{x:1,y:2}]')).equal([{ a: { x: 1, y: 2 } }])
+    expect(lp('[a:{x:{y:1}}]')).equal([{ a: { x: { y: 1 } } }])
+    // Nested map with pair inside
+    expect(lp('[{a:{b:1,c:2}},d:3]')).equal([{ a: { b: 1, c: 2 } }, { d: 3 }])
 
-    // Basic pair: [a:1] -> [{"a":1}]
-    expect(lp('[a:1]')).equal([{ a: 1 }])
+    // === Square brackets: nested lists interact correctly with list.pair ===
+    // Pair value is a list
+    expect(lp('[a:[1,2,3]]')).equal([{ a: [1, 2, 3] }])
+    expect(lp('[a:[[1],[2]]]')).equal([{ a: [[1], [2]] }])
+    // List element is a list (no pairs)
+    expect(lp('[[1,2],a:3]')).equal([[1, 2], { a: 3 }])
+    expect(lp('[a:1,[2,3],b:4]')).equal([{ a: 1 }, [2, 3], { b: 4 }])
+    // Nested list.pair applies recursively to inner lists
+    expect(lp('[a:[b:1]]')).equal([{ a: [{ b: 1 }] }])
+    expect(lp('[a:[b:1,c:2]]')).equal([{ a: [{ b: 1 }, { c: 2 }] }])
+    expect(lp('[a:{b:[c:1,d:2]}]')).equal([{ a: { b: [{ c: 1 }, { d: 2 }] } }])
+    // Deeply nested
+    expect(lp('[a:[b:[c:1]]]')).equal([{ a: [{ b: [{ c: 1 }] }] }])
 
-    // Multiple pairs: [a:1,b:2] -> [{"a":1},{"b":2}]
-    expect(lp('[a:1,b:2]')).equal([{ a: 1 }, { b: 2 }])
+    // === Maps outside lists are unaffected by list.pair ===
+    expect(lp('{a:1}')).equal({ a: 1 })
+    expect(lp('{a:1,b:2}')).equal({ a: 1, b: 2 })
+    expect(lp('a:1')).equal({ a: 1 })
+    expect(lp('a:1,b:2')).equal({ a: 1, b: 2 })
+    expect(lp('a:b:c')).equal({ a: { b: 'c' } })
 
-    // Mixed pairs and values: [a:1,2,b:3] -> [{"a":1},2,{"b":3}]
-    expect(lp('[a:1,2,b:3]')).equal([{ a: 1 }, 2, { b: 3 }])
-
-    // Pair with no value: [a:] -> [{"a":null}]
-    expect(lp('[a:]')).equal([{ a: null }])
-
-    // Pair with string value: [a:"hello"] -> [{"a":"hello"}]
-    expect(lp('[a:"hello"]')).equal([{ a: 'hello' }])
-
-    // Pair with nested object value: [a:{b:1}] -> [{"a":{"b":1}}]
-    expect(lp('[a:{b:1}]')).equal([{ a: { b: 1 } }])
-
-    // Pair with nested list value: [a:[1,2]] -> [{"a":[1,2]}]
-    expect(lp('[a:[1,2]]')).equal([{ a: [1, 2] }])
-
-    // Path dive: [a:b:c] -> [{"a":{"b":"c"}}]
-    expect(lp('[a:b:c]')).equal([{ a: { b: 'c' } }])
-
-    // Multiple path dives: [a:b:1,c:d:2] -> [{"a":{"b":1}},{"c":{"d":2}}]
-    expect(lp('[a:b:1,c:d:2]')).equal([{ a: { b: 1 } }, { c: { d: 2 } }])
-
-    // Mixed with plain values: [1,a:2,3] -> [1,{"a":2},3]
-    expect(lp('[1,a:2,3]')).equal([1, { a: 2 }, 3])
-
-    // Space-separated: [a:1 2 b:3] -> [{"a":1},2,{"b":3}]
-    expect(lp('[a:1 2 b:3]')).equal([{ a: 1 }, 2, { b: 3 }])
-
-    // Space-separated pairs: [a:1 b:2] -> [{"a":1},{"b":2}]
-    expect(lp('[a:1 b:2]')).equal([{ a: 1 }, { b: 2 }])
-
-    // list.pair takes precedence over list.property
-    let lp2 = j.make({ list: { pair: true, property: false } })
-    expect(lp2('[a:1]')).equal([{ a: 1 }])
-    expect(lp2('[a:1,b:2]')).equal([{ a: 1 }, { b: 2 }])
-
-    // Duplicate keys create separate objects: [a:1,a:2] -> [{"a":1},{"a":2}]
-    expect(lp('[a:1,a:2]')).equal([{ a: 1 }, { a: 2 }])
-
-    // No pairs: plain list still works
+    // === Plain values in lists still work with list.pair ===
     expect(lp('[1,2,3]')).equal([1, 2, 3])
+    expect(lp('[]')).equal([])
+    expect(lp('[true,false,null]')).equal([true, false, null])
+    expect(lp('["a","b"]')).equal(['a', 'b'])
   })
 
   // Test derived from debug sessions using quick.js
