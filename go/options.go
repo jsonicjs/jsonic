@@ -148,6 +148,7 @@ type MapOptions struct {
 // ListOptions controls array/list behavior.
 type ListOptions struct {
 	Property *bool // Allow named properties in arrays [a:1]. Default: true.
+	Child    *bool // Parse bare colon as child value: [:1] → ListRef with Child=1. Default: false.
 }
 
 // ValueDef defines a keyword value.
@@ -471,6 +472,7 @@ func buildConfig(o *Options) *LexConfig {
 
 	// List
 	cfg.ListProperty = boolVal(optBool(o.List, func(l *ListOptions) *bool { return l.Property }), true)
+	cfg.ListChild = boolVal(optBool(o.List, func(l *ListOptions) *bool { return l.Child }), false)
 
 	// Rule
 	cfg.FinishRule = boolVal(optBool(o.Rule, func(r *RuleOptions) *bool { return r.Finish }), true)
@@ -488,6 +490,10 @@ func buildConfig(o *Options) *LexConfig {
 
 	// ListRef
 	cfg.ListRef = boolVal(o.ListRef, false)
+	// list.child requires ListRef to store the child value on ListRef.Child.
+	if cfg.ListChild {
+		cfg.ListRef = true
+	}
 
 	// MapRef
 	cfg.MapRef = boolVal(o.MapRef, false)

@@ -82,6 +82,9 @@ type LexConfig struct {
 	// ListRef wraps list output values in ListRef structs.
 	ListRef bool
 
+	// ListChild enables bare colon (:value) syntax in lists to set a child value.
+	ListChild bool
+
 	// MapRef wraps map output values in MapRef structs.
 	MapRef bool
 

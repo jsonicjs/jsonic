@@ -277,7 +277,11 @@ func Grammar(rsm map[string]*RuleSpec, cfg *LexConfig) {
 			if cfg.ListRef {
 				implicit := !(r.O0 != NoToken && r.O0.Tin == TinOS)
 				if arr, ok := r.Node.([]any); ok {
-					r.Node = ListRef{Val: arr, Implicit: implicit}
+					var child any
+					if c, ok := r.U["child$"]; ok {
+						child = c
+					}
+					r.Node = ListRef{Val: arr, Implicit: implicit, Child: child}
 				}
 			}
 		},
@@ -409,14 +413,38 @@ func Grammar(rsm map[string]*RuleSpec, cfg *LexConfig) {
 				pairval(r, ctx)
 			}
 		},
+		// Jsonic: handle child value in list (bare colon :value)
+		func(r *Rule, ctx *Context) {
+			_ = ctx
+			if childFlag, ok := r.U["child"]; !ok || childFlag != true {
+				return
+			}
+			val := r.Child.Node
+			if IsUndefined(val) {
+				val = nil
+			}
+			// Store child value on parent list rule's U map.
+			// The list BC callback transfers it to ListRef.Child.
+			if r.Parent != NoRule && r.Parent != nil {
+				prev, hasPrev := r.Parent.U["child$"]
+				if !hasPrev {
+					r.Parent.U["child$"] = val
+				} else if cfg.MapExtend {
+					r.Parent.U["child$"] = Deep(prev, val)
+				} else {
+					r.Parent.U["child$"] = val
+				}
+			}
+		},
 	}
 
 	// elem.Open ordering (Jsonic unshifted + JSON):
 	// [0] CA CA double comma null (Jsonic, unshifted)
 	// [1] CA single comma null (Jsonic, unshifted)
 	// [2] KEY CL pair in list (Jsonic, unshifted)
-	// [3] p:val (JSON, original)
-	elemSpec.Open = []*AltSpec{
+	// [3] CL child value (Jsonic, optional - only when list.child enabled)
+	// [4] p:val (JSON, original)
+	elemOpen := []*AltSpec{
 		// Jsonic: Empty commas insert null (CA CA)
 		{S: [][]Tin{{TinCA}, {TinCA}}, B: 2,
 			U: map[string]any{"done": true},
@@ -448,9 +476,17 @@ func Grammar(rsm map[string]*RuleSpec, cfg *LexConfig) {
 			N: map[string]int{"pk": 1, "dmap": 1},
 			U: map[string]any{"done": true, "pair": true, "list": true},
 			A: pairkey},
-		// JSON: Element is a value
-		{P: "val"},
 	}
+	// Jsonic: list.child - bare colon `:value` stores child value
+	if cfg.ListChild {
+		elemOpen = append(elemOpen, &AltSpec{
+			S: [][]Tin{{TinCL}}, P: "val",
+			U: map[string]any{"done": true, "child": true, "list": true},
+		})
+	}
+	// JSON: Element is a value (fallback - must be last)
+	elemOpen = append(elemOpen, &AltSpec{P: "val"})
+	elemSpec.Open = elemOpen
 
 	// elem.Close ordering (Jsonic unshifted + delete:[-1,-2]):
 	// [0] CA CS/ZZ trailing comma (Jsonic, unshifted)

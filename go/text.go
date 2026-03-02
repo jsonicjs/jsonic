@@ -24,6 +24,13 @@ type ListRef struct {
 	// (e.g. comma-separated or space-separated values without brackets),
 	// and false when brackets were used explicitly.
 	Implicit bool
+
+	// Child is the optional child value set by bare colon syntax (:value)
+	// inside a list. Enabled by the List.Child option.
+	// For example, `[:1, a, b]` produces Val=[a, b] with Child=1.
+	// Multiple child values are merged (deep merge if Map.Extend is true).
+	// Nil when no child value is present.
+	Child any
 }
 
 // MapRef wraps a map value with metadata about how it was created.
