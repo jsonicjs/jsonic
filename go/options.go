@@ -70,6 +70,11 @@ type Options struct {
 	// the list was created implicitly (without brackets). Default: false.
 	ListRef *bool
 
+	// MapRef enables returning maps as MapRef structs instead of map[string]any.
+	// When true, map values include an Implicit flag indicating whether
+	// the map was created implicitly (without braces). Default: false.
+	MapRef *bool
+
 	// Tag is an instance identifier tag.
 	Tag string
 }
@@ -138,11 +143,14 @@ type StringOptions struct {
 // MapOptions controls object/map behavior.
 type MapOptions struct {
 	Extend *bool // Deep-merge duplicate keys. Default: true.
+	Child  *bool // Parse bare colon as child$ key: {:1} → {"child$":1}. Default: false.
 }
 
 // ListOptions controls array/list behavior.
 type ListOptions struct {
 	Property *bool // Allow named properties in arrays [a:1]. Default: true.
+	Pair     *bool // Push pairs as object elements: [a:1] → [{"a":1}]. Default: false.
+	Child    *bool // Parse bare colon as child value: [:1] → ListRef with Child=1. Default: false.
 }
 
 // ValueDef defines a keyword value.
@@ -463,9 +471,12 @@ func buildConfig(o *Options) *LexConfig {
 
 	// Map
 	cfg.MapExtend = boolVal(optBool(o.Map, func(m *MapOptions) *bool { return m.Extend }), true)
+	cfg.MapChild = boolVal(optBool(o.Map, func(m *MapOptions) *bool { return m.Child }), false)
 
 	// List
 	cfg.ListProperty = boolVal(optBool(o.List, func(l *ListOptions) *bool { return l.Property }), true)
+	cfg.ListPair = boolVal(optBool(o.List, func(l *ListOptions) *bool { return l.Pair }), false)
+	cfg.ListChild = boolVal(optBool(o.List, func(l *ListOptions) *bool { return l.Child }), false)
 
 	// Rule
 	cfg.FinishRule = boolVal(optBool(o.Rule, func(r *RuleOptions) *bool { return r.Finish }), true)
@@ -483,6 +494,13 @@ func buildConfig(o *Options) *LexConfig {
 
 	// ListRef
 	cfg.ListRef = boolVal(o.ListRef, false)
+	// list.child requires ListRef to store the child value on ListRef.Child.
+	if cfg.ListChild {
+		cfg.ListRef = true
+	}
+
+	// MapRef
+	cfg.MapRef = boolVal(o.MapRef, false)
 
 	// Apply config modifiers.
 	if o.ConfigModify != nil {

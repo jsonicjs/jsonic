@@ -189,6 +189,20 @@ func Grammar(rsm map[string]*RuleSpec, cfg *LexConfig) {
 		},
 	}
 
+	// BC callbacks:
+	mapSpec.BC = []StateAction{
+		// Wrap map in MapRef if option is enabled.
+		func(r *Rule, ctx *Context) {
+			_ = ctx
+			if cfg.MapRef {
+				implicit := !(r.O0 != NoToken && r.O0.Tin == TinOB)
+				if m, ok := r.Node.(map[string]any); ok {
+					r.Node = MapRef{Val: m, Implicit: implicit}
+				}
+			}
+		},
+	}
+
 	// map.Open ordering (after Jsonic unshift + append):
 	// [0] OB ZZ auto-close (Jsonic, unshifted)
 	// [1] OB CB empty map (JSON)
@@ -263,7 +277,11 @@ func Grammar(rsm map[string]*RuleSpec, cfg *LexConfig) {
 			if cfg.ListRef {
 				implicit := !(r.O0 != NoToken && r.O0.Tin == TinOS)
 				if arr, ok := r.Node.([]any); ok {
-					r.Node = ListRef{Val: arr, Implicit: implicit}
+					var child any
+					if c, ok := r.U["child$"]; ok {
+						child = c
+					}
+					r.Node = ListRef{Val: arr, Implicit: implicit, Child: child}
 				}
 			}
 		},
@@ -318,17 +336,45 @@ func Grammar(rsm map[string]*RuleSpec, cfg *LexConfig) {
 				pairval(r, ctx)
 			}
 		},
+		// Jsonic phase: map.child - bare colon :value stores as child$ key
+		func(r *Rule, ctx *Context) {
+			_ = ctx
+			if childFlag, ok := r.U["child"]; !ok || childFlag != true {
+				return
+			}
+			val := r.Child.Node
+			if IsUndefined(val) {
+				val = nil
+			}
+			prev, hasPrev := nodeMapGet(r.Node, "child$")
+			if !hasPrev {
+				nodeMapSet(r.Node, "child$", val)
+			} else if cfg.MapExtend {
+				nodeMapSet(r.Node, "child$", Deep(prev, val))
+			} else {
+				nodeMapSet(r.Node, "child$", val)
+			}
+		},
 	}
 
 	// pair.Open ordering (JSON + Jsonic append):
 	// [0] KEY CL pair (JSON)
 	// [1] CA ignore comma (Jsonic, appended)
-	pairSpec.Open = []*AltSpec{
+	// [2] CL child value (Jsonic, optional - only when map.child enabled)
+	pairOpen := []*AltSpec{
 		// JSON: key:value pair
 		{S: [][]Tin{KEY, {TinCL}}, P: "val", U: map[string]any{"pair": true}, A: pairkey},
 		// Jsonic: Ignore initial comma: {,a:1
 		{S: [][]Tin{{TinCA}}},
 	}
+	// Jsonic: map.child - bare colon :value stores as child$ key
+	if cfg.MapChild {
+		pairOpen = append(pairOpen, &AltSpec{
+			S: [][]Tin{{TinCL}}, P: "val",
+			U: map[string]any{"done": true, "child": true},
+		})
+	}
+	pairSpec.Open = pairOpen
 
 	// pair.Close ordering (after Jsonic unshift + delete:[0,1]):
 	// Jsonic alternates unshifted, then JSON [0] and [1] deleted.
@@ -390,9 +436,49 @@ func Grammar(rsm map[string]*RuleSpec, cfg *LexConfig) {
 		},
 		// Jsonic: handle pair-in-list
 		func(r *Rule, ctx *Context) {
-			if pair, ok := r.U["pair"]; ok && pair == true {
+			if pair, ok := r.U["pair"]; !ok || pair != true {
+				return
+			}
+			if cfg.ListPair {
+				// list.pair: push pair as {key: val} object element
+				key := r.U["key"].(string)
+				val := r.Child.Node
+				if IsUndefined(val) {
+					val = nil
+				}
+				pairObj := map[string]any{key: val}
+				if arr, ok := r.Node.([]any); ok {
+					r.Node = append(arr, pairObj)
+					if r.Parent != NoRule && r.Parent != nil {
+						r.Parent.Node = r.Node
+					}
+				}
+			} else {
 				r.U["prev"] = nodeMapGetVal(r.Node, r.U["key"])
 				pairval(r, ctx)
+			}
+		},
+		// Jsonic: handle child value in list (bare colon :value)
+		func(r *Rule, ctx *Context) {
+			_ = ctx
+			if childFlag, ok := r.U["child"]; !ok || childFlag != true {
+				return
+			}
+			val := r.Child.Node
+			if IsUndefined(val) {
+				val = nil
+			}
+			// Store child value on parent list rule's U map.
+			// The list BC callback transfers it to ListRef.Child.
+			if r.Parent != NoRule && r.Parent != nil {
+				prev, hasPrev := r.Parent.U["child$"]
+				if !hasPrev {
+					r.Parent.U["child$"] = val
+				} else if cfg.MapExtend {
+					r.Parent.U["child$"] = Deep(prev, val)
+				} else {
+					r.Parent.U["child$"] = val
+				}
 			}
 		},
 	}
@@ -401,8 +487,9 @@ func Grammar(rsm map[string]*RuleSpec, cfg *LexConfig) {
 	// [0] CA CA double comma null (Jsonic, unshifted)
 	// [1] CA single comma null (Jsonic, unshifted)
 	// [2] KEY CL pair in list (Jsonic, unshifted)
-	// [3] p:val (JSON, original)
-	elemSpec.Open = []*AltSpec{
+	// [3] CL child value (Jsonic, optional - only when list.child enabled)
+	// [4] p:val (JSON, original)
+	elemOpen := []*AltSpec{
 		// Jsonic: Empty commas insert null (CA CA)
 		{S: [][]Tin{{TinCA}, {TinCA}}, B: 2,
 			U: map[string]any{"done": true},
@@ -434,9 +521,17 @@ func Grammar(rsm map[string]*RuleSpec, cfg *LexConfig) {
 			N: map[string]int{"pk": 1, "dmap": 1},
 			U: map[string]any{"done": true, "pair": true, "list": true},
 			A: pairkey},
-		// JSON: Element is a value
-		{P: "val"},
 	}
+	// Jsonic: list.child - bare colon `:value` stores child value
+	if cfg.ListChild {
+		elemOpen = append(elemOpen, &AltSpec{
+			S: [][]Tin{{TinCL}}, P: "val",
+			U: map[string]any{"done": true, "child": true, "list": true},
+		})
+	}
+	// JSON: Element is a value (fallback - must be last)
+	elemOpen = append(elemOpen, &AltSpec{P: "val"})
+	elemSpec.Open = elemOpen
 
 	// elem.Close ordering (Jsonic unshifted + delete:[-1,-2]):
 	// [0] CA CS/ZZ trailing comma (Jsonic, unshifted)
@@ -470,17 +565,23 @@ func Grammar(rsm map[string]*RuleSpec, cfg *LexConfig) {
 
 // nodeMapSet sets a key on a map node.
 func nodeMapSet(node any, key any, val any) {
+	k, _ := key.(string)
 	if m, ok := node.(map[string]any); ok {
-		k, _ := key.(string)
 		m[k] = val
+	} else if mr, ok := node.(MapRef); ok {
+		mr.Val[k] = val
 	}
 }
 
 // nodeMapGet gets a value from a map node.
 func nodeMapGet(node any, key any) (any, bool) {
+	k, _ := key.(string)
 	if m, ok := node.(map[string]any); ok {
-		k, _ := key.(string)
 		v, exists := m[k]
+		return v, exists
+	}
+	if mr, ok := node.(MapRef); ok {
+		v, exists := mr.Val[k]
 		return v, exists
 	}
 	return nil, false
