@@ -834,6 +834,57 @@ describe('feature', function () {
     expect(() => k('[a:1]')).throw(/unexpected/)
   })
 
+  it('list-pair', () => {
+    let lp = j.make({ list: { pair: true } })
+
+    // Basic pair: [a:1] -> [{"a":1}]
+    expect(lp('[a:1]')).equal([{ a: 1 }])
+
+    // Multiple pairs: [a:1,b:2] -> [{"a":1},{"b":2}]
+    expect(lp('[a:1,b:2]')).equal([{ a: 1 }, { b: 2 }])
+
+    // Mixed pairs and values: [a:1,2,b:3] -> [{"a":1},2,{"b":3}]
+    expect(lp('[a:1,2,b:3]')).equal([{ a: 1 }, 2, { b: 3 }])
+
+    // Pair with no value: [a:] -> [{"a":null}]
+    expect(lp('[a:]')).equal([{ a: null }])
+
+    // Pair with string value: [a:"hello"] -> [{"a":"hello"}]
+    expect(lp('[a:"hello"]')).equal([{ a: 'hello' }])
+
+    // Pair with nested object value: [a:{b:1}] -> [{"a":{"b":1}}]
+    expect(lp('[a:{b:1}]')).equal([{ a: { b: 1 } }])
+
+    // Pair with nested list value: [a:[1,2]] -> [{"a":[1,2]}]
+    expect(lp('[a:[1,2]]')).equal([{ a: [1, 2] }])
+
+    // Path dive: [a:b:c] -> [{"a":{"b":"c"}}]
+    expect(lp('[a:b:c]')).equal([{ a: { b: 'c' } }])
+
+    // Multiple path dives: [a:b:1,c:d:2] -> [{"a":{"b":1}},{"c":{"d":2}}]
+    expect(lp('[a:b:1,c:d:2]')).equal([{ a: { b: 1 } }, { c: { d: 2 } }])
+
+    // Mixed with plain values: [1,a:2,3] -> [1,{"a":2},3]
+    expect(lp('[1,a:2,3]')).equal([1, { a: 2 }, 3])
+
+    // Space-separated: [a:1 2 b:3] -> [{"a":1},2,{"b":3}]
+    expect(lp('[a:1 2 b:3]')).equal([{ a: 1 }, 2, { b: 3 }])
+
+    // Space-separated pairs: [a:1 b:2] -> [{"a":1},{"b":2}]
+    expect(lp('[a:1 b:2]')).equal([{ a: 1 }, { b: 2 }])
+
+    // list.pair takes precedence over list.property
+    let lp2 = j.make({ list: { pair: true, property: false } })
+    expect(lp2('[a:1]')).equal([{ a: 1 }])
+    expect(lp2('[a:1,b:2]')).equal([{ a: 1 }, { b: 2 }])
+
+    // Duplicate keys create separate objects: [a:1,a:2] -> [{"a":1},{"a":2}]
+    expect(lp('[a:1,a:2]')).equal([{ a: 1 }, { a: 2 }])
+
+    // No pairs: plain list still works
+    expect(lp('[1,2,3]')).equal([1, 2, 3])
+  })
+
   // Test derived from debug sessions using quick.js
   it('debug-cases', () => {
     tsvTest('feature-debug-cases')

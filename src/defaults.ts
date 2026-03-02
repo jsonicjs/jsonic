@@ -193,6 +193,10 @@ const defaults: Options = {
   list: {
     // Allow arrays to have properties: `[a:9,0,1]`
     property: true,
+
+    // Parse pairs as object elements: `[a:1]` -> `[{"a":1}]`
+    // Takes precedence over list.property when true.
+    pair: false,
   },
 
   // Keyword values.

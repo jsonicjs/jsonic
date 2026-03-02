@@ -397,7 +397,7 @@ function grammar(jsonic) {
             },
             {
                 s: [KEY, CL],
-                e: p.cfg.list.property ? undefined : (_r, ctx) => ctx.t0,
+                e: (p.cfg.list.property || p.cfg.list.pair) ? undefined : (_r, ctx) => ctx.t0,
                 p: 'val',
                 n: { pk: 1, dmap: 1 },
                 u: { done: true, pair: true, list: true },
@@ -407,8 +407,19 @@ function grammar(jsonic) {
         ])
             .bc((r, ctx) => {
             if (true === r.u.pair) {
-                r.u.prev = r.node[r.u.key];
-                pairval(r, ctx);
+                if (ctx.cfg.list.pair) {
+                    // list.pair: push pair as object element into the list
+                    let key = r.u.key;
+                    let val = r.child.node;
+                    val = undefined === val ? null : val;
+                    let pairObj = Object.create(null);
+                    pairObj[key] = val;
+                    r.node.push(pairObj);
+                }
+                else {
+                    r.u.prev = r.node[r.u.key];
+                    pairval(r, ctx);
+                }
             }
         })
             .close([
