@@ -252,6 +252,7 @@ function configure(jsonic, incfg, opts) {
     cfg.list = {
         property: !!opts.list?.property,
         pair: !!opts.list?.pair,
+        child: !!opts.list?.child,
     };
     let fixedSorted = Object.keys(cfg.fixed.token).sort((a, b) => b.length - a.length);
     let fixedRE = fixedSorted.map((fixed) => escre(fixed)).join('|');

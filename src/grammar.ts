@@ -500,6 +500,14 @@ function grammar(jsonic: Jsonic) {
         a: pairkey,
         g: 'elem,pair,jsonic',
       },
+
+      // list.child: bare colon `:value` stores value on child$ property.
+      p.cfg.list.child && {
+        s: [CL],
+        p: 'val',
+        u: { done: true, child: true, list: true },
+        g: 'elem,child,jsonic',
+      },
     ])
       .bc((r: Rule, ctx: Context) => {
         if (true === r.u.pair) {
@@ -514,6 +522,23 @@ function grammar(jsonic: Jsonic) {
           } else {
             r.u.prev = r.node[r.u.key]
             pairval(r, ctx)
+          }
+        }
+
+        if (true === r.u.child) {
+          let val = r.child.node
+          val = undefined === val ? null : val
+          let prev = r.node['child$']
+
+          if (undefined === prev) {
+            r.node['child$'] = val
+          } else {
+            r.node['child$'] =
+              ctx.cfg.map.merge
+                ? ctx.cfg.map.merge(prev, val, r, ctx)
+                : ctx.cfg.map.extend
+                  ? deep(prev, val)
+                  : val
           }
         }
       })

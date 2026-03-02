@@ -180,6 +180,7 @@ export type Options = {
   list?: {
     property: boolean
     pair: boolean
+    child: boolean
   }
   value?: {
     lex?: boolean
@@ -562,6 +563,7 @@ export type Config = {
   list: {
     property: boolean
     pair: boolean
+    child: boolean
   }
 
   debug: {

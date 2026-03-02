@@ -40,6 +40,26 @@ function tsvTestWith(name, opts) {
   }
 }
 
+function tsvTestListChild(name, opts) {
+  const instance = Jsonic.make(opts)
+  const entries = loadTSV(name)
+  for (const { cols, row } of entries) {
+    const [input, expectedArray, expectedChild] = cols
+    try {
+      let result = instance(input)
+      expect(JS(result)).equal(expectedArray)
+      if (expectedChild !== undefined && expectedChild !== '') {
+        expect(result['child$']).equal(JSON.parse(expectedChild))
+      } else {
+        expect(result['child$']).equal(undefined)
+      }
+    } catch (err) {
+      err.message = `${name} row ${row}: input=${input} expected_array=${expectedArray} expected_child=${expectedChild}\n${err.message}`
+      throw err
+    }
+  }
+}
+
 describe('feature', function () {
   it('test-util-match', () => {
     expect(match(1, 1)).not.exist()
@@ -934,6 +954,62 @@ describe('feature', function () {
     expect(lp('[]')).equal([])
     expect(lp('[true,false,null]')).equal([true, false, null])
     expect(lp('["a","b"]')).equal(['a', 'b'])
+  })
+
+  it('list-child', () => {
+    tsvTestListChild('feature-list-child', { list: { child: true } })
+  })
+
+  it('list-child-pair', () => {
+    tsvTestListChild('feature-list-child-pair', { list: { child: true, pair: true } })
+  })
+
+  it('list-child-interaction', () => {
+    // === child=false (default): bare colon in list is an error ===
+    expect(() => j('[:1]')).throw(/unexpected/)
+    expect(() => j('[1,:2]')).throw(/unexpected/)
+
+    // === child=true, property=true (default): both work independently ===
+    let lc = j.make({ list: { child: true } })
+    // child$ is set as property, key:val is set as property
+    expect(JS(lc('[a:1,:2]'))).equal('[]')
+    expect(lc('[a:1,:2]').a).equal(1)
+    expect(lc('[a:1,:2]')['child$']).equal(2)
+
+    // === child=true, property=false: child works, key:val errors ===
+    let lc_noprop = j.make({ list: { child: true, property: false } })
+    expect(lc_noprop('[:1]')['child$']).equal(1)
+    expect(() => lc_noprop('[a:1]')).throw(/unexpected/)
+
+    // === child=true, pair=true: pairs become elements, child$ still property ===
+    let lc_pair = j.make({ list: { child: true, pair: true } })
+    expect(lc_pair('[a:1,:2]')).equal([{ a: 1 }])
+    expect(lc_pair('[a:1,:2]')['child$']).equal(2)
+    expect(lc_pair('[:1,a:2]')).equal([{ a: 2 }])
+    expect(lc_pair('[:1,a:2]')['child$']).equal(1)
+
+    // === child=true, pair=true, property=false: all three options ===
+    let lc_all = j.make({ list: { child: true, pair: true, property: false } })
+    expect(lc_all('[a:1,:2]')).equal([{ a: 1 }])
+    expect(lc_all('[a:1,:2]')['child$']).equal(2)
+
+    // === Nested lists: inner list child$ is independent ===
+    expect(JS(lc('[[:1]]'))).equal('[[]]')
+    expect(lc('[[:1]]')[0]['child$']).equal(1)
+    expect(lc('[[:1]]')['child$']).equal(undefined)
+
+    // === child$ merges with map.extend (default) ===
+    expect(lc('[:{a:1},:{b:2}]')['child$']).equal({ a: 1, b: 2 })
+    expect(lc('[:{a:{x:1}},:{a:{y:2}}]')['child$']).equal({ a: { x: 1, y: 2 } })
+
+    // === child$ without map.extend: last value wins ===
+    let lc_noext = j.make({ list: { child: true }, map: { extend: false } })
+    expect(lc_noext('[:{a:1},:{b:2}]')['child$']).equal({ b: 2 })
+    expect(lc_noext('[:1,:2]')['child$']).equal(2)
+
+    // === Maps outside lists are unaffected by list.child ===
+    expect(lc('{a:1}')).equal({ a: 1 })
+    expect(lc('a:1,b:2')).equal({ a: 1, b: 2 })
   })
 
   // Test derived from debug sessions using quick.js

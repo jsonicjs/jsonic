@@ -197,6 +197,10 @@ const defaults: Options = {
     // Parse pairs as object elements: `[a:1]` -> `[{"a":1}]`
     // Takes precedence over list.property when true.
     pair: false,
+
+    // Parse bare colon as child$ property: `[:1]` -> [] with child$=1
+    // Multiple child values merge.
+    child: false,
   },
 
   // Keyword values.
