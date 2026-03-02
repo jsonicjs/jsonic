@@ -336,17 +336,45 @@ func Grammar(rsm map[string]*RuleSpec, cfg *LexConfig) {
 				pairval(r, ctx)
 			}
 		},
+		// Jsonic phase: map.child - bare colon :value stores as child$ key
+		func(r *Rule, ctx *Context) {
+			_ = ctx
+			if childFlag, ok := r.U["child"]; !ok || childFlag != true {
+				return
+			}
+			val := r.Child.Node
+			if IsUndefined(val) {
+				val = nil
+			}
+			prev, hasPrev := nodeMapGet(r.Node, "child$")
+			if !hasPrev {
+				nodeMapSet(r.Node, "child$", val)
+			} else if cfg.MapExtend {
+				nodeMapSet(r.Node, "child$", Deep(prev, val))
+			} else {
+				nodeMapSet(r.Node, "child$", val)
+			}
+		},
 	}
 
 	// pair.Open ordering (JSON + Jsonic append):
 	// [0] KEY CL pair (JSON)
 	// [1] CA ignore comma (Jsonic, appended)
-	pairSpec.Open = []*AltSpec{
+	// [2] CL child value (Jsonic, optional - only when map.child enabled)
+	pairOpen := []*AltSpec{
 		// JSON: key:value pair
 		{S: [][]Tin{KEY, {TinCL}}, P: "val", U: map[string]any{"pair": true}, A: pairkey},
 		// Jsonic: Ignore initial comma: {,a:1
 		{S: [][]Tin{{TinCA}}},
 	}
+	// Jsonic: map.child - bare colon :value stores as child$ key
+	if cfg.MapChild {
+		pairOpen = append(pairOpen, &AltSpec{
+			S: [][]Tin{{TinCL}}, P: "val",
+			U: map[string]any{"done": true, "child": true},
+		})
+	}
+	pairSpec.Open = pairOpen
 
 	// pair.Close ordering (after Jsonic unshift + delete:[0,1]):
 	// Jsonic alternates unshifted, then JSON [0] and [1] deleted.
@@ -408,7 +436,24 @@ func Grammar(rsm map[string]*RuleSpec, cfg *LexConfig) {
 		},
 		// Jsonic: handle pair-in-list
 		func(r *Rule, ctx *Context) {
-			if pair, ok := r.U["pair"]; ok && pair == true {
+			if pair, ok := r.U["pair"]; !ok || pair != true {
+				return
+			}
+			if cfg.ListPair {
+				// list.pair: push pair as {key: val} object element
+				key := r.U["key"].(string)
+				val := r.Child.Node
+				if IsUndefined(val) {
+					val = nil
+				}
+				pairObj := map[string]any{key: val}
+				if arr, ok := r.Node.([]any); ok {
+					r.Node = append(arr, pairObj)
+					if r.Parent != NoRule && r.Parent != nil {
+						r.Parent.Node = r.Node
+					}
+				}
+			} else {
 				r.U["prev"] = nodeMapGetVal(r.Node, r.U["key"])
 				pairval(r, ctx)
 			}

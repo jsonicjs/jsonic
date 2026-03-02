@@ -143,11 +143,13 @@ type StringOptions struct {
 // MapOptions controls object/map behavior.
 type MapOptions struct {
 	Extend *bool // Deep-merge duplicate keys. Default: true.
+	Child  *bool // Parse bare colon as child$ key: {:1} → {"child$":1}. Default: false.
 }
 
 // ListOptions controls array/list behavior.
 type ListOptions struct {
 	Property *bool // Allow named properties in arrays [a:1]. Default: true.
+	Pair     *bool // Push pairs as object elements: [a:1] → [{"a":1}]. Default: false.
 	Child    *bool // Parse bare colon as child value: [:1] → ListRef with Child=1. Default: false.
 }
 
@@ -469,9 +471,11 @@ func buildConfig(o *Options) *LexConfig {
 
 	// Map
 	cfg.MapExtend = boolVal(optBool(o.Map, func(m *MapOptions) *bool { return m.Extend }), true)
+	cfg.MapChild = boolVal(optBool(o.Map, func(m *MapOptions) *bool { return m.Child }), false)
 
 	// List
 	cfg.ListProperty = boolVal(optBool(o.List, func(l *ListOptions) *bool { return l.Property }), true)
+	cfg.ListPair = boolVal(optBool(o.List, func(l *ListOptions) *bool { return l.Pair }), false)
 	cfg.ListChild = boolVal(optBool(o.List, func(l *ListOptions) *bool { return l.Child }), false)
 
 	// Rule

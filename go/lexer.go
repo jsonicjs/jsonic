@@ -50,7 +50,9 @@ type LexConfig struct {
 
 	// Map/List options
 	MapExtend    bool // Deep-merge duplicate keys. Default: true.
+	MapChild     bool // Parse bare colon in maps as child$ key. Default: false.
 	ListProperty bool // Allow named properties in arrays. Default: true.
+	ListPair     bool // Push pairs as object elements in arrays. Default: false.
 
 	// Safe options
 	SafeKey bool // Prevent __proto__ keys. Default: true.
