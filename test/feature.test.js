@@ -27,6 +27,39 @@ function tsvTest(name) {
   }
 }
 
+function tsvTestWith(name, opts) {
+  const instance = Jsonic.make(opts)
+  const entries = loadTSV(name)
+  for (const { cols: [input, expected], row } of entries) {
+    try {
+      expect(instance(input)).equal(JSON.parse(expected))
+    } catch (err) {
+      err.message = `${name} row ${row}: input=${input} expected=${expected}\n${err.message}`
+      throw err
+    }
+  }
+}
+
+function tsvTestListChild(name, opts) {
+  const instance = Jsonic.make(opts)
+  const entries = loadTSV(name)
+  for (const { cols, row } of entries) {
+    const [input, expectedArray, expectedChild] = cols
+    try {
+      let result = instance(input)
+      expect(JS(result)).equal(expectedArray)
+      if (expectedChild !== undefined && expectedChild !== '') {
+        expect(result['child$']).equal(JSON.parse(expectedChild))
+      } else {
+        expect(result['child$']).equal(undefined)
+      }
+    } catch (err) {
+      err.message = `${name} row ${row}: input=${input} expected_array=${expectedArray} expected_child=${expectedChild}\n${err.message}`
+      throw err
+    }
+  }
+}
+
 describe('feature', function () {
   it('test-util-match', () => {
     expect(match(1, 1)).not.exist()
@@ -832,6 +865,375 @@ describe('feature', function () {
 
     let k = j.make({ list: { property: false } })
     expect(() => k('[a:1]')).throw(/unexpected/)
+  })
+
+  it('list-pair', () => {
+    tsvTestWith('feature-list-pair', { list: { pair: true } })
+  })
+
+  it('list-pair-interaction', () => {
+    // === pair=false, property=true (default behavior) ===
+    // Pairs become properties on the array object, not elements
+    expect(JS(j('[a:1]'))).equal('[]')
+    expect(j('[a:1]').a).equal(1)
+    expect(JS(j('[a:1,b:2]'))).equal('[]')
+    expect({ ...j('[a:1,b:2]') }).equal({ a: 1, b: 2 })
+    // Mixed: properties on array, values as elements
+    expect(JS(j('[a:1,2,b:3]'))).equal('[2]')
+    expect({ ...j('[a:1,2,b:3]') }).equal({ 0: 2, a: 1, b: 3 })
+
+    // === pair=false, property=false ===
+    // Pairs in lists are errors
+    let pp_ff = j.make({ list: { pair: false, property: false } })
+    expect(() => pp_ff('[a:1]')).throw(/unexpected/)
+    expect(() => pp_ff('[a:1,b:2]')).throw(/unexpected/)
+    // Plain list values still work
+    expect(pp_ff('[1,2,3]')).equal([1, 2, 3])
+    expect(pp_ff('[]')).equal([])
+    // Explicit maps inside lists still work
+    expect(pp_ff('[{a:1}]')).equal([{ a: 1 }])
+    expect(pp_ff('[{a:1},{b:2}]')).equal([{ a: 1 }, { b: 2 }])
+
+    // === pair=true, property=true ===
+    // pair takes precedence: pairs become elements, not properties
+    let pp_tt = j.make({ list: { pair: true, property: true } })
+    expect(pp_tt('[a:1]')).equal([{ a: 1 }])
+    expect(pp_tt('[a:1,b:2]')).equal([{ a: 1 }, { b: 2 }])
+    expect(pp_tt('[a:1,2,b:3]')).equal([{ a: 1 }, 2, { b: 3 }])
+    expect(pp_tt('[a:1,a:2]')).equal([{ a: 1 }, { a: 2 }])
+    // Verify elements exist at numeric indices
+    expect(pp_tt('[a:1]')[0]).equal({ a: 1 })
+    expect(JS(pp_tt('[a:1]'))).equal('[{"a":1}]')
+
+    // === pair=true, property=false ===
+    // pair takes precedence: pairs become elements (property disabled doesn't matter)
+    let pp_tf = j.make({ list: { pair: true, property: false } })
+    expect(pp_tf('[a:1]')).equal([{ a: 1 }])
+    expect(pp_tf('[a:1,b:2]')).equal([{ a: 1 }, { b: 2 }])
+    expect(pp_tf('[a:1,2,b:3]')).equal([{ a: 1 }, 2, { b: 3 }])
+    expect(pp_tf('[a:b:c]')).equal([{ a: { b: 'c' } }])
+
+    // === Braces: explicit maps interact correctly with list.pair ===
+    let lp = j.make({ list: { pair: true } })
+    // Explicit map as list element (no pairs involved)
+    expect(lp('[{a:1}]')).equal([{ a: 1 }])
+    expect(lp('[{a:1,b:2}]')).equal([{ a: 1, b: 2 }])
+    // Mix of explicit maps and implicit pair objects
+    expect(lp('[{a:1},b:2]')).equal([{ a: 1 }, { b: 2 }])
+    expect(lp('[a:1,{b:2}]')).equal([{ a: 1 }, { b: 2 }])
+    expect(lp('[{a:1},b:2,{c:3}]')).equal([{ a: 1 }, { b: 2 }, { c: 3 }])
+    // Pair value is an explicit map
+    expect(lp('[a:{x:1,y:2}]')).equal([{ a: { x: 1, y: 2 } }])
+    expect(lp('[a:{x:{y:1}}]')).equal([{ a: { x: { y: 1 } } }])
+    // Nested map with pair inside
+    expect(lp('[{a:{b:1,c:2}},d:3]')).equal([{ a: { b: 1, c: 2 } }, { d: 3 }])
+
+    // === Square brackets: nested lists interact correctly with list.pair ===
+    // Pair value is a list
+    expect(lp('[a:[1,2,3]]')).equal([{ a: [1, 2, 3] }])
+    expect(lp('[a:[[1],[2]]]')).equal([{ a: [[1], [2]] }])
+    // List element is a list (no pairs)
+    expect(lp('[[1,2],a:3]')).equal([[1, 2], { a: 3 }])
+    expect(lp('[a:1,[2,3],b:4]')).equal([{ a: 1 }, [2, 3], { b: 4 }])
+    // Nested list.pair applies recursively to inner lists
+    expect(lp('[a:[b:1]]')).equal([{ a: [{ b: 1 }] }])
+    expect(lp('[a:[b:1,c:2]]')).equal([{ a: [{ b: 1 }, { c: 2 }] }])
+    expect(lp('[a:{b:[c:1,d:2]}]')).equal([{ a: { b: [{ c: 1 }, { d: 2 }] } }])
+    // Deeply nested
+    expect(lp('[a:[b:[c:1]]]')).equal([{ a: [{ b: [{ c: 1 }] }] }])
+
+    // === Maps outside lists are unaffected by list.pair ===
+    expect(lp('{a:1}')).equal({ a: 1 })
+    expect(lp('{a:1,b:2}')).equal({ a: 1, b: 2 })
+    expect(lp('a:1')).equal({ a: 1 })
+    expect(lp('a:1,b:2')).equal({ a: 1, b: 2 })
+    expect(lp('a:b:c')).equal({ a: { b: 'c' } })
+
+    // === Plain values in lists still work with list.pair ===
+    expect(lp('[1,2,3]')).equal([1, 2, 3])
+    expect(lp('[]')).equal([])
+    expect(lp('[true,false,null]')).equal([true, false, null])
+    expect(lp('["a","b"]')).equal(['a', 'b'])
+  })
+
+  it('list-child', () => {
+    tsvTestListChild('feature-list-child', { list: { child: true } })
+  })
+
+  it('list-child-pair', () => {
+    tsvTestListChild('feature-list-child-pair', { list: { child: true, pair: true } })
+  })
+
+  it('list-child-interaction', () => {
+    // === child=false (default): bare colon in list is an error ===
+    expect(() => j('[:1]')).throw(/unexpected/)
+    expect(() => j('[1,:2]')).throw(/unexpected/)
+
+    // === child=true, property=true (default): both work independently ===
+    let lc = j.make({ list: { child: true } })
+    // child$ is set as property, key:val is set as property
+    expect(JS(lc('[a:1,:2]'))).equal('[]')
+    expect(lc('[a:1,:2]').a).equal(1)
+    expect(lc('[a:1,:2]')['child$']).equal(2)
+
+    // === child=true, property=false: child works, key:val errors ===
+    let lc_noprop = j.make({ list: { child: true, property: false } })
+    expect(lc_noprop('[:1]')['child$']).equal(1)
+    expect(() => lc_noprop('[a:1]')).throw(/unexpected/)
+
+    // === child=true, pair=true: pairs become elements, child$ still property ===
+    let lc_pair = j.make({ list: { child: true, pair: true } })
+    expect(lc_pair('[a:1,:2]')).equal([{ a: 1 }])
+    expect(lc_pair('[a:1,:2]')['child$']).equal(2)
+    expect(lc_pair('[:1,a:2]')).equal([{ a: 2 }])
+    expect(lc_pair('[:1,a:2]')['child$']).equal(1)
+
+    // === child=true, pair=true, property=false: all three options ===
+    let lc_all = j.make({ list: { child: true, pair: true, property: false } })
+    expect(lc_all('[a:1,:2]')).equal([{ a: 1 }])
+    expect(lc_all('[a:1,:2]')['child$']).equal(2)
+
+    // === Nested lists: inner list child$ is independent ===
+    expect(JS(lc('[[:1]]'))).equal('[[]]')
+    expect(lc('[[:1]]')[0]['child$']).equal(1)
+    expect(lc('[[:1]]')['child$']).equal(undefined)
+
+    // === child$ merges with map.extend (default) ===
+    expect(lc('[:{a:1},:{b:2}]')['child$']).equal({ a: 1, b: 2 })
+    expect(lc('[:{a:{x:1}},:{a:{y:2}}]')['child$']).equal({ a: { x: 1, y: 2 } })
+
+    // === child$ without map.extend: last value wins ===
+    let lc_noext = j.make({ list: { child: true }, map: { extend: false } })
+    expect(lc_noext('[:{a:1},:{b:2}]')['child$']).equal({ b: 2 })
+    expect(lc_noext('[:1,:2]')['child$']).equal(2)
+
+    // === Maps outside lists are unaffected by list.child ===
+    expect(lc('{a:1}')).equal({ a: 1 })
+    expect(lc('a:1,b:2')).equal({ a: 1, b: 2 })
+  })
+
+  it('list-child-deep', () => {
+    tsvTestListChild('feature-list-child-deep', { list: { child: true } })
+  })
+
+  it('list-child-pair-deep', () => {
+    tsvTestListChild('feature-list-child-pair-deep', { list: { child: true, pair: true } })
+  })
+
+  it('list-child-deep-multilevel', () => {
+    let lc = j.make({ list: { child: true } })
+    let lcp = j.make({ list: { child: true, pair: true } })
+
+    // === 2-level nesting: child at inner level only ===
+    let r1 = lc('[[:1]]')
+    expect(JS(r1)).equal('[[]]')
+    expect(r1['child$']).equal(undefined)
+    expect(r1[0]['child$']).equal(1)
+
+    // === 2-level: sibling lists with different child values ===
+    let r2 = lc('[[:1],[:2]]')
+    expect(JS(r2)).equal('[[],[]]')
+    expect(r2['child$']).equal(undefined)
+    expect(r2[0]['child$']).equal(1)
+    expect(r2[1]['child$']).equal(2)
+
+    // === 3-level nesting: child only at deepest level ===
+    let r3 = lc('[[[:1]]]')
+    expect(JS(r3)).equal('[[[]]]')
+    expect(r3['child$']).equal(undefined)
+    expect(r3[0]['child$']).equal(undefined)
+    expect(r3[0][0]['child$']).equal(1)
+
+    // === 2-level: child at both levels ===
+    let r4 = lc('[[:1],:2]')
+    expect(JS(r4)).equal('[[]]')
+    expect(r4['child$']).equal(2)
+    expect(r4[0]['child$']).equal(1)
+
+    // === 3-level: child at every level ===
+    let r5 = lc('[[[:1],:2],:3]')
+    expect(JS(r5)).equal('[[[]]]')
+    expect(r5['child$']).equal(3)
+    expect(r5[0]['child$']).equal(2)
+    expect(r5[0][0]['child$']).equal(1)
+
+    // === child value is a list which itself has child ===
+    let r6 = lc('[:[:1]]')
+    expect(JS(r6)).equal('[]')
+    expect(JS(r6['child$'])).equal('[]')
+    expect(r6['child$']['child$']).equal(1)
+
+    // === 3 levels deep via child-as-value chaining ===
+    let r7 = lc('[:[:[:1]]]')
+    expect(JS(r7)).equal('[]')
+    expect(JS(r7['child$'])).equal('[]')
+    expect(JS(r7['child$']['child$'])).equal('[]')
+    expect(r7['child$']['child$']['child$']).equal(1)
+
+    // === child value is list with elements and child ===
+    let r8 = lc('[1,:[:2,3]]')
+    expect(JS(r8)).equal('[1]')
+    expect(JS(r8['child$'])).equal('[3]')
+    expect(r8['child$']['child$']).equal(2)
+
+    // === Mixed elements with deep child ===
+    let r9 = lc('[1,[2,[3,:4]]]')
+    expect(JS(r9)).equal('[1,[2,[3]]]')
+    expect(r9['child$']).equal(undefined)
+    expect(r9[1]['child$']).equal(undefined)
+    expect(r9[1][1]['child$']).equal(4)
+
+    // === Deep with multiple children at inner level (last wins) ===
+    let r10 = lc('[1,[:2,:3],4,:5]')
+    expect(JS(r10)).equal('[1,[],4]')
+    expect(r10['child$']).equal(5)
+    expect(r10[1]['child$']).equal(3)
+
+    // === Sibling lists: one with child, one without ===
+    let r11 = lc('[[1,2],[:3]]')
+    expect(JS(r11)).equal('[[1,2],[]]')
+    expect(r11['child$']).equal(undefined)
+    expect(r11[0]['child$']).equal(undefined)
+    expect(r11[1]['child$']).equal(3)
+
+    // === Inner child$ merges objects ===
+    let r12 = lc('[[:{a:1},:{b:2}]]')
+    expect(JS(r12)).equal('[[]]')
+    expect(r12['child$']).equal(undefined)
+    expect(r12[0]['child$']).equal({ a: 1, b: 2 })
+
+    // === Map containing list with child$ ===
+    let r13 = lc('{x:[:1,2]}')
+    expect(JS(r13)).equal('{"x":[2]}')
+    expect(r13.x['child$']).equal(1)
+
+    // === Nested maps containing lists with child$ ===
+    let r14 = lc('{x:{y:[:1,2]}}')
+    expect(JS(r14)).equal('{"x":{"y":[2]}}')
+    expect(r14.x.y['child$']).equal(1)
+
+    // === Array of maps each containing lists with child$ ===
+    let r15 = lc('[{a:[:1]},{b:[:2]}]')
+    expect(JS(r15)).equal('[{"a":[]},{"b":[]}]')
+    expect(r15[0].a['child$']).equal(1)
+    expect(r15[1].b['child$']).equal(2)
+
+    // === pair+child at multiple levels ===
+    let r16 = lcp('[[a:1,:2]]')
+    expect(JS(r16)).equal('[[{"a":1}]]')
+    expect(r16['child$']).equal(undefined)
+    expect(r16[0]['child$']).equal(2)
+
+    // === pair+child: child at both levels ===
+    let r17 = lcp('[a:1,[b:2,:3],:4]')
+    expect(JS(r17)).equal('[{"a":1},[{"b":2}]]')
+    expect(r17['child$']).equal(4)
+    expect(r17[1]['child$']).equal(3)
+
+    // === pair+child: 3-level child at every level ===
+    let r18 = lcp('[[[:5],:6],:7]')
+    expect(JS(r18)).equal('[[[]]]')
+    expect(r18['child$']).equal(7)
+    expect(r18[0]['child$']).equal(6)
+    expect(r18[0][0]['child$']).equal(5)
+
+    // === pair+child: sibling inner lists with independent child values ===
+    let r19 = lcp('[[a:1,:2],[b:3,:4]]')
+    expect(JS(r19)).equal('[[{"a":1}],[{"b":3}]]')
+    expect(r19['child$']).equal(undefined)
+    expect(r19[0]['child$']).equal(2)
+    expect(r19[1]['child$']).equal(4)
+
+    // === pair+child: inner list with multiple pairs and child ===
+    let r20 = lcp('[a:1,[b:2,c:3,:4]]')
+    expect(JS(r20)).equal('[{"a":1},[{"b":2},{"c":3}]]')
+    expect(r20['child$']).equal(undefined)
+    expect(r20[1]['child$']).equal(4)
+  })
+
+  it('map-child', () => {
+    tsvTestWith('feature-map-child', { map: { child: true } })
+  })
+
+  it('map-child-deep', () => {
+    tsvTestWith('feature-map-child-deep', { map: { child: true }, list: { child: true } })
+  })
+
+  it('map-child-interaction', () => {
+    // === child=false (default): bare colon in map is an error ===
+    expect(() => j('{:1}')).throw(/unexpected/)
+    expect(() => j('{:1,a:2}')).throw(/unexpected/)
+
+    // === child=true: bare colon stores child$ ===
+    let mc = j.make({ map: { child: true } })
+    expect(mc('{:1,a:2}')).equal({ child$: 1, a: 2 })
+    expect(mc('{:1,a:2}')['child$']).equal(1)
+
+    // === child$ merge: objects deep-merge, primitives last-wins ===
+    expect(mc('{:1,:2}')['child$']).equal(2)
+    expect(mc('{:{a:1},:{b:2}}')['child$']).equal({ a: 1, b: 2 })
+    expect(mc('{:{a:{x:1}},:{a:{y:2}}}')['child$']).equal({ a: { x: 1, y: 2 } })
+
+    // === child$ without map.extend: last value wins ===
+    let mc_noext = j.make({ map: { child: true, extend: false } })
+    expect(mc_noext('{:{a:1},:{b:2}}')['child$']).equal({ b: 2 })
+    expect(mc_noext('{:1,:2}')['child$']).equal(2)
+
+    // === Lists outside maps are unaffected by map.child ===
+    expect(mc('[1,2,3]')).equal([1, 2, 3])
+
+    // === Nested maps: child$ at each level ===
+    let r1 = mc('{:1,a:{:2,b:{:3}}}')
+    expect(r1['child$']).equal(1)
+    expect(r1.a['child$']).equal(2)
+    expect(r1.a.b['child$']).equal(3)
+
+    // === map.child + list.child both enabled ===
+    let both = j.make({ map: { child: true }, list: { child: true } })
+
+    // Map with child, containing list with child
+    let r2 = both('{a:[:1,2],:3}')
+    expect(r2['child$']).equal(3)
+    expect(r2.a['child$']).equal(1)
+    expect(JS(r2.a)).equal('[2]')
+
+    // List with child, containing map with child
+    let r3 = both('[{:1,a:2},:3]')
+    expect(r3['child$']).equal(3)
+    expect(r3[0]['child$']).equal(1)
+    expect(JS(r3[0])).equal('{"child$":1,"a":2}')
+
+    // Deep: map -> list -> map, each with child$
+    let r4 = both('{a:[{:1}],:2}')
+    expect(r4['child$']).equal(2)
+    expect(r4.a[0]['child$']).equal(1)
+
+    // List child value is a map with child$
+    let r5 = both('[:{ a: 1 }]')
+    expect(JS(r5)).equal('[]')
+    expect(r5['child$']).equal({ a: 1 })
+
+    // 3-level: map -> map -> list -> map with child at each
+    let r6 = both('{:1,x:{:2,y:[{:3}]}}')
+    expect(r6['child$']).equal(1)
+    expect(r6.x['child$']).equal(2)
+    expect(r6.x.y[0]['child$']).equal(3)
+
+    // Array of maps, each with their own child$
+    let r7 = both('[{:1,a:10},{:2,b:20}]')
+    expect(r7[0]['child$']).equal(1)
+    expect(r7[1]['child$']).equal(2)
+
+    // map.child only (no list.child): list bare colon still errors
+    expect(() => mc('[:1]')).throw(/unexpected/)
+
+    // list.child only (no map.child): map bare colon still errors
+    let lc = j.make({ list: { child: true } })
+    expect(() => lc('{:1}')).throw(/unexpected/)
+
+    // Implicit map with child$
+    expect(mc('a:1,:2')).equal({ a: 1, child$: 2 })
+    expect(mc('a:1,:2,b:3')).equal({ a: 1, child$: 2, b: 3 })
   })
 
   // Test derived from debug sessions using quick.js

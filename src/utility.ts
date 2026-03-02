@@ -304,10 +304,13 @@ function configure(
   cfg.map = {
     extend: !!opts.map?.extend,
     merge: opts.map?.merge,
+    child: !!opts.map?.child,
   }
 
   cfg.list = {
     property: !!opts.list?.property,
+    pair: !!opts.list?.pair,
+    child: !!opts.list?.child,
   }
 
   let fixedSorted = Object.keys(cfg.fixed.token).sort(

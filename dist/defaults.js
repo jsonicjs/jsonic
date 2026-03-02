@@ -140,11 +140,19 @@ const defaults = {
         // Custom merge function for duplicates (optional).
         // TODO: needs function signature
         merge: undefined,
+        // Allow bare colon `:value` in maps, stored as `child$` property.
+        child: false,
     },
     // Array formats.
     list: {
         // Allow arrays to have properties: `[a:9,0,1]`
         property: true,
+        // Parse pairs as object elements: `[a:1]` -> `[{"a":1}]`
+        // Takes precedence over list.property when true.
+        pair: false,
+        // Parse bare colon as child$ property: `[:1]` -> [] with child$=1
+        // Multiple child values merge.
+        child: false,
     },
     // Keyword values.
     value: {
