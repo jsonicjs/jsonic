@@ -1012,6 +1012,145 @@ describe('feature', function () {
     expect(lc('a:1,b:2')).equal({ a: 1, b: 2 })
   })
 
+  it('list-child-deep', () => {
+    tsvTestListChild('feature-list-child-deep', { list: { child: true } })
+  })
+
+  it('list-child-pair-deep', () => {
+    tsvTestListChild('feature-list-child-pair-deep', { list: { child: true, pair: true } })
+  })
+
+  it('list-child-deep-multilevel', () => {
+    let lc = j.make({ list: { child: true } })
+    let lcp = j.make({ list: { child: true, pair: true } })
+
+    // === 2-level nesting: child at inner level only ===
+    let r1 = lc('[[:1]]')
+    expect(JS(r1)).equal('[[]]')
+    expect(r1['child$']).equal(undefined)
+    expect(r1[0]['child$']).equal(1)
+
+    // === 2-level: sibling lists with different child values ===
+    let r2 = lc('[[:1],[:2]]')
+    expect(JS(r2)).equal('[[],[]]')
+    expect(r2['child$']).equal(undefined)
+    expect(r2[0]['child$']).equal(1)
+    expect(r2[1]['child$']).equal(2)
+
+    // === 3-level nesting: child only at deepest level ===
+    let r3 = lc('[[[:1]]]')
+    expect(JS(r3)).equal('[[[]]]')
+    expect(r3['child$']).equal(undefined)
+    expect(r3[0]['child$']).equal(undefined)
+    expect(r3[0][0]['child$']).equal(1)
+
+    // === 2-level: child at both levels ===
+    let r4 = lc('[[:1],:2]')
+    expect(JS(r4)).equal('[[]]')
+    expect(r4['child$']).equal(2)
+    expect(r4[0]['child$']).equal(1)
+
+    // === 3-level: child at every level ===
+    let r5 = lc('[[[:1],:2],:3]')
+    expect(JS(r5)).equal('[[[]]]')
+    expect(r5['child$']).equal(3)
+    expect(r5[0]['child$']).equal(2)
+    expect(r5[0][0]['child$']).equal(1)
+
+    // === child value is a list which itself has child ===
+    let r6 = lc('[:[:1]]')
+    expect(JS(r6)).equal('[]')
+    expect(JS(r6['child$'])).equal('[]')
+    expect(r6['child$']['child$']).equal(1)
+
+    // === 3 levels deep via child-as-value chaining ===
+    let r7 = lc('[:[:[:1]]]')
+    expect(JS(r7)).equal('[]')
+    expect(JS(r7['child$'])).equal('[]')
+    expect(JS(r7['child$']['child$'])).equal('[]')
+    expect(r7['child$']['child$']['child$']).equal(1)
+
+    // === child value is list with elements and child ===
+    let r8 = lc('[1,:[:2,3]]')
+    expect(JS(r8)).equal('[1]')
+    expect(JS(r8['child$'])).equal('[3]')
+    expect(r8['child$']['child$']).equal(2)
+
+    // === Mixed elements with deep child ===
+    let r9 = lc('[1,[2,[3,:4]]]')
+    expect(JS(r9)).equal('[1,[2,[3]]]')
+    expect(r9['child$']).equal(undefined)
+    expect(r9[1]['child$']).equal(undefined)
+    expect(r9[1][1]['child$']).equal(4)
+
+    // === Deep with multiple children at inner level (last wins) ===
+    let r10 = lc('[1,[:2,:3],4,:5]')
+    expect(JS(r10)).equal('[1,[],4]')
+    expect(r10['child$']).equal(5)
+    expect(r10[1]['child$']).equal(3)
+
+    // === Sibling lists: one with child, one without ===
+    let r11 = lc('[[1,2],[:3]]')
+    expect(JS(r11)).equal('[[1,2],[]]')
+    expect(r11['child$']).equal(undefined)
+    expect(r11[0]['child$']).equal(undefined)
+    expect(r11[1]['child$']).equal(3)
+
+    // === Inner child$ merges objects ===
+    let r12 = lc('[[:{a:1},:{b:2}]]')
+    expect(JS(r12)).equal('[[]]')
+    expect(r12['child$']).equal(undefined)
+    expect(r12[0]['child$']).equal({ a: 1, b: 2 })
+
+    // === Map containing list with child$ ===
+    let r13 = lc('{x:[:1,2]}')
+    expect(JS(r13)).equal('{"x":[2]}')
+    expect(r13.x['child$']).equal(1)
+
+    // === Nested maps containing lists with child$ ===
+    let r14 = lc('{x:{y:[:1,2]}}')
+    expect(JS(r14)).equal('{"x":{"y":[2]}}')
+    expect(r14.x.y['child$']).equal(1)
+
+    // === Array of maps each containing lists with child$ ===
+    let r15 = lc('[{a:[:1]},{b:[:2]}]')
+    expect(JS(r15)).equal('[{"a":[]},{"b":[]}]')
+    expect(r15[0].a['child$']).equal(1)
+    expect(r15[1].b['child$']).equal(2)
+
+    // === pair+child at multiple levels ===
+    let r16 = lcp('[[a:1,:2]]')
+    expect(JS(r16)).equal('[[{"a":1}]]')
+    expect(r16['child$']).equal(undefined)
+    expect(r16[0]['child$']).equal(2)
+
+    // === pair+child: child at both levels ===
+    let r17 = lcp('[a:1,[b:2,:3],:4]')
+    expect(JS(r17)).equal('[{"a":1},[{"b":2}]]')
+    expect(r17['child$']).equal(4)
+    expect(r17[1]['child$']).equal(3)
+
+    // === pair+child: 3-level child at every level ===
+    let r18 = lcp('[[[:5],:6],:7]')
+    expect(JS(r18)).equal('[[[]]]')
+    expect(r18['child$']).equal(7)
+    expect(r18[0]['child$']).equal(6)
+    expect(r18[0][0]['child$']).equal(5)
+
+    // === pair+child: sibling inner lists with independent child values ===
+    let r19 = lcp('[[a:1,:2],[b:3,:4]]')
+    expect(JS(r19)).equal('[[{"a":1}],[{"b":3}]]')
+    expect(r19['child$']).equal(undefined)
+    expect(r19[0]['child$']).equal(2)
+    expect(r19[1]['child$']).equal(4)
+
+    // === pair+child: inner list with multiple pairs and child ===
+    let r20 = lcp('[a:1,[b:2,c:3,:4]]')
+    expect(JS(r20)).equal('[{"a":1},[{"b":2},{"c":3}]]')
+    expect(r20['child$']).equal(undefined)
+    expect(r20[1]['child$']).equal(4)
+  })
+
   // Test derived from debug sessions using quick.js
   it('debug-cases', () => {
     tsvTest('feature-debug-cases')
