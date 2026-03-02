@@ -70,6 +70,11 @@ type Options struct {
 	// the list was created implicitly (without brackets). Default: false.
 	ListRef *bool
 
+	// MapRef enables returning maps as MapRef structs instead of map[string]any.
+	// When true, map values include an Implicit flag indicating whether
+	// the map was created implicitly (without braces). Default: false.
+	MapRef *bool
+
 	// Tag is an instance identifier tag.
 	Tag string
 }
@@ -483,6 +488,9 @@ func buildConfig(o *Options) *LexConfig {
 
 	// ListRef
 	cfg.ListRef = boolVal(o.ListRef, false)
+
+	// MapRef
+	cfg.MapRef = boolVal(o.MapRef, false)
 
 	// Apply config modifiers.
 	if o.ConfigModify != nil {

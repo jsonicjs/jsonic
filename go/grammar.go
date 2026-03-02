@@ -189,6 +189,20 @@ func Grammar(rsm map[string]*RuleSpec, cfg *LexConfig) {
 		},
 	}
 
+	// BC callbacks:
+	mapSpec.BC = []StateAction{
+		// Wrap map in MapRef if option is enabled.
+		func(r *Rule, ctx *Context) {
+			_ = ctx
+			if cfg.MapRef {
+				implicit := !(r.O0 != NoToken && r.O0.Tin == TinOB)
+				if m, ok := r.Node.(map[string]any); ok {
+					r.Node = MapRef{Val: m, Implicit: implicit}
+				}
+			}
+		},
+	}
+
 	// map.Open ordering (after Jsonic unshift + append):
 	// [0] OB ZZ auto-close (Jsonic, unshifted)
 	// [1] OB CB empty map (JSON)

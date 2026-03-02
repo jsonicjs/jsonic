@@ -25,3 +25,16 @@ type ListRef struct {
 	// and false when brackets were used explicitly.
 	Implicit bool
 }
+
+// MapRef wraps a map value with metadata about how it was created.
+// When the MapRef option is enabled, map values in the output are
+// returned as MapRef instead of plain map[string]any.
+type MapRef struct {
+	// Val is the map contents.
+	Val map[string]any
+
+	// Implicit is true when the map was created implicitly
+	// (e.g. key:value at top level without braces),
+	// and false when braces were used explicitly.
+	Implicit bool
+}
