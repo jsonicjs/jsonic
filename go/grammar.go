@@ -189,6 +189,20 @@ func Grammar(rsm map[string]*RuleSpec, cfg *LexConfig) {
 		},
 	}
 
+	// BC callbacks:
+	mapSpec.BC = []StateAction{
+		// Wrap map in MapRef if option is enabled.
+		func(r *Rule, ctx *Context) {
+			_ = ctx
+			if cfg.MapRef {
+				implicit := !(r.O0 != NoToken && r.O0.Tin == TinOB)
+				if m, ok := r.Node.(map[string]any); ok {
+					r.Node = MapRef{Val: m, Implicit: implicit}
+				}
+			}
+		},
+	}
+
 	// map.Open ordering (after Jsonic unshift + append):
 	// [0] OB ZZ auto-close (Jsonic, unshifted)
 	// [1] OB CB empty map (JSON)
@@ -470,17 +484,23 @@ func Grammar(rsm map[string]*RuleSpec, cfg *LexConfig) {
 
 // nodeMapSet sets a key on a map node.
 func nodeMapSet(node any, key any, val any) {
+	k, _ := key.(string)
 	if m, ok := node.(map[string]any); ok {
-		k, _ := key.(string)
 		m[k] = val
+	} else if mr, ok := node.(MapRef); ok {
+		mr.Val[k] = val
 	}
 }
 
 // nodeMapGet gets a value from a map node.
 func nodeMapGet(node any, key any) (any, bool) {
+	k, _ := key.(string)
 	if m, ok := node.(map[string]any); ok {
-		k, _ := key.(string)
 		v, exists := m[k]
+		return v, exists
+	}
+	if mr, ok := node.(MapRef); ok {
+		v, exists := mr.Val[k]
 		return v, exists
 	}
 	return nil, false

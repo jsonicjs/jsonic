@@ -82,6 +82,9 @@ type LexConfig struct {
 	// ListRef wraps list output values in ListRef structs.
 	ListRef bool
 
+	// MapRef wraps map output values in MapRef structs.
+	MapRef bool
+
 	// LexCheck callbacks allow plugins to intercept and override matchers.
 	// Each returns nil to continue normal matching, or a LexCheckResult to short-circuit.
 	FixedCheck   LexCheck
