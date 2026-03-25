@@ -46,6 +46,18 @@ func bothRefEqual(a, b any) bool {
 				return false
 			}
 		}
+		// Meta: treat nil and empty map as equal
+		if len(av.Meta) != 0 || len(bv.Meta) != 0 {
+			if len(av.Meta) != len(bv.Meta) {
+				return false
+			}
+			for k, v := range av.Meta {
+				bval, exists := bv.Meta[k]
+				if !exists || !bothRefEqual(v, bval) {
+					return false
+				}
+			}
+		}
 		return true
 	case ListRef:
 		bv, ok := b.(ListRef)
@@ -61,6 +73,18 @@ func bothRefEqual(a, b any) bool {
 		for i := range av.Val {
 			if !bothRefEqual(av.Val[i], bv.Val[i]) {
 				return false
+			}
+		}
+		// Meta: treat nil and empty map as equal
+		if len(av.Meta) != 0 || len(bv.Meta) != 0 {
+			if len(av.Meta) != len(bv.Meta) {
+				return false
+			}
+			for k, v := range av.Meta {
+				bval, exists := bv.Meta[k]
+				if !exists || !bothRefEqual(v, bval) {
+					return false
+				}
 			}
 		}
 		return true
@@ -466,4 +490,98 @@ func TestBothRefNullListElements(t *testing.T) {
 func TestBothRefMapWithNullAndList(t *testing.T) {
 	// {a:null,b:[1]} → MapRef with null value and ListRef value
 	expectBothRef(t, "{a:null,b:[1]}", bmr(false, "a", nil, "b", blr(false, 1.0)))
+}
+
+// --- Meta map ---
+
+func TestMapRefMetaInitialized(t *testing.T) {
+	// MapRef.Meta should be initialized as an empty map when MapRef is enabled.
+	j := Make(Options{MapRef: boolPtr(true)})
+	got, err := j.Parse("{a:1}")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	m, ok := got.(MapRef)
+	if !ok {
+		t.Fatalf("expected MapRef, got %T: %#v", got, got)
+	}
+	if m.Meta == nil {
+		t.Errorf("expected Meta to be initialized (non-nil), got nil")
+	}
+	if len(m.Meta) != 0 {
+		t.Errorf("expected Meta to be empty, got %#v", m.Meta)
+	}
+}
+
+func TestListRefMetaInitialized(t *testing.T) {
+	// ListRef.Meta should be initialized as an empty map when ListRef is enabled.
+	j := Make(Options{ListRef: boolPtr(true)})
+	got, err := j.Parse("[1,2]")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	lr, ok := got.(ListRef)
+	if !ok {
+		t.Fatalf("expected ListRef, got %T: %#v", got, got)
+	}
+	if lr.Meta == nil {
+		t.Errorf("expected Meta to be initialized (non-nil), got nil")
+	}
+	if len(lr.Meta) != 0 {
+		t.Errorf("expected Meta to be empty, got %#v", lr.Meta)
+	}
+}
+
+func TestMapRefMetaAvailableInBOPhase(t *testing.T) {
+	// Verify that Meta is available during parsing (set in BO, accessible in BC).
+	j := Make(Options{MapRef: boolPtr(true)})
+
+	// Add a custom BO action that writes to Meta
+	j.Rule("map", func(rs *RuleSpec) {
+		rs.AddBO(func(r *Rule, ctx *Context) {
+			if mr, ok := r.Node.(MapRef); ok {
+				mr.Meta["created_in"] = "bo"
+				r.Node = mr
+			}
+		})
+	})
+
+	got, err := j.Parse("{a:1}")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	m, ok := got.(MapRef)
+	if !ok {
+		t.Fatalf("expected MapRef, got %T: %#v", got, got)
+	}
+	if m.Meta["created_in"] != "bo" {
+		t.Errorf("expected Meta[\"created_in\"] = \"bo\", got %#v", m.Meta)
+	}
+}
+
+func TestListRefMetaAvailableInBOPhase(t *testing.T) {
+	// Verify that Meta is available during parsing (set in BO, accessible in BC).
+	j := Make(Options{ListRef: boolPtr(true)})
+
+	// Add a custom BO action that writes to Meta
+	j.Rule("list", func(rs *RuleSpec) {
+		rs.AddBO(func(r *Rule, ctx *Context) {
+			if lr, ok := r.Node.(ListRef); ok {
+				lr.Meta["created_in"] = "bo"
+				r.Node = lr
+			}
+		})
+	})
+
+	got, err := j.Parse("[1,2]")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	lr, ok := got.(ListRef)
+	if !ok {
+		t.Fatalf("expected ListRef, got %T: %#v", got, got)
+	}
+	if lr.Meta["created_in"] != "bo" {
+		t.Errorf("expected Meta[\"created_in\"] = \"bo\", got %#v", lr.Meta)
+	}
 }

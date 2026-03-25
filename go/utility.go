@@ -64,7 +64,8 @@ func deepMerge(base, over any) any {
 		}
 		// Preserve MapRef wrapper if the over value was a MapRef.
 		if overIsMR {
-			return MapRef{Val: result, Implicit: overMR.Implicit}
+			meta := mergeMeta(baseMR.Meta, overMR.Meta)
+			return MapRef{Val: result, Implicit: overMR.Implicit, Meta: meta}
 		}
 		return result
 	}
@@ -96,7 +97,8 @@ func deepMerge(base, over any) any {
 			} else if baseIsLR {
 				child = deepClone(baseLR.Child)
 			}
-			return ListRef{Val: result, Implicit: overLR.Implicit, Child: child}
+			meta := mergeMeta(baseLR.Meta, overLR.Meta)
+			return ListRef{Val: result, Implicit: overLR.Implicit, Child: child, Meta: meta}
 		}
 		return result
 	}
@@ -106,6 +108,33 @@ func deepMerge(base, over any) any {
 		return nil
 	}
 	return deepClone(over)
+}
+
+// cloneMeta creates a shallow copy of a Meta map.
+func cloneMeta(meta map[string]any) map[string]any {
+	if meta == nil {
+		return nil
+	}
+	result := make(map[string]any, len(meta))
+	for k, v := range meta {
+		result[k] = v
+	}
+	return result
+}
+
+// mergeMeta merges two Meta maps. The over map's values take precedence.
+func mergeMeta(base, over map[string]any) map[string]any {
+	if base == nil && over == nil {
+		return nil
+	}
+	result := make(map[string]any)
+	for k, v := range base {
+		result[k] = v
+	}
+	for k, v := range over {
+		result[k] = v
+	}
+	return result
 }
 
 // deepClone creates a deep copy of a value.
@@ -131,13 +160,13 @@ func deepClone(val any) any {
 		for i, val := range v.Val {
 			result[i] = deepClone(val)
 		}
-		return ListRef{Val: result, Implicit: v.Implicit, Child: deepClone(v.Child)}
+		return ListRef{Val: result, Implicit: v.Implicit, Child: deepClone(v.Child), Meta: cloneMeta(v.Meta)}
 	case MapRef:
 		result := make(map[string]any)
 		for k, val := range v.Val {
 			result[k] = deepClone(val)
 		}
-		return MapRef{Val: result, Implicit: v.Implicit}
+		return MapRef{Val: result, Implicit: v.Implicit, Meta: cloneMeta(v.Meta)}
 	default:
 		return v
 	}
