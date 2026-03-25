@@ -1,0 +1,20 @@
+input	expected
+foo:1, bar:zed	{"foo":1,"bar":"zed"}
+foo-foo:1, bar:zed	{"foo-foo":1,"bar":"zed"}
+"foo-foo":1, bar:zed	{"foo-foo":1,"bar":"zed"}
+"foo-1":1, bar:zed	{"foo-1":1,"bar":"zed"}
+"foo-0":1, bar:zed	{"foo-0":1,"bar":"zed"}
+"-foo-":1, bar:zed	{"-foo-":1,"bar":"zed"}
+"-foo":1, bar:zed	{"-foo":1,"bar":"zed"}
+"foo-bar-":1, bar:zed	{"foo-bar-":1,"bar":"zed"}
+"foo-":1, bar:zed	{"foo-":1,"bar":"zed"}
+"foo---foo":1, bar:zed	{"foo---foo":1,"bar":"zed"}
+foo--foo:1, bar:zed	{"foo--foo":1,"bar":"zed"}
+"foo--1":1, bar:zed	{"foo--1":1,"bar":"zed"}
+"foo---0":1, bar:zed	{"foo---0":1,"bar":"zed"}
+"--foo--":1, bar:zed	{"--foo--":1,"bar":"zed"}
+"--foo":1, bar:zed	{"--foo":1,"bar":"zed"}
+"foo--bar-baz":1, "-bar":zed	{"foo--bar-baz":1,"-bar":"zed"}
+"foo--":1, bar:zed	{"foo--":1,"bar":"zed"}
+{foo:"bar", arr:[0,0]}	{"foo":"bar","arr":[0,0]}
+'a':1,':':2, c : 3	{"a":1,":":2,"c":3}

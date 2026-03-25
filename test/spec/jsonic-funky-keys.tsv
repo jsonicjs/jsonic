@@ -1,0 +1,10 @@
+input	expected
+x:1	{"x":1}
+null:1	{"null":1}
+true:1	{"true":1}
+false:1	{"false":1}
+{a:{x:1}}	{"a":{"x":1}}
+a:{x:1}	{"a":{"x":1}}
+a:{null:1}	{"a":{"null":1}}
+a:{true:1}	{"a":{"true":1}}
+a:{false:1}	{"a":{"false":1}}

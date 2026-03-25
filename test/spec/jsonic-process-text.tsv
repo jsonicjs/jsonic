@@ -1,0 +1,7 @@
+input	expected
+q	"q"
+[ qq ]	["qq"]
+[ q ]	["q"]
+[ c ]	["c"]
+c:[ c ]	{"c":["c"]}
+c:[ c , cc ]	{"c":["c","cc"]}

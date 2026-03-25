@@ -306,15 +306,38 @@ function grammar(jsonic) {
         ], { append: true });
     });
     // sets key:val on node
-    jsonic.rule('pair', (rs, _p) => {
+    jsonic.rule('pair', (rs, p) => {
         rs.open([
             // Ignore initial comma: {,a:1.
             { s: [CA], g: 'map,pair,comma,jsonic' },
+            // map.child: bare colon `:value` stores value on child$ property.
+            p.cfg.map.child && {
+                s: [CL],
+                p: 'val',
+                u: { done: true, child: true },
+                g: 'map,pair,child,jsonic',
+            },
         ], { append: true })
             // NOTE: JSON pair.bc runs first, then this bc may override value.
             .bc((r, ctx) => {
             if (r.u.pair) {
                 pairval(r, ctx);
+            }
+            if (true === r.u.child) {
+                let val = r.child.node;
+                val = undefined === val ? null : val;
+                let prev = r.node['child$'];
+                if (undefined === prev) {
+                    r.node['child$'] = val;
+                }
+                else {
+                    r.node['child$'] =
+                        ctx.cfg.map.merge
+                            ? ctx.cfg.map.merge(prev, val, r, ctx)
+                            : ctx.cfg.map.extend
+                                ? deep(prev, val)
+                                : val;
+                }
             }
         })
             .close([
@@ -397,18 +420,52 @@ function grammar(jsonic) {
             },
             {
                 s: [KEY, CL],
-                e: p.cfg.list.property ? undefined : (_r, ctx) => ctx.t0,
+                e: (p.cfg.list.property || p.cfg.list.pair) ? undefined : (_r, ctx) => ctx.t0,
                 p: 'val',
                 n: { pk: 1, dmap: 1 },
                 u: { done: true, pair: true, list: true },
                 a: pairkey,
                 g: 'elem,pair,jsonic',
             },
+            // list.child: bare colon `:value` stores value on child$ property.
+            p.cfg.list.child && {
+                s: [CL],
+                p: 'val',
+                u: { done: true, child: true, list: true },
+                g: 'elem,child,jsonic',
+            },
         ])
             .bc((r, ctx) => {
             if (true === r.u.pair) {
-                r.u.prev = r.node[r.u.key];
-                pairval(r, ctx);
+                if (ctx.cfg.list.pair) {
+                    // list.pair: push pair as object element into the list
+                    let key = r.u.key;
+                    let val = r.child.node;
+                    val = undefined === val ? null : val;
+                    let pairObj = Object.create(null);
+                    pairObj[key] = val;
+                    r.node.push(pairObj);
+                }
+                else {
+                    r.u.prev = r.node[r.u.key];
+                    pairval(r, ctx);
+                }
+            }
+            if (true === r.u.child) {
+                let val = r.child.node;
+                val = undefined === val ? null : val;
+                let prev = r.node['child$'];
+                if (undefined === prev) {
+                    r.node['child$'] = val;
+                }
+                else {
+                    r.node['child$'] =
+                        ctx.cfg.map.merge
+                            ? ctx.cfg.map.merge(prev, val, r, ctx)
+                            : ctx.cfg.map.extend
+                                ? deep(prev, val)
+                                : val;
+                }
             }
         })
             .close([
