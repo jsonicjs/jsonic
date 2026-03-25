@@ -364,12 +364,14 @@ function errdesc(
     }
 
     return desc
-  } catch (e) {
+  }
+  catch (e) {
     // TODO: fix
     console.log(e)
     return {}
   }
 }
+
 
 // Inject value into text by key using "{key}" syntax.
 function strinject<T extends string | string[] | { [key: string]: string }>(
