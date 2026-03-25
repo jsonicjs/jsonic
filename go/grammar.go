@@ -173,10 +173,17 @@ func Grammar(rsm map[string]*RuleSpec, cfg *LexConfig) {
 
 	// BO callbacks (JSON then Jsonic):
 	mapSpec.BO = []StateAction{
-		// JSON: create empty map
+		// JSON: create empty map (or MapRef if enabled)
 		func(r *Rule, ctx *Context) {
 			_ = ctx
-			r.Node = make(map[string]any)
+			if cfg.MapRef {
+				r.Node = MapRef{
+					Val:  make(map[string]any),
+					Meta: make(map[string]any),
+				}
+			} else {
+				r.Node = make(map[string]any)
+			}
 		},
 		// Jsonic: increment dmap depth
 		func(r *Rule, ctx *Context) {
@@ -191,13 +198,14 @@ func Grammar(rsm map[string]*RuleSpec, cfg *LexConfig) {
 
 	// BC callbacks:
 	mapSpec.BC = []StateAction{
-		// Wrap map in MapRef if option is enabled.
+		// Set Implicit on MapRef if option is enabled.
 		func(r *Rule, ctx *Context) {
 			_ = ctx
 			if cfg.MapRef {
 				implicit := !(r.O0 != NoToken && r.O0.Tin == TinOB)
-				if m, ok := r.Node.(map[string]any); ok {
-					r.Node = MapRef{Val: m, Implicit: implicit}
+				if mr, ok := r.Node.(MapRef); ok {
+					mr.Implicit = implicit
+					r.Node = mr
 				}
 			}
 		},
@@ -240,10 +248,17 @@ func Grammar(rsm map[string]*RuleSpec, cfg *LexConfig) {
 
 	// BO callbacks (JSON then Jsonic):
 	listSpec.BO = []StateAction{
-		// JSON: create empty list
+		// JSON: create empty list (or ListRef if enabled)
 		func(r *Rule, ctx *Context) {
 			_ = ctx
-			r.Node = make([]any, 0)
+			if cfg.ListRef {
+				r.Node = ListRef{
+					Val:  make([]any, 0),
+					Meta: make(map[string]any),
+				}
+			} else {
+				r.Node = make([]any, 0)
+			}
 		},
 		// Jsonic: increment dlist depth, handle implist
 		func(r *Rule, ctx *Context) {
@@ -256,13 +271,11 @@ func Grammar(rsm map[string]*RuleSpec, cfg *LexConfig) {
 			// If previous rule was an implicit list, adopt its node
 			if r.Prev != NoRule && r.Prev != nil {
 				if implist, ok := r.Prev.U["implist"]; ok && implist == true {
-					arr := r.Node.([]any)
 					prevNode := r.Prev.Node
 					if IsUndefined(prevNode) {
 						prevNode = nil
 					}
-					arr = append(arr, prevNode)
-					r.Node = arr
+					r.Node = nodeListAppend(r.Node, prevNode)
 					r.Prev.Node = r.Node
 				}
 			}
@@ -271,17 +284,17 @@ func Grammar(rsm map[string]*RuleSpec, cfg *LexConfig) {
 
 	// BC callbacks:
 	listSpec.BC = []StateAction{
-		// Wrap list in ListRef if option is enabled.
+		// Set Implicit and Child on ListRef if option is enabled.
 		func(r *Rule, ctx *Context) {
 			_ = ctx
 			if cfg.ListRef {
 				implicit := !(r.O0 != NoToken && r.O0.Tin == TinOS)
-				if arr, ok := r.Node.([]any); ok {
-					var child any
+				if lr, ok := r.Node.(ListRef); ok {
+					lr.Implicit = implicit
 					if c, ok := r.U["child$"]; ok {
-						child = c
+						lr.Child = c
 					}
-					r.Node = ListRef{Val: arr, Implicit: implicit, Child: child}
+					r.Node = lr
 				}
 			}
 		},
@@ -424,8 +437,8 @@ func Grammar(rsm map[string]*RuleSpec, cfg *LexConfig) {
 			_ = ctx
 			done, _ := r.U["done"].(bool)
 			if !done && !IsUndefined(r.Child.Node) {
-				if arr, ok := r.Node.([]any); ok {
-					r.Node = append(arr, r.Child.Node)
+				if _, ok := nodeListVal(r.Node); ok {
+					r.Node = nodeListAppend(r.Node, r.Child.Node)
 					// Propagate updated slice to parent list rule
 					// (Go slices may reallocate on append, unlike JS arrays which are reference types)
 					if r.Parent != NoRule && r.Parent != nil {
@@ -447,8 +460,8 @@ func Grammar(rsm map[string]*RuleSpec, cfg *LexConfig) {
 					val = nil
 				}
 				pairObj := map[string]any{key: val}
-				if arr, ok := r.Node.([]any); ok {
-					r.Node = append(arr, pairObj)
+				if _, ok := nodeListVal(r.Node); ok {
+					r.Node = nodeListAppend(r.Node, pairObj)
 					if r.Parent != NoRule && r.Parent != nil {
 						r.Parent.Node = r.Node
 					}
@@ -495,8 +508,8 @@ func Grammar(rsm map[string]*RuleSpec, cfg *LexConfig) {
 			U: map[string]any{"done": true},
 			A: func(r *Rule, ctx *Context) {
 				_ = ctx
-				if arr, ok := r.Node.([]any); ok {
-					r.Node = append(arr, nil)
+				if _, ok := nodeListVal(r.Node); ok {
+					r.Node = nodeListAppend(r.Node, nil)
 					// Propagate to parent
 					if r.Parent != NoRule && r.Parent != nil {
 						r.Parent.Node = r.Node
@@ -508,8 +521,8 @@ func Grammar(rsm map[string]*RuleSpec, cfg *LexConfig) {
 			U: map[string]any{"done": true},
 			A: func(r *Rule, ctx *Context) {
 				_ = ctx
-				if arr, ok := r.Node.([]any); ok {
-					r.Node = append(arr, nil)
+				if _, ok := nodeListVal(r.Node); ok {
+					r.Node = nodeListAppend(r.Node, nil)
 					// Propagate to parent
 					if r.Parent != NoRule && r.Parent != nil {
 						r.Parent.Node = r.Node
@@ -561,6 +574,39 @@ func Grammar(rsm map[string]*RuleSpec, cfg *LexConfig) {
 	rsm["list"] = listSpec
 	rsm["pair"] = pairSpec
 	rsm["elem"] = elemSpec
+}
+
+// nodeListAppend appends a value to a list node (plain []any or ListRef).
+// Returns the updated node (must be reassigned since slices may reallocate).
+func nodeListAppend(node any, val any) any {
+	if lr, ok := node.(ListRef); ok {
+		lr.Val = append(lr.Val, val)
+		return lr
+	}
+	if arr, ok := node.([]any); ok {
+		return append(arr, val)
+	}
+	return node
+}
+
+// nodeListVal extracts the []any from a list node (plain []any or ListRef).
+func nodeListVal(node any) ([]any, bool) {
+	if lr, ok := node.(ListRef); ok {
+		return lr.Val, true
+	}
+	if arr, ok := node.([]any); ok {
+		return arr, true
+	}
+	return nil, false
+}
+
+// nodeListSetVal updates the []any inside a list node, returning the updated node.
+func nodeListSetVal(node any, arr []any) any {
+	if lr, ok := node.(ListRef); ok {
+		lr.Val = arr
+		return lr
+	}
+	return arr
 }
 
 // nodeMapSet sets a key on a map node.

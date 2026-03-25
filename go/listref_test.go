@@ -45,6 +45,18 @@ func listRefEqual(a, b any) bool {
 				return false
 			}
 		}
+		// Meta: treat nil and empty map as equal
+		if len(av.Meta) != 0 || len(bv.Meta) != 0 {
+			if len(av.Meta) != len(bv.Meta) {
+				return false
+			}
+			for k, v := range av.Meta {
+				bval, exists := bv.Meta[k]
+				if !exists || !listRefEqual(v, bval) {
+					return false
+				}
+			}
+		}
 		return true
 	case map[string]any:
 		bv, ok := b.(map[string]any)

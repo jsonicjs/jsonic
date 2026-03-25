@@ -16,6 +16,8 @@ type Text struct {
 // ListRef wraps a list value with metadata about how it was created.
 // When the ListRef option is enabled, list values in the output are
 // returned as ListRef instead of plain []any slices.
+// ListRef is created early (in the BO phase) so that custom parsers
+// can store additional information in the Meta map during parsing.
 type ListRef struct {
 	// Val is the list contents.
 	Val []any
@@ -31,11 +33,18 @@ type ListRef struct {
 	// Multiple child values are merged (deep merge if Map.Extend is true).
 	// Nil when no child value is present.
 	Child any
+
+	// Meta is a map for custom parsers to attach additional information
+	// during parsing. It is initialized when the ListRef is created in
+	// the BO (before-open) phase.
+	Meta map[string]any
 }
 
 // MapRef wraps a map value with metadata about how it was created.
 // When the MapRef option is enabled, map values in the output are
 // returned as MapRef instead of plain map[string]any.
+// MapRef is created early (in the BO phase) so that custom parsers
+// can store additional information in the Meta map during parsing.
 type MapRef struct {
 	// Val is the map contents.
 	Val map[string]any
@@ -44,4 +53,9 @@ type MapRef struct {
 	// (e.g. key:value pairs without braces),
 	// and false when braces were used explicitly.
 	Implicit bool
+
+	// Meta is a map for custom parsers to attach additional information
+	// during parsing. It is initialized when the MapRef is created in
+	// the BO (before-open) phase.
+	Meta map[string]any
 }

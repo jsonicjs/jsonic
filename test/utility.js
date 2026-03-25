@@ -17,7 +17,7 @@ function loadTSV(name) {
     throw new Error('spec file not found: ' + specPath)
   }
 
-  const lines = readFileSync(specPath, 'utf8').split('\n').filter(Boolean)
+  const lines = readFileSync(specPath, 'utf8').split(/\r?\n/).filter(Boolean)
   return lines.slice(1).map((line, i) => {
     const cols = line.split('\t').map(unescape)
     return { cols, row: i + 1 }
