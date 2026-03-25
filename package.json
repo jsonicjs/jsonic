@@ -1,6 +1,6 @@
 {
   "name": "jsonic",
-  "version": "2.18.0",
+  "version": "2.19.0",
   "main": "dist/jsonic.js",
   "type": "commonjs",
   "types": "dist/jsonic.d.ts",
@@ -50,9 +50,9 @@
   },
   "devDependencies": {
     "@hapi/code": "^9.0.3",
-    "@jsonic/csv": "^0.7.0",
-    "@jsonic/directive": "^1.1.0",
-    "@types/node": "^24.9.1",
+    "@jsonic/csv": "^0.9.0",
+    "@jsonic/directive": "^1.3.1",
+    "@types/node": "^25.5.0",
     "typescript": "^5.9.3"
   }
 }
