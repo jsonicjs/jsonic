@@ -7,8 +7,8 @@ Also, it's very __very__ extensible.*
 
 `a:1,foo:bar` &rarr; `{"a": 1, "foo": "bar"}`
 
-[Site](https://jsonic.com/) |
-[Docs](https://jsonic.com/docs) |
+[Site](https://jsonic.richardrodger.com/) |
+[Reference](https://jsonic.richardrodger.com/ref/) |
 [FP Guide](https://github.com/jsonic/jsonic/wiki/FP-Guide) |
 [Contributing](https://github.com/jsonic/jsonic/blob/master/.github/CONTRIBUTING.md) |
 [Wiki](https://github.com/jsonic/jsonic/wiki "Changelog, Roadmap, etc.") |
