@@ -108,7 +108,7 @@ let makeFixedMatcher = (cfg, _opts) => {
             }
         }
         let pnt = lex.pnt;
-        let fwd = lex.src.substring(pnt.sI);
+        let fwd = lex.fwd;
         let m = fwd.match(fixed);
         if (m) {
             let msrc = m[1];
@@ -145,7 +145,7 @@ let makeMatchMatcher = (cfg, _opts) => {
             }
         }
         let pnt = lex.pnt;
-        let fwd = lex.src.substring(pnt.sI);
+        let fwd = lex.fwd;
         let oc = 'o' === rule.state ? 0 : 1;
         for (let valueMatcher of valueMatchers) {
             if (valueMatcher.match instanceof RegExp) {
@@ -240,7 +240,7 @@ let makeCommentMatcher = (cfg, opts) => {
             }
         }
         let pnt = lex.pnt;
-        let fwd = lex.src.substring(pnt.sI);
+        let fwd = lex.fwd;
         let rI = pnt.rI;
         let cI = pnt.cI;
         // Single line comment.
@@ -322,7 +322,7 @@ let makeTextMatcher = (cfg, opts) => {
         }
         let mcfg = cfg.text;
         let pnt = lex.pnt;
-        let fwd = lex.src.substring(pnt.sI);
+        let fwd = lex.fwd;
         let def = cfg.value.def;
         let defre = cfg.value.defre;
         let m = fwd.match(ender);
@@ -423,7 +423,7 @@ let makeNumberMatcher = (cfg, _opts) => {
             }
         }
         let pnt = lex.pnt;
-        let fwd = lex.src.substring(pnt.sI);
+        let fwd = lex.fwd;
         let valdef = cfg.value.def;
         let m = fwd.match(ender);
         if (m) {
@@ -736,11 +736,16 @@ function subMatchFixed(lex, first, tsrc) {
     return out;
 }
 class LexImpl {
+    refwd() {
+        this.fwd = this.src.substring(this.pnt.sI);
+        return this.fwd;
+    }
     constructor(ctx) {
         this.src = types_1.EMPTY;
         this.ctx = {};
         this.cfg = {};
         this.pnt = makePoint(-1);
+        this.fwd = types_1.EMPTY;
         this.ctx = ctx;
         this.src = ctx.src();
         this.cfg = ctx.cfg;
@@ -776,6 +781,7 @@ class LexImpl {
             tkn = pnt.end;
         }
         else {
+            this.fwd = this.src.substring(pnt.sI);
             try {
                 for (let mat of this.cfg.lex.match) {
                     if ((tkn = mat(this, rule, tI))) {

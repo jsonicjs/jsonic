@@ -46,6 +46,8 @@ declare class LexImpl implements Lex {
     ctx: Context;
     cfg: Config;
     pnt: PointImpl;
+    fwd: string;
+    refwd(): string;
     constructor(ctx: Context);
     token(ref: Tin | string, val: any, src: string, pnt?: Point, use?: any, why?: string): Token;
     next(rule: Rule, alt?: NormAltSpec, altI?: number, tI?: number): Token;

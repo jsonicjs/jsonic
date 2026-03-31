@@ -173,7 +173,7 @@ let makeFixedMatcher: MakeLexMatcher = (cfg: Config, _opts: Options) => {
     }
 
     let pnt = lex.pnt
-    let fwd = lex.src.substring(pnt.sI)
+    let fwd = lex.fwd
 
     let m = fwd.match(fixed)
     if (m) {
@@ -217,7 +217,7 @@ let makeMatchMatcher: MakeLexMatcher = (cfg: Config, _opts: Options) => {
     }
 
     let pnt = lex.pnt
-    let fwd = lex.src.substring(pnt.sI)
+    let fwd = lex.fwd
 
     let oc = 'o' === rule.state ? 0 : 1
 
@@ -347,7 +347,7 @@ let makeCommentMatcher: MakeLexMatcher = (cfg: Config, opts: Options) => {
     }
 
     let pnt = lex.pnt
-    let fwd = lex.src.substring(pnt.sI)
+    let fwd = lex.fwd
 
     let rI = pnt.rI
     let cI = pnt.cI
@@ -449,7 +449,7 @@ let makeTextMatcher: MakeLexMatcher = (cfg: Config, opts: Options) => {
 
     let mcfg = cfg.text
     let pnt = lex.pnt
-    let fwd = lex.src.substring(pnt.sI)
+    let fwd = lex.fwd
     let def = cfg.value.def
     let defre = cfg.value.defre
 
@@ -570,7 +570,7 @@ let makeNumberMatcher: MakeLexMatcher = (cfg: Config, _opts: Options) => {
     }
 
     let pnt = lex.pnt
-    let fwd = lex.src.substring(pnt.sI)
+    let fwd = lex.fwd
     let valdef = cfg.value.def
 
     let m = fwd.match(ender)
@@ -958,6 +958,12 @@ class LexImpl implements Lex {
   ctx = {} as Context
   cfg = {} as Config
   pnt = makePoint(-1)
+  fwd = EMPTY as string
+
+  refwd(): string {
+    this.fwd = this.src.substring(this.pnt.sI) as string
+    return this.fwd
+  }
 
   constructor(ctx: Context) {
     this.ctx = ctx
@@ -1004,6 +1010,7 @@ class LexImpl implements Lex {
 
       tkn = pnt.end
     } else {
+      this.fwd = this.src.substring(pnt.sI) as string
       try {
         for (let mat of this.cfg.lex.match) {
           if ((tkn = mat(this, rule, tI))) {

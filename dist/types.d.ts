@@ -293,6 +293,8 @@ export interface Lex {
     ctx: Context;
     cfg: Config;
     pnt: Point;
+    fwd: string;
+    refwd(): string;
     token(ref: Tin | string, val: any, src: string, pnt?: Point, use?: any, why?: string): Token;
     next(rule: Rule, alt?: NormAltSpec, altI?: number, tI?: number): Token;
     tokenize<R extends string | Tin, T extends R extends Tin ? string : Tin>(ref: R): T;

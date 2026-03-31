@@ -392,6 +392,8 @@ export interface Lex {
   ctx: Context
   cfg: Config
   pnt: Point
+  fwd: string
+  refwd(): string
 
   token(
     ref: Tin | string,
