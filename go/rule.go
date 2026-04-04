@@ -49,6 +49,9 @@ type AltAction func(r *Rule, ctx *Context)
 // AltError is an error function for an alternate.
 type AltError func(r *Rule, ctx *Context) *Token
 
+// AltModifier can modify an alt match result. Returns the (possibly modified) AltSpec.
+type AltModifier func(alt *AltSpec, r *Rule, ctx *Context) *AltSpec
+
 // StateAction is a before/after action on a rule state transition.
 type StateAction func(r *Rule, ctx *Context)
 
@@ -64,7 +67,11 @@ type AltSpec struct {
 	U map[string]any  // Custom props added to Rule.u
 	K map[string]any  // Custom props added to Rule.k (propagated)
 	G string          // Named group tags (comma-separated)
+	H AltModifier     // Alt modifier (called after match to potentially modify the alt)
 	E AltError        // Error generation
+	PF func(r *Rule, ctx *Context) string  // Dynamic push rule name
+	RF func(r *Rule, ctx *Context) string  // Dynamic replace rule name
+	BF func(r *Rule, ctx *Context) int     // Dynamic backtrack
 }
 
 // RuleSpec defines the specification for a parsing rule.
@@ -245,10 +252,17 @@ func (r *Rule) Process(ctx *Context, lex *Lex) *Rule {
 	// Match alternates
 	alt, _ := ParseAlts(isOpen, alts, lex, r, ctx)
 
-	// Error check (lenient - ignore errors for auto-close)
+	// Alt modifier
+	if alt != nil && alt.H != nil {
+		alt = alt.H(alt, r, ctx)
+	}
+
+	// Error check: if alt.E returns a token, signal a parse error.
 	if alt != nil && alt.E != nil {
 		errTkn := alt.E(r, ctx)
-		_ = errTkn // jsonic is lenient, auto-closes
+		if errTkn != nil {
+			ctx.ParseErr = errTkn
+		}
 	}
 
 	// Update counters
@@ -283,40 +297,61 @@ func (r *Rule) Process(ctx *Context, lex *Lex) *Rule {
 	}
 
 	// Push / Replace / Pop
-	if alt != nil && alt.P != "" {
-		rulespec, ok := ctx.RSM[alt.P]
-		if ok {
-			ctx.RS[ctx.RSI] = r
-			ctx.RSI++
-			next = MakeRule(rulespec, ctx, r.Node)
-			r.Child = next
-			next.Parent = r
-			for k, v := range r.N {
-				next.N[k] = v
-			}
-			if len(r.K) > 0 {
-				for k, v := range r.K {
-					next.K[k] = v
-				}
-			}
+	if alt != nil {
+		// Resolve push rule name (static or dynamic)
+		pushName := alt.P
+		if alt.PF != nil {
+			pushName = alt.PF(r, ctx)
 		}
-	} else if alt != nil && alt.R != "" {
-		rulespec, ok := ctx.RSM[alt.R]
-		if ok {
-			next = MakeRule(rulespec, ctx, r.Node)
-			next.Parent = r.Parent
-			next.Prev = r
-			for k, v := range r.N {
-				next.N[k] = v
-			}
-			if len(r.K) > 0 {
-				for k, v := range r.K {
-					next.K[k] = v
+		// Resolve replace rule name (static or dynamic)
+		replaceName := alt.R
+		if alt.RF != nil {
+			replaceName = alt.RF(r, ctx)
+		}
+
+		if pushName != "" {
+			rulespec, ok := ctx.RSM[pushName]
+			if ok {
+				ctx.RS[ctx.RSI] = r
+				ctx.RSI++
+				next = MakeRule(rulespec, ctx, r.Node)
+				r.Child = next
+				next.Parent = r
+				for k, v := range r.N {
+					next.N[k] = v
 				}
+				if len(r.K) > 0 {
+					for k, v := range r.K {
+						next.K[k] = v
+					}
+				}
+			}
+		} else if replaceName != "" {
+			rulespec, ok := ctx.RSM[replaceName]
+			if ok {
+				next = MakeRule(rulespec, ctx, r.Node)
+				next.Parent = r.Parent
+				next.Prev = r
+				for k, v := range r.N {
+					next.N[k] = v
+				}
+				if len(r.K) > 0 {
+					for k, v := range r.K {
+						next.K[k] = v
+					}
+				}
+			}
+		} else if !isOpen {
+			// Pop
+			if ctx.RSI > 0 {
+				ctx.RSI--
+				next = ctx.RS[ctx.RSI]
+			} else {
+				next = NoRule
 			}
 		}
 	} else if !isOpen {
-		// Pop
+		// No alt matched AND we're closing → pop
 		if ctx.RSI > 0 {
 			ctx.RSI--
 			next = ctx.RS[ctx.RSI]
@@ -346,6 +381,9 @@ func (r *Rule) Process(ctx *Context, lex *Lex) *Rule {
 	// Token consumption with backtrack (only when an alt matched)
 	if alt != nil {
 		backtrack := alt.B
+		if alt.BF != nil {
+			backtrack = alt.BF(r, ctx)
+		}
 		var consumed int
 		if isOpen {
 			consumed = r.OS - backtrack

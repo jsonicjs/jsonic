@@ -4,6 +4,35 @@ The TypeScript version is authoritative. This document catalogs all functional
 differences where the Go version would produce different behavior for the same
 input or configuration.
 
+## Resolved Differences
+
+The following differences have been fixed in Go to align with TS:
+
+- **Error handling**: alt.E errors now propagate via ctx.ParseErr (was silently discarded)
+- **Map merge**: Respects cfg.MapExtend (overwrite when false) and cfg.MapMerge (custom function)
+- **NaN/Infinity**: Removed from default value keywords (now parsed as text, matching TS)
+- **String escapes**: Invalid \x, \u, and unknown escapes now produce error tokens (was silent)
+- **String options**: Added string.abandon (fallthrough on error) and string.replace
+- **list.property guard**: elem.Open pair-in-list now errors when list.property/list.pair disabled
+- **safe.key**: pairval blocks __proto__ and constructor keys when cfg.SafeKey is true
+- **deep() nil**: Undefined sentinel now preserves base (was replacing with nil)
+- **ModList order**: Now delete-move-filter (was delete-filter-move)
+- **alt.h**: AltModifier support added to AltSpec
+- **Dynamic alt.p/r/b**: PF, RF, BF function fields added to AltSpec
+- **alt.g tags**: All grammar alternates now tagged "json" or "jsonic"
+- **Lexer rule access**: LexMatcher now receives *Rule parameter
+- **Empty input**: Removed whitespace-only short-circuit; empty source uses cfg.lex.empty
+- **Subscriber timing**: Rule subscribers now fire BEFORE process (was after)
+- **Trailing content**: Parser explicitly checks for trailing tokens after parse loop
+- **parse.prepare**: ParsePrepare hooks added to LexConfig
+- **result.fail**: ResultFail sentinel list added to LexConfig
+- **ParseErr**: Context.ParseErr field for error propagation from rules
+- **text.modify**: TextModify pipeline added to LexConfig
+- **number.exclude**: NumberExclude function added to LexConfig
+- **line.single**: LineSingle option added for per-newline tokens
+- **comment eatline**: CommentLineEatLine/CommentBlockEatLine maps added
+- **Number subMatchFixed**: Number matcher now pushes trailing fixed tokens as lookahead
+
 ---
 
 ## Critical Differences (Would cause wrong output or silent failures)

@@ -20,6 +20,7 @@ type Context struct {
 	Meta     map[string]any    // Parse metadata from ParseMeta()
 	LexSubs  []LexSub          // Lex event subscribers
 	RuleSubs []RuleSub         // Rule event subscribers
+	ParseErr *Token            // Error token from alt.E or action error, halts parse.
 }
 
 // Parser orchestrates the parsing process.
@@ -56,18 +57,6 @@ func (p *Parser) StartMeta(src string, meta map[string]any, lexSubs []LexSub, ru
 		return nil, nil
 	}
 
-	// Check if all whitespace
-	allWS := true
-	for _, ch := range src {
-		if ch != ' ' && ch != '\t' && ch != '\n' && ch != '\r' {
-			allWS = false
-			break
-		}
-	}
-	if allWS {
-		return nil, nil
-	}
-
 	lex := NewLex(src, p.Config)
 
 	ctx := &Context{
@@ -96,6 +85,13 @@ func (p *Parser) StartMeta(src string, meta map[string]any, lexSubs []LexSub, ru
 	rule := MakeRule(startSpec, ctx, nil)
 	root := rule
 
+	// Run parse.prepare hooks
+	if len(p.Config.ParsePrepare) > 0 {
+		for _, prep := range p.Config.ParsePrepare {
+			prep(ctx)
+		}
+	}
+
 	// Maximum iterations: 2 * numRules * srcLen * 2 * maxmul
 	maxmul := p.MaxMul
 	if maxmul <= 0 {
@@ -109,13 +105,20 @@ func (p *Parser) StartMeta(src string, meta map[string]any, lexSubs []LexSub, ru
 	kI := 0
 	for rule != NoRule && kI < maxr {
 		ctx.KI = kI
-		rule = rule.Process(ctx, lex)
 
-		// Fire rule subscribers.
-		if len(ctx.RuleSubs) > 0 && rule != NoRule {
+		// Fire rule subscribers BEFORE process (matching TS).
+		if len(ctx.RuleSubs) > 0 {
 			for _, sub := range ctx.RuleSubs {
 				sub(rule, ctx)
 			}
+		}
+
+		rule = rule.Process(ctx, lex)
+
+		// Check for parse error from alt.E or actions.
+		if ctx.ParseErr != nil {
+			tkn := ctx.ParseErr
+			return nil, p.makeError("unexpected", tkn.Src, src, tkn.SI, tkn.RI, tkn.CI)
 		}
 
 		kI++
@@ -126,9 +129,19 @@ func (p *Parser) StartMeta(src string, meta map[string]any, lexSubs []LexSub, ru
 		return nil, lex.Err
 	}
 
-	// Check for unconsumed tokens (syntax error)
+	// Check for unconsumed tokens (syntax error) - explicit trailing content check.
+	// First check tokens already in the lookahead buffer.
 	if ctx.T0 != nil && !ctx.T0.IsNoToken() && ctx.T0.Tin != TinZZ {
 		return nil, p.makeError("unexpected", ctx.T0.Src, src, ctx.T0.SI, ctx.T0.RI, ctx.T0.CI)
+	}
+	// Also explicitly ask lexer for more (matching TS parser.ts:187-189).
+	endTkn := lex.Next(rule)
+	if endTkn.Tin != TinZZ {
+		return nil, p.makeError("unexpected", endTkn.Src, src, endTkn.SI, endTkn.RI, endTkn.CI)
+	}
+	// Check lexer errors from that final Next() call.
+	if lex.Err != nil {
+		return nil, lex.Err
 	}
 
 	// Follow replacement chain: when val is replaced by list (implicit list),
@@ -141,6 +154,16 @@ func (p *Parser) StartMeta(src string, meta map[string]any, lexSubs []LexSub, ru
 	if IsUndefined(result.Node) {
 		return nil, nil
 	}
+
+	// Check result.fail
+	if len(p.Config.ResultFail) > 0 {
+		for _, fail := range p.Config.ResultFail {
+			if result.Node == fail {
+				return nil, p.makeError("unexpected", "", src, 0, 1, 1)
+			}
+		}
+	}
+
 	return result.Node, nil
 }
 

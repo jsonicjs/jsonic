@@ -5,6 +5,16 @@ import (
 	"testing"
 )
 
+// hasExactTag checks if tagStr (comma-separated) contains the exact tag.
+func hasExactTag(tagStr, tag string) bool {
+	for _, t := range strings.Split(tagStr, ",") {
+		if strings.TrimSpace(t) == tag {
+			return true
+		}
+	}
+	return false
+}
+
 // --- Plugin: Use and basic invocation ---
 
 func TestUseInvokesPlugin(t *testing.T) {
@@ -746,11 +756,11 @@ func TestSetOptions(t *testing.T) {
 func TestExclude(t *testing.T) {
 	j := Make()
 
-	// Count alternates with "json" group tag before exclude.
+	// Count alternates with exact "json" group tag before exclude.
 	hasJsonGroup := false
 	for _, rs := range j.RSM() {
 		for _, alt := range rs.Open {
-			if strings.Contains(alt.G, "json") {
+			if hasExactTag(alt.G, "json") {
 				hasJsonGroup = true
 				break
 			}
@@ -772,12 +782,12 @@ func TestExclude(t *testing.T) {
 
 	for _, rs := range j.RSM() {
 		for _, alt := range rs.Open {
-			if strings.Contains(alt.G, "json") {
+			if hasExactTag(alt.G, "json") {
 				t.Errorf("rule %s still has 'json' group alt after Exclude", rs.Name)
 			}
 		}
 		for _, alt := range rs.Close {
-			if strings.Contains(alt.G, "json") {
+			if hasExactTag(alt.G, "json") {
 				t.Errorf("rule %s still has 'json' close alt after Exclude", rs.Name)
 			}
 		}

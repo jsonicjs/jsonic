@@ -21,6 +21,11 @@ func Deep(base any, rest ...any) any {
 }
 
 func deepMerge(base, over any) any {
+	// Match TS: undefined preserves base.
+	if IsUndefined(over) {
+		return base
+	}
+
 	// Extract maps from MapRef if present.
 	baseMap, baseIsMap := base.(map[string]any)
 	baseMR, baseIsMR := base.(MapRef)
@@ -104,6 +109,10 @@ func deepMerge(base, over any) any {
 	}
 
 	// Type mismatch or non-container: over wins
+	// Match TS: undefined preserves base, null replaces.
+	if IsUndefined(over) {
+		return base
+	}
 	if over == nil {
 		return nil
 	}
@@ -393,12 +402,12 @@ func ModList(list []any, opts *ModListOpts) []any {
 	}
 
 	if len(list) > 0 {
+		type sentinel struct{}
+		deleteMarker := sentinel{}
+
 		// Phase 1: Mark elements for deletion
 		if len(opts.Delete) > 0 {
-			type sentinel struct{}
-			deleteMarker := sentinel{}
 			for _, idx := range opts.Delete {
-				// Support negative indices
 				n := len(list)
 				if idx < 0 {
 					if -idx <= n {
@@ -411,19 +420,9 @@ func ModList(list []any, opts *ModListOpts) []any {
 					}
 				}
 			}
-
-			// Phase 3: Filter out deleted entries
-			filtered := make([]any, 0, len(list))
-			for _, v := range list {
-				if _, ok := v.(sentinel); !ok {
-					filtered = append(filtered, v)
-				}
-			}
-			// Replace list contents
-			list = filtered
 		}
 
-		// Phase 2: Move operations
+		// Phase 2: Move operations (on array with markers still present)
 		if len(opts.Move) >= 2 {
 			for i := 0; i+1 < len(opts.Move); i += 2 {
 				n := len(list)
@@ -433,15 +432,24 @@ func ModList(list []any, opts *ModListOpts) []any {
 				fromI := ((opts.Move[i] % n) + n) % n
 				toI := ((opts.Move[i+1] % n) + n) % n
 				entry := list[fromI]
-				// Remove from source
 				list = append(list[:fromI], list[fromI+1:]...)
-				// Insert at destination
 				newList := make([]any, len(list)+1)
 				copy(newList, list[:toI])
 				newList[toI] = entry
 				copy(newList[toI+1:], list[toI:])
 				list = newList
 			}
+		}
+
+		// Phase 3: Filter out deleted entries
+		if len(opts.Delete) > 0 {
+			filtered := make([]any, 0, len(list))
+			for _, v := range list {
+				if _, ok := v.(sentinel); !ok {
+					filtered = append(filtered, v)
+				}
+			}
+			list = filtered
 		}
 	}
 

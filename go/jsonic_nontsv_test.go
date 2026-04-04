@@ -6,7 +6,6 @@ package jsonic
 // are NOT ported. See platform mismatch notes at the bottom.
 
 import (
-	"math"
 	"strings"
 	"testing"
 )
@@ -600,15 +599,17 @@ func TestProcessComment(t *testing.T) {
 }
 
 // --- NaN handling ---
+// NaN is now parsed as text "NaN" to match TypeScript behavior.
+// Use Value.Def to enable NaN as a value keyword if needed.
 
 func TestNaN(t *testing.T) {
 	got, err := Parse("NaN")
 	if err != nil {
 		t.Fatalf("Parse(\"NaN\") error: %v", err)
 	}
-	f, ok := got.(float64)
-	if !ok || !math.IsNaN(f) {
-		t.Errorf("Parse(\"NaN\") expected NaN, got %v", got)
+	s, ok := got.(string)
+	if !ok || s != "NaN" {
+		t.Errorf("Parse(\"NaN\") expected string \"NaN\", got %v (%T)", got, got)
 	}
 }
 
