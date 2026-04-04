@@ -217,19 +217,19 @@ describe('alignment', function () {
     // Count alternates before exclude.
     let openBefore, closeBefore
     ji.rule('val', (rs) => {
-      openBefore = rs.open.length
-      closeBefore = rs.close.length
+      openBefore = rs.def.open.length
+      closeBefore = rs.def.close.length
     })
 
     // Now filter out jsonic alts.
     ji.rule('val', (rs) => {
-      rs.open = rs.open.filter((a) => !a.g || !a.g.includes('jsonic'))
-      rs.close = rs.close.filter((a) => !a.g || !a.g.includes('jsonic'))
+      rs.def.open = rs.def.open.filter((a) => !a.g || !a.g.includes('jsonic'))
+      rs.def.close = rs.def.close.filter((a) => !a.g || !a.g.includes('jsonic'))
       // After exclude, should have fewer alts.
-      expect(rs.open.length < openBefore).equal(true)
-      expect(rs.close.length < closeBefore).equal(true)
+      expect(rs.def.open.length < openBefore).equal(true)
+      expect(rs.def.close.length < closeBefore).equal(true)
       // Remaining alts should only be tagged "json" or untagged.
-      for (const alt of rs.open) {
+      for (const alt of rs.def.open) {
         if (alt.g && alt.g !== 'json') {
           throw new Error(`val.open alt still has non-json tag: ${alt.g}`)
         }
@@ -290,9 +290,9 @@ describe('alignment', function () {
   it('lex-subscriber', () => {
     const ji = Jsonic.make()
     const tokens = []
-    ji.sub((tkn) => {
+    ji.sub({ lex: (tkn) => {
       tokens.push(tkn.tin)
-    })
+    }})
     ji('a:1')
     expect(tokens.length > 0).equal(true)
   })
