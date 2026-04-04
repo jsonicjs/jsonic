@@ -230,7 +230,8 @@ describe('alignment', function () {
       expect(rs.def.close.length < closeBefore).equal(true)
       // Remaining alts should not contain the "jsonic" tag.
       for (const alt of rs.def.open) {
-        if (alt.g && alt.g.split(',').map(s => s.trim()).includes('jsonic')) {
+        const g = typeof alt.g === 'string' ? alt.g : ''
+        if (g.split(',').map(s => s.trim()).includes('jsonic')) {
           throw new Error(`val.open alt still has jsonic tag: ${alt.g}`)
         }
       }
