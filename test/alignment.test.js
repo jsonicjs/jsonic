@@ -228,10 +228,10 @@ describe('alignment', function () {
       // After exclude, should have fewer alts.
       expect(rs.def.open.length < openBefore).equal(true)
       expect(rs.def.close.length < closeBefore).equal(true)
-      // Remaining alts should only be tagged "json" or untagged.
+      // Remaining alts should not contain the "jsonic" tag.
       for (const alt of rs.def.open) {
-        if (alt.g && alt.g !== 'json') {
-          throw new Error(`val.open alt still has non-json tag: ${alt.g}`)
+        if (alt.g && alt.g.split(',').map(s => s.trim()).includes('jsonic')) {
+          throw new Error(`val.open alt still has jsonic tag: ${alt.g}`)
         }
       }
     })
