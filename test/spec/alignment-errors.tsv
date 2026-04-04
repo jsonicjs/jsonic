@@ -1,0 +1,9 @@
+input	expected
+}	ERROR:unexpected
+]	ERROR:unexpected
+:	ERROR:unexpected
+"unterminated	ERROR:unterminated_string
+'unterminated	ERROR:unterminated_string
+`unterminated	ERROR:unterminated_string
+/*	ERROR:unterminated_comment
+a:1,2	ERROR:unexpected

@@ -42,9 +42,8 @@ func Grammar(rsm map[string]*RuleSpec, cfg *LexConfig) {
 
 	// pairval: set key:value on node with merging support.
 	// Uses r.U["prev"] (saved by pair.BC[0]) to get the previous value,
-	// then deep-merges if both previous and new values are maps.
+	// then merges according to cfg.MapMerge/cfg.MapExtend settings.
 	pairval := func(r *Rule, ctx *Context) {
-		_ = ctx
 		key, _ := r.U["key"].(string)
 		val := r.Child.Node
 
@@ -53,14 +52,29 @@ func Grammar(rsm map[string]*RuleSpec, cfg *LexConfig) {
 			val = nil
 		}
 
+		// safe.key: block __proto__ and constructor keys on arrays only.
+		// Objects in Go (maps) don't have prototypes, same as TS Object.create(null).
+		// Arrays in TS/JS have real prototypes, so __proto__ must be blocked there.
+		if cfg.SafeKey && r.U["list"] == true {
+			if key == "__proto__" || key == "constructor" {
+				return
+			}
+		}
+
 		// Use saved previous value (set by pair.BC JSON phase before overwrite)
 		prev := r.U["prev"]
 
 		if prev == nil {
 			nodeMapSet(r.Node, key, val)
-		} else {
-			// Deep merge using the Deep utility
+		} else if cfg.MapMerge != nil {
+			// Custom merge function takes precedence
+			nodeMapSet(r.Node, key, cfg.MapMerge(prev, val, r, ctx))
+		} else if cfg.MapExtend {
+			// Deep merge
 			nodeMapSet(r.Node, key, Deep(prev, val))
+		} else {
+			// Plain overwrite (TS default when map.extend is false)
+			nodeMapSet(r.Node, key, val)
 		}
 	}
 
@@ -117,23 +131,23 @@ func Grammar(rsm map[string]*RuleSpec, cfg *LexConfig) {
 	// [8] ZZ → end (Jsonic)
 	valSpec.Open = []*AltSpec{
 		// JSON: A map: { ...
-		{S: [][]Tin{{TinOB}}, P: "map", B: 1},
+		{S: [][]Tin{{TinOB}}, P: "map", B: 1, G: "json"},
 		// JSON: A list: [ ...
-		{S: [][]Tin{{TinOS}}, P: "list", B: 1},
+		{S: [][]Tin{{TinOS}}, P: "list", B: 1, G: "json"},
 		// Jsonic: Implicit map at top level: a: ...
-		{S: [][]Tin{KEY, {TinCL}}, C: func(r *Rule, ctx *Context) bool { return r.D == 0 }, P: "map", B: 2},
+		{S: [][]Tin{KEY, {TinCL}}, C: func(r *Rule, ctx *Context) bool { return r.D == 0 }, P: "map", B: 2, G: "jsonic"},
 		// Jsonic: Pair dive: a:b: ...
-		{S: [][]Tin{KEY, {TinCL}}, P: "map", B: 2, N: map[string]int{"pk": 1}},
+		{S: [][]Tin{KEY, {TinCL}}, P: "map", B: 2, N: map[string]int{"pk": 1}, G: "jsonic"},
 		// Jsonic: A plain value
-		{S: [][]Tin{VAL}},
+		{S: [][]Tin{VAL}, G: "jsonic"},
 		// Jsonic: Implicit ends {a:} → null, [a:] → null
-		{S: [][]Tin{{TinCB, TinCS}}, B: 1, C: func(r *Rule, ctx *Context) bool { return r.D > 0 }},
+		{S: [][]Tin{{TinCB, TinCS}}, B: 1, C: func(r *Rule, ctx *Context) bool { return r.D > 0 }, G: "jsonic"},
 		// Jsonic: Implicit list at top level: a,b
-		{S: [][]Tin{{TinCA}}, C: func(r *Rule, ctx *Context) bool { return r.D == 0 }, P: "list", B: 1},
+		{S: [][]Tin{{TinCA}}, C: func(r *Rule, ctx *Context) bool { return r.D == 0 }, P: "list", B: 1, G: "jsonic"},
 		// Jsonic: Value is implicitly null before commas
-		{S: [][]Tin{{TinCA}}, B: 1},
+		{S: [][]Tin{{TinCA}}, B: 1, G: "jsonic"},
 		// Jsonic: End of source
-		{S: [][]Tin{{TinZZ}}},
+		{S: [][]Tin{{TinZZ}}, G: "jsonic"},
 	}
 
 	// val.Close ordering (after JSON + Jsonic with append:true, move:[1,-1]):
@@ -145,9 +159,9 @@ func Grammar(rsm map[string]*RuleSpec, cfg *LexConfig) {
 	// [5] b:1 more (JSON, moved to end)
 	valSpec.Close = []*AltSpec{
 		// JSON: End of source
-		{S: [][]Tin{{TinZZ}}},
+		{S: [][]Tin{{TinZZ}}, G: "json"},
 		// Jsonic: Explicitly close map or list: }, ]
-		{S: [][]Tin{{TinCB, TinCS}}, B: 1,
+		{S: [][]Tin{{TinCB, TinCS}}, B: 1, G: "jsonic",
 			E: func(r *Rule, ctx *Context) *Token {
 				if r.D == 0 {
 					return ctx.T0
@@ -156,16 +170,16 @@ func Grammar(rsm map[string]*RuleSpec, cfg *LexConfig) {
 			},
 		},
 		// Jsonic: Implicit list (comma sep)
-		{S: [][]Tin{{TinCA}},
+		{S: [][]Tin{{TinCA}}, G: "jsonic",
 			C: func(r *Rule, ctx *Context) bool { return r.Lte("dlist", 0) && r.Lte("dmap", 0) },
 			R: "list", U: map[string]any{"implist": true}},
 		// Jsonic: Implicit list (space sep) - no token match, just condition
 		{C: func(r *Rule, ctx *Context) bool { return r.Lte("dlist", 0) && r.Lte("dmap", 0) },
-			R: "list", U: map[string]any{"implist": true}, B: 1},
+			R: "list", U: map[string]any{"implist": true}, B: 1, G: "jsonic"},
 		// Jsonic: End of source
-		{S: [][]Tin{{TinZZ}}},
+		{S: [][]Tin{{TinZZ}}, G: "jsonic"},
 		// JSON: There's more - backtrack (MOVED TO END by move:[1,-1])
-		{B: 1},
+		{B: 1, G: "json"},
 	}
 
 	// ====== MAP rule ======
@@ -218,13 +232,13 @@ func Grammar(rsm map[string]*RuleSpec, cfg *LexConfig) {
 	// [3] KEY CL implicit pair (Jsonic, appended)
 	mapSpec.Open = []*AltSpec{
 		// Jsonic: Auto-close at EOF: {ZZ (unshifted - no append flag)
-		{S: [][]Tin{{TinOB}, {TinZZ}}, B: 1, E: finish},
+		{S: [][]Tin{{TinOB}, {TinZZ}}, B: 1, E: finish, G: "jsonic"},
 		// JSON: Empty map: {}
-		{S: [][]Tin{{TinOB}, {TinCB}}, B: 1, N: map[string]int{"pk": 0}},
+		{S: [][]Tin{{TinOB}, {TinCB}}, B: 1, N: map[string]int{"pk": 0}, G: "json"},
 		// JSON: Start pairs: {key:
-		{S: [][]Tin{{TinOB}}, P: "pair", N: map[string]int{"pk": 0}},
+		{S: [][]Tin{{TinOB}}, P: "pair", N: map[string]int{"pk": 0}, G: "json"},
 		// Jsonic: Pair from implicit map (no braces) (appended)
-		{S: [][]Tin{KEY, {TinCL}}, P: "pair", B: 2},
+		{S: [][]Tin{KEY, {TinCL}}, P: "pair", B: 2, G: "jsonic"},
 	}
 
 	// map.Close ordering (after Jsonic append + delete:[0]):
@@ -234,13 +248,13 @@ func Grammar(rsm map[string]*RuleSpec, cfg *LexConfig) {
 	// [3] ZZ auto-close (Jsonic)
 	mapSpec.Close = []*AltSpec{
 		// Normal end of map, no path dive
-		{S: [][]Tin{{TinCB}}, C: func(r *Rule, ctx *Context) bool { return r.Lte("pk", 0) }},
+		{S: [][]Tin{{TinCB}}, C: func(r *Rule, ctx *Context) bool { return r.Lte("pk", 0) }, G: "jsonic"},
 		// Not yet at end of path dive, keep ascending
-		{S: [][]Tin{{TinCB}}, B: 1},
+		{S: [][]Tin{{TinCB}}, B: 1, G: "jsonic"},
 		// End of implicit path: comma, close-square, or value token
-		{S: [][]Tin{merge([]Tin{TinCA, TinCS}, VAL)}, B: 1},
+		{S: [][]Tin{merge([]Tin{TinCA, TinCS}, VAL)}, B: 1, G: "jsonic"},
 		// Auto-close at EOF
-		{S: [][]Tin{{TinZZ}}, E: finish},
+		{S: [][]Tin{{TinZZ}}, E: finish, G: "jsonic"},
 	}
 
 	// ====== LIST rule ======
@@ -310,15 +324,15 @@ func Grammar(rsm map[string]*RuleSpec, cfg *LexConfig) {
 		// Jsonic: if prev was implist, just push elem (unshifted)
 		{C: func(r *Rule, ctx *Context) bool {
 			return r.Prev != NoRule && r.Prev != nil && r.Prev.U["implist"] == true
-		}, P: "elem"},
+		}, P: "elem", G: "jsonic"},
 		// JSON: Empty list: []
-		{S: [][]Tin{{TinOS}, {TinCS}}, B: 1},
+		{S: [][]Tin{{TinOS}, {TinCS}}, B: 1, G: "json"},
 		// JSON: Start elements: [elem
-		{S: [][]Tin{{TinOS}}, P: "elem"},
+		{S: [][]Tin{{TinOS}}, P: "elem", G: "json"},
 		// Jsonic: Initial comma [, will insert null
-		{S: [][]Tin{{TinCA}}, P: "elem", B: 1},
+		{S: [][]Tin{{TinCA}}, P: "elem", B: 1, G: "jsonic"},
 		// Jsonic: Another element (no token match needed)
-		{P: "elem"},
+		{P: "elem", G: "jsonic"},
 	}
 
 	// list.Close ordering (JSON + Jsonic append):
@@ -326,9 +340,9 @@ func Grammar(rsm map[string]*RuleSpec, cfg *LexConfig) {
 	// [1] ZZ auto-close (Jsonic, appended)
 	listSpec.Close = []*AltSpec{
 		// JSON: End of list
-		{S: [][]Tin{{TinCS}}},
+		{S: [][]Tin{{TinCS}}, G: "json"},
 		// Jsonic: Auto-close at EOF
-		{S: [][]Tin{{TinZZ}}, E: finish},
+		{S: [][]Tin{{TinZZ}}, E: finish, G: "jsonic"},
 	}
 
 	// ====== PAIR rule ======
@@ -339,8 +353,13 @@ func Grammar(rsm map[string]*RuleSpec, cfg *LexConfig) {
 		// JSON phase: set key=value
 		func(r *Rule, ctx *Context) {
 			if _, ok := r.U["pair"]; ok {
+				key, _ := r.U["key"].(string)
+				// safe.key: block __proto__ and constructor keys on arrays only.
+				if cfg.SafeKey && r.U["list"] == true && (key == "__proto__" || key == "constructor") {
+					return
+				}
 				r.U["prev"] = nodeMapGetVal(r.Node, r.U["key"])
-				nodeMapSet(r.Node, r.U["key"].(string), r.Child.Node)
+				nodeMapSet(r.Node, key, r.Child.Node)
 			}
 		},
 		// Jsonic phase: pairval with merge support
@@ -351,7 +370,6 @@ func Grammar(rsm map[string]*RuleSpec, cfg *LexConfig) {
 		},
 		// Jsonic phase: map.child - bare colon :value stores as child$ key
 		func(r *Rule, ctx *Context) {
-			_ = ctx
 			if childFlag, ok := r.U["child"]; !ok || childFlag != true {
 				return
 			}
@@ -362,6 +380,8 @@ func Grammar(rsm map[string]*RuleSpec, cfg *LexConfig) {
 			prev, hasPrev := nodeMapGet(r.Node, "child$")
 			if !hasPrev {
 				nodeMapSet(r.Node, "child$", val)
+			} else if cfg.MapMerge != nil {
+				nodeMapSet(r.Node, "child$", cfg.MapMerge(prev, val, r, ctx))
 			} else if cfg.MapExtend {
 				nodeMapSet(r.Node, "child$", Deep(prev, val))
 			} else {
@@ -376,9 +396,9 @@ func Grammar(rsm map[string]*RuleSpec, cfg *LexConfig) {
 	// [2] CL child value (Jsonic, optional - only when map.child enabled)
 	pairOpen := []*AltSpec{
 		// JSON: key:value pair
-		{S: [][]Tin{KEY, {TinCL}}, P: "val", U: map[string]any{"pair": true}, A: pairkey},
+		{S: [][]Tin{KEY, {TinCL}}, P: "val", U: map[string]any{"pair": true}, A: pairkey, G: "json"},
 		// Jsonic: Ignore initial comma: {,a:1
-		{S: [][]Tin{{TinCA}}},
+		{S: [][]Tin{{TinCA}}, G: "jsonic"},
 	}
 	// Jsonic: map.child - bare colon :value stores as child$ key
 	if cfg.MapChild {
@@ -404,27 +424,27 @@ func Grammar(rsm map[string]*RuleSpec, cfg *LexConfig) {
 	// [9] r:pair b:1 (Jsonic)
 	pairSpec.Close = []*AltSpec{
 		// Jsonic: End of map, check pk depth
-		{S: [][]Tin{{TinCB}}, C: func(r *Rule, ctx *Context) bool { return r.Lte("pk", 0) }, B: 1},
+		{S: [][]Tin{{TinCB}}, C: func(r *Rule, ctx *Context) bool { return r.Lte("pk", 0) }, B: 1, G: "jsonic"},
 		// Jsonic: Ignore trailing comma at end of map
-		{S: [][]Tin{{TinCA}, {TinCB}}, C: func(r *Rule, ctx *Context) bool { return r.Lte("pk", 0) }, B: 1},
+		{S: [][]Tin{{TinCA}, {TinCB}}, C: func(r *Rule, ctx *Context) bool { return r.Lte("pk", 0) }, B: 1, G: "jsonic"},
 		// Jsonic: Comma then EOF
-		{S: [][]Tin{{TinCA}, {TinZZ}}},
+		{S: [][]Tin{{TinCA}, {TinZZ}}, G: "jsonic"},
 		// Jsonic: Comma means new pair at same level (with pk check)
-		{S: [][]Tin{{TinCA}}, C: func(r *Rule, ctx *Context) bool { return r.Lte("pk", 0) }, R: "pair"},
+		{S: [][]Tin{{TinCA}}, C: func(r *Rule, ctx *Context) bool { return r.Lte("pk", 0) }, R: "pair", G: "jsonic"},
 		// Jsonic: Comma means new pair if implicit top level map
-		{S: [][]Tin{{TinCA}}, C: func(r *Rule, ctx *Context) bool { return r.Lte("dmap", 1) }, R: "pair"},
+		{S: [][]Tin{{TinCA}}, C: func(r *Rule, ctx *Context) bool { return r.Lte("dmap", 1) }, R: "pair", G: "jsonic"},
 		// Jsonic: Value means new pair (space-separated) if implicit top level map
-		{S: [][]Tin{KEY}, C: func(r *Rule, ctx *Context) bool { return r.Lte("dmap", 1) }, R: "pair", B: 1},
+		{S: [][]Tin{KEY}, C: func(r *Rule, ctx *Context) bool { return r.Lte("dmap", 1) }, R: "pair", B: 1, G: "jsonic"},
 		// Jsonic: End of implicit path, keep closing until pk=0
 		{S: [][]Tin{merge([]Tin{TinCB, TinCA, TinCS}, KEY)},
 			C: func(r *Rule, ctx *Context) bool { _, ok := r.N["pk"]; return ok && r.N["pk"] > 0 },
-			B: 1},
+			B: 1, G: "jsonic"},
 		// Jsonic: Can't close map with ]
-		{S: [][]Tin{{TinCS}}, E: func(r *Rule, ctx *Context) *Token { return r.C0 }},
+		{S: [][]Tin{{TinCS}}, E: func(r *Rule, ctx *Context) *Token { return r.C0 }, G: "jsonic"},
 		// Jsonic: Auto-close at EOF
-		{S: [][]Tin{{TinZZ}}, E: finish},
+		{S: [][]Tin{{TinZZ}}, E: finish, G: "jsonic"},
 		// Jsonic: Who needs commas anyway? (implicit continuation)
-		{R: "pair", B: 1},
+		{R: "pair", B: 1, G: "jsonic"},
 	}
 
 	// ====== ELEM rule ======
@@ -533,7 +553,13 @@ func Grammar(rsm map[string]*RuleSpec, cfg *LexConfig) {
 		{S: [][]Tin{KEY, {TinCL}}, P: "val",
 			N: map[string]int{"pk": 1, "dmap": 1},
 			U: map[string]any{"done": true, "pair": true, "list": true},
-			A: pairkey},
+			A: pairkey,
+			E: func(r *Rule, ctx *Context) *Token {
+				if cfg.ListProperty || cfg.ListPair {
+					return nil // allowed
+				}
+				return ctx.T0 // error: pair in list not allowed
+			}},
 	}
 	// Jsonic: list.child - bare colon `:value` stores child value
 	if cfg.ListChild {
@@ -556,17 +582,17 @@ func Grammar(rsm map[string]*RuleSpec, cfg *LexConfig) {
 	// JSON [0] and [1] deleted by delete:[-1,-2]
 	elemSpec.Close = []*AltSpec{
 		// Jsonic: Ignore trailing comma before ] or ZZ
-		{S: [][]Tin{{TinCA}, {TinCS, TinZZ}}, B: 1},
+		{S: [][]Tin{{TinCA}, {TinCS, TinZZ}}, B: 1, G: "jsonic"},
 		// Jsonic: Next element
-		{S: [][]Tin{{TinCA}}, R: "elem"},
+		{S: [][]Tin{{TinCA}}, R: "elem", G: "jsonic"},
 		// Jsonic: End of list
-		{S: [][]Tin{{TinCS}}, B: 1},
+		{S: [][]Tin{{TinCS}}, B: 1, G: "jsonic"},
 		// Jsonic: Auto-close at EOF
-		{S: [][]Tin{{TinZZ}}, E: finish},
+		{S: [][]Tin{{TinZZ}}, E: finish, G: "jsonic"},
 		// Jsonic: Can't close list with }
-		{S: [][]Tin{{TinCB}}, E: func(r *Rule, ctx *Context) *Token { return r.C0 }},
+		{S: [][]Tin{{TinCB}}, E: func(r *Rule, ctx *Context) *Token { return r.C0 }, G: "jsonic"},
 		// Jsonic: Who needs commas anyway? (implicit element)
-		{R: "elem", B: 1},
+		{R: "elem", B: 1, G: "jsonic"},
 	}
 
 	rsm["val"] = valSpec

@@ -1,0 +1,8 @@
+input	expected
+{a:1,__proto__:2}	{"a":1,"__proto__":2}
+{a:1,constructor:2}	{"a":1,"constructor":2}
+{__proto__:1}	{"__proto__":1}
+{constructor:1}	{"constructor":1}
+{a:1,b:2}	{"a":1,"b":2}
+{__proto__:1,a:2}	{"__proto__":1,"a":2}
+{constructor:1,a:2}	{"constructor":1,"a":2}

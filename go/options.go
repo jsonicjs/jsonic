@@ -100,20 +100,26 @@ type LineOptions struct {
 	Lex      *bool  // Enable line lexing. Default: true.
 	Chars    string // Line characters. Default: "\r\n".
 	RowChars string // Row-counting characters. Default: "\n".
+	Single   *bool  // Generate separate tokens per newline. Default: false.
 }
+
+// ValModifier transforms a text token value after lexing.
+type ValModifier func(val any) any
 
 // TextOptions controls unquoted text lexing.
 type TextOptions struct {
-	Lex *bool // Enable text matching. Default: true.
+	Lex    *bool         // Enable text matching. Default: true.
+	Modify []ValModifier // Pipeline of value modifiers applied after text matching.
 }
 
 // NumberOptions controls numeric literal lexing.
 type NumberOptions struct {
-	Lex *bool   // Enable number matching. Default: true.
-	Hex *bool   // Support 0x hex format. Default: true.
-	Oct *bool   // Support 0o octal format. Default: true.
-	Bin *bool   // Support 0b binary format. Default: true.
-	Sep string  // Number separator character. Default: "_". Empty string disables.
+	Lex     *bool             // Enable number matching. Default: true.
+	Hex     *bool             // Support 0x hex format. Default: true.
+	Oct     *bool             // Support 0o octal format. Default: true.
+	Bin     *bool             // Support 0b binary format. Default: true.
+	Sep     string            // Number separator character. Default: "_". Empty string disables.
+	Exclude func(string) bool // Exclude certain number-like strings from number matching.
 }
 
 // CommentDef defines a single comment type.
@@ -122,6 +128,7 @@ type CommentDef struct {
 	Start   string // Start marker, e.g. "#", "//", "/*".
 	End     string // End marker for block comments, e.g. "*/".
 	Lex     *bool  // Enable this comment type. Default: true.
+	EatLine *bool  // Also consume trailing line chars. Default: false.
 }
 
 // CommentOptions controls comment lexing.
@@ -138,12 +145,19 @@ type StringOptions struct {
 	EscapeChar   string            // Escape character. Default: "\\".
 	Escape       map[string]string // Escape mappings, e.g. {"n": "\n"}.
 	AllowUnknown *bool             // Allow unknown escapes. Default: true.
+	Abandon      *bool             // On string error, return nil to let next matcher try. Default: false.
+	Replace      map[rune]string   // Character replacements applied during string scanning.
 }
+
+// MapMergeFunc is a custom merge function for duplicate map keys.
+// Receives the previous value, new value, rule, and context.
+type MapMergeFunc func(prev, val any, r *Rule, ctx *Context) any
 
 // MapOptions controls object/map behavior.
 type MapOptions struct {
-	Extend *bool // Deep-merge duplicate keys. Default: true.
-	Child  *bool // Parse bare colon as child$ key: {:1} → {"child$":1}. Default: false.
+	Extend *bool        // Deep-merge duplicate keys. Default: true.
+	Child  *bool        // Parse bare colon as child$ key: {:1} → {"child$":1}. Default: false.
+	Merge  MapMergeFunc // Custom merge function for duplicate keys. Takes precedence over Extend.
 }
 
 // ListOptions controls array/list behavior.
@@ -375,6 +389,7 @@ func buildConfig(o *Options) *LexConfig {
 
 	// Line
 	cfg.LineLex = boolVal(optBool(o.Line, func(l *LineOptions) *bool { return l.Lex }), true)
+	cfg.LineSingle = boolVal(optBool(o.Line, func(l *LineOptions) *bool { return l.Single }), false)
 	if o.Line != nil && o.Line.Chars != "" {
 		cfg.LineChars = runeSet(o.Line.Chars)
 	} else {
@@ -388,9 +403,15 @@ func buildConfig(o *Options) *LexConfig {
 
 	// Text
 	cfg.TextLex = boolVal(optBool(o.Text, func(t *TextOptions) *bool { return t.Lex }), true)
+	if o.Text != nil && len(o.Text.Modify) > 0 {
+		cfg.TextModify = o.Text.Modify
+	}
 
 	// Number
 	cfg.NumberLex = boolVal(optBool(o.Number, func(n *NumberOptions) *bool { return n.Lex }), true)
+	if o.Number != nil && o.Number.Exclude != nil {
+		cfg.NumberExclude = o.Number.Exclude
+	}
 	cfg.NumberHex = boolVal(optBool(o.Number, func(n *NumberOptions) *bool { return n.Hex }), true)
 	cfg.NumberOct = boolVal(optBool(o.Number, func(n *NumberOptions) *bool { return n.Oct }), true)
 	cfg.NumberBin = boolVal(optBool(o.Number, func(n *NumberOptions) *bool { return n.Bin }), true)
@@ -408,14 +429,23 @@ func buildConfig(o *Options) *LexConfig {
 	if o.Comment != nil && o.Comment.Def != nil {
 		cfg.CommentLine = nil
 		cfg.CommentBlock = nil
+		cfg.CommentLineEatLine = make(map[string]bool)
+		cfg.CommentBlockEatLine = make(map[string]bool)
 		for _, def := range o.Comment.Def {
 			if def == nil || !boolVal(def.Lex, true) {
 				continue
 			}
+			eatLine := boolVal(def.EatLine, false)
 			if def.Line {
 				cfg.CommentLine = append(cfg.CommentLine, def.Start)
+				if eatLine {
+					cfg.CommentLineEatLine[def.Start] = true
+				}
 			} else {
 				cfg.CommentBlock = append(cfg.CommentBlock, [2]string{def.Start, def.End})
+				if eatLine {
+					cfg.CommentBlockEatLine[def.Start] = true
+				}
 			}
 		}
 	} else {
@@ -441,6 +471,10 @@ func buildConfig(o *Options) *LexConfig {
 		cfg.EscapeChar = '\\'
 	}
 	cfg.AllowUnknownEscape = boolVal(optBool(o.String, func(s *StringOptions) *bool { return s.AllowUnknown }), true)
+	cfg.StringAbandon = boolVal(optBool(o.String, func(s *StringOptions) *bool { return s.Abandon }), false)
+	if o.String != nil && o.String.Replace != nil {
+		cfg.StringReplace = o.String.Replace
+	}
 	if o.String != nil && o.String.Escape != nil {
 		cfg.EscapeMap = make(map[string]string, len(o.String.Escape))
 		for k, v := range o.String.Escape {
@@ -472,6 +506,9 @@ func buildConfig(o *Options) *LexConfig {
 	// Map
 	cfg.MapExtend = boolVal(optBool(o.Map, func(m *MapOptions) *bool { return m.Extend }), true)
 	cfg.MapChild = boolVal(optBool(o.Map, func(m *MapOptions) *bool { return m.Child }), false)
+	if o.Map != nil && o.Map.Merge != nil {
+		cfg.MapMerge = o.Map.Merge
+	}
 
 	// List
 	cfg.ListProperty = boolVal(optBool(o.List, func(l *ListOptions) *bool { return l.Property }), true)

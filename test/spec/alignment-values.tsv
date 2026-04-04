@@ -1,0 +1,9 @@
+input	expected
+NaN	"NaN"
+Infinity	"Infinity"
+a:NaN	{"a":"NaN"}
+a:Infinity	{"a":"Infinity"}
+[NaN]	["NaN"]
+[Infinity]	["Infinity"]
+{a:NaN,b:Infinity}	{"a":"NaN","b":"Infinity"}
+NaN,Infinity	["NaN","Infinity"]

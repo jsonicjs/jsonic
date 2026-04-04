@@ -1,0 +1,11 @@
+input	expected
+{	{}
+[	[]
+{a:1	{"a":1}
+[1	[1]
+{a:{b:1}	{"a":{"b":1}}
+[[1	[[1]]
+,	[null]
+a:	{"a":null}
+a:,b:	{"a":null,"b":null}
+{a:}	{"a":null}

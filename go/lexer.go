@@ -1,7 +1,6 @@
 package jsonic
 
 import (
-	"math"
 	"sort"
 	"strings"
 	"unicode"
@@ -43,16 +42,32 @@ type LexConfig struct {
 	NumberBin    bool
 	NumberSep    rune // Separator char (underscore)
 	AllowUnknownEscape bool
+	StringAbandon      bool            // On string error, return nil instead of bad token.
+	StringReplace      map[rune]string // Character replacements during string scanning.
 
 	// Value definitions: keyword → value (e.g. "true" → true)
-	// If nil, uses built-in defaults (true, false, null, NaN, Infinity).
+	// If nil, uses built-in defaults (true, false, null).
 	ValueDef map[string]any
 
+	// Number options
+	NumberExclude func(string) bool // Exclude certain number-like strings.
+
+	// Line options
+	LineSingle bool // Generate separate tokens per newline.
+
+	// Text options
+	TextModify []ValModifier // Pipeline of text value modifiers.
+
+	// Comment options (per-def eatline stored on CommentDef)
+	CommentLineEatLine  map[string]bool // Line comment starter → eatline flag.
+	CommentBlockEatLine map[string]bool // Block comment start → eatline flag.
+
 	// Map/List options
-	MapExtend    bool // Deep-merge duplicate keys. Default: true.
-	MapChild     bool // Parse bare colon in maps as child$ key. Default: false.
-	ListProperty bool // Allow named properties in arrays. Default: true.
-	ListPair     bool // Push pairs as object elements in arrays. Default: false.
+	MapExtend    bool         // Deep-merge duplicate keys. Default: true.
+	MapMerge     MapMergeFunc // Custom merge function for duplicate keys.
+	MapChild     bool         // Parse bare colon in maps as child$ key. Default: false.
+	ListProperty bool         // Allow named properties in arrays. Default: true.
+	ListPair     bool         // Push pairs as object elements in arrays. Default: false.
 
 	// Safe options
 	SafeKey bool // Prevent __proto__ keys. Default: true.
@@ -89,6 +104,12 @@ type LexConfig struct {
 
 	// MapRef wraps map output values in MapRef structs.
 	MapRef bool
+
+	// ParsePrepare hooks called before parsing begins.
+	ParsePrepare []func(ctx *Context)
+
+	// ResultFail is a list of values that are treated as parse failures.
+	ResultFail []any
 
 	// LexCheck callbacks allow plugins to intercept and override matchers.
 	// Each returns nil to continue normal matching, or a LexCheckResult to short-circuit.
@@ -189,18 +210,23 @@ func (l *Lex) Token(name string, tin Tin, val any, src string) *Token {
 	return MakeToken(name, tin, val, src, l.pnt)
 }
 
-// Next returns the next non-IGNORE token.
+// Next returns the next non-IGNORE token, passing the current parsing rule
+// to custom matchers for context-sensitive lexing.
 // On error (unterminated string, unterminated comment, unexpected character),
 // the error is stored in l.Err and a ZZ (end) token is returned to allow
 // the parser to wind down gracefully.
-func (l *Lex) Next() *Token {
+func (l *Lex) Next(rule ...*Rule) *Token {
+	var r *Rule
+	if len(rule) > 0 {
+		r = rule[0]
+	}
 	for {
 		// If an error has already occurred, return end-of-source to stop parsing
 		if l.Err != nil {
 			return &Token{Name: "#ZZ", Tin: TinZZ, Val: Undefined, SI: l.pnt.SI, RI: l.pnt.RI, CI: l.pnt.CI}
 		}
 
-		tkn := l.nextRaw()
+		tkn := l.nextRaw(r)
 		if tkn == nil {
 			src := ""
 			if l.pnt.SI < len(l.Src) {
@@ -223,7 +249,8 @@ func (l *Lex) Next() *Token {
 }
 
 // nextRaw returns the next raw token (including IGNORE tokens).
-func (l *Lex) nextRaw() *Token {
+// The rule parameter is passed to custom matchers for context-sensitive lexing.
+func (l *Lex) nextRaw(rule *Rule) *Token {
 	// Return cached end token
 	if l.end != nil {
 		return l.end
@@ -250,7 +277,7 @@ func (l *Lex) nextRaw() *Token {
 		if m.Priority >= 2000000 {
 			break
 		}
-		if tkn := m.Match(l); tkn != nil {
+		if tkn := m.Match(l, rule); tkn != nil {
 			return tkn
 		}
 	}
@@ -310,7 +337,7 @@ func (l *Lex) nextRaw() *Token {
 		if m.Priority < 8000000 {
 			continue
 		}
-		if tkn := m.Match(l); tkn != nil {
+		if tkn := m.Match(l, rule); tkn != nil {
 			return tkn
 		}
 	}
@@ -389,16 +416,29 @@ func (l *Lex) matchSpace() *Token {
 }
 
 // matchLine matches line ending characters (\r, \n).
+// When LineSingle is true, generates separate tokens for each newline sequence.
 func (l *Lex) matchLine() *Token {
 	sI := l.pnt.SI
+	if sI >= l.pnt.Len || !l.Config.LineChars[rune(l.Src[sI])] {
+		return nil
+	}
+
 	rI := l.pnt.RI
-	for sI < l.pnt.Len && l.Config.LineChars[rune(l.Src[sI])] {
-		if l.Config.RowChars[rune(l.Src[sI])] {
+
+	if l.Config.LineSingle {
+		// Single mode: consume one newline sequence (\r\n or \n or \r)
+		ch := l.Src[sI]
+		sI++
+		if l.Config.RowChars[rune(ch)] {
 			rI++
 		}
-		sI++
-	}
-	if sI > l.pnt.SI {
+		// Handle \r\n as a single sequence
+		if ch == '\r' && sI < l.pnt.Len && l.Src[sI] == '\n' {
+			if l.Config.RowChars['\n'] {
+				// \r\n counts as one row
+			}
+			sI++
+		}
 		src := l.Src[l.pnt.SI:sI]
 		tkn := l.Token("#LN", TinLN, nil, src)
 		l.pnt.SI = sI
@@ -406,7 +446,20 @@ func (l *Lex) matchLine() *Token {
 		l.pnt.CI = 1
 		return tkn
 	}
-	return nil
+
+	// Default: consume all consecutive line characters into one token
+	for sI < l.pnt.Len && l.Config.LineChars[rune(l.Src[sI])] {
+		if l.Config.RowChars[rune(l.Src[sI])] {
+			rI++
+		}
+		sI++
+	}
+	src := l.Src[l.pnt.SI:sI]
+	tkn := l.Token("#LN", TinLN, nil, src)
+	l.pnt.SI = sI
+	l.pnt.RI = rI
+	l.pnt.CI = 1
+	return tkn
 }
 
 // matchComment matches line comments (# //) and block comments (/* */).
@@ -421,6 +474,22 @@ func (l *Lex) matchComment() *Token {
 			for fI < len(fwd) && !l.Config.LineChars[rune(fwd[fI])] {
 				cI++
 				fI++
+			}
+			// EatLine: also consume trailing line characters
+			if l.Config.CommentLineEatLine[start] {
+				rI := l.pnt.RI
+				for fI < len(fwd) && l.Config.LineChars[rune(fwd[fI])] {
+					if l.Config.RowChars[rune(fwd[fI])] {
+						rI++
+					}
+					fI++
+				}
+				src := fwd[:fI]
+				tkn := l.Token("#CM", TinCM, nil, src)
+				l.pnt.SI += len(src)
+				l.pnt.RI = rI
+				l.pnt.CI = 1
+				return tkn
 			}
 			src := fwd[:fI]
 			tkn := l.Token("#CM", TinCM, nil, src)
@@ -447,7 +516,18 @@ func (l *Lex) matchComment() *Token {
 			}
 			if strings.HasPrefix(fwd[fI:], end) {
 				cI += len(end)
-				src := fwd[:fI+len(end)]
+				fI += len(end)
+				// EatLine: also consume trailing line characters
+				if l.Config.CommentBlockEatLine[start] {
+					for fI < len(fwd) && l.Config.LineChars[rune(fwd[fI])] {
+						if l.Config.RowChars[rune(fwd[fI])] {
+							rI++
+						}
+						fI++
+					}
+					cI = 1
+				}
+				src := fwd[:fI]
 				tkn := l.Token("#CM", TinCM, nil, src)
 				l.pnt.SI += len(src)
 				l.pnt.RI = rI
@@ -544,9 +624,16 @@ func (l *Lex) matchString() *Token {
 						sI += 1 // loop will increment
 						cI += 2
 					} else {
-						sb.WriteByte(esc)
-						sI--
+						if l.Config.StringAbandon {
+							return nil
+						}
+						return l.bad("invalid_ascii", l.pnt.SI, sI+2)
 					}
+				} else {
+					if l.Config.StringAbandon {
+						return nil
+					}
+					return l.bad("invalid_ascii", l.pnt.SI, sI)
 				}
 			case 'u':
 				// Unicode escape \u**** or \u{*****}
@@ -560,7 +647,17 @@ func (l *Lex) matchString() *Token {
 							sb.WriteRune(rune(cc))
 							sI += endI // skip past digits, loop handles +1
 							cI += endI + 2
+						} else {
+							if l.Config.StringAbandon {
+								return nil
+							}
+							return l.bad("invalid_unicode", l.pnt.SI, sI+endI+1)
 						}
+					} else {
+						if l.Config.StringAbandon {
+							return nil
+						}
+						return l.bad("invalid_unicode", l.pnt.SI, sI)
 					}
 				} else if sI+4 <= srclen {
 					cc := parseHexInt(src[sI : sI+4])
@@ -568,11 +665,26 @@ func (l *Lex) matchString() *Token {
 						sb.WriteRune(rune(cc))
 						sI += 3
 						cI += 4
+					} else {
+						if l.Config.StringAbandon {
+							return nil
+						}
+						return l.bad("invalid_unicode", l.pnt.SI, sI+4)
 					}
+				} else {
+					if l.Config.StringAbandon {
+						return nil
+					}
+					return l.bad("invalid_unicode", l.pnt.SI, sI)
 				}
 			default:
 				if l.Config.AllowUnknownEscape {
 					sb.WriteByte(esc)
+				} else {
+					if l.Config.StringAbandon {
+						return nil
+					}
+					return l.bad("unexpected", l.pnt.SI, sI+1)
 				}
 			}
 			sI++
@@ -591,26 +703,58 @@ func (l *Lex) matchString() *Token {
 				continue
 			}
 			// Non-multiline unprintable - bad
+			if l.Config.StringAbandon {
+				return nil
+			}
 			break
 		}
 
 		// Normal body - fast scan
 		bI := sI
-		for sI < srclen {
-			cc := rune(src[sI])
-			if cc < 32 || cc == q || cc == rune(l.Config.EscapeChar) {
-				break
+		if len(l.Config.StringReplace) > 0 {
+			// Char-by-char with replacement support
+			for sI < srclen {
+				cc := rune(src[sI])
+				if cc < 32 || cc == q || cc == rune(l.Config.EscapeChar) {
+					break
+				}
+				if rep, ok := l.Config.StringReplace[cc]; ok {
+					// Flush pending plain chars
+					if sI > bI {
+						sb.WriteString(src[bI:sI])
+					}
+					sb.WriteString(rep)
+					sI++
+					cI++
+					bI = sI
+					continue
+				}
+				sI++
+				cI++
 			}
-			sI++
-			cI++
+			if sI > bI {
+				sb.WriteString(src[bI:sI])
+			}
+		} else {
+			for sI < srclen {
+				cc := rune(src[sI])
+				if cc < 32 || cc == q || cc == rune(l.Config.EscapeChar) {
+					break
+				}
+				sI++
+				cI++
+			}
+			sb.WriteString(src[bI:sI])
 		}
 		cI-- // loop will re-increment
-		sb.WriteString(src[bI:sI])
 		continue
 	}
 
 	// Check for unterminated string
 	if !foundClose {
+		if l.Config.StringAbandon {
+			return nil
+		}
 		return l.bad("unterminated_string", l.pnt.SI, sI)
 	}
 
@@ -816,8 +960,10 @@ func (l *Lex) matchNumber() *Token {
 		return nil
 	}
 
-	// Check if this matches a value keyword (e.g. if value.def had this string)
-	// Not applicable for standard numbers, skip.
+	// Check number.exclude
+	if l.Config.NumberExclude != nil && l.Config.NumberExclude(msrc) {
+		return nil
+	}
 
 	nstr := msrc
 	if l.Config.NumberSep != 0 {
@@ -832,6 +978,26 @@ func (l *Lex) matchNumber() *Token {
 	tkn := l.Token("#NR", TinNR, num, msrc)
 	l.pnt.SI = sI
 	l.pnt.CI += sI - start
+
+	// subMatchFixed: push trailing fixed token as lookahead (matching TS)
+	if l.pnt.SI < l.pnt.Len {
+		remaining := src[l.pnt.SI:]
+		for _, fs := range l.Config.FixedSorted {
+			if strings.HasPrefix(remaining, fs) {
+				ftoks := l.Config.FixedTokens
+				if ftoks == nil {
+					ftoks = FixedTokens
+				}
+				tin := ftoks[fs]
+				fixTkn := l.Token(l.tinNameFor(tin), tin, nil, fs)
+				l.pnt.SI += len(fs)
+				l.pnt.CI += len(fs)
+				l.tokens = append(l.tokens, fixTkn)
+				break
+			}
+		}
+	}
+
 	return tkn
 }
 
@@ -912,7 +1078,7 @@ func (l *Lex) matchText() *Token {
 				return tkn
 			}
 		} else {
-			// Default value keywords
+			// Default value keywords (matching TS: true, false, null only)
 			switch msrc {
 			case "true":
 				tkn := l.Token("#VL", TinVL, true, msrc)
@@ -929,27 +1095,19 @@ func (l *Lex) matchText() *Token {
 				l.pnt.SI += mlen
 				l.pnt.CI += mlen
 				return tkn
-			case "NaN":
-				tkn := l.Token("#VL", TinVL, math.NaN(), msrc)
-				l.pnt.SI += mlen
-				l.pnt.CI += mlen
-				return tkn
-			case "Infinity":
-				tkn := l.Token("#VL", TinVL, math.Inf(1), msrc)
-				l.pnt.SI += mlen
-				l.pnt.CI += mlen
-				return tkn
-			case "-Infinity":
-				tkn := l.Token("#VL", TinVL, math.Inf(-1), msrc)
-				l.pnt.SI += mlen
-				l.pnt.CI += mlen
-				return tkn
 			}
 		}
 	}
 
 	// Plain text
-	tkn := l.Token("#TX", TinTX, msrc, msrc)
+	var textVal any = msrc
+	// Run text.modify pipeline
+	if len(l.Config.TextModify) > 0 {
+		for _, mod := range l.Config.TextModify {
+			textVal = mod(textVal)
+		}
+	}
+	tkn := l.Token("#TX", TinTX, textVal, msrc)
 	l.pnt.SI += mlen
 	l.pnt.CI += mlen
 

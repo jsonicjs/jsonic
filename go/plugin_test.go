@@ -5,6 +5,16 @@ import (
 	"testing"
 )
 
+// hasExactTag checks if tagStr (comma-separated) contains the exact tag.
+func hasExactTag(tagStr, tag string) bool {
+	for _, t := range strings.Split(tagStr, ",") {
+		if strings.TrimSpace(t) == tag {
+			return true
+		}
+	}
+	return false
+}
+
 // --- Plugin: Use and basic invocation ---
 
 func TestUseInvokesPlugin(t *testing.T) {
@@ -217,7 +227,7 @@ func TestPluginRuleNewRule(t *testing.T) {
 func TestPluginCustomMatcher(t *testing.T) {
 	// Plugin that matches "$$" as a special value.
 	dollarPlugin := func(j *Jsonic, opts map[string]any) {
-		j.AddMatcher("dollar", 1500000, func(lex *Lex) *Token {
+		j.AddMatcher("dollar", 1500000, func(lex *Lex, rule *Rule) *Token {
 			pnt := lex.Cursor()
 			if pnt.SI+2 <= pnt.Len && lex.Src[pnt.SI:pnt.SI+2] == "$$" {
 				tkn := lex.Token("#VL", TinVL, "DOLLAR", "$$")
@@ -244,7 +254,7 @@ func TestPluginCustomMatcher(t *testing.T) {
 func TestPluginCustomMatcherInObject(t *testing.T) {
 	// Custom matcher that matches "@" as a special value.
 	atPlugin := func(j *Jsonic, opts map[string]any) {
-		j.AddMatcher("at", 1500000, func(lex *Lex) *Token {
+		j.AddMatcher("at", 1500000, func(lex *Lex, rule *Rule) *Token {
 			pnt := lex.Cursor()
 			if pnt.SI < pnt.Len && lex.Src[pnt.SI] == '@' {
 				tkn := lex.Token("#VL", TinVL, "AT_VALUE", "@")
@@ -278,7 +288,7 @@ func TestPluginMatcherPriority(t *testing.T) {
 	earlySawInput := false
 
 	j := Make()
-	j.AddMatcher("early", 1000000, func(lex *Lex) *Token {
+	j.AddMatcher("early", 1000000, func(lex *Lex, rule *Rule) *Token {
 		pnt := lex.Cursor()
 		if pnt.SI < pnt.Len && lex.Src[pnt.SI] == '4' {
 			earlySawInput = true
@@ -296,7 +306,7 @@ func TestPluginMatcherPriority(t *testing.T) {
 func TestPluginMatcherLowPriorityCaptures(t *testing.T) {
 	// An early custom matcher can capture input before built-in matchers.
 	j := Make()
-	j.AddMatcher("capture42", 1000000, func(lex *Lex) *Token {
+	j.AddMatcher("capture42", 1000000, func(lex *Lex, rule *Rule) *Token {
 		pnt := lex.Cursor()
 		if pnt.SI+2 <= pnt.Len && lex.Src[pnt.SI:pnt.SI+2] == "42" {
 			tkn := lex.Token("#VL", TinVL, "FORTY_TWO", "42")
@@ -746,11 +756,11 @@ func TestSetOptions(t *testing.T) {
 func TestExclude(t *testing.T) {
 	j := Make()
 
-	// Count alternates with "json" group tag before exclude.
+	// Count alternates with exact "json" group tag before exclude.
 	hasJsonGroup := false
 	for _, rs := range j.RSM() {
 		for _, alt := range rs.Open {
-			if strings.Contains(alt.G, "json") {
+			if hasExactTag(alt.G, "json") {
 				hasJsonGroup = true
 				break
 			}
@@ -772,12 +782,12 @@ func TestExclude(t *testing.T) {
 
 	for _, rs := range j.RSM() {
 		for _, alt := range rs.Open {
-			if strings.Contains(alt.G, "json") {
+			if hasExactTag(alt.G, "json") {
 				t.Errorf("rule %s still has 'json' group alt after Exclude", rs.Name)
 			}
 		}
 		for _, alt := range rs.Close {
-			if strings.Contains(alt.G, "json") {
+			if hasExactTag(alt.G, "json") {
 				t.Errorf("rule %s still has 'json' close alt after Exclude", rs.Name)
 			}
 		}
