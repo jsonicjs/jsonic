@@ -381,7 +381,7 @@ func ParseAlts(isOpen bool, alts []*AltSpec, lex *Lex, rule *Rule, ctx *Context)
 
 		if len(alt.S) > 0 && len(alt.S[0]) > 0 {
 			if ctx.T0.IsNoToken() {
-				ctx.T0 = lex.Next()
+				ctx.T0 = lex.Next(rule)
 				// Fire lex subscribers.
 				if len(ctx.LexSubs) > 0 {
 					for _, sub := range ctx.LexSubs {
@@ -394,7 +394,7 @@ func ParseAlts(isOpen bool, alts []*AltSpec, lex *Lex, rule *Rule, ctx *Context)
 
 			if cond && len(alt.S) > 1 && len(alt.S[1]) > 0 {
 				if ctx.T1.IsNoToken() {
-					ctx.T1 = lex.Next()
+					ctx.T1 = lex.Next(rule)
 					if len(ctx.LexSubs) > 0 {
 						for _, sub := range ctx.LexSubs {
 							sub(ctx.T1, rule, ctx)

@@ -11,10 +11,12 @@ import (
 type Plugin func(j *Jsonic, opts map[string]any)
 
 // LexMatcher is a custom lexer matcher function.
-// It receives the lexer and returns a Token if matched, or nil to pass.
+// It receives the lexer and the current parsing rule, and returns a Token
+// if matched, or nil to pass. The rule parameter allows context-sensitive
+// lexing (e.g. checking rule.K, rule.U, rule.N, or rule.State).
 // The matcher can read the current position via lex.Cursor() and must
 // advance the cursor if it produces a token.
-type LexMatcher func(lex *Lex) *Token
+type LexMatcher func(lex *Lex, rule *Rule) *Token
 
 // MatcherEntry holds a named custom matcher with a priority for ordering.
 // Lower priority numbers run first. Built-in matchers use:
@@ -145,6 +147,7 @@ func (j *Jsonic) Token(name string, src ...string) Tin {
 //	comment=6000000, number=7000000, text=8000000
 //
 // Use priority < 2000000 to run before all built-ins (matching TS match behavior).
+// The matcher receives the current parsing rule for context-sensitive lexing.
 // Returns the Jsonic instance for chaining.
 func (j *Jsonic) AddMatcher(name string, priority int, matcher LexMatcher) *Jsonic {
 	entry := &MatcherEntry{

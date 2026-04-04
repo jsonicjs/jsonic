@@ -189,18 +189,23 @@ func (l *Lex) Token(name string, tin Tin, val any, src string) *Token {
 	return MakeToken(name, tin, val, src, l.pnt)
 }
 
-// Next returns the next non-IGNORE token.
+// Next returns the next non-IGNORE token, passing the current parsing rule
+// to custom matchers for context-sensitive lexing.
 // On error (unterminated string, unterminated comment, unexpected character),
 // the error is stored in l.Err and a ZZ (end) token is returned to allow
 // the parser to wind down gracefully.
-func (l *Lex) Next() *Token {
+func (l *Lex) Next(rule ...*Rule) *Token {
+	var r *Rule
+	if len(rule) > 0 {
+		r = rule[0]
+	}
 	for {
 		// If an error has already occurred, return end-of-source to stop parsing
 		if l.Err != nil {
 			return &Token{Name: "#ZZ", Tin: TinZZ, Val: Undefined, SI: l.pnt.SI, RI: l.pnt.RI, CI: l.pnt.CI}
 		}
 
-		tkn := l.nextRaw()
+		tkn := l.nextRaw(r)
 		if tkn == nil {
 			src := ""
 			if l.pnt.SI < len(l.Src) {
@@ -223,7 +228,8 @@ func (l *Lex) Next() *Token {
 }
 
 // nextRaw returns the next raw token (including IGNORE tokens).
-func (l *Lex) nextRaw() *Token {
+// The rule parameter is passed to custom matchers for context-sensitive lexing.
+func (l *Lex) nextRaw(rule *Rule) *Token {
 	// Return cached end token
 	if l.end != nil {
 		return l.end
@@ -250,7 +256,7 @@ func (l *Lex) nextRaw() *Token {
 		if m.Priority >= 2000000 {
 			break
 		}
-		if tkn := m.Match(l); tkn != nil {
+		if tkn := m.Match(l, rule); tkn != nil {
 			return tkn
 		}
 	}
@@ -310,7 +316,7 @@ func (l *Lex) nextRaw() *Token {
 		if m.Priority < 8000000 {
 			continue
 		}
-		if tkn := m.Match(l); tkn != nil {
+		if tkn := m.Match(l, rule); tkn != nil {
 			return tkn
 		}
 	}

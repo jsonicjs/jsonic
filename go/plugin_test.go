@@ -217,7 +217,7 @@ func TestPluginRuleNewRule(t *testing.T) {
 func TestPluginCustomMatcher(t *testing.T) {
 	// Plugin that matches "$$" as a special value.
 	dollarPlugin := func(j *Jsonic, opts map[string]any) {
-		j.AddMatcher("dollar", 1500000, func(lex *Lex) *Token {
+		j.AddMatcher("dollar", 1500000, func(lex *Lex, rule *Rule) *Token {
 			pnt := lex.Cursor()
 			if pnt.SI+2 <= pnt.Len && lex.Src[pnt.SI:pnt.SI+2] == "$$" {
 				tkn := lex.Token("#VL", TinVL, "DOLLAR", "$$")
@@ -244,7 +244,7 @@ func TestPluginCustomMatcher(t *testing.T) {
 func TestPluginCustomMatcherInObject(t *testing.T) {
 	// Custom matcher that matches "@" as a special value.
 	atPlugin := func(j *Jsonic, opts map[string]any) {
-		j.AddMatcher("at", 1500000, func(lex *Lex) *Token {
+		j.AddMatcher("at", 1500000, func(lex *Lex, rule *Rule) *Token {
 			pnt := lex.Cursor()
 			if pnt.SI < pnt.Len && lex.Src[pnt.SI] == '@' {
 				tkn := lex.Token("#VL", TinVL, "AT_VALUE", "@")
@@ -278,7 +278,7 @@ func TestPluginMatcherPriority(t *testing.T) {
 	earlySawInput := false
 
 	j := Make()
-	j.AddMatcher("early", 1000000, func(lex *Lex) *Token {
+	j.AddMatcher("early", 1000000, func(lex *Lex, rule *Rule) *Token {
 		pnt := lex.Cursor()
 		if pnt.SI < pnt.Len && lex.Src[pnt.SI] == '4' {
 			earlySawInput = true
@@ -296,7 +296,7 @@ func TestPluginMatcherPriority(t *testing.T) {
 func TestPluginMatcherLowPriorityCaptures(t *testing.T) {
 	// An early custom matcher can capture input before built-in matchers.
 	j := Make()
-	j.AddMatcher("capture42", 1000000, func(lex *Lex) *Token {
+	j.AddMatcher("capture42", 1000000, func(lex *Lex, rule *Rule) *Token {
 		pnt := lex.Cursor()
 		if pnt.SI+2 <= pnt.Len && lex.Src[pnt.SI:pnt.SI+2] == "42" {
 			tkn := lex.Token("#VL", TinVL, "FORTY_TWO", "42")
