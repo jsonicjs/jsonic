@@ -52,8 +52,10 @@ func Grammar(rsm map[string]*RuleSpec, cfg *LexConfig) {
 			val = nil
 		}
 
-		// safe.key: block __proto__ and constructor keys
-		if cfg.SafeKey {
+		// safe.key: block __proto__ and constructor keys on arrays only.
+		// Objects in Go (maps) don't have prototypes, same as TS Object.create(null).
+		// Arrays in TS/JS have real prototypes, so __proto__ must be blocked there.
+		if cfg.SafeKey && r.U["list"] == true {
 			if key == "__proto__" || key == "constructor" {
 				return
 			}
@@ -351,8 +353,13 @@ func Grammar(rsm map[string]*RuleSpec, cfg *LexConfig) {
 		// JSON phase: set key=value
 		func(r *Rule, ctx *Context) {
 			if _, ok := r.U["pair"]; ok {
+				key, _ := r.U["key"].(string)
+				// safe.key: block __proto__ and constructor keys on arrays only.
+				if cfg.SafeKey && r.U["list"] == true && (key == "__proto__" || key == "constructor") {
+					return
+				}
 				r.U["prev"] = nodeMapGetVal(r.Node, r.U["key"])
-				nodeMapSet(r.Node, r.U["key"].(string), r.Child.Node)
+				nodeMapSet(r.Node, key, r.Child.Node)
 			}
 		},
 		// Jsonic phase: pairval with merge support

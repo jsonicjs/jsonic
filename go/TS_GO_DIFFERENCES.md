@@ -14,7 +14,7 @@ The following differences have been fixed in Go to align with TS:
 - **String escapes**: Invalid \x, \u, and unknown escapes now produce error tokens (was silent)
 - **String options**: Added string.abandon (fallthrough on error) and string.replace
 - **list.property guard**: elem.Open pair-in-list now errors when list.property/list.pair disabled
-- **safe.key**: pairval blocks __proto__ and constructor keys when cfg.SafeKey is true
+- **safe.key**: pairval blocks __proto__ and constructor keys on arrays when cfg.SafeKey is true (objects allowed, matching TS Object.create(null) semantics)
 - **deep() nil**: Undefined sentinel now preserves base (was replacing with nil)
 - **ModList order**: Now delete-move-filter (was delete-filter-move)
 - **alt.h**: AltModifier support added to AltSpec
