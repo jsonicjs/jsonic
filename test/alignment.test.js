@@ -6,8 +6,7 @@
 // and the Go runner (go/alignment_test.go).
 
 const { describe, it } = require('node:test')
-const Code = require('@hapi/code')
-const expect = Code.expect
+const assert = require('node:assert')
 
 const { Jsonic, JsonicError } = require('..')
 const { loadTSV } = require('./utility')
@@ -15,17 +14,19 @@ const { loadTSV } = require('./utility')
 const j = Jsonic
 const JS = (x) => JSON.stringify(x)
 
+// deepEqual compares values via JSON roundtrip to handle null-prototype objects.
+function deepEqual(actual, expected, msg) {
+  assert.deepStrictEqual(JSON.parse(JS(actual)), JSON.parse(JS(expected)), msg)
+}
+
 // --- Shared TSV test helpers ---
 
 function tsvTest(name) {
   const entries = loadTSV(name)
   for (const { cols: [input, expected], row } of entries) {
-    try {
-      expect(Jsonic(input)).equal(JSON.parse(expected))
-    } catch (err) {
-      err.message = `${name} row ${row}: input=${input} expected=${expected}\n${err.message}`
-      throw err
-    }
+    const result = Jsonic(input)
+    deepEqual(result, JSON.parse(expected),
+      `${name} row ${row}: input=${input} expected=${expected}`)
   }
 }
 
@@ -35,28 +36,19 @@ function tsvErrorTest(name) {
     if (!expected.startsWith('ERROR:')) {
       throw new Error(`${name} row ${row}: expected column must start with ERROR:`)
     }
-    const code = expected.slice('ERROR:'.length)
-    try {
-      expect(() => Jsonic(input)).throw(JsonicError)
-    } catch (err) {
-      err.message = `${name} row ${row}: input=${input} expected=${expected}\n${err.message}`
-      throw err
-    }
+    assert.throws(() => Jsonic(input), JsonicError,
+      `${name} row ${row}: input=${input} expected=${expected}`)
   }
 }
 
 function tsvNullTest(name) {
   const entries = loadTSV(name)
   for (const { cols: [input, expected], row } of entries) {
-    try {
-      const result = Jsonic(input)
-      // TS returns undefined for empty/comment-only input, which is equivalent
-      // to Go's nil. The TSV says "null" but in TS this is actually undefined.
-      expect(result === undefined || result === null).equal(true)
-    } catch (err) {
-      err.message = `${name} row ${row}: input=${input} expected=${expected}\n${err.message}`
-      throw err
-    }
+    const result = Jsonic(input)
+    // TS returns undefined for empty/comment-only input, which is equivalent
+    // to Go's nil. The TSV says "null" but in TS this is actually undefined.
+    assert.ok(result === undefined || result === null,
+      `${name} row ${row}: input=${input} expected null/undefined, got ${JS(result)}`)
   }
 }
 
@@ -70,18 +62,12 @@ describe('alignment', function () {
   it('alignment-safe-key', () => {
     // TS uses Object.create(null) so __proto__ is a normal key on objects.
     // safe.key only blocks __proto__ on arrays (which have real prototypes).
-    // The TSV tests verify __proto__/constructor are ALLOWED on objects.
     const entries = loadTSV('alignment-safe-key')
     for (const { cols: [input, expected], row } of entries) {
-      try {
-        const result = Jsonic(input)
-        const exp = JSON.parse(expected)
-        // TS creates null-prototype objects; compare via JSON roundtrip.
-        expect(JSON.parse(JS(result))).equal(exp)
-      } catch (err) {
-        err.message = `alignment-safe-key row ${row}: input=${input} expected=${expected}\n${err.message}`
-        throw err
-      }
+      const result = Jsonic(input)
+      const exp = JSON.parse(expected)
+      deepEqual(result, exp,
+        `alignment-safe-key row ${row}: input=${input} expected=${expected}`)
     }
   })
 
@@ -109,59 +95,53 @@ describe('alignment', function () {
 
   it('map-extend-false', () => {
     const ji = Jsonic.make({ map: { extend: false } })
-    // With extend=false, duplicate keys overwrite (no deep merge).
-    expect(ji('{a:{b:1},a:{c:2}}')).equal({ a: { c: 2 } })
+    deepEqual(ji('{a:{b:1},a:{c:2}}'), { a: { c: 2 } })
   })
 
   it('map-merge-func', () => {
     const ji = Jsonic.make({
       map: {
-        merge: (prev, val) => prev, // always keep prev
+        merge: (prev, val) => prev,
       },
     })
-    expect(ji('{a:1,a:2}')).equal({ a: 1 })
+    deepEqual(ji('{a:1,a:2}'), { a: 1 })
   })
 
   it('safe-key-objects', () => {
-    // On objects (null-prototype): __proto__ is allowed with safe.key=true.
     const result = Jsonic('{__proto__:1,a:2}')
-    expect(result.__proto__).equal(1)
-    expect(result.a).equal(2)
+    assert.strictEqual(result.__proto__, 1)
+    assert.strictEqual(result.a, 2)
   })
 
   it('safe-key-arrays', () => {
-    // On arrays: __proto__ is blocked with safe.key=true.
     const result = Jsonic('[1,2,__proto__:3]')
-    expect(result).equal([1, 2])
-    expect(result.__proto__.toString !== '3').equal(true)
+    deepEqual(result, [1, 2])
+    assert.notStrictEqual(result.__proto__.toString, '3')
   })
 
   it('safe-key-false', () => {
     const ji = Jsonic.make({ safe: { key: false } })
-    // With safe.key=false, __proto__ is allowed even on arrays.
     const result = ji('[1,2,__proto__:{toString:FAIL}]')
-    expect(('' + result.toString).startsWith('FAIL')).equal(true)
+    assert.ok(('' + result.toString).startsWith('FAIL'))
   })
 
   it('string-escape-errors', () => {
     const ji = Jsonic.make({ string: { allowUnknown: false } })
-    expect(() => ji('"\\w"')).throw()
+    assert.throws(() => ji('"\\w"'))
   })
 
   it('string-abandon', () => {
     const ji = Jsonic.make({ string: { abandon: true } })
-    // With abandon=true, unterminated string falls through to text matcher.
     const result = ji('"abc')
-    // Should NOT throw unterminated_string; may parse as text instead.
-    expect(result).exist()
+    assert.ok(result !== undefined && result !== null)
   })
 
   it('string-replace', () => {
     const ji = Jsonic.make({
       string: { replace: { A: 'B', D: '' } },
     })
-    expect(ji('"aAc"')).equal('aBc')
-    expect(ji('"aAcDe"')).equal('aBce')
+    assert.strictEqual(ji('"aAc"'), 'aBc')
+    assert.strictEqual(ji('"aAcDe"'), 'aBce')
   })
 
   it('number-exclude', () => {
@@ -170,15 +150,13 @@ describe('alignment', function () {
         exclude: /^00/,
       },
     })
-    // "0099" matches exclude, parsed as text.
-    expect(ji('0099')).equal('0099')
-    // "99" does not match, still a number.
-    expect(ji('99')).equal(99)
+    assert.strictEqual(ji('0099'), '0099')
+    assert.strictEqual(ji('99'), 99)
   })
 
   it('line-single', () => {
     const ji = Jsonic.make({ line: { single: true } })
-    expect(ji('a\n\nb')).equal(['a', 'b'])
+    deepEqual(ji('a\n\nb'), ['a', 'b'])
   })
 
   it('comment-eatline', () => {
@@ -191,7 +169,7 @@ describe('alignment', function () {
         },
       },
     })
-    expect(ji('a:1#x\nb:2')).equal({ a: 1, b: 2 })
+    deepEqual(ji('a:1#x\nb:2'), { a: 1, b: 2 })
   })
 
   it('text-modify', () => {
@@ -200,58 +178,51 @@ describe('alignment', function () {
         modify: [(val) => (typeof val === 'string' ? val.toUpperCase() : val)],
       },
     })
-    expect(ji('hello')).equal('HELLO')
-    // Quoted strings are NOT affected by text.modify.
-    expect(ji('"hello"')).equal('hello')
+    assert.strictEqual(ji('hello'), 'HELLO')
+    assert.strictEqual(ji('"hello"'), 'hello')
   })
 
   it('list-property-guard', () => {
     const ji = Jsonic.make({ list: { property: false, pair: false } })
-    expect(() => ji('[a:1]')).throw()
+    assert.throws(() => ji('[a:1]'))
   })
 
   it('exclude-jsonic', () => {
-    // Verify the Exclude mechanism removes tagged alternates.
     const ji = Jsonic.make()
 
-    // Count alternates before exclude.
     let openBefore, closeBefore
     ji.rule('val', (rs) => {
       openBefore = rs.def.open.length
       closeBefore = rs.def.close.length
     })
 
-    // Now filter out jsonic alts.
     ji.rule('val', (rs) => {
       rs.def.open = rs.def.open.filter((a) => !a.g || !a.g.includes('jsonic'))
       rs.def.close = rs.def.close.filter((a) => !a.g || !a.g.includes('jsonic'))
-      // After exclude, should have fewer alts.
-      expect(rs.def.open.length < openBefore).equal(true)
-      expect(rs.def.close.length < closeBefore).equal(true)
-      // Remaining alts should not contain the "jsonic" tag.
+      assert.ok(rs.def.open.length < openBefore)
+      assert.ok(rs.def.close.length < closeBefore)
       for (const alt of rs.def.open) {
         const g = typeof alt.g === 'string' ? alt.g : ''
-        if (g.split(',').map(s => s.trim()).includes('jsonic')) {
-          throw new Error(`val.open alt still has jsonic tag: ${alt.g}`)
-        }
+        assert.ok(!g.split(',').map(s => s.trim()).includes('jsonic'),
+          `val.open alt still has jsonic tag: ${alt.g}`)
       }
     })
   })
 
   it('result-fail', () => {
     const ji = Jsonic.make({ result: { fail: ['FAIL'] } })
-    expect(() => ji('FAIL')).throw()
-    expect(ji('OK')).equal('OK')
+    assert.throws(() => ji('FAIL'))
+    assert.strictEqual(ji('OK'), 'OK')
   })
 
   it('finish-rule-false', () => {
     const ji = Jsonic.make({ rule: { finish: false } })
-    expect(() => ji('{a:1')).throw()
+    assert.throws(() => ji('{a:1'))
   })
 
   it('empty-disabled', () => {
     const ji = Jsonic.make({ lex: { empty: false } })
-    expect(() => ji('')).throw()
+    assert.throws(() => ji(''))
   })
 
   it('custom-values', () => {
@@ -265,8 +236,8 @@ describe('alignment', function () {
         },
       },
     })
-    expect(ji('NaN')).equal('NaN-custom')
-    expect(ji('true')).equal(true)
+    assert.strictEqual(ji('NaN'), 'NaN-custom')
+    assert.strictEqual(ji('true'), true)
   })
 
   it('deep-undefined', () => {
@@ -274,18 +245,17 @@ describe('alignment', function () {
     const base = { a: 1, b: 2 }
     const over = { a: undefined, b: 3 }
     const result = deep(base, over)
-    // undefined in overlay preserves base.
-    expect(result.a).equal(1)
-    expect(result.b).equal(3)
+    assert.strictEqual(result.a, 1)
+    assert.strictEqual(result.b, 3)
   })
 
   it('error-propagation', () => {
-    expect(() => j('}')).throw(/unexpected/)
-    expect(() => j(']')).throw(/unexpected/)
+    assert.throws(() => j('}'), /unexpected/)
+    assert.throws(() => j(']'), /unexpected/)
   })
 
   it('trailing-content', () => {
-    expect(() => j('a:1,2')).throw(/unexpected/)
+    assert.throws(() => j('a:1,2'), /unexpected/)
   })
 
   it('lex-subscriber', () => {
@@ -295,6 +265,6 @@ describe('alignment', function () {
       tokens.push(tkn.tin)
     }})
     ji('a:1')
-    expect(tokens.length > 0).equal(true)
+    assert.ok(tokens.length > 0)
   })
 })
