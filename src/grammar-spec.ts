@@ -63,31 +63,66 @@ type TokenMatch = TokenRef | TokenSubset | null
 
 
 // ---------------------------------------------------------------------------
-// Declarative condition predicates
+// Declarative condition predicates (MongoDB-style queries)
 // ---------------------------------------------------------------------------
+
+/** Comparison operators for a single value. */
+interface CondOps {
+  $eq?: number | string | boolean | null
+  $ne?: number | string | boolean | null
+  $gt?: number
+  $gte?: number
+  $lt?: number
+  $lte?: number
+}
+
+/**
+ * A condition query using MongoDB-style operators.
+ *
+ * Keys are dot-paths into the Rule object. Values are either a literal
+ * (shorthand for `$eq`) or a `CondOps` object with comparison operators.
+ * Multiple keys are AND-combined: all must pass.
+ *
+ * The dot-path is evaluated against the current Rule instance, so any
+ * rule property is accessible:
+ *   "d"           — rule stack depth (r.d)
+ *   "n.pk"        — counter value (r.n.pk)
+ *   "n.dmap"      — counter value (r.n.dmap)
+ *   "prev.u.implist" — previous rule's user data (r.prev.u.implist)
+ *
+ * Examples mapping existing grammar conditions:
+ *
+ *   c: (r) => 0 == r.d
+ *   → { "d": { "$eq": 0 } }          // or shorthand: { "d": 0 }
+ *
+ *   c: (r) => 0 < r.d
+ *   → { "d": { "$gt": 0 } }
+ *
+ *   c: (r) => r.lte('dlist') && r.lte('dmap')
+ *   → { "n.dlist": { "$lte": 0 }, "n.dmap": { "$lte": 0 } }
+ *
+ *   c: (r) => r.lte('pk')
+ *   → { "n.pk": { "$lte": 0 } }
+ *
+ *   c: (r) => r.lte('dmap', 1)
+ *   → { "n.dmap": { "$lte": 1 } }
+ *
+ *   c: (r) => 0 < r.n.pk
+ *   → { "n.pk": { "$gt": 0 } }
+ *
+ *   c: (r) => r.prev.u.implist
+ *   → { "prev.u.implist": true }
+ */
+type CondDecl = {
+  [dotPath: string]: number | string | boolean | null | CondOps
+}
 
 /**
  * Conditions can be:
  * - A FuncRef string for full custom logic
- * - A declarative object for common patterns (counter/depth checks)
- *
- * Declarative conditions are AND-combined: all specified fields must pass.
+ * - A MongoDB-style query object for declarative matching
  */
 type CondSpec = FuncRef | CondDecl
-
-interface CondDecl {
-  /** Rule stack depth equals value. */
-  depth_eq?: number
-
-  /** Rule stack depth > 0 (shorthand for "not top level"). */
-  depth_gt?: number
-
-  /** Counter comparison: { name: value } — pass if counter <= value. */
-  counter_lte?: { [name: string]: number }
-
-  /** Counter comparison: { name: value } — pass if counter > value. */
-  counter_gt?: { [name: string]: number }
-}
 
 
 // ---------------------------------------------------------------------------
@@ -301,6 +336,7 @@ export type {
   TokenRef,
   TokenSubset,
   TokenMatch,
+  CondOps,
   CondSpec,
   CondDecl,
   AltSpecDecl,
