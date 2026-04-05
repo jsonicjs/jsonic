@@ -162,6 +162,80 @@ type CondSpec = FuncRef | CondDecl
 
 
 // ---------------------------------------------------------------------------
+// Node initialization
+// ---------------------------------------------------------------------------
+
+/**
+ * Declarative node initialization for a rule's before-open (bo) step.
+ *
+ * - `"map"`   → `rule.node = Object.create(null)` — new empty object
+ * - `"list"`  → `rule.node = []` — new empty array
+ * - `"value"` → `rule.node = undefined` — cleared, ready for value resolution
+ */
+type NodeInit = 'map' | 'list' | 'value'
+
+
+// ---------------------------------------------------------------------------
+// Child binding (bc)
+// ---------------------------------------------------------------------------
+
+/**
+ * Declares how a child rule's result is bound to the parent node
+ * during the before-close (bc) step.
+ *
+ * Shorthand strings cover the common cases:
+ * - `"value"` — standard value resolution chain:
+ *     node = node ?? child.node ?? tokenValue ?? undefined
+ * - `"key"`   — map assignment: `node[u.key] = child.node`
+ * - `"push"`  — list append: `node.push(child.node)`
+ *
+ * Use `BindDecl` for guarded or merge-aware binding.
+ *
+ * Mapping to grammar.ts:
+ *
+ *   val.bc  (resolve node/child/token) → bind: "value"
+ *   pair.bc (node[key] = child.node)   → bind: { mode: "key", guard: { "u.pair": true } }
+ *   elem.bc (node.push(child.node))    → bind: { mode: "push",
+ *                                           guard: { "u.done": { "$ne": true } },
+ *                                           skip_undefined: true }
+ */
+type BindSpec = 'value' | 'key' | 'push' | BindDecl
+
+interface BindDecl {
+  /** Binding mode. */
+  mode: 'value' | 'key' | 'push'
+
+  /**
+   * Only perform binding when this condition passes.
+   * Uses the same MongoDB-style query as `CondDecl`, evaluated against
+   * the current Rule instance.
+   *
+   * Example: `{ "u.pair": true }` — only bind if u.pair is set.
+   */
+  guard?: CondDecl
+
+  /**
+   * Skip binding when child.node is undefined. Default: false.
+   * Useful for list push where missing values should not create entries.
+   */
+  skip_undefined?: boolean
+
+  /**
+   * Convert undefined child.node to null before binding. Default: false.
+   * Common in jsonic where `a:` means `{"a": null}` not `{"a": undefined}`.
+   */
+  nullify?: boolean
+
+  /**
+   * Merge with existing value at the same key instead of overwriting.
+   * - `true`    — use deep merge (jsonic's `deep()` utility)
+   * - FuncRef   — custom merge function: (prev, val, rule, ctx) => merged
+   */
+  merge?: boolean | FuncRef
+}
+
+
+// ---------------------------------------------------------------------------
 // Alternate specification
 // ---------------------------------------------------------------------------
 
@@ -215,6 +289,24 @@ interface AltSpecDecl {
    * Example: "map.child" means include only if cfg.map.child is true.
    */
   when?: string
+
+  /**
+   * Extract a key from the matched open-state token and store in `u.key`.
+   * - `true` — use first open token: text/string → token.val, else → token.src
+   *
+   * Replaces the `pairkey` action pattern:
+   *   const key = (ST === t.tin || TX === t.tin) ? t.val : t.src
+   *   r.u.key = key
+   */
+  key?: true
+
+  /**
+   * Push a literal value onto the node array when this alt matches.
+   * Runs as an inline action after the alt is selected.
+   *
+   * Example: `push: null` replaces `a: (r) => r.node.push(null)`
+   */
+  push?: any
 }
 
 
@@ -244,7 +336,85 @@ interface ListModsDecl {
 
 /**
  * A complete rule definition. Each rule has two states (open/close),
- * each with an ordered list of alternates to try, plus lifecycle actions.
+ * each with an ordered list of alternates to try, plus declarative
+ * properties for common state mutations and optional FuncRef overrides.
+ *
+ * Execution order within before-open (bo):
+ *   1. `node`    — initialize rule.node
+ *   2. `counter` — increment named counters
+ *   3. `bo`      — FuncRef for additional custom logic
+ *
+ * Execution order within before-close (bc):
+ *   1. `bind`    — bind child result to parent node
+ *   2. `bc`      — FuncRef for additional custom logic
+ *
+ * The declarative properties (`node`, `counter`, `bind`) run first,
+ * then the FuncRef (if any) runs for anything they can't express.
+ * This lets you handle the common case declaratively while still
+ * escaping to code for edge cases.
+ *
+ * Full JSON grammar expressed declaratively:
+ * ```json
+ * {
+ *   "rules": {
+ *     "val": {
+ *       "node": "value",
+ *       "bind": "value",
+ *       "open":  [{ "alts": [
+ *         { "s": ["OB"],  "p": "map",  "b": 1, "g": "map,json" },
+ *         { "s": ["OS"],  "p": "list", "b": 1, "g": "list,json" },
+ *         { "s": ["VAL"], "g": "val,json" }
+ *       ]}],
+ *       "close": [{ "alts": [
+ *         { "s": ["ZZ"], "g": "end,json" },
+ *         { "b": 1, "g": "more,json" }
+ *       ]}]
+ *     },
+ *     "map": {
+ *       "node": "map",
+ *       "open":  [{ "alts": [
+ *         { "s": ["OB", "CB"], "b": 1, "n": { "pk": 0 }, "g": "map,json" },
+ *         { "s": ["OB"], "p": "pair", "n": { "pk": 0 }, "g": "map,json,pair" }
+ *       ]}],
+ *       "close": [{ "alts": [
+ *         { "s": ["CB"], "g": "end,json" }
+ *       ]}]
+ *     },
+ *     "list": {
+ *       "node": "list",
+ *       "open":  [{ "alts": [
+ *         { "s": ["OS", "CS"], "b": 1, "g": "list,json" },
+ *         { "s": ["OS"], "p": "elem", "g": "list,elem,json" }
+ *       ]}],
+ *       "close": [{ "alts": [
+ *         { "s": ["CS"], "g": "end,json" }
+ *       ]}]
+ *     },
+ *     "pair": {
+ *       "bind": { "mode": "key", "guard": { "u.pair": true } },
+ *       "open":  [{ "alts": [
+ *         { "s": ["KEY", "CL"], "p": "val", "u": { "pair": true },
+ *           "key": true, "g": "map,pair,key,json" }
+ *       ]}],
+ *       "close": [{ "alts": [
+ *         { "s": ["CA"], "r": "pair", "g": "map,pair,json" },
+ *         { "s": ["CB"], "b": 1, "g": "map,pair,json" }
+ *       ]}]
+ *     },
+ *     "elem": {
+ *       "bind": { "mode": "push", "guard": { "u.done": { "$ne": true } },
+ *                 "skip_undefined": true },
+ *       "open":  [{ "alts": [
+ *         { "p": "val", "g": "list,elem,val,json" }
+ *       ]}],
+ *       "close": [{ "alts": [
+ *         { "s": ["CA"], "r": "elem", "g": "list,elem,json" },
+ *         { "s": ["CS"], "b": 1, "g": "list,elem,json" }
+ *       ]}]
+ *     }
+ *   }
+ * }
+ * ```
  */
 interface RuleSpecDecl {
   /**
@@ -258,16 +428,42 @@ interface RuleSpecDecl {
    */
   close?: AltGroupDecl[]
 
-  /** Before-open action. */
+  // -- Declarative state mutations ------------------------------------------
+
+  /**
+   * Initialize rule.node during before-open (bo).
+   * - `"map"`   → `Object.create(null)`
+   * - `"list"`  → `[]`
+   * - `"value"` → `undefined`
+   */
+  node?: NodeInit
+
+  /**
+   * Increment named counters during before-open (bo).
+   * Each key is a counter name, value is the increment amount.
+   *
+   * Example: `{ "dmap": 1 }` → `r.n.dmap = (r.n.dmap || 0) + 1`
+   */
+  counter?: { [name: string]: number }
+
+  /**
+   * Bind child/token result to this rule's node during before-close (bc).
+   * See `BindSpec` for modes and options.
+   */
+  bind?: BindSpec
+
+  // -- FuncRef overrides (run after declarative properties) -----------------
+
+  /** Before-open: custom logic after `node` and `counter`. */
   bo?: FuncRef
 
-  /** After-open action. */
+  /** After-open: custom logic after open-state matching. */
   ao?: FuncRef
 
-  /** Before-close action. */
+  /** Before-close: custom logic after `bind`. */
   bc?: FuncRef
 
-  /** After-close action. */
+  /** After-close: custom logic after close-state matching. */
   ac?: FuncRef
 }
 
@@ -378,6 +574,9 @@ export type {
   CondBoolExpr,
   CondSpec,
   CondDecl,
+  NodeInit,
+  BindSpec,
+  BindDecl,
   AltSpecDecl,
   ListModsDecl,
   AltGroupDecl,
