@@ -1,1 +1,1 @@
-{"root":["../src/debug.ts","../src/defaults.ts","../src/error.ts","../src/grammar.ts","../src/jsonic-cli.ts","../src/jsonic.ts","../src/lexer.ts","../src/parser.ts","../src/rules.ts","../src/self.ts","../src/types.ts","../src/utility.ts"],"version":"5.9.3"}
+{"root":["../src/debug.ts","../src/defaults.ts","../src/error.ts","../src/grammar-loader.ts","../src/grammar-spec.ts","../src/grammar.ts","../src/jsonic-cli.ts","../src/jsonic.ts","../src/lexer.ts","../src/parser.ts","../src/rules.ts","../src/self.ts","../src/types.ts","../src/utility.ts"],"errors":true,"version":"6.0.2"}
