@@ -76,24 +76,29 @@ interface CondOps {
   $lte?: number
 }
 
+/** Primitive value for comparisons and $eq shorthand. */
+type CondVal = number | string | boolean | null
+
 /**
- * A condition query using MongoDB-style operators.
+ * A condition query using MongoDB-style operators with boolean composition.
  *
- * Keys are dot-paths into the Rule object. Values are either a literal
- * (shorthand for `$eq`) or a `CondOps` object with comparison operators.
- * Multiple keys are AND-combined: all must pass.
+ * **Field conditions** — keys are dot-paths into the Rule instance.
+ * Values are either a literal (shorthand for `$eq`) or a `CondOps` object.
+ * Multiple field keys are implicitly AND-combined.
  *
- * The dot-path is evaluated against the current Rule instance, so any
- * rule property is accessible:
- *   "d"           — rule stack depth (r.d)
- *   "n.pk"        — counter value (r.n.pk)
- *   "n.dmap"      — counter value (r.n.dmap)
+ * **Boolean operators** — combine conditions with `$and`, `$or`, `$nor`,
+ * and `$not`. These nest recursively for arbitrary complexity.
+ *
+ * Dot-paths resolve against the current Rule instance:
+ *   "d"              — rule stack depth (r.d)
+ *   "n.pk"           — counter value (r.n.pk)
+ *   "n.dmap"         — counter value (r.n.dmap)
  *   "prev.u.implist" — previous rule's user data (r.prev.u.implist)
  *
  * Examples mapping existing grammar conditions:
  *
  *   c: (r) => 0 == r.d
- *   → { "d": { "$eq": 0 } }          // or shorthand: { "d": 0 }
+ *   → { "d": 0 }
  *
  *   c: (r) => 0 < r.d
  *   → { "d": { "$gt": 0 } }
@@ -112,9 +117,40 @@ interface CondOps {
  *
  *   c: (r) => r.prev.u.implist
  *   → { "prev.u.implist": true }
+ *
+ * Boolean composition:
+ *
+ *   { "$or": [{ "d": 0 }, { "n.pk": { "$gt": 0 } }] }
+ *
+ *   { "$and": [{ "d": { "$gt": 0 } }, { "d": { "$lt": 5 } }] }
+ *
+ *   { "$not": { "n.pk": { "$gt": 0 } } }
+ *
+ *   { "$or": [
+ *       { "d": 0 },
+ *       { "$and": [{ "n.pk": { "$gt": 0 } }, { "n.dmap": { "$lte": 1 } }] }
+ *   ]}
  */
-type CondDecl = {
-  [dotPath: string]: number | string | boolean | null | CondOps
+type CondDecl = CondFieldExpr & CondBoolExpr
+
+/** Field-level conditions: dot-path keys mapped to value or operators. */
+type CondFieldExpr = {
+  [dotPath: string]: CondVal | CondOps
+}
+
+/** Boolean composition operators. */
+interface CondBoolExpr {
+  /** All conditions must match. */
+  $and?: CondDecl[]
+
+  /** At least one condition must match. */
+  $or?: CondDecl[]
+
+  /** None of the conditions may match. */
+  $nor?: CondDecl[]
+
+  /** Inverts the nested condition. */
+  $not?: CondDecl
 }
 
 /**
@@ -336,7 +372,10 @@ export type {
   TokenRef,
   TokenSubset,
   TokenMatch,
+  CondVal,
   CondOps,
+  CondFieldExpr,
+  CondBoolExpr,
   CondSpec,
   CondDecl,
   AltSpecDecl,
