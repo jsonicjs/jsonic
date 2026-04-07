@@ -9,6 +9,7 @@ import (
 // Lex is the lexer that produces tokens from source text.
 type Lex struct {
 	Src    string
+	Ctx    *Context  // Parse context (includes Ctx.Rule for context-sensitive lexing)
 	pnt    Point
 	end    *Token    // End-of-source token (cached)
 	tokens []*Token  // Lookahead token queue
@@ -219,6 +220,9 @@ func (l *Lex) Next(rule ...*Rule) *Token {
 	var r *Rule
 	if len(rule) > 0 {
 		r = rule[0]
+	}
+	if l.Ctx != nil && r != nil {
+		l.Ctx.Rule = r
 	}
 	for {
 		// If an error has already occurred, return end-of-source to stop parsing

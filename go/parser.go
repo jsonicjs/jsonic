@@ -17,6 +17,7 @@ type Context struct {
 	RSI      int               // Rule stack index
 	RSM      map[string]*RuleSpec // Rule spec map
 	KI       int               // Iteration counter
+	Rule     *Rule             // Current parsing rule
 	Meta     map[string]any    // Parse metadata from ParseMeta()
 	LexSubs  []LexSub          // Lex event subscribers
 	RuleSubs []RuleSub         // Rule event subscribers
@@ -73,6 +74,8 @@ func (p *Parser) StartMeta(src string, meta map[string]any, lexSubs []LexSub, ru
 		RuleSubs: ruleSubs,
 	}
 
+	lex.Ctx = ctx
+
 	startName := p.Config.RuleStart
 	if startName == "" {
 		startName = "val"
@@ -105,6 +108,7 @@ func (p *Parser) StartMeta(src string, meta map[string]any, lexSubs []LexSub, ru
 	kI := 0
 	for rule != NoRule && kI < maxr {
 		ctx.KI = kI
+		ctx.Rule = rule
 
 		// Fire rule subscribers BEFORE process (matching TS).
 		if len(ctx.RuleSubs) > 0 {

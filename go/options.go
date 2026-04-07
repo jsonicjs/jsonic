@@ -56,7 +56,16 @@ type Options struct {
 	// Hint provides additional explanatory text per error code.
 	Hint map[string]string
 
-	// Config modifier callbacks, keyed by name.
+	// Property holds Go-specific options not present in the TypeScript version.
+	Property *PropertyOptions
+
+	// Tag is an instance identifier tag.
+	Tag string
+}
+
+// PropertyOptions holds Go-specific options not present in the TypeScript version.
+type PropertyOptions struct {
+	// ConfigModify callbacks, keyed by name.
 	// Called after config construction to allow dynamic customization.
 	ConfigModify map[string]ConfigModifier
 
@@ -74,9 +83,6 @@ type Options struct {
 	// When true, map values include an Implicit flag indicating whether
 	// the map was created implicitly (without braces). Default: false.
 	MapRef *bool
-
-	// Tag is an instance identifier tag.
-	Tag string
 }
 
 // SafeOptions controls key safety.
@@ -190,6 +196,10 @@ type RuleOptions struct {
 type LexOptions struct {
 	Empty       *bool // Allow empty source. Default: true.
 	EmptyResult any   // Result for empty source. Default: nil.
+
+	// Match defines custom lexer matchers, keyed by name.
+	// Matches the TypeScript pattern: jsonic.options({ lex: { match: { name: { order, make } } } })
+	Match map[string]*MatchSpec
 }
 
 // ParserOptions allows custom parser overrides.
@@ -526,22 +536,20 @@ func buildConfig(o *Options) *LexConfig {
 	// Safe
 	cfg.SafeKey = boolVal(optBool(o.Safe, func(s *SafeOptions) *bool { return s.Key }), true)
 
-	// TextInfo
-	cfg.TextInfo = boolVal(o.TextInfo, false)
-
-	// ListRef
-	cfg.ListRef = boolVal(o.ListRef, false)
+	// Property (Go-specific options)
+	if o.Property != nil {
+		cfg.TextInfo = boolVal(o.Property.TextInfo, false)
+		cfg.ListRef = boolVal(o.Property.ListRef, false)
+		cfg.MapRef = boolVal(o.Property.MapRef, false)
+	}
 	// list.child requires ListRef to store the child value on ListRef.Child.
 	if cfg.ListChild {
 		cfg.ListRef = true
 	}
 
-	// MapRef
-	cfg.MapRef = boolVal(o.MapRef, false)
-
 	// Apply config modifiers.
-	if o.ConfigModify != nil {
-		for _, mod := range o.ConfigModify {
+	if o.Property != nil && o.Property.ConfigModify != nil {
+		for _, mod := range o.Property.ConfigModify {
 			mod(cfg, o)
 		}
 	}

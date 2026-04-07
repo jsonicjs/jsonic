@@ -7,7 +7,7 @@ import (
 // expectMapRef parses input with MapRef enabled and checks the result.
 func expectMapRef(t *testing.T, input string, expected any) {
 	t.Helper()
-	j := Make(Options{MapRef: boolPtr(true)})
+	j := Make(Options{Property: &PropertyOptions{MapRef: boolPtr(true)}})
 	got, err := j.Parse(input)
 	if err != nil {
 		t.Errorf("Parse(%q) unexpected error: %v", input, err)
@@ -120,7 +120,7 @@ func TestMapRefOff(t *testing.T) {
 
 func TestMapRefExplicitOff(t *testing.T) {
 	// Explicitly setting MapRef to false.
-	j := Make(Options{MapRef: boolPtr(false)})
+	j := Make(Options{Property: &PropertyOptions{MapRef: boolPtr(false)}})
 	got, err := j.Parse("{a:1}")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -167,7 +167,7 @@ func TestMapRefNestedImplicitInExplicit(t *testing.T) {
 
 func TestMapRefListsUnaffected(t *testing.T) {
 	// Lists should not be wrapped in MapRef.
-	j := Make(Options{MapRef: boolPtr(true)})
+	j := Make(Options{Property: &PropertyOptions{MapRef: boolPtr(true)}})
 	got, err := j.Parse("[1,2]")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -179,7 +179,7 @@ func TestMapRefListsUnaffected(t *testing.T) {
 
 func TestMapRefScalarsUnaffected(t *testing.T) {
 	// Scalars should not be affected.
-	j := Make(Options{MapRef: boolPtr(true)})
+	j := Make(Options{Property: &PropertyOptions{MapRef: boolPtr(true)}})
 
 	got, err := j.Parse("42")
 	if err != nil {
@@ -205,7 +205,7 @@ func TestMapRefDeepMerge(t *testing.T) {
 
 func TestMapRefMapInList(t *testing.T) {
 	// MapRef inside a list.
-	j := Make(Options{MapRef: boolPtr(true)})
+	j := Make(Options{Property: &PropertyOptions{MapRef: boolPtr(true)}})
 	got, err := j.Parse("[{a:1},{b:2}]")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -237,7 +237,7 @@ func TestMapRefWithStringValues(t *testing.T) {
 
 func TestMapRefCombinedWithListRef(t *testing.T) {
 	// Both MapRef and ListRef enabled.
-	j := Make(Options{MapRef: boolPtr(true), ListRef: boolPtr(true)})
+	j := Make(Options{Property: &PropertyOptions{MapRef: boolPtr(true), ListRef: boolPtr(true)}})
 	got, err := j.Parse("{a:[1,2]}")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -263,7 +263,7 @@ func TestMapRefCombinedWithListRef(t *testing.T) {
 
 func TestMapRefCombinedWithTextInfo(t *testing.T) {
 	// Both MapRef and TextInfo enabled.
-	j := Make(Options{MapRef: boolPtr(true), TextInfo: boolPtr(true)})
+	j := Make(Options{Property: &PropertyOptions{MapRef: boolPtr(true), TextInfo: boolPtr(true)}})
 	got, err := j.Parse(`{"a":1}`)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)

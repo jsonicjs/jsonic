@@ -432,13 +432,13 @@ func TestAlignmentExclude(t *testing.T) {
 // --- result.fail: reject specific result values ---
 
 func TestAlignmentResultFail(t *testing.T) {
-	j := Make(Options{
+	j := Make(Options{Property: &PropertyOptions{
 		ConfigModify: map[string]ConfigModifier{
 			"result-fail": func(cfg *LexConfig, opts *Options) {
 				cfg.ResultFail = []any{"FAIL"}
 			},
 		},
-	})
+	}})
 
 	// A result matching a fail sentinel should cause an error.
 	_, err := j.Parse("FAIL")
@@ -460,7 +460,7 @@ func TestAlignmentResultFail(t *testing.T) {
 
 func TestAlignmentParsePrepare(t *testing.T) {
 	prepared := false
-	j := Make(Options{
+	j := Make(Options{Property: &PropertyOptions{
 		ConfigModify: map[string]ConfigModifier{
 			"prepare": func(cfg *LexConfig, opts *Options) {
 				cfg.ParsePrepare = append(cfg.ParsePrepare, func(ctx *Context) {
@@ -468,7 +468,7 @@ func TestAlignmentParsePrepare(t *testing.T) {
 				})
 			},
 		},
-	})
+	}})
 
 	_, err := j.Parse("a:1")
 	if err != nil {

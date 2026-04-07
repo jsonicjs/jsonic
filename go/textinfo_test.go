@@ -7,7 +7,7 @@ import (
 // expectTextInfo parses input with TextInfo enabled and checks the result.
 func expectTextInfo(t *testing.T, input string, expected any) {
 	t.Helper()
-	j := Make(Options{TextInfo: boolPtr(true)})
+	j := Make(Options{Property: &PropertyOptions{TextInfo: boolPtr(true)}})
 	got, err := j.Parse(input)
 	if err != nil {
 		t.Errorf("Parse(%q) unexpected error: %v", input, err)
@@ -174,7 +174,7 @@ func TestTextInfoNestedMap(t *testing.T) {
 
 func TestTextInfoKeysRemainStrings(t *testing.T) {
 	// Even with TextInfo on, map keys must be plain strings.
-	j := Make(Options{TextInfo: boolPtr(true)})
+	j := Make(Options{Property: &PropertyOptions{TextInfo: boolPtr(true)}})
 	got, err := j.Parse(`"k":"v"`)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -197,7 +197,7 @@ func TestTextInfoKeysRemainStrings(t *testing.T) {
 }
 
 func TestTextInfoNumbersUnaffected(t *testing.T) {
-	j := Make(Options{TextInfo: boolPtr(true)})
+	j := Make(Options{Property: &PropertyOptions{TextInfo: boolPtr(true)}})
 	got, err := j.Parse("42")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -208,7 +208,7 @@ func TestTextInfoNumbersUnaffected(t *testing.T) {
 }
 
 func TestTextInfoBoolsUnaffected(t *testing.T) {
-	j := Make(Options{TextInfo: boolPtr(true)})
+	j := Make(Options{Property: &PropertyOptions{TextInfo: boolPtr(true)}})
 	got, err := j.Parse("true")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -219,7 +219,7 @@ func TestTextInfoBoolsUnaffected(t *testing.T) {
 }
 
 func TestTextInfoNullUnaffected(t *testing.T) {
-	j := Make(Options{TextInfo: boolPtr(true)})
+	j := Make(Options{Property: &PropertyOptions{TextInfo: boolPtr(true)}})
 	got, err := j.Parse("null")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -231,7 +231,7 @@ func TestTextInfoNullUnaffected(t *testing.T) {
 
 func TestTextInfoExplicitOff(t *testing.T) {
 	// Explicitly setting TextInfo to false should behave like default.
-	j := Make(Options{TextInfo: boolPtr(false)})
+	j := Make(Options{Property: &PropertyOptions{TextInfo: boolPtr(false)}})
 	got, err := j.Parse(`"hello"`)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)

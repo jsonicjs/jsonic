@@ -13,10 +13,22 @@ type Plugin func(j *Jsonic, opts map[string]any)
 // LexMatcher is a custom lexer matcher function.
 // It receives the lexer and the current parsing rule, and returns a Token
 // if matched, or nil to pass. The rule parameter allows context-sensitive
-// lexing (e.g. checking rule.K, rule.U, rule.N, or rule.State).
+// lexing (e.g. checking lex.Ctx.Rule, rule.K, rule.U, rule.N, or rule.State).
 // The matcher can read the current position via lex.Cursor() and must
 // advance the cursor if it produces a token.
 type LexMatcher func(lex *Lex, rule *Rule) *Token
+
+// MakeLexMatcher is a factory function that creates a LexMatcher.
+// It receives the lexer config and parser options, matching the TypeScript
+// pattern: (cfg: Config, opts: Options) => (lex: Lex) => Token | undefined.
+type MakeLexMatcher func(cfg *LexConfig, opts *Options) LexMatcher
+
+// MatchSpec defines a custom matcher to be registered via options.
+// This matches the TypeScript pattern: { order: number, make: MakeLexMatcher }.
+type MatchSpec struct {
+	Order int            // Priority order (lower runs first)
+	Make  MakeLexMatcher // Factory function that creates the matcher
+}
 
 // MatcherEntry holds a named custom matcher with a priority for ordering.
 // Lower priority numbers run first. Built-in matchers use:
@@ -161,6 +173,20 @@ func (j *Jsonic) AddMatcher(name string, priority int, matcher LexMatcher) *Json
 	sort.Slice(j.parser.Config.CustomMatchers, func(i, k int) bool {
 		return j.parser.Config.CustomMatchers[i].Priority < j.parser.Config.CustomMatchers[k].Priority
 	})
+	return j
+}
+
+// MergeOptions merges options into this instance without rebuilding grammar
+// or re-applying plugins. This matches the TypeScript jsonic.options() behavior
+// used by plugins to register matchers and adjust config in-place.
+func (j *Jsonic) MergeOptions(opts Options) *Jsonic {
+	// Process lex.match specs: create matchers from MakeLexMatcher factories.
+	if opts.Lex != nil && opts.Lex.Match != nil {
+		for name, spec := range opts.Lex.Match {
+			matcher := spec.Make(j.parser.Config, j.options)
+			j.AddMatcher(name, spec.Order, matcher)
+		}
+	}
 	return j
 }
 
@@ -343,6 +369,26 @@ func (j *Jsonic) SetOptions(opts Options) *Jsonic {
 	if opts.Rule != nil {
 		j.options.Rule = opts.Rule
 	}
+	if opts.Lex != nil {
+		if j.options.Lex == nil {
+			j.options.Lex = opts.Lex
+		} else {
+			if opts.Lex.Empty != nil {
+				j.options.Lex.Empty = opts.Lex.Empty
+			}
+			if opts.Lex.EmptyResult != nil {
+				j.options.Lex.EmptyResult = opts.Lex.EmptyResult
+			}
+			if opts.Lex.Match != nil {
+				if j.options.Lex.Match == nil {
+					j.options.Lex.Match = make(map[string]*MatchSpec)
+				}
+				for k, v := range opts.Lex.Match {
+					j.options.Lex.Match[k] = v
+				}
+			}
+		}
+	}
 	if len(opts.Ender) > 0 {
 		j.options.Ender = opts.Ender
 	}
@@ -372,6 +418,14 @@ func (j *Jsonic) SetOptions(opts Options) *Jsonic {
 	// Re-apply plugins.
 	for _, pe := range j.plugins {
 		pe.plugin(j, pe.opts)
+	}
+
+	// Apply lex.match specs: create matchers from MakeLexMatcher factories.
+	if opts.Lex != nil && opts.Lex.Match != nil {
+		for name, spec := range opts.Lex.Match {
+			matcher := spec.Make(j.parser.Config, j.options)
+			j.AddMatcher(name, spec.Order, matcher)
+		}
 	}
 
 	// Apply error messages.

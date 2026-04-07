@@ -1006,13 +1006,13 @@ func TestErrorHintsInOutput(t *testing.T) {
 // --- Config modify callbacks ---
 
 func TestConfigModify(t *testing.T) {
-	j := Make(Options{
+	j := Make(Options{Property: &PropertyOptions{
 		ConfigModify: map[string]ConfigModifier{
 			"disable-hex": func(cfg *LexConfig, opts *Options) {
 				cfg.NumberHex = false
 			},
 		},
-	})
+	}})
 
 	// With hex disabled, 0xFF should be text.
 	result, err := j.Parse("0xFF")
