@@ -37,6 +37,7 @@ publish-go: test-go
 	git commit -m "go: v$(V)"
 	git tag go/v$(V)
 	git push origin main go/v$(V)
+	if command -v gh >/dev/null 2>&1; then gh release create go/v$(V) --title "go/v$(V)" --notes "Go module release v$(V)"; fi
 
 tags-go:
 	git tag -l 'go/v*' --sort=-version:refname
