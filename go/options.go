@@ -212,18 +212,19 @@ type ConfigModifier func(cfg *LexConfig, opts *Options)
 
 // Jsonic is a configured parser instance, equivalent to TypeScript's Jsonic.make().
 type Jsonic struct {
-	options     *Options
-	parser      *Parser
-	plugins     []pluginEntry      // Registered plugins
-	tinByName   map[string]Tin     // Custom token name → Tin
-	nameByTin   map[Tin]string     // Custom Tin → token name
-	nextTin     Tin                // Next available Tin for allocation
-	lexSubs     []LexSub           // Lex event subscribers
-	ruleSubs    []RuleSub          // Rule event subscribers
-	hints       map[string]string  // Error hints per error code
-	emptyAllow  bool               // Allow empty source
-	emptyResult any                // Result for empty source
-	parserStart func(src string, j *Jsonic, meta map[string]any) (any, error)
+	options      *Options
+	parser       *Parser
+	plugins      []pluginEntry      // Registered plugins
+	tinByName    map[string]Tin     // Custom token name → Tin
+	nameByTin    map[Tin]string     // Custom Tin → token name
+	nextTin      Tin                // Next available Tin for allocation
+	lexSubs      []LexSub           // Lex event subscribers
+	ruleSubs     []RuleSub          // Rule event subscribers
+	hints        map[string]string  // Error hints per error code
+	emptyAllow   bool               // Allow empty source
+	emptyResult  any                // Result for empty source
+	parserStart  func(src string, j *Jsonic, meta map[string]any) (any, error)
+	inSetOptions bool               // Re-entrancy guard for SetOptions
 }
 
 // Make creates a new Jsonic parser instance with the given options.

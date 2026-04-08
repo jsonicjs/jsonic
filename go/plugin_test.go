@@ -1356,3 +1356,217 @@ func TestRuleExcludeFromOptions(t *testing.T) {
 		t.Error("experimental group should have been excluded via options")
 	}
 }
+
+// --- Multi-level token inheritance and isolation (TS: parent-safe) ---
+
+func TestDeriveTokenInheritance(t *testing.T) {
+	// Parent registers token #B. Child registers token #D.
+	// Child should see both. Parent should only see #B.
+	c0 := Make()
+	c0.Token("#B0", "b")
+
+	c1 := c0.Derive()
+	c1.Token("#D0", "d")
+
+	// c1 inherits c0's token.
+	if _, ok := c1.Config().FixedTokens["b"]; !ok {
+		t.Error("child should inherit parent's #B0 token")
+	}
+	// c1 has its own token.
+	if _, ok := c1.Config().FixedTokens["d"]; !ok {
+		t.Error("child should have its own #D0 token")
+	}
+	// c0 is unaffected by c1's token.
+	if _, ok := c0.Config().FixedTokens["d"]; ok {
+		t.Error("parent should NOT have child's #D0 token")
+	}
+	// c0 still has its own token.
+	if _, ok := c0.Config().FixedTokens["b"]; !ok {
+		t.Error("parent should still have its #B0 token")
+	}
+}
+
+// --- Multi-level plugin inheritance with isolation (TS: naked-make) ---
+
+// makeTokenPlugin creates a plugin that registers a fixed token for `char`
+// and a val rule alternate that produces `val` when that token is seen.
+// This mirrors the TS make_token_plugin helper.
+func makeTokenPlugin(char, val string) Plugin {
+	return func(j *Jsonic, opts map[string]any) {
+		tn := "#T<" + char + ">"
+		j.Token(tn, char)
+		TT := j.Token(tn, "")
+
+		j.Rule("val", func(rs *RuleSpec) {
+			capturedVal := val
+			capturedTT := TT
+			rs.Open = append([]*AltSpec{{
+				S: [][]Tin{{capturedTT}},
+				G: "CV=" + capturedVal,
+				A: func(r *Rule, ctx *Context) {
+					r.Node = capturedVal
+				},
+			}}, rs.Open...)
+		})
+	}
+}
+
+func TestDeriveMultiLevelPluginInheritance(t *testing.T) {
+	// j has plugin A (maps char "A" to value "aaa").
+	j := Make()
+	j.Use(makeTokenPlugin("A", "aaa"))
+
+	resultJ, err := j.Parse("x:A,y:B,z:C")
+	if err != nil {
+		t.Fatalf("j.Parse: %v", err)
+	}
+	expectMap(t, "j", resultJ, map[string]any{"x": "aaa", "y": "B", "z": "C"})
+
+	// a1 derives from j. a1 should inherit plugin A.
+	a1 := j.Derive()
+	resultA1, err := a1.Parse("x:A,y:B,z:C")
+	if err != nil {
+		t.Fatalf("a1.Parse: %v", err)
+	}
+	expectMap(t, "a1", resultA1, map[string]any{"x": "aaa", "y": "B", "z": "C"})
+
+	// a2 derives from j. a2 adds plugin B.
+	a2 := j.Derive()
+	a2.Use(makeTokenPlugin("B", "bbb"))
+
+	resultA2, err := a2.Parse("x:A,y:B,z:C")
+	if err != nil {
+		t.Fatalf("a2.Parse: %v", err)
+	}
+	expectMap(t, "a2", resultA2, map[string]any{"x": "aaa", "y": "bbb", "z": "C"})
+
+	// a1 and j should be unaffected by a2's plugin B.
+	resultA1Again, err := a1.Parse("x:A,y:B,z:C")
+	if err != nil {
+		t.Fatalf("a1 again: %v", err)
+	}
+	expectMap(t, "a1 again", resultA1Again, map[string]any{"x": "aaa", "y": "B", "z": "C"})
+
+	resultJAgain, err := j.Parse("x:A,y:B,z:C")
+	if err != nil {
+		t.Fatalf("j again: %v", err)
+	}
+	expectMap(t, "j again", resultJAgain, map[string]any{"x": "aaa", "y": "B", "z": "C"})
+
+	// a22 derives from a2. Inherits plugins A and B. Adds plugin C.
+	a22 := a2.Derive()
+	a22.Use(makeTokenPlugin("C", "ccc"))
+
+	resultA22, err := a22.Parse("x:A,y:B,z:C")
+	if err != nil {
+		t.Fatalf("a22.Parse: %v", err)
+	}
+	expectMap(t, "a22", resultA22, map[string]any{"x": "aaa", "y": "bbb", "z": "ccc"})
+
+	// a2 unaffected by a22's plugin C.
+	resultA2Again, err := a2.Parse("x:A,y:B,z:C")
+	if err != nil {
+		t.Fatalf("a2 again: %v", err)
+	}
+	expectMap(t, "a2 again", resultA2Again, map[string]any{"x": "aaa", "y": "bbb", "z": "C"})
+
+	// a1 still unaffected.
+	resultA1Final, err := a1.Parse("x:A,y:B,z:C")
+	if err != nil {
+		t.Fatalf("a1 final: %v", err)
+	}
+	expectMap(t, "a1 final", resultA1Final, map[string]any{"x": "aaa", "y": "B", "z": "C"})
+
+	// j still unaffected.
+	resultJFinal, err := j.Parse("x:A,y:B,z:C")
+	if err != nil {
+		t.Fatalf("j final: %v", err)
+	}
+	expectMap(t, "j final", resultJFinal, map[string]any{"x": "aaa", "y": "B", "z": "C"})
+}
+
+// expectMap asserts that result is a map[string]any matching expected.
+func expectMap(t *testing.T, label string, result any, expected map[string]any) {
+	t.Helper()
+	m, ok := result.(map[string]any)
+	if !ok {
+		t.Fatalf("%s: expected map[string]any, got %T: %v", label, result, result)
+	}
+	for k, v := range expected {
+		if m[k] != v {
+			t.Errorf("%s: key %q: got %v (%T), want %v (%T)", label, k, m[k], m[k], v, v)
+		}
+	}
+}
+
+// --- Custom parser error propagation (TS: custom-parser-error) ---
+
+func TestCustomParserStartError(t *testing.T) {
+	j := Make(Options{
+		Parser: &ParserOptions{
+			Start: func(src string, j *Jsonic, meta map[string]any) (any, error) {
+				if src == "e:0" {
+					return nil, &JsonicError{
+						Code:   "custom",
+						Detail: "bad-parser:e:0",
+					}
+				}
+				return src, nil
+			},
+		},
+	})
+
+	// Normal input works.
+	result, err := j.Parse("hello")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if result != "hello" {
+		t.Errorf("expected 'hello', got %v", result)
+	}
+
+	// Error input propagates the error.
+	_, err = j.Parse("e:0")
+	if err == nil {
+		t.Fatal("expected error for 'e:0'")
+	}
+	je, ok := err.(*JsonicError)
+	if !ok {
+		t.Fatalf("expected *JsonicError, got %T: %v", err, err)
+	}
+	if je.Code != "custom" {
+		t.Errorf("expected code 'custom', got %q", je.Code)
+	}
+	if !strings.Contains(je.Detail, "e:0") {
+		t.Errorf("expected detail to contain 'e:0', got %q", je.Detail)
+	}
+}
+
+// --- Plugin sets error hints (TS: plugin-errmsg) ---
+
+func TestPluginErrorHints(t *testing.T) {
+	j := Make()
+	j.Use(func(j *Jsonic, opts map[string]any) {
+		j.SetOptions(Options{
+			Hint: map[string]string{
+				"unexpected": "FOO",
+			},
+		})
+	})
+
+	_, err := j.Parse("x::1")
+	if err == nil {
+		t.Fatal("expected error for 'x::1'")
+	}
+	je, ok := err.(*JsonicError)
+	if !ok {
+		t.Fatalf("expected *JsonicError, got %T", err)
+	}
+	errStr := je.Error()
+	if !strings.Contains(errStr, "unexpected") {
+		t.Errorf("error should contain 'unexpected', got:\n%s", errStr)
+	}
+	if !strings.Contains(errStr, "FOO") {
+		t.Errorf("error should contain hint 'FOO', got:\n%s", errStr)
+	}
+}

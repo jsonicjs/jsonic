@@ -319,6 +319,9 @@ func (j *Jsonic) Derive(opts ...Options) *Jsonic {
 // SetOptions deep-merges new options into this instance and rebuilds the
 // config, grammar, and plugins. This matches the TypeScript options() setter
 // behavior: nil/zero fields in opts do not overwrite existing values.
+// When called from within a plugin (during re-apply), skips plugin
+// re-application to avoid infinite recursion, matching TS behavior where
+// options() does not re-trigger plugins.
 // Returns the instance for chaining.
 func (j *Jsonic) SetOptions(opts Options) *Jsonic {
 	merged := Deep(*j.options, opts).(Options)
@@ -340,9 +343,14 @@ func (j *Jsonic) SetOptions(opts Options) *Jsonic {
 	Grammar(rsm, cfg)
 	j.parser.RSM = rsm
 
-	// Re-apply plugins.
-	for _, pe := range j.plugins {
-		pe.plugin(j, pe.opts)
+	// Re-apply plugins (with re-entrancy guard to match TS behavior where
+	// options() setter does not re-trigger plugin application).
+	if !j.inSetOptions {
+		j.inSetOptions = true
+		for _, pe := range j.plugins {
+			pe.plugin(j, pe.opts)
+		}
+		j.inSetOptions = false
 	}
 
 	// Apply lex.match specs: create matchers from MakeLexMatcher factories.
@@ -357,6 +365,20 @@ func (j *Jsonic) SetOptions(opts Options) *Jsonic {
 	if j.options.Error != nil {
 		for k, v := range j.options.Error {
 			j.parser.ErrorMessages[k] = v
+		}
+	}
+
+	// Apply hints.
+	if j.options.Hint != nil {
+		if j.hints == nil {
+			j.hints = make(map[string]string)
+		}
+		if j.parser.Hints == nil {
+			j.parser.Hints = make(map[string]string)
+		}
+		for k, v := range j.options.Hint {
+			j.hints[k] = v
+			j.parser.Hints[k] = v
 		}
 	}
 
