@@ -9,10 +9,9 @@ import (
 )
 
 // Deep performs a recursive deep merge of multiple values.
-// Objects (map[string]any) are merged recursively.
-// Arrays are merged element-by-element (over array values replace base at same index).
-// Primitive values and nil replace the base.
-// The function takes a base value and any number of overlay values.
+// Works on map[string]any, []any, and Go structs (via reflection),
+// matching the TypeScript deep() utility.
+// Zero/nil values in the overlay do not overwrite base values.
 func Deep(base any, rest ...any) any {
 	for _, over := range rest {
 		base = deepMerge(base, over)
@@ -108,6 +107,11 @@ func deepMerge(base, over any) any {
 		return result
 	}
 
+	// Struct handling via reflection — matches TS deep() on plain objects.
+	if merged, ok := deepMergeStruct(base, over); ok {
+		return merged
+	}
+
 	// Type mismatch or non-container: over wins
 	// Match TS: undefined preserves base, null replaces.
 	if IsUndefined(over) {
@@ -117,6 +121,110 @@ func deepMerge(base, over any) any {
 		return nil
 	}
 	return deepClone(over)
+}
+
+// deepMergeStruct merges two struct values field-by-field via reflection.
+// Zero-value fields in over do not overwrite base, matching TS deep() where
+// undefined properties are skipped. Returns (merged, true) if both values
+// are structs of the same type, or (nil, false) if not applicable.
+func deepMergeStruct(base, over any) (any, bool) {
+	if base == nil || over == nil {
+		return nil, false
+	}
+
+	bv := reflect.ValueOf(base)
+	ov := reflect.ValueOf(over)
+
+	// Unwrap pointers.
+	bIsPtr := bv.Kind() == reflect.Ptr
+	oIsPtr := ov.Kind() == reflect.Ptr
+
+	if bIsPtr && bv.IsNil() {
+		if oIsPtr || ov.Kind() == reflect.Struct {
+			return over, true
+		}
+		return nil, false
+	}
+	if oIsPtr && ov.IsNil() {
+		if bIsPtr || bv.Kind() == reflect.Struct {
+			return base, true
+		}
+		return nil, false
+	}
+
+	bElem := bv
+	oElem := ov
+	if bIsPtr {
+		bElem = bv.Elem()
+	}
+	if oIsPtr {
+		oElem = ov.Elem()
+	}
+
+	if bElem.Kind() != reflect.Struct || oElem.Kind() != reflect.Struct {
+		return nil, false
+	}
+	if bElem.Type() != oElem.Type() {
+		return nil, false
+	}
+
+	result := reflect.New(bElem.Type()).Elem()
+	for i := 0; i < bElem.NumField(); i++ {
+		bf := bElem.Field(i)
+		of := oElem.Field(i)
+
+		if !bf.CanInterface() {
+			// Unexported field: keep base.
+			continue
+		}
+
+		if of.IsZero() {
+			result.Field(i).Set(bf)
+			continue
+		}
+		if bf.IsZero() {
+			result.Field(i).Set(of)
+			continue
+		}
+
+		// Both non-zero: merge based on kind.
+		switch of.Kind() {
+		case reflect.Ptr:
+			if of.Elem().Kind() == reflect.Struct {
+				// Pointer to struct: recurse.
+				merged, ok := deepMergeStruct(bf.Interface(), of.Interface())
+				if ok {
+					result.Field(i).Set(reflect.ValueOf(merged))
+				} else {
+					result.Field(i).Set(of)
+				}
+			} else {
+				// Pointer to primitive (*bool, *int): over wins.
+				result.Field(i).Set(of)
+			}
+		case reflect.Map:
+			// Merge map entries: base first, then over overwrites.
+			merged := reflect.MakeMap(bf.Type())
+			for _, k := range bf.MapKeys() {
+				merged.SetMapIndex(k, bf.MapIndex(k))
+			}
+			for _, k := range of.MapKeys() {
+				merged.SetMapIndex(k, of.MapIndex(k))
+			}
+			result.Field(i).Set(merged)
+		default:
+			// String, slice, func, etc.: over wins.
+			result.Field(i).Set(of)
+		}
+	}
+
+	// Return with same pointer wrapping as inputs.
+	if bIsPtr || oIsPtr {
+		ptr := reflect.New(result.Type())
+		ptr.Elem().Set(result)
+		return ptr.Interface(), true
+	}
+	return result.Interface(), true
 }
 
 // cloneMeta creates a shallow copy of a Meta map.
@@ -181,15 +289,25 @@ func deepClone(val any) any {
 	}
 }
 
+// Snip returns the first maxlen characters of s, replacing \r, \n, \t with '.'.
+// Matches the TypeScript snip() utility used for debug/display output.
+func Snip(s string, maxlen int) string {
+	if maxlen <= 0 {
+		return ""
+	}
+	if len(s) > maxlen {
+		s = s[:maxlen]
+	}
+	return strings.NewReplacer("\r", ".", "\n", ".", "\t", ".").Replace(s)
+}
+
 // Str converts a value to a truncated string representation.
 // If maxlen is <= 0, returns empty string.
 // If the string representation exceeds maxlen, it is truncated with "..." appended.
-// Default maxlen is 44 if not specified (pass 0 or negative to get empty string).
+// Matches the TypeScript str() + snip() pipeline: converts to string, truncates,
+// then replaces \r\n\t with '.'.
 func Str(val any, maxlen int) string {
-	if maxlen < 0 {
-		return ""
-	}
-	if maxlen == 0 {
+	if maxlen <= 0 {
 		return ""
 	}
 
@@ -210,7 +328,8 @@ func Str(val any, maxlen int) string {
 			s = "false"
 		}
 	case nil:
-		s = ""
+		// Match TS: JSON.stringify(null) === "null"
+		s = "null"
 	default:
 		b, err := json.Marshal(val)
 		if err != nil {
@@ -224,12 +343,12 @@ func Str(val any, maxlen int) string {
 		if maxlen >= 4 {
 			s = s[:maxlen-3] + "..."
 		} else {
-			// For very small maxlen, just use dots
 			s = "..."[:maxlen]
 		}
 	}
 
-	return s
+	// Match TS: str() calls snip() which replaces \r\n\t with '.'
+	return Snip(s, maxlen)
 }
 
 // StrInject replaces template placeholders like {key} or {key.subkey} in a
@@ -386,16 +505,16 @@ func formatCompactValue(val any) string {
 	}
 }
 
-// ModList modifies an array by applying delete and move operations.
-// opts is a map with optional keys:
-//   - "delete": []any of indices (float64) to delete
-//   - "move": []any of index pairs [from, to, from, to, ...]
+// ModListOpts configures list modifications for ModList.
+// Matches the TypeScript ListMods type.
 type ModListOpts struct {
-	Delete []int
-	Move   []int // pairs: [from, to, from, to, ...]
+	Delete []int                   // Indices to delete (supports negative indices).
+	Move   []int                   // Pairs: [from, to, from, to, ...].
+	Custom func(list []any) []any  // Custom modification callback, applied last.
 }
 
-// ModList modifies a list by applying delete and move operations.
+// ModList modifies a list by applying delete, move, and custom operations.
+// Matches the TypeScript modlist() utility.
 func ModList(list []any, opts *ModListOpts) []any {
 	if opts == nil || list == nil {
 		return list
@@ -405,7 +524,7 @@ func ModList(list []any, opts *ModListOpts) []any {
 		type sentinel struct{}
 		deleteMarker := sentinel{}
 
-		// Phase 1: Mark elements for deletion
+		// Phase 1: Mark elements for deletion (before move so indexes still make sense).
 		if len(opts.Delete) > 0 {
 			for _, idx := range opts.Delete {
 				n := len(list)
@@ -422,7 +541,7 @@ func ModList(list []any, opts *ModListOpts) []any {
 			}
 		}
 
-		// Phase 2: Move operations (on array with markers still present)
+		// Phase 2: Move operations (on array with markers still present).
 		if len(opts.Move) >= 2 {
 			for i := 0; i+1 < len(opts.Move); i += 2 {
 				n := len(list)
@@ -441,7 +560,7 @@ func ModList(list []any, opts *ModListOpts) []any {
 			}
 		}
 
-		// Phase 3: Filter out deleted entries
+		// Phase 3: Filter out deleted entries.
 		if len(opts.Delete) > 0 {
 			filtered := make([]any, 0, len(list))
 			for _, v := range list {
@@ -450,6 +569,13 @@ func ModList(list []any, opts *ModListOpts) []any {
 				}
 			}
 			list = filtered
+		}
+	}
+
+	// Phase 4: Custom modification (matches TS mods.custom).
+	if opts.Custom != nil {
+		if newList := opts.Custom(list); newList != nil {
+			list = newList
 		}
 	}
 

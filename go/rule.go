@@ -120,6 +120,52 @@ func (rs *RuleSpec) PrependClose(alts ...*AltSpec) *RuleSpec {
 	return rs
 }
 
+// AltModListOpts configures modifications for RuleSpec alternate lists.
+// Matches the TS ListMods parameter to rs.open(alts, mods)/rs.close(alts, mods).
+type AltModListOpts struct {
+	Delete []int                         // Indices to delete (supports negative).
+	Move   []int                         // Pairs: [from, to, from, to, ...].
+	Custom func(list []*AltSpec) []*AltSpec // Custom modification callback.
+}
+
+// ModifyOpen applies delete/move/custom modifications to the open alternates list.
+// Matches TS `rs.open(alts, mods)` where mods has delete/move/custom.
+func (rs *RuleSpec) ModifyOpen(mods *AltModListOpts) *RuleSpec {
+	rs.Open = modifyAltList(rs.Open, mods)
+	return rs
+}
+
+// ModifyClose applies delete/move/custom modifications to the close alternates list.
+func (rs *RuleSpec) ModifyClose(mods *AltModListOpts) *RuleSpec {
+	rs.Close = modifyAltList(rs.Close, mods)
+	return rs
+}
+
+func modifyAltList(list []*AltSpec, mods *AltModListOpts) []*AltSpec {
+	if mods == nil || list == nil {
+		return list
+	}
+	// Convert to []any, apply ModList, convert back.
+	anyList := make([]any, len(list))
+	for i, v := range list {
+		anyList[i] = v
+	}
+	anyList = ModList(anyList, &ModListOpts{
+		Delete: mods.Delete,
+		Move:   mods.Move,
+	})
+	result := make([]*AltSpec, len(anyList))
+	for i, v := range anyList {
+		result[i] = v.(*AltSpec)
+	}
+	if mods.Custom != nil {
+		if newList := mods.Custom(result); newList != nil {
+			result = newList
+		}
+	}
+	return result
+}
+
 // AddBO appends a before-open action.
 func (rs *RuleSpec) AddBO(action StateAction) *RuleSpec {
 	rs.BO = append(rs.BO, action)
@@ -396,11 +442,13 @@ func (r *Rule) Process(ctx *Context, lex *Lex) *Rule {
 			ctx.V1 = ctx.T0
 			ctx.T0 = ctx.T1
 			ctx.T1 = NoToken
+			ctx.TC++
 		} else if consumed == 2 {
 			ctx.V2 = ctx.T1
 			ctx.V1 = ctx.T0
 			ctx.T0 = NoToken
 			ctx.T1 = NoToken
+			ctx.TC += 2
 		}
 	}
 

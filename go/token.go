@@ -45,15 +45,31 @@ type Point struct {
 
 // Token represents a lexical token.
 type Token struct {
-	Name string // Token name (#OB, #ST, etc.)
-	Tin  Tin    // Token identification number
-	Val  any    // Resolved value
-	Src  string // Source text
-	SI   int    // Start position
-	RI   int    // Row
-	CI   int    // Column
-	Err  string // Error code
-	Why  string // Tracing/reason
+	Name string         // Token name (#OB, #ST, etc.)
+	Tin  Tin            // Token identification number
+	Val  any            // Resolved value
+	Src  string         // Source text
+	SI   int            // Start position
+	RI   int            // Row
+	CI   int            // Column
+	Err  string         // Error code
+	Why  string         // Tracing/reason
+	Use  map[string]any // Custom plugin metadata (TS: token.use)
+}
+
+// Bad converts this token to an error token with the given error code.
+// Matches TS token.bad(err, details).
+func (t *Token) Bad(err string, details ...map[string]any) *Token {
+	t.Err = err
+	if len(details) > 0 && details[0] != nil {
+		if t.Use == nil {
+			t.Use = make(map[string]any)
+		}
+		for k, v := range details[0] {
+			t.Use[k] = v
+		}
+	}
+	return t
 }
 
 // IsNoToken returns true if this is a sentinel/empty token.

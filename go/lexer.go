@@ -211,6 +211,30 @@ func (l *Lex) Token(name string, tin Tin, val any, src string) *Token {
 	return MakeToken(name, tin, val, src, l.pnt)
 }
 
+// Fwd returns a forward-looking substring from the current position.
+// maxlen limits the length of the returned string.
+// Matches TS lex.fwd.
+func (l *Lex) Fwd(maxlen int) string {
+	si := l.pnt.SI
+	end := si + maxlen
+	if end > l.pnt.Len {
+		end = l.pnt.Len
+	}
+	if si >= end {
+		return ""
+	}
+	return l.Src[si:end]
+}
+
+// Bad creates an error token at the current position.
+// Matches TS lex.bad(why, pstart, pend).
+func (l *Lex) Bad(why string) *Token {
+	tkn := MakeToken("#BD", TinBD, nil, "", l.pnt)
+	tkn.Why = why
+	tkn.Err = why
+	return tkn
+}
+
 // Next returns the next non-IGNORE token, passing the current parsing rule
 // to custom matchers for context-sensitive lexing.
 // On error (unterminated string, unterminated comment, unexpected character),

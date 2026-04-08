@@ -6,22 +6,35 @@ import (
 	"strings"
 )
 
-// Context holds the parse state.
+// Context holds the parse state, matching the TypeScript Context type.
 type Context struct {
-	UI       int               // Unique rule ID counter
-	T0       *Token            // First lookahead token
-	T1       *Token            // Second lookahead token
-	V1       *Token            // Previous token 1
-	V2       *Token            // Previous token 2
-	RS       []*Rule           // Rule stack
-	RSI      int               // Rule stack index
-	RSM      map[string]*RuleSpec // Rule spec map
-	KI       int               // Iteration counter
-	Rule     *Rule             // Current parsing rule
-	Meta     map[string]any    // Parse metadata from ParseMeta()
-	LexSubs  []LexSub          // Lex event subscribers
-	RuleSubs []RuleSub         // Rule event subscribers
-	ParseErr *Token            // Error token from alt.E or action error, halts parse.
+	UI       int               // Unique rule ID counter (TS: uI)
+	T0       *Token            // Current token (TS: t0)
+	T1       *Token            // Next token / lookahead (TS: t1)
+	V1       *Token            // Previous token (TS: v1)
+	V2       *Token            // Previous previous token (TS: v2)
+	RS       []*Rule           // Rule stack (TS: rs)
+	RSI      int               // Rule stack index (TS: rsI)
+	RSM      map[string]*RuleSpec // Rule spec map (TS: rsm)
+	KI       int               // Iteration counter (TS: kI)
+	Rule     *Rule             // Current parsing rule (TS: rule)
+	Meta     map[string]any    // Parse metadata (TS: meta)
+	LexSubs  []LexSub          // Lex event subscribers (TS: sub.lex)
+	RuleSubs []RuleSub         // Rule event subscribers (TS: sub.rule)
+	ParseErr *Token            // Error token, halts parse
+
+	// Fields matching TS Context:
+	Opts     *Options          // Jsonic instance options (TS: opts)
+	Cfg      *LexConfig        // Jsonic instance config (TS: cfg)
+	Src      string            // Source text being parsed (TS: src)
+	Inst     *Jsonic           // Current Jsonic instance (TS: inst)
+	U        map[string]any    // Custom plugin data bag (TS: u)
+	Root     *Rule             // Root rule (TS: root)
+	TC       int               // Token count (TS: tC)
+	F        func(any) string  // Format value as string (TS: F)
+	Log      func(...any)      // Debug logger (TS: log)
+	NOTOKEN  *Token            // Sentinel no-token (TS: NOTOKEN)
+	NORULE   *Rule             // Sentinel no-rule (TS: NORULE)
 }
 
 // Parser orchestrates the parsing process.
@@ -31,6 +44,7 @@ type Parser struct {
 	MaxMul        int               // Max rule occurrence multiplier. Default: 3.
 	ErrorMessages map[string]string  // Custom error message templates.
 	Hints         map[string]string  // Explanatory hints per error code.
+	ErrTag        string             // Custom error tag (TS: errmsg.name). Default: "jsonic".
 }
 
 // NewParser creates a parser with default configuration.
@@ -49,16 +63,27 @@ func NewParser() *Parser {
 // Start parses the source string and returns the result.
 // Returns a *JsonicError if parsing fails.
 func (p *Parser) Start(src string) (any, error) {
-	return p.StartMeta(src, nil, nil, nil)
+	return p.startParse(src, nil, nil, nil, nil)
 }
 
-// StartMeta parses the source string with metadata and subscriptions.
+// StartMeta parses the source string with metadata, subscriptions, and
+// an optional Jsonic instance reference (for Context.Inst).
 func (p *Parser) StartMeta(src string, meta map[string]any, lexSubs []LexSub, ruleSubs []RuleSub) (any, error) {
+	return p.startParse(src, meta, lexSubs, ruleSubs, nil)
+}
+
+// startParse is the internal entry point that populates the full Context.
+func (p *Parser) startParse(src string, meta map[string]any, lexSubs []LexSub, ruleSubs []RuleSub, inst *Jsonic) (any, error) {
 	if src == "" {
 		return nil, nil
 	}
 
 	lex := NewLex(src, p.Config)
+
+	var opts *Options
+	if inst != nil {
+		opts = inst.options
+	}
 
 	ctx := &Context{
 		UI:       0,
@@ -72,6 +97,15 @@ func (p *Parser) StartMeta(src string, meta map[string]any, lexSubs []LexSub, ru
 		Meta:     meta,
 		LexSubs:  lexSubs,
 		RuleSubs: ruleSubs,
+		Opts:     opts,
+		Cfg:      p.Config,
+		Src:      src,
+		Inst:     inst,
+		U:        make(map[string]any),
+		TC:       0,
+		NOTOKEN:  NoToken,
+		NORULE:   NoRule,
+		F:        func(v any) string { return Str(v, 44) },
 	}
 
 	lex.Ctx = ctx
@@ -87,6 +121,7 @@ func (p *Parser) StartMeta(src string, meta map[string]any, lexSubs []LexSub, ru
 
 	rule := MakeRule(startSpec, ctx, nil)
 	root := rule
+	ctx.Root = root
 
 	// Run parse.prepare hooks
 	if len(p.Config.ParsePrepare) > 0 {
@@ -200,6 +235,7 @@ func (p *Parser) makeError(code, src, fullSource string, pos, row, col int) *Jso
 		Src:        src,
 		Hint:       hint,
 		fullSource: fullSource,
+		tag:        p.ErrTag,
 	}
 }
 

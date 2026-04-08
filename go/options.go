@@ -1,5 +1,7 @@
 package jsonic
 
+import "strconv"
+
 // Options configures a Jsonic parser instance.
 // All fields use pointer types so that nil means "use default".
 // This matches the TypeScript pattern where unset options fall back to defaults.
@@ -49,6 +51,9 @@ type Options struct {
 	// Parser allows custom parser overrides.
 	Parser *ParserOptions
 
+	// Result controls parse result validation.
+	Result *ResultOptions
+
 	// Error provides custom error message templates keyed by error code.
 	// e.g. {"unexpected": "unexpected character(s): {src}"}
 	Error map[string]string
@@ -56,11 +61,22 @@ type Options struct {
 	// Hint provides additional explanatory text per error code.
 	Hint map[string]string
 
+	// ErrMsg controls error message formatting.
+	ErrMsg *ErrMsgOptions
+
 	// Property holds Go-specific options not present in the TypeScript version.
 	Property *PropertyOptions
 
 	// Tag is an instance identifier tag.
 	Tag string
+}
+
+// ErrMsgOptions controls error message formatting.
+// Matches the TypeScript errmsg option.
+type ErrMsgOptions struct {
+	// Name sets the error tag in formatted messages.
+	// Default: "jsonic". E.g. Name="bar" → "[bar/unexpected]: ..."
+	Name string
 }
 
 // PropertyOptions holds Go-specific options not present in the TypeScript version.
@@ -207,23 +223,91 @@ type ParserOptions struct {
 	Start func(src string, j *Jsonic, meta map[string]any) (any, error)
 }
 
+// ResultOptions controls parse result validation.
+// Matches the TypeScript result option.
+type ResultOptions struct {
+	// Fail lists values that are treated as parse failures.
+	// If the parse result matches any of these, an "unexpected" error is returned.
+	// E.g. Fail: []any{nil} would make nil results fail.
+	Fail []any
+}
+
 // ConfigModifier is a function that modifies the LexConfig after construction.
 type ConfigModifier func(cfg *LexConfig, opts *Options)
 
+// idCounter is used to generate unique Jsonic instance IDs.
+var idCounter int
+
 // Jsonic is a configured parser instance, equivalent to TypeScript's Jsonic.make().
 type Jsonic struct {
-	options     *Options
-	parser      *Parser
-	plugins     []pluginEntry      // Registered plugins
-	tinByName   map[string]Tin     // Custom token name → Tin
-	nameByTin   map[Tin]string     // Custom Tin → token name
-	nextTin     Tin                // Next available Tin for allocation
-	lexSubs     []LexSub           // Lex event subscribers
-	ruleSubs    []RuleSub          // Rule event subscribers
-	hints       map[string]string  // Error hints per error code
-	emptyAllow  bool               // Allow empty source
-	emptyResult any                // Result for empty source
-	parserStart func(src string, j *Jsonic, meta map[string]any) (any, error)
+	id           string             // Unique instance identifier (TS: jsonic.id)
+	options      *Options
+	parser       *Parser
+	plugins      []pluginEntry      // Registered plugins
+	tinByName    map[string]Tin     // Custom token name → Tin
+	nameByTin    map[Tin]string     // Custom Tin → token name
+	nextTin      Tin                // Next available Tin for allocation
+	lexSubs      []LexSub           // Lex event subscribers
+	ruleSubs     []RuleSub          // Rule event subscribers
+	hints        map[string]string  // Error hints per error code
+	emptyAllow   bool               // Allow empty source
+	emptyResult  any                // Result for empty source
+	parserStart  func(src string, j *Jsonic, meta map[string]any) (any, error)
+	inSetOptions bool               // Re-entrancy guard for SetOptions
+	decorations     map[string]any     // Plugin decorations (TS: jsonic.foo = value)
+	pluginOpts      map[string]map[string]any // Plugin options namespace (TS: options.plugin)
+	customTokenSets map[string][]Tin  // Custom token sets (TS: options.tokenSet)
+}
+
+// Decorate sets a named value on this instance. This is the Go equivalent of
+// the TypeScript pattern where plugins add properties to the jsonic instance
+// (e.g. jsonic.foo = () => 'FOO'). Decorations are inherited by Derive.
+func (j *Jsonic) Decorate(name string, value any) *Jsonic {
+	if j.decorations == nil {
+		j.decorations = make(map[string]any)
+	}
+	j.decorations[name] = value
+	return j
+}
+
+// Decoration returns a named value previously set by Decorate.
+// Returns nil if the name has not been set.
+func (j *Jsonic) Decoration(name string) any {
+	if j.decorations == nil {
+		return nil
+	}
+	return j.decorations[name]
+}
+
+// Id returns the unique instance identifier for this Jsonic instance.
+// Matches TS jsonic.id.
+func (j *Jsonic) Id() string {
+	return j.id
+}
+
+// PluginOptions returns the options stored for a named plugin.
+// Matches TS `jsonic.options.plugin[name]`.
+func (j *Jsonic) PluginOptions(name string) map[string]any {
+	if j.pluginOpts == nil {
+		return nil
+	}
+	return j.pluginOpts[name]
+}
+
+// SetPluginOptions stores options for a named plugin.
+// Matches TS `jsonic.options({ plugin: { name: opts } })`.
+func (j *Jsonic) SetPluginOptions(name string, opts map[string]any) {
+	if j.pluginOpts == nil {
+		j.pluginOpts = make(map[string]map[string]any)
+	}
+	existing := j.pluginOpts[name]
+	if existing == nil {
+		j.pluginOpts[name] = opts
+	} else {
+		for k, v := range opts {
+			existing[k] = v
+		}
+	}
 }
 
 // Make creates a new Jsonic parser instance with the given options.
@@ -271,7 +355,15 @@ func Make(opts ...Options) *Jsonic {
 		nameByTin[tin] = name
 	}
 
+	idCounter++
+	tag := ""
+	if o.Tag != "" {
+		tag = "/" + o.Tag
+	}
+	instanceId := "Jsonic/" + strconv.Itoa(idCounter) + tag
+
 	j := &Jsonic{
+		id:          instanceId,
 		options:     &o,
 		parser:      p,
 		tinByName:   tinByName,
@@ -297,6 +389,11 @@ func Make(opts ...Options) *Jsonic {
 		}
 	}
 
+	// Apply errmsg options.
+	if o.ErrMsg != nil && o.ErrMsg.Name != "" {
+		j.parser.ErrTag = o.ErrMsg.Name
+	}
+
 	// Apply lex options (empty source handling).
 	if o.Lex != nil {
 		if o.Lex.Empty != nil {
@@ -315,6 +412,17 @@ func Make(opts ...Options) *Jsonic {
 		j.Exclude(o.Rule.Exclude)
 	}
 
+	return j
+}
+
+// Empty creates a Jsonic instance with no built-in grammar rules.
+// Matches TS jsonic.empty(). Useful for building a parser from scratch.
+func Empty(opts ...Options) *Jsonic {
+	j := Make(opts...)
+	// Clear all grammar rules.
+	for _, rs := range j.parser.RSM {
+		rs.Clear()
+	}
 	return j
 }
 
@@ -339,7 +447,7 @@ func (j *Jsonic) parseInternal(src string, meta map[string]any) (any, error) {
 		return result, j.attachHint(err)
 	}
 
-	result, err := j.parser.StartMeta(src, meta, j.lexSubs, j.ruleSubs)
+	result, err := j.parser.startParse(src, meta, j.lexSubs, j.ruleSubs, j)
 	return result, j.attachHint(err)
 }
 
@@ -545,6 +653,11 @@ func buildConfig(o *Options) *LexConfig {
 	// list.child requires ListRef to store the child value on ListRef.Child.
 	if cfg.ListChild {
 		cfg.ListRef = true
+	}
+
+	// Result fail values.
+	if o.Result != nil && len(o.Result.Fail) > 0 {
+		cfg.ResultFail = append(cfg.ResultFail, o.Result.Fail...)
 	}
 
 	// Apply config modifiers.

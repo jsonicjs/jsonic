@@ -751,6 +751,78 @@ func TestSetOptions(t *testing.T) {
 	}
 }
 
+func TestSetOptionsDeepMerge(t *testing.T) {
+	// SetOptions should deep-merge like the TS options() setter:
+	// setting one sub-field should not clobber sibling sub-fields.
+	j := Make(Options{
+		Number: &NumberOptions{Lex: boolPtr(true), Hex: boolPtr(true)},
+	})
+
+	// Disable hex but leave Lex untouched.
+	j.SetOptions(Options{
+		Number: &NumberOptions{Hex: boolPtr(false)},
+	})
+
+	opts := j.Options()
+	if opts.Number == nil {
+		t.Fatal("expected Number options to be non-nil")
+	}
+	if opts.Number.Lex == nil || !*opts.Number.Lex {
+		t.Errorf("expected Number.Lex to remain true after SetOptions, got %v", opts.Number.Lex)
+	}
+	if opts.Number.Hex == nil || *opts.Number.Hex {
+		t.Errorf("expected Number.Hex to be false after SetOptions, got %v", opts.Number.Hex)
+	}
+
+	// Numbers should still parse (Lex is still true).
+	result, err := j.Parse("42")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if result != float64(42) {
+		t.Errorf("expected 42, got %v (%T)", result, result)
+	}
+}
+
+func TestSetOptionsDeepMergeMaps(t *testing.T) {
+	// Map fields like Error and Comment.Def should merge, not replace.
+	j := Make(Options{
+		Error: map[string]string{"unexpected": "custom unexpected"},
+	})
+
+	j.SetOptions(Options{
+		Error: map[string]string{"unterminated_string": "custom unterminated"},
+	})
+
+	opts := j.Options()
+	if opts.Error["unexpected"] != "custom unexpected" {
+		t.Errorf("expected Error['unexpected'] to be preserved, got %q", opts.Error["unexpected"])
+	}
+	if opts.Error["unterminated_string"] != "custom unterminated" {
+		t.Errorf("expected Error['unterminated_string'] to be set, got %q", opts.Error["unterminated_string"])
+	}
+}
+
+func TestSetOptionsChaining(t *testing.T) {
+	// Multiple SetOptions calls should accumulate, not reset.
+	j := Make()
+
+	j.SetOptions(Options{
+		Comment: &CommentOptions{Lex: boolPtr(false)},
+	})
+	j.SetOptions(Options{
+		Number: &NumberOptions{Lex: boolPtr(false)},
+	})
+
+	opts := j.Options()
+	if opts.Comment == nil || opts.Comment.Lex == nil || *opts.Comment.Lex {
+		t.Error("expected Comment.Lex to remain false after second SetOptions")
+	}
+	if opts.Number == nil || opts.Number.Lex == nil || *opts.Number.Lex {
+		t.Error("expected Number.Lex to be false after second SetOptions")
+	}
+}
+
 // --- Rule exclude ---
 
 func TestExclude(t *testing.T) {
@@ -1282,5 +1354,823 @@ func TestRuleExcludeFromOptions(t *testing.T) {
 	}
 	if found {
 		t.Error("experimental group should have been excluded via options")
+	}
+}
+
+// --- Multi-level token inheritance and isolation (TS: parent-safe) ---
+
+func TestDeriveTokenInheritance(t *testing.T) {
+	// Parent registers token #B. Child registers token #D.
+	// Child should see both. Parent should only see #B.
+	c0 := Make()
+	c0.Token("#B0", "b")
+
+	c1 := c0.Derive()
+	c1.Token("#D0", "d")
+
+	// c1 inherits c0's token.
+	if _, ok := c1.Config().FixedTokens["b"]; !ok {
+		t.Error("child should inherit parent's #B0 token")
+	}
+	// c1 has its own token.
+	if _, ok := c1.Config().FixedTokens["d"]; !ok {
+		t.Error("child should have its own #D0 token")
+	}
+	// c0 is unaffected by c1's token.
+	if _, ok := c0.Config().FixedTokens["d"]; ok {
+		t.Error("parent should NOT have child's #D0 token")
+	}
+	// c0 still has its own token.
+	if _, ok := c0.Config().FixedTokens["b"]; !ok {
+		t.Error("parent should still have its #B0 token")
+	}
+}
+
+// --- Multi-level plugin inheritance with isolation (TS: naked-make) ---
+
+// makeTokenPlugin creates a plugin that registers a fixed token for `char`
+// and a val rule alternate that produces `val` when that token is seen.
+// This mirrors the TS make_token_plugin helper.
+func makeTokenPlugin(char, val string) Plugin {
+	return func(j *Jsonic, opts map[string]any) {
+		tn := "#T<" + char + ">"
+		j.Token(tn, char)
+		TT := j.Token(tn, "")
+
+		j.Rule("val", func(rs *RuleSpec) {
+			capturedVal := val
+			capturedTT := TT
+			rs.Open = append([]*AltSpec{{
+				S: [][]Tin{{capturedTT}},
+				G: "CV=" + capturedVal,
+				A: func(r *Rule, ctx *Context) {
+					r.Node = capturedVal
+				},
+			}}, rs.Open...)
+		})
+	}
+}
+
+func TestDeriveMultiLevelPluginInheritance(t *testing.T) {
+	// j has plugin A (maps char "A" to value "aaa").
+	j := Make()
+	j.Use(makeTokenPlugin("A", "aaa"))
+
+	resultJ, err := j.Parse("x:A,y:B,z:C")
+	if err != nil {
+		t.Fatalf("j.Parse: %v", err)
+	}
+	expectMap(t, "j", resultJ, map[string]any{"x": "aaa", "y": "B", "z": "C"})
+
+	// a1 derives from j. a1 should inherit plugin A.
+	a1 := j.Derive()
+	resultA1, err := a1.Parse("x:A,y:B,z:C")
+	if err != nil {
+		t.Fatalf("a1.Parse: %v", err)
+	}
+	expectMap(t, "a1", resultA1, map[string]any{"x": "aaa", "y": "B", "z": "C"})
+
+	// a2 derives from j. a2 adds plugin B.
+	a2 := j.Derive()
+	a2.Use(makeTokenPlugin("B", "bbb"))
+
+	resultA2, err := a2.Parse("x:A,y:B,z:C")
+	if err != nil {
+		t.Fatalf("a2.Parse: %v", err)
+	}
+	expectMap(t, "a2", resultA2, map[string]any{"x": "aaa", "y": "bbb", "z": "C"})
+
+	// a1 and j should be unaffected by a2's plugin B.
+	resultA1Again, err := a1.Parse("x:A,y:B,z:C")
+	if err != nil {
+		t.Fatalf("a1 again: %v", err)
+	}
+	expectMap(t, "a1 again", resultA1Again, map[string]any{"x": "aaa", "y": "B", "z": "C"})
+
+	resultJAgain, err := j.Parse("x:A,y:B,z:C")
+	if err != nil {
+		t.Fatalf("j again: %v", err)
+	}
+	expectMap(t, "j again", resultJAgain, map[string]any{"x": "aaa", "y": "B", "z": "C"})
+
+	// a22 derives from a2. Inherits plugins A and B. Adds plugin C.
+	a22 := a2.Derive()
+	a22.Use(makeTokenPlugin("C", "ccc"))
+
+	resultA22, err := a22.Parse("x:A,y:B,z:C")
+	if err != nil {
+		t.Fatalf("a22.Parse: %v", err)
+	}
+	expectMap(t, "a22", resultA22, map[string]any{"x": "aaa", "y": "bbb", "z": "ccc"})
+
+	// a2 unaffected by a22's plugin C.
+	resultA2Again, err := a2.Parse("x:A,y:B,z:C")
+	if err != nil {
+		t.Fatalf("a2 again: %v", err)
+	}
+	expectMap(t, "a2 again", resultA2Again, map[string]any{"x": "aaa", "y": "bbb", "z": "C"})
+
+	// a1 still unaffected.
+	resultA1Final, err := a1.Parse("x:A,y:B,z:C")
+	if err != nil {
+		t.Fatalf("a1 final: %v", err)
+	}
+	expectMap(t, "a1 final", resultA1Final, map[string]any{"x": "aaa", "y": "B", "z": "C"})
+
+	// j still unaffected.
+	resultJFinal, err := j.Parse("x:A,y:B,z:C")
+	if err != nil {
+		t.Fatalf("j final: %v", err)
+	}
+	expectMap(t, "j final", resultJFinal, map[string]any{"x": "aaa", "y": "B", "z": "C"})
+}
+
+// expectMap asserts that result is a map[string]any matching expected.
+func expectMap(t *testing.T, label string, result any, expected map[string]any) {
+	t.Helper()
+	m, ok := result.(map[string]any)
+	if !ok {
+		t.Fatalf("%s: expected map[string]any, got %T: %v", label, result, result)
+	}
+	for k, v := range expected {
+		if m[k] != v {
+			t.Errorf("%s: key %q: got %v (%T), want %v (%T)", label, k, m[k], m[k], v, v)
+		}
+	}
+}
+
+// --- Custom parser error propagation (TS: custom-parser-error) ---
+
+func TestCustomParserStartError(t *testing.T) {
+	j := Make(Options{
+		Parser: &ParserOptions{
+			Start: func(src string, j *Jsonic, meta map[string]any) (any, error) {
+				if src == "e:0" {
+					return nil, &JsonicError{
+						Code:   "custom",
+						Detail: "bad-parser:e:0",
+					}
+				}
+				return src, nil
+			},
+		},
+	})
+
+	// Normal input works.
+	result, err := j.Parse("hello")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if result != "hello" {
+		t.Errorf("expected 'hello', got %v", result)
+	}
+
+	// Error input propagates the error.
+	_, err = j.Parse("e:0")
+	if err == nil {
+		t.Fatal("expected error for 'e:0'")
+	}
+	je, ok := err.(*JsonicError)
+	if !ok {
+		t.Fatalf("expected *JsonicError, got %T: %v", err, err)
+	}
+	if je.Code != "custom" {
+		t.Errorf("expected code 'custom', got %q", je.Code)
+	}
+	if !strings.Contains(je.Detail, "e:0") {
+		t.Errorf("expected detail to contain 'e:0', got %q", je.Detail)
+	}
+}
+
+// --- Plugin sets error hints (TS: plugin-errmsg) ---
+
+func TestPluginErrorHints(t *testing.T) {
+	j := Make()
+	j.Use(func(j *Jsonic, opts map[string]any) {
+		j.SetOptions(Options{
+			Hint: map[string]string{
+				"unexpected": "FOO",
+			},
+		})
+	})
+
+	_, err := j.Parse("x::1")
+	if err == nil {
+		t.Fatal("expected error for 'x::1'")
+	}
+	je, ok := err.(*JsonicError)
+	if !ok {
+		t.Fatalf("expected *JsonicError, got %T", err)
+	}
+	errStr := je.Error()
+	if !strings.Contains(errStr, "unexpected") {
+		t.Errorf("error should contain 'unexpected', got:\n%s", errStr)
+	}
+	if !strings.Contains(errStr, "FOO") {
+		t.Errorf("error should contain hint 'FOO', got:\n%s", errStr)
+	}
+}
+
+// --- Decorate: dynamic string-keyed properties (TS: jsonic.foo = value) ---
+
+func TestDecorate(t *testing.T) {
+	// TS equivalent:
+	//   let jp0 = j.use(function foo(jsonic) { jsonic.foo = () => 'FOO' })
+	//   expect(jp0.foo()).equal('FOO')
+	j := Make()
+	j.Use(func(j *Jsonic, opts map[string]any) {
+		j.Decorate("foo", "FOO")
+	})
+	if j.Decoration("foo") != "FOO" {
+		t.Errorf("expected Decoration('foo') = 'FOO', got %v", j.Decoration("foo"))
+	}
+}
+
+func TestDecorateChaining(t *testing.T) {
+	// TS: jp0 adds foo, jp1 adds bar, both accessible on jp1, foo still on jp0.
+	j := Make()
+	j.Use(func(j *Jsonic, opts map[string]any) {
+		j.Decorate("foo", "FOO")
+	})
+	j.Use(func(j *Jsonic, opts map[string]any) {
+		j.Decorate("bar", "BAR")
+	})
+
+	if j.Decoration("foo") != "FOO" {
+		t.Errorf("expected foo=FOO, got %v", j.Decoration("foo"))
+	}
+	if j.Decoration("bar") != "BAR" {
+		t.Errorf("expected bar=BAR, got %v", j.Decoration("bar"))
+	}
+}
+
+func TestDecorateInherited(t *testing.T) {
+	// TS: parent decorations inherited by make/derive.
+	parent := Make()
+	parent.Decorate("foo", "FOO")
+
+	child := parent.Derive()
+
+	// Child inherits parent decoration.
+	if child.Decoration("foo") != "FOO" {
+		t.Errorf("child should inherit foo=FOO, got %v", child.Decoration("foo"))
+	}
+
+	// Child adds its own decoration.
+	child.Decorate("bar", "BAR")
+	if child.Decoration("bar") != "BAR" {
+		t.Errorf("expected child bar=BAR, got %v", child.Decoration("bar"))
+	}
+
+	// Parent unaffected by child's decoration.
+	if parent.Decoration("bar") != nil {
+		t.Errorf("parent should NOT have bar, got %v", parent.Decoration("bar"))
+	}
+}
+
+func TestDecorateUnset(t *testing.T) {
+	j := Make()
+	if j.Decoration("nonexistent") != nil {
+		t.Errorf("expected nil for unset decoration, got %v", j.Decoration("nonexistent"))
+	}
+}
+
+func TestDecorateFunction(t *testing.T) {
+	// Decorations can hold functions, matching TS jsonic.foo = () => 'FOO'.
+	j := Make()
+	j.Decorate("greet", func(name string) string {
+		return "hello " + name
+	})
+
+	fn := j.Decoration("greet").(func(string) string)
+	if fn("world") != "hello world" {
+		t.Errorf("expected 'hello world', got %q", fn("world"))
+	}
+}
+
+// --- Context: fields match TS Context ---
+
+func TestContextInst(t *testing.T) {
+	// TS: ctx.inst() returns the jsonic instance.
+	j := Make()
+	var capturedInst *Jsonic
+
+	j.Rule("val", func(rs *RuleSpec) {
+		rs.AO = append(rs.AO, func(r *Rule, ctx *Context) {
+			capturedInst = ctx.Inst
+		})
+	})
+
+	j.Parse("42")
+
+	if capturedInst != j {
+		t.Error("ctx.Inst should be the Jsonic instance")
+	}
+}
+
+func TestContextOpts(t *testing.T) {
+	j := Make(Options{Tag: "test-tag"})
+	var capturedOpts *Options
+
+	j.Rule("val", func(rs *RuleSpec) {
+		rs.AO = append(rs.AO, func(r *Rule, ctx *Context) {
+			capturedOpts = ctx.Opts
+		})
+	})
+
+	j.Parse("42")
+
+	if capturedOpts == nil {
+		t.Fatal("ctx.Opts should not be nil")
+	}
+	if capturedOpts.Tag != "test-tag" {
+		t.Errorf("expected Tag 'test-tag', got %q", capturedOpts.Tag)
+	}
+}
+
+func TestContextCfg(t *testing.T) {
+	j := Make()
+	var capturedCfg *LexConfig
+
+	j.Rule("val", func(rs *RuleSpec) {
+		rs.AO = append(rs.AO, func(r *Rule, ctx *Context) {
+			capturedCfg = ctx.Cfg
+		})
+	})
+
+	j.Parse("42")
+
+	if capturedCfg == nil {
+		t.Fatal("ctx.Cfg should not be nil")
+	}
+	if !capturedCfg.NumberLex {
+		t.Error("expected NumberLex=true in default config")
+	}
+}
+
+func TestContextSrc(t *testing.T) {
+	j := Make()
+	var capturedSrc string
+
+	j.Rule("val", func(rs *RuleSpec) {
+		rs.AO = append(rs.AO, func(r *Rule, ctx *Context) {
+			capturedSrc = ctx.Src
+		})
+	})
+
+	j.Parse("hello:world")
+
+	if capturedSrc != "hello:world" {
+		t.Errorf("expected ctx.Src='hello:world', got %q", capturedSrc)
+	}
+}
+
+func TestContextU(t *testing.T) {
+	// TS: ctx.u is a custom plugin data bag.
+	j := Make()
+	var capturedU map[string]any
+
+	j.Rule("val", func(rs *RuleSpec) {
+		rs.AO = append(rs.AO, func(r *Rule, ctx *Context) {
+			ctx.U["plugin-data"] = "hello"
+		})
+		rs.AC = append(rs.AC, func(r *Rule, ctx *Context) {
+			capturedU = ctx.U
+		})
+	})
+
+	j.Parse("42")
+
+	if capturedU == nil {
+		t.Fatal("ctx.U should not be nil")
+	}
+	if capturedU["plugin-data"] != "hello" {
+		t.Errorf("expected ctx.U['plugin-data']='hello', got %v", capturedU["plugin-data"])
+	}
+}
+
+func TestContextMeta(t *testing.T) {
+	j := Make()
+	var capturedMeta map[string]any
+
+	j.Rule("val", func(rs *RuleSpec) {
+		rs.AO = append(rs.AO, func(r *Rule, ctx *Context) {
+			capturedMeta = ctx.Meta
+		})
+	})
+
+	j.ParseMeta("42", map[string]any{"file": "test.jsonic"})
+
+	if capturedMeta == nil || capturedMeta["file"] != "test.jsonic" {
+		t.Errorf("expected ctx.Meta['file']='test.jsonic', got %v", capturedMeta)
+	}
+}
+
+// --- Plugin options namespace (TS: options.plugin) ---
+
+func TestPluginOptions(t *testing.T) {
+	j := Make()
+	j.Use(func(j *Jsonic, opts map[string]any) {
+		j.SetPluginOptions("foo", map[string]any{"x": 1})
+	})
+
+	po := j.PluginOptions("foo")
+	if po == nil || po["x"] != 1 {
+		t.Errorf("expected PluginOptions('foo')['x']=1, got %v", po)
+	}
+	if j.PluginOptions("bar") != nil {
+		t.Error("expected nil for unset plugin options")
+	}
+}
+
+func TestPluginOptionsInherited(t *testing.T) {
+	j := Make()
+	j.SetPluginOptions("foo", map[string]any{"x": 1})
+	child := j.Derive()
+
+	po := child.PluginOptions("foo")
+	if po == nil || po["x"] != 1 {
+		t.Errorf("child should inherit plugin options, got %v", po)
+	}
+
+	// Child modification doesn't affect parent.
+	child.SetPluginOptions("foo", map[string]any{"y": 2})
+	if j.PluginOptions("foo")["y"] != nil {
+		t.Error("parent should not be affected by child plugin options")
+	}
+}
+
+// --- ErrMsg: custom error tag (TS: errmsg.name) ---
+
+func TestErrMsgName(t *testing.T) {
+	j := Make(Options{
+		ErrMsg: &ErrMsgOptions{Name: "bar"},
+	})
+	_, err := j.Parse("x::1")
+	if err == nil {
+		t.Fatal("expected error")
+	}
+	errStr := err.Error()
+	if !strings.Contains(errStr, "[bar/") {
+		t.Errorf("error should use custom tag 'bar', got:\n%s", errStr)
+	}
+	if strings.Contains(errStr, "[jsonic/") {
+		t.Errorf("error should NOT use default 'jsonic' tag, got:\n%s", errStr)
+	}
+}
+
+func TestErrMsgNameViaPlugin(t *testing.T) {
+	j := Make()
+	j.Use(func(j *Jsonic, opts map[string]any) {
+		j.SetOptions(Options{
+			ErrMsg: &ErrMsgOptions{Name: "myplugin"},
+		})
+	})
+	_, err := j.Parse("x::1")
+	if err == nil {
+		t.Fatal("expected error")
+	}
+	if !strings.Contains(err.Error(), "[myplugin/") {
+		t.Errorf("error should use 'myplugin' tag, got:\n%s", err.Error())
+	}
+}
+
+// --- Fixed: fixed token lookup (TS: jsonic.fixed(ref)) ---
+
+func TestFixedLookup(t *testing.T) {
+	j := Make()
+
+	// Lookup by source string.
+	if j.FixedSrc("{") != TinOB {
+		t.Errorf("FixedSrc('{') = %v, want TinOB(%d)", j.FixedSrc("{"), TinOB)
+	}
+
+	// Lookup by Tin.
+	if j.FixedTin(TinOB) != "{" {
+		t.Errorf("FixedTin(TinOB) = %v, want '{'", j.FixedTin(TinOB))
+	}
+
+	// Not found.
+	if j.FixedSrc("@") != 0 {
+		t.Errorf("FixedSrc('@') should return 0 for unknown")
+	}
+	if j.FixedTin(999) != "" {
+		t.Errorf("FixedTin(999) should return '' for unknown")
+	}
+}
+
+func TestFixedCustomToken(t *testing.T) {
+	j := Make()
+	j.Token("#TL", "~")
+
+	tin := j.FixedSrc("~")
+	if tin == 0 {
+		t.Error("FixedSrc('~') should find custom token")
+	}
+
+	if j.FixedTin(tin) != "~" {
+		t.Errorf("FixedTin(tin) = %v, want '~'", j.FixedTin(tin))
+	}
+}
+
+// --- ModifyOpen/ModifyClose with ListMods (TS: rs.open(alts, mods)) ---
+
+func TestModifyOpen(t *testing.T) {
+	j := Make()
+	j.Rule("val", func(rs *RuleSpec) {
+		origLen := len(rs.Open)
+		// Delete the first alternate.
+		rs.ModifyOpen(&AltModListOpts{Delete: []int{0}})
+		if len(rs.Open) >= origLen {
+			t.Errorf("expected fewer open alts after delete, got %d (was %d)", len(rs.Open), origLen)
+		}
+	})
+}
+
+func TestModifyOpenCustom(t *testing.T) {
+	j := Make()
+	var customCalled bool
+	j.Rule("val", func(rs *RuleSpec) {
+		rs.ModifyOpen(&AltModListOpts{
+			Custom: func(list []*AltSpec) []*AltSpec {
+				customCalled = true
+				return list
+			},
+		})
+	})
+	if !customCalled {
+		t.Error("custom callback should have been called")
+	}
+}
+
+// --- ctx.Root (TS: ctx.root()) ---
+
+func TestContextRoot(t *testing.T) {
+	j := Make()
+	var capturedRoot *Rule
+
+	j.Rule("val", func(rs *RuleSpec) {
+		rs.AO = append(rs.AO, func(r *Rule, ctx *Context) {
+			capturedRoot = ctx.Root
+		})
+	})
+
+	j.Parse("42")
+
+	if capturedRoot == nil {
+		t.Fatal("ctx.Root should not be nil")
+	}
+	if capturedRoot.Name != "val" {
+		t.Errorf("ctx.Root.Name = %q, want 'val'", capturedRoot.Name)
+	}
+}
+
+// --- ctx.NOTOKEN / ctx.NORULE (TS: ctx.NOTOKEN, ctx.NORULE) ---
+
+func TestContextSentinels(t *testing.T) {
+	j := Make()
+	var gotNoToken *Token
+	var gotNoRule *Rule
+
+	j.Rule("val", func(rs *RuleSpec) {
+		rs.AO = append(rs.AO, func(r *Rule, ctx *Context) {
+			gotNoToken = ctx.NOTOKEN
+			gotNoRule = ctx.NORULE
+		})
+	})
+
+	j.Parse("42")
+
+	if gotNoToken == nil || !gotNoToken.IsNoToken() {
+		t.Error("ctx.NOTOKEN should be the sentinel no-token")
+	}
+	if gotNoRule == nil || gotNoRule != NoRule {
+		t.Error("ctx.NORULE should be the sentinel no-rule")
+	}
+}
+
+// --- ctx.TC (token count) ---
+
+func TestContextTC(t *testing.T) {
+	j := Make()
+	var tc int
+
+	j.Sub(nil, func(rule *Rule, ctx *Context) {
+		tc = ctx.TC
+	})
+
+	j.Parse("{a:1}")
+
+	if tc <= 0 {
+		t.Errorf("ctx.TC should be > 0 after parsing, got %d", tc)
+	}
+}
+
+// --- ctx.F (format function) ---
+
+func TestContextF(t *testing.T) {
+	j := Make()
+	var formatted string
+
+	j.Rule("val", func(rs *RuleSpec) {
+		rs.AO = append(rs.AO, func(r *Rule, ctx *Context) {
+			if ctx.F != nil {
+				formatted = ctx.F("hello")
+			}
+		})
+	})
+
+	j.Parse("42")
+
+	if formatted != "hello" {
+		t.Errorf("ctx.F('hello') = %q, want 'hello'", formatted)
+	}
+}
+
+// --- token.Use (custom metadata) ---
+
+func TestTokenUse(t *testing.T) {
+	j := Make()
+	var gotUse map[string]any
+
+	j.AddMatcher("test", 1500000, func(lex *Lex, rule *Rule) *Token {
+		pnt := lex.Cursor()
+		if pnt.SI < pnt.Len && lex.Src[pnt.SI] == '@' {
+			tkn := lex.Token("#VL", TinVL, "AT", "@")
+			tkn.Use = map[string]any{"custom": true}
+			pnt.SI++
+			pnt.CI++
+			return tkn
+		}
+		return nil
+	})
+
+	j.Sub(func(tkn *Token, rule *Rule, ctx *Context) {
+		if tkn.Use != nil {
+			gotUse = tkn.Use
+		}
+	}, nil)
+
+	j.Parse("@")
+
+	if gotUse == nil || gotUse["custom"] != true {
+		t.Errorf("token.Use should contain custom data, got %v", gotUse)
+	}
+}
+
+// --- token.Bad() ---
+
+func TestTokenBad(t *testing.T) {
+	tkn := MakeToken("#VL", TinVL, nil, "x", Point{})
+	tkn.Bad("test_error", map[string]any{"detail": "info"})
+
+	if tkn.Err != "test_error" {
+		t.Errorf("Bad() should set Err, got %q", tkn.Err)
+	}
+	if tkn.Use == nil || tkn.Use["detail"] != "info" {
+		t.Errorf("Bad() should merge details into Use, got %v", tkn.Use)
+	}
+}
+
+// --- lex.Bad() ---
+
+func TestLexBad(t *testing.T) {
+	lex := NewLex("test", DefaultLexConfig())
+	tkn := lex.Bad("bad_input")
+
+	if tkn.Tin != TinBD {
+		t.Errorf("Bad() should create BD token, got Tin=%d", tkn.Tin)
+	}
+	if tkn.Err != "bad_input" {
+		t.Errorf("Bad() should set Err, got %q", tkn.Err)
+	}
+}
+
+// --- jsonic.Id ---
+
+func TestJsonicId(t *testing.T) {
+	j := Make()
+	if j.Id() == "" {
+		t.Error("Id() should not be empty")
+	}
+	if !strings.HasPrefix(j.Id(), "Jsonic/") {
+		t.Errorf("Id() should start with 'Jsonic/', got %q", j.Id())
+	}
+}
+
+func TestJsonicIdWithTag(t *testing.T) {
+	j := Make(Options{Tag: "test"})
+	if !strings.Contains(j.Id(), "/test") {
+		t.Errorf("Id() with tag should contain '/test', got %q", j.Id())
+	}
+}
+
+func TestJsonicIdUnique(t *testing.T) {
+	j1 := Make()
+	j2 := Make()
+	if j1.Id() == j2.Id() {
+		t.Errorf("different instances should have different IDs: %q", j1.Id())
+	}
+}
+
+// --- jsonic.Empty() ---
+
+func TestEmpty(t *testing.T) {
+	j := Empty()
+	// All rules should be cleared.
+	for name, rs := range j.RSM() {
+		if len(rs.Open) > 0 || len(rs.Close) > 0 {
+			t.Errorf("Empty() rule %q should have no alts, got %d open, %d close",
+				name, len(rs.Open), len(rs.Close))
+		}
+	}
+}
+
+// --- options.result.fail ---
+
+func TestResultFail(t *testing.T) {
+	j := Make(Options{
+		Result: &ResultOptions{Fail: []any{"BAD"}},
+		Value: &ValueOptions{
+			Def: map[string]*ValueDef{
+				"BAD": {Val: "BAD"},
+			},
+		},
+	})
+	_, err := j.Parse("BAD")
+	if err == nil {
+		t.Fatal("expected error for result in fail list")
+	}
+}
+
+func TestResultFailCustomValue(t *testing.T) {
+	j := Make(Options{
+		Result: &ResultOptions{Fail: []any{"FAIL"}},
+		Property: &PropertyOptions{
+			ConfigModify: map[string]ConfigModifier{
+				"fail": func(cfg *LexConfig, opts *Options) {
+					cfg.ResultFail = opts.Result.Fail
+				},
+			},
+		},
+	})
+
+	// Add a custom value that produces "FAIL".
+	j.SetOptions(Options{
+		Value: &ValueOptions{
+			Def: map[string]*ValueDef{
+				"FAIL": {Val: "FAIL"},
+			},
+		},
+	})
+
+	_, err := j.Parse("FAIL")
+	if err == nil {
+		t.Fatal("expected error for result.fail value")
+	}
+}
+
+// --- lex.Fwd (forward lookahead) ---
+
+func TestLexFwd(t *testing.T) {
+	lex := NewLex("hello world", DefaultLexConfig())
+	if lex.Fwd(5) != "hello" {
+		t.Errorf("Fwd(5) = %q, want 'hello'", lex.Fwd(5))
+	}
+	if lex.Fwd(100) != "hello world" {
+		t.Errorf("Fwd(100) = %q, want 'hello world'", lex.Fwd(100))
+	}
+	// Advance position.
+	pnt := lex.Cursor()
+	pnt.SI = 6
+	if lex.Fwd(5) != "world" {
+		t.Errorf("Fwd(5) after advance = %q, want 'world'", lex.Fwd(5))
+	}
+}
+
+// --- Custom token sets (TS: options.tokenSet) ---
+
+func TestCustomTokenSet(t *testing.T) {
+	j := Make()
+	j.SetTokenSet("CUSTOM", []Tin{TinNR, TinST})
+
+	tins := j.TokenSet("CUSTOM")
+	if len(tins) != 2 || tins[0] != TinNR || tins[1] != TinST {
+		t.Errorf("expected [TinNR, TinST], got %v", tins)
+	}
+
+	// Built-in sets still work.
+	if j.TokenSet("VAL") == nil {
+		t.Error("VAL set should still exist")
+	}
+}
+
+func TestCustomTokenSetInherited(t *testing.T) {
+	j := Make()
+	j.SetTokenSet("CUSTOM", []Tin{TinNR})
+	child := j.Derive()
+
+	if child.TokenSet("CUSTOM") == nil {
+		t.Error("child should inherit custom token set")
 	}
 }

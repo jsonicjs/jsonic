@@ -152,6 +152,28 @@ func (j *Jsonic) Token(name string, src ...string) Tin {
 	return tin
 }
 
+// FixedSrc returns the Tin for a fixed token source string (e.g. "{" → TinOB).
+// Returns 0 if the source string is not a fixed token.
+// Matches TS `jsonic.fixed('b')`.
+func (j *Jsonic) FixedSrc(src string) Tin {
+	if tin, ok := j.parser.Config.FixedTokens[src]; ok {
+		return tin
+	}
+	return 0
+}
+
+// FixedTin returns the source string for a fixed token Tin (e.g. TinOB → "{").
+// Returns "" if the Tin is not a fixed token.
+// Matches TS `jsonic.fixed(18)`.
+func (j *Jsonic) FixedTin(tin Tin) string {
+	for src, t := range j.parser.Config.FixedTokens {
+		if t == tin {
+			return src
+		}
+	}
+	return ""
+}
+
 // AddMatcher adds a custom lexer matcher with the given name and priority.
 // Matchers are tried in priority order (lower first). Built-in matchers use:
 //
@@ -176,19 +198,6 @@ func (j *Jsonic) AddMatcher(name string, priority int, matcher LexMatcher) *Json
 	return j
 }
 
-// MergeOptions merges options into this instance without rebuilding grammar
-// or re-applying plugins. This matches the TypeScript jsonic.options() behavior
-// used by plugins to register matchers and adjust config in-place.
-func (j *Jsonic) MergeOptions(opts Options) *Jsonic {
-	// Process lex.match specs: create matchers from MakeLexMatcher factories.
-	if opts.Lex != nil && opts.Lex.Match != nil {
-		for name, spec := range opts.Lex.Match {
-			matcher := spec.Make(j.parser.Config, j.options)
-			j.AddMatcher(name, spec.Order, matcher)
-		}
-	}
-	return j
-}
 
 // Plugins returns the list of installed plugins (for introspection).
 func (j *Jsonic) Plugins() []Plugin {
@@ -221,8 +230,17 @@ func (j *Jsonic) TinName(tin Tin) string {
 // TokenSet returns a named set of Tin values.
 // Built-in sets: "IGNORE" (space, line, comment), "VAL" (text, number, string, value),
 // "KEY" (text, number, string, value).
+// Custom sets can be added via SetTokenSet.
 // Returns nil if the set name is not recognized.
 func (j *Jsonic) TokenSet(name string) []Tin {
+	// Check custom sets first.
+	if j.customTokenSets != nil {
+		if tins, ok := j.customTokenSets[name]; ok {
+			result := make([]Tin, len(tins))
+			copy(result, tins)
+			return result
+		}
+	}
 	switch name {
 	case "IGNORE":
 		tins := make([]Tin, 0, len(TinSetIGNORE))
@@ -241,6 +259,15 @@ func (j *Jsonic) TokenSet(name string) []Tin {
 	default:
 		return nil
 	}
+}
+
+// SetTokenSet registers a custom named token set.
+// Matches TS options.tokenSet.
+func (j *Jsonic) SetTokenSet(name string, tins []Tin) {
+	if j.customTokenSets == nil {
+		j.customTokenSets = make(map[string][]Tin)
+	}
+	j.customTokenSets[name] = tins
 }
 
 // Sub subscribes to lex and/or rule events.
@@ -316,6 +343,18 @@ func (j *Jsonic) Derive(opts ...Options) *Jsonic {
 		}
 	}
 
+	// Copy custom token sets.
+	if j.customTokenSets != nil {
+		if child.customTokenSets == nil {
+			child.customTokenSets = make(map[string][]Tin)
+		}
+		for name, tins := range j.customTokenSets {
+			copied := make([]Tin, len(tins))
+			copy(copied, tins)
+			child.customTokenSets[name] = copied
+		}
+	}
+
 	// Re-apply parent's plugins on the child.
 	for _, pe := range j.plugins {
 		child.plugins = append(child.plugins, pe)
@@ -326,78 +365,43 @@ func (j *Jsonic) Derive(opts ...Options) *Jsonic {
 	child.lexSubs = append(child.lexSubs, j.lexSubs...)
 	child.ruleSubs = append(child.ruleSubs, j.ruleSubs...)
 
+	// Copy decorations (TS: parent properties inherited by child).
+	if j.decorations != nil {
+		if child.decorations == nil {
+			child.decorations = make(map[string]any)
+		}
+		for k, v := range j.decorations {
+			child.decorations[k] = v
+		}
+	}
+
+	// Copy plugin options namespace.
+	if j.pluginOpts != nil {
+		if child.pluginOpts == nil {
+			child.pluginOpts = make(map[string]map[string]any)
+		}
+		for name, opts := range j.pluginOpts {
+			copied := make(map[string]any, len(opts))
+			for k, v := range opts {
+				copied[k] = v
+			}
+			child.pluginOpts[name] = copied
+		}
+	}
+
 	return child
 }
 
-// SetOptions merges new options into this instance and rebuilds the config.
-// This allows dynamic reconfiguration after construction.
+// SetOptions deep-merges new options into this instance and rebuilds the
+// config, grammar, and plugins. This matches the TypeScript options() setter
+// behavior: nil/zero fields in opts do not overwrite existing values.
+// When called from within a plugin (during re-apply), skips plugin
+// re-application to avoid infinite recursion, matching TS behavior where
+// options() does not re-trigger plugins.
+// Returns the instance for chaining.
 func (j *Jsonic) SetOptions(opts Options) *Jsonic {
-	// Merge individual option fields.
-	if opts.Safe != nil {
-		j.options.Safe = opts.Safe
-	}
-	if opts.Fixed != nil {
-		j.options.Fixed = opts.Fixed
-	}
-	if opts.Space != nil {
-		j.options.Space = opts.Space
-	}
-	if opts.Line != nil {
-		j.options.Line = opts.Line
-	}
-	if opts.Text != nil {
-		j.options.Text = opts.Text
-	}
-	if opts.Number != nil {
-		j.options.Number = opts.Number
-	}
-	if opts.Comment != nil {
-		j.options.Comment = opts.Comment
-	}
-	if opts.String != nil {
-		j.options.String = opts.String
-	}
-	if opts.Map != nil {
-		j.options.Map = opts.Map
-	}
-	if opts.List != nil {
-		j.options.List = opts.List
-	}
-	if opts.Value != nil {
-		j.options.Value = opts.Value
-	}
-	if opts.Rule != nil {
-		j.options.Rule = opts.Rule
-	}
-	if opts.Lex != nil {
-		if j.options.Lex == nil {
-			j.options.Lex = opts.Lex
-		} else {
-			if opts.Lex.Empty != nil {
-				j.options.Lex.Empty = opts.Lex.Empty
-			}
-			if opts.Lex.EmptyResult != nil {
-				j.options.Lex.EmptyResult = opts.Lex.EmptyResult
-			}
-			if opts.Lex.Match != nil {
-				if j.options.Lex.Match == nil {
-					j.options.Lex.Match = make(map[string]*MatchSpec)
-				}
-				for k, v := range opts.Lex.Match {
-					j.options.Lex.Match[k] = v
-				}
-			}
-		}
-	}
-	if len(opts.Ender) > 0 {
-		j.options.Ender = opts.Ender
-	}
-	if opts.Error != nil {
-		j.options.Error = opts.Error
-	}
-	if opts.Tag != "" {
-		j.options.Tag = opts.Tag
-	}
+	merged := Deep(*j.options, opts).(Options)
+	j.options = &merged
 
 	// Rebuild config from merged options.
 	cfg := buildConfig(j.options)
@@ -415,9 +419,14 @@ func (j *Jsonic) SetOptions(opts Options) *Jsonic {
 	Grammar(rsm, cfg)
 	j.parser.RSM = rsm
 
-	// Re-apply plugins.
-	for _, pe := range j.plugins {
-		pe.plugin(j, pe.opts)
+	// Re-apply plugins (with re-entrancy guard to match TS behavior where
+	// options() setter does not re-trigger plugin application).
+	if !j.inSetOptions {
+		j.inSetOptions = true
+		for _, pe := range j.plugins {
+			pe.plugin(j, pe.opts)
+		}
+		j.inSetOptions = false
 	}
 
 	// Apply lex.match specs: create matchers from MakeLexMatcher factories.
@@ -433,6 +442,25 @@ func (j *Jsonic) SetOptions(opts Options) *Jsonic {
 		for k, v := range j.options.Error {
 			j.parser.ErrorMessages[k] = v
 		}
+	}
+
+	// Apply hints.
+	if j.options.Hint != nil {
+		if j.hints == nil {
+			j.hints = make(map[string]string)
+		}
+		if j.parser.Hints == nil {
+			j.parser.Hints = make(map[string]string)
+		}
+		for k, v := range j.options.Hint {
+			j.hints[k] = v
+			j.parser.Hints[k] = v
+		}
+	}
+
+	// Apply errmsg options.
+	if j.options.ErrMsg != nil && j.options.ErrMsg.Name != "" {
+		j.parser.ErrTag = j.options.ErrMsg.Name
 	}
 
 	return j
