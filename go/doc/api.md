@@ -68,6 +68,29 @@ chaining.
 
 Returns a copy of the instance's current options.
 
+### `(*Jsonic) Decorate(name string, value any) *Jsonic`
+
+Set a named value on the instance. This is the Go equivalent of the
+TypeScript pattern where plugins add properties dynamically
+(`jsonic.foo = () => 'FOO'`). Decorations are inherited by `Derive`.
+
+```go
+j.Use(func(j *jsonic.Jsonic, opts map[string]any) {
+    j.Decorate("greet", func(name string) string {
+        return "hello " + name
+    })
+})
+```
+
+### `(*Jsonic) Decoration(name string) any`
+
+Returns a named value previously set by `Decorate`, or nil.
+
+```go
+fn := j.Decoration("greet").(func(string) string)
+fmt.Println(fn("world")) // "hello world"
+```
+
 ## Grammar
 
 ### `(*Jsonic) Rule(name string, definer RuleDefiner) *Jsonic`

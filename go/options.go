@@ -225,6 +225,27 @@ type Jsonic struct {
 	emptyResult  any                // Result for empty source
 	parserStart  func(src string, j *Jsonic, meta map[string]any) (any, error)
 	inSetOptions bool               // Re-entrancy guard for SetOptions
+	decorations  map[string]any     // Plugin decorations (TS: jsonic.foo = value)
+}
+
+// Decorate sets a named value on this instance. This is the Go equivalent of
+// the TypeScript pattern where plugins add properties to the jsonic instance
+// (e.g. jsonic.foo = () => 'FOO'). Decorations are inherited by Derive.
+func (j *Jsonic) Decorate(name string, value any) *Jsonic {
+	if j.decorations == nil {
+		j.decorations = make(map[string]any)
+	}
+	j.decorations[name] = value
+	return j
+}
+
+// Decoration returns a named value previously set by Decorate.
+// Returns nil if the name has not been set.
+func (j *Jsonic) Decoration(name string) any {
+	if j.decorations == nil {
+		return nil
+	}
+	return j.decorations[name]
 }
 
 // Make creates a new Jsonic parser instance with the given options.
@@ -340,7 +361,7 @@ func (j *Jsonic) parseInternal(src string, meta map[string]any) (any, error) {
 		return result, j.attachHint(err)
 	}
 
-	result, err := j.parser.StartMeta(src, meta, j.lexSubs, j.ruleSubs)
+	result, err := j.parser.startParse(src, meta, j.lexSubs, j.ruleSubs, j)
 	return result, j.attachHint(err)
 }
 

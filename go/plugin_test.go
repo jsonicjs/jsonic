@@ -1570,3 +1570,198 @@ func TestPluginErrorHints(t *testing.T) {
 		t.Errorf("error should contain hint 'FOO', got:\n%s", errStr)
 	}
 }
+
+// --- Decorate: dynamic string-keyed properties (TS: jsonic.foo = value) ---
+
+func TestDecorate(t *testing.T) {
+	// TS equivalent:
+	//   let jp0 = j.use(function foo(jsonic) { jsonic.foo = () => 'FOO' })
+	//   expect(jp0.foo()).equal('FOO')
+	j := Make()
+	j.Use(func(j *Jsonic, opts map[string]any) {
+		j.Decorate("foo", "FOO")
+	})
+	if j.Decoration("foo") != "FOO" {
+		t.Errorf("expected Decoration('foo') = 'FOO', got %v", j.Decoration("foo"))
+	}
+}
+
+func TestDecorateChaining(t *testing.T) {
+	// TS: jp0 adds foo, jp1 adds bar, both accessible on jp1, foo still on jp0.
+	j := Make()
+	j.Use(func(j *Jsonic, opts map[string]any) {
+		j.Decorate("foo", "FOO")
+	})
+	j.Use(func(j *Jsonic, opts map[string]any) {
+		j.Decorate("bar", "BAR")
+	})
+
+	if j.Decoration("foo") != "FOO" {
+		t.Errorf("expected foo=FOO, got %v", j.Decoration("foo"))
+	}
+	if j.Decoration("bar") != "BAR" {
+		t.Errorf("expected bar=BAR, got %v", j.Decoration("bar"))
+	}
+}
+
+func TestDecorateInherited(t *testing.T) {
+	// TS: parent decorations inherited by make/derive.
+	parent := Make()
+	parent.Decorate("foo", "FOO")
+
+	child := parent.Derive()
+
+	// Child inherits parent decoration.
+	if child.Decoration("foo") != "FOO" {
+		t.Errorf("child should inherit foo=FOO, got %v", child.Decoration("foo"))
+	}
+
+	// Child adds its own decoration.
+	child.Decorate("bar", "BAR")
+	if child.Decoration("bar") != "BAR" {
+		t.Errorf("expected child bar=BAR, got %v", child.Decoration("bar"))
+	}
+
+	// Parent unaffected by child's decoration.
+	if parent.Decoration("bar") != nil {
+		t.Errorf("parent should NOT have bar, got %v", parent.Decoration("bar"))
+	}
+}
+
+func TestDecorateUnset(t *testing.T) {
+	j := Make()
+	if j.Decoration("nonexistent") != nil {
+		t.Errorf("expected nil for unset decoration, got %v", j.Decoration("nonexistent"))
+	}
+}
+
+func TestDecorateFunction(t *testing.T) {
+	// Decorations can hold functions, matching TS jsonic.foo = () => 'FOO'.
+	j := Make()
+	j.Decorate("greet", func(name string) string {
+		return "hello " + name
+	})
+
+	fn := j.Decoration("greet").(func(string) string)
+	if fn("world") != "hello world" {
+		t.Errorf("expected 'hello world', got %q", fn("world"))
+	}
+}
+
+// --- Context: fields match TS Context ---
+
+func TestContextInst(t *testing.T) {
+	// TS: ctx.inst() returns the jsonic instance.
+	j := Make()
+	var capturedInst *Jsonic
+
+	j.Rule("val", func(rs *RuleSpec) {
+		rs.AO = append(rs.AO, func(r *Rule, ctx *Context) {
+			capturedInst = ctx.Inst
+		})
+	})
+
+	j.Parse("42")
+
+	if capturedInst != j {
+		t.Error("ctx.Inst should be the Jsonic instance")
+	}
+}
+
+func TestContextOpts(t *testing.T) {
+	j := Make(Options{Tag: "test-tag"})
+	var capturedOpts *Options
+
+	j.Rule("val", func(rs *RuleSpec) {
+		rs.AO = append(rs.AO, func(r *Rule, ctx *Context) {
+			capturedOpts = ctx.Opts
+		})
+	})
+
+	j.Parse("42")
+
+	if capturedOpts == nil {
+		t.Fatal("ctx.Opts should not be nil")
+	}
+	if capturedOpts.Tag != "test-tag" {
+		t.Errorf("expected Tag 'test-tag', got %q", capturedOpts.Tag)
+	}
+}
+
+func TestContextCfg(t *testing.T) {
+	j := Make()
+	var capturedCfg *LexConfig
+
+	j.Rule("val", func(rs *RuleSpec) {
+		rs.AO = append(rs.AO, func(r *Rule, ctx *Context) {
+			capturedCfg = ctx.Cfg
+		})
+	})
+
+	j.Parse("42")
+
+	if capturedCfg == nil {
+		t.Fatal("ctx.Cfg should not be nil")
+	}
+	if !capturedCfg.NumberLex {
+		t.Error("expected NumberLex=true in default config")
+	}
+}
+
+func TestContextSrc(t *testing.T) {
+	j := Make()
+	var capturedSrc string
+
+	j.Rule("val", func(rs *RuleSpec) {
+		rs.AO = append(rs.AO, func(r *Rule, ctx *Context) {
+			capturedSrc = ctx.Src
+		})
+	})
+
+	j.Parse("hello:world")
+
+	if capturedSrc != "hello:world" {
+		t.Errorf("expected ctx.Src='hello:world', got %q", capturedSrc)
+	}
+}
+
+func TestContextU(t *testing.T) {
+	// TS: ctx.u is a custom plugin data bag.
+	j := Make()
+	var capturedU map[string]any
+
+	j.Rule("val", func(rs *RuleSpec) {
+		rs.AO = append(rs.AO, func(r *Rule, ctx *Context) {
+			ctx.U["plugin-data"] = "hello"
+		})
+		rs.AC = append(rs.AC, func(r *Rule, ctx *Context) {
+			capturedU = ctx.U
+		})
+	})
+
+	j.Parse("42")
+
+	if capturedU == nil {
+		t.Fatal("ctx.U should not be nil")
+	}
+	if capturedU["plugin-data"] != "hello" {
+		t.Errorf("expected ctx.U['plugin-data']='hello', got %v", capturedU["plugin-data"])
+	}
+}
+
+func TestContextMeta(t *testing.T) {
+	j := Make()
+	var capturedMeta map[string]any
+
+	j.Rule("val", func(rs *RuleSpec) {
+		rs.AO = append(rs.AO, func(r *Rule, ctx *Context) {
+			capturedMeta = ctx.Meta
+		})
+	})
+
+	j.ParseMeta("42", map[string]any{"file": "test.jsonic"})
+
+	if capturedMeta == nil || capturedMeta["file"] != "test.jsonic" {
+		t.Errorf("expected ctx.Meta['file']='test.jsonic', got %v", capturedMeta)
+	}
+}

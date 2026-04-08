@@ -313,6 +313,16 @@ func (j *Jsonic) Derive(opts ...Options) *Jsonic {
 	child.lexSubs = append(child.lexSubs, j.lexSubs...)
 	child.ruleSubs = append(child.ruleSubs, j.ruleSubs...)
 
+	// Copy decorations (TS: parent properties inherited by child).
+	if j.decorations != nil {
+		if child.decorations == nil {
+			child.decorations = make(map[string]any)
+		}
+		for k, v := range j.decorations {
+			child.decorations[k] = v
+		}
+	}
+
 	return child
 }
 
