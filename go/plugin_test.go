@@ -1872,3 +1872,33 @@ func TestFixedCustomToken(t *testing.T) {
 		t.Errorf("FixedTin(tin) = %v, want '~'", j.FixedTin(tin))
 	}
 }
+
+// --- ModifyOpen/ModifyClose with ListMods (TS: rs.open(alts, mods)) ---
+
+func TestModifyOpen(t *testing.T) {
+	j := Make()
+	j.Rule("val", func(rs *RuleSpec) {
+		origLen := len(rs.Open)
+		// Delete the first alternate.
+		rs.ModifyOpen(&AltModListOpts{Delete: []int{0}})
+		if len(rs.Open) >= origLen {
+			t.Errorf("expected fewer open alts after delete, got %d (was %d)", len(rs.Open), origLen)
+		}
+	})
+}
+
+func TestModifyOpenCustom(t *testing.T) {
+	j := Make()
+	var customCalled bool
+	j.Rule("val", func(rs *RuleSpec) {
+		rs.ModifyOpen(&AltModListOpts{
+			Custom: func(list []*AltSpec) []*AltSpec {
+				customCalled = true
+				return list
+			},
+		})
+	})
+	if !customCalled {
+		t.Error("custom callback should have been called")
+	}
+}
