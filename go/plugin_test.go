@@ -2129,3 +2129,21 @@ func TestResultFailCustomValue(t *testing.T) {
 		t.Fatal("expected error for result.fail value")
 	}
 }
+
+// --- lex.Fwd (forward lookahead) ---
+
+func TestLexFwd(t *testing.T) {
+	lex := NewLex("hello world", DefaultLexConfig())
+	if lex.Fwd(5) != "hello" {
+		t.Errorf("Fwd(5) = %q, want 'hello'", lex.Fwd(5))
+	}
+	if lex.Fwd(100) != "hello world" {
+		t.Errorf("Fwd(100) = %q, want 'hello world'", lex.Fwd(100))
+	}
+	// Advance position.
+	pnt := lex.Cursor()
+	pnt.SI = 6
+	if lex.Fwd(5) != "world" {
+		t.Errorf("Fwd(5) after advance = %q, want 'world'", lex.Fwd(5))
+	}
+}
