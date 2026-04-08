@@ -176,19 +176,6 @@ func (j *Jsonic) AddMatcher(name string, priority int, matcher LexMatcher) *Json
 	return j
 }
 
-// MergeOptions merges options into this instance without rebuilding grammar
-// or re-applying plugins. This matches the TypeScript jsonic.options() behavior
-// used by plugins to register matchers and adjust config in-place.
-func (j *Jsonic) MergeOptions(opts Options) *Jsonic {
-	// Process lex.match specs: create matchers from MakeLexMatcher factories.
-	if opts.Lex != nil && opts.Lex.Match != nil {
-		for name, spec := range opts.Lex.Match {
-			matcher := spec.Make(j.parser.Config, j.options)
-			j.AddMatcher(name, spec.Order, matcher)
-		}
-	}
-	return j
-}
 
 // Plugins returns the list of installed plugins (for introspection).
 func (j *Jsonic) Plugins() []Plugin {
@@ -329,75 +316,12 @@ func (j *Jsonic) Derive(opts ...Options) *Jsonic {
 	return child
 }
 
-// SetOptions merges new options into this instance and rebuilds the config.
-// This allows dynamic reconfiguration after construction.
+// SetOptions deep-merges new options into this instance and rebuilds the
+// config, grammar, and plugins. This matches the TypeScript options() setter
+// behavior: nil/zero fields in opts do not overwrite existing values.
+// Returns the instance for chaining.
 func (j *Jsonic) SetOptions(opts Options) *Jsonic {
-	// Merge individual option fields.
-	if opts.Safe != nil {
-		j.options.Safe = opts.Safe
-	}
-	if opts.Fixed != nil {
-		j.options.Fixed = opts.Fixed
-	}
-	if opts.Space != nil {
-		j.options.Space = opts.Space
-	}
-	if opts.Line != nil {
-		j.options.Line = opts.Line
-	}
-	if opts.Text != nil {
-		j.options.Text = opts.Text
-	}
-	if opts.Number != nil {
-		j.options.Number = opts.Number
-	}
-	if opts.Comment != nil {
-		j.options.Comment = opts.Comment
-	}
-	if opts.String != nil {
-		j.options.String = opts.String
-	}
-	if opts.Map != nil {
-		j.options.Map = opts.Map
-	}
-	if opts.List != nil {
-		j.options.List = opts.List
-	}
-	if opts.Value != nil {
-		j.options.Value = opts.Value
-	}
-	if opts.Rule != nil {
-		j.options.Rule = opts.Rule
-	}
-	if opts.Lex != nil {
-		if j.options.Lex == nil {
-			j.options.Lex = opts.Lex
-		} else {
-			if opts.Lex.Empty != nil {
-				j.options.Lex.Empty = opts.Lex.Empty
-			}
-			if opts.Lex.EmptyResult != nil {
-				j.options.Lex.EmptyResult = opts.Lex.EmptyResult
-			}
-			if opts.Lex.Match != nil {
-				if j.options.Lex.Match == nil {
-					j.options.Lex.Match = make(map[string]*MatchSpec)
-				}
-				for k, v := range opts.Lex.Match {
-					j.options.Lex.Match[k] = v
-				}
-			}
-		}
-	}
-	if len(opts.Ender) > 0 {
-		j.options.Ender = opts.Ender
-	}
-	if opts.Error != nil {
-		j.options.Error = opts.Error
-	}
-	if opts.Tag != "" {
-		j.options.Tag = opts.Tag
-	}
+	mergeOptions(j.options, &opts)
 
 	// Rebuild config from merged options.
 	cfg := buildConfig(j.options)

@@ -59,8 +59,10 @@ child := j.Derive(jsonic.Options{
 
 ### `(*Jsonic) SetOptions(opts Options) *Jsonic`
 
-Merge new options into the instance and rebuild the configuration. Returns the
-instance for chaining.
+Deep-merge new options into the instance and rebuild the configuration,
+grammar, and plugins. Nil/zero fields in opts do not overwrite existing values,
+matching the TypeScript `options()` setter behavior. Returns the instance for
+chaining.
 
 ### `(*Jsonic) Options() Options`
 

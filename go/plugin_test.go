@@ -751,6 +751,78 @@ func TestSetOptions(t *testing.T) {
 	}
 }
 
+func TestSetOptionsDeepMerge(t *testing.T) {
+	// SetOptions should deep-merge like the TS options() setter:
+	// setting one sub-field should not clobber sibling sub-fields.
+	j := Make(Options{
+		Number: &NumberOptions{Lex: boolPtr(true), Hex: boolPtr(true)},
+	})
+
+	// Disable hex but leave Lex untouched.
+	j.SetOptions(Options{
+		Number: &NumberOptions{Hex: boolPtr(false)},
+	})
+
+	opts := j.Options()
+	if opts.Number == nil {
+		t.Fatal("expected Number options to be non-nil")
+	}
+	if opts.Number.Lex == nil || !*opts.Number.Lex {
+		t.Errorf("expected Number.Lex to remain true after SetOptions, got %v", opts.Number.Lex)
+	}
+	if opts.Number.Hex == nil || *opts.Number.Hex {
+		t.Errorf("expected Number.Hex to be false after SetOptions, got %v", opts.Number.Hex)
+	}
+
+	// Numbers should still parse (Lex is still true).
+	result, err := j.Parse("42")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if result != float64(42) {
+		t.Errorf("expected 42, got %v (%T)", result, result)
+	}
+}
+
+func TestSetOptionsDeepMergeMaps(t *testing.T) {
+	// Map fields like Error and Comment.Def should merge, not replace.
+	j := Make(Options{
+		Error: map[string]string{"unexpected": "custom unexpected"},
+	})
+
+	j.SetOptions(Options{
+		Error: map[string]string{"unterminated_string": "custom unterminated"},
+	})
+
+	opts := j.Options()
+	if opts.Error["unexpected"] != "custom unexpected" {
+		t.Errorf("expected Error['unexpected'] to be preserved, got %q", opts.Error["unexpected"])
+	}
+	if opts.Error["unterminated_string"] != "custom unterminated" {
+		t.Errorf("expected Error['unterminated_string'] to be set, got %q", opts.Error["unterminated_string"])
+	}
+}
+
+func TestSetOptionsChaining(t *testing.T) {
+	// Multiple SetOptions calls should accumulate, not reset.
+	j := Make()
+
+	j.SetOptions(Options{
+		Comment: &CommentOptions{Lex: boolPtr(false)},
+	})
+	j.SetOptions(Options{
+		Number: &NumberOptions{Lex: boolPtr(false)},
+	})
+
+	opts := j.Options()
+	if opts.Comment == nil || opts.Comment.Lex == nil || *opts.Comment.Lex {
+		t.Error("expected Comment.Lex to remain false after second SetOptions")
+	}
+	if opts.Number == nil || opts.Number.Lex == nil || *opts.Number.Lex {
+		t.Error("expected Number.Lex to be false after second SetOptions")
+	}
+}
+
 // --- Rule exclude ---
 
 func TestExclude(t *testing.T) {
