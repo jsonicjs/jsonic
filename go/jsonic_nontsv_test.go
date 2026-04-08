@@ -1,9 +1,9 @@
 package jsonic
 
 // Non-TSV tests ported from the TypeScript test suite.
-// Tests that rely on TS-specific features (plugins, custom config via make(),
-// regex-based custom values, error position checking, array named properties)
-// are NOT ported. See platform mismatch notes at the bottom.
+// Tests that rely on TS-specific features (plugins, regex-based custom values,
+// error position checking, array named properties) are NOT ported.
+// Custom config tests using Make() are in alignment_test.go and below.
 
 import (
 	"strings"
@@ -830,23 +830,216 @@ func TestErrorFormat(t *testing.T) {
 	})
 }
 
-func TestPlatformMismatch_CustomConfig(t *testing.T) {
-	// PLATFORM MISMATCH: Custom configuration
-	//
-	// In TypeScript: Jsonic.make({...}) creates customized parser instances.
-	// Options include: disabling comments, numbers, text; custom string chars;
-	// hex/oct/bin number control; number separators; safe key control;
-	// rule finish control; map extend control; custom value matchers;
-	// custom fixed tokens; plugins.
-	//
-	// In Go: The parser uses a fixed default configuration.
-	// There is no Jsonic.make() equivalent. Tests for custom configs
-	// (comment-off, number-off, hex-off, string.allowUnknown, etc.)
-	// are not ported.
-	//
-	// To support these features, the Go implementation would need a
-	// builder pattern or options struct for NewParser().
+// --- Lex-flag tests: disable individual lexers via Make() options ---
+// Ported from TS test/lex.test.js "lex-flags" section.
 
-	t.Logf("MISMATCH NOTE: Go has no Jsonic.make() for custom parser config. " +
-		"All TS tests using custom config are skipped.")
+func TestLexFlagCommentOff(t *testing.T) {
+	j := Make(Options{Comment: &CommentOptions{Lex: boolPtr(false)}})
+
+	// With comments disabled, # and // become part of text values.
+	got, err := j.Parse("a:1#b")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	expected := m("a", "1#b")
+	if !valuesEqual(stripRefs(got), expected) {
+		t.Errorf("comment off: got %s, want %s", formatValue(stripRefs(got)), formatValue(expected))
+	}
+
+	got, err = j.Parse("a,1#b")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	expectedArr := a("a", "1#b")
+	if !valuesEqual(stripRefs(got), expectedArr) {
+		t.Errorf("comment off: got %s, want %s", formatValue(stripRefs(got)), formatValue(expectedArr))
+	}
+}
+
+func TestLexFlagNumberOff(t *testing.T) {
+	j := Make(Options{Number: &NumberOptions{Lex: boolPtr(false)}})
+
+	// With numbers disabled, digits are parsed as text strings.
+	got, err := j.Parse("a:1")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	expected := m("a", "1")
+	if !valuesEqual(stripRefs(got), expected) {
+		t.Errorf("number off: got %s, want %s", formatValue(stripRefs(got)), formatValue(expected))
+	}
+
+	got, err = j.Parse("a,1")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	expectedArr := a("a", "1")
+	if !valuesEqual(stripRefs(got), expectedArr) {
+		t.Errorf("number off: got %s, want %s", formatValue(stripRefs(got)), formatValue(expectedArr))
+	}
+}
+
+func TestLexFlagStringOff(t *testing.T) {
+	j := Make(Options{String: &StringOptions{Lex: boolPtr(false)}})
+
+	// With strings disabled, quote characters become part of text.
+	got, err := j.Parse(`a:"a"`)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	expected := m("a", `"a"`)
+	if !valuesEqual(stripRefs(got), expected) {
+		t.Errorf("string off: got %s, want %s", formatValue(stripRefs(got)), formatValue(expected))
+	}
+
+	got, err = j.Parse(`"a",1`)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	expectedArr := a(`"a"`, 1.0)
+	if !valuesEqual(stripRefs(got), expectedArr) {
+		t.Errorf("string off: got %s, want %s", formatValue(stripRefs(got)), formatValue(expectedArr))
+	}
+}
+
+func TestLexFlagValueOff(t *testing.T) {
+	j := Make(Options{Value: &ValueOptions{Lex: boolPtr(false)}})
+
+	// With value matching disabled, true/false/null are parsed as text strings.
+	got, err := j.Parse("a:true")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	expected := m("a", "true")
+	if !valuesEqual(stripRefs(got), expected) {
+		t.Errorf("value off: got %s, want %s", formatValue(stripRefs(got)), formatValue(expected))
+	}
+
+	got, err = j.Parse("a,null")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	expectedArr := a("a", "null")
+	if !valuesEqual(stripRefs(got), expectedArr) {
+		t.Errorf("value off: got %s, want %s", formatValue(stripRefs(got)), formatValue(expectedArr))
+	}
+}
+
+func TestLexFlagSpaceOff(t *testing.T) {
+	j := Make(Options{Space: &SpaceOptions{Lex: boolPtr(false)}})
+
+	// With space lexing disabled, spaces become part of text values.
+	got, err := j.Parse("a :1")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	expected := m("a ", 1.0)
+	if !valuesEqual(stripRefs(got), expected) {
+		t.Errorf("space off: got %s, want %s", formatValue(stripRefs(got)), formatValue(expected))
+	}
+
+	got, err = j.Parse("a ,1")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	expectedArr := a("a ", 1.0)
+	if !valuesEqual(stripRefs(got), expectedArr) {
+		t.Errorf("space off: got %s, want %s", formatValue(stripRefs(got)), formatValue(expectedArr))
+	}
+}
+
+func TestLexFlagLineOff(t *testing.T) {
+	j := Make(Options{Line: &LineOptions{Lex: boolPtr(false)}})
+
+	// With line lexing disabled, newlines become part of text values.
+	got, err := j.Parse("a:\n1")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	expected := m("a", "\n1")
+	if !valuesEqual(stripRefs(got), expected) {
+		t.Errorf("line off: got %s, want %s", formatValue(stripRefs(got)), formatValue(expected))
+	}
+
+	got, err = j.Parse("a,\n1")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	expectedArr := a("a", "\n1")
+	if !valuesEqual(stripRefs(got), expectedArr) {
+		t.Errorf("line off: got %s, want %s", formatValue(stripRefs(got)), formatValue(expectedArr))
+	}
+}
+
+func TestLexFlagCommentDefOff(t *testing.T) {
+	// Disable comments via def (setting each type to null/disabled).
+	// Matches TS: { comment: { def: { hash: null, slash: false, multi: { lex: false } } } }
+	j := Make(Options{Comment: &CommentOptions{
+		Def: map[string]*CommentDef{
+			"hash":  nil,
+			"slash": {Line: true, Start: "//", Lex: boolPtr(false)},
+			"multi": {Line: false, Start: "/*", End: "*/", Lex: boolPtr(false)},
+		},
+	}})
+
+	got, err := j.Parse("a: #b")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	expected := m("a", "#b")
+	if !valuesEqual(stripRefs(got), expected) {
+		t.Errorf("comment def off: got %s, want %s", formatValue(stripRefs(got)), formatValue(expected))
+	}
+
+	got, err = j.Parse("a: //b")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	expected = m("a", "//b")
+	if !valuesEqual(stripRefs(got), expected) {
+		t.Errorf("comment def off: got %s, want %s", formatValue(stripRefs(got)), formatValue(expected))
+	}
+
+	got, err = j.Parse("a: /*b*/")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	expected = m("a", "/*b*/")
+	if !valuesEqual(stripRefs(got), expected) {
+		t.Errorf("comment def off: got %s, want %s", formatValue(stripRefs(got)), formatValue(expected))
+	}
+}
+
+func TestLexFlagNumberHexOff(t *testing.T) {
+	j := Make(Options{
+		Comment: &CommentOptions{Lex: boolPtr(false)},
+		Number:  &NumberOptions{Hex: boolPtr(false)},
+		Value: &ValueOptions{
+			Def: map[string]*ValueDef{
+				"true":  {Val: true},
+				"false": {Val: false},
+				"null":  {Val: nil},
+				"yes":   {Val: true},
+				"no":    {Val: false},
+			},
+		},
+	})
+
+	// Custom value keywords work.
+	got, err := j.Parse("yes")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if got != true {
+		t.Errorf("custom value: Parse(\"yes\") got %v, want true", got)
+	}
+
+	// Hex disabled: 0xFF is text, not a number.
+	got, err = j.Parse("0xFF")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if _, isFloat := got.(float64); isFloat {
+		t.Errorf("hex off: Parse(\"0xFF\") should not parse as number, got %v", got)
+	}
 }

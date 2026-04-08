@@ -221,6 +221,7 @@ function grammar(jsonic: Jsonic) {
   }
 
 
+
   jsonic.rule('val', (rs: RuleSpec) => {
     rs.open(
       [
@@ -228,7 +229,7 @@ function grammar(jsonic: Jsonic) {
         // Implicit map at top level.
         {
           s: [KEY, CL],
-          c: (r) => 0 == r.d,
+          c: { d: 0 },
           p: 'map',
           b: 2,
           g: 'pair,jsonic,top',
@@ -252,14 +253,14 @@ function grammar(jsonic: Jsonic) {
         {
           s: [[CB, CS]],
           b: 1,
-          c: (r) => 0 < r.d,
+          c: { d: { $gt: 0 } },
           g: 'val,imp,null,jsonic',
         },
 
         // Implicit list at top level: a,b.
         {
           s: [CA],
-          c: (r) => 0 === r.d,
+          c: { d: 0 },
           p: 'list',
           b: 1,
           g: 'list,imp,jsonic',
@@ -284,7 +285,7 @@ function grammar(jsonic: Jsonic) {
         // Implicit list (comma sep) only allowed at top level: `1,2`.
         {
           s: [CA],
-          c: (r) => r.lte('dlist') && r.lte('dmap'),
+          c: { 'n.dlist': { $lte: 0 }, 'n.dmap': { $lte: 0 } },
           r: 'list',
           u: { implist: true },
           g: 'list,val,imp,comma,jsonic',
@@ -292,7 +293,7 @@ function grammar(jsonic: Jsonic) {
 
         // Implicit list (space sep) only allowed at top level: `1 2`.
         {
-          c: (r) => r.lte('dlist') && r.lte('dmap'),
+          c: { 'n.dlist': { $lte: 0 }, 'n.dmap': { $lte: 0 } },
           r: 'list',
           u: { implist: true },
           g: 'list,val,imp,space,jsonic',
@@ -332,7 +333,7 @@ function grammar(jsonic: Jsonic) {
           // Normal end of map, no path dive.
           {
             s: [CB],
-            c: (r) => r.lte('pk'),
+            c: { 'n.pk': { $lte: 0 } },
             g: 'end,json',
           },
 
@@ -429,7 +430,7 @@ function grammar(jsonic: Jsonic) {
           // a:b:c:1,d:2 -> {a:{b:{c:1}},d:2}
           {
             s: [CB],
-            c: (r) => r.lte('pk'),
+            c: { 'n.pk': { $lte: 0 } },
             b: 1,
             g: 'map,pair,json',
           },
@@ -437,7 +438,7 @@ function grammar(jsonic: Jsonic) {
           // Ignore trailing comma at end of map.
           {
             s: [CA, CB],
-            c: (r) => r.lte('pk'),
+            c: { 'n.pk': { $lte: 0 } },
             b: 1,
             g: 'map,pair,comma,jsonic',
           },
@@ -447,7 +448,7 @@ function grammar(jsonic: Jsonic) {
           // Comma means a new pair at same pair-key level.
           {
             s: [CA],
-            c: (r) => r.lte('pk'),
+            c: { 'n.pk': { $lte: 0 } },
             r: 'pair',
             g: 'map,pair,json',
           },
@@ -456,7 +457,7 @@ function grammar(jsonic: Jsonic) {
           // Comma means a new pair if implicit top level map.
           {
             s: [CA],
-            c: (r) => r.lte('dmap', 1),
+            c: { 'n.dmap': { $lte: 1 } },
             r: 'pair',
             g: 'map,pair,jsonic',
           },
@@ -465,7 +466,7 @@ function grammar(jsonic: Jsonic) {
           // Value means a new pair if implicit top level map.
           {
             s: [KEY],
-            c: (r) => r.lte('dmap', 1),
+            c: { 'n.dmap': { $lte: 1 } },
             r: 'pair',
             b: 1,
             g: 'map,pair,imp,jsonic',
@@ -474,7 +475,7 @@ function grammar(jsonic: Jsonic) {
           // End of implicit path (eg. a:b:1), keep closing until pk=0.
           {
             s: [[CB, CA, CS, ...KEY]],
-            c: (r) => 0 < r.n.pk,
+            c: { 'n.pk': { $gte: 0 } },
             b: 1,
             g: 'map,pair,imp,path,jsonic',
           },
@@ -623,5 +624,6 @@ function makeJSON(jsonic: any) {
 
   return justJSON
 }
+
 
 export { grammar, makeJSON }

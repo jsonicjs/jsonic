@@ -2,8 +2,7 @@
 'use strict'
 
 const { describe, it } = require('node:test')
-const Code = require('@hapi/code')
-const expect = Code.expect
+const assert = require('node:assert')
 
 const { Jsonic, Lexer, makeParser, JsonicError, make } = require('..')
 
@@ -18,23 +17,23 @@ describe('plugin', function () {
     c0.bar = 11
 
     // Jsonic unaffected
-    expect(Jsonic('b')).equal('b')
-    expect(Jsonic.foo).not.exist()
-    expect(Jsonic.bar).not.exist()
+    assert.deepEqual(Jsonic('b'), 'b')
+    assert.equal(Jsonic.foo, undefined)
+    assert.equal(Jsonic.bar, undefined)
 
-    expect(c0.options.a).equal(1)
-    expect(c0.token['#B']).equal(18)
-    expect(c0.fixed['b']).equal(18)
-    expect(c0.token[18]).equal('#B')
-    expect(c0.fixed[18]).equal('b')
-    expect(c0.token('#B')).equal(18)
-    expect(c0.fixed('b')).equal(18)
-    expect(c0.token(18)).equal('#B')
-    expect(c0.fixed(18)).equal('b')
-    expect(c0.foo()).equal('FOO')
-    expect(c0.bar).equal(11)
+    assert.deepEqual(c0.options.a, 1)
+    assert.deepEqual(c0.token['#B'], 18)
+    assert.deepEqual(c0.fixed['b'], 18)
+    assert.deepEqual(c0.token[18], '#B')
+    assert.deepEqual(c0.fixed[18], 'b')
+    assert.deepEqual(c0.token('#B'), 18)
+    assert.deepEqual(c0.fixed('b'), 18)
+    assert.deepEqual(c0.token(18), '#B')
+    assert.deepEqual(c0.fixed(18), 'b')
+    assert.deepEqual(c0.foo(), 'FOO')
+    assert.deepEqual(c0.bar, 11)
 
-    expect(() => c0('b')).throw(/unexpected/)
+    assert.throws(() => c0('b'), /unexpected/)
 
     // console.log('c0 int A', c0.internal().mark, c0.internal().config.fixed)
 
@@ -43,61 +42,61 @@ describe('plugin', function () {
       fixed: { token: { '#D': 'd' } },
     })
 
-    expect(c1.options.a).equal(1)
-    expect(c1.token['#B']).equal(18)
-    expect(c1.fixed['b']).equal(18)
-    expect(c1.token[18]).equal('#B')
-    expect(c1.fixed[18]).equal('b')
-    expect(c1.token('#B')).equal(18)
-    expect(c1.fixed('b')).equal(18)
-    expect(c1.token(18)).equal('#B')
-    expect(c1.fixed(18)).equal('b')
-    expect(c1.foo()).equal('FOO')
-    expect(c1.bar).equal(11)
+    assert.deepEqual(c1.options.a, 1)
+    assert.deepEqual(c1.token['#B'], 18)
+    assert.deepEqual(c1.fixed['b'], 18)
+    assert.deepEqual(c1.token[18], '#B')
+    assert.deepEqual(c1.fixed[18], 'b')
+    assert.deepEqual(c1.token('#B'), 18)
+    assert.deepEqual(c1.fixed('b'), 18)
+    assert.deepEqual(c1.token(18), '#B')
+    assert.deepEqual(c1.fixed(18), 'b')
+    assert.deepEqual(c1.foo(), 'FOO')
+    assert.deepEqual(c1.bar, 11)
 
-    expect(c1.options.c).equal(2)
-    expect(c1.token['#D']).equal(19)
-    expect(c1.fixed['d']).equal(19)
-    expect(c1.token[19]).equal('#D')
-    expect(c1.fixed[19]).equal('d')
-    expect(c1.token('#D')).equal(19)
-    expect(c1.fixed('d')).equal(19)
-    expect(c1.token(19)).equal('#D')
-    expect(c1.fixed(19)).equal('d')
-    expect(c1.foo()).equal('FOO')
-    expect(c1.bar).equal(11)
+    assert.deepEqual(c1.options.c, 2)
+    assert.deepEqual(c1.token['#D'], 19)
+    assert.deepEqual(c1.fixed['d'], 19)
+    assert.deepEqual(c1.token[19], '#D')
+    assert.deepEqual(c1.fixed[19], 'd')
+    assert.deepEqual(c1.token('#D'), 19)
+    assert.deepEqual(c1.fixed('d'), 19)
+    assert.deepEqual(c1.token(19), '#D')
+    assert.deepEqual(c1.fixed(19), 'd')
+    assert.deepEqual(c1.foo(), 'FOO')
+    assert.deepEqual(c1.bar, 11)
 
-    expect(() => c1('b')).throw(/unexpected/)
-    expect(() => c1('d')).throw(/unexpected/)
+    assert.throws(() => c1('b'), /unexpected/)
+    assert.throws(() => c1('d'), /unexpected/)
 
     // console.log('c1 int A', c1.internal().mark, c1.internal().config.fixed)
     // console.log('c0 int B', c0.internal().mark, c0.internal().config.fixed)
 
     // c0 unaffected by c1
 
-    expect(c0.options.a).equal(1)
-    expect(c0.token['#B']).equal(18)
-    expect(c0.fixed['b']).equal(18)
-    expect(c0.token[18]).equal('#B')
-    expect(c0.fixed[18]).equal('b')
-    expect(c0.token('#B')).equal(18)
-    expect(c0.fixed('b')).equal(18)
-    expect(c0.token(18)).equal('#B')
-    expect(c0.fixed(18)).equal('b')
-    expect(c0.foo()).equal('FOO')
-    expect(c0.bar).equal(11)
+    assert.deepEqual(c0.options.a, 1)
+    assert.deepEqual(c0.token['#B'], 18)
+    assert.deepEqual(c0.fixed['b'], 18)
+    assert.deepEqual(c0.token[18], '#B')
+    assert.deepEqual(c0.fixed[18], 'b')
+    assert.deepEqual(c0.token('#B'), 18)
+    assert.deepEqual(c0.fixed('b'), 18)
+    assert.deepEqual(c0.token(18), '#B')
+    assert.deepEqual(c0.fixed(18), 'b')
+    assert.deepEqual(c0.foo(), 'FOO')
+    assert.deepEqual(c0.bar, 11)
 
-    expect(() => c0('b')).throw(/unexpected/)
+    assert.throws(() => c0('b'), /unexpected/)
 
-    expect(c0.options.c).not.exist()
-    expect(c0.token['#D']).not.exist()
-    expect(c0.fixed['d']).not.exist()
-    expect(c0.token[19]).not.exist()
-    expect(c0.fixed[19]).not.exist()
+    assert.equal(c0.options.c, undefined)
+    assert.equal(c0.token['#D'], undefined)
+    assert.equal(c0.fixed['d'], undefined)
+    assert.equal(c0.token[19], undefined)
+    assert.equal(c0.fixed[19], undefined)
 
-    expect(c0.fixed('d')).not.exist()
-    expect(c0.token(19)).not.exist()
-    expect(c0.fixed(19)).not.exist()
+    assert.equal(c0.fixed('d'), undefined)
+    assert.equal(c0.token(19), undefined)
+    assert.equal(c0.fixed(19), undefined)
     // NOTE: c0.token('#D') will create a new token
   })
 
@@ -122,66 +121,66 @@ describe('plugin', function () {
     let opts1 = { opts: true, mark: 1 }
     let p1 = p0.clone(opts1, config1)
 
-    expect(p0 === p1).equal(false)
-    expect(p0.rsm === p1.rsm).equal(false)
+    assert.deepEqual(p0 === p1, false)
+    assert.deepEqual(p0.rsm === p1.rsm, false)
   })
 
   it('naked-make', () => {
-    expect(() => Jsonic.use(make_token_plugin('A', 'aaa'))).throw()
+    assert.throws(() => Jsonic.use(make_token_plugin('A', 'aaa')))
 
     // use make to avoid polluting Jsonic
     const j = make()
     j.use(make_token_plugin('A', 'aaa'))
-    expect(j('x:A,y:B,z:C', { xlog: -1 })).equal({ x: 'aaa', y: 'B', z: 'C' })
+    assert.deepEqual(j('x:A,y:B,z:C', { xlog: -1 }), { x: 'aaa', y: 'B', z: 'C' })
 
     const a1 = j.make({ a: 1 })
-    expect(a1.options.a).equal(1)
-    expect(j.options.a).not.exist()
-    expect(j.internal().parser === a1.internal().parser).equal(false)
-    expect(j.token.OB === a1.token.OB).equal(true)
-    expect(a1('x:A,y:B,z:C')).equal({ x: 'aaa', y: 'B', z: 'C' })
-    expect(j('x:A,y:B,z:C')).equal({ x: 'aaa', y: 'B', z: 'C' })
+    assert.deepEqual(a1.options.a, 1)
+    assert.equal(j.options.a, undefined)
+    assert.deepEqual(j.internal().parser === a1.internal().parser, false)
+    assert.deepEqual(j.token.OB === a1.token.OB, true)
+    assert.deepEqual(a1('x:A,y:B,z:C'), { x: 'aaa', y: 'B', z: 'C' })
+    assert.deepEqual(j('x:A,y:B,z:C'), { x: 'aaa', y: 'B', z: 'C' })
 
     const a2 = j.make({ a: 2 })
-    expect(a2.options.a).equal(2)
-    expect(a1.options.a).equal(1)
-    expect(j.options.a).not.exist()
-    expect(j.internal().parser === a2.internal().parser).equal(false)
-    expect(a2.internal().parser === a1.internal().parser).equal(false)
-    expect(j.token.OB === a2.token.OB).equal(true)
-    expect(a2.token.OB === a1.token.OB).equal(true)
-    expect(a2('x:A,y:B,z:C')).equal({ x: 'aaa', y: 'B', z: 'C' })
-    expect(a1('x:A,y:B,z:C')).equal({ x: 'aaa', y: 'B', z: 'C' })
-    expect(j('x:A,y:B,z:C')).equal({ x: 'aaa', y: 'B', z: 'C' })
+    assert.deepEqual(a2.options.a, 2)
+    assert.deepEqual(a1.options.a, 1)
+    assert.equal(j.options.a, undefined)
+    assert.deepEqual(j.internal().parser === a2.internal().parser, false)
+    assert.deepEqual(a2.internal().parser === a1.internal().parser, false)
+    assert.deepEqual(j.token.OB === a2.token.OB, true)
+    assert.deepEqual(a2.token.OB === a1.token.OB, true)
+    assert.deepEqual(a2('x:A,y:B,z:C'), { x: 'aaa', y: 'B', z: 'C' })
+    assert.deepEqual(a1('x:A,y:B,z:C'), { x: 'aaa', y: 'B', z: 'C' })
+    assert.deepEqual(j('x:A,y:B,z:C'), { x: 'aaa', y: 'B', z: 'C' })
 
     a2.use(make_token_plugin('B', 'bbb'))
-    expect(a2('x:A,y:B,z:C')).equal({ x: 'aaa', y: 'bbb', z: 'C' })
-    expect(a1('x:A,y:B,z:C')).equal({ x: 'aaa', y: 'B', z: 'C' })
-    expect(j('x:A,y:B,z:C')).equal({ x: 'aaa', y: 'B', z: 'C' })
+    assert.deepEqual(a2('x:A,y:B,z:C'), { x: 'aaa', y: 'bbb', z: 'C' })
+    assert.deepEqual(a1('x:A,y:B,z:C'), { x: 'aaa', y: 'B', z: 'C' })
+    assert.deepEqual(j('x:A,y:B,z:C'), { x: 'aaa', y: 'B', z: 'C' })
 
     const a22 = a2.make({ a: 22 })
-    expect(a22.options.a).equal(22)
-    expect(a2.options.a).equal(2)
-    expect(a1.options.a).equal(1)
-    expect(j.options.a).not.exist()
-    expect(j.internal().parser === a22.internal().parser).equal(false)
-    expect(j.internal().parser === a2.internal().parser).equal(false)
-    expect(a22.internal().parser === a1.internal().parser).equal(false)
-    expect(a2.internal().parser === a1.internal().parser).equal(false)
-    expect(a22.internal().parser === a2.internal().parser).equal(false)
-    expect(j.token.OB === a22.token.OB).equal(true)
-    expect(a22.token.OB === a1.token.OB).equal(true)
-    expect(a2.token.OB === a1.token.OB).equal(true)
-    expect(a22('x:A,y:B,z:C')).equal({ x: 'aaa', y: 'bbb', z: 'C' })
-    expect(a2('x:A,y:B,z:C')).equal({ x: 'aaa', y: 'bbb', z: 'C' })
-    expect(a1('x:A,y:B,z:C')).equal({ x: 'aaa', y: 'B', z: 'C' })
-    expect(j('x:A,y:B,z:C')).equal({ x: 'aaa', y: 'B', z: 'C' })
+    assert.deepEqual(a22.options.a, 22)
+    assert.deepEqual(a2.options.a, 2)
+    assert.deepEqual(a1.options.a, 1)
+    assert.equal(j.options.a, undefined)
+    assert.deepEqual(j.internal().parser === a22.internal().parser, false)
+    assert.deepEqual(j.internal().parser === a2.internal().parser, false)
+    assert.deepEqual(a22.internal().parser === a1.internal().parser, false)
+    assert.deepEqual(a2.internal().parser === a1.internal().parser, false)
+    assert.deepEqual(a22.internal().parser === a2.internal().parser, false)
+    assert.deepEqual(j.token.OB === a22.token.OB, true)
+    assert.deepEqual(a22.token.OB === a1.token.OB, true)
+    assert.deepEqual(a2.token.OB === a1.token.OB, true)
+    assert.deepEqual(a22('x:A,y:B,z:C'), { x: 'aaa', y: 'bbb', z: 'C' })
+    assert.deepEqual(a2('x:A,y:B,z:C'), { x: 'aaa', y: 'bbb', z: 'C' })
+    assert.deepEqual(a1('x:A,y:B,z:C'), { x: 'aaa', y: 'B', z: 'C' })
+    assert.deepEqual(j('x:A,y:B,z:C'), { x: 'aaa', y: 'B', z: 'C' })
 
     a22.use(make_token_plugin('C', 'ccc'))
-    expect(a22('x:A,y:B,z:C')).equal({ x: 'aaa', y: 'bbb', z: 'ccc' })
-    expect(a2('x:A,y:B,z:C')).equal({ x: 'aaa', y: 'bbb', z: 'C' })
-    expect(a1('x:A,y:B,z:C')).equal({ x: 'aaa', y: 'B', z: 'C' })
-    expect(j('x:A,y:B,z:C')).equal({ x: 'aaa', y: 'B', z: 'C' })
+    assert.deepEqual(a22('x:A,y:B,z:C'), { x: 'aaa', y: 'bbb', z: 'ccc' })
+    assert.deepEqual(a2('x:A,y:B,z:C'), { x: 'aaa', y: 'bbb', z: 'C' })
+    assert.deepEqual(a1('x:A,y:B,z:C'), { x: 'aaa', y: 'B', z: 'C' })
+    assert.deepEqual(j('x:A,y:B,z:C'), { x: 'aaa', y: 'B', z: 'C' })
   })
 
   it('plugin-opts', () => {
@@ -194,7 +193,7 @@ describe('plugin', function () {
       },
       { x: 1 },
     )
-    expect(x).equal(1)
+    assert.deepEqual(x, 1)
   })
 
   it('wrap-jsonic', () => {
@@ -202,7 +201,7 @@ describe('plugin', function () {
     let jp = j.use(function foo(jsonic) {
       return new Proxy(jsonic, {})
     })
-    expect(jp('a:1')).equal({ a: 1 })
+    assert.deepEqual(jp('a:1'), { a: 1 })
   })
 
   it('config-modifiers', () => {
@@ -216,7 +215,7 @@ describe('plugin', function () {
         },
       })
     })
-    expect(j.internal().config.fixed.token['#QQ']).equal(99)
+    assert.deepEqual(j.internal().config.fixed.token['#QQ'], 99)
   })
 
   it('decorate', () => {
@@ -225,34 +224,34 @@ describe('plugin', function () {
     let jp0 = j.use(function foo(jsonic) {
       jsonic.foo = () => 'FOO'
     })
-    expect(jp0.foo()).equal('FOO')
+    assert.deepEqual(jp0.foo(), 'FOO')
 
     let jp1 = jp0.use(function bar(jsonic) {
       jsonic.bar = () => 'BAR'
     })
-    expect(jp1.bar()).equal('BAR')
-    expect(jp1.foo()).equal('FOO')
-    expect(jp0.foo()).equal('FOO')
+    assert.deepEqual(jp1.bar(), 'BAR')
+    assert.deepEqual(jp1.foo(), 'FOO')
+    assert.deepEqual(jp0.foo(), 'FOO')
   })
 
   it('context-api', () => {
     let j0 = Jsonic.make().use(function (jsonic) {
       jsonic.rule('val', (rs) => {
         rs.ac((r, ctx) => {
-          expect(ctx.uI > 0).equal(true)
+          assert.deepEqual(ctx.uI > 0, true)
 
           const inst = ctx.inst()
-          expect(inst).equal(j0)
-          expect(inst).equal(jsonic)
-          expect(inst.id).equal(j0.id)
-          expect(inst.id).equal(jsonic.id)
-          expect(inst !== Jsonic).equal(true)
-          expect(inst.id !== Jsonic.id).equal(true)
+          assert.deepEqual(inst, j0)
+          assert.deepEqual(inst, jsonic)
+          assert.deepEqual(inst.id, j0.id)
+          assert.deepEqual(inst.id, jsonic.id)
+          assert.deepEqual(inst !== Jsonic, true)
+          assert.deepEqual(inst.id !== Jsonic.id, true)
         })
       })
     })
 
-    expect(j0('a:1')).equal({ a: 1 })
+    assert.deepEqual(j0('a:1'), { a: 1 })
   })
 
   it('custom-parser-error', () => {
@@ -292,9 +291,9 @@ describe('plugin', function () {
 
     // j('e:2')
 
-    expect(() => j('e:0')).throw(/e:0/s)
-    expect(() => j('e:1', { log: () => null })).throw(/e:1/s)
-    expect(() => j('e:2')).throw(/e:2/s)
+    assert.throws(() => j('e:0'), /e:0/s)
+    assert.throws(() => j('e:1', { log: () => null }), /e:1/s)
+    assert.throws(() => j('e:2'), /e:2/s)
   })
 
 
@@ -315,21 +314,21 @@ describe('plugin', function () {
 
     try {
       j('x::1')
-      expect(true).equal(false)
+      assert.deepEqual(true, false)
     }
     catch(e) {
-      expect(e.message).includes('bar/unexpected')
-      expect(e.message).includes('FOO')
-      expect(e.message).not.includes('--internal')
+      assert.ok(e.message.includes('bar/unexpected'))
+      assert.ok(e.message.includes('FOO'))
+      assert.ok(!e.message.includes('--internal'))
     }
 
     try {
       j('x:"s')
-      expect(true).equal(false)
+      assert.deepEqual(true, false)
     }
     catch(e) {
-      expect(e.message).includes('no end quote')
-      expect(e.message).not.includes('--internal')
+      assert.ok(e.message.includes('no end quote'))
+      assert.ok(!e.message.includes('--internal'))
     }
   })
 

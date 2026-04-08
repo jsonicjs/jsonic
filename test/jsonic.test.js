@@ -2,8 +2,7 @@
 'use strict'
 
 const { describe, it } = require('node:test')
-const Code = require('@hapi/code')
-const expect = Code.expect
+const assert = require('node:assert')
 
 // const Util = require('util')
 
@@ -28,7 +27,7 @@ function tsvTest(name) {
   const entries = loadTSV(name)
   for (const { cols: [input, expected], row } of entries) {
     try {
-      expect(Jsonic(input)).equal(JSON.parse(expected))
+      assert.deepEqual(Jsonic(input), JSON.parse(expected))
     } catch (err) {
       err.message = `${name} row ${row}: input=${input} expected=${expected}\n${err.message}`
       throw err
@@ -44,35 +43,35 @@ describe('jsonic', function () {
   it('options', () => {
     let j = Jsonic.make({ x: 1 })
 
-    expect(j.options.x).equal(1)
-    expect({ ...j.options }).include({ x: 1 })
+    assert.deepEqual(j.options.x, 1)
+    assert.deepEqual(Object.keys({ x: 1 }).reduce((a,k)=>(a[k]=({ ...j.options })[k],a),{}), { x: 1 })
 
     j.options({ x: 2 })
-    expect(j.options.x).equal(2)
-    expect({ ...j.options }).include({ x: 2 })
+    assert.deepEqual(j.options.x, 2)
+    assert.deepEqual(Object.keys({ x: 2 }).reduce((a,k)=>(a[k]=({ ...j.options })[k],a),{}), { x: 2 })
 
     j.options()
-    expect(j.options.x).equal(2)
+    assert.deepEqual(j.options.x, 2)
 
     j.options(null)
-    expect(j.options.x).equal(2)
+    assert.deepEqual(j.options.x, 2)
 
     j.options('ignored')
-    expect(j.options.x).equal(2)
+    assert.deepEqual(j.options.x, 2)
 
-    expect(j.options.comment.lex).equal(true)
-    expect(j.options().comment.lex).equal(true)
-    expect(j.internal().config.comment.lex).equal(true)
+    assert.deepEqual(j.options.comment.lex, true)
+    assert.deepEqual(j.options().comment.lex, true)
+    assert.deepEqual(j.internal().config.comment.lex, true)
     j.options({ comment: { lex: false } })
-    expect(j.options.comment.lex).equal(false)
-    expect(j.options().comment.lex).equal(false)
-    expect(j.internal().config.comment.lex).equal(false)
+    assert.deepEqual(j.options.comment.lex, false)
+    assert.deepEqual(j.options().comment.lex, false)
+    assert.deepEqual(j.internal().config.comment.lex, false)
 
     let k = Jsonic.make()
-    expect(k.options.comment.lex).equal(true)
-    expect(k.options().comment.lex).equal(true)
-    expect(k.internal().config.comment.lex).equal(true)
-    expect(k.rule().val.def.open.length > 4).equal(true)
+    assert.deepEqual(k.options.comment.lex, true)
+    assert.deepEqual(k.options().comment.lex, true)
+    assert.deepEqual(k.internal().config.comment.lex, true)
+    assert.deepEqual(k.rule().val.def.open.length > 4, true)
     k.use((jsonic) => {
       jsonic.options({
         comment: { lex: false },
@@ -80,10 +79,10 @@ describe('jsonic', function () {
       })
     })
 
-    expect(k.options.comment.lex).equal(false)
-    expect(k.options().comment.lex).equal(false)
-    expect(k.internal().config.comment.lex).equal(false)
-    expect(k.rule().val.def.open.length).equal(3)
+    assert.deepEqual(k.options.comment.lex, false)
+    assert.deepEqual(k.options().comment.lex, false)
+    assert.deepEqual(k.internal().config.comment.lex, false)
+    assert.deepEqual(k.rule().val.def.open.length, 3)
 
     let k1 = Jsonic.make()
     k1.use((jsonic) => {
@@ -92,7 +91,7 @@ describe('jsonic', function () {
       })
     })
     // console.log(k1.rule().val.def.open)
-    expect(k1.rule().val.def.open.length).equal(6)
+    assert.deepEqual(k1.rule().val.def.open.length, 6)
   })
 
   it('token-gen', () => {
@@ -102,31 +101,31 @@ describe('jsonic', function () {
     let s = j.token('__' + suffix)
 
     let s1 = j.token('AA' + suffix)
-    expect(s1).equal(s + 1)
-    expect(j.token['AA' + suffix]).equal(s + 1)
-    expect(j.token[s + 1]).equal('AA' + suffix)
-    expect(j.token('AA' + suffix)).equal(s + 1)
-    expect(j.token(s + 1)).equal('AA' + suffix)
+    assert.deepEqual(s1, s + 1)
+    assert.deepEqual(j.token['AA' + suffix], s + 1)
+    assert.deepEqual(j.token[s + 1], 'AA' + suffix)
+    assert.deepEqual(j.token('AA' + suffix), s + 1)
+    assert.deepEqual(j.token(s + 1), 'AA' + suffix)
 
     let s1a = j.token('AA' + suffix)
-    expect(s1a).equal(s + 1)
-    expect(j.token['AA' + suffix]).equal(s + 1)
-    expect(j.token[s + 1]).equal('AA' + suffix)
-    expect(j.token('AA' + suffix)).equal(s + 1)
-    expect(j.token(s + 1)).equal('AA' + suffix)
+    assert.deepEqual(s1a, s + 1)
+    assert.deepEqual(j.token['AA' + suffix], s + 1)
+    assert.deepEqual(j.token[s + 1], 'AA' + suffix)
+    assert.deepEqual(j.token('AA' + suffix), s + 1)
+    assert.deepEqual(j.token(s + 1), 'AA' + suffix)
 
     let s2 = j.token('BB' + suffix)
-    expect(s2).equal(s + 2)
-    expect(j.token['BB' + suffix]).equal(s + 2)
-    expect(j.token[s + 2]).equal('BB' + suffix)
-    expect(j.token('BB' + suffix)).equal(s + 2)
-    expect(j.token(s + 2)).equal('BB' + suffix)
+    assert.deepEqual(s2, s + 2)
+    assert.deepEqual(j.token['BB' + suffix], s + 2)
+    assert.deepEqual(j.token[s + 2], 'BB' + suffix)
+    assert.deepEqual(j.token('BB' + suffix), s + 2)
+    assert.deepEqual(j.token(s + 2), 'BB' + suffix)
   })
 
   it('token-fixed', () => {
     let j = Jsonic.make()
 
-    expect({ ...j.fixed }).equal({
+    assert.deepEqual({ ...j.fixed }, {
       12: '{',
       13: '}',
       14: '[',
@@ -141,19 +140,19 @@ describe('jsonic', function () {
       ',': 17,
     })
 
-    expect(j.fixed('{')).equal(12)
-    expect(j.fixed('}')).equal(13)
-    expect(j.fixed('[')).equal(14)
-    expect(j.fixed(']')).equal(15)
-    expect(j.fixed(':')).equal(16)
-    expect(j.fixed(',')).equal(17)
+    assert.deepEqual(j.fixed('{'), 12)
+    assert.deepEqual(j.fixed('}'), 13)
+    assert.deepEqual(j.fixed('['), 14)
+    assert.deepEqual(j.fixed(']'), 15)
+    assert.deepEqual(j.fixed(':'), 16)
+    assert.deepEqual(j.fixed(','), 17)
 
-    expect(j.fixed(12)).equal('{')
-    expect(j.fixed(13)).equal('}')
-    expect(j.fixed(14)).equal('[')
-    expect(j.fixed(15)).equal(']')
-    expect(j.fixed(16)).equal(':')
-    expect(j.fixed(17)).equal(',')
+    assert.deepEqual(j.fixed(12), '{')
+    assert.deepEqual(j.fixed(13), '}')
+    assert.deepEqual(j.fixed(14), '[')
+    assert.deepEqual(j.fixed(15), ']')
+    assert.deepEqual(j.fixed(16), ':')
+    assert.deepEqual(j.fixed(17), ',')
 
     j.options({
       fixed: {
@@ -164,7 +163,7 @@ describe('jsonic', function () {
       },
     })
 
-    expect({ ...j.fixed }).equal({
+    assert.deepEqual({ ...j.fixed }, {
       12: '{',
       13: '}',
       14: '[',
@@ -183,23 +182,23 @@ describe('jsonic', function () {
       bb: 19,
     })
 
-    expect(j.fixed('{')).equal(12)
-    expect(j.fixed('}')).equal(13)
-    expect(j.fixed('[')).equal(14)
-    expect(j.fixed(']')).equal(15)
-    expect(j.fixed(':')).equal(16)
-    expect(j.fixed(',')).equal(17)
-    expect(j.fixed('a')).equal(18)
-    expect(j.fixed('bb')).equal(19)
+    assert.deepEqual(j.fixed('{'), 12)
+    assert.deepEqual(j.fixed('}'), 13)
+    assert.deepEqual(j.fixed('['), 14)
+    assert.deepEqual(j.fixed(']'), 15)
+    assert.deepEqual(j.fixed(':'), 16)
+    assert.deepEqual(j.fixed(','), 17)
+    assert.deepEqual(j.fixed('a'), 18)
+    assert.deepEqual(j.fixed('bb'), 19)
 
-    expect(j.fixed(12)).equal('{')
-    expect(j.fixed(13)).equal('}')
-    expect(j.fixed(14)).equal('[')
-    expect(j.fixed(15)).equal(']')
-    expect(j.fixed(16)).equal(':')
-    expect(j.fixed(17)).equal(',')
-    expect(j.fixed(18)).equal('a')
-    expect(j.fixed(19)).equal('bb')
+    assert.deepEqual(j.fixed(12), '{')
+    assert.deepEqual(j.fixed(13), '}')
+    assert.deepEqual(j.fixed(14), '[')
+    assert.deepEqual(j.fixed(15), ']')
+    assert.deepEqual(j.fixed(16), ':')
+    assert.deepEqual(j.fixed(17), ',')
+    assert.deepEqual(j.fixed(18), 'a')
+    assert.deepEqual(j.fixed(19), 'bb')
   })
 
   it('basic-json', () => {
@@ -220,14 +219,14 @@ describe('jsonic', function () {
 
   it('syntax-errors', () => {
     // bad close
-    expect(() => j('}')).throw()
-    expect(() => j(']')).throw()
+    assert.throws(() => j('}'))
+    assert.throws(() => j(']'))
 
     // top level already is a map
-    expect(() => j('a:1,2')).throw()
+    assert.throws(() => j('a:1,2'))
 
     // values not valid inside map
-    expect(() => j('x:{1,2}')).throw()
+    assert.throws(() => j('x:{1,2}'))
   })
 
   it('process-scalars', () => {
@@ -255,7 +254,7 @@ describe('jsonic', function () {
   })
 
   it('process-comment', () => {
-    expect(j('a:q\nb:w #X\nc:r \n\nd:t\n\n#')).equal({
+    assert.deepEqual(j('a:q\nb:w #X\nc:r \n\nd:t\n\n#'), {
       a: 'q',
       b: 'w',
       c: 'r',
@@ -263,7 +262,7 @@ describe('jsonic', function () {
     })
 
     let jm = j.make({ comment: { lex: false } })
-    expect(jm('a:q\nb:w#X\nc:r \n\nd:t')).equal({
+    assert.deepEqual(jm('a:q\nb:w#X\nc:r \n\nd:t'), {
       a: 'q',
       b: 'w#X',
       c: 'r',
@@ -280,17 +279,17 @@ describe('jsonic', function () {
   })
 
   it('api', () => {
-    expect(Jsonic('a:1')).equal({ a: 1 })
-    expect(Jsonic.parse('a:1')).equal({ a: 1 })
+    assert.deepEqual(Jsonic('a:1'), { a: 1 })
+    assert.deepEqual(Jsonic.parse('a:1'), { a: 1 })
   })
 
   it('rule-spec', () => {
     let cfg = {}
 
     let rs0 = j.makeRuleSpec(cfg, {})
-    expect(rs0.name).equal('')
-    expect(rs0.def.open).equal([])
-    expect(rs0.def.close).equal([])
+    assert.deepEqual(rs0.name, '')
+    assert.deepEqual(rs0.def.open, [])
+    assert.deepEqual(rs0.def.close, [])
 
     let rs1 = j.makeRuleSpec(cfg, {
       open: [
@@ -301,9 +300,9 @@ describe('jsonic', function () {
         { c: {} },
       ],
     })
-    expect(rs1.def.open[0].c).equal(undefined)
-    expect(typeof rs1.def.open[1].c === 'function').equal(true)
-    expect(typeof rs1.def.open[2].c === 'function').equal(true)
+    assert.deepEqual(rs1.def.open[0].c, undefined)
+    assert.deepEqual(typeof rs1.def.open[1].c === 'function', true)
+    assert.deepEqual(typeof rs1.def.open[2].c === 'function', true)
 
     let rs2 = j.makeRuleSpec(cfg, {
       open: [
@@ -318,40 +317,40 @@ describe('jsonic', function () {
       r.n = n
       return r
     }
-    expect(c0(mr({}))).equal(true)
-    expect(c0(mr({ a: 5 }))).equal(true)
-    expect(c0(mr({ a: 10 }))).equal(true)
-    expect(c0(mr({ a: 15 }))).equal(false)
-    expect(c0(mr({ b: 19 }))).equal(true)
-    expect(c0(mr({ b: 20 }))).equal(true)
-    expect(c0(mr({ b: 21 }))).equal(false)
+    assert.deepEqual(c0(mr({})), true)
+    assert.deepEqual(c0(mr({ a: 5 })), true)
+    assert.deepEqual(c0(mr({ a: 10 })), true)
+    assert.deepEqual(c0(mr({ a: 15 })), false)
+    assert.deepEqual(c0(mr({ b: 19 })), true)
+    assert.deepEqual(c0(mr({ b: 20 })), true)
+    assert.deepEqual(c0(mr({ b: 21 })), false)
 
-    expect(c0(mr({ a: 10, b: 20 }))).equal(true)
-    expect(c0(mr({ a: 10, b: 21 }))).equal(false)
-    expect(c0(mr({ a: 11, b: 21 }))).equal(false)
-    expect(c0(mr({ a: 11, b: 20 }))).equal(false)
+    assert.deepEqual(c0(mr({ a: 10, b: 20 })), true)
+    assert.deepEqual(c0(mr({ a: 10, b: 21 })), false)
+    assert.deepEqual(c0(mr({ a: 11, b: 21 })), false)
+    assert.deepEqual(c0(mr({ a: 11, b: 20 })), false)
   })
 
   it('id-string', function () {
     let s0 = '' + Jsonic
-    expect(s0.match(/Jsonic.*/)).exist()
-    expect('' + Jsonic).equal(s0)
-    expect('' + Jsonic).equal('' + Jsonic)
+    assert.ok(s0.match(/Jsonic.*/) != null)
+    assert.deepEqual('' + Jsonic, s0)
+    assert.deepEqual('' + Jsonic, '' + Jsonic)
 
     let j1 = Jsonic.make()
     let s1 = '' + j1
-    expect(s1.match(/Jsonic.*/)).exist()
-    expect('' + j1).equal(s1)
-    expect('' + j1).equal('' + j1)
-    expect(s0).not.equal(s1)
+    assert.ok(s1.match(/Jsonic.*/) != null)
+    assert.deepEqual('' + j1, s1)
+    assert.deepEqual('' + j1, '' + j1)
+    assert.notDeepEqual(s0, s1)
 
     let j2 = Jsonic.make({ tag: 'foo' })
     let s2 = '' + j2
-    expect(s2.match(/Jsonic.*foo/)).exist()
-    expect('' + j2).equal(s2)
-    expect('' + j2).equal('' + j2)
-    expect(s0).not.equal(s2)
-    expect(s1).not.equal(s2)
+    assert.ok(s2.match(/Jsonic.*foo/) != null)
+    assert.deepEqual('' + j2, s2)
+    assert.deepEqual('' + j2, '' + j2)
+    assert.notDeepEqual(s0, s2)
+    assert.notDeepEqual(s1, s2)
   })
 
   // Test against all combinations of chars up to `len`
@@ -366,7 +365,16 @@ describe('jsonic', function () {
 
       // NOTE: if parse algo changes then these may change.
       // But if *not intended* changes here indicate unexpected effects.
-      expect(out).include({
+      assert.deepEqual(Object.keys({
+        rmc: 62734,
+        emc: 2292,
+        ecc: {
+          unprintable: 91,
+          unexpected: 1508,
+          unterminated_string: 692,
+          unterminated_comment: 1,
+        },
+      }).reduce((a,k)=>(a[k]=(out)[k],a),{}), {
         rmc: 62734,
         emc: 2292,
         ecc: {
@@ -390,7 +398,10 @@ describe('jsonic', function () {
 
       // NOTE: if parse algo changes then these may change.
       // But if *not intended* changes here indicate unexpected effects.
-      expect(out).include({
+      assert.deepEqual(Object.keys({
+        ok: true,
+        len: len * 1000,
+      }).reduce((a,k)=>(a[k]=(out)[k],a),{}), {
         ok: true,
         len: len * 1000,
       })
@@ -399,29 +410,27 @@ describe('jsonic', function () {
 
   // Validate pure JSON to ensure Jsonic is always a superset.
   it('json-standard', function () {
-    JsonStandard(Jsonic, expect)
+    JsonStandard(Jsonic)
   })
 
   it('src-not-string', () => {
-    expect(Jsonic({})).equal({})
-    expect(Jsonic([])).equal([])
-    expect(Jsonic(true)).equal(true)
-    expect(Jsonic(false)).equal(false)
-    expect(Jsonic(null)).equal(null)
-    expect(Jsonic(undefined)).equal(undefined)
-    expect(Jsonic(1)).equal(1)
-    expect(Jsonic(/a/)).equal(/a/)
+    assert.deepEqual(Jsonic({}), {})
+    assert.deepEqual(Jsonic([]), [])
+    assert.deepEqual(Jsonic(true), true)
+    assert.deepEqual(Jsonic(false), false)
+    assert.deepEqual(Jsonic(null), null)
+    assert.deepEqual(Jsonic(undefined), undefined)
+    assert.deepEqual(Jsonic(1), 1)
+    assert.deepEqual(Jsonic(/a/), /a/)
 
     let sa = Symbol('a')
-    expect(Jsonic(sa)).equal(sa)
+    assert.deepEqual(Jsonic(sa), sa)
   })
 
   it('src-empty-string', () => {
-    expect(Jsonic('')).equal(undefined)
+    assert.deepEqual(Jsonic(''), undefined)
 
-    expect(() => Jsonic.make({ lex: { empty: false } }).parse('')).throw(
-      /unexpected.*:1:1/s,
-    )
+    assert.throws(() => Jsonic.make({ lex: { empty: false } }).parse(''), /unexpected.*:1:1/s,)
   })
 })
 

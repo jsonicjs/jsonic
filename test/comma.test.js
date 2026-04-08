@@ -2,8 +2,7 @@
 'use strict'
 
 const { describe, it } = require('node:test')
-const Code = require('@hapi/code')
-const expect = Code.expect
+const assert = require('node:assert')
 
 const { Jsonic } = require('..')
 const { loadTSV } = require('./utility')
@@ -12,7 +11,7 @@ function tsvTest(name) {
   const entries = loadTSV(name)
   for (const { cols: [input, expected], row } of entries) {
     try {
-      expect(Jsonic(input)).equal(JSON.parse(expected))
+      assert.deepEqual(Jsonic(input), JSON.parse(expected))
     } catch (err) {
       err.message = `${name} row ${row}: input=${input} expected=${expected}\n${err.message}`
       throw err

@@ -135,15 +135,15 @@ func Grammar(rsm map[string]*RuleSpec, cfg *LexConfig) {
 		// JSON: A list: [ ...
 		{S: [][]Tin{{TinOS}}, P: "list", B: 1, G: "json"},
 		// Jsonic: Implicit map at top level: a: ...
-		{S: [][]Tin{KEY, {TinCL}}, C: func(r *Rule, ctx *Context) bool { return r.D == 0 }, P: "map", B: 2, G: "jsonic"},
+		{S: [][]Tin{KEY, {TinCL}}, CD: map[string]any{"d": 0}, P: "map", B: 2, G: "jsonic"},
 		// Jsonic: Pair dive: a:b: ...
 		{S: [][]Tin{KEY, {TinCL}}, P: "map", B: 2, N: map[string]int{"pk": 1}, G: "jsonic"},
 		// Jsonic: A plain value
 		{S: [][]Tin{VAL}, G: "jsonic"},
 		// Jsonic: Implicit ends {a:} → null, [a:] → null
-		{S: [][]Tin{{TinCB, TinCS}}, B: 1, C: func(r *Rule, ctx *Context) bool { return r.D > 0 }, G: "jsonic"},
+		{S: [][]Tin{{TinCB, TinCS}}, B: 1, CD: map[string]any{"d": CGt(0)}, G: "jsonic"},
 		// Jsonic: Implicit list at top level: a,b
-		{S: [][]Tin{{TinCA}}, C: func(r *Rule, ctx *Context) bool { return r.D == 0 }, P: "list", B: 1, G: "jsonic"},
+		{S: [][]Tin{{TinCA}}, CD: map[string]any{"d": 0}, P: "list", B: 1, G: "jsonic"},
 		// Jsonic: Value is implicitly null before commas
 		{S: [][]Tin{{TinCA}}, B: 1, G: "jsonic"},
 		// Jsonic: End of source
@@ -171,10 +171,10 @@ func Grammar(rsm map[string]*RuleSpec, cfg *LexConfig) {
 		},
 		// Jsonic: Implicit list (comma sep)
 		{S: [][]Tin{{TinCA}}, G: "jsonic",
-			C: func(r *Rule, ctx *Context) bool { return r.Lte("dlist", 0) && r.Lte("dmap", 0) },
+			CD: map[string]any{"n.dlist": CLte(0), "n.dmap": CLte(0)},
 			R: "list", U: map[string]any{"implist": true}},
 		// Jsonic: Implicit list (space sep) - no token match, just condition
-		{C: func(r *Rule, ctx *Context) bool { return r.Lte("dlist", 0) && r.Lte("dmap", 0) },
+		{CD: map[string]any{"n.dlist": CLte(0), "n.dmap": CLte(0)},
 			R: "list", U: map[string]any{"implist": true}, B: 1, G: "jsonic"},
 		// Jsonic: End of source
 		{S: [][]Tin{{TinZZ}}, G: "jsonic"},
@@ -248,7 +248,7 @@ func Grammar(rsm map[string]*RuleSpec, cfg *LexConfig) {
 	// [3] ZZ auto-close (Jsonic)
 	mapSpec.Close = []*AltSpec{
 		// Normal end of map, no path dive
-		{S: [][]Tin{{TinCB}}, C: func(r *Rule, ctx *Context) bool { return r.Lte("pk", 0) }, G: "jsonic"},
+		{S: [][]Tin{{TinCB}}, CD: map[string]any{"n.pk": CLte(0)}, G: "jsonic"},
 		// Not yet at end of path dive, keep ascending
 		{S: [][]Tin{{TinCB}}, B: 1, G: "jsonic"},
 		// End of implicit path: comma, close-square, or value token
@@ -424,20 +424,20 @@ func Grammar(rsm map[string]*RuleSpec, cfg *LexConfig) {
 	// [9] r:pair b:1 (Jsonic)
 	pairSpec.Close = []*AltSpec{
 		// Jsonic: End of map, check pk depth
-		{S: [][]Tin{{TinCB}}, C: func(r *Rule, ctx *Context) bool { return r.Lte("pk", 0) }, B: 1, G: "jsonic"},
+		{S: [][]Tin{{TinCB}}, CD: map[string]any{"n.pk": CLte(0)}, B: 1, G: "jsonic"},
 		// Jsonic: Ignore trailing comma at end of map
-		{S: [][]Tin{{TinCA}, {TinCB}}, C: func(r *Rule, ctx *Context) bool { return r.Lte("pk", 0) }, B: 1, G: "jsonic"},
+		{S: [][]Tin{{TinCA}, {TinCB}}, CD: map[string]any{"n.pk": CLte(0)}, B: 1, G: "jsonic"},
 		// Jsonic: Comma then EOF
 		{S: [][]Tin{{TinCA}, {TinZZ}}, G: "jsonic"},
 		// Jsonic: Comma means new pair at same level (with pk check)
-		{S: [][]Tin{{TinCA}}, C: func(r *Rule, ctx *Context) bool { return r.Lte("pk", 0) }, R: "pair", G: "jsonic"},
+		{S: [][]Tin{{TinCA}}, CD: map[string]any{"n.pk": CLte(0)}, R: "pair", G: "jsonic"},
 		// Jsonic: Comma means new pair if implicit top level map
-		{S: [][]Tin{{TinCA}}, C: func(r *Rule, ctx *Context) bool { return r.Lte("dmap", 1) }, R: "pair", G: "jsonic"},
+		{S: [][]Tin{{TinCA}}, CD: map[string]any{"n.dmap": CLte(1)}, R: "pair", G: "jsonic"},
 		// Jsonic: Value means new pair (space-separated) if implicit top level map
-		{S: [][]Tin{KEY}, C: func(r *Rule, ctx *Context) bool { return r.Lte("dmap", 1) }, R: "pair", B: 1, G: "jsonic"},
+		{S: [][]Tin{KEY}, CD: map[string]any{"n.dmap": CLte(1)}, R: "pair", B: 1, G: "jsonic"},
 		// Jsonic: End of implicit path, keep closing until pk=0
 		{S: [][]Tin{merge([]Tin{TinCB, TinCA, TinCS}, KEY)},
-			C: func(r *Rule, ctx *Context) bool { _, ok := r.N["pk"]; return ok && r.N["pk"] > 0 },
+			CD: map[string]any{"n.pk": CGte(0)},
 			B: 1, G: "jsonic"},
 		// Jsonic: Can't close map with ]
 		{S: [][]Tin{{TinCS}}, E: func(r *Rule, ctx *Context) *Token { return r.C0 }, G: "jsonic"},
@@ -594,6 +594,13 @@ func Grammar(rsm map[string]*RuleSpec, cfg *LexConfig) {
 		// Jsonic: Who needs commas anyway? (implicit element)
 		{R: "elem", B: 1, G: "jsonic"},
 	}
+
+	// Normalize declarative conditions (CD → C) for all rules.
+	NormAlts(valSpec)
+	NormAlts(mapSpec)
+	NormAlts(listSpec)
+	NormAlts(pairSpec)
+	NormAlts(elemSpec)
 
 	rsm["val"] = valSpec
 	rsm["map"] = mapSpec

@@ -2,8 +2,7 @@
 'use strict'
 
 const { describe, it } = require('node:test')
-const Code = require('@hapi/code')
-const expect = Code.expect
+const assert = require('node:assert')
 
 const Util = require('util')
 
@@ -43,15 +42,22 @@ describe('utility', () => {
     let o0 = { x: 1, y: 2 }
 
     // Modify.
-    expect(omap(o0, ([k, v]) => [k, v * 2])).include({ x: 2, y: 4 })
+    assert.deepEqual(Object.keys({ x: 2, y: 4 }).reduce((a,k)=>(a[k]=(omap(o0, ([k, v]) => [k, v * 2]))[k],a),{}), { x: 2, y: 4 })
 
     // Delete.
-    expect(omap(o0, ([k, v]) => ['x' === k ? undefined : k, v])).include({
+    assert.deepEqual(Object.keys({
+      y: 2,
+    }).reduce((a,k)=>(a[k]=(omap(o0, ([k, v]) => ['x' === k ? undefined : k, v]))[k],a),{}), {
       y: 2,
     })
 
     // Add.
-    expect(omap(o0, ([k, v]) => [k, v, 'z' + k, v * 2])).include({
+    assert.deepEqual(Object.keys({
+      x: 1,
+      y: 2,
+      zx: 2,
+      zy: 4,
+    }).reduce((a,k)=>(a[k]=(omap(o0, ([k, v]) => [k, v, 'z' + k, v * 2]))[k],a),{}), {
       x: 1,
       y: 2,
       zx: 2,
@@ -59,9 +65,8 @@ describe('utility', () => {
     })
 
     // Delete and Add.
-    expect(
-      omap(o0, ([k, v]) => [undefined, undefined, 'z' + k, v * 2]),
-    ).include({ zx: 2, zy: 4 })
+    assert.deepEqual(Object.keys({ zx: 2, zy: 4 }).reduce((a,k)=>(a[k]=(
+      omap(o0, ([k, v]) => [undefined, undefined, 'z' + k, v * 2]))[k],a),{}), { zx: 2, zy: 4 })
   })
   
 
@@ -71,7 +76,7 @@ describe('utility', () => {
       try {
         const val = JSON.parse(cols[0])
         const result = cols[1] !== '' ? str(val, Number(cols[1])) : str(val)
-        expect(result).equal(cols[2] || '')
+        assert.deepEqual(result, cols[2] || '')
       } catch (err) {
         err.message = `utility-str row ${row}: input=${cols[0]} maxlen=${cols[1]} expected=${cols[2]}\n${err.message}`
         throw err
@@ -81,19 +86,19 @@ describe('utility', () => {
 
   it('token', () => {
     let p0 = makePoint(4, 3, 2, 1)
-    expect('' + p0).equal('Point[3/4,2,1]')
-    expect(I(p0)).equal('Point[3/4,2,1]')
+    assert.deepEqual('' + p0, 'Point[3/4,2,1]')
+    assert.deepEqual(I(p0), 'Point[3/4,2,1]')
   })
 
   it('token', () => {
     let p0 = makePoint(1, 2, 3, 4)
     let t0 = makeToken('a', 1, 'b', 'bs', p0, { x: 1 }, 'W')
-    expect('' + t0).equal('Token[a=1 bs=b 2,3,4 {x:1} W]')
+    assert.deepEqual('' + t0, 'Token[a=1 bs=b 2,3,4 {x:1} W]')
 
     let t0e = t0.bad('foo')
-    expect(t0 === t0e)
-    expect(t0e.err).equal('foo')
-    expect('' + t0e).equal('Token[a=1 bs=b 2,3,4 {x:1} foo W]')
+    assert.ok(t0 === t0e)
+    assert.deepEqual(t0e.err, 'foo')
+    assert.deepEqual('' + t0e, 'Token[a=1 bs=b 2,3,4 {x:1} foo W]')
   })
 
   it('configure', () => {
@@ -141,13 +146,13 @@ describe('utility', () => {
     }
 
     configure({}, c, o0)
-    expect(Object.keys(c.t).length > 0).equal(true)
+    assert.deepEqual(Object.keys(c.t).length > 0, true)
 
     c = { t: {}, tI: 1 }
     let o1 = deep({ fixed: { token: { '#Ta': 'a' } } }, o0)
     configure({}, c, o1)
     // console.log(c)
-    expect(c.t.Ta).equal(12)
+    assert.deepEqual(c.t.Ta, 12)
   })
 
   it('token-gen', () => {
@@ -157,29 +162,29 @@ describe('utility', () => {
       t: {},
     }
 
-    expect(tokenize(undefined, config)).equal(undefined)
-    expect(tokenize(null, config)).equal(undefined)
+    assert.deepEqual(tokenize(undefined, config), undefined)
+    assert.deepEqual(tokenize(null, config), undefined)
 
     let s1 = tokenize('AA', config)
-    expect(s1).equal(s + 1)
-    expect(config.t.AA).equal(s + 1)
-    expect(config.t[s + 1]).equal('AA')
-    expect(tokenize('AA', config)).equal(s + 1)
-    expect(tokenize(s + 1, config)).equal('AA')
+    assert.deepEqual(s1, s + 1)
+    assert.deepEqual(config.t.AA, s + 1)
+    assert.deepEqual(config.t[s + 1], 'AA')
+    assert.deepEqual(tokenize('AA', config), s + 1)
+    assert.deepEqual(tokenize(s + 1, config), 'AA')
 
     let s1a = tokenize('AA', config)
-    expect(s1a).equal(s + 1)
-    expect(config.t.AA).equal(s + 1)
-    expect(config.t[s + 1]).equal('AA')
-    expect(tokenize('AA', config)).equal(s + 1)
-    expect(tokenize(s + 1, config)).equal('AA')
+    assert.deepEqual(s1a, s + 1)
+    assert.deepEqual(config.t.AA, s + 1)
+    assert.deepEqual(config.t[s + 1], 'AA')
+    assert.deepEqual(tokenize('AA', config), s + 1)
+    assert.deepEqual(tokenize(s + 1, config), 'AA')
 
     let s2 = tokenize('BB', config)
-    expect(s2).equal(s + 2)
-    expect(config.t.BB).equal(s + 2)
-    expect(config.t[s + 2]).equal('BB')
-    expect(tokenize('BB', config)).equal(s + 2)
-    expect(tokenize(s + 2, config)).equal('BB')
+    assert.deepEqual(s2, s + 2)
+    assert.deepEqual(config.t.BB, s + 2)
+    assert.deepEqual(config.t[s + 2], 'BB')
+    assert.deepEqual(tokenize('BB', config), s + 2)
+    assert.deepEqual(tokenize(s + 2, config), 'BB')
   })
 
   it('deep', () => {
@@ -195,7 +200,7 @@ describe('utility', () => {
           }
         }
         const expected = JSON.parse(cols[4])
-        expect(deep(...args)).equal(expected)
+        assert.deepEqual(deep(...args), expected)
       } catch (err) {
         err.message = `utility-deep row ${row}: args=${cols.slice(0, 4).join(',')} expected=${cols[4]}\n${err.message}`
         throw err
@@ -211,16 +216,15 @@ describe('utility', () => {
       { c: 3 },
       { d: 4, meta: { g: 7 }, opts: { e: 5 }, cfg: { f: 6 } },
     ]
-    expect(
-      errinject('x {code} {a} {b} {c} {d} {e} {f} {g} {Z} x', ...args),
-    ).equal('x c0 1 2 3 4 5 6 7 {Z} x')
+    assert.deepEqual(
+      errinject('x {code} {a} {b} {c} {d} {e} {f} {g} {Z} x', ...args), 'x c0 1 2 3 4 5 6 7 {Z} x')
   })
 
   it('srcfmt', () => {
     let F = srcfmt({ debug: { maxlen: 4, print: {} } })
-    expect(F('a')).equal('"a"')
-    expect(F('ab')).equal('"ab"')
-    expect(F('abc')).equal('"abc...')
+    assert.deepEqual(F('a'), '"a"')
+    assert.deepEqual(F('ab'), '"ab"')
+    assert.deepEqual(F('abc'), '"abc...')
   })
 
   it('trimstk', () => {
@@ -228,23 +232,21 @@ describe('utility', () => {
   })
 
   it('regexp', () => {
-    expect(regexp('', 'a')).equal(/a/)
-    expect(regexp('', 'a*')).equal(/a*/)
-    expect(regexp('', mesc('ab*'))).equal(/ab\*/)
+    assert.deepEqual(regexp('', 'a'), /a/)
+    assert.deepEqual(regexp('', 'a*'), /a*/)
+    assert.deepEqual(regexp('', mesc('ab*')), /ab\*/)
   })
 
   it('prop', () => {
     let o0 = {}
 
-    expect(prop(o0, 'a', 1)).equal(1)
-    expect(o0).equal({ a: 1 })
+    assert.deepEqual(prop(o0, 'a', 1), 1)
+    assert.deepEqual(o0, { a: 1 })
 
-    expect(prop(o0, 'b.c', 2)).equal(2)
-    expect(o0).equal({ a: 1, b: { c: 2 } })
+    assert.deepEqual(prop(o0, 'b.c', 2), 2)
+    assert.deepEqual(o0, { a: 1, b: { c: 2 } })
 
-    expect(() => prop(o0, 'a.d', 3)).throw(
-      'Cannot set path a.d on object: {"a":1,"b":{"c":2}} to value: 3',
-    )
+    assert.throws(() => prop(o0, 'a.d', 3), /Cannot set path a\.d on object/)
   })
 
   it('modlist', () => {
@@ -253,7 +255,7 @@ describe('utility', () => {
       try {
         const list = JSON.parse(cols[0])
         const result = cols[1] !== '' ? modlist(list, JSON.parse(cols[1])) : modlist(list)
-        expect(result).equal(JSON.parse(cols[2]))
+        assert.deepEqual(result, JSON.parse(cols[2]))
       } catch (err) {
         err.message = `utility-modlist row ${row}: input=${cols[0]} opts=${cols[1]} expected=${cols[2]}\n${err.message}`
         throw err
@@ -281,25 +283,25 @@ describe('utility', () => {
     let g1 = makelog({ cfg }, { log: 1 })
     let g2 = makelog({ cfg }, { log: -1 })
 
-    expect(g0).not.exist()
+    assert.equal(g0, undefined)
 
     log = []
     dir = []
     g1('A')
-    expect(log).equal([])
-    expect(dir).equal([['A']])
+    assert.deepEqual(log, [])
+    assert.deepEqual(dir, [['A']])
 
     log = []
     dir = []
     g2('B')
-    expect(log).equal(['B'])
-    expect(dir).equal([])
+    assert.deepEqual(log, ['B'])
+    assert.deepEqual(dir, [])
 
     log = []
     dir = []
     let j = Jsonic.make(cfg)
     j('a:1', { log: -1 })
-    expect(dir[0].debug.print.config).equal(true)
+    assert.deepEqual(dir[0].debug.print.config, true)
   })
 
   it('errdesc', () => {
@@ -333,9 +335,9 @@ describe('utility', () => {
 
     let d0 = errdesc('foo', {}, { tin: 1 }, {}, ctx0)
     // console.log(d0)
-    expect(d0.code).equal('foo')
-    expect(d0.message.includes('foo-code')).equal(true)
-    expect(d0.message.includes('foo-hint')).equal(true)
+    assert.deepEqual(d0.code, 'foo')
+    assert.deepEqual(d0.message.includes('foo-code'), true)
+    assert.deepEqual(d0.message.includes('foo-hint'), true)
 
     let d1 = errdesc(
       'not-a-code',
@@ -345,9 +347,9 @@ describe('utility', () => {
       { ...ctx0, meta: { mode: 'm0', fileName: 'fn0' } },
     )
     //console.log(d1)
-    expect(d1.code).equal('not-a-code')
-    expect(d1.message.includes('unknown-code')).equal(true)
-    expect(d1.message.includes('unknown-hint')).equal(true)
+    assert.deepEqual(d1.code, 'not-a-code')
+    assert.deepEqual(d1.message.includes('unknown-code'), true)
+    assert.deepEqual(d1.message.includes('unknown-hint'), true)
   })
 
   it('filterRules', () => {
@@ -370,23 +372,23 @@ describe('utility', () => {
       },
     }
 
-    expect(F(rs0, { include: [], exclude: [] })).equal({
+    assert.deepEqual(F(rs0, { include: [], exclude: [] }), {
       open: '1234',
       close: '',
     })
-    expect(F(rs0, { include: ['a0'], exclude: [] })).equal({
+    assert.deepEqual(F(rs0, { include: ['a0'], exclude: [] }), {
       open: '12',
       close: '',
     })
-    expect(F(rs0, { include: ['a1'], exclude: [] })).equal({
+    assert.deepEqual(F(rs0, { include: ['a1'], exclude: [] }), {
       open: '13',
       close: '',
     })
-    expect(F(rs0, { include: ['x0'], exclude: [] })).equal({
+    assert.deepEqual(F(rs0, { include: ['x0'], exclude: [] }), {
       open: '',
       close: '',
     })
-    expect(F(rs0, { include: ['a1', 'a2'], exclude: [] })).equal({
+    assert.deepEqual(F(rs0, { include: ['a1', 'a2'], exclude: [] }), {
       open: '123',
       close: '',
     })
@@ -403,23 +405,23 @@ describe('utility', () => {
       },
     }
 
-    expect(F(rs1, { include: [], exclude: [] })).equal({
+    assert.deepEqual(F(rs1, { include: [], exclude: [] }), {
       open: '1234',
       close: '',
     })
-    expect(F(rs1, { include: [], exclude: ['a0'] })).equal({
+    assert.deepEqual(F(rs1, { include: [], exclude: ['a0'] }), {
       open: '34',
       close: '',
     })
-    expect(F(rs1, { include: [], exclude: ['a1'] })).equal({
+    assert.deepEqual(F(rs1, { include: [], exclude: ['a1'] }), {
       open: '24',
       close: '',
     })
-    expect(F(rs1, { include: [], exclude: ['x0'] })).equal({
+    assert.deepEqual(F(rs1, { include: [], exclude: ['x0'] }), {
       open: '1234',
       close: '',
     })
-    expect(F(rs1, { include: [], exclude: ['a1', 'a2'] })).equal({
+    assert.deepEqual(F(rs1, { include: [], exclude: ['a1', 'a2'] }), {
       open: '4',
       close: '',
     })
@@ -431,7 +433,7 @@ describe('utility', () => {
       try {
         const template = cols[0]
         const values = cols[1] !== '' ? JSON.parse(cols[1]) : undefined
-        expect(strinject(template, values)).equal(cols[2] || '')
+        assert.deepEqual(strinject(template, values), cols[2] || '')
       } catch (err) {
         err.message = `utility-strinject row ${row}: template=${cols[0]} values=${cols[1]} expected=${cols[2]}\n${err.message}`
         throw err

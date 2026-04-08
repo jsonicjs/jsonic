@@ -3,7 +3,6 @@ package jsonic
 import (
 	"sort"
 	"strings"
-	"unicode"
 )
 
 // Lex is the lexer that produces tokens from source text.
@@ -1042,9 +1041,13 @@ func (l *Lex) matchText() *Token {
 
 	for sI < len(src) {
 		ch := rune(src[sI])
-		// Stop at: whitespace, quotes, line chars, ender chars
-		if l.Config.SpaceChars[ch] || l.Config.LineChars[ch] ||
-			l.Config.StringChars[ch] || l.Config.EnderChars[ch] {
+		// Stop at characters whose lexers are enabled, plus ender chars.
+		// When a lexer is disabled, its characters are consumed as text
+		// (matching TS behavior where enderRE is built conditionally).
+		if (l.Config.SpaceLex && l.Config.SpaceChars[ch]) ||
+			(l.Config.LineLex && l.Config.LineChars[ch]) ||
+			(l.Config.StringLex && l.Config.StringChars[ch]) ||
+			l.Config.EnderChars[ch] {
 			break
 		}
 		// Stop at fixed tokens (check multi-char first, then single-char)
@@ -1066,24 +1069,26 @@ func (l *Lex) matchText() *Token {
 		if isFixed {
 			break
 		}
-		// Comment starters
-		isComment := false
-		for _, cs := range l.Config.CommentLine {
-			if strings.HasPrefix(rest, cs) {
-				isComment = true
-				break
-			}
-		}
-		if !isComment {
-			for _, cb := range l.Config.CommentBlock {
-				if strings.HasPrefix(rest, cb[0]) {
+		// Comment starters (only stop text if comment lexing is enabled)
+		if l.Config.CommentLex {
+			isComment := false
+			for _, cs := range l.Config.CommentLine {
+				if strings.HasPrefix(rest, cs) {
 					isComment = true
 					break
 				}
 			}
-		}
-		if isComment {
-			break
+			if !isComment {
+				for _, cb := range l.Config.CommentBlock {
+					if strings.HasPrefix(rest, cb[0]) {
+						isComment = true
+						break
+					}
+				}
+			}
+			if isComment {
+				break
+			}
 		}
 		sI++
 	}
@@ -1224,11 +1229,15 @@ func (l *Lex) isTextChar(pos int) bool {
 	}
 	ch := l.Src[pos]
 	r := rune(ch)
-	if unicode.IsSpace(r) {
+	// Only treat whitespace as non-text if the corresponding lexer is enabled.
+	if l.Config.SpaceLex && l.Config.SpaceChars[r] {
 		return false
 	}
-	// Check string chars
-	if l.Config.StringChars[r] {
+	if l.Config.LineLex && l.Config.LineChars[r] {
+		return false
+	}
+	// Check string chars (only when string lexing is enabled)
+	if l.Config.StringLex && l.Config.StringChars[r] {
 		return false
 	}
 	// Check ender chars
@@ -1258,16 +1267,18 @@ func (l *Lex) isFollowingText(pos int) bool {
 	if !l.isTextChar(pos) {
 		return false
 	}
-	// Comment starters are not text continuation
-	rest := l.Src[pos:]
-	for _, cs := range l.Config.CommentLine {
-		if strings.HasPrefix(rest, cs) {
-			return false
+	// Comment starters are not text continuation (only when comment lexing is enabled)
+	if l.Config.CommentLex {
+		rest := l.Src[pos:]
+		for _, cs := range l.Config.CommentLine {
+			if strings.HasPrefix(rest, cs) {
+				return false
+			}
 		}
-	}
-	for _, cb := range l.Config.CommentBlock {
-		if strings.HasPrefix(rest, cb[0]) {
-			return false
+		for _, cb := range l.Config.CommentBlock {
+			if strings.HasPrefix(rest, cb[0]) {
+				return false
+			}
 		}
 	}
 	return true

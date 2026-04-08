@@ -1,5 +1,7 @@
 package jsonic
 
+import "strings"
+
 // RuleState represents whether a rule is in open or close state.
 type RuleState = string
 
@@ -55,14 +57,31 @@ type AltModifier func(alt *AltSpec, r *Rule, ctx *Context) *AltSpec
 // StateAction is a before/after action on a rule state transition.
 type StateAction func(r *Rule, ctx *Context)
 
+// CondOp represents a comparison operator with a value for declarative conditions.
+// Used in the CD field of AltSpec to define conditions declaratively,
+// matching the TypeScript c: { 'n.pk': { $lte: 0 } } syntax.
+type CondOp struct {
+	Op  string
+	Val int
+}
+
+// Comparison operator constructors for declarative conditions (AltSpec.CD field).
+func CEq(val int) CondOp  { return CondOp{Op: "$eq", Val: val} }
+func CNe(val int) CondOp  { return CondOp{Op: "$ne", Val: val} }
+func CLt(val int) CondOp  { return CondOp{Op: "$lt", Val: val} }
+func CLte(val int) CondOp { return CondOp{Op: "$lte", Val: val} }
+func CGt(val int) CondOp  { return CondOp{Op: "$gt", Val: val} }
+func CGte(val int) CondOp { return CondOp{Op: "$gte", Val: val} }
+
 // AltSpec defines a parse alternate specification.
 type AltSpec struct {
 	S [][]Tin         // Token Tin sequences to match: s[0] for t0, s[1] for t1
 	P string          // Push rule name (create child)
 	R string          // Replace rule name (create sibling)
 	B int             // Move token pointer backward (backtrack)
-	C AltCond         // Custom condition
-	N map[string]int  // Counter increments
+	C  AltCond         // Custom condition (function)
+	CD map[string]any  // Declarative condition (converted to C by NormAlt)
+	N  map[string]int  // Counter increments
 	A AltAction       // Match action
 	U map[string]any  // Custom props added to Rule.u
 	K map[string]any  // Custom props added to Rule.k (propagated)
@@ -188,6 +207,114 @@ func (rs *RuleSpec) AddBC(action StateAction) *RuleSpec {
 func (rs *RuleSpec) AddAC(action StateAction) *RuleSpec {
 	rs.AC = append(rs.AC, action)
 	return rs
+}
+
+// getRuleProp accesses a rule property by path (e.g. "d", "n.pk").
+// Returns the integer value and whether it was found.
+// Matches the TypeScript getRuleProp(r, prop, subprop) function.
+func getRuleProp(r *Rule, prop string, subprop string) (int, bool) {
+	if r == nil {
+		return 0, false
+	}
+	switch prop {
+	case "d":
+		return r.D, true
+	case "n":
+		if subprop != "" {
+			val, ok := r.N[subprop]
+			return val, ok
+		}
+	}
+	return 0, false
+}
+
+// MakeRuleCond creates an AltCond function from a comparison operator, property path, and value.
+// Matches the TypeScript makeRuleCond(co, prop, subprop, val) function.
+// When the property is not set (missing), the condition returns true.
+func MakeRuleCond(op string, prop string, subprop string, val int) AltCond {
+	switch op {
+	case "$eq":
+		return func(r *Rule, ctx *Context) bool {
+			rval, ok := getRuleProp(r, prop, subprop)
+			return !ok || rval == val
+		}
+	case "$ne":
+		return func(r *Rule, ctx *Context) bool {
+			rval, ok := getRuleProp(r, prop, subprop)
+			return !ok || rval != val
+		}
+	case "$lt":
+		return func(r *Rule, ctx *Context) bool {
+			rval, ok := getRuleProp(r, prop, subprop)
+			return !ok || rval < val
+		}
+	case "$lte":
+		return func(r *Rule, ctx *Context) bool {
+			rval, ok := getRuleProp(r, prop, subprop)
+			return !ok || rval <= val
+		}
+	case "$gt":
+		return func(r *Rule, ctx *Context) bool {
+			rval, ok := getRuleProp(r, prop, subprop)
+			return !ok || rval > val
+		}
+	case "$gte":
+		return func(r *Rule, ctx *Context) bool {
+			rval, ok := getRuleProp(r, prop, subprop)
+			return !ok || rval >= val
+		}
+	default:
+		panic("MakeRuleCond: unknown comparison operator: " + op)
+	}
+}
+
+// NormAlt normalizes an AltSpec by converting a declarative CD condition into a C function.
+// Matches the TypeScript normalt() behavior for the c: field.
+// If C is already set, CD is ignored.
+func NormAlt(alt *AltSpec) {
+	if alt == nil || alt.CD == nil || alt.C != nil {
+		return
+	}
+
+	var conds []AltCond
+	for propdef, pspec := range alt.CD {
+		parts := strings.SplitN(propdef, ".", 2)
+		prop := parts[0]
+		subprop := ""
+		if len(parts) == 2 {
+			subprop = parts[1]
+		}
+
+		switch v := pspec.(type) {
+		case int:
+			conds = append(conds, MakeRuleCond("$eq", prop, subprop, v))
+		case CondOp:
+			conds = append(conds, MakeRuleCond(v.Op, prop, subprop, v.Val))
+		}
+	}
+
+	if len(conds) == 1 {
+		alt.C = conds[0]
+	} else if len(conds) > 1 {
+		alt.C = func(r *Rule, ctx *Context) bool {
+			for _, cond := range conds {
+				if !cond(r, ctx) {
+					return false
+				}
+			}
+			return true
+		}
+	}
+}
+
+// NormAlts normalizes all alternates in a RuleSpec.
+func NormAlts(spec *RuleSpec) {
+	for _, alt := range spec.Open {
+		NormAlt(alt)
+	}
+	for _, alt := range spec.Close {
+		NormAlt(alt)
+	}
 }
 
 // Rule represents a rule instance during parsing.

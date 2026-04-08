@@ -2,8 +2,7 @@
 'use strict'
 
 const { describe, it } = require('node:test')
-const Code = require('@hapi/code')
-const expect = Code.expect
+const assert = require('node:assert')
 
 const Util = require('util')
 const I = Util.inspect
@@ -14,12 +13,13 @@ const { loadTSV } = require('./utility')
 const j = Jsonic
 
 const JS = (x) => JSON.stringify(x)
+const JP = (x) => JSON.parse(JSON.stringify(x))
 
 function tsvTest(name) {
   const entries = loadTSV(name)
   for (const { cols: [input, expected], row } of entries) {
     try {
-      expect(Jsonic(input)).equal(JSON.parse(expected))
+      assert.deepEqual(JP(Jsonic(input)), JSON.parse(expected))
     } catch (err) {
       err.message = `${name} row ${row}: input=${input} expected=${expected}\n${err.message}`
       throw err
@@ -32,7 +32,7 @@ function tsvTestWith(name, opts) {
   const entries = loadTSV(name)
   for (const { cols: [input, expected], row } of entries) {
     try {
-      expect(instance(input)).equal(JSON.parse(expected))
+      assert.deepEqual(JP(instance(input)), JSON.parse(expected))
     } catch (err) {
       err.message = `${name} row ${row}: input=${input} expected=${expected}\n${err.message}`
       throw err
@@ -47,11 +47,11 @@ function tsvTestListChild(name, opts) {
     const [input, expectedArray, expectedChild] = cols
     try {
       let result = instance(input)
-      expect(JS(result)).equal(expectedArray)
+      assert.deepEqual(JS(result), expectedArray)
       if (expectedChild !== undefined && expectedChild !== '') {
-        expect(result['child$']).equal(JSON.parse(expectedChild))
+        assert.deepEqual(JP(result['child$']), JSON.parse(expectedChild))
       } else {
-        expect(result['child$']).equal(undefined)
+        assert.deepEqual(result['child$'], undefined)
       }
     } catch (err) {
       err.message = `${name} row ${row}: input=${input} expected_array=${expectedArray} expected_child=${expectedChild}\n${err.message}`
@@ -62,235 +62,234 @@ function tsvTestListChild(name, opts) {
 
 describe('feature', function () {
   it('test-util-match', () => {
-    expect(match(1, 1)).not.exist()
-    expect(match([], [1])).equal('$[0]/val:undefined!=1')
-    expect(match([], [])).not.exist()
-    expect(match([1], [1])).not.exist()
-    expect(match([[]], [[]])).not.exist()
-    expect(match([1], [2])).equal('$[0]/val:1!=2')
-    expect(match([[1]], [[2]])).equal('$[0][0]/val:1!=2')
-    expect(match({}, {})).not.exist()
-    expect(match({ a: 1 }, { a: 1 })).not.exist()
-    expect(match({ a: 1 }, { a: 2 })).equal('$.a/val:1!=2')
-    expect(match({ a: { b: 1 } }, { a: { b: 1 } })).not.exist()
-    expect(match({ a: 1 }, { a: 1, b: 2 })).equal('$.b/val:undefined!=2')
-    expect(match({ a: 1 }, { b: 1 })).equal('$.b/val:undefined!=1')
-    expect(match({ a: { b: 1 } }, { a: { b: 2 } })).equal('$.a.b/val:1!=2')
-    expect(match({ a: 1, b: 2 }, { a: 1 })).not.exist()
-    expect(match({ a: 1, b: 2 }, { a: 1 }, { miss: false })).equal(
+    assert.equal(match(1, 1), undefined)
+    assert.deepEqual(match([], [1]), '$[0]/val:undefined!=1')
+    assert.equal(match([], []), undefined)
+    assert.equal(match([1], [1]), undefined)
+    assert.equal(match([[]], [[]]), undefined)
+    assert.deepEqual(match([1], [2]), '$[0]/val:1!=2')
+    assert.deepEqual(match([[1]], [[2]]), '$[0][0]/val:1!=2')
+    assert.equal(match({}, {}), undefined)
+    assert.equal(match({ a: 1 }, { a: 1 }), undefined)
+    assert.deepEqual(match({ a: 1 }, { a: 2 }), '$.a/val:1!=2')
+    assert.equal(match({ a: { b: 1 } }, { a: { b: 1 } }), undefined)
+    assert.deepEqual(match({ a: 1 }, { a: 1, b: 2 }), '$.b/val:undefined!=2')
+    assert.deepEqual(match({ a: 1 }, { b: 1 }), '$.b/val:undefined!=1')
+    assert.deepEqual(match({ a: { b: 1 } }, { a: { b: 2 } }), '$.a.b/val:1!=2')
+    assert.equal(match({ a: 1, b: 2 }, { a: 1 }), undefined)
+    assert.deepEqual(match({ a: 1, b: 2 }, { a: 1 }, { miss: false }), 
       '$/key:{a,b}!={a}',
     )
-    expect(match([1], [])).not.exist()
-    expect(match([], [1])).equal('$[0]/val:undefined!=1')
-    expect(match([2, 1], [undefined, 1], { miss: false })).equal(
+    assert.equal(match([1], []), undefined)
+    assert.deepEqual(match([], [1]), '$[0]/val:undefined!=1')
+    assert.deepEqual(match([2, 1], [undefined, 1], { miss: false }), 
       '$[0]/val:2!=undefined',
     )
-    expect(match([2, 1], [undefined, 1])).not.exist()
+    assert.equal(match([2, 1], [undefined, 1]), undefined)
   })
 
   it('single-char', () => {
-    expect(j()).equal(undefined)
-    expect(j('')).equal(undefined)
-    expect(j('À')).equal('À') // #192 verbatim text
-    expect(j(' ')).equal(' ') // #160 non-breaking space, verbatim text
-    expect(j('{')).equal({}) // auto-close
-    expect(j('a')).equal('a') // verbatim text
-    expect(j('[')).equal([]) // auto-close
-    expect(j(',')).equal([null]) // implict list, prefixing-comma means null element
-    expect(j('#')).equal(undefined) // comment
-    expect(j(' ')).equal(undefined) // ignored space
-    expect(j('\u0010')).equal('\x10') // verbatim text
-    expect(j('\b')).equal('\b') // verbatim
-    expect(j('\t')).equal(undefined) // ignored space
-    expect(j('\n')).equal(undefined) // ignored newline
-    expect(j('\f')).equal('\f') // verbatim
-    expect(j('\r')).equal(undefined) // ignored newline
+    assert.deepEqual(j(), undefined)
+    assert.deepEqual(j(''), undefined)
+    assert.deepEqual(j('À'), 'À') // #192 verbatim text
+    assert.deepEqual(j(' '), ' ') // #160 non-breaking space, verbatim text
+    assert.deepEqual(j('{'), {}) // auto-close
+    assert.deepEqual(j('a'), 'a') // verbatim text
+    assert.deepEqual(j('['), []) // auto-close
+    assert.deepEqual(j(','), [null]) // implict list, prefixing-comma means null element
+    assert.deepEqual(j('#'), undefined) // comment
+    assert.deepEqual(j(' '), undefined) // ignored space
+    assert.deepEqual(j('\u0010'), '\x10') // verbatim text
+    assert.deepEqual(j('\b'), '\b') // verbatim
+    assert.deepEqual(j('\t'), undefined) // ignored space
+    assert.deepEqual(j('\n'), undefined) // ignored newline
+    assert.deepEqual(j('\f'), '\f') // verbatim
+    assert.deepEqual(j('\r'), undefined) // ignored newline
 
-    expect(() => j('"')).throw(/unterminated/)
-    expect(() => j("'")).throw(/unterminated/)
-    expect(() => j(':')).throw(/unexpected/)
-    expect(() => j(']')).throw(/unexpected/)
-    expect(() => j('`')).throw(/unterminated/)
-    expect(() => j('}')).throw(/unexpected/)
+    assert.throws(() => j('"'), /unterminated/)
+    assert.throws(() => j("'"), /unterminated/)
+    assert.throws(() => j(':'), /unexpected/)
+    assert.throws(() => j(']'), /unexpected/)
+    assert.throws(() => j('`'), /unterminated/)
+    assert.throws(() => j('}'), /unexpected/)
   })
 
   it('number', () => {
-    expect(j('1')).equal(1)
-    expect(j('-1')).equal(-1)
-    expect(j('+1')).equal(1)
-    expect(j('0')).equal(0)
+    assert.deepEqual(j('1'), 1)
+    assert.deepEqual(j('-1'), -1)
+    assert.deepEqual(j('+1'), 1)
+    assert.deepEqual(j('0'), 0)
 
-    expect(j('1.')).equal(1)
-    expect(j('-1.')).equal(-1)
-    expect(j('+1.')).equal(1)
-    expect(j('0.')).equal(0)
+    assert.deepEqual(j('1.'), 1)
+    assert.deepEqual(j('-1.'), -1)
+    assert.deepEqual(j('+1.'), 1)
+    assert.deepEqual(j('0.'), 0)
 
-    expect(j('.1')).equal(0.1)
-    expect(j('-.1')).equal(-0.1)
-    expect(j('+.1')).equal(0.1)
-    expect(j('.0')).equal(0)
+    assert.deepEqual(j('.1'), 0.1)
+    assert.deepEqual(j('-.1'), -0.1)
+    assert.deepEqual(j('+.1'), 0.1)
+    assert.deepEqual(j('.0'), 0)
 
-    expect(j('0.9')).equal(0.9)
-    expect(j('-0.9')).equal(-0.9)
-    expect(j('[1]')).equal([1])
-    expect(j('a:1')).equal({ a: 1 })
-    expect(j('1:a')).equal({ 1: 'a' })
-    expect(j('{a:1}')).equal({ a: 1 })
-    expect(j('{1:a}')).equal({ 1: 'a' })
-    expect(j('1.2')).equal(1.2)
-    expect(j('1e2')).equal(100)
-    expect(j('10_0')).equal(100)
-    expect(j('-1.2')).equal(-1.2)
-    expect(j('-1e2')).equal(-100)
-    expect(j('-10_0')).equal(-100)
-    expect(j('1e+2')).equal(100)
-    expect(j('1e-2')).equal(0.01)
+    assert.deepEqual(j('0.9'), 0.9)
+    assert.deepEqual(j('-0.9'), -0.9)
+    assert.deepEqual(j('[1]'), [1])
+    assert.deepEqual(j('a:1'), { a: 1 })
+    assert.deepEqual(j('1:a'), { 1: 'a' })
+    assert.deepEqual(j('{a:1}'), { a: 1 })
+    assert.deepEqual(j('{1:a}'), { 1: 'a' })
+    assert.deepEqual(j('1.2'), 1.2)
+    assert.deepEqual(j('1e2'), 100)
+    assert.deepEqual(j('10_0'), 100)
+    assert.deepEqual(j('-1.2'), -1.2)
+    assert.deepEqual(j('-1e2'), -100)
+    assert.deepEqual(j('-10_0'), -100)
+    assert.deepEqual(j('1e+2'), 100)
+    assert.deepEqual(j('1e-2'), 0.01)
 
-    expect(j('0xA')).equal(10)
-    expect(j('0xa')).equal(10)
-    expect(j('+0xA')).equal(10)
-    expect(j('+0xa')).equal(10)
-    expect(j('-0xA')).equal(-10)
-    expect(j('-0xa')).equal(-10)
+    assert.deepEqual(j('0xA'), 10)
+    assert.deepEqual(j('0xa'), 10)
+    assert.deepEqual(j('+0xA'), 10)
+    assert.deepEqual(j('+0xa'), 10)
+    assert.deepEqual(j('-0xA'), -10)
+    assert.deepEqual(j('-0xa'), -10)
 
-    expect(j('0o12')).equal(10)
-    expect(j('0b1010')).equal(10)
-    expect(j('0x_A')).equal(10)
-    expect(j('0x_a')).equal(10)
-    expect(j('0o_12')).equal(10)
-    expect(j('0b_1010')).equal(10)
-    expect(j('1e6:a')).equal({ '1e6': 'a' }) // NOTE: "1e6" not "1000000"
-    expect(j('01')).equal(1)
-    expect(j('-01')).equal(-1)
-    expect(j('0099')).equal(99)
-    expect(j('-0099')).equal(-99)
+    assert.deepEqual(j('0o12'), 10)
+    assert.deepEqual(j('0b1010'), 10)
+    assert.deepEqual(j('0x_A'), 10)
+    assert.deepEqual(j('0x_a'), 10)
+    assert.deepEqual(j('0o_12'), 10)
+    assert.deepEqual(j('0b_1010'), 10)
+    assert.deepEqual(j('1e6:a'), { '1e6': 'a' }) // NOTE: "1e6" not "1000000"
+    assert.deepEqual(j('01'), 1)
+    assert.deepEqual(j('-01'), -1)
+    assert.deepEqual(j('0099'), 99)
+    assert.deepEqual(j('-0099'), -99)
 
-    expect(j('a:1')).equal({ a: 1 })
-    expect(j('a:-1')).equal({ a: -1 })
-    expect(j('a:+1')).equal({ a: 1 })
-    expect(j('a:0')).equal({ a: 0 })
-    expect(j('a:0.1')).equal({ a: 0.1 })
-    expect(j('a:[1]')).equal({ a: [1] })
-    expect(j('a:a:1')).equal({ a: { a: 1 } })
-    expect(j('a:1:a')).equal({ a: { 1: 'a' } })
-    expect(j('a:{a:1}')).equal({ a: { a: 1 } })
-    expect(j('a:{1:a}')).equal({ a: { 1: 'a' } })
-    expect(j('a:1.2')).equal({ a: 1.2 })
-    expect(j('a:1e2')).equal({ a: 100 })
-    expect(j('a:10_0')).equal({ a: 100 })
-    expect(j('a:-1.2')).equal({ a: -1.2 })
-    expect(j('a:-1e2')).equal({ a: -100 })
-    expect(j('a:-10_0')).equal({ a: -100 })
-    expect(j('a:1e+2')).equal({ a: 100 })
-    expect(j('a:1e-2')).equal({ a: 0.01 })
-    expect(j('a:0xA')).equal({ a: 10 })
-    expect(j('a:0xa')).equal({ a: 10 })
-    expect(j('a:0o12')).equal({ a: 10 })
-    expect(j('a:0b1010')).equal({ a: 10 })
-    expect(j('a:0x_A')).equal({ a: 10 })
-    expect(j('a:0x_a')).equal({ a: 10 })
-    expect(j('a:0o_12')).equal({ a: 10 })
-    expect(j('a:0b_1010')).equal({ a: 10 })
-    expect(j('a:1e6:a')).equal({ a: { '1e6': 'a' } }) // NOTE: "1e6" not "1000000"
-    expect(j('[1,0]')).equal([1, 0])
-    expect(j('[1,0.5]')).equal([1, 0.5])
+    assert.deepEqual(j('a:1'), { a: 1 })
+    assert.deepEqual(j('a:-1'), { a: -1 })
+    assert.deepEqual(j('a:+1'), { a: 1 })
+    assert.deepEqual(j('a:0'), { a: 0 })
+    assert.deepEqual(j('a:0.1'), { a: 0.1 })
+    assert.deepEqual(j('a:[1]'), { a: [1] })
+    assert.deepEqual(j('a:a:1'), { a: { a: 1 } })
+    assert.deepEqual(j('a:1:a'), { a: { 1: 'a' } })
+    assert.deepEqual(j('a:{a:1}'), { a: { a: 1 } })
+    assert.deepEqual(j('a:{1:a}'), { a: { 1: 'a' } })
+    assert.deepEqual(j('a:1.2'), { a: 1.2 })
+    assert.deepEqual(j('a:1e2'), { a: 100 })
+    assert.deepEqual(j('a:10_0'), { a: 100 })
+    assert.deepEqual(j('a:-1.2'), { a: -1.2 })
+    assert.deepEqual(j('a:-1e2'), { a: -100 })
+    assert.deepEqual(j('a:-10_0'), { a: -100 })
+    assert.deepEqual(j('a:1e+2'), { a: 100 })
+    assert.deepEqual(j('a:1e-2'), { a: 0.01 })
+    assert.deepEqual(j('a:0xA'), { a: 10 })
+    assert.deepEqual(j('a:0xa'), { a: 10 })
+    assert.deepEqual(j('a:0o12'), { a: 10 })
+    assert.deepEqual(j('a:0b1010'), { a: 10 })
+    assert.deepEqual(j('a:0x_A'), { a: 10 })
+    assert.deepEqual(j('a:0x_a'), { a: 10 })
+    assert.deepEqual(j('a:0o_12'), { a: 10 })
+    assert.deepEqual(j('a:0b_1010'), { a: 10 })
+    assert.deepEqual(j('a:1e6:a'), { a: { '1e6': 'a' } }) // NOTE: "1e6" not "1000000"
+    assert.deepEqual(j('[1,0]'), [1, 0])
+    assert.deepEqual(j('[1,0.5]'), [1, 0.5])
 
     // text as +- not value enders
-    expect(j('1+')).equal('1+')
-    expect(j('1-')).equal('1-')
-    expect(j('1-+')).equal('1-+')
+    assert.deepEqual(j('1+'), '1+')
+    assert.deepEqual(j('1-'), '1-')
+    assert.deepEqual(j('1-+'), '1-+')
 
     // partial numbers are converted to text
-    expect(j('-')).equal('-')
-    expect(j('+')).equal('+')
-    expect(j('1a')).equal('1a')
+    assert.deepEqual(j('-'), '-')
+    assert.deepEqual(j('+'), '+')
+    assert.deepEqual(j('1a'), '1a')
 
     let jn = j.make({ number: { lex: false } })
-    expect(jn('1')).equal('1') // Now it's a string.
-    expect(j('1')).equal(1)
-    expect(jn('a:1')).equal({ a: '1' })
-    expect(j('a:1')).equal({ a: 1 })
+    assert.deepEqual(jn('1'), '1') // Now it's a string.
+    assert.deepEqual(j('1'), 1)
+    assert.deepEqual(jn('a:1'), { a: '1' })
+    assert.deepEqual(j('a:1'), { a: 1 })
 
     let jh = j.make({ number: { hex: false } })
-    expect(jh('1')).equal(1)
-    expect(jh('0x10')).equal('0x10')
-    expect(jh('0o20')).equal(16)
-    expect(jh('0b10000')).equal(16)
-    expect(j('1')).equal(1)
-    expect(j('0x10')).equal(16)
-    expect(j('0o20')).equal(16)
-    expect(j('0b10000')).equal(16)
+    assert.deepEqual(jh('1'), 1)
+    assert.deepEqual(jh('0x10'), '0x10')
+    assert.deepEqual(jh('0o20'), 16)
+    assert.deepEqual(jh('0b10000'), 16)
+    assert.deepEqual(j('1'), 1)
+    assert.deepEqual(j('0x10'), 16)
+    assert.deepEqual(j('0o20'), 16)
+    assert.deepEqual(j('0b10000'), 16)
 
     let jo = j.make({ number: { oct: false } })
-    expect(jo('1')).equal(1)
-    expect(jo('0x10')).equal(16)
-    expect(jo('0o20')).equal('0o20')
-    expect(jo('0b10000')).equal(16)
-    expect(j('1')).equal(1)
-    expect(j('0x10')).equal(16)
-    expect(j('0o20')).equal(16)
-    expect(j('0b10000')).equal(16)
+    assert.deepEqual(jo('1'), 1)
+    assert.deepEqual(jo('0x10'), 16)
+    assert.deepEqual(jo('0o20'), '0o20')
+    assert.deepEqual(jo('0b10000'), 16)
+    assert.deepEqual(j('1'), 1)
+    assert.deepEqual(j('0x10'), 16)
+    assert.deepEqual(j('0o20'), 16)
+    assert.deepEqual(j('0b10000'), 16)
 
     let jb = j.make({ number: { bin: false } })
-    expect(jb('1')).equal(1)
-    expect(jb('0x10')).equal(16)
-    expect(jb('0o20')).equal(16)
-    expect(jb('0b10000')).equal('0b10000')
-    expect(j('1')).equal(1)
-    expect(j('0x10')).equal(16)
-    expect(j('0o20')).equal(16)
-    expect(j('0b10000')).equal(16)
+    assert.deepEqual(jb('1'), 1)
+    assert.deepEqual(jb('0x10'), 16)
+    assert.deepEqual(jb('0o20'), 16)
+    assert.deepEqual(jb('0b10000'), '0b10000')
+    assert.deepEqual(j('1'), 1)
+    assert.deepEqual(j('0x10'), 16)
+    assert.deepEqual(j('0o20'), 16)
+    assert.deepEqual(j('0b10000'), 16)
 
     let js0 = j.make({ number: { sep: null } })
-    expect(js0('1_0')).equal('1_0')
-    expect(j('1_0')).equal(10)
+    assert.deepEqual(js0('1_0'), '1_0')
+    assert.deepEqual(j('1_0'), 10)
 
     let js1 = j.make({ number: { sep: ' ' } })
-    expect(js1('1 0')).equal(10)
-    expect(js1('a:1 0')).equal({ a: 10 })
-    expect(js1('a:1 0, b : 2 000 ')).equal({ a: 10, b: 2000 })
-    expect(j('1_0')).equal(10)
+    assert.deepEqual(js1('1 0'), 10)
+    assert.deepEqual(js1('a:1 0'), { a: 10 })
+    assert.deepEqual(js1('a:1 0, b : 2 000 '), { a: 10, b: 2000 })
+    assert.deepEqual(j('1_0'), 10)
   })
 
   it('value-standard', () => {
-    expect(j('')).equal(undefined)
+    assert.deepEqual(j(''), undefined)
 
-    expect(j('true')).equal(true)
-    expect(j('false')).equal(false)
-    expect(j('null')).equal(null)
+    assert.deepEqual(j('true'), true)
+    assert.deepEqual(j('false'), false)
+    assert.deepEqual(j('null'), null)
 
-    expect(j('true\n')).equal(true)
-    expect(j('false\n')).equal(false)
-    expect(j('null\n')).equal(null)
+    assert.deepEqual(j('true\n'), true)
+    assert.deepEqual(j('false\n'), false)
+    assert.deepEqual(j('null\n'), null)
 
-    expect(j('true#')).equal(true)
-    expect(j('false#')).equal(false)
-    expect(j('null#')).equal(null)
+    assert.deepEqual(j('true#'), true)
+    assert.deepEqual(j('false#'), false)
+    assert.deepEqual(j('null#'), null)
 
-    expect(j('true//')).equal(true)
-    expect(j('false//')).equal(false)
-    expect(j('null//')).equal(null)
+    assert.deepEqual(j('true//'), true)
+    assert.deepEqual(j('false//'), false)
+    assert.deepEqual(j('null//'), null)
 
-    expect(j('{a:true}')).equal({ a: true })
-    expect(j('{a:false}')).equal({ a: false })
-    expect(j('{a:null}')).equal({ a: null })
+    assert.deepEqual(j('{a:true}'), { a: true })
+    assert.deepEqual(j('{a:false}'), { a: false })
+    assert.deepEqual(j('{a:null}'), { a: null })
 
-    expect(j('{true:1}')).equal({ true: 1 })
-    expect(j('{false:1}')).equal({ false: 1 })
-    expect(j('{null:1}')).equal({ null: 1 })
+    assert.deepEqual(j('{true:1}'), { true: 1 })
+    assert.deepEqual(j('{false:1}'), { false: 1 })
+    assert.deepEqual(j('{null:1}'), { null: 1 })
 
-    expect(j('a:true')).equal({ a: true })
-    expect(j('a:false')).equal({ a: false })
-    expect(j('a:null')).equal({ a: null })
-    expect(j('a:')).equal({ a: null })
+    assert.deepEqual(j('a:true'), { a: true })
+    assert.deepEqual(j('a:false'), { a: false })
+    assert.deepEqual(j('a:null'), { a: null })
+    assert.deepEqual(j('a:'), { a: null })
 
-    expect(j('true,')).equal([true])
-    expect(j('false,')).equal([false])
-    expect(j('null,')).equal([null])
+    assert.deepEqual(j('true,'), [true])
+    assert.deepEqual(j('false,'), [false])
+    assert.deepEqual(j('null,'), [null])
 
-    expect(
-      j('a:true,b:false,c:null,d:{e:true,f:false,g:null},h:[true,false,null]'),
-    ).equal({
+    assert.deepEqual(
+      j('a:true,b:false,c:null,d:{e:true,f:false,g:null},h:[true,false,null]'), {
       a: true,
       b: false,
       c: null,
@@ -339,21 +338,21 @@ describe('feature', function () {
       },
     })
 
-    expect(jv0('')).equal(undefined)
-    expect(jv0('foo')).equal(99)
-    expect(jv0('bar')).equal({ x: 1 })
-    expect(jv0('a:foo')).equal({ a: 99 })
-    expect(jv0('a:bar')).equal({ a: { x: 1 } })
+    assert.deepEqual(jv0(''), undefined)
+    assert.deepEqual(jv0('foo'), 99)
+    assert.deepEqual(jv0('bar'), { x: 1 })
+    assert.deepEqual(jv0('a:foo'), { a: 99 })
+    assert.deepEqual(jv0('a:bar'), { a: { x: 1 } })
 
-    expect(jv0('a:Z1')).equal({ a: 1 })
-    expect(jv0('a:Zx')).equal({ a: 'Zx' })
+    assert.deepEqual(jv0('a:Z1'), { a: 1 })
+    assert.deepEqual(jv0('a:Zx'), { a: 'Zx' })
 
-    expect(jv0('a:HEX<>')).equal({ a: 'HEX<>' })
-    expect(jv0('a:HEX<a>')).equal({ a: 10 })
-    expect(() => jv0('a:HEX<x>')).throw(/badhex/)
+    assert.deepEqual(jv0('a:HEX<>'), { a: 'HEX<>' })
+    assert.deepEqual(jv0('a:HEX<a>'), { a: 10 })
+    assert.throws(() => jv0('a:HEX<x>'), /badhex/)
 
-    expect(jv0('[A,B]')).equal(['a', 'b'])
-    expect(jv0('[1 2,3] ')).equal(['1', 460])
+    assert.deepEqual(jv0('[A,B]'), ['a', 'b'])
+    assert.deepEqual(jv0('[1 2,3] '), ['1', 460])
   })
 
   it('match-custom', () => {
@@ -381,84 +380,84 @@ describe('feature', function () {
         rs.open({ s: [p.cfg.t.FOO], a: (r) => (r.node = 'Foo') })
       })
 
-    expect(jv0('foo')).equal('Foo')
-    expect(jv0('foobar1')).equal(1)
+    assert.deepEqual(jv0('foo'), 'Foo')
+    assert.deepEqual(jv0('foobar1'), 1)
 
     // Still parses numbers
-    expect(jv0('[1 2,3 4]')).equal([1, 460, 4])
+    assert.deepEqual(jv0('[1 2,3 4]'), [1, 460, 4])
   })
 
   it('null-or-undefined', () => {
     // All ignored, so undefined
-    expect(j('')).equal(undefined)
-    expect(j(' ')).equal(undefined)
-    expect(j('\n')).equal(undefined)
-    expect(j('#')).equal(undefined)
-    expect(j('//')).equal(undefined)
-    expect(j('/**/')).equal(undefined)
+    assert.deepEqual(j(''), undefined)
+    assert.deepEqual(j(' '), undefined)
+    assert.deepEqual(j('\n'), undefined)
+    assert.deepEqual(j('#'), undefined)
+    assert.deepEqual(j('//'), undefined)
+    assert.deepEqual(j('/**/'), undefined)
 
     // JSON only has nulls
-    expect(j('null')).equal(null)
-    expect(j('a:null')).equal({ a: null })
+    assert.deepEqual(j('null'), null)
+    assert.deepEqual(j('a:null'), { a: null })
 
-    expect(JS(j('[a:1]'))).equal('[]')
-    expect(j('[a:1]').a).equal(1)
+    assert.deepEqual(JS(j('[a:1]')), '[]')
+    assert.deepEqual(j('[a:1]').a, 1)
 
-    expect(j('[{a:null}]')).equal([{ a: null }])
+    assert.deepEqual(j('[{a:null}]'), [{ a: null }])
 
-    expect(JS(j('[a:null]'))).equal('[]')
-    expect(j('[a:null]').a).equal(null)
+    assert.deepEqual(JS(j('[a:null]')), '[]')
+    assert.deepEqual(j('[a:null]').a, null)
 
-    expect(j('a:null,b:null')).equal({ a: null, b: null })
-    expect(j('{a:null,b:null}')).equal({ a: null, b: null })
+    assert.deepEqual(j('a:null,b:null'), { a: null, b: null })
+    assert.deepEqual(j('{a:null,b:null}'), { a: null, b: null })
 
-    expect(JS(j('[a:]'))).equal('[]')
-    expect(j('[a:]').a).equal(null)
+    assert.deepEqual(JS(j('[a:]')), '[]')
+    assert.deepEqual(j('[a:]').a, null)
 
-    expect(JS(j('[a:,]'))).equal('[]')
-    expect(j('[a:,]').a).equal(null)
+    assert.deepEqual(JS(j('[a:,]')), '[]')
+    assert.deepEqual(j('[a:,]').a, null)
 
-    expect(JS(j('[a:,b:]'))).equal('[]')
-    expect({ ...j('[a:,b:]') }).equal({ a: null, b: null })
+    assert.deepEqual(JS(j('[a:,b:]')), '[]')
+    assert.deepEqual({ ...j('[a:,b:]') }, { a: null, b: null })
 
-    expect(JS(j('[a:,b:c:]'))).equal('[]')
-    expect({ ...j('[a:,b:c:]') }).equal({ a: null, b: { c: null } })
+    assert.deepEqual(JS(j('[a:,b:c:]')), '[]')
+    assert.deepEqual({ ...j('[a:,b:c:]') }, { a: null, b: { c: null } })
 
-    expect(j('a:')).equal({ a: null })
-    expect(j('a:,b:')).equal({ a: null, b: null })
-    expect(j('a:,b:c:')).equal({ a: null, b: { c: null } })
+    assert.deepEqual(j('a:'), { a: null })
+    assert.deepEqual(j('a:,b:'), { a: null, b: null })
+    assert.deepEqual(j('a:,b:c:'), { a: null, b: { c: null } })
 
-    expect(j('{a:}')).equal({ a: null })
-    expect(j('{a:,b:}')).equal({ a: null, b: null })
-    expect(j('{a:,b:c:}')).equal({ a: null, b: { c: null } })
+    assert.deepEqual(j('{a:}'), { a: null })
+    assert.deepEqual(j('{a:,b:}'), { a: null, b: null })
+    assert.deepEqual(j('{a:,b:c:}'), { a: null, b: { c: null } })
   })
 
   it('value-text', () => {
-    expect(j('a')).equal('a')
-    expect(j('1a')).equal('1a') // NOTE: not a number!
-    expect(j('a/b')).equal('a/b')
-    expect(j('a#b')).equal('a')
+    assert.deepEqual(j('a'), 'a')
+    assert.deepEqual(j('1a'), '1a') // NOTE: not a number!
+    assert.deepEqual(j('a/b'), 'a/b')
+    assert.deepEqual(j('a#b'), 'a')
 
-    expect(j('a//b')).equal('a')
-    expect(j('a/*b*/')).equal('a')
-    expect(j('a\\n')).equal('a\\n')
-    expect(j('\\s+')).equal('\\s+')
+    assert.deepEqual(j('a//b'), 'a')
+    assert.deepEqual(j('a/*b*/'), 'a')
+    assert.deepEqual(j('a\\n'), 'a\\n')
+    assert.deepEqual(j('\\s+'), '\\s+')
 
-    expect(j('x:a')).equal({ x: 'a' })
-    expect(j('x:a/b')).equal({ x: 'a/b' })
-    expect(j('x:a#b')).equal({ x: 'a' })
-    expect(j('x:a//b')).equal({ x: 'a' })
-    expect(j('x:a/*b*/')).equal({ x: 'a' })
-    expect(j('x:a\\n')).equal({ x: 'a\\n' })
-    expect(j('x:\\s+')).equal({ x: '\\s+' })
+    assert.deepEqual(j('x:a'), { x: 'a' })
+    assert.deepEqual(j('x:a/b'), { x: 'a/b' })
+    assert.deepEqual(j('x:a#b'), { x: 'a' })
+    assert.deepEqual(j('x:a//b'), { x: 'a' })
+    assert.deepEqual(j('x:a/*b*/'), { x: 'a' })
+    assert.deepEqual(j('x:a\\n'), { x: 'a\\n' })
+    assert.deepEqual(j('x:\\s+'), { x: '\\s+' })
 
-    expect(j('[a]')).equal(['a'])
-    expect(j('[a/b]')).equal(['a/b'])
-    expect(j('[a#b]')).equal(['a'])
-    expect(j('[a//b]')).equal(['a'])
-    expect(j('[a/*b*/]')).equal(['a'])
-    expect(j('[a\\n]')).equal(['a\\n'])
-    expect(j('[\\s+]')).equal(['\\s+'])
+    assert.deepEqual(j('[a]'), ['a'])
+    assert.deepEqual(j('[a/b]'), ['a/b'])
+    assert.deepEqual(j('[a#b]'), ['a'])
+    assert.deepEqual(j('[a//b]'), ['a'])
+    assert.deepEqual(j('[a/*b*/]'), ['a'])
+    assert.deepEqual(j('[a\\n]'), ['a\\n'])
+    assert.deepEqual(j('[\\s+]'), ['\\s+'])
 
     // TODO: REVIEW
     // // Force text re to fail (also tests infinite loop protection).
@@ -469,111 +468,111 @@ describe('feature', function () {
   })
 
   it('value-string', () => {
-    expect(j("''")).equal('')
-    expect(j('""')).equal('')
-    expect(j('``')).equal('')
+    assert.deepEqual(j("''"), '')
+    assert.deepEqual(j('""'), '')
+    assert.deepEqual(j('``'), '')
 
-    expect(j("'a'")).equal('a')
-    expect(j('"a"')).equal('a')
-    expect(j('`a`')).equal('a')
+    assert.deepEqual(j("'a'"), 'a')
+    assert.deepEqual(j('"a"'), 'a')
+    assert.deepEqual(j('`a`'), 'a')
 
-    expect(j("'a b'")).equal('a b')
-    expect(j('"a b"')).equal('a b')
-    expect(j('`a b`')).equal('a b')
+    assert.deepEqual(j("'a b'"), 'a b')
+    assert.deepEqual(j('"a b"'), 'a b')
+    assert.deepEqual(j('`a b`'), 'a b')
 
-    expect(j("'a\\tb'")).equal('a\tb')
-    expect(j('"a\\tb"')).equal('a\tb')
-    expect(j('`a\\tb`')).equal('a\tb')
+    assert.deepEqual(j("'a\\tb'"), 'a\tb')
+    assert.deepEqual(j('"a\\tb"'), 'a\tb')
+    assert.deepEqual(j('`a\\tb`'), 'a\tb')
 
     // NOTE: backslash inside string is always removed
-    expect(j('`a\\qb`')).equal('aqb')
+    assert.deepEqual(j('`a\\qb`'), 'aqb')
 
-    expect(j("'a\\'b\"`c'")).equal('a\'b"`c')
-    expect(j('"a\\"b`\'c"')).equal('a"b`\'c')
-    expect(j('`a\\`b"\'c`')).equal('a`b"\'c')
+    assert.deepEqual(j("'a\\'b\"`c'"), 'a\'b"`c')
+    assert.deepEqual(j('"a\\"b`\'c"'), 'a"b`\'c')
+    assert.deepEqual(j('`a\\`b"\'c`'), 'a`b"\'c')
 
-    expect(j('"\\u0061"')).equal('a')
-    expect(j('"\\x61"')).equal('a')
+    assert.deepEqual(j('"\\u0061"'), 'a')
+    assert.deepEqual(j('"\\x61"'), 'a')
 
-    expect(j('`\n`')).equal('\n')
-    expect(() => j('"\n"')).throw(/unprintable]/)
-    expect(() => j('"\t"')).throw(/unprintable]/)
-    expect(() => j('"\f"')).throw(/unprintable]/)
-    expect(() => j('"\b"')).throw(/unprintable]/)
-    expect(() => j('"\v"')).throw(/unprintable]/)
-    expect(() => j('"\0"')).throw(/unprintable]/)
+    assert.deepEqual(j('`\n`'), '\n')
+    assert.throws(() => j('"\n"'), /unprintable]/)
+    assert.throws(() => j('"\t"'), /unprintable]/)
+    assert.throws(() => j('"\f"'), /unprintable]/)
+    assert.throws(() => j('"\b"'), /unprintable]/)
+    assert.throws(() => j('"\v"'), /unprintable]/)
+    assert.throws(() => j('"\0"'), /unprintable]/)
 
-    expect(j('"\\n"')).equal('\n')
-    expect(j('"\\t"')).equal('\t')
-    expect(j('"\\f"')).equal('\f')
-    expect(j('"\\b"')).equal('\b')
-    expect(j('"\\v"')).equal('\v')
-    expect(j('"\\""')).equal('"')
-    expect(j('"\\\'"')).equal("'")
-    expect(j('"\\`"')).equal('`')
+    assert.deepEqual(j('"\\n"'), '\n')
+    assert.deepEqual(j('"\\t"'), '\t')
+    assert.deepEqual(j('"\\f"'), '\f')
+    assert.deepEqual(j('"\\b"'), '\b')
+    assert.deepEqual(j('"\\v"'), '\v')
+    assert.deepEqual(j('"\\""'), '"')
+    assert.deepEqual(j('"\\\'"'), "'")
+    assert.deepEqual(j('"\\`"'), '`')
 
-    expect(j('"\\w"')).equal('w')
-    expect(j('"\\0"')).equal('0')
+    assert.deepEqual(j('"\\w"'), 'w')
+    assert.deepEqual(j('"\\0"'), '0')
 
-    expect(() => j('`\x1a`')).throw(/unprintable]/)
-    expect(() => j('"\x1a"')).throw(/unprintable]/)
+    assert.throws(() => j('`\x1a`'), /unprintable]/)
+    assert.throws(() => j('"\x1a"'), /unprintable]/)
 
-    expect(() => j('"x')).throw(/unterminated_string].*:1:1/s)
-    expect(() => j(' "x')).throw(/unterminated_string].*:1:2/s)
-    expect(() => j('  "x')).throw(/unterminated_string].*:1:3/s)
-    expect(() => j('a:"x')).throw(/unterminated_string].*:1:3/s)
-    expect(() => j('aa:"x')).throw(/unterminated_string].*:1:4/s)
-    expect(() => j('aaa:"x')).throw(/unterminated_string].*:1:5/s)
-    expect(() => j(' a:"x')).throw(/unterminated_string].*:1:4/s)
-    expect(() => j(' a :"x')).throw(/unterminated_string].*:1:5/s)
+    assert.throws(() => j('"x'), /unterminated_string].*:1:1/s)
+    assert.throws(() => j(' "x'), /unterminated_string].*:1:2/s)
+    assert.throws(() => j('  "x'), /unterminated_string].*:1:3/s)
+    assert.throws(() => j('a:"x'), /unterminated_string].*:1:3/s)
+    assert.throws(() => j('aa:"x'), /unterminated_string].*:1:4/s)
+    assert.throws(() => j('aaa:"x'), /unterminated_string].*:1:5/s)
+    assert.throws(() => j(' a:"x'), /unterminated_string].*:1:4/s)
+    assert.throws(() => j(' a :"x'), /unterminated_string].*:1:5/s)
 
-    expect(() => j("'x")).throw(/unterminated_string].*:1:1/s)
-    expect(() => j(" 'x")).throw(/unterminated_string].*:1:2/s)
-    expect(() => j("  'x")).throw(/unterminated_string].*:1:3/s)
-    expect(() => j("a:'x")).throw(/unterminated_string].*:1:3/s)
-    expect(() => j("aa:'x")).throw(/unterminated_string].*:1:4/s)
-    expect(() => j("aaa:'x")).throw(/unterminated_string].*:1:5/s)
-    expect(() => j(" a:'x")).throw(/unterminated_string].*:1:4/s)
-    expect(() => j(" a :'x")).throw(/unterminated_string].*:1:5/s)
+    assert.throws(() => j("'x"), /unterminated_string].*:1:1/s)
+    assert.throws(() => j(" 'x"), /unterminated_string].*:1:2/s)
+    assert.throws(() => j("  'x"), /unterminated_string].*:1:3/s)
+    assert.throws(() => j("a:'x"), /unterminated_string].*:1:3/s)
+    assert.throws(() => j("aa:'x"), /unterminated_string].*:1:4/s)
+    assert.throws(() => j("aaa:'x"), /unterminated_string].*:1:5/s)
+    assert.throws(() => j(" a:'x"), /unterminated_string].*:1:4/s)
+    assert.throws(() => j(" a :'x"), /unterminated_string].*:1:5/s)
 
-    expect(() => j('`x')).throw(/unterminated_string].*:1:1/s)
-    expect(() => j(' `x')).throw(/unterminated_string].*:1:2/s)
-    expect(() => j('  `x')).throw(/unterminated_string].*:1:3/s)
-    expect(() => j('a:`x')).throw(/unterminated_string].*:1:3/s)
-    expect(() => j('aa:`x')).throw(/unterminated_string].*:1:4/s)
-    expect(() => j('aaa:`x')).throw(/unterminated_string].*:1:5/s)
-    expect(() => j(' a:`x')).throw(/unterminated_string].*:1:4/s)
-    expect(() => j(' a :`x')).throw(/unterminated_string].*:1:5/s)
+    assert.throws(() => j('`x'), /unterminated_string].*:1:1/s)
+    assert.throws(() => j(' `x'), /unterminated_string].*:1:2/s)
+    assert.throws(() => j('  `x'), /unterminated_string].*:1:3/s)
+    assert.throws(() => j('a:`x'), /unterminated_string].*:1:3/s)
+    assert.throws(() => j('aa:`x'), /unterminated_string].*:1:4/s)
+    assert.throws(() => j('aaa:`x'), /unterminated_string].*:1:5/s)
+    assert.throws(() => j(' a:`x'), /unterminated_string].*:1:4/s)
+    assert.throws(() => j(' a :`x'), /unterminated_string].*:1:5/s)
 
-    expect(() => j('`\nx')).throw(/unterminated_string].*:1:1/s)
-    expect(() => j(' `\nx')).throw(/unterminated_string].*:1:2/s)
-    expect(() => j('  `\nx')).throw(/unterminated_string].*:1:3/s)
-    expect(() => j('a:`\nx')).throw(/unterminated_string].*:1:3/s)
-    expect(() => j('aa:`\nx')).throw(/unterminated_string].*:1:4/s)
-    expect(() => j('aaa:`\nx')).throw(/unterminated_string].*:1:5/s)
-    expect(() => j(' a:`\nx')).throw(/unterminated_string].*:1:4/s)
-    expect(() => j(' a :`\nx')).throw(/unterminated_string].*:1:5/s)
+    assert.throws(() => j('`\nx'), /unterminated_string].*:1:1/s)
+    assert.throws(() => j(' `\nx'), /unterminated_string].*:1:2/s)
+    assert.throws(() => j('  `\nx'), /unterminated_string].*:1:3/s)
+    assert.throws(() => j('a:`\nx'), /unterminated_string].*:1:3/s)
+    assert.throws(() => j('aa:`\nx'), /unterminated_string].*:1:4/s)
+    assert.throws(() => j('aaa:`\nx'), /unterminated_string].*:1:5/s)
+    assert.throws(() => j(' a:`\nx'), /unterminated_string].*:1:4/s)
+    assert.throws(() => j(' a :`\nx'), /unterminated_string].*:1:5/s)
 
-    expect(() => j('\n\n"x')).throw(/unterminated_string].*:3:1/s)
-    expect(() => j('\n\n "x')).throw(/unterminated_string].*:3:2/s)
-    expect(() => j('\n\n  "x')).throw(/unterminated_string].*:3:3/s)
-    expect(() => j('\n\na:"x')).throw(/unterminated_string].*:3:3/s)
-    expect(() => j('\n\naa:"x')).throw(/unterminated_string].*:3:4/s)
-    expect(() => j('\n\naaa:"x')).throw(/unterminated_string].*:3:5/s)
-    expect(() => j('\n\n a:"x')).throw(/unterminated_string].*:3:4/s)
-    expect(() => j('\n\n a :"x')).throw(/unterminated_string].*:3:5/s)
+    assert.throws(() => j('\n\n"x'), /unterminated_string].*:3:1/s)
+    assert.throws(() => j('\n\n "x'), /unterminated_string].*:3:2/s)
+    assert.throws(() => j('\n\n  "x'), /unterminated_string].*:3:3/s)
+    assert.throws(() => j('\n\na:"x'), /unterminated_string].*:3:3/s)
+    assert.throws(() => j('\n\naa:"x'), /unterminated_string].*:3:4/s)
+    assert.throws(() => j('\n\naaa:"x'), /unterminated_string].*:3:5/s)
+    assert.throws(() => j('\n\n a:"x'), /unterminated_string].*:3:4/s)
+    assert.throws(() => j('\n\n a :"x'), /unterminated_string].*:3:5/s)
 
     // string.escape.allowUnknown:false
     let j1 = j.make({ string: { allowUnknown: false } })
-    expect(j1('"\\n"')).equal('\n')
-    expect(j1('"\\t"')).equal('\t')
-    expect(j1('"\\f"')).equal('\f')
-    expect(j1('"\\b"')).equal('\b')
-    expect(j1('"\\v"')).equal('\v')
-    expect(j1('"\\""')).equal('"')
-    expect(j1('"\\\\"')).equal('\\')
-    expect(() => j1('"\\w"')).throw(/unexpected].*:1:3/s)
-    expect(() => j1('"\\0"')).throw(/unexpected].*:1:3/s)
+    assert.deepEqual(j1('"\\n"'), '\n')
+    assert.deepEqual(j1('"\\t"'), '\t')
+    assert.deepEqual(j1('"\\f"'), '\f')
+    assert.deepEqual(j1('"\\b"'), '\b')
+    assert.deepEqual(j1('"\\v"'), '\v')
+    assert.deepEqual(j1('"\\""'), '"')
+    assert.deepEqual(j1('"\\\\"'), '\\')
+    assert.throws(() => j1('"\\w"'), /unexpected].*:1:3/s)
+    assert.throws(() => j1('"\\0"'), /unexpected].*:1:3/s)
 
     // TODO: PLUGIN csv
     // let k = j.make({string:{escapedouble:true}})
@@ -583,33 +582,33 @@ describe('feature', function () {
   })
 
   it('multiline-string', () => {
-    expect(j('`a`')).equal('a')
-    expect(j('`\na`')).equal('\na')
-    expect(j('`\na\n`')).equal('\na\n')
-    expect(j('`a\nb`')).equal('a\nb')
-    expect(j('`a\n\nb`')).equal('a\n\nb')
-    expect(j('`a\nc\nb`')).equal('a\nc\nb')
-    expect(j('`a\r\n\r\nb`')).equal('a\r\n\r\nb')
+    assert.deepEqual(j('`a`'), 'a')
+    assert.deepEqual(j('`\na`'), '\na')
+    assert.deepEqual(j('`\na\n`'), '\na\n')
+    assert.deepEqual(j('`a\nb`'), 'a\nb')
+    assert.deepEqual(j('`a\n\nb`'), 'a\n\nb')
+    assert.deepEqual(j('`a\nc\nb`'), 'a\nc\nb')
+    assert.deepEqual(j('`a\r\n\r\nb`'), 'a\r\n\r\nb')
 
-    expect(() => j('`\n')).throw(/unterminated_string.*:1:1/s)
-    expect(() => j(' `\n')).throw(/unterminated_string.*:1:2/s)
-    expect(() => j('\n `\n')).throw(/unterminated_string.*:2:2/s)
+    assert.throws(() => j('`\n'), /unterminated_string.*:1:1/s)
+    assert.throws(() => j(' `\n'), /unterminated_string.*:1:2/s)
+    assert.throws(() => j('\n `\n'), /unterminated_string.*:2:2/s)
 
-    expect(() => j('`a``b')).throw(/unterminated_string.*:1:4/s)
-    expect(() => j('\n`a``b')).throw(/unterminated_string.*:2:4/s)
-    expect(() => j('\n`a`\n`b')).throw(/unterminated_string.*:3:1/s)
-    expect(() => j('\n`\na`\n`b')).throw(/unterminated_string.*:4:1/s)
-    expect(() => j('\n`\na`\n`\nb')).throw(/unterminated_string.*:4:1/s)
+    assert.throws(() => j('`a``b'), /unterminated_string.*:1:4/s)
+    assert.throws(() => j('\n`a``b'), /unterminated_string.*:2:4/s)
+    assert.throws(() => j('\n`a`\n`b'), /unterminated_string.*:3:1/s)
+    assert.throws(() => j('\n`\na`\n`b'), /unterminated_string.*:4:1/s)
+    assert.throws(() => j('\n`\na`\n`\nb'), /unterminated_string.*:4:1/s)
 
-    expect(() => j('`a` `b')).throw(/unterminated_string.*:1:5/s)
-    expect(() => j('`a`\n `b')).throw(/unterminated_string.*:2:2/s)
+    assert.throws(() => j('`a` `b'), /unterminated_string.*:1:5/s)
+    assert.throws(() => j('`a`\n `b'), /unterminated_string.*:2:2/s)
 
-    expect(() => j('`a\n` `b')).throw(/unterminated_string.*:2:3/s)
-    expect(() => j('`a\n`,`b')).throw(/unterminated_string.*:2:3/s)
-    expect(() => j('[`a\n` `b')).throw(/unterminated_string.*:2:3/s)
-    expect(() => j('[`a\n`,`b')).throw(/unterminated_string.*:2:3/s)
-    expect(() => j('1\n `b')).throw(/unterminated_string.*:2:2/s)
-    expect(() => j('[1\n,`b')).throw(/unterminated_string.*:2:2/s)
+    assert.throws(() => j('`a\n` `b'), /unterminated_string.*:2:3/s)
+    assert.throws(() => j('`a\n`,`b'), /unterminated_string.*:2:3/s)
+    assert.throws(() => j('[`a\n` `b'), /unterminated_string.*:2:3/s)
+    assert.throws(() => j('[`a\n`,`b'), /unterminated_string.*:2:3/s)
+    assert.throws(() => j('1\n `b'), /unterminated_string.*:2:2/s)
+    assert.throws(() => j('[1\n,`b'), /unterminated_string.*:2:2/s)
 
     // TODO: PLUGIN
     // expect(j("'''a\nb'''")).equal('a\nb')
@@ -647,93 +646,93 @@ describe('feature', function () {
 
   it('implicit-list', () => {
     // implicit null element preceeds empty comma
-    expect(j(',')).equal([null])
-    expect(j(',a')).equal([null, 'a'])
-    expect(j(',"a"')).equal([null, 'a'])
-    expect(j(',1')).equal([null, 1])
-    expect(j(',true')).equal([null, true])
-    expect(j(',[]')).equal([null, []])
-    expect(j(',{}')).equal([null, {}])
-    expect(j(',[1]')).equal([null, [1]])
-    expect(j(',{a:1}')).equal([null, { a: 1 }])
+    assert.deepEqual(j(','), [null])
+    assert.deepEqual(j(',a'), [null, 'a'])
+    assert.deepEqual(j(',"a"'), [null, 'a'])
+    assert.deepEqual(j(',1'), [null, 1])
+    assert.deepEqual(j(',true'), [null, true])
+    assert.deepEqual(j(',[]'), [null, []])
+    assert.deepEqual(j(',{}'), [null, {}])
+    assert.deepEqual(j(',[1]'), [null, [1]])
+    assert.deepEqual(j(',{a:1}'), [null, { a: 1 }])
 
-    expect(JS(j(',a:1'))).equal('[null]')
-    expect(j(',a:1').a).equal(1)
+    assert.deepEqual(JS(j(',a:1')), '[null]')
+    assert.deepEqual(j(',a:1').a, 1)
 
     // Top level comma imlies list; ignore trailing comma
-    expect(j('a,')).equal(['a'])
-    expect(j('"a",')).equal(['a'])
-    expect(j('1,')).equal([1])
-    expect(j('1,,')).equal([1, null])
-    expect(j('1,,,')).equal([1, null, null])
-    expect(j('1,null')).equal([1, null])
-    expect(j('1,null,')).equal([1, null])
-    expect(j('1,null,null')).equal([1, null, null])
-    expect(j('1,null,null,')).equal([1, null, null])
-    expect(j('true,')).equal([true])
-    expect(j('[],')).equal([[]])
-    expect(j('{},')).equal([{}])
-    expect(j('[1],')).equal([[1]])
-    expect(j('{a:1},')).equal([{ a: 1 }])
+    assert.deepEqual(j('a,'), ['a'])
+    assert.deepEqual(j('"a",'), ['a'])
+    assert.deepEqual(j('1,'), [1])
+    assert.deepEqual(j('1,,'), [1, null])
+    assert.deepEqual(j('1,,,'), [1, null, null])
+    assert.deepEqual(j('1,null'), [1, null])
+    assert.deepEqual(j('1,null,'), [1, null])
+    assert.deepEqual(j('1,null,null'), [1, null, null])
+    assert.deepEqual(j('1,null,null,'), [1, null, null])
+    assert.deepEqual(j('true,'), [true])
+    assert.deepEqual(j('[],'), [[]])
+    assert.deepEqual(j('{},'), [{}])
+    assert.deepEqual(j('[1],'), [[1]])
+    assert.deepEqual(j('{a:1},'), [{ a: 1 }])
 
     // NOTE: special case, this is considered a map pair
-    expect(j('a:1,')).equal({ a: 1 })
+    assert.deepEqual(j('a:1,'), { a: 1 })
 
-    expect(j('a,')).equal(['a'])
-    expect(j('"a",')).equal(['a'])
-    expect(j('true,')).equal([true])
-    expect(j('1,')).equal([1])
-    expect(j('a,1')).equal(['a', 1])
-    expect(j('"a",1')).equal(['a', 1])
-    expect(j('true,1')).equal([true, 1])
-    expect(j('1,1')).equal([1, 1])
+    assert.deepEqual(j('a,'), ['a'])
+    assert.deepEqual(j('"a",'), ['a'])
+    assert.deepEqual(j('true,'), [true])
+    assert.deepEqual(j('1,'), [1])
+    assert.deepEqual(j('a,1'), ['a', 1])
+    assert.deepEqual(j('"a",1'), ['a', 1])
+    assert.deepEqual(j('true,1'), [true, 1])
+    assert.deepEqual(j('1,1'), [1, 1])
 
-    expect(j('a,b')).equal(['a', 'b'])
-    expect(j('a,b,c')).equal(['a', 'b', 'c'])
-    expect(j('a,b,c,d')).equal(['a', 'b', 'c', 'd'])
+    assert.deepEqual(j('a,b'), ['a', 'b'])
+    assert.deepEqual(j('a,b,c'), ['a', 'b', 'c'])
+    assert.deepEqual(j('a,b,c,d'), ['a', 'b', 'c', 'd'])
 
-    expect(j('a b')).equal(['a', 'b'])
-    expect(j('a b c')).equal(['a', 'b', 'c'])
-    expect(j('a b c d')).equal(['a', 'b', 'c', 'd'])
+    assert.deepEqual(j('a b'), ['a', 'b'])
+    assert.deepEqual(j('a b c'), ['a', 'b', 'c'])
+    assert.deepEqual(j('a b c d'), ['a', 'b', 'c', 'd'])
 
-    expect(j('[a],[b]')).equal([['a'], ['b']])
-    expect(j('[a],[b],[c]')).equal([['a'], ['b'], ['c']])
-    expect(j('[a],[b],[c],[d]')).equal([['a'], ['b'], ['c'], ['d']])
+    assert.deepEqual(j('[a],[b]'), [['a'], ['b']])
+    assert.deepEqual(j('[a],[b],[c]'), [['a'], ['b'], ['c']])
+    assert.deepEqual(j('[a],[b],[c],[d]'), [['a'], ['b'], ['c'], ['d']])
 
-    expect(j('[a] [b]')).equal([['a'], ['b']])
-    expect(j('[a] [b] [c]')).equal([['a'], ['b'], ['c']])
-    expect(j('[a] [b] [c] [d]')).equal([['a'], ['b'], ['c'], ['d']])
+    assert.deepEqual(j('[a] [b]'), [['a'], ['b']])
+    assert.deepEqual(j('[a] [b] [c]'), [['a'], ['b'], ['c']])
+    assert.deepEqual(j('[a] [b] [c] [d]'), [['a'], ['b'], ['c'], ['d']])
 
     // TODO: note this in docs as it enables parsing of JSON logs/records
-    expect(j('{a:1} {b:1}')).equal([{ a: 1 }, { b: 1 }])
-    expect(j('{a:1} {b:1} {c:1}')).equal([{ a: 1 }, { b: 1 }, { c: 1 }])
-    expect(j('{a:1} {b:1} {c:1} {d:1}')).equal([
+    assert.deepEqual(j('{a:1} {b:1}'), [{ a: 1 }, { b: 1 }])
+    assert.deepEqual(j('{a:1} {b:1} {c:1}'), [{ a: 1 }, { b: 1 }, { c: 1 }])
+    assert.deepEqual(j('{a:1} {b:1} {c:1} {d:1}'), [
       { a: 1 },
       { b: 1 },
       { c: 1 },
       { d: 1 },
     ])
-    expect(j('\n{a:1}\n{b:1}\r\n{c:1}\n{d:1}\r\n')).equal([
+    assert.deepEqual(j('\n{a:1}\n{b:1}\r\n{c:1}\n{d:1}\r\n'), [
       { a: 1 },
       { b: 1 },
       { c: 1 },
       { d: 1 },
     ])
 
-    expect(j('{a:1},')).equal([{ a: 1 }])
-    expect(j('[1],')).equal([[1]])
+    assert.deepEqual(j('{a:1},'), [{ a: 1 }])
+    assert.deepEqual(j('[1],'), [[1]])
 
-    expect(JS(j('[a:1]'))).equal('[]')
-    expect({ ...j('[a:1]') }).equal({ a: 1 })
+    assert.deepEqual(JS(j('[a:1]')), '[]')
+    assert.deepEqual({ ...j('[a:1]') }, { a: 1 })
 
-    expect(JS(j('[a:1,b:2]'))).equal('[]')
-    expect({ ...j('[a:1,b:2]') }).equal({ a: 1, b: 2 })
+    assert.deepEqual(JS(j('[a:1,b:2]')), '[]')
+    assert.deepEqual({ ...j('[a:1,b:2]') }, { a: 1, b: 2 })
 
-    expect(JS(j('[a:1,b:2,c:3]'))).equal('[]')
-    expect({ ...j('[a:1,b:2,c:3]') }).equal({ a: 1, b: 2, c: 3 })
+    assert.deepEqual(JS(j('[a:1,b:2,c:3]')), '[]')
+    assert.deepEqual({ ...j('[a:1,b:2,c:3]') }, { a: 1, b: 2, c: 3 })
 
-    expect(JS(j('[a:1,b:2,c:3,d:4]'))).equal('[]')
-    expect({ ...j('[a:1,b:2,c:3,d:4]') }).equal({ a: 1, b: 2, c: 3, d: 4 })
+    assert.deepEqual(JS(j('[a:1,b:2,c:3,d:4]')), '[]')
+    assert.deepEqual({ ...j('[a:1,b:2,c:3,d:4]') }, { a: 1, b: 2, c: 3, d: 4 })
   })
 
   it('implicit-map', () => {
@@ -741,130 +740,130 @@ describe('feature', function () {
   })
 
   it('extension', () => {
-    expect(j('a:{b:1,c:2},a:{c:3,e:4}')).equal({ a: { b: 1, c: 3, e: 4 } })
+    assert.deepEqual(j('a:{b:1,c:2},a:{c:3,e:4}'), { a: { b: 1, c: 3, e: 4 } })
 
-    expect(j('a:{b:1,x:1},a:{b:2,y:2},a:{b:3,z:3}')).equal({
+    assert.deepEqual(j('a:{b:1,x:1},a:{b:2,y:2},a:{b:3,z:3}'), {
       a: { b: 3, x: 1, y: 2, z: 3 },
     })
 
-    expect(j('a:[{b:1,x:1}],a:[{b:2,y:2}],a:[{b:3,z:3}]')).equal({
+    assert.deepEqual(j('a:[{b:1,x:1}],a:[{b:2,y:2}],a:[{b:3,z:3}]'), {
       a: [{ b: 3, x: 1, y: 2, z: 3 }],
     })
 
-    expect(j('a:[{b:1},{x:1}],a:[{b:2},{y:2}],a:[{b:3},{z:3}]')).equal({
+    assert.deepEqual(j('a:[{b:1},{x:1}],a:[{b:2},{y:2}],a:[{b:3},{z:3}]'), {
       a: [{ b: 3 }, { x: 1, y: 2, z: 3 }],
     })
 
     let k = j.make({ map: { extend: false } })
-    expect(k('a:{b:1,c:2},a:{c:3,e:4}')).equal({ a: { c: 3, e: 4 } })
+    assert.deepEqual(k('a:{b:1,c:2},a:{c:3,e:4}'), { a: { c: 3, e: 4 } })
   })
 
   it('finish', () => {
-    expect(j('a:{b:')).equal({ a: { b: null } })
-    expect(j('{a:{b:{c:1}')).equal({ a: { b: { c: 1 } } })
-    expect(j('[[1')).equal([[1]])
+    assert.deepEqual(j('a:{b:'), { a: { b: null } })
+    assert.deepEqual(j('{a:{b:{c:1}'), { a: { b: { c: 1 } } })
+    assert.deepEqual(j('[[1'), [[1]])
 
     let k = j.make({ rule: { finish: false } })
-    expect(() => k('a:{b:')).throw(/end_of_source/)
-    expect(() => k('{a:{b:{c:1}')).throw(/end_of_source/)
-    expect(() => k('[[1')).throw(/end_of_source/)
+    assert.throws(() => k('a:{b:'), /end_of_source/)
+    assert.throws(() => k('{a:{b:{c:1}'), /end_of_source/)
+    assert.throws(() => k('[[1'), /end_of_source/)
   })
 
   it('property-dive', () => {
-    expect(j('{a:1,b:2}')).equal({ a: 1, b: 2 })
-    expect(j('{a:1,b:{c:2}}')).equal({ a: 1, b: { c: 2 } })
-    expect(j('{a:1,b:{c:2},d:3}')).equal({ a: 1, b: { c: 2 }, d: 3 })
-    expect(j('{b:{c:2,e:4},d:3}')).equal({ b: { c: 2, e: 4 }, d: 3 })
+    assert.deepEqual(j('{a:1,b:2}'), { a: 1, b: 2 })
+    assert.deepEqual(j('{a:1,b:{c:2}}'), { a: 1, b: { c: 2 } })
+    assert.deepEqual(j('{a:1,b:{c:2},d:3}'), { a: 1, b: { c: 2 }, d: 3 })
+    assert.deepEqual(j('{b:{c:2,e:4},d:3}'), { b: { c: 2, e: 4 }, d: 3 })
 
-    expect(j('{a:{b:{c:1,d:2},e:3},f:4}')).equal({
+    assert.deepEqual(j('{a:{b:{c:1,d:2},e:3},f:4}'), {
       a: { b: { c: 1, d: 2 }, e: 3 },
       f: 4,
     })
-    expect(j('a:b:c')).equal({ a: { b: 'c' } })
-    expect(j('a:b:c, d:e:f')).equal({ a: { b: 'c' }, d: { e: 'f' } })
-    expect(j('a:b:c\nd:e:f')).equal({ a: { b: 'c' }, d: { e: 'f' } })
+    assert.deepEqual(j('a:b:c'), { a: { b: 'c' } })
+    assert.deepEqual(j('a:b:c, d:e:f'), { a: { b: 'c' }, d: { e: 'f' } })
+    assert.deepEqual(j('a:b:c\nd:e:f'), { a: { b: 'c' }, d: { e: 'f' } })
 
-    expect(j('a:b:c,d:e')).equal({ a: { b: 'c' }, d: 'e' })
-    expect(j('a:b:c:1,d:e')).equal({ a: { b: { c: 1 } }, d: 'e' })
-    expect(j('a:b:c:f:{g:1},d:e')).equal({
+    assert.deepEqual(j('a:b:c,d:e'), { a: { b: 'c' }, d: 'e' })
+    assert.deepEqual(j('a:b:c:1,d:e'), { a: { b: { c: 1 } }, d: 'e' })
+    assert.deepEqual(j('a:b:c:f:{g:1},d:e'), {
       a: { b: { c: { f: { g: 1 } } } },
       d: 'e',
     })
-    expect(j('c:f:{g:1,h:2},d:e')).equal({ c: { f: { g: 1, h: 2 } }, d: 'e' })
-    expect(j('c:f:[{g:1,h:2}],d:e')).equal({
+    assert.deepEqual(j('c:f:{g:1,h:2},d:e'), { c: { f: { g: 1, h: 2 } }, d: 'e' })
+    assert.deepEqual(j('c:f:[{g:1,h:2}],d:e'), {
       c: { f: [{ g: 1, h: 2 }] },
       d: 'e',
     })
 
-    expect(j('a:b:c:1\nd:e')).equal({ a: { b: { c: 1 } }, d: 'e' })
+    assert.deepEqual(j('a:b:c:1\nd:e'), { a: { b: { c: 1 } }, d: 'e' })
 
-    expect(j('[{a:1,b:2}]')).equal([{ a: 1, b: 2 }])
-    expect(j('[{a:1,b:{c:2}}]')).equal([{ a: 1, b: { c: 2 } }])
-    expect(j('[{a:1,b:{c:2},d:3}]')).equal([{ a: 1, b: { c: 2 }, d: 3 }])
-    expect(j('[{b:{c:2,e:4},d:3}]')).equal([{ b: { c: 2, e: 4 }, d: 3 }])
+    assert.deepEqual(j('[{a:1,b:2}]'), [{ a: 1, b: 2 }])
+    assert.deepEqual(j('[{a:1,b:{c:2}}]'), [{ a: 1, b: { c: 2 } }])
+    assert.deepEqual(j('[{a:1,b:{c:2},d:3}]'), [{ a: 1, b: { c: 2 }, d: 3 }])
+    assert.deepEqual(j('[{b:{c:2,e:4},d:3}]'), [{ b: { c: 2, e: 4 }, d: 3 }])
 
-    expect(j('[{a:{b:{c:1,d:2},e:3},f:4}]')).equal([
+    assert.deepEqual(j('[{a:{b:{c:1,d:2},e:3},f:4}]'), [
       { a: { b: { c: 1, d: 2 }, e: 3 }, f: 4 },
     ])
 
-    expect(JS(j('[a:b:c]'))).equal('[]')
-    expect(j('[a:b:c]').a).equal({ b: 'c' })
+    assert.deepEqual(JS(j('[a:b:c]')), '[]')
+    assert.deepEqual(j('[a:b:c]').a, { b: 'c' })
 
     // NOTE: this validates that array props also merge!
-    expect(JS(j('[a:b:c, a:d:e]'))).equal('[]')
-    expect({ ...j('[a:b:c, a:d:e]') }).equal({ a: { b: 'c', d: 'e' } })
+    assert.deepEqual(JS(j('[a:b:c, a:d:e]')), '[]')
+    assert.deepEqual({ ...j('[a:b:c, a:d:e]') }, { a: { b: 'c', d: 'e' } })
 
-    expect(JS(j('[a:b:c, d:e:f]'))).equal('[]')
-    expect({ ...j('[a:b:c, d:e:f]') }).equal({ a: { b: 'c' }, d: { e: 'f' } })
+    assert.deepEqual(JS(j('[a:b:c, d:e:f]')), '[]')
+    assert.deepEqual({ ...j('[a:b:c, d:e:f]') }, { a: { b: 'c' }, d: { e: 'f' } })
 
-    expect(JS(j('[a:b:c\nd:e:f]'))).equal('[]')
-    expect({ ...j('[a:b:c\nd:e:f]') }).equal({ a: { b: 'c' }, d: { e: 'f' } })
+    assert.deepEqual(JS(j('[a:b:c\nd:e:f]')), '[]')
+    assert.deepEqual({ ...j('[a:b:c\nd:e:f]') }, { a: { b: 'c' }, d: { e: 'f' } })
 
-    expect(JS(j('[a:b:c,d:e]'))).equal('[]')
-    expect({ ...j('[a:b:c,d:e]') }).equal({ a: { b: 'c' }, d: 'e' })
+    assert.deepEqual(JS(j('[a:b:c,d:e]')), '[]')
+    assert.deepEqual({ ...j('[a:b:c,d:e]') }, { a: { b: 'c' }, d: 'e' })
 
-    expect(JS(j('[a:b:c:1,d:e]'))).equal('[]')
-    expect({ ...j('[a:b:c:1,d:e]') }).equal({ a: { b: { c: 1 } }, d: 'e' })
+    assert.deepEqual(JS(j('[a:b:c:1,d:e]')), '[]')
+    assert.deepEqual({ ...j('[a:b:c:1,d:e]') }, { a: { b: { c: 1 } }, d: 'e' })
 
-    expect(JS(j('[a:b:c:f:{g:1},d:e]'))).equal('[]')
-    expect({ ...j('[a:b:c:f:{g:1},d:e]') }).equal({
+    assert.deepEqual(JS(j('[a:b:c:f:{g:1},d:e]')), '[]')
+    assert.deepEqual({ ...j('[a:b:c:f:{g:1},d:e]') }, {
       a: { b: { c: { f: { g: 1 } } } },
       d: 'e',
     })
 
-    expect(JS(j('[c:f:{g:1,h:2},d:e]'))).equal('[]')
-    expect({ ...j('[c:f:{g:1,h:2},d:e]') }).equal({
+    assert.deepEqual(JS(j('[c:f:{g:1,h:2},d:e]')), '[]')
+    assert.deepEqual({ ...j('[c:f:{g:1,h:2},d:e]') }, {
       c: { f: { g: 1, h: 2 } },
       d: 'e',
     })
 
-    expect(JS(j('[c:f:[{g:1,h:2}],d:e]'))).equal('[]')
-    expect({ ...j('[c:f:[{g:1,h:2}],d:e]') }).equal({
+    assert.deepEqual(JS(j('[c:f:[{g:1,h:2}],d:e]')), '[]')
+    assert.deepEqual({ ...j('[c:f:[{g:1,h:2}],d:e]') }, {
       c: { f: [{ g: 1, h: 2 }] },
       d: 'e',
     })
 
-    expect(JS(j('[a:b:c:1\nd:e]'))).equal('[]')
-    expect({ ...j('[a:b:c:1\nd:e]') }).equal({ a: { b: { c: 1 } }, d: 'e' })
+    assert.deepEqual(JS(j('[a:b:c:1\nd:e]')), '[]')
+    assert.deepEqual({ ...j('[a:b:c:1\nd:e]') }, { a: { b: { c: 1 } }, d: 'e' })
 
-    expect(j('a:b:{x:1},a:b:{y:2}')).equal({ a: { b: { x: 1, y: 2 } } })
-    expect(j('a:b:{x:1},a:b:{y:2},a:b:{z:3}')).equal({
+    assert.deepEqual(j('a:b:{x:1},a:b:{y:2}'), { a: { b: { x: 1, y: 2 } } })
+    assert.deepEqual(j('a:b:{x:1},a:b:{y:2},a:b:{z:3}'), {
       a: { b: { x: 1, y: 2, z: 3 } },
     })
 
-    expect(j('a:b:c:{x:1},a:b:c:{y:2}')).equal({
+    assert.deepEqual(j('a:b:c:{x:1},a:b:c:{y:2}'), {
       a: { b: { c: { x: 1, y: 2 } } },
     })
-    expect(j('a:b:c:{x:1},a:b:c:{y:2},a:b:c:{z:3}')).equal({
+    assert.deepEqual(j('a:b:c:{x:1},a:b:c:{y:2},a:b:c:{z:3}'), {
       a: { b: { c: { x: 1, y: 2, z: 3 } } },
     })
   })
 
   it('list-property', () => {
-    expect(j('[a:1]').a).equal(1)
+    assert.deepEqual(j('[a:1]').a, 1)
 
     let k = j.make({ list: { property: false } })
-    expect(() => k('[a:1]')).throw(/unexpected/)
+    assert.throws(() => k('[a:1]'), /unexpected/)
   })
 
   it('list-pair', () => {
@@ -874,86 +873,86 @@ describe('feature', function () {
   it('list-pair-interaction', () => {
     // === pair=false, property=true (default behavior) ===
     // Pairs become properties on the array object, not elements
-    expect(JS(j('[a:1]'))).equal('[]')
-    expect(j('[a:1]').a).equal(1)
-    expect(JS(j('[a:1,b:2]'))).equal('[]')
-    expect({ ...j('[a:1,b:2]') }).equal({ a: 1, b: 2 })
+    assert.deepEqual(JS(j('[a:1]')), '[]')
+    assert.deepEqual(j('[a:1]').a, 1)
+    assert.deepEqual(JS(j('[a:1,b:2]')), '[]')
+    assert.deepEqual({ ...j('[a:1,b:2]') }, { a: 1, b: 2 })
     // Mixed: properties on array, values as elements
-    expect(JS(j('[a:1,2,b:3]'))).equal('[2]')
-    expect({ ...j('[a:1,2,b:3]') }).equal({ 0: 2, a: 1, b: 3 })
+    assert.deepEqual(JS(j('[a:1,2,b:3]')), '[2]')
+    assert.deepEqual({ ...j('[a:1,2,b:3]') }, { 0: 2, a: 1, b: 3 })
 
     // === pair=false, property=false ===
     // Pairs in lists are errors
     let pp_ff = j.make({ list: { pair: false, property: false } })
-    expect(() => pp_ff('[a:1]')).throw(/unexpected/)
-    expect(() => pp_ff('[a:1,b:2]')).throw(/unexpected/)
+    assert.throws(() => pp_ff('[a:1]'), /unexpected/)
+    assert.throws(() => pp_ff('[a:1,b:2]'), /unexpected/)
     // Plain list values still work
-    expect(pp_ff('[1,2,3]')).equal([1, 2, 3])
-    expect(pp_ff('[]')).equal([])
+    assert.deepEqual(pp_ff('[1,2,3]'), [1, 2, 3])
+    assert.deepEqual(pp_ff('[]'), [])
     // Explicit maps inside lists still work
-    expect(pp_ff('[{a:1}]')).equal([{ a: 1 }])
-    expect(pp_ff('[{a:1},{b:2}]')).equal([{ a: 1 }, { b: 2 }])
+    assert.deepEqual(pp_ff('[{a:1}]'), [{ a: 1 }])
+    assert.deepEqual(pp_ff('[{a:1},{b:2}]'), [{ a: 1 }, { b: 2 }])
 
     // === pair=true, property=true ===
     // pair takes precedence: pairs become elements, not properties
     let pp_tt = j.make({ list: { pair: true, property: true } })
-    expect(pp_tt('[a:1]')).equal([{ a: 1 }])
-    expect(pp_tt('[a:1,b:2]')).equal([{ a: 1 }, { b: 2 }])
-    expect(pp_tt('[a:1,2,b:3]')).equal([{ a: 1 }, 2, { b: 3 }])
-    expect(pp_tt('[a:1,a:2]')).equal([{ a: 1 }, { a: 2 }])
+    assert.deepEqual(pp_tt('[a:1]'), [{ a: 1 }])
+    assert.deepEqual(pp_tt('[a:1,b:2]'), [{ a: 1 }, { b: 2 }])
+    assert.deepEqual(pp_tt('[a:1,2,b:3]'), [{ a: 1 }, 2, { b: 3 }])
+    assert.deepEqual(pp_tt('[a:1,a:2]'), [{ a: 1 }, { a: 2 }])
     // Verify elements exist at numeric indices
-    expect(pp_tt('[a:1]')[0]).equal({ a: 1 })
-    expect(JS(pp_tt('[a:1]'))).equal('[{"a":1}]')
+    assert.deepEqual(pp_tt('[a:1]')[0], { a: 1 })
+    assert.deepEqual(JS(pp_tt('[a:1]')), '[{"a":1}]')
 
     // === pair=true, property=false ===
     // pair takes precedence: pairs become elements (property disabled doesn't matter)
     let pp_tf = j.make({ list: { pair: true, property: false } })
-    expect(pp_tf('[a:1]')).equal([{ a: 1 }])
-    expect(pp_tf('[a:1,b:2]')).equal([{ a: 1 }, { b: 2 }])
-    expect(pp_tf('[a:1,2,b:3]')).equal([{ a: 1 }, 2, { b: 3 }])
-    expect(pp_tf('[a:b:c]')).equal([{ a: { b: 'c' } }])
+    assert.deepEqual(pp_tf('[a:1]'), [{ a: 1 }])
+    assert.deepEqual(pp_tf('[a:1,b:2]'), [{ a: 1 }, { b: 2 }])
+    assert.deepEqual(pp_tf('[a:1,2,b:3]'), [{ a: 1 }, 2, { b: 3 }])
+    assert.deepEqual(pp_tf('[a:b:c]'), [{ a: { b: 'c' } }])
 
     // === Braces: explicit maps interact correctly with list.pair ===
     let lp = j.make({ list: { pair: true } })
     // Explicit map as list element (no pairs involved)
-    expect(lp('[{a:1}]')).equal([{ a: 1 }])
-    expect(lp('[{a:1,b:2}]')).equal([{ a: 1, b: 2 }])
+    assert.deepEqual(lp('[{a:1}]'), [{ a: 1 }])
+    assert.deepEqual(lp('[{a:1,b:2}]'), [{ a: 1, b: 2 }])
     // Mix of explicit maps and implicit pair objects
-    expect(lp('[{a:1},b:2]')).equal([{ a: 1 }, { b: 2 }])
-    expect(lp('[a:1,{b:2}]')).equal([{ a: 1 }, { b: 2 }])
-    expect(lp('[{a:1},b:2,{c:3}]')).equal([{ a: 1 }, { b: 2 }, { c: 3 }])
+    assert.deepEqual(lp('[{a:1},b:2]'), [{ a: 1 }, { b: 2 }])
+    assert.deepEqual(lp('[a:1,{b:2}]'), [{ a: 1 }, { b: 2 }])
+    assert.deepEqual(lp('[{a:1},b:2,{c:3}]'), [{ a: 1 }, { b: 2 }, { c: 3 }])
     // Pair value is an explicit map
-    expect(lp('[a:{x:1,y:2}]')).equal([{ a: { x: 1, y: 2 } }])
-    expect(lp('[a:{x:{y:1}}]')).equal([{ a: { x: { y: 1 } } }])
+    assert.deepEqual(lp('[a:{x:1,y:2}]'), [{ a: { x: 1, y: 2 } }])
+    assert.deepEqual(lp('[a:{x:{y:1}}]'), [{ a: { x: { y: 1 } } }])
     // Nested map with pair inside
-    expect(lp('[{a:{b:1,c:2}},d:3]')).equal([{ a: { b: 1, c: 2 } }, { d: 3 }])
+    assert.deepEqual(lp('[{a:{b:1,c:2}},d:3]'), [{ a: { b: 1, c: 2 } }, { d: 3 }])
 
     // === Square brackets: nested lists interact correctly with list.pair ===
     // Pair value is a list
-    expect(lp('[a:[1,2,3]]')).equal([{ a: [1, 2, 3] }])
-    expect(lp('[a:[[1],[2]]]')).equal([{ a: [[1], [2]] }])
+    assert.deepEqual(lp('[a:[1,2,3]]'), [{ a: [1, 2, 3] }])
+    assert.deepEqual(lp('[a:[[1],[2]]]'), [{ a: [[1], [2]] }])
     // List element is a list (no pairs)
-    expect(lp('[[1,2],a:3]')).equal([[1, 2], { a: 3 }])
-    expect(lp('[a:1,[2,3],b:4]')).equal([{ a: 1 }, [2, 3], { b: 4 }])
+    assert.deepEqual(lp('[[1,2],a:3]'), [[1, 2], { a: 3 }])
+    assert.deepEqual(lp('[a:1,[2,3],b:4]'), [{ a: 1 }, [2, 3], { b: 4 }])
     // Nested list.pair applies recursively to inner lists
-    expect(lp('[a:[b:1]]')).equal([{ a: [{ b: 1 }] }])
-    expect(lp('[a:[b:1,c:2]]')).equal([{ a: [{ b: 1 }, { c: 2 }] }])
-    expect(lp('[a:{b:[c:1,d:2]}]')).equal([{ a: { b: [{ c: 1 }, { d: 2 }] } }])
+    assert.deepEqual(lp('[a:[b:1]]'), [{ a: [{ b: 1 }] }])
+    assert.deepEqual(lp('[a:[b:1,c:2]]'), [{ a: [{ b: 1 }, { c: 2 }] }])
+    assert.deepEqual(lp('[a:{b:[c:1,d:2]}]'), [{ a: { b: [{ c: 1 }, { d: 2 }] } }])
     // Deeply nested
-    expect(lp('[a:[b:[c:1]]]')).equal([{ a: [{ b: [{ c: 1 }] }] }])
+    assert.deepEqual(lp('[a:[b:[c:1]]]'), [{ a: [{ b: [{ c: 1 }] }] }])
 
     // === Maps outside lists are unaffected by list.pair ===
-    expect(lp('{a:1}')).equal({ a: 1 })
-    expect(lp('{a:1,b:2}')).equal({ a: 1, b: 2 })
-    expect(lp('a:1')).equal({ a: 1 })
-    expect(lp('a:1,b:2')).equal({ a: 1, b: 2 })
-    expect(lp('a:b:c')).equal({ a: { b: 'c' } })
+    assert.deepEqual(lp('{a:1}'), { a: 1 })
+    assert.deepEqual(lp('{a:1,b:2}'), { a: 1, b: 2 })
+    assert.deepEqual(lp('a:1'), { a: 1 })
+    assert.deepEqual(lp('a:1,b:2'), { a: 1, b: 2 })
+    assert.deepEqual(lp('a:b:c'), { a: { b: 'c' } })
 
     // === Plain values in lists still work with list.pair ===
-    expect(lp('[1,2,3]')).equal([1, 2, 3])
-    expect(lp('[]')).equal([])
-    expect(lp('[true,false,null]')).equal([true, false, null])
-    expect(lp('["a","b"]')).equal(['a', 'b'])
+    assert.deepEqual(lp('[1,2,3]'), [1, 2, 3])
+    assert.deepEqual(lp('[]'), [])
+    assert.deepEqual(lp('[true,false,null]'), [true, false, null])
+    assert.deepEqual(lp('["a","b"]'), ['a', 'b'])
   })
 
   it('list-child', () => {
@@ -966,50 +965,50 @@ describe('feature', function () {
 
   it('list-child-interaction', () => {
     // === child=false (default): bare colon in list is an error ===
-    expect(() => j('[:1]')).throw(/unexpected/)
-    expect(() => j('[1,:2]')).throw(/unexpected/)
+    assert.throws(() => j('[:1]'), /unexpected/)
+    assert.throws(() => j('[1,:2]'), /unexpected/)
 
     // === child=true, property=true (default): both work independently ===
     let lc = j.make({ list: { child: true } })
     // child$ is set as property, key:val is set as property
-    expect(JS(lc('[a:1,:2]'))).equal('[]')
-    expect(lc('[a:1,:2]').a).equal(1)
-    expect(lc('[a:1,:2]')['child$']).equal(2)
+    assert.deepEqual(JS(lc('[a:1,:2]')), '[]')
+    assert.deepEqual(lc('[a:1,:2]').a, 1)
+    assert.deepEqual(lc('[a:1,:2]')['child$'], 2)
 
     // === child=true, property=false: child works, key:val errors ===
     let lc_noprop = j.make({ list: { child: true, property: false } })
-    expect(lc_noprop('[:1]')['child$']).equal(1)
-    expect(() => lc_noprop('[a:1]')).throw(/unexpected/)
+    assert.deepEqual(lc_noprop('[:1]')['child$'], 1)
+    assert.throws(() => lc_noprop('[a:1]'), /unexpected/)
 
     // === child=true, pair=true: pairs become elements, child$ still property ===
     let lc_pair = j.make({ list: { child: true, pair: true } })
-    expect(lc_pair('[a:1,:2]')).equal([{ a: 1 }])
-    expect(lc_pair('[a:1,:2]')['child$']).equal(2)
-    expect(lc_pair('[:1,a:2]')).equal([{ a: 2 }])
-    expect(lc_pair('[:1,a:2]')['child$']).equal(1)
+    assert.deepEqual(JP(lc_pair('[a:1,:2]')), [{ a: 1 }])
+    assert.deepEqual(lc_pair('[a:1,:2]')['child$'], 2)
+    assert.deepEqual(JP(lc_pair('[:1,a:2]')), [{ a: 2 }])
+    assert.deepEqual(lc_pair('[:1,a:2]')['child$'], 1)
 
     // === child=true, pair=true, property=false: all three options ===
     let lc_all = j.make({ list: { child: true, pair: true, property: false } })
-    expect(lc_all('[a:1,:2]')).equal([{ a: 1 }])
-    expect(lc_all('[a:1,:2]')['child$']).equal(2)
+    assert.deepEqual(JP(lc_all('[a:1,:2]')), [{ a: 1 }])
+    assert.deepEqual(lc_all('[a:1,:2]')['child$'], 2)
 
     // === Nested lists: inner list child$ is independent ===
-    expect(JS(lc('[[:1]]'))).equal('[[]]')
-    expect(lc('[[:1]]')[0]['child$']).equal(1)
-    expect(lc('[[:1]]')['child$']).equal(undefined)
+    assert.deepEqual(JS(lc('[[:1]]')), '[[]]')
+    assert.deepEqual(lc('[[:1]]')[0]['child$'], 1)
+    assert.deepEqual(lc('[[:1]]')['child$'], undefined)
 
     // === child$ merges with map.extend (default) ===
-    expect(lc('[:{a:1},:{b:2}]')['child$']).equal({ a: 1, b: 2 })
-    expect(lc('[:{a:{x:1}},:{a:{y:2}}]')['child$']).equal({ a: { x: 1, y: 2 } })
+    assert.deepEqual(lc('[:{a:1},:{b:2}]')['child$'], { a: 1, b: 2 })
+    assert.deepEqual(lc('[:{a:{x:1}},:{a:{y:2}}]')['child$'], { a: { x: 1, y: 2 } })
 
     // === child$ without map.extend: last value wins ===
     let lc_noext = j.make({ list: { child: true }, map: { extend: false } })
-    expect(lc_noext('[:{a:1},:{b:2}]')['child$']).equal({ b: 2 })
-    expect(lc_noext('[:1,:2]')['child$']).equal(2)
+    assert.deepEqual(lc_noext('[:{a:1},:{b:2}]')['child$'], { b: 2 })
+    assert.deepEqual(lc_noext('[:1,:2]')['child$'], 2)
 
     // === Maps outside lists are unaffected by list.child ===
-    expect(lc('{a:1}')).equal({ a: 1 })
-    expect(lc('a:1,b:2')).equal({ a: 1, b: 2 })
+    assert.deepEqual(lc('{a:1}'), { a: 1 })
+    assert.deepEqual(lc('a:1,b:2'), { a: 1, b: 2 })
   })
 
   it('list-child-deep', () => {
@@ -1026,129 +1025,129 @@ describe('feature', function () {
 
     // === 2-level nesting: child at inner level only ===
     let r1 = lc('[[:1]]')
-    expect(JS(r1)).equal('[[]]')
-    expect(r1['child$']).equal(undefined)
-    expect(r1[0]['child$']).equal(1)
+    assert.deepEqual(JS(r1), '[[]]')
+    assert.deepEqual(r1['child$'], undefined)
+    assert.deepEqual(r1[0]['child$'], 1)
 
     // === 2-level: sibling lists with different child values ===
     let r2 = lc('[[:1],[:2]]')
-    expect(JS(r2)).equal('[[],[]]')
-    expect(r2['child$']).equal(undefined)
-    expect(r2[0]['child$']).equal(1)
-    expect(r2[1]['child$']).equal(2)
+    assert.deepEqual(JS(r2), '[[],[]]')
+    assert.deepEqual(r2['child$'], undefined)
+    assert.deepEqual(r2[0]['child$'], 1)
+    assert.deepEqual(r2[1]['child$'], 2)
 
     // === 3-level nesting: child only at deepest level ===
     let r3 = lc('[[[:1]]]')
-    expect(JS(r3)).equal('[[[]]]')
-    expect(r3['child$']).equal(undefined)
-    expect(r3[0]['child$']).equal(undefined)
-    expect(r3[0][0]['child$']).equal(1)
+    assert.deepEqual(JS(r3), '[[[]]]')
+    assert.deepEqual(r3['child$'], undefined)
+    assert.deepEqual(r3[0]['child$'], undefined)
+    assert.deepEqual(r3[0][0]['child$'], 1)
 
     // === 2-level: child at both levels ===
     let r4 = lc('[[:1],:2]')
-    expect(JS(r4)).equal('[[]]')
-    expect(r4['child$']).equal(2)
-    expect(r4[0]['child$']).equal(1)
+    assert.deepEqual(JS(r4), '[[]]')
+    assert.deepEqual(r4['child$'], 2)
+    assert.deepEqual(r4[0]['child$'], 1)
 
     // === 3-level: child at every level ===
     let r5 = lc('[[[:1],:2],:3]')
-    expect(JS(r5)).equal('[[[]]]')
-    expect(r5['child$']).equal(3)
-    expect(r5[0]['child$']).equal(2)
-    expect(r5[0][0]['child$']).equal(1)
+    assert.deepEqual(JS(r5), '[[[]]]')
+    assert.deepEqual(r5['child$'], 3)
+    assert.deepEqual(r5[0]['child$'], 2)
+    assert.deepEqual(r5[0][0]['child$'], 1)
 
     // === child value is a list which itself has child ===
     let r6 = lc('[:[:1]]')
-    expect(JS(r6)).equal('[]')
-    expect(JS(r6['child$'])).equal('[]')
-    expect(r6['child$']['child$']).equal(1)
+    assert.deepEqual(JS(r6), '[]')
+    assert.deepEqual(JS(r6['child$']), '[]')
+    assert.deepEqual(r6['child$']['child$'], 1)
 
     // === 3 levels deep via child-as-value chaining ===
     let r7 = lc('[:[:[:1]]]')
-    expect(JS(r7)).equal('[]')
-    expect(JS(r7['child$'])).equal('[]')
-    expect(JS(r7['child$']['child$'])).equal('[]')
-    expect(r7['child$']['child$']['child$']).equal(1)
+    assert.deepEqual(JS(r7), '[]')
+    assert.deepEqual(JS(r7['child$']), '[]')
+    assert.deepEqual(JS(r7['child$']['child$']), '[]')
+    assert.deepEqual(r7['child$']['child$']['child$'], 1)
 
     // === child value is list with elements and child ===
     let r8 = lc('[1,:[:2,3]]')
-    expect(JS(r8)).equal('[1]')
-    expect(JS(r8['child$'])).equal('[3]')
-    expect(r8['child$']['child$']).equal(2)
+    assert.deepEqual(JS(r8), '[1]')
+    assert.deepEqual(JS(r8['child$']), '[3]')
+    assert.deepEqual(r8['child$']['child$'], 2)
 
     // === Mixed elements with deep child ===
     let r9 = lc('[1,[2,[3,:4]]]')
-    expect(JS(r9)).equal('[1,[2,[3]]]')
-    expect(r9['child$']).equal(undefined)
-    expect(r9[1]['child$']).equal(undefined)
-    expect(r9[1][1]['child$']).equal(4)
+    assert.deepEqual(JS(r9), '[1,[2,[3]]]')
+    assert.deepEqual(r9['child$'], undefined)
+    assert.deepEqual(r9[1]['child$'], undefined)
+    assert.deepEqual(r9[1][1]['child$'], 4)
 
     // === Deep with multiple children at inner level (last wins) ===
     let r10 = lc('[1,[:2,:3],4,:5]')
-    expect(JS(r10)).equal('[1,[],4]')
-    expect(r10['child$']).equal(5)
-    expect(r10[1]['child$']).equal(3)
+    assert.deepEqual(JS(r10), '[1,[],4]')
+    assert.deepEqual(r10['child$'], 5)
+    assert.deepEqual(r10[1]['child$'], 3)
 
     // === Sibling lists: one with child, one without ===
     let r11 = lc('[[1,2],[:3]]')
-    expect(JS(r11)).equal('[[1,2],[]]')
-    expect(r11['child$']).equal(undefined)
-    expect(r11[0]['child$']).equal(undefined)
-    expect(r11[1]['child$']).equal(3)
+    assert.deepEqual(JS(r11), '[[1,2],[]]')
+    assert.deepEqual(r11['child$'], undefined)
+    assert.deepEqual(r11[0]['child$'], undefined)
+    assert.deepEqual(r11[1]['child$'], 3)
 
     // === Inner child$ merges objects ===
     let r12 = lc('[[:{a:1},:{b:2}]]')
-    expect(JS(r12)).equal('[[]]')
-    expect(r12['child$']).equal(undefined)
-    expect(r12[0]['child$']).equal({ a: 1, b: 2 })
+    assert.deepEqual(JS(r12), '[[]]')
+    assert.deepEqual(r12['child$'], undefined)
+    assert.deepEqual(r12[0]['child$'], { a: 1, b: 2 })
 
     // === Map containing list with child$ ===
     let r13 = lc('{x:[:1,2]}')
-    expect(JS(r13)).equal('{"x":[2]}')
-    expect(r13.x['child$']).equal(1)
+    assert.deepEqual(JS(r13), '{"x":[2]}')
+    assert.deepEqual(r13.x['child$'], 1)
 
     // === Nested maps containing lists with child$ ===
     let r14 = lc('{x:{y:[:1,2]}}')
-    expect(JS(r14)).equal('{"x":{"y":[2]}}')
-    expect(r14.x.y['child$']).equal(1)
+    assert.deepEqual(JS(r14), '{"x":{"y":[2]}}')
+    assert.deepEqual(r14.x.y['child$'], 1)
 
     // === Array of maps each containing lists with child$ ===
     let r15 = lc('[{a:[:1]},{b:[:2]}]')
-    expect(JS(r15)).equal('[{"a":[]},{"b":[]}]')
-    expect(r15[0].a['child$']).equal(1)
-    expect(r15[1].b['child$']).equal(2)
+    assert.deepEqual(JS(r15), '[{"a":[]},{"b":[]}]')
+    assert.deepEqual(r15[0].a['child$'], 1)
+    assert.deepEqual(r15[1].b['child$'], 2)
 
     // === pair+child at multiple levels ===
     let r16 = lcp('[[a:1,:2]]')
-    expect(JS(r16)).equal('[[{"a":1}]]')
-    expect(r16['child$']).equal(undefined)
-    expect(r16[0]['child$']).equal(2)
+    assert.deepEqual(JS(r16), '[[{"a":1}]]')
+    assert.deepEqual(r16['child$'], undefined)
+    assert.deepEqual(r16[0]['child$'], 2)
 
     // === pair+child: child at both levels ===
     let r17 = lcp('[a:1,[b:2,:3],:4]')
-    expect(JS(r17)).equal('[{"a":1},[{"b":2}]]')
-    expect(r17['child$']).equal(4)
-    expect(r17[1]['child$']).equal(3)
+    assert.deepEqual(JS(r17), '[{"a":1},[{"b":2}]]')
+    assert.deepEqual(r17['child$'], 4)
+    assert.deepEqual(r17[1]['child$'], 3)
 
     // === pair+child: 3-level child at every level ===
     let r18 = lcp('[[[:5],:6],:7]')
-    expect(JS(r18)).equal('[[[]]]')
-    expect(r18['child$']).equal(7)
-    expect(r18[0]['child$']).equal(6)
-    expect(r18[0][0]['child$']).equal(5)
+    assert.deepEqual(JS(r18), '[[[]]]')
+    assert.deepEqual(r18['child$'], 7)
+    assert.deepEqual(r18[0]['child$'], 6)
+    assert.deepEqual(r18[0][0]['child$'], 5)
 
     // === pair+child: sibling inner lists with independent child values ===
     let r19 = lcp('[[a:1,:2],[b:3,:4]]')
-    expect(JS(r19)).equal('[[{"a":1}],[{"b":3}]]')
-    expect(r19['child$']).equal(undefined)
-    expect(r19[0]['child$']).equal(2)
-    expect(r19[1]['child$']).equal(4)
+    assert.deepEqual(JS(r19), '[[{"a":1}],[{"b":3}]]')
+    assert.deepEqual(r19['child$'], undefined)
+    assert.deepEqual(r19[0]['child$'], 2)
+    assert.deepEqual(r19[1]['child$'], 4)
 
     // === pair+child: inner list with multiple pairs and child ===
     let r20 = lcp('[a:1,[b:2,c:3,:4]]')
-    expect(JS(r20)).equal('[{"a":1},[{"b":2},{"c":3}]]')
-    expect(r20['child$']).equal(undefined)
-    expect(r20[1]['child$']).equal(4)
+    assert.deepEqual(JS(r20), '[{"a":1},[{"b":2},{"c":3}]]')
+    assert.deepEqual(r20['child$'], undefined)
+    assert.deepEqual(r20[1]['child$'], 4)
   })
 
   it('map-child', () => {
@@ -1161,79 +1160,79 @@ describe('feature', function () {
 
   it('map-child-interaction', () => {
     // === child=false (default): bare colon in map is an error ===
-    expect(() => j('{:1}')).throw(/unexpected/)
-    expect(() => j('{:1,a:2}')).throw(/unexpected/)
+    assert.throws(() => j('{:1}'), /unexpected/)
+    assert.throws(() => j('{:1,a:2}'), /unexpected/)
 
     // === child=true: bare colon stores child$ ===
     let mc = j.make({ map: { child: true } })
-    expect(mc('{:1,a:2}')).equal({ child$: 1, a: 2 })
-    expect(mc('{:1,a:2}')['child$']).equal(1)
+    assert.deepEqual(mc('{:1,a:2}'), { child$: 1, a: 2 })
+    assert.deepEqual(mc('{:1,a:2}')['child$'], 1)
 
     // === child$ merge: objects deep-merge, primitives last-wins ===
-    expect(mc('{:1,:2}')['child$']).equal(2)
-    expect(mc('{:{a:1},:{b:2}}')['child$']).equal({ a: 1, b: 2 })
-    expect(mc('{:{a:{x:1}},:{a:{y:2}}}')['child$']).equal({ a: { x: 1, y: 2 } })
+    assert.deepEqual(mc('{:1,:2}')['child$'], 2)
+    assert.deepEqual(mc('{:{a:1},:{b:2}}')['child$'], { a: 1, b: 2 })
+    assert.deepEqual(mc('{:{a:{x:1}},:{a:{y:2}}}')['child$'], { a: { x: 1, y: 2 } })
 
     // === child$ without map.extend: last value wins ===
     let mc_noext = j.make({ map: { child: true, extend: false } })
-    expect(mc_noext('{:{a:1},:{b:2}}')['child$']).equal({ b: 2 })
-    expect(mc_noext('{:1,:2}')['child$']).equal(2)
+    assert.deepEqual(mc_noext('{:{a:1},:{b:2}}')['child$'], { b: 2 })
+    assert.deepEqual(mc_noext('{:1,:2}')['child$'], 2)
 
     // === Lists outside maps are unaffected by map.child ===
-    expect(mc('[1,2,3]')).equal([1, 2, 3])
+    assert.deepEqual(mc('[1,2,3]'), [1, 2, 3])
 
     // === Nested maps: child$ at each level ===
     let r1 = mc('{:1,a:{:2,b:{:3}}}')
-    expect(r1['child$']).equal(1)
-    expect(r1.a['child$']).equal(2)
-    expect(r1.a.b['child$']).equal(3)
+    assert.deepEqual(r1['child$'], 1)
+    assert.deepEqual(r1.a['child$'], 2)
+    assert.deepEqual(r1.a.b['child$'], 3)
 
     // === map.child + list.child both enabled ===
     let both = j.make({ map: { child: true }, list: { child: true } })
 
     // Map with child, containing list with child
     let r2 = both('{a:[:1,2],:3}')
-    expect(r2['child$']).equal(3)
-    expect(r2.a['child$']).equal(1)
-    expect(JS(r2.a)).equal('[2]')
+    assert.deepEqual(r2['child$'], 3)
+    assert.deepEqual(r2.a['child$'], 1)
+    assert.deepEqual(JS(r2.a), '[2]')
 
     // List with child, containing map with child
     let r3 = both('[{:1,a:2},:3]')
-    expect(r3['child$']).equal(3)
-    expect(r3[0]['child$']).equal(1)
-    expect(JS(r3[0])).equal('{"child$":1,"a":2}')
+    assert.deepEqual(r3['child$'], 3)
+    assert.deepEqual(r3[0]['child$'], 1)
+    assert.deepEqual(JS(r3[0]), '{"child$":1,"a":2}')
 
     // Deep: map -> list -> map, each with child$
     let r4 = both('{a:[{:1}],:2}')
-    expect(r4['child$']).equal(2)
-    expect(r4.a[0]['child$']).equal(1)
+    assert.deepEqual(r4['child$'], 2)
+    assert.deepEqual(r4.a[0]['child$'], 1)
 
     // List child value is a map with child$
     let r5 = both('[:{ a: 1 }]')
-    expect(JS(r5)).equal('[]')
-    expect(r5['child$']).equal({ a: 1 })
+    assert.deepEqual(JS(r5), '[]')
+    assert.deepEqual(r5['child$'], { a: 1 })
 
     // 3-level: map -> map -> list -> map with child at each
     let r6 = both('{:1,x:{:2,y:[{:3}]}}')
-    expect(r6['child$']).equal(1)
-    expect(r6.x['child$']).equal(2)
-    expect(r6.x.y[0]['child$']).equal(3)
+    assert.deepEqual(r6['child$'], 1)
+    assert.deepEqual(r6.x['child$'], 2)
+    assert.deepEqual(r6.x.y[0]['child$'], 3)
 
     // Array of maps, each with their own child$
     let r7 = both('[{:1,a:10},{:2,b:20}]')
-    expect(r7[0]['child$']).equal(1)
-    expect(r7[1]['child$']).equal(2)
+    assert.deepEqual(r7[0]['child$'], 1)
+    assert.deepEqual(r7[1]['child$'], 2)
 
     // map.child only (no list.child): list bare colon still errors
-    expect(() => mc('[:1]')).throw(/unexpected/)
+    assert.throws(() => mc('[:1]'), /unexpected/)
 
     // list.child only (no map.child): map bare colon still errors
     let lc = j.make({ list: { child: true } })
-    expect(() => lc('{:1}')).throw(/unexpected/)
+    assert.throws(() => lc('{:1}'), /unexpected/)
 
     // Implicit map with child$
-    expect(mc('a:1,:2')).equal({ a: 1, child$: 2 })
-    expect(mc('a:1,:2,b:3')).equal({ a: 1, child$: 2, b: 3 })
+    assert.deepEqual(mc('a:1,:2'), { a: 1, child$: 2 })
+    assert.deepEqual(mc('a:1,:2,b:3'), { a: 1, child$: 2, b: 3 })
   })
 
   // Test derived from debug sessions using quick.js

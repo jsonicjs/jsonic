@@ -2,8 +2,7 @@
 'use strict'
 
 const { describe, it } = require('node:test')
-const Code = require('@hapi/code')
-const expect = Code.expect
+const assert = require('node:assert')
 
 const { Jsonic, JsonicError } = require('..')
 
@@ -17,7 +16,7 @@ describe('error', function () {
     try {
       Jsonic(src0)
     } catch (e) {
-      expect(e.message).equal(
+      assert.deepEqual(e.message, 
         `\u001b[91m[jsonic/invalid_unicode]:\u001b[0m invalid unicode escape: "\\\\u0000"
   \u001b[34m-->\u001b[0m <no-file>:10:6
 \u001b[34m   8 | \u001b[0m
@@ -84,7 +83,7 @@ describe('error', function () {
     try {
       k(src0, { xlog: -1 })
     } catch (e) {
-      expect(e.message).equal(
+      assert.deepEqual(e.message, 
         '\u001b[91m[jsonic/foo]:\u001b[0m foo: FOO!\n' +
           '  \u001b[34m-->\u001b[0m <no-file>:2:3\n' +
           '\u001b[34m  1 | \u001b[0ma:1,\n' +
@@ -101,34 +100,34 @@ describe('error', function () {
       )
     }
 
-    expect(() => k('a:1,\nb:FOO')).throw(/foo/)
+    assert.throws(() => k('a:1,\nb:FOO'), /foo/)
   })
 
   it('lex-unicode', () => {
     let src0 = '\n\n\n\n\n\n\n\n\n\n   "\\uQQQQ"'
     //je(src0)()
-    expect(je(src0)).throw(/invalid_unicode/)
+    assert.throws(je(src0), /invalid_unicode/)
 
     let src1 = '\n\n\n\n\n\n\n\n\n\n   "\\u{QQQQQQ}"'
     //je(src1)()
-    expect(je(src0)).throw(/invalid_unicode/)
+    assert.throws(je(src0), /invalid_unicode/)
   })
 
   it('lex-ascii', () => {
     let src0 = '\n\n\n\n\n\n\n\n\n\n   "\\x!!"'
     // je(src0)()
-    expect(je(src0)).throw(/invalid_ascii/)
+    assert.throws(je(src0), /invalid_ascii/)
   })
 
   it('lex-unprintable', () => {
     let src0 = '"\x00"'
-    expect(je(src0)).throw(/unprintable/)
+    assert.throws(je(src0), /unprintable/)
   })
 
   it('lex-unterminated', () => {
     let src0 = '"a'
 
-    expect(je(src0)).throw(/unterminated/)
+    assert.throws(je(src0), /unterminated/)
 
     /*
     try {
@@ -143,7 +142,7 @@ describe('error', function () {
   it('parse-unexpected', () => {
     let src0 = '\n\n\n\n\n\n\n\n\n\n   }'
 
-    expect(je(src0)).throw(/unexpected/)
+    assert.throws(je(src0), /unexpected/)
 
     /*
     try {
@@ -160,12 +159,11 @@ describe('error', function () {
       Jsonic(']')
     } catch (e) {
       // console.log(e)
-      expect(
+      assert.deepEqual(
         JSON.stringify(e).includes(
           '{"code":"unexpected","details":{"state":"open"},' +
             '"meta":{},"lineNumber":1,"columnNumber":1',
-        ),
-      ).equal(true)
+        ), true)
     }
   })
 
@@ -180,44 +178,44 @@ describe('error', function () {
     //expect(Jsonic('a:,b:')).equal({a:undefined,b:undefined})
 
     // Invalid pair.
-    expect(je('{]')).throw(/unexpected/)
-    expect(je('[}')).throw(/unexpected/)
-    expect(je(':')).throw(/unexpected/)
-    expect(je(':a')).throw(/unexpected/)
-    expect(je(' : ')).throw(/unexpected/)
-    expect(je('{,]')).throw(/unexpected/)
-    expect(je('[,}')).throw(/unexpected/)
-    expect(je(',:')).throw(/unexpected/)
-    expect(je(',:a')).throw(/unexpected/)
-    expect(je('[:')).throw(/unexpected/)
-    expect(je('[:a')).throw(/unexpected/)
+    assert.throws(je('{]'), /unexpected/)
+    assert.throws(je('[}'), /unexpected/)
+    assert.throws(je(':'), /unexpected/)
+    assert.throws(je(':a'), /unexpected/)
+    assert.throws(je(' : '), /unexpected/)
+    assert.throws(je('{,]'), /unexpected/)
+    assert.throws(je('[,}'), /unexpected/)
+    assert.throws(je(',:'), /unexpected/)
+    assert.throws(je(',:a'), /unexpected/)
+    assert.throws(je('[:'), /unexpected/)
+    assert.throws(je('[:a'), /unexpected/)
 
     // Unexpected close
-    expect(je(']')).throw(/unexpected/)
-    expect(je('}')).throw(/unexpected/)
-    expect(je(' ]')).throw(/unexpected/)
-    expect(je(' }')).throw(/unexpected/)
-    expect(je(',}')).throw(/unexpected/)
-    expect(je('a]')).throw(/unexpected/)
-    expect(je('a}')).throw(/unexpected/)
-    expect(je('{a]')).throw(/unexpected/)
-    expect(je('[a}')).throw(/unexpected/)
-    expect(je('{a}')).throw(/unexpected/)
-    expect(je('{a:1]')).throw(/unexpected/)
+    assert.throws(je(']'), /unexpected/)
+    assert.throws(je('}'), /unexpected/)
+    assert.throws(je(' ]'), /unexpected/)
+    assert.throws(je(' }'), /unexpected/)
+    assert.throws(je(',}'), /unexpected/)
+    assert.throws(je('a]'), /unexpected/)
+    assert.throws(je('a}'), /unexpected/)
+    assert.throws(je('{a]'), /unexpected/)
+    assert.throws(je('[a}'), /unexpected/)
+    assert.throws(je('{a}'), /unexpected/)
+    assert.throws(je('{a:1]'), /unexpected/)
 
     // These are actually OK
-    expect(Jsonic(',]')).equal([null])
-    expect(Jsonic('{a:}')).equal({ a: null })
-    expect(Jsonic('{a:b:}')).equal({ a: { b: null } })
+    assert.deepEqual(Jsonic(',]'), [null])
+    assert.deepEqual(Jsonic('{a:}'), { a: null })
+    assert.deepEqual(Jsonic('{a:b:}'), { a: { b: null } })
 
-    expect(JS(Jsonic('[a:1]'))).equal('[]')
-    expect(Jsonic('[a:1]').a).equal(1)
+    assert.deepEqual(JS(Jsonic('[a:1]')), '[]')
+    assert.deepEqual(Jsonic('[a:1]').a, 1)
 
-    expect(JS(Jsonic('[a:]'))).equal('[]')
-    expect(Jsonic('[a:]').a).equal(null)
+    assert.deepEqual(JS(Jsonic('[a:]')), '[]')
+    assert.deepEqual(Jsonic('[a:]').a, null)
   })
 
   it('api-error', () => {
-    expect(() => Jsonic.make().use(null)).throw(/Jsonic\.use:/)
+    assert.throws(() => Jsonic.make().use(null), /Jsonic\.use:/)
   })
 })

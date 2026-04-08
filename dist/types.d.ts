@@ -559,10 +559,11 @@ export interface NormAltSpec extends AltSpec {
     s: (Tin | Tin[] | null | undefined)[];
     S0: number[] | null;
     S1: number[] | null;
-    c?: AltCond;
+    c?: NormAltCond;
     g: string[];
 }
-export type AltCond = (rule: Rule, ctx: Context, alt: AltMatch) => boolean;
+export type AltCond = ((rule: Rule, ctx: Context, alt: AltMatch) => boolean) | Record<string, any>;
+export type NormAltCond = ((rule: Rule, ctx: Context, alt: AltMatch) => boolean);
 export type AltModifier = (rule: Rule, ctx: Context, alt: AltMatch, next: Rule) => AltMatch;
 export type AltAction = (rule: Rule, ctx: Context, alt: AltMatch) => any;
 export type AltNext = (rule: Rule, ctx: Context, alt: AltMatch) => string | null | false | 0;

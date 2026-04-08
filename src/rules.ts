@@ -16,6 +16,7 @@ import type {
   RuleSpec,
   NormAltSpec,
   AltCond,
+  NormAltCond,
   AltModifier,
   AltAction,
   AltMatch,
@@ -585,7 +586,8 @@ function parse_alts(
 
     if (cond) {
       break
-    } else {
+    }
+    else {
       alt = null
     }
   }
@@ -694,7 +696,121 @@ function normalt(a: AltSpec): NormAltSpec {
     a.b = null
   }
 
+
+  if (null != a.c && 'function' !== typeof a.c && 'object' === typeof a.c) {
+    const conds: NormAltCond[] = []
+    const ruleprops = Object.keys(a.c)
+    for (let propdef of ruleprops) {
+      const parts = propdef.split('.')
+      let prop = parts[0]
+      let subprop = null
+      if (2 === parts.length) {
+        subprop = parts[1]
+      }
+      const pspec = a.c[propdef]
+      if (null != pspec) {
+        if ('object' === typeof pspec) {
+          for (let co of Object.keys(pspec)) {
+            if (1 === COND_OPS[co]) {
+              conds.push(makeRuleCond(co, prop, subprop, pspec[co]))
+            }
+          }
+        }
+        else {
+          conds.push(makeRuleCond('$eq', prop, subprop, pspec))
+        }
+      }
+    }
+
+    if (0 === conds.length) {
+      delete a.c
+    }
+    else if (1 === conds.length) {
+      a.c = conds[0]
+    }
+    else {
+      a.c = function conjunctCond(r: Rule, c: Context, a: AltMatch) {
+        for (let cond of conds) {
+          let pass = cond(r, c, a)
+          if (false == pass) {
+            return false
+          }
+        }
+        return true
+      }
+    }
+  }
+
   return a as NormAltSpec
 }
+
+
+const COND_OPS: Record<string, number> = {
+  $eq: 1,
+  $ne: 1,
+  $lt: 1,
+  $lte: 1,
+  $gt: 1,
+  $gte: 1,
+}
+
+
+function getRuleProp(r: Rule, prop: string, subprop: string | null) {
+  return null == r ? undefined :
+    null == subprop ? (r as any)[prop] :
+      (r as any)[prop]?.[subprop]
+}
+
+
+function makeRuleCond(co: string, prop: string, subprop: string | null, val: any) {
+  if ('$eq' === co) {
+    return function ruleCond(r: Rule, _c: Context, _a: AltMatch) {
+      const rval = getRuleProp(r, prop, subprop)
+      return null == rval || rval === val
+    }
+  }
+  else if ('$ne' === co) {
+    return function ruleCond(r: Rule, _c: Context, _a: AltMatch) {
+      const rval = getRuleProp(r, prop, subprop)
+      return null == rval || rval != val
+    }
+  }
+  else if ('$lt' === co) {
+    return function ruleCond(r: Rule, _c: Context, _a: AltMatch) {
+      const rval = getRuleProp(r, prop, subprop)
+      return null == rval || rval < val
+    }
+  }
+  else if ('$lte' === co) {
+    return function ruleCond(r: Rule, _c: Context, _a: AltMatch) {
+      const rval = getRuleProp(r, prop, subprop)
+      return null == rval || rval <= val
+    }
+  }
+
+  else if ('$gt' === co) {
+    return function ruleCond(r: Rule, _c: Context, _a: AltMatch) {
+      const rval = getRuleProp(r, prop, subprop)
+      return null == rval || rval > val
+    }
+  }
+  else if ('$gte' === co) {
+    return function ruleCond(r: Rule, _c: Context, _a: AltMatch) {
+      const rval = getRuleProp(r, prop, subprop)
+      return null == rval || rval >= val
+    }
+  }
+  else if ('$exist' === co) {
+    return function ruleCond(r: Rule, _c: Context, _a: AltMatch) {
+      const rval = getRuleProp(r, prop, subprop)
+      return true === val ? null != rval : null == rval
+    }
+  }
+  else {
+    throw new Error('Grammer: unknown comparison operator: ' + co)
+  }
+}
+
+
 
 export { makeRule, makeNoRule, makeRuleSpec }

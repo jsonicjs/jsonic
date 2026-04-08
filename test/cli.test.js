@@ -2,8 +2,7 @@
 'use strict'
 
 const { describe, it } = require('node:test')
-const Code = require('@hapi/code')
-const expect = Code.expect
+const assert = require('node:assert')
 
 const JsonicCli = require('../dist/jsonic-cli')
 const jr = async (...rest) => await JsonicCli.run(...rest)
@@ -12,11 +11,11 @@ describe('cli', function () {
   it('basic', () => {
     let cn = make_cn()
     jr([0, 0, 'a:1'], cn)
-    expect(cn.d.log[0][0]).equal('{"a":1}')
+    assert.deepEqual(cn.d.log[0][0], '{"a":1}')
 
     cn = make_cn()
     jr([0, 0, '-o', 'number.lex=false', 'a:1'], cn)
-    expect(cn.d.log[0][0]).equal('{"a":"1"}')
+    assert.deepEqual(cn.d.log[0][0], '{"a":"1"}')
   })
 
   it('args', async () => {
@@ -49,20 +48,20 @@ describe('cli', function () {
 
     cn = make_cn()
     jr([0, 0, '-h'], cn)
-    expect(cn.d.log[0][0].includes('Usage:')).equal(true)
+    assert.deepEqual(cn.d.log[0][0].includes('Usage:'), true)
 
     cn = make_cn()
     jr([0, 0, '--help'], cn)
-    expect(cn.d.log[0][0].includes('Usage:')).equal(true)
+    assert.deepEqual(cn.d.log[0][0].includes('Usage:'), true)
 
     cn = make_cn()
     jr([0, 0, 'a:1', 'b:[2]', 'c:{x:1}'], cn)
-    expect(cn.d.log[0][0]).equal('{"a":1,"b":[2],"c":{"x":1}}')
+    assert.deepEqual(cn.d.log[0][0], '{"a":1,"b":[2],"c":{"x":1}}')
 
     // // TODO: `{zed:2}` should work too!
     cn = make_cn()
     await jr([0, 0, '-f', './test/foo.jsonic', 'zed:2'], cn)
-    expect(cn.d.log[0][0]).equal('{"bar":1,"zed":2}')
+    assert.deepEqual(cn.d.log[0][0], '{"bar":1,"zed":2}')
 
     // TODO: jest borks this
     // cn = make_cn()
@@ -72,47 +71,47 @@ describe('cli', function () {
 
     cn = make_cn()
     jr([0, 0, '--not-an-arg-so-ignored', 'a:1'], cn)
-    expect(cn.d.log[0][0]).equal('{"a":1}')
+    assert.deepEqual(cn.d.log[0][0], '{"a":1}')
 
     cn = make_cn()
     cn.test$ = '{a:1}'
     await jr([0, 0], cn)
     // console.log(cn.d.log)
-    expect(cn.d.log[0][0]).equal('{"a":1}')
+    assert.deepEqual(cn.d.log[0][0], '{"a":1}')
 
     cn = make_cn()
     cn.test$ = '{a:1}'
     await jr([0, 0, '-'], cn)
     // console.log(cn.d.log)
-    expect(cn.d.log[0][0]).equal('{"a":1}')
+    assert.deepEqual(cn.d.log[0][0], '{"a":1}')
 
     cn = make_cn()
     cn.test$ = '{a:1}'
     await jr([0, 0, '-', 'b:2'], cn)
     // console.log(cn.d.log)
-    expect(cn.d.log[0][0]).equal('{"a":1,"b":2}')
+    assert.deepEqual(cn.d.log[0][0], '{"a":1,"b":2}')
   })
 
   it('bad-args', async () => {
     let cn = make_cn()
     jr([0, 0, '-f', { bad: 1 }, 'a:1'], cn)
-    expect(cn.d.log[0][0]).equal('{"a":1}')
+    assert.deepEqual(cn.d.log[0][0], '{"a":1}')
 
     cn = make_cn()
     jr([0, 0, '-f', '', 'a:1'], cn)
-    expect(cn.d.log[0][0]).equal('{"a":1}')
+    assert.deepEqual(cn.d.log[0][0], '{"a":1}')
 
     cn = make_cn()
     jr([0, 0, '-o', '', 'a:1'], cn)
-    expect(cn.d.log[0][0]).equal('{"a":1}')
+    assert.deepEqual(cn.d.log[0][0], '{"a":1}')
 
     cn = make_cn()
     jr([0, 0, '-o', '=', 'a:1'], cn)
-    expect(cn.d.log[0][0]).equal('{"a":1}')
+    assert.deepEqual(cn.d.log[0][0], '{"a":1}')
 
     cn = make_cn()
     jr([0, 0, '-o', 'bad=', 'a:1'], cn)
-    expect(cn.d.log[0][0]).equal('{"a":1}')
+    assert.deepEqual(cn.d.log[0][0], '{"a":1}')
 
     // TODO: jest borks require so test won't work
     // try {
@@ -128,7 +127,7 @@ describe('cli', function () {
   it('plugin', async () => {
     let cn = make_cn()
     await jr([0, 0, '-p', '../test/p0', '-o', 'plugin.p0.x=0', 'a:X'], cn)
-    expect(cn.d.log[0][0]).equal('{"a":0}')
+    assert.deepEqual(cn.d.log[0][0], '{"a":0}')
 
     cn = make_cn()
     await jr(
@@ -145,11 +144,11 @@ describe('cli', function () {
       ],
       cn,
     )
-    expect(cn.d.log[0][0]).equal('{"a":0}')
+    assert.deepEqual(cn.d.log[0][0], '{"a":0}')
 
     cn = make_cn()
     await jr([0, 0, '-o', 'plugin.p1.y=1', '-p', '../test/p1', 'a:Y'], cn)
-    expect(cn.d.log[0][0]).equal('{"a":1}')
+    assert.deepEqual(cn.d.log[0][0], '{"a":1}')
 
     cn = make_cn()
     await jr(
@@ -168,18 +167,18 @@ describe('cli', function () {
       ],
       cn,
     )
-    expect(cn.d.log[0][0]).equal('{"a":0,"b":1}')
+    assert.deepEqual(cn.d.log[0][0], '{"a":0,"b":1}')
 
     cn = make_cn()
     await jr([0, 0, '-p', '../test/p2', '-o', 'plugin.p2.z=2', 'a:Z'], cn)
-    expect(cn.d.log[0][0]).equal('{"a":2}')
+    assert.deepEqual(cn.d.log[0][0], '{"a":2}')
 
     cn = make_cn()
     await jr(
       [0, 0, '-p', '../test/pa-qa.js', '-o', 'plugin.paqa.q=3', 'a:Q'],
       cn,
     )
-    expect(cn.d.log[0][0]).equal('{"a":3}')
+    assert.deepEqual(cn.d.log[0][0], '{"a":3}')
 
     cn = make_cn()
     await jr(
@@ -200,7 +199,7 @@ describe('cli', function () {
       ],
       cn,
     )
-    expect(cn.d.log[0][0]).equal('{"a":4}')
+    assert.deepEqual(cn.d.log[0][0], '{"a":4}')
 
     cn = make_cn()
     await jr(
@@ -221,25 +220,25 @@ describe('cli', function () {
       ],
       cn,
     )
-    expect(cn.d.log[0][0]).equal('{"a":5}')
+    assert.deepEqual(cn.d.log[0][0], '{"a":5}')
   })
 
   it('stringify', async () => {
     let cn = make_cn()
     jr([0, 0, '-o', 'JSON.space=2', 'a:1'], cn)
-    expect(cn.d.log[0][0]).equal('{\n  "a": 1\n}')
+    assert.deepEqual(cn.d.log[0][0], '{\n  "a": 1\n}')
 
     cn = make_cn()
     jr([0, 0, '-n', 'a:1'], cn)
-    expect(cn.d.log[0][0]).equal('{\n  "a": 1\n}')
+    assert.deepEqual(cn.d.log[0][0], '{\n  "a": 1\n}')
 
     cn = make_cn()
     jr([0, 0, '-o', 'JSON.replacer=[b]', 'a:1,b:2'], cn)
-    expect(cn.d.log[0][0]).equal('{"b":2}')
+    assert.deepEqual(cn.d.log[0][0], '{"b":2}')
 
     cn = make_cn()
     jr([0, 0, '-o', 'JSON.replacer=b', 'a:1,b:2'], cn)
-    expect(cn.d.log[0][0]).equal('{"b":2}')
+    assert.deepEqual(cn.d.log[0][0], '{"b":2}')
   })
 })
 

@@ -2,8 +2,7 @@
 'use strict'
 
 const { describe, it } = require('node:test')
-const Code = require('@hapi/code')
-const expect = Code.expect
+const assert = require('node:assert')
 
 const { Jsonic } = require('..')
 const { Debug } = require('../dist/debug')
@@ -13,7 +12,7 @@ describe('api', function () {
     const { keys } = Jsonic.util
 
     // Ensure no accidental API expansion
-    expect(keys(Jsonic)).equal([
+    assert.deepEqual(keys(Jsonic), [
       'empty',
       'parse',
       'sub',
@@ -44,6 +43,6 @@ describe('api', function () {
       'S',
     ])
 
-    expect(Debug).exist()
+    assert.ok(Debug != null)
   })
 })

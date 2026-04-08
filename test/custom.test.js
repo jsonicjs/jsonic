@@ -2,8 +2,7 @@
 'use strict'
 
 const { describe, it } = require('node:test')
-const Code = require('@hapi/code')
-const expect = Code.expect
+const assert = require('node:assert')
 
 const { Jsonic, JsonicError, makeRule, makeFixedMatcher } = require('..')
 const { Debug } = require('../dist/debug')
@@ -43,7 +42,7 @@ describe('custom', () => {
 
     let out = j('a:~,b:1,c:~,d:=>,e::-,f:##,g:///,h:a,i:# foo')
 
-    expect(out).equal({
+    assert.deepEqual(out, {
       a: '<not>',
       b: 1,
       c: '<not>',
@@ -107,19 +106,19 @@ describe('custom', () => {
       return rs
     })
 
-    expect(j('a:1', { xlog: -1 })).equal({ a: 1 })
-    expect(j('a:x', { xlog: -1 })).equal({ a: 'x' })
-    expect(() => j('a*:1')).throw(/unexpected/)
+    assert.deepEqual(j('a:1', { xlog: -1 }), { a: 1 })
+    assert.deepEqual(j('a:x', { xlog: -1 }), { a: 'x' })
+    assert.throws(() => j('a*:1'), /unexpected/)
 
-    expect(j('a:monday', { xlog: -1 })).equal({ a: 'mon' })
+    assert.deepEqual(j('a:monday', { xlog: -1 }), { a: 'mon' })
 
-    expect(Jsonic('a:1')).equal({ a: 1 })
-    expect(Jsonic('a*:1')).equal({ 'a*': 1 })
-    expect(Jsonic('b:monday')).equal({ b: 'monday' })
+    assert.deepEqual(Jsonic('a:1'), { a: 1 })
+    assert.deepEqual(Jsonic('a*:1'), { 'a*': 1 })
+    assert.deepEqual(Jsonic('b:monday'), { b: 'monday' })
   })
 
   it('string-replace', () => {
-    expect(Jsonic('a:1')).equal({ a: 1 })
+    assert.deepEqual(Jsonic('a:1'), { a: 1 })
 
     let j0 = Jsonic.make({
       string: {
@@ -130,9 +129,9 @@ describe('custom', () => {
       },
     })
 
-    expect(j0('"aAc"')).equal('aBc')
-    expect(j0('"aAcDe"')).equal('aBce')
-    expect(() => j0('x:\n "Ac\n"')).throw(/unprintable.*2:6/s)
+    assert.deepEqual(j0('"aAc"'), 'aBc')
+    assert.deepEqual(j0('"aAcDe"'), 'aBce')
+    assert.throws(() => j0('x:\n "Ac\n"'), /unprintable.*2:6/s)
 
     let j1 = Jsonic.make({
       string: {
@@ -143,8 +142,8 @@ describe('custom', () => {
       },
     })
 
-    expect(j1('"aAc\n"')).equal('aBcX')
-    expect(() => j1('x:\n "ac\n\r"')).throw(/unprintable.*2:7/s)
+    assert.deepEqual(j1('"aAc\n"'), 'aBcX')
+    assert.throws(() => j1('x:\n "ac\n\r"'), /unprintable.*2:7/s)
 
     let j2 = Jsonic.make({
       string: {
@@ -155,22 +154,22 @@ describe('custom', () => {
       },
     })
 
-    expect(j2('"aAc\n"')).equal('aBc')
-    expect(() => j2('x:\n "ac\n\r"')).throw(/unprintable.*2:7/s)
+    assert.deepEqual(j2('"aAc\n"'), 'aBc')
+    assert.throws(() => j2('x:\n "ac\n\r"'), /unprintable.*2:7/s)
   })
 
   it('parser-empty-clean', () => {
-    expect(Jsonic('a:1')).equal({ a: 1 })
+    assert.deepEqual(Jsonic('a:1'), { a: 1 })
 
     let j = Jsonic.empty()
-    expect(keys({ ...j.token }).length).equal(0)
-    expect(keys({ ...j.fixed }).length).equal(0)
-    expect(Object.keys(j.rule())).equal([])
-    expect(j('a:1')).equal(undefined)
+    assert.deepEqual(keys({ ...j.token }).length, 0)
+    assert.deepEqual(keys({ ...j.fixed }).length, 0)
+    assert.deepEqual(Object.keys(j.rule()), [])
+    assert.deepEqual(j('a:1'), undefined)
   })
 
   it('parser-empty-fixed', () => {
-    expect(Jsonic('a:1')).equal({ a: 1 })
+    assert.deepEqual(Jsonic('a:1'), { a: 1 })
 
     let j = Jsonic.empty({
       fixed: {
@@ -198,7 +197,7 @@ describe('custom', () => {
       rs.open({ s: [rs.tin('#T0')] }).bc((r) => (r.node = '~T0~'))
     })
 
-    expect(j('t0', { xlog: -1 })).equal('~T0~')
+    assert.deepEqual(j('t0', { xlog: -1 }), '~T0~')
   })
 
   it('parser-handler-actives', () => {
@@ -229,8 +228,8 @@ describe('custom', () => {
         .ac(() => (b += 'ac;'))
     })
 
-    expect(j('a')).equal(1111)
-    expect(b).equal('bo;') // m: is too late to avoid bo
+    assert.deepEqual(j('a'), 1111)
+    assert.deepEqual(b, 'bo;') // m: is too late to avoid bo
   })
 
   it('parser-action-errors', () => {
@@ -248,22 +247,22 @@ describe('custom', () => {
     j.rule('top', (rs) =>
       rsdef(rs).bo((rule, ctx) => ctx.t0.bad('foo', { bar: 'BO' })),
     )
-    expect(() => j('a')).throw(/foo.*BO/s)
+    assert.throws(() => j('a'), /foo.*BO/s)
 
     j.rule('top', (rs) =>
       rsdef(rs).ao((rule, ctx) => ctx.t0.bad('foo', { bar: 'AO' })),
     )
-    expect(() => j('a')).throw(/foo.*AO/s)
+    assert.throws(() => j('a'), /foo.*AO/s)
 
     j.rule('top', (rs) =>
       rsdef(rs).bc((rule, ctx) => ctx.t0.bad('foo', { bar: 'BC' })),
     )
-    expect(() => j('a')).throw(/foo.*BC/s)
+    assert.throws(() => j('a'), /foo.*BC/s)
 
     j.rule('top', (rs) =>
       rsdef(rs).ac((rule, ctx) => ctx.t0.bad('foo', { bar: 'AC' })),
     )
-    expect(() => j('a')).throw(/foo.*AC/s)
+    assert.throws(() => j('a'), /foo.*AC/s)
   })
 
   it('parser-before-after-state', () => {
@@ -277,16 +276,16 @@ describe('custom', () => {
         .close([{ s: [AA, AA] }])
 
     j.rule('top', (rs) => rsdef(rs).bo((rule) => (rule.node = 'BO')))
-    expect(j('a')).equal('BO')
+    assert.deepEqual(j('a'), 'BO')
 
     j.rule('top', (rs) => rsdef(rs).ao((rule) => (rule.node = 'AO')))
-    expect(j('a')).equal('AO')
+    assert.deepEqual(j('a'), 'AO')
 
     j.rule('top', (rs) => rsdef(rs).bc((rule) => (rule.node = 'BC')))
-    expect(j('a')).equal('BC')
+    assert.deepEqual(j('a'), 'BC')
 
     j.rule('top', (rs) => rsdef(rs).ac((rule) => (rule.node = 'AC')))
-    expect(j('a')).equal('AC')
+    assert.deepEqual(j('a'), 'AC')
   })
 
   it('parser-empty-seq', () => {
@@ -297,7 +296,7 @@ describe('custom', () => {
     let rsdef = (rs) => rs.clear().open([{ s: [AA] }])
     j.rule('top', (rs) => rsdef(rs).bo((rule) => (rule.node = 4444)))
 
-    expect(j('a')).equal(4444)
+    assert.deepEqual(j('a'), 4444)
   })
 
   it('parser-alt-ops', () => {
@@ -334,8 +333,8 @@ describe('custom', () => {
       )
     })
 
-    expect(j('a', { xlog: -1 })).equal({ o: 'A' })
-    expect(j.rule('top').def.open.map((alt) => alt.g[0])).equal(['E', 'ga'])
+    assert.deepEqual(j('a', { xlog: -1 }), { o: 'A' })
+    assert.deepEqual(j.rule('top').def.open.map((alt) => alt.g[0]), ['E', 'ga'])
 
     // Prepend by default
     j.use((j) => {
@@ -344,8 +343,8 @@ describe('custom', () => {
       )
     })
 
-    expect(j('ab')).equal({ o: 'AB' })
-    expect(j.rule('top').def.open.map((alt) => alt.g[0])).equal([
+    assert.deepEqual(j('ab'), { o: 'AB' })
+    assert.deepEqual(j.rule('top').def.open.map((alt) => alt.g[0]), [
       'gb',
       'E',
       'ga',
@@ -360,8 +359,8 @@ describe('custom', () => {
       )
     })
 
-    expect(j('abc')).equal({ o: 'ABC' })
-    expect(j.rule('top').def.open.map((alt) => alt.g[0])).equal([
+    assert.deepEqual(j('abc'), { o: 'ABC' })
+    assert.deepEqual(j.rule('top').def.open.map((alt) => alt.g[0]), [
       'gb',
       'E',
       'ga',
@@ -378,8 +377,8 @@ describe('custom', () => {
       )
     })
 
-    expect(j('bcd')).equal({ o: 'BCD' })
-    expect(j.rule('top').def.open.map((alt) => alt.g[0])).equal([
+    assert.deepEqual(j('bcd'), { o: 'BCD' })
+    assert.deepEqual(j.rule('top').def.open.map((alt) => alt.g[0]), [
       'gb',
       'E',
       'gc',
@@ -396,8 +395,8 @@ describe('custom', () => {
       )
     })
 
-    expect(j('bcde')).equal({ o: 'BCDE' })
-    expect(j.rule('top').def.open.map((alt) => alt.g[0])).equal([
+    assert.deepEqual(j('bcde'), { o: 'BCDE' })
+    assert.deepEqual(j.rule('top').def.open.map((alt) => alt.g[0]), [
       'E',
       'gb', // 0 -> 1
       'gd',
@@ -410,8 +409,8 @@ describe('custom', () => {
       j.rule('top', (rs) => rs.open([], { delete: [1, 3] }))
     })
 
-    expect(j('cd')).equal({ o: 'CD' })
-    expect(j.rule('top').def.open.map((alt) => alt.g[0])).equal([
+    assert.deepEqual(j('cd'), { o: 'CD' })
+    assert.deepEqual(j.rule('top').def.open.map((alt) => alt.g[0]), [
       'E',
       'gd',
       'gc',
@@ -429,8 +428,8 @@ describe('custom', () => {
       rsdef(rs).ac((rule) => (rule.node = rule.o0.val + rule.o1.val)),
     )
 
-    expect(j('a\nb')).equal('ab')
-    expect(() => j('AAA,')).throw(/unexpected.*AAA/)
+    assert.deepEqual(j('a\nb'), 'ab')
+    assert.throws(() => j('AAA,'), /unexpected.*AAA/)
   })
 
   it('parser-token-error-why', () => {
@@ -446,11 +445,11 @@ describe('custom', () => {
         .ac((rule, ctx) => ctx.t0.bad('foo', { bar: 'AAA' })),
     )
 
-    expect(() => j('a')).throw(/foo.*AAA/s)
+    assert.throws(() => j('a'), /foo.*AAA/s)
   })
 
   it('parser-multi-alts', () => {
-    expect(Jsonic('a:1')).equal({ a: 1 })
+    assert.deepEqual(Jsonic('a:1'), { a: 1 })
 
     let j = make_norules({ rule: { start: 'top' } })
 
@@ -474,9 +473,9 @@ describe('custom', () => {
         .ac((r) => (r.node = (r.o0.src + r.o1.src).toUpperCase())),
     )
 
-    expect(j('ab')).equal('AB')
-    expect(j('ac')).equal('AC')
-    expect(() => j('ad')).throw(/unexpected.*d/)
+    assert.deepEqual(j('ab'), 'AB')
+    assert.deepEqual(j('ac'), 'AC')
+    assert.throws(() => j('ad'), /unexpected.*d/)
   })
 
   it('parser-value', () => {
@@ -484,7 +483,7 @@ describe('custom', () => {
       this.m = true
     }
     let c0 = new Car()
-    expect(c0 instanceof Car).equal(true)
+    assert.deepEqual(c0 instanceof Car, true)
 
     let o0 = { x: 1 }
     let f1 = () => 'F1'
@@ -508,28 +507,28 @@ describe('custom', () => {
       },
     })
 
-    expect(j('foo')).equal('FOO')
-    expect(j('bar')).equal('BAR')
-    expect(j('zed')).equal(123)
-    expect(j('qaz')).equal(false)
+    assert.deepEqual(j('foo'), 'FOO')
+    assert.deepEqual(j('bar'), 'BAR')
+    assert.deepEqual(j('zed'), 123)
+    assert.deepEqual(j('qaz'), false)
 
     // Options get copied, so `obj` should remain {x:1}
     o0.x = 2
-    expect(j('obj')).equal({ x: 1 })
+    assert.deepEqual(j('obj'), { x: 1 })
 
-    expect(j('car')).equal({ m: true })
-    expect(j('car') instanceof Car).equal(true)
+    assert.deepEqual(j('car'), { m: true })
+    assert.deepEqual(j('car') instanceof Car, true)
 
-    expect(j('fun')).equal('f0')
-    expect(j('high')).equal(f1)
+    assert.deepEqual(j('fun'), 'f0')
+    assert.deepEqual(j('high'), f1)
 
     // constructor is protected
-    expect(j('ferry')).equal({ m: true })
-    expect(j('ferry') instanceof Car).equal(true)
+    assert.deepEqual(j('ferry'), { m: true })
+    assert.deepEqual(j('ferry') instanceof Car, true)
   })
 
   it('parser-mixed-token', () => {
-    expect(Jsonic('a:1')).equal({ a: 1 })
+    assert.deepEqual(Jsonic('a:1'), { a: 1 })
 
     let cs = [
       'Q', // generic char
@@ -568,16 +567,16 @@ describe('custom', () => {
         ])
       })
 
-      expect(j('[' + c + 'x' + c + 'y]')).equal(['@x', '@y'])
+      assert.deepEqual(j('[' + c + 'x' + c + 'y]'), ['@x', '@y'])
     }
   })
 
   it('merge', () => {
     // verify standard merges
-    expect(Jsonic('a:1,a:2')).equal({ a: 2 })
-    expect(Jsonic('a:1,a:2,a:3')).equal({ a: 3 })
-    expect(Jsonic('a:{x:1},a:{y:2}')).equal({ a: { x: 1, y: 2 } })
-    expect(Jsonic('a:{x:1},a:{y:2},a:{z:3}')).equal({
+    assert.deepEqual(Jsonic('a:1,a:2'), { a: 2 })
+    assert.deepEqual(Jsonic('a:1,a:2,a:3'), { a: 3 })
+    assert.deepEqual(Jsonic('a:{x:1},a:{y:2}'), { a: { x: 1, y: 2 } })
+    assert.deepEqual(Jsonic('a:{x:1},a:{y:2},a:{z:3}'), {
       a: { x: 1, y: 2, z: 3 },
     })
 
@@ -590,12 +589,12 @@ describe('custom', () => {
       },
     })
 
-    expect(j('a:1,a:2')).equal({ a: 3 })
-    expect(j('a:1,a:2,a:3')).equal({ a: 6 })
+    assert.deepEqual(j('a:1,a:2'), { a: 3 })
+    assert.deepEqual(j('a:1,a:2,a:3'), { a: 6 })
   })
 
   it('parser-condition-depth', () => {
-    expect(Jsonic('a:1')).equal({ a: 1 })
+    assert.deepEqual(Jsonic('a:1'), { a: 1 })
 
     let j = make_norules({
       fixed: { token: { '#F': 'f', '#B': 'b' } },
@@ -634,7 +633,7 @@ describe('custom', () => {
         .ao((r) => (r.node.o += 'B')),
     )
 
-    expect(j('fb')).equal({ o: 'TFB' })
+    assert.deepEqual(j('fb'), { o: 'TFB' })
 
     j.rule('bar', (rs) =>
       rs
@@ -643,11 +642,11 @@ describe('custom', () => {
         .ao((r) => (r.node.o += 'B')),
     )
 
-    expect(() => j('fb')).throw(/unexpected/)
+    assert.throws(() => j('fb'), /unexpected/)
   })
 
   it('parser-condition-counter', () => {
-    expect(Jsonic('a:1')).equal({ a: 1 })
+    assert.deepEqual(Jsonic('a:1'), { a: 1 })
 
     let j = make_norules({
       fixed: { token: { '#F': 'f', '#B': 'b' } },
@@ -688,7 +687,7 @@ describe('custom', () => {
         .ao((r) => (r.node.o += 'B')),
     )
 
-    expect(j('fb')).equal({ o: 'TFB' })
+    assert.deepEqual(j('fb'), { o: 'TFB' })
 
     j.rule('bar', (rs) =>
       rs
@@ -702,11 +701,11 @@ describe('custom', () => {
         .ao((r) => (r.node.o += 'B')),
     )
 
-    expect(() => j('fb')).throw(/unexpected/)
+    assert.throws(() => j('fb'), /unexpected/)
   })
 
   it('parser-keep-propagates', () => {
-    expect(Jsonic('a:1')).equal({ a: 1 })
+    assert.deepEqual(Jsonic('a:1'), { a: 1 })
 
     let j = make_norules({
       fixed: { token: { '#F': 'f', '#B': 'b', '#Z': 'z' } },
@@ -742,7 +741,7 @@ describe('custom', () => {
           .bc((r) => r.node.out.push(`BC-ZED<${r.k.color},${r.u.planet}>`))
       })
 
-    expect(j('fbz')).equal({
+    assert.deepEqual(j('fbz'), {
       out: [
         'AO-TOP<red,mars>',
         'AO-FOO<red,undefined>',

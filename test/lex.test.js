@@ -2,8 +2,7 @@
 'use strict'
 
 const { describe, it } = require('node:test')
-const Code = require('@hapi/code')
-const expect = Code.expect
+const assert = require('node:assert')
 
 const { Jsonic, makeLex, JsonicError } = require('..')
 
@@ -23,7 +22,7 @@ describe('lex', function () {
   function alleq(ta) {
     for (let i = 0; i < ta.length; i += 2) {
       let suffix = ' CASE:' + i / 2 + ' [' + ta[i] + ']'
-      expect(lexall(ta[i]) + suffix).equal(ta[i + 1] + suffix)
+      assert.deepEqual(lexall(ta[i]) + suffix, ta[i + 1] + suffix)
     }
   }
 
@@ -38,34 +37,34 @@ describe('lex', function () {
 
   it('jsonic-token', () => {
     lexstart('')
-    expect(j.token.OB).exist()
-    expect(t.CB).exist()
+    assert.ok(j.token.OB != null)
+    assert.ok(t.CB != null)
   })
 
   it('specials', () => {
     let lex0 = lexstart(' {123 ')
-    expect('' + lex0()).equal('Token[#SP=5   0,1,1]')
-    expect('' + lex0()).equal('Token[#OB=12 { 1,1,2]')
-    expect('' + lex0()).equal('Token[#NR=8 123=123 2,1,3]')
-    expect('' + lex0()).equal('Token[#SP=5   5,1,6]')
-    expect('' + lex0()).equal('Token[#ZZ=2  6,1,7]')
-    expect('' + lex0()).equal('Token[#ZZ=2  6,1,7]')
-    expect('' + lex0()).equal('Token[#ZZ=2  6,1,7]')
+    assert.deepEqual('' + lex0(), 'Token[#SP=5   0,1,1]')
+    assert.deepEqual('' + lex0(), 'Token[#OB=12 { 1,1,2]')
+    assert.deepEqual('' + lex0(), 'Token[#NR=8 123=123 2,1,3]')
+    assert.deepEqual('' + lex0(), 'Token[#SP=5   5,1,6]')
+    assert.deepEqual('' + lex0(), 'Token[#ZZ=2  6,1,7]')
+    assert.deepEqual('' + lex0(), 'Token[#ZZ=2  6,1,7]')
+    assert.deepEqual('' + lex0(), 'Token[#ZZ=2  6,1,7]')
 
     let lex1 = lexstart('"\\u0040\\u{012345}"')
     let t0 = lex1()
-    expect(t0.val).equal('\u0040\u{012345}')
-    expect(t0.len).equal(18)
-    expect('' + t0).equal('Token[#ST=9 "\\u00 0,1,1]') // NOTE: truncated!
+    assert.deepEqual(t0.val, '\u0040\u{012345}')
+    assert.deepEqual(t0.len, 18)
+    assert.deepEqual('' + t0, 'Token[#ST=9 "\\u00 0,1,1]') // NOTE: truncated!
 
-    expect(lexall(' {123')).equal([
+    assert.deepEqual(lexall(' {123'), [
       '#SP;0;1;1x1',
       '#OB;1;1;1x2',
       '#NR;2;3;1x3;123',
       '#ZZ;5;0;1x6',
     ])
 
-    expect(lexall(' {123%')).equal([
+    assert.deepEqual(lexall(' {123%'), [
       '#SP;0;1;1x1',
       '#OB;1;1;1x2',
       '#TX;2;4;1x3;123%',
@@ -77,7 +76,7 @@ describe('lex', function () {
 
   it('space', () => {
     let lex0 = lexstart(' \t')
-    expect('' + lex0()).equal('Token[#SP=5  . 0,1,1]')
+    assert.deepEqual('' + lex0(), 'Token[#SP=5  . 0,1,1]')
 
     alleq([
       ' ',
@@ -214,7 +213,7 @@ describe('lex', function () {
 
   it('number', () => {
     let lex0 = lexstart('321')
-    expect('' + lex0()).equal('Token[#NR=8 321=321 0,1,1]')
+    assert.deepEqual('' + lex0(), 'Token[#NR=8 321=321 0,1,1]')
 
     alleq([
       '0',
@@ -454,54 +453,54 @@ describe('lex', function () {
 
   it('lex-flags', () => {
     let no_comment = Jsonic.make({ comment: { lex: false } })
-    expect(Jsonic('a:1#b')).equal({ a: 1 })
-    expect(Jsonic('a,1#b')).equal(['a', 1])
-    expect(no_comment('a:1#b')).equal({ a: '1#b' })
-    expect(no_comment('a,1#b')).equal(['a', '1#b'])
+    assert.deepEqual(Jsonic('a:1#b'), { a: 1 })
+    assert.deepEqual(Jsonic('a,1#b'), ['a', 1])
+    assert.deepEqual(no_comment('a:1#b'), { a: '1#b' })
+    assert.deepEqual(no_comment('a,1#b'), ['a', '1#b'])
 
     // space becomes text if turned off
     let no_space = Jsonic.make({ space: { lex: false } })
-    expect(Jsonic('a : 1')).equal({ a: 1 })
-    expect(Jsonic('a , 1')).equal(['a', 1])
-    expect(no_space('a :1')).equal({ 'a ': 1 })
-    expect(no_space('a ,1')).equal(['a ', 1])
-    expect(no_space('a: 1')).equal({ a: ' 1' })
-    expect(no_space('a, 1')).equal(['a', ' 1'])
+    assert.deepEqual(Jsonic('a : 1'), { a: 1 })
+    assert.deepEqual(Jsonic('a , 1'), ['a', 1])
+    assert.deepEqual(no_space('a :1'), { 'a ': 1 })
+    assert.deepEqual(no_space('a ,1'), ['a ', 1])
+    assert.deepEqual(no_space('a: 1'), { a: ' 1' })
+    assert.deepEqual(no_space('a, 1'), ['a', ' 1'])
 
     let no_number = Jsonic.make({ number: { lex: false } })
-    expect(Jsonic('a:1')).equal({ a: 1 })
-    expect(Jsonic('a,1')).equal(['a', 1])
-    expect(no_number('a:1')).equal({ a: '1' })
-    expect(no_number('a,1')).equal(['a', '1'])
+    assert.deepEqual(Jsonic('a:1'), { a: 1 })
+    assert.deepEqual(Jsonic('a,1'), ['a', 1])
+    assert.deepEqual(no_number('a:1'), { a: '1' })
+    assert.deepEqual(no_number('a,1'), ['a', '1'])
 
     let no_string = Jsonic.make({ string: { lex: false } })
-    expect(Jsonic('a:1')).equal({ a: 1 })
-    expect(Jsonic('a,1')).equal(['a', 1])
-    expect(Jsonic('a:"a"')).equal({ a: 'a' })
-    expect(Jsonic('"a",1')).equal(['a', 1])
-    expect(no_string('a:1')).equal({ a: 1 })
-    expect(no_string('a,1')).equal(['a', 1])
-    expect(no_string('a:"a"')).equal({ a: '"a"' })
-    expect(no_string('"a",1')).equal(['"a"', 1])
+    assert.deepEqual(Jsonic('a:1'), { a: 1 })
+    assert.deepEqual(Jsonic('a,1'), ['a', 1])
+    assert.deepEqual(Jsonic('a:"a"'), { a: 'a' })
+    assert.deepEqual(Jsonic('"a",1'), ['a', 1])
+    assert.deepEqual(no_string('a:1'), { a: 1 })
+    assert.deepEqual(no_string('a,1'), ['a', 1])
+    assert.deepEqual(no_string('a:"a"'), { a: '"a"' })
+    assert.deepEqual(no_string('"a",1'), ['"a"', 1])
 
     let no_text = Jsonic.make({ text: { lex: false } })
-    expect(Jsonic('a:b')).equal({ a: 'b' })
-    expect(Jsonic('a, b ')).equal(['a', 'b'])
-    expect(() => no_text('a:b c')).throw(/unexpected/)
-    expect(() => no_text('a,b c')).throw(/unexpected/)
+    assert.deepEqual(Jsonic('a:b'), { a: 'b' })
+    assert.deepEqual(Jsonic('a, b '), ['a', 'b'])
+    assert.throws(() => no_text('a:b c'), /unexpected/)
+    assert.throws(() => no_text('a,b c'), /unexpected/)
 
     let no_value = Jsonic.make({ value: { lex: false } })
-    expect(Jsonic('a:true')).equal({ a: true })
-    expect(Jsonic('a,null')).equal(['a', null])
-    expect(no_value('a:true')).equal({ a: 'true' })
-    expect(no_value('a,null')).equal(['a', 'null'])
+    assert.deepEqual(Jsonic('a:true'), { a: true })
+    assert.deepEqual(Jsonic('a,null'), ['a', null])
+    assert.deepEqual(no_value('a:true'), { a: 'true' })
+    assert.deepEqual(no_value('a,null'), ['a', 'null'])
 
     // line becomes text if turned off
     let no_line = Jsonic.make({ line: { lex: false } })
-    expect(Jsonic('a:\n1')).equal({ a: 1 })
-    expect(Jsonic('a,\n1')).equal(['a', 1])
-    expect(no_line('a:\n1')).equal({ a: '\n1' })
-    expect(no_line('a,\n1')).equal(['a', '\n1'])
+    assert.deepEqual(Jsonic('a:\n1'), { a: 1 })
+    assert.deepEqual(Jsonic('a,\n1'), ['a', 1])
+    assert.deepEqual(no_line('a:\n1'), { a: '\n1' })
+    assert.deepEqual(no_line('a,\n1'), ['a', '\n1'])
   })
 
   it('custom-matcher', () => {
@@ -530,7 +529,7 @@ describe('lex', function () {
 
     // console.dir(tens.internal().config.lex)
 
-    expect(tens('a:1,b:%%,c:[%%%%]')).equal({ a: 1, b: 20, c: [40] })
+    assert.deepEqual(tens('a:1,b:%%,c:[%%%%]'), { a: 1, b: 20, c: [40] })
   })
 
   function st(tkn) {

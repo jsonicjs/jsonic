@@ -775,12 +775,18 @@ export interface NormAltSpec extends AltSpec {
   s: (Tin | Tin[] | null | undefined)[]
   S0: number[] | null
   S1: number[] | null
-  c?: AltCond // Convenience definition reduce to function for processing.
+  c?: NormAltCond // Convenience definition reduce to function for processing.
   g: string[] // Named group tags
 }
 
 // Conditionally pass an alternate.
-export type AltCond = (rule: Rule, ctx: Context, alt: AltMatch) => boolean
+export type AltCond =
+  ((rule: Rule, ctx: Context, alt: AltMatch) => boolean)
+  | Record<string, any>
+
+export type NormAltCond =
+  ((rule: Rule, ctx: Context, alt: AltMatch) => boolean)
+
 
 // Arbitrarily modify an alternate to customize parser.
 export type AltModifier = (

@@ -2,8 +2,7 @@
 'use strict'
 
 const { describe, it } = require('node:test')
-const Code = require('@hapi/code')
-const expect = Code.expect
+const assert = require('node:assert')
 
 const { Jsonic, Lexer } = require('..')
 const { loadTSV } = require('./utility')
@@ -15,7 +14,7 @@ function tsvTest(name) {
   const entries = loadTSV(name)
   for (const { cols: [input, expected], row } of entries) {
     try {
-      expect(Jsonic(input)).equal(JSON.parse(expected))
+      assert.deepEqual(Jsonic(input), JSON.parse(expected))
     } catch (err) {
       err.message = `${name} row ${row}: input=${input} expected=${expected}\n${err.message}`
       throw err
@@ -31,20 +30,20 @@ describe('first-version', function () {
 
   it('fv-funky-input', function () {
     // Object values are just returned
-    expect('{"foo":1,"bar":"zed"}').equal(
+    assert.deepEqual('{"foo":1,"bar":"zed"}', 
       JSON.stringify(j({ foo: 1, bar: 'zed' })),
     )
 
-    expect('["a","b"]').equal(JSON.stringify(j(['a', 'b'])))
+    assert.deepEqual('["a","b"]', JSON.stringify(j(['a', 'b'])))
 
     // DIFF a: -> {a:null}
-    expect(j('a:')).equal({ a: null })
+    assert.deepEqual(j('a:'), { a: null })
 
     // DIFF b:\n -> {b:null}
-    expect(j('b:\n')).equal({ b: null })
+    assert.deepEqual(j('b:\n'), { b: null })
 
     // DIFF c:\r => {c:null}
-    expect(j('c:\r')).equal({ c: null })
+    assert.deepEqual(j('c:\r'), { c: null })
   })
 
   it('fv-types', function () {
@@ -72,13 +71,12 @@ describe('first-version', function () {
   })
 
   it('fv-strings', function () {
-    expect(j('a:\'\',b:""')).equal({ a: '', b: '' })
+    assert.deepEqual(j('a:\'\',b:""'), { a: '', b: '' })
 
-    expect(
+    assert.deepEqual(
       j(
         "a:'x', aa: 'x' , b:'y\"z', bb: 'y\"z' ,bbb:\"y'z\", bbbb: \"y'z\", c:\"\\n\", d:'\\n'",
-      ),
-    ).equal({
+      ), {
       a: 'x',
       aa: 'x',
       b: 'y"z',
@@ -198,23 +196,23 @@ describe('first-version', function () {
 
     x = '{}'
     g = js(jp(x))
-    expect(js(j(x))).equal(g)
+    assert.deepEqual(js(j(x)), g)
 
     x = ' \r\n\t{ \r\n\t} \r\n\t'
     g = js(jp(x))
-    expect(js(j(x))).equal(g)
+    assert.deepEqual(js(j(x)), g)
 
     x = ' \r\n\t{ \r\n\t"a":1 \r\n\t} \r\n\t'
     g = js(jp(x))
-    expect(js(j(x))).equal(g)
+    assert.deepEqual(js(j(x)), g)
 
     x = '{"a":[[{"b":1}],{"c":[{"d":1}]}]}'
     g = js(jp(x))
-    expect(js(j(x))).equal(g)
+    assert.deepEqual(js(j(x)), g)
 
     x = '[' + x + ']'
     g = js(jp(x))
-    expect(js(j(x))).equal(g)
+    assert.deepEqual(js(j(x)), g)
   })
 
   // NOTE: coverage tracing slows this down - a lot!
