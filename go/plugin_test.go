@@ -2147,3 +2147,30 @@ func TestLexFwd(t *testing.T) {
 		t.Errorf("Fwd(5) after advance = %q, want 'world'", lex.Fwd(5))
 	}
 }
+
+// --- Custom token sets (TS: options.tokenSet) ---
+
+func TestCustomTokenSet(t *testing.T) {
+	j := Make()
+	j.SetTokenSet("CUSTOM", []Tin{TinNR, TinST})
+
+	tins := j.TokenSet("CUSTOM")
+	if len(tins) != 2 || tins[0] != TinNR || tins[1] != TinST {
+		t.Errorf("expected [TinNR, TinST], got %v", tins)
+	}
+
+	// Built-in sets still work.
+	if j.TokenSet("VAL") == nil {
+		t.Error("VAL set should still exist")
+	}
+}
+
+func TestCustomTokenSetInherited(t *testing.T) {
+	j := Make()
+	j.SetTokenSet("CUSTOM", []Tin{TinNR})
+	child := j.Derive()
+
+	if child.TokenSet("CUSTOM") == nil {
+		t.Error("child should inherit custom token set")
+	}
+}

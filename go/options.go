@@ -254,8 +254,9 @@ type Jsonic struct {
 	emptyResult  any                // Result for empty source
 	parserStart  func(src string, j *Jsonic, meta map[string]any) (any, error)
 	inSetOptions bool               // Re-entrancy guard for SetOptions
-	decorations  map[string]any     // Plugin decorations (TS: jsonic.foo = value)
-	pluginOpts   map[string]map[string]any // Plugin options namespace (TS: options.plugin)
+	decorations     map[string]any     // Plugin decorations (TS: jsonic.foo = value)
+	pluginOpts      map[string]map[string]any // Plugin options namespace (TS: options.plugin)
+	customTokenSets map[string][]Tin  // Custom token sets (TS: options.tokenSet)
 }
 
 // Decorate sets a named value on this instance. This is the Go equivalent of

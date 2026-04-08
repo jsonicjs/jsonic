@@ -230,8 +230,17 @@ func (j *Jsonic) TinName(tin Tin) string {
 // TokenSet returns a named set of Tin values.
 // Built-in sets: "IGNORE" (space, line, comment), "VAL" (text, number, string, value),
 // "KEY" (text, number, string, value).
+// Custom sets can be added via SetTokenSet.
 // Returns nil if the set name is not recognized.
 func (j *Jsonic) TokenSet(name string) []Tin {
+	// Check custom sets first.
+	if j.customTokenSets != nil {
+		if tins, ok := j.customTokenSets[name]; ok {
+			result := make([]Tin, len(tins))
+			copy(result, tins)
+			return result
+		}
+	}
 	switch name {
 	case "IGNORE":
 		tins := make([]Tin, 0, len(TinSetIGNORE))
@@ -250,6 +259,15 @@ func (j *Jsonic) TokenSet(name string) []Tin {
 	default:
 		return nil
 	}
+}
+
+// SetTokenSet registers a custom named token set.
+// Matches TS options.tokenSet.
+func (j *Jsonic) SetTokenSet(name string, tins []Tin) {
+	if j.customTokenSets == nil {
+		j.customTokenSets = make(map[string][]Tin)
+	}
+	j.customTokenSets[name] = tins
 }
 
 // Sub subscribes to lex and/or rule events.
@@ -322,6 +340,18 @@ func (j *Jsonic) Derive(opts ...Options) *Jsonic {
 		}
 		for k, v := range j.parser.Config.EscapeMap {
 			child.parser.Config.EscapeMap[k] = v
+		}
+	}
+
+	// Copy custom token sets.
+	if j.customTokenSets != nil {
+		if child.customTokenSets == nil {
+			child.customTokenSets = make(map[string][]Tin)
+		}
+		for name, tins := range j.customTokenSets {
+			copied := make([]Tin, len(tins))
+			copy(copied, tins)
+			child.customTokenSets[name] = copied
 		}
 	}
 
