@@ -34,6 +34,7 @@ type JsonicError struct {
 	Hint   string // Additional explanatory text for this error code
 
 	fullSource string // Complete input source (for generating site extract)
+	tag        string // Custom error tag name (TS: errmsg.name), defaults to "jsonic"
 }
 
 // Error returns a formatted error message matching the TypeScript JsonicError format:
@@ -51,8 +52,14 @@ func (e *JsonicError) Error() string {
 
 	var b strings.Builder
 
-	// Line 1: [jsonic/<code>]: <message>
-	b.WriteString("[jsonic/")
+	// Line 1: [tag/<code>]: <message>
+	tag := e.tag
+	if tag == "" {
+		tag = "jsonic"
+	}
+	b.WriteString("[")
+	b.WriteString(tag)
+	b.WriteString("/")
 	b.WriteString(e.Code)
 	b.WriteString("]: ")
 	b.WriteString(msg)

@@ -406,6 +406,11 @@ func (j *Jsonic) SetOptions(opts Options) *Jsonic {
 		}
 	}
 
+	// Apply errmsg options.
+	if j.options.ErrMsg != nil && j.options.ErrMsg.Name != "" {
+		j.parser.ErrTag = j.options.ErrMsg.Name
+	}
+
 	return j
 }
 

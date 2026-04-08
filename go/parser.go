@@ -38,6 +38,7 @@ type Parser struct {
 	MaxMul        int               // Max rule occurrence multiplier. Default: 3.
 	ErrorMessages map[string]string  // Custom error message templates.
 	Hints         map[string]string  // Explanatory hints per error code.
+	ErrTag        string             // Custom error tag (TS: errmsg.name). Default: "jsonic".
 }
 
 // NewParser creates a parser with default configuration.
@@ -223,6 +224,7 @@ func (p *Parser) makeError(code, src, fullSource string, pos, row, col int) *Jso
 		Src:        src,
 		Hint:       hint,
 		fullSource: fullSource,
+		tag:        p.ErrTag,
 	}
 }
 

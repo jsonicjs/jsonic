@@ -56,11 +56,22 @@ type Options struct {
 	// Hint provides additional explanatory text per error code.
 	Hint map[string]string
 
+	// ErrMsg controls error message formatting.
+	ErrMsg *ErrMsgOptions
+
 	// Property holds Go-specific options not present in the TypeScript version.
 	Property *PropertyOptions
 
 	// Tag is an instance identifier tag.
 	Tag string
+}
+
+// ErrMsgOptions controls error message formatting.
+// Matches the TypeScript errmsg option.
+type ErrMsgOptions struct {
+	// Name sets the error tag in formatted messages.
+	// Default: "jsonic". E.g. Name="bar" → "[bar/unexpected]: ..."
+	Name string
 }
 
 // PropertyOptions holds Go-specific options not present in the TypeScript version.
@@ -343,6 +354,11 @@ func Make(opts ...Options) *Jsonic {
 			j.hints[k] = v
 			j.parser.Hints[k] = v
 		}
+	}
+
+	// Apply errmsg options.
+	if o.ErrMsg != nil && o.ErrMsg.Name != "" {
+		j.parser.ErrTag = o.ErrMsg.Name
 	}
 
 	// Apply lex options (empty source handling).

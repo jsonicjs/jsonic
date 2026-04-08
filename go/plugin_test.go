@@ -1799,3 +1799,38 @@ func TestPluginOptionsInherited(t *testing.T) {
 		t.Error("parent should not be affected by child plugin options")
 	}
 }
+
+// --- ErrMsg: custom error tag (TS: errmsg.name) ---
+
+func TestErrMsgName(t *testing.T) {
+	j := Make(Options{
+		ErrMsg: &ErrMsgOptions{Name: "bar"},
+	})
+	_, err := j.Parse("x::1")
+	if err == nil {
+		t.Fatal("expected error")
+	}
+	errStr := err.Error()
+	if !strings.Contains(errStr, "[bar/") {
+		t.Errorf("error should use custom tag 'bar', got:\n%s", errStr)
+	}
+	if strings.Contains(errStr, "[jsonic/") {
+		t.Errorf("error should NOT use default 'jsonic' tag, got:\n%s", errStr)
+	}
+}
+
+func TestErrMsgNameViaPlugin(t *testing.T) {
+	j := Make()
+	j.Use(func(j *Jsonic, opts map[string]any) {
+		j.SetOptions(Options{
+			ErrMsg: &ErrMsgOptions{Name: "myplugin"},
+		})
+	})
+	_, err := j.Parse("x::1")
+	if err == nil {
+		t.Fatal("expected error")
+	}
+	if !strings.Contains(err.Error(), "[myplugin/") {
+		t.Errorf("error should use 'myplugin' tag, got:\n%s", err.Error())
+	}
+}
