@@ -1,6 +1,6 @@
 {
   "name": "jsonic",
-  "version": "2.21.0",
+  "version": "2.21.1",
   "main": "dist/jsonic.js",
   "type": "commonjs",
   "types": "dist/jsonic.d.ts",
