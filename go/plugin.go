@@ -323,6 +323,20 @@ func (j *Jsonic) Derive(opts ...Options) *Jsonic {
 		}
 	}
 
+	// Copy plugin options namespace.
+	if j.pluginOpts != nil {
+		if child.pluginOpts == nil {
+			child.pluginOpts = make(map[string]map[string]any)
+		}
+		for name, opts := range j.pluginOpts {
+			copied := make(map[string]any, len(opts))
+			for k, v := range opts {
+				copied[k] = v
+			}
+			child.pluginOpts[name] = copied
+		}
+	}
+
 	return child
 }
 

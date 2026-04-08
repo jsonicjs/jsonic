@@ -1765,3 +1765,37 @@ func TestContextMeta(t *testing.T) {
 		t.Errorf("expected ctx.Meta['file']='test.jsonic', got %v", capturedMeta)
 	}
 }
+
+// --- Plugin options namespace (TS: options.plugin) ---
+
+func TestPluginOptions(t *testing.T) {
+	j := Make()
+	j.Use(func(j *Jsonic, opts map[string]any) {
+		j.SetPluginOptions("foo", map[string]any{"x": 1})
+	})
+
+	po := j.PluginOptions("foo")
+	if po == nil || po["x"] != 1 {
+		t.Errorf("expected PluginOptions('foo')['x']=1, got %v", po)
+	}
+	if j.PluginOptions("bar") != nil {
+		t.Error("expected nil for unset plugin options")
+	}
+}
+
+func TestPluginOptionsInherited(t *testing.T) {
+	j := Make()
+	j.SetPluginOptions("foo", map[string]any{"x": 1})
+	child := j.Derive()
+
+	po := child.PluginOptions("foo")
+	if po == nil || po["x"] != 1 {
+		t.Errorf("child should inherit plugin options, got %v", po)
+	}
+
+	// Child modification doesn't affect parent.
+	child.SetPluginOptions("foo", map[string]any{"y": 2})
+	if j.PluginOptions("foo")["y"] != nil {
+		t.Error("parent should not be affected by child plugin options")
+	}
+}

@@ -226,6 +226,7 @@ type Jsonic struct {
 	parserStart  func(src string, j *Jsonic, meta map[string]any) (any, error)
 	inSetOptions bool               // Re-entrancy guard for SetOptions
 	decorations  map[string]any     // Plugin decorations (TS: jsonic.foo = value)
+	pluginOpts   map[string]map[string]any // Plugin options namespace (TS: options.plugin)
 }
 
 // Decorate sets a named value on this instance. This is the Go equivalent of
@@ -246,6 +247,31 @@ func (j *Jsonic) Decoration(name string) any {
 		return nil
 	}
 	return j.decorations[name]
+}
+
+// PluginOptions returns the options stored for a named plugin.
+// Matches TS `jsonic.options.plugin[name]`.
+func (j *Jsonic) PluginOptions(name string) map[string]any {
+	if j.pluginOpts == nil {
+		return nil
+	}
+	return j.pluginOpts[name]
+}
+
+// SetPluginOptions stores options for a named plugin.
+// Matches TS `jsonic.options({ plugin: { name: opts } })`.
+func (j *Jsonic) SetPluginOptions(name string, opts map[string]any) {
+	if j.pluginOpts == nil {
+		j.pluginOpts = make(map[string]map[string]any)
+	}
+	existing := j.pluginOpts[name]
+	if existing == nil {
+		j.pluginOpts[name] = opts
+	} else {
+		for k, v := range opts {
+			existing[k] = v
+		}
+	}
 }
 
 // Make creates a new Jsonic parser instance with the given options.
