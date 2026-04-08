@@ -2085,3 +2085,47 @@ func TestEmpty(t *testing.T) {
 		}
 	}
 }
+
+// --- options.result.fail ---
+
+func TestResultFail(t *testing.T) {
+	j := Make(Options{
+		Result: &ResultOptions{Fail: []any{"BAD"}},
+		Value: &ValueOptions{
+			Def: map[string]*ValueDef{
+				"BAD": {Val: "BAD"},
+			},
+		},
+	})
+	_, err := j.Parse("BAD")
+	if err == nil {
+		t.Fatal("expected error for result in fail list")
+	}
+}
+
+func TestResultFailCustomValue(t *testing.T) {
+	j := Make(Options{
+		Result: &ResultOptions{Fail: []any{"FAIL"}},
+		Property: &PropertyOptions{
+			ConfigModify: map[string]ConfigModifier{
+				"fail": func(cfg *LexConfig, opts *Options) {
+					cfg.ResultFail = opts.Result.Fail
+				},
+			},
+		},
+	})
+
+	// Add a custom value that produces "FAIL".
+	j.SetOptions(Options{
+		Value: &ValueOptions{
+			Def: map[string]*ValueDef{
+				"FAIL": {Val: "FAIL"},
+			},
+		},
+	})
+
+	_, err := j.Parse("FAIL")
+	if err == nil {
+		t.Fatal("expected error for result.fail value")
+	}
+}

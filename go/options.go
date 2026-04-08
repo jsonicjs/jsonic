@@ -51,6 +51,9 @@ type Options struct {
 	// Parser allows custom parser overrides.
 	Parser *ParserOptions
 
+	// Result controls parse result validation.
+	Result *ResultOptions
+
 	// Error provides custom error message templates keyed by error code.
 	// e.g. {"unexpected": "unexpected character(s): {src}"}
 	Error map[string]string
@@ -218,6 +221,15 @@ type LexOptions struct {
 // ParserOptions allows custom parser overrides.
 type ParserOptions struct {
 	Start func(src string, j *Jsonic, meta map[string]any) (any, error)
+}
+
+// ResultOptions controls parse result validation.
+// Matches the TypeScript result option.
+type ResultOptions struct {
+	// Fail lists values that are treated as parse failures.
+	// If the parse result matches any of these, an "unexpected" error is returned.
+	// E.g. Fail: []any{nil} would make nil results fail.
+	Fail []any
 }
 
 // ConfigModifier is a function that modifies the LexConfig after construction.
@@ -640,6 +652,11 @@ func buildConfig(o *Options) *LexConfig {
 	// list.child requires ListRef to store the child value on ListRef.Child.
 	if cfg.ListChild {
 		cfg.ListRef = true
+	}
+
+	// Result fail values.
+	if o.Result != nil && len(o.Result.Fail) > 0 {
+		cfg.ResultFail = append(cfg.ResultFail, o.Result.Fail...)
 	}
 
 	// Apply config modifiers.
