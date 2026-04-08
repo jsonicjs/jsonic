@@ -9,10 +9,9 @@ import (
 )
 
 // Deep performs a recursive deep merge of multiple values.
-// Objects (map[string]any) are merged recursively.
-// Arrays are merged element-by-element (over array values replace base at same index).
-// Primitive values and nil replace the base.
-// The function takes a base value and any number of overlay values.
+// Works on map[string]any, []any, and Go structs (via reflection),
+// matching the TypeScript deep() utility.
+// Zero/nil values in the overlay do not overwrite base values.
 func Deep(base any, rest ...any) any {
 	for _, over := range rest {
 		base = deepMerge(base, over)
@@ -108,6 +107,11 @@ func deepMerge(base, over any) any {
 		return result
 	}
 
+	// Struct handling via reflection — matches TS deep() on plain objects.
+	if merged, ok := deepMergeStruct(base, over); ok {
+		return merged
+	}
+
 	// Type mismatch or non-container: over wins
 	// Match TS: undefined preserves base, null replaces.
 	if IsUndefined(over) {
@@ -117,6 +121,110 @@ func deepMerge(base, over any) any {
 		return nil
 	}
 	return deepClone(over)
+}
+
+// deepMergeStruct merges two struct values field-by-field via reflection.
+// Zero-value fields in over do not overwrite base, matching TS deep() where
+// undefined properties are skipped. Returns (merged, true) if both values
+// are structs of the same type, or (nil, false) if not applicable.
+func deepMergeStruct(base, over any) (any, bool) {
+	if base == nil || over == nil {
+		return nil, false
+	}
+
+	bv := reflect.ValueOf(base)
+	ov := reflect.ValueOf(over)
+
+	// Unwrap pointers.
+	bIsPtr := bv.Kind() == reflect.Ptr
+	oIsPtr := ov.Kind() == reflect.Ptr
+
+	if bIsPtr && bv.IsNil() {
+		if oIsPtr || ov.Kind() == reflect.Struct {
+			return over, true
+		}
+		return nil, false
+	}
+	if oIsPtr && ov.IsNil() {
+		if bIsPtr || bv.Kind() == reflect.Struct {
+			return base, true
+		}
+		return nil, false
+	}
+
+	bElem := bv
+	oElem := ov
+	if bIsPtr {
+		bElem = bv.Elem()
+	}
+	if oIsPtr {
+		oElem = ov.Elem()
+	}
+
+	if bElem.Kind() != reflect.Struct || oElem.Kind() != reflect.Struct {
+		return nil, false
+	}
+	if bElem.Type() != oElem.Type() {
+		return nil, false
+	}
+
+	result := reflect.New(bElem.Type()).Elem()
+	for i := 0; i < bElem.NumField(); i++ {
+		bf := bElem.Field(i)
+		of := oElem.Field(i)
+
+		if !bf.CanInterface() {
+			// Unexported field: keep base.
+			continue
+		}
+
+		if of.IsZero() {
+			result.Field(i).Set(bf)
+			continue
+		}
+		if bf.IsZero() {
+			result.Field(i).Set(of)
+			continue
+		}
+
+		// Both non-zero: merge based on kind.
+		switch of.Kind() {
+		case reflect.Ptr:
+			if of.Elem().Kind() == reflect.Struct {
+				// Pointer to struct: recurse.
+				merged, ok := deepMergeStruct(bf.Interface(), of.Interface())
+				if ok {
+					result.Field(i).Set(reflect.ValueOf(merged))
+				} else {
+					result.Field(i).Set(of)
+				}
+			} else {
+				// Pointer to primitive (*bool, *int): over wins.
+				result.Field(i).Set(of)
+			}
+		case reflect.Map:
+			// Merge map entries: base first, then over overwrites.
+			merged := reflect.MakeMap(bf.Type())
+			for _, k := range bf.MapKeys() {
+				merged.SetMapIndex(k, bf.MapIndex(k))
+			}
+			for _, k := range of.MapKeys() {
+				merged.SetMapIndex(k, of.MapIndex(k))
+			}
+			result.Field(i).Set(merged)
+		default:
+			// String, slice, func, etc.: over wins.
+			result.Field(i).Set(of)
+		}
+	}
+
+	// Return with same pointer wrapping as inputs.
+	if bIsPtr || oIsPtr {
+		ptr := reflect.New(result.Type())
+		ptr.Elem().Set(result)
+		return ptr.Interface(), true
+	}
+	return result.Interface(), true
 }
 
 // cloneMeta creates a shallow copy of a Meta map.

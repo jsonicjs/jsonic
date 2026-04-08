@@ -321,7 +321,8 @@ func (j *Jsonic) Derive(opts ...Options) *Jsonic {
 // behavior: nil/zero fields in opts do not overwrite existing values.
 // Returns the instance for chaining.
 func (j *Jsonic) SetOptions(opts Options) *Jsonic {
-	mergeOptions(j.options, &opts)
+	merged := Deep(*j.options, opts).(Options)
+	j.options = &merged
 
 	// Rebuild config from merged options.
 	cfg := buildConfig(j.options)

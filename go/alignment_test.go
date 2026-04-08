@@ -520,6 +520,86 @@ func TestAlignmentCustomValues(t *testing.T) {
 	}
 }
 
+// --- Deep merge on Options structs (reflection path) ---
+
+func TestAlignmentDeepOptions(t *testing.T) {
+	// Deep should work directly on Options structs, matching TS deep() on options objects.
+	base := Options{
+		Number:  &NumberOptions{Lex: boolPtr(true), Hex: boolPtr(true)},
+		Comment: &CommentOptions{Lex: boolPtr(true)},
+		Error:   map[string]string{"a": "1"},
+	}
+	over := Options{
+		Number: &NumberOptions{Hex: boolPtr(false)},
+		Error:  map[string]string{"b": "2"},
+		Tag:    "test",
+	}
+
+	result := Deep(base, over)
+	merged, ok := result.(Options)
+	if !ok {
+		t.Fatalf("Deep(Options, Options) returned %T, want Options", result)
+	}
+
+	// Number.Lex preserved from base (zero in over).
+	if merged.Number == nil || merged.Number.Lex == nil || !*merged.Number.Lex {
+		t.Error("expected Number.Lex to remain true")
+	}
+	// Number.Hex overridden.
+	if merged.Number.Hex == nil || *merged.Number.Hex {
+		t.Error("expected Number.Hex to be false")
+	}
+	// Comment preserved from base (nil in over).
+	if merged.Comment == nil || merged.Comment.Lex == nil || !*merged.Comment.Lex {
+		t.Error("expected Comment.Lex to remain true")
+	}
+	// Error maps merged.
+	if merged.Error["a"] != "1" || merged.Error["b"] != "2" {
+		t.Errorf("expected Error map merged, got %v", merged.Error)
+	}
+	// Tag from over.
+	if merged.Tag != "test" {
+		t.Errorf("expected Tag 'test', got %q", merged.Tag)
+	}
+}
+
+func TestAlignmentDeepOptionsPointer(t *testing.T) {
+	// Deep should also handle pointer-to-struct fields correctly.
+	base := Options{
+		String: &StringOptions{
+			Lex:      boolPtr(true),
+			Chars:    "'\"",
+			Escape:   map[string]string{"n": "\n"},
+			Abandon:  boolPtr(false),
+		},
+	}
+	over := Options{
+		String: &StringOptions{
+			Escape:  map[string]string{"t": "\t"},
+			Abandon: boolPtr(true),
+		},
+	}
+
+	result := Deep(base, over).(Options)
+
+	// Lex preserved.
+	if result.String.Lex == nil || !*result.String.Lex {
+		t.Error("expected String.Lex true")
+	}
+	// Chars preserved.
+	if result.String.Chars != "'\"" {
+		t.Errorf("expected String.Chars preserved, got %q", result.String.Chars)
+	}
+	// Escape maps merged.
+	if result.String.Escape["n"] != "\n" || result.String.Escape["t"] != "\t" {
+		t.Errorf("expected Escape merged, got %v", result.String.Escape)
+	}
+	// Abandon overridden.
+	if result.String.Abandon == nil || !*result.String.Abandon {
+		t.Error("expected String.Abandon true")
+	}
+}
+
 // --- Deep merge with Undefined sentinel ---
 
 func TestAlignmentDeepUndefined(t *testing.T) {
