@@ -29,6 +29,12 @@ type Context struct {
 	Src      string            // Source text being parsed (TS: src)
 	Inst     *Jsonic           // Current Jsonic instance (TS: inst)
 	U        map[string]any    // Custom plugin data bag (TS: u)
+	Root     *Rule             // Root rule (TS: root)
+	TC       int               // Token count (TS: tC)
+	F        func(any) string  // Format value as string (TS: F)
+	Log      func(...any)      // Debug logger (TS: log)
+	NOTOKEN  *Token            // Sentinel no-token (TS: NOTOKEN)
+	NORULE   *Rule             // Sentinel no-rule (TS: NORULE)
 }
 
 // Parser orchestrates the parsing process.
@@ -96,6 +102,10 @@ func (p *Parser) startParse(src string, meta map[string]any, lexSubs []LexSub, r
 		Src:      src,
 		Inst:     inst,
 		U:        make(map[string]any),
+		TC:       0,
+		NOTOKEN:  NoToken,
+		NORULE:   NoRule,
+		F:        func(v any) string { return Str(v, 44) },
 	}
 
 	lex.Ctx = ctx
@@ -111,6 +121,7 @@ func (p *Parser) startParse(src string, meta map[string]any, lexSubs []LexSub, r
 
 	rule := MakeRule(startSpec, ctx, nil)
 	root := rule
+	ctx.Root = root
 
 	// Run parse.prepare hooks
 	if len(p.Config.ParsePrepare) > 0 {

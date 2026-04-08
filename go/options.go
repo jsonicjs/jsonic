@@ -1,5 +1,7 @@
 package jsonic
 
+import "strconv"
+
 // Options configures a Jsonic parser instance.
 // All fields use pointer types so that nil means "use default".
 // This matches the TypeScript pattern where unset options fall back to defaults.
@@ -221,8 +223,12 @@ type ParserOptions struct {
 // ConfigModifier is a function that modifies the LexConfig after construction.
 type ConfigModifier func(cfg *LexConfig, opts *Options)
 
+// idCounter is used to generate unique Jsonic instance IDs.
+var idCounter int
+
 // Jsonic is a configured parser instance, equivalent to TypeScript's Jsonic.make().
 type Jsonic struct {
+	id           string             // Unique instance identifier (TS: jsonic.id)
 	options      *Options
 	parser       *Parser
 	plugins      []pluginEntry      // Registered plugins
@@ -258,6 +264,12 @@ func (j *Jsonic) Decoration(name string) any {
 		return nil
 	}
 	return j.decorations[name]
+}
+
+// Id returns the unique instance identifier for this Jsonic instance.
+// Matches TS jsonic.id.
+func (j *Jsonic) Id() string {
+	return j.id
 }
 
 // PluginOptions returns the options stored for a named plugin.
@@ -330,7 +342,15 @@ func Make(opts ...Options) *Jsonic {
 		nameByTin[tin] = name
 	}
 
+	idCounter++
+	tag := ""
+	if o.Tag != "" {
+		tag = "/" + o.Tag
+	}
+	instanceId := "Jsonic/" + strconv.Itoa(idCounter) + tag
+
 	j := &Jsonic{
+		id:          instanceId,
 		options:     &o,
 		parser:      p,
 		tinByName:   tinByName,
@@ -379,6 +399,17 @@ func Make(opts ...Options) *Jsonic {
 		j.Exclude(o.Rule.Exclude)
 	}
 
+	return j
+}
+
+// Empty creates a Jsonic instance with no built-in grammar rules.
+// Matches TS jsonic.empty(). Useful for building a parser from scratch.
+func Empty(opts ...Options) *Jsonic {
+	j := Make(opts...)
+	// Clear all grammar rules.
+	for _, rs := range j.parser.RSM {
+		rs.Clear()
+	}
 	return j
 }
 

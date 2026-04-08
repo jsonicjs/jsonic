@@ -1902,3 +1902,186 @@ func TestModifyOpenCustom(t *testing.T) {
 		t.Error("custom callback should have been called")
 	}
 }
+
+// --- ctx.Root (TS: ctx.root()) ---
+
+func TestContextRoot(t *testing.T) {
+	j := Make()
+	var capturedRoot *Rule
+
+	j.Rule("val", func(rs *RuleSpec) {
+		rs.AO = append(rs.AO, func(r *Rule, ctx *Context) {
+			capturedRoot = ctx.Root
+		})
+	})
+
+	j.Parse("42")
+
+	if capturedRoot == nil {
+		t.Fatal("ctx.Root should not be nil")
+	}
+	if capturedRoot.Name != "val" {
+		t.Errorf("ctx.Root.Name = %q, want 'val'", capturedRoot.Name)
+	}
+}
+
+// --- ctx.NOTOKEN / ctx.NORULE (TS: ctx.NOTOKEN, ctx.NORULE) ---
+
+func TestContextSentinels(t *testing.T) {
+	j := Make()
+	var gotNoToken *Token
+	var gotNoRule *Rule
+
+	j.Rule("val", func(rs *RuleSpec) {
+		rs.AO = append(rs.AO, func(r *Rule, ctx *Context) {
+			gotNoToken = ctx.NOTOKEN
+			gotNoRule = ctx.NORULE
+		})
+	})
+
+	j.Parse("42")
+
+	if gotNoToken == nil || !gotNoToken.IsNoToken() {
+		t.Error("ctx.NOTOKEN should be the sentinel no-token")
+	}
+	if gotNoRule == nil || gotNoRule != NoRule {
+		t.Error("ctx.NORULE should be the sentinel no-rule")
+	}
+}
+
+// --- ctx.TC (token count) ---
+
+func TestContextTC(t *testing.T) {
+	j := Make()
+	var tc int
+
+	j.Sub(nil, func(rule *Rule, ctx *Context) {
+		tc = ctx.TC
+	})
+
+	j.Parse("{a:1}")
+
+	if tc <= 0 {
+		t.Errorf("ctx.TC should be > 0 after parsing, got %d", tc)
+	}
+}
+
+// --- ctx.F (format function) ---
+
+func TestContextF(t *testing.T) {
+	j := Make()
+	var formatted string
+
+	j.Rule("val", func(rs *RuleSpec) {
+		rs.AO = append(rs.AO, func(r *Rule, ctx *Context) {
+			if ctx.F != nil {
+				formatted = ctx.F("hello")
+			}
+		})
+	})
+
+	j.Parse("42")
+
+	if formatted != "hello" {
+		t.Errorf("ctx.F('hello') = %q, want 'hello'", formatted)
+	}
+}
+
+// --- token.Use (custom metadata) ---
+
+func TestTokenUse(t *testing.T) {
+	j := Make()
+	var gotUse map[string]any
+
+	j.AddMatcher("test", 1500000, func(lex *Lex, rule *Rule) *Token {
+		pnt := lex.Cursor()
+		if pnt.SI < pnt.Len && lex.Src[pnt.SI] == '@' {
+			tkn := lex.Token("#VL", TinVL, "AT", "@")
+			tkn.Use = map[string]any{"custom": true}
+			pnt.SI++
+			pnt.CI++
+			return tkn
+		}
+		return nil
+	})
+
+	j.Sub(func(tkn *Token, rule *Rule, ctx *Context) {
+		if tkn.Use != nil {
+			gotUse = tkn.Use
+		}
+	}, nil)
+
+	j.Parse("@")
+
+	if gotUse == nil || gotUse["custom"] != true {
+		t.Errorf("token.Use should contain custom data, got %v", gotUse)
+	}
+}
+
+// --- token.Bad() ---
+
+func TestTokenBad(t *testing.T) {
+	tkn := MakeToken("#VL", TinVL, nil, "x", Point{})
+	tkn.Bad("test_error", map[string]any{"detail": "info"})
+
+	if tkn.Err != "test_error" {
+		t.Errorf("Bad() should set Err, got %q", tkn.Err)
+	}
+	if tkn.Use == nil || tkn.Use["detail"] != "info" {
+		t.Errorf("Bad() should merge details into Use, got %v", tkn.Use)
+	}
+}
+
+// --- lex.Bad() ---
+
+func TestLexBad(t *testing.T) {
+	lex := NewLex("test", DefaultLexConfig())
+	tkn := lex.Bad("bad_input")
+
+	if tkn.Tin != TinBD {
+		t.Errorf("Bad() should create BD token, got Tin=%d", tkn.Tin)
+	}
+	if tkn.Err != "bad_input" {
+		t.Errorf("Bad() should set Err, got %q", tkn.Err)
+	}
+}
+
+// --- jsonic.Id ---
+
+func TestJsonicId(t *testing.T) {
+	j := Make()
+	if j.Id() == "" {
+		t.Error("Id() should not be empty")
+	}
+	if !strings.HasPrefix(j.Id(), "Jsonic/") {
+		t.Errorf("Id() should start with 'Jsonic/', got %q", j.Id())
+	}
+}
+
+func TestJsonicIdWithTag(t *testing.T) {
+	j := Make(Options{Tag: "test"})
+	if !strings.Contains(j.Id(), "/test") {
+		t.Errorf("Id() with tag should contain '/test', got %q", j.Id())
+	}
+}
+
+func TestJsonicIdUnique(t *testing.T) {
+	j1 := Make()
+	j2 := Make()
+	if j1.Id() == j2.Id() {
+		t.Errorf("different instances should have different IDs: %q", j1.Id())
+	}
+}
+
+// --- jsonic.Empty() ---
+
+func TestEmpty(t *testing.T) {
+	j := Empty()
+	// All rules should be cleared.
+	for name, rs := range j.RSM() {
+		if len(rs.Open) > 0 || len(rs.Close) > 0 {
+			t.Errorf("Empty() rule %q should have no alts, got %d open, %d close",
+				name, len(rs.Open), len(rs.Close))
+		}
+	}
+}

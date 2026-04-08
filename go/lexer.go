@@ -211,6 +211,15 @@ func (l *Lex) Token(name string, tin Tin, val any, src string) *Token {
 	return MakeToken(name, tin, val, src, l.pnt)
 }
 
+// Bad creates an error token at the current position.
+// Matches TS lex.bad(why, pstart, pend).
+func (l *Lex) Bad(why string) *Token {
+	tkn := MakeToken("#BD", TinBD, nil, "", l.pnt)
+	tkn.Why = why
+	tkn.Err = why
+	return tkn
+}
+
 // Next returns the next non-IGNORE token, passing the current parsing rule
 // to custom matchers for context-sensitive lexing.
 // On error (unterminated string, unterminated comment, unexpected character),

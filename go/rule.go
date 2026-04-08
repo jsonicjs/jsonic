@@ -442,11 +442,13 @@ func (r *Rule) Process(ctx *Context, lex *Lex) *Rule {
 			ctx.V1 = ctx.T0
 			ctx.T0 = ctx.T1
 			ctx.T1 = NoToken
+			ctx.TC++
 		} else if consumed == 2 {
 			ctx.V2 = ctx.T1
 			ctx.V1 = ctx.T0
 			ctx.T0 = NoToken
 			ctx.T1 = NoToken
+			ctx.TC += 2
 		}
 	}
 
