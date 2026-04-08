@@ -1834,3 +1834,41 @@ func TestErrMsgNameViaPlugin(t *testing.T) {
 		t.Errorf("error should use 'myplugin' tag, got:\n%s", err.Error())
 	}
 }
+
+// --- Fixed: fixed token lookup (TS: jsonic.fixed(ref)) ---
+
+func TestFixedLookup(t *testing.T) {
+	j := Make()
+
+	// Lookup by source string.
+	if j.FixedSrc("{") != TinOB {
+		t.Errorf("FixedSrc('{') = %v, want TinOB(%d)", j.FixedSrc("{"), TinOB)
+	}
+
+	// Lookup by Tin.
+	if j.FixedTin(TinOB) != "{" {
+		t.Errorf("FixedTin(TinOB) = %v, want '{'", j.FixedTin(TinOB))
+	}
+
+	// Not found.
+	if j.FixedSrc("@") != 0 {
+		t.Errorf("FixedSrc('@') should return 0 for unknown")
+	}
+	if j.FixedTin(999) != "" {
+		t.Errorf("FixedTin(999) should return '' for unknown")
+	}
+}
+
+func TestFixedCustomToken(t *testing.T) {
+	j := Make()
+	j.Token("#TL", "~")
+
+	tin := j.FixedSrc("~")
+	if tin == 0 {
+		t.Error("FixedSrc('~') should find custom token")
+	}
+
+	if j.FixedTin(tin) != "~" {
+		t.Errorf("FixedTin(tin) = %v, want '~'", j.FixedTin(tin))
+	}
+}

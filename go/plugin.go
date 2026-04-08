@@ -152,6 +152,28 @@ func (j *Jsonic) Token(name string, src ...string) Tin {
 	return tin
 }
 
+// FixedSrc returns the Tin for a fixed token source string (e.g. "{" → TinOB).
+// Returns 0 if the source string is not a fixed token.
+// Matches TS `jsonic.fixed('b')`.
+func (j *Jsonic) FixedSrc(src string) Tin {
+	if tin, ok := j.parser.Config.FixedTokens[src]; ok {
+		return tin
+	}
+	return 0
+}
+
+// FixedTin returns the source string for a fixed token Tin (e.g. TinOB → "{").
+// Returns "" if the Tin is not a fixed token.
+// Matches TS `jsonic.fixed(18)`.
+func (j *Jsonic) FixedTin(tin Tin) string {
+	for src, t := range j.parser.Config.FixedTokens {
+		if t == tin {
+			return src
+		}
+	}
+	return ""
+}
+
 // AddMatcher adds a custom lexer matcher with the given name and priority.
 // Matchers are tried in priority order (lower first). Built-in matchers use:
 //
