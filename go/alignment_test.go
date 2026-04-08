@@ -692,3 +692,111 @@ func TestAlignmentFinishRuleFalse(t *testing.T) {
 		t.Error("Parse(\"{a:1\") with rule.finish=false should return error")
 	}
 }
+
+// --- Snip: match TS snip() behavior ---
+
+func TestAlignmentSnip(t *testing.T) {
+	tests := []struct {
+		input  string
+		maxlen int
+		expect string
+	}{
+		{"hello", 5, "hello"},
+		{"hello", 3, "hel"},
+		{"hello", 0, ""},
+		{"hello", -1, ""},
+		{"a\nb\tc\rd", 10, "a.b.c.d"},
+		{"a\nb\tc\rd", 3, "a.b"},
+		{"", 5, ""},
+		{"\n\n\n", 3, "..."},
+	}
+	for _, tt := range tests {
+		got := Snip(tt.input, tt.maxlen)
+		if got != tt.expect {
+			t.Errorf("Snip(%q, %d) = %q, want %q", tt.input, tt.maxlen, got, tt.expect)
+		}
+	}
+}
+
+// --- Str: match TS str() + snip() pipeline ---
+
+func TestAlignmentStrNil(t *testing.T) {
+	// TS: str(null) → JSON.stringify(null) → "null"
+	got := Str(nil, 44)
+	if got != "null" {
+		t.Errorf("Str(nil, 44) = %q, want %q", got, "null")
+	}
+}
+
+func TestAlignmentStrWhitespace(t *testing.T) {
+	// TS: str() calls snip() which replaces \r\n\t with '.'
+	got := Str("a\tb\nc", 44)
+	if got != "a.b.c" {
+		t.Errorf("Str(\"a\\tb\\nc\", 44) = %q, want %q", got, "a.b.c")
+	}
+}
+
+func TestAlignmentStrTruncateWhitespace(t *testing.T) {
+	// Truncation then snip: "12\t45" with maxlen 4 → truncate to "1..." → snip "1..."
+	got := Str("12\t45", 4)
+	if got != "1..." {
+		t.Errorf("Str(\"12\\t45\", 4) = %q, want %q", got, "1...")
+	}
+}
+
+// --- ModList: custom callback ---
+
+func TestAlignmentModListCustom(t *testing.T) {
+	// TS modlist supports mods.custom callback.
+	input := []any{"a", "b", "c"}
+	result := ModList(input, &ModListOpts{
+		Custom: func(list []any) []any {
+			// Reverse the list.
+			n := len(list)
+			reversed := make([]any, n)
+			for i, v := range list {
+				reversed[n-1-i] = v
+			}
+			return reversed
+		},
+	})
+	expected := []any{"c", "b", "a"}
+	if !valuesEqual(result, expected) {
+		t.Errorf("ModList custom: got %v, want %v", result, expected)
+	}
+}
+
+func TestAlignmentModListCustomNil(t *testing.T) {
+	// When custom returns nil, the original list is preserved (matches TS).
+	input := []any{"a", "b"}
+	result := ModList(input, &ModListOpts{
+		Custom: func(list []any) []any {
+			return nil
+		},
+	})
+	expected := []any{"a", "b"}
+	if !valuesEqual(result, expected) {
+		t.Errorf("ModList custom nil: got %v, want %v", result, expected)
+	}
+}
+
+func TestAlignmentModListDeleteThenCustom(t *testing.T) {
+	// Custom runs after delete+filter (matches TS order).
+	input := []any{"a", "b", "c"}
+	var customInput []any
+	result := ModList(input, &ModListOpts{
+		Delete: []int{1}, // delete "b"
+		Custom: func(list []any) []any {
+			customInput = append([]any{}, list...) // capture what custom sees
+			return list
+		},
+	})
+	// Custom should see ["a", "c"] (after "b" was deleted).
+	expectedCustom := []any{"a", "c"}
+	if !valuesEqual(customInput, expectedCustom) {
+		t.Errorf("ModList custom saw %v, want %v", customInput, expectedCustom)
+	}
+	if !valuesEqual(result, expectedCustom) {
+		t.Errorf("ModList result: got %v, want %v", result, expectedCustom)
+	}
+}

@@ -181,15 +181,25 @@ func deepClone(val any) any {
 	}
 }
 
+// Snip returns the first maxlen characters of s, replacing \r, \n, \t with '.'.
+// Matches the TypeScript snip() utility used for debug/display output.
+func Snip(s string, maxlen int) string {
+	if maxlen <= 0 {
+		return ""
+	}
+	if len(s) > maxlen {
+		s = s[:maxlen]
+	}
+	return strings.NewReplacer("\r", ".", "\n", ".", "\t", ".").Replace(s)
+}
+
 // Str converts a value to a truncated string representation.
 // If maxlen is <= 0, returns empty string.
 // If the string representation exceeds maxlen, it is truncated with "..." appended.
-// Default maxlen is 44 if not specified (pass 0 or negative to get empty string).
+// Matches the TypeScript str() + snip() pipeline: converts to string, truncates,
+// then replaces \r\n\t with '.'.
 func Str(val any, maxlen int) string {
-	if maxlen < 0 {
-		return ""
-	}
-	if maxlen == 0 {
+	if maxlen <= 0 {
 		return ""
 	}
 
@@ -210,7 +220,8 @@ func Str(val any, maxlen int) string {
 			s = "false"
 		}
 	case nil:
-		s = ""
+		// Match TS: JSON.stringify(null) === "null"
+		s = "null"
 	default:
 		b, err := json.Marshal(val)
 		if err != nil {
@@ -224,12 +235,12 @@ func Str(val any, maxlen int) string {
 		if maxlen >= 4 {
 			s = s[:maxlen-3] + "..."
 		} else {
-			// For very small maxlen, just use dots
 			s = "..."[:maxlen]
 		}
 	}
 
-	return s
+	// Match TS: str() calls snip() which replaces \r\n\t with '.'
+	return Snip(s, maxlen)
 }
 
 // StrInject replaces template placeholders like {key} or {key.subkey} in a
@@ -386,16 +397,16 @@ func formatCompactValue(val any) string {
 	}
 }
 
-// ModList modifies an array by applying delete and move operations.
-// opts is a map with optional keys:
-//   - "delete": []any of indices (float64) to delete
-//   - "move": []any of index pairs [from, to, from, to, ...]
+// ModListOpts configures list modifications for ModList.
+// Matches the TypeScript ListMods type.
 type ModListOpts struct {
-	Delete []int
-	Move   []int // pairs: [from, to, from, to, ...]
+	Delete []int                   // Indices to delete (supports negative indices).
+	Move   []int                   // Pairs: [from, to, from, to, ...].
+	Custom func(list []any) []any  // Custom modification callback, applied last.
 }
 
-// ModList modifies a list by applying delete and move operations.
+// ModList modifies a list by applying delete, move, and custom operations.
+// Matches the TypeScript modlist() utility.
 func ModList(list []any, opts *ModListOpts) []any {
 	if opts == nil || list == nil {
 		return list
@@ -405,7 +416,7 @@ func ModList(list []any, opts *ModListOpts) []any {
 		type sentinel struct{}
 		deleteMarker := sentinel{}
 
-		// Phase 1: Mark elements for deletion
+		// Phase 1: Mark elements for deletion (before move so indexes still make sense).
 		if len(opts.Delete) > 0 {
 			for _, idx := range opts.Delete {
 				n := len(list)
@@ -422,7 +433,7 @@ func ModList(list []any, opts *ModListOpts) []any {
 			}
 		}
 
-		// Phase 2: Move operations (on array with markers still present)
+		// Phase 2: Move operations (on array with markers still present).
 		if len(opts.Move) >= 2 {
 			for i := 0; i+1 < len(opts.Move); i += 2 {
 				n := len(list)
@@ -441,7 +452,7 @@ func ModList(list []any, opts *ModListOpts) []any {
 			}
 		}
 
-		// Phase 3: Filter out deleted entries
+		// Phase 3: Filter out deleted entries.
 		if len(opts.Delete) > 0 {
 			filtered := make([]any, 0, len(list))
 			for _, v := range list {
@@ -450,6 +461,13 @@ func ModList(list []any, opts *ModListOpts) []any {
 				}
 			}
 			list = filtered
+		}
+	}
+
+	// Phase 4: Custom modification (matches TS mods.custom).
+	if opts.Custom != nil {
+		if newList := opts.Custom(list); newList != nil {
+			list = newList
 		}
 	}
 
