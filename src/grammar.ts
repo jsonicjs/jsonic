@@ -361,7 +361,8 @@ function grammar(jsonic: Jsonic) {
       }
     })
       .open({
-        c: (r) => r.prev.u.implist,
+        // c: (r) => r.prev.u.implist,
+        c: { 'prev.u.implist': { $eq: true } },
         p: 'elem',
       })
       .open(

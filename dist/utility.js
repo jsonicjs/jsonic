@@ -10,6 +10,7 @@ exports.configure = configure;
 exports.deep = deep;
 exports.escre = escre;
 exports.filterRules = filterRules;
+exports.getpath = getpath;
 exports.makelog = makelog;
 exports.mesc = mesc;
 exports.regexp = regexp;
@@ -709,5 +710,13 @@ function parserwrap(parser) {
             }
         },
     };
+}
+function getpath(root, path) {
+    path = 'string' === typeof path ? path.split('.') : path;
+    let node = root;
+    for (let i = 0; i < path.length && null != node; i++) {
+        node = node[path[i]];
+    }
+    return node;
 }
 //# sourceMappingURL=utility.js.map

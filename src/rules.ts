@@ -32,9 +32,11 @@ import { OPEN, CLOSE, BEFORE, AFTER, EMPTY, STRING } from './types'
 import {
   S,
   filterRules,
+  getpath,
   isarr,
   tokenize,
   modlist,
+  defprop,
 } from './utility'
 
 import { JsonicError } from './error'
@@ -697,47 +699,57 @@ function normalt(a: AltSpec): NormAltSpec {
   }
 
 
-  if (null != a.c && 'function' !== typeof a.c && 'object' === typeof a.c) {
-    const conds: NormAltCond[] = []
-    const ruleprops = Object.keys(a.c)
-    for (let propdef of ruleprops) {
-      const parts = propdef.split('.')
-      let prop = parts[0]
-      let subprop = null
-      if (2 === parts.length) {
-        subprop = parts[1]
+  if (null != a.c) {
+    const ct = typeof a.c
+
+    if ('string' === ct) {
+
+    }
+    else if ('function' === ct) {
+      if ('c' === a.c.name) {
+        defprop(a.c, 'name', { value: 'ruleCond' })
       }
-      const pspec = a.c[propdef]
-      if (null != pspec) {
-        if ('object' === typeof pspec) {
-          for (let co of Object.keys(pspec)) {
-            if (1 === COND_OPS[co]) {
-              conds.push(makeRuleCond(co, prop, subprop, pspec[co]))
+    }
+    else if ('object' === ct) {
+      const ac: Record<string, any> = a.c
+      const conds: NormAltCond[] = []
+      const ruleprops = Object.keys(a.c)
+      for (let prop of ruleprops) {
+        const pspec = ac[prop]
+        if (null != pspec) {
+          if ('object' === typeof pspec) {
+            for (let co of Object.keys(pspec)) {
+              if (1 === COND_OPS[co]) {
+                conds.push(makeRuleCond(co, prop, pspec[co]))
+              }
             }
           }
-        }
-        else {
-          conds.push(makeRuleCond('$eq', prop, subprop, pspec))
-        }
-      }
-    }
-
-    if (0 === conds.length) {
-      delete a.c
-    }
-    else if (1 === conds.length) {
-      a.c = conds[0]
-    }
-    else {
-      a.c = function conjunctCond(r: Rule, c: Context, a: AltMatch) {
-        for (let cond of conds) {
-          let pass = cond(r, c, a)
-          if (false == pass) {
-            return false
+          else {
+            conds.push(makeRuleCond('$eq', prop, pspec))
           }
         }
-        return true
       }
+
+      if (0 === conds.length) {
+        delete a.c
+      }
+      else if (1 === conds.length) {
+        a.c = conds[0]
+      }
+      else {
+        a.c = function conjunctCond(r: Rule, c: Context, a: AltMatch) {
+          for (let cond of conds) {
+            let pass = cond(r, c, a)
+            if (false == pass) {
+              return false
+            }
+          }
+          return true
+        }
+      }
+    }
+    else {
+      throw new Error('Grammar: invalid condition: ' + a.c)
     }
   }
 
@@ -755,54 +767,50 @@ const COND_OPS: Record<string, number> = {
 }
 
 
-function getRuleProp(r: Rule, prop: string, subprop: string | null) {
-  return null == r ? undefined :
-    null == subprop ? (r as any)[prop] :
-      (r as any)[prop]?.[subprop]
-}
 
+function makeRuleCond(co: string, prop: string, val: any) {
+  const path = prop.split('.')
 
-function makeRuleCond(co: string, prop: string, subprop: string | null, val: any) {
   if ('$eq' === co) {
     return function ruleCond(r: Rule, _c: Context, _a: AltMatch) {
-      const rval = getRuleProp(r, prop, subprop)
-      return null == rval || rval === val
+      const rval = getpath(r, path)
+      return rval === val
     }
   }
   else if ('$ne' === co) {
     return function ruleCond(r: Rule, _c: Context, _a: AltMatch) {
-      const rval = getRuleProp(r, prop, subprop)
-      return null == rval || rval != val
+      const rval = getpath(r, path)
+      return rval != val
     }
   }
   else if ('$lt' === co) {
     return function ruleCond(r: Rule, _c: Context, _a: AltMatch) {
-      const rval = getRuleProp(r, prop, subprop)
+      const rval = getpath(r, path)
       return null == rval || rval < val
     }
   }
   else if ('$lte' === co) {
     return function ruleCond(r: Rule, _c: Context, _a: AltMatch) {
-      const rval = getRuleProp(r, prop, subprop)
+      const rval = getpath(r, path)
       return null == rval || rval <= val
     }
   }
 
   else if ('$gt' === co) {
     return function ruleCond(r: Rule, _c: Context, _a: AltMatch) {
-      const rval = getRuleProp(r, prop, subprop)
+      const rval = getpath(r, path)
       return null == rval || rval > val
     }
   }
   else if ('$gte' === co) {
     return function ruleCond(r: Rule, _c: Context, _a: AltMatch) {
-      const rval = getRuleProp(r, prop, subprop)
+      const rval = getpath(r, path)
       return null == rval || rval >= val
     }
   }
   else if ('$exist' === co) {
     return function ruleCond(r: Rule, _c: Context, _a: AltMatch) {
-      const rval = getRuleProp(r, prop, subprop)
+      const rval = getpath(r, path)
       return true === val ? null != rval : null == rval
     }
   }

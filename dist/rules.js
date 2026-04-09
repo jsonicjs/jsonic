@@ -489,46 +489,54 @@ function normalt(a) {
     if (!a.b) {
         a.b = null;
     }
-    if (null != a.c && 'function' !== typeof a.c && 'object' === typeof a.c) {
-        const conds = [];
-        const ruleprops = Object.keys(a.c);
-        for (let propdef of ruleprops) {
-            const parts = propdef.split('.');
-            let prop = parts[0];
-            let subprop = null;
-            if (2 === parts.length) {
-                subprop = parts[1];
+    if (null != a.c) {
+        const ct = typeof a.c;
+        if ('string' === ct) {
+        }
+        else if ('function' === ct) {
+            if ('c' === a.c.name) {
+                (0, utility_1.defprop)(a.c, 'name', { value: 'ruleCond' });
             }
-            const pspec = a.c[propdef];
-            if (null != pspec) {
-                if ('object' === typeof pspec) {
-                    for (let co of Object.keys(pspec)) {
-                        if (1 === COND_OPS[co]) {
-                            conds.push(makeRuleCond(co, prop, subprop, pspec[co]));
+        }
+        else if ('object' === ct) {
+            const ac = a.c;
+            const conds = [];
+            const ruleprops = Object.keys(a.c);
+            for (let prop of ruleprops) {
+                const pspec = ac[prop];
+                if (null != pspec) {
+                    if ('object' === typeof pspec) {
+                        for (let co of Object.keys(pspec)) {
+                            if (1 === COND_OPS[co]) {
+                                conds.push(makeRuleCond(co, prop, pspec[co]));
+                            }
                         }
                     }
-                }
-                else {
-                    conds.push(makeRuleCond('$eq', prop, subprop, pspec));
-                }
-            }
-        }
-        if (0 === conds.length) {
-            delete a.c;
-        }
-        else if (1 === conds.length) {
-            a.c = conds[0];
-        }
-        else {
-            a.c = function conjunctCond(r, c, a) {
-                for (let cond of conds) {
-                    let pass = cond(r, c, a);
-                    if (false == pass) {
-                        return false;
+                    else {
+                        conds.push(makeRuleCond('$eq', prop, pspec));
                     }
                 }
-                return true;
-            };
+            }
+            if (0 === conds.length) {
+                delete a.c;
+            }
+            else if (1 === conds.length) {
+                a.c = conds[0];
+            }
+            else {
+                a.c = function conjunctCond(r, c, a) {
+                    for (let cond of conds) {
+                        let pass = cond(r, c, a);
+                        if (false == pass) {
+                            return false;
+                        }
+                    }
+                    return true;
+                };
+            }
+        }
+        else {
+            throw new Error('Grammar: invalid condition: ' + a.c);
         }
     }
     return a;
@@ -541,51 +549,47 @@ const COND_OPS = {
     $gt: 1,
     $gte: 1,
 };
-function getRuleProp(r, prop, subprop) {
-    return null == r ? undefined :
-        null == subprop ? r[prop] :
-            r[prop]?.[subprop];
-}
-function makeRuleCond(co, prop, subprop, val) {
+function makeRuleCond(co, prop, val) {
+    const path = prop.split('.');
     if ('$eq' === co) {
         return function ruleCond(r, _c, _a) {
-            const rval = getRuleProp(r, prop, subprop);
-            return null == rval || rval === val;
+            const rval = (0, utility_1.getpath)(r, path);
+            return rval === val;
         };
     }
     else if ('$ne' === co) {
         return function ruleCond(r, _c, _a) {
-            const rval = getRuleProp(r, prop, subprop);
-            return null == rval || rval != val;
+            const rval = (0, utility_1.getpath)(r, path);
+            return rval != val;
         };
     }
     else if ('$lt' === co) {
         return function ruleCond(r, _c, _a) {
-            const rval = getRuleProp(r, prop, subprop);
+            const rval = (0, utility_1.getpath)(r, path);
             return null == rval || rval < val;
         };
     }
     else if ('$lte' === co) {
         return function ruleCond(r, _c, _a) {
-            const rval = getRuleProp(r, prop, subprop);
+            const rval = (0, utility_1.getpath)(r, path);
             return null == rval || rval <= val;
         };
     }
     else if ('$gt' === co) {
         return function ruleCond(r, _c, _a) {
-            const rval = getRuleProp(r, prop, subprop);
+            const rval = (0, utility_1.getpath)(r, path);
             return null == rval || rval > val;
         };
     }
     else if ('$gte' === co) {
         return function ruleCond(r, _c, _a) {
-            const rval = getRuleProp(r, prop, subprop);
+            const rval = (0, utility_1.getpath)(r, path);
             return null == rval || rval >= val;
         };
     }
     else if ('$exist' === co) {
         return function ruleCond(r, _c, _a) {
-            const rval = getRuleProp(r, prop, subprop);
+            const rval = (0, utility_1.getpath)(r, path);
             return true === val ? null != rval : null == rval;
         };
     }

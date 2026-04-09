@@ -904,6 +904,16 @@ function parserwrap(parser: any) {
 }
 
 
+function getpath(root: any, path: string | string[]): any {
+  path = 'string' === typeof path ? path.split('.') : path
+  let node = root
+  for (let i = 0; i < path.length && null != node; i++) {
+    node = node[path[i]]
+  }
+  return node
+}
+
+
 export {
   S,
   assign,
@@ -917,6 +927,7 @@ export {
   entries,
   escre,
   filterRules,
+  getpath,
   isarr,
   makelog,
   mesc,
