@@ -1,4 +1,4 @@
-/* Copyright (c) 2013-2022 Richard Rodger, MIT License */
+/* Copyright (c) 2013-2026 Richard Rodger, MIT License */
 
 /*  parser.ts
  *  Parser implementation, converts the lexer tokens into parsed data.
@@ -14,6 +14,7 @@ import type {
   RuleDefiner,
   RuleSpec,
   RuleSpecMap,
+  Jsonic,
 } from './types'
 
 import { EMPTY } from './types'
@@ -40,10 +41,12 @@ class ParserImpl implements Parser {
   options: Options
   cfg: Config
   rsm: RuleSpecMap = {}
+  ji: Jsonic
 
-  constructor(options: Options, cfg: Config) {
+  constructor(options: Options, cfg: Config, j: Jsonic) {
     this.options = options
     this.cfg = cfg
+    this.ji = j
   }
 
   // TODO: ensure chains properly, both for create and extend rule
@@ -67,7 +70,7 @@ class ParserImpl implements Parser {
 
     // Else add or redefine a rule by name.
     else if (undefined !== define) {
-      rs = this.rsm[name] = this.rsm[name] || makeRuleSpec(this.cfg, {})
+      rs = this.rsm[name] = this.rsm[name] || makeRuleSpec(this.ji, this.cfg, {})
       rs = this.rsm[name] = define(this.rsm[name], this) || this.rsm[name]
       rs.name = name
 
@@ -121,7 +124,7 @@ class ParserImpl implements Parser {
 
     ctx = deep(ctx, parent_ctx)
 
-    let norule = makeNoRule(ctx)
+    let norule = makeNoRule(this.ji, ctx)
     ctx.NORULE = norule
     ctx.rule = norule
 
@@ -198,8 +201,8 @@ class ParserImpl implements Parser {
     return result
   }
 
-  clone(options: Options, config: Config) {
-    let parser = new ParserImpl(options, config)
+  clone(options: Options, config: Config, j: Jsonic) {
+    let parser = new ParserImpl(options, config, j)
 
     // Inherit rules from parent, filtered by config.rule
     parser.rsm = Object.keys(this.rsm).reduce(

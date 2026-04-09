@@ -197,8 +197,8 @@ function make(param_options?: Bag | string, parent?: Jsonic): Jsonic {
     if (null != change_options && S.object === typeof change_options) {
       deep(merged_options, change_options)
       configure(jsonic, internal.config, merged_options)
-      let parser = jsonic.internal().parser
-      internal.parser = parser.clone(merged_options, internal.config)
+      let parser: Parser = jsonic.internal().parser
+      internal.parser = parser.clone(merged_options, internal.config, jsonic)
     }
     return { ...jsonic.options }
   }
@@ -250,7 +250,7 @@ function make(param_options?: Bag | string, parent?: Jsonic): Jsonic {
     },
 
     rule: (name?: string, define?: RuleDefiner | null) => {
-      return jsonic.internal().parser.rule(name, define) || jsonic
+      return (jsonic.internal().parser as Parser).rule(name, define) || jsonic
     },
 
     make: (options?: Options | string) => {
@@ -294,6 +294,7 @@ function make(param_options?: Bag | string, parent?: Jsonic): Jsonic {
   // Has to be done indirectly as we are in a fuction named `make`.
   defprop(api.make, S.name, { value: S.make })
 
+  let ji = jsonic
   if (injectFullAPI) {
     // Add API methods to the core utility function.
     assign(jsonic, api)
@@ -305,6 +306,7 @@ function make(param_options?: Bag | string, parent?: Jsonic): Jsonic {
       id: api.id,
       toString: api.toString,
     })
+    ji = assign(Object.create(jsonic), api)
   }
 
   // Hide internals where you can still find them.
@@ -330,12 +332,14 @@ function make(param_options?: Bag | string, parent?: Jsonic): Jsonic {
     internal.parser = parent_internal.parser.clone(
       merged_options,
       internal.config,
+      ji,
     )
-  } else {
+  }
+  else {
     let rootWithAPI = { ...jsonic, ...api }
     internal.config = configure(rootWithAPI, undefined, merged_options)
     internal.plugins = []
-    internal.parser = makeParser(merged_options, internal.config)
+    internal.parser = makeParser(merged_options, internal.config, ji)
 
     if (false !== merged_options.grammar$) {
       grammar(rootWithAPI)

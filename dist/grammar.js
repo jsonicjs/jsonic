@@ -42,16 +42,40 @@ function grammar(jsonic) {
     // Plain JSON
     jsonic.rule('val', (rs) => {
         rs
+            .fnref({
+            '@bo': (rule) => (rule.node = undefined),
+            '@bc': (r, ctx) => {
+                // NOTE: val can be undefined when there is no value at all
+                // (eg. empty string, thus no matched opening token)
+                r.node =
+                    // If there's no node,
+                    undefined === r.node
+                        ? // ... or no child node (child map or list),
+                            undefined === r.child.node
+                                ? // ... or no matched tokens,
+                                    0 === r.os
+                                        ? // ... then the node has no value
+                                            undefined
+                                        : // .. otherwise use the token value
+                                            r.o0.resolveVal(r, ctx)
+                                : r.child.node
+                        : r.node;
+            }
+        })
             // Clear the current node as this a new value.
-            .bo((rule) => (rule.node = undefined))
+            // .bo((rule: Rule) => (rule.node = undefined))
+            .bo('@bo')
             // Opening token alternates.
             .open([
             // A map: `{ ...`
-            { s: [OB], p: 'map', b: 1, g: 'map,json' },
+            // { s: [OB], p: 'map', b: 1, g: 'map,json' },
+            { s: '#OB', p: 'map', b: 1, g: 'map,json' },
             // A list: `[ ...`
-            { s: [OS], p: 'list', b: 1, g: 'list,json' },
+            // { s: [OS], p: 'list', b: 1, g: 'list,json' },
+            { s: '#OS', p: 'list', b: 1, g: 'list,json' },
             // A plain value: `x` `"x"` `1` `true` ....
             { s: [VAL], g: 'val,json' },
+            // { s: '#VAL', g: 'val,json' },
         ])
             // Closing token alternates.
             .close([
@@ -60,23 +84,7 @@ function grammar(jsonic) {
             // There's more JSON.
             { b: 1, g: 'more,json' },
         ])
-            .bc((r, ctx) => {
-            // NOTE: val can be undefined when there is no value at all
-            // (eg. empty string, thus no matched opening token)
-            r.node =
-                // If there's no node,
-                undefined === r.node
-                    ? // ... or no child node (child map or list),
-                        undefined === r.child.node
-                            ? // ... or no matched tokens,
-                                0 === r.os
-                                    ? // ... then the node has no value
-                                        undefined
-                                    : // .. otherwise use the token value
-                                        r.o0.resolveVal(r, ctx)
-                            : r.child.node
-                    : r.node;
-        });
+            .bc('@bc');
     });
     jsonic.rule('map', (rs) => {
         rs.bo((r) => {
@@ -291,7 +299,6 @@ function grammar(jsonic) {
             }
         })
             .open({
-            // c: (r) => r.prev.u.implist,
             c: { 'prev.u.implist': { $eq: true } },
             p: 'elem',
         })

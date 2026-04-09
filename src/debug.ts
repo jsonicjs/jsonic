@@ -196,7 +196,8 @@ function descAlt(jsonic: Jsonic, rs: RuleSpec, kind: 'open' | 'close') {
                   ? '***INVALID***'
                   : 'number' === typeof tin
                     ? jsonic.token[tin]
-                    : '[' + tin.map((t: any) => jsonic.token[t]) + ']',
+                    : Array.isArray(tin) ? '[' + tin.map((t: any) => jsonic.token[t]) + ']'
+                      : ('' + tin),
               )
               .join(' ') +
             '] '

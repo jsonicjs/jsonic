@@ -281,10 +281,13 @@ export interface RuleSpec {
     ao: StateAction[]
     ac: StateAction[]
     tcol: Tin[][][]
+    fnref: FuncRefMap<AltNext | AltBack | AltCond | AltModifier | AltError>
   }
+  ji: Jsonic
 
   tin<R extends string | Tin, T extends R extends Tin ? string : Tin>(ref: R): T
 
+  fnref(frm: Record<FuncRef, Function>): RuleSpec
   add(state: RuleState, a: AltSpec | AltSpec[], flags: any): RuleSpec
   open(a: AltSpec | AltSpecish[], flags?: any): RuleSpec
   close(a: AltSpec | AltSpecish[], flags?: any): RuleSpec
@@ -294,10 +297,10 @@ export interface RuleSpec {
     state: RuleState,
     action: StateAction,
   ): RuleSpec
-  bo(first: StateAction | boolean, second?: StateAction): RuleSpec
-  ao(first: StateAction | boolean, second?: StateAction): RuleSpec
-  bc(first: StateAction | boolean, second?: StateAction): RuleSpec
-  ac(first: StateAction | boolean, second?: StateAction): RuleSpec
+  bo(first: StateAction | boolean | FuncRef, second?: StateAction): RuleSpec
+  ao(first: StateAction | boolean | FuncRef, second?: StateAction): RuleSpec
+  bc(first: StateAction | boolean | FuncRef, second?: StateAction): RuleSpec
+  ac(first: StateAction | boolean | FuncRef, second?: StateAction): RuleSpec
   clear(): RuleSpec
   norm(): RuleSpec
 
@@ -650,7 +653,7 @@ export interface Token {
 // Represent a possible token match (2-token lookahead)
 export interface AltSpec {
   // Token Tin sequence to match (0,1,2 Tins, or a subset of Tins; nulls filterd out).
-  s?: (Tin | Tin[] | null | undefined)[] | null
+  s?: (Tin | Tin[] | null | undefined | string)[] | null | string
 
   // Push named Rule onto stack (create child).
   p?: string | AltNext | null | false
@@ -711,6 +714,11 @@ export interface AltMatch {
 
 // General container of named items.
 export type Bag = { [key: string]: any }
+
+export type FuncRef = `@${string}`
+
+// Named function references.
+export type FuncRefMap<FT> = Record<FuncRef, FT>
 
 // A set of named counters.
 export type Counters = { [key: string]: number }
@@ -852,7 +860,7 @@ export interface Parser {
 
   start(src: string, jsonic: any, meta?: any, parent_ctx?: any): any
 
-  clone(options: Options, config: Config): Parser
+  clone(options: Options, config: Config, jsonic: Jsonic): Parser
 
   norm(): void
 }

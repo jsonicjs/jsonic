@@ -1,5 +1,5 @@
 "use strict";
-/* Copyright (c) 2013-2022 Richard Rodger, MIT License */
+/* Copyright (c) 2013-2026 Richard Rodger, MIT License */
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.makeParser = exports.makeRuleSpec = exports.makeRule = void 0;
 const types_1 = require("./types");
@@ -10,10 +10,11 @@ const rules_1 = require("./rules");
 Object.defineProperty(exports, "makeRule", { enumerable: true, get: function () { return rules_1.makeRule; } });
 Object.defineProperty(exports, "makeRuleSpec", { enumerable: true, get: function () { return rules_1.makeRuleSpec; } });
 class ParserImpl {
-    constructor(options, cfg) {
+    constructor(options, cfg, j) {
         this.rsm = {};
         this.options = options;
         this.cfg = cfg;
+        this.ji = j;
     }
     // TODO: ensure chains properly, both for create and extend rule
     // Multi-functional get/set for rules.
@@ -30,7 +31,7 @@ class ParserImpl {
         }
         // Else add or redefine a rule by name.
         else if (undefined !== define) {
-            rs = this.rsm[name] = this.rsm[name] || (0, rules_1.makeRuleSpec)(this.cfg, {});
+            rs = this.rsm[name] = this.rsm[name] || (0, rules_1.makeRuleSpec)(this.ji, this.cfg, {});
             rs = this.rsm[name] = define(this.rsm[name], this) || this.rsm[name];
             rs.name = name;
             // Ensures jsonic.rule can chain
@@ -70,7 +71,7 @@ class ParserImpl {
             NORULE: {},
         };
         ctx = (0, utility_1.deep)(ctx, parent_ctx);
-        let norule = (0, rules_1.makeNoRule)(ctx);
+        let norule = (0, rules_1.makeNoRule)(this.ji, ctx);
         ctx.NORULE = norule;
         ctx.rule = norule;
         // makelog(ctx, meta)
@@ -125,8 +126,8 @@ class ParserImpl {
         }
         return result;
     }
-    clone(options, config) {
-        let parser = new ParserImpl(options, config);
+    clone(options, config, j) {
+        let parser = new ParserImpl(options, config, j);
         // Inherit rules from parent, filtered by config.rule
         parser.rsm = Object.keys(this.rsm).reduce((a, rn) => ((a[rn] = (0, utility_1.filterRules)(this.rsm[rn], this.cfg)), a), {});
         parser.norm();

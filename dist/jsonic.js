@@ -103,7 +103,7 @@ function make(param_options, parent) {
             (0, utility_1.deep)(merged_options, change_options);
             (0, utility_1.configure)(jsonic, internal.config, merged_options);
             let parser = jsonic.internal().parser;
-            internal.parser = parser.clone(merged_options, internal.config);
+            internal.parser = parser.clone(merged_options, internal.config, jsonic);
         }
         return { ...jsonic.options };
     };
@@ -169,6 +169,7 @@ function make(param_options, parent) {
     };
     // Has to be done indirectly as we are in a fuction named `make`.
     (0, utility_1.defprop)(api.make, utility_1.S.name, { value: utility_1.S.make });
+    let ji = jsonic;
     if (injectFullAPI) {
         // Add API methods to the core utility function.
         (0, utility_1.assign)(jsonic, api);
@@ -181,6 +182,7 @@ function make(param_options, parent) {
             id: api.id,
             toString: api.toString,
         });
+        ji = (0, utility_1.assign)(Object.create(jsonic), api);
     }
     // Hide internals where you can still find them.
     (0, utility_1.defprop)(jsonic, 'internal', { value: () => internal });
@@ -197,13 +199,13 @@ function make(param_options, parent) {
         (0, utility_1.configure)(jsonic, internal.config, merged_options);
         (0, utility_1.assign)(jsonic.token, internal.config.t);
         internal.plugins = [...parent_internal.plugins];
-        internal.parser = parent_internal.parser.clone(merged_options, internal.config);
+        internal.parser = parent_internal.parser.clone(merged_options, internal.config, ji);
     }
     else {
         let rootWithAPI = { ...jsonic, ...api };
         internal.config = (0, utility_1.configure)(rootWithAPI, undefined, merged_options);
         internal.plugins = [];
-        internal.parser = (0, parser_1.makeParser)(merged_options, internal.config);
+        internal.parser = (0, parser_1.makeParser)(merged_options, internal.config, ji);
         if (false !== merged_options.grammar$) {
             (0, grammar_1.grammar)(rootWithAPI);
         }

@@ -5,26 +5,32 @@
  */
 
 import type {
+  AltAction,
+  AltBack,
+  AltCond,
+  AltError,
+  AltMatch,
+  AltModifier,
+  AltNext,
+  AltSpec,
+  Bag,
+  Config,
+  Context,
+  Counters,
+  FuncRef,
+  FuncRefMap,
+  Lex,
+  ListMods,
+  NormAltCond,
+  NormAltSpec,
+  Rule,
+  RuleSpec,
   RuleState,
   RuleStep,
   StateAction,
   Tin,
   Token,
-  Config,
-  Context,
-  Rule,
-  RuleSpec,
-  NormAltSpec,
-  AltCond,
-  NormAltCond,
-  AltModifier,
-  AltAction,
-  AltMatch,
-  ListMods,
-  AltSpec,
-  Counters,
-  Bag,
-  Lex,
+  Jsonic,
 } from './types'
 
 import { OPEN, CLOSE, BEFORE, AFTER, EMPTY, STRING } from './types'
@@ -132,7 +138,7 @@ class RuleImpl implements Rule {
 const makeRule = (...params: ConstructorParameters<typeof RuleImpl>) =>
   new RuleImpl(...params)
 
-const makeNoRule = (ctx: Context) => makeRule(makeRuleSpec(ctx.cfg, {}), ctx)
+const makeNoRule = (j: Jsonic, ctx: Context) => makeRule(makeRuleSpec(j, ctx.cfg, {}), ctx)
 
 // Parse-alternate match (built from current tokens and AltSpec).
 class AltMatchImpl implements AltMatch {
@@ -165,11 +171,14 @@ class RuleSpecImpl implements RuleSpec {
     ao: [] as StateAction[],
     ac: [] as StateAction[],
     tcol: [] as Tin[][][],
+    fnref: {} as FuncRefMap<Function>,
   }
   cfg: Config
+  ji: Jsonic
 
-  // TODO: is def param used?
-  constructor(cfg: Config, def: any) {
+
+  constructor(j: Jsonic, cfg: Config, def: any) {
+    this.ji = j
     this.cfg = cfg
     this.def = Object.assign(this.def, def)
 
@@ -179,8 +188,22 @@ class RuleSpecImpl implements RuleSpec {
       (alt: AltSpec) => null != alt,
     )
 
-    for (let alt of [...this.def.open, ...this.def.close]) {
-      normalt(alt)
+    for (let alt of this.def.open) {
+      normalt(alt, this)
+    }
+
+    for (let alt of this.def.close) {
+      normalt(alt, this)
+    }
+
+    const anames = ['bo', 'ao', 'bc', 'ac']
+    for (let an of anames) {
+      for (let sa of ((this.def as any)[an] ?? [])) {
+        if ('object' === typeof sa) {
+          let sadef = sa as any
+          (this as any)[an](sadef.append, sadef.action)
+        }
+      }
     }
   }
 
@@ -191,11 +214,18 @@ class RuleSpecImpl implements RuleSpec {
     return tokenize(ref, this.cfg)
   }
 
+
+  fnref(frm: Record<string, Function>): RuleSpec {
+    Object.assign(this.def.fnref, frm)
+    return this
+  }
+
+
   add(state: RuleState, a: AltSpec | AltSpec[], mods?: ListMods): RuleSpec {
     let inject = mods?.append ? 'push' : 'unshift'
     let aa = ((isarr(a) ? a : [a]) as AltSpec[])
       .filter((alt: AltSpec) => null != alt && 'object' === typeof alt)
-      .map((a) => normalt(a))
+      .map((a) => normalt(a, this))
     let altState: 'open' | 'close' = 'o' === state ? 'open' : 'close'
     let alts: any = this.def[altState]
 
@@ -209,6 +239,7 @@ class RuleSpecImpl implements RuleSpec {
 
     return this
   }
+
 
   open(a: AltSpec | AltSpec[], mods?: ListMods): RuleSpec {
     return this.add('o', a, mods)
@@ -233,12 +264,13 @@ class RuleSpecImpl implements RuleSpec {
     return this
   }
 
-  bo(append: StateAction | boolean, action?: StateAction): RuleSpec {
+  bo(append: StateAction | boolean | FuncRef, action?: StateAction): RuleSpec {
     return this.action(
       action ? !!append : true,
       BEFORE,
       OPEN,
-      action || (append as StateAction),
+      'string' === typeof append ? this.def.fnref[append as FuncRef] as StateAction :
+        (action ?? (append as StateAction)),
     )
   }
 
@@ -247,25 +279,28 @@ class RuleSpecImpl implements RuleSpec {
       action ? !!append : true,
       AFTER,
       OPEN,
-      action || (append as StateAction),
+      'string' === typeof append ? this.def.fnref[append as FuncRef] as StateAction :
+        (action ?? (append as StateAction)),
     )
   }
 
-  bc(first: StateAction | boolean, second?: StateAction): RuleSpec {
+  bc(append: StateAction | boolean, action?: StateAction): RuleSpec {
     return this.action(
-      second ? !!first : true,
+      action ? !!append : true,
       BEFORE,
       CLOSE,
-      second || (first as StateAction),
+      'string' === typeof append ? this.def.fnref[append as FuncRef] as StateAction :
+        (action ?? (append as StateAction)),
     )
   }
 
-  ac(first: StateAction | boolean, second?: StateAction): RuleSpec {
+  ac(append: StateAction | boolean, action?: StateAction): RuleSpec {
     return this.action(
-      second ? !!first : true,
+      action ? !!append : true,
       AFTER,
       CLOSE,
-      second || (first as StateAction),
+      'string' === typeof append ? this.def.fnref[append as FuncRef] as StateAction :
+        (action ?? (append as StateAction)),
     )
   }
 
@@ -280,8 +315,8 @@ class RuleSpecImpl implements RuleSpec {
   }
 
   norm() {
-    this.def.open.map((alt) => normalt(alt))
-    this.def.close.map((alt) => normalt(alt))
+    this.def.open.map((alt) => normalt(alt, this))
+    this.def.close.map((alt) => normalt(alt, this))
 
     // [stateI is o=0,c=1][tokenI is t0=0,t1=1][tins]
     const columns: Tin[][][] = []
@@ -316,6 +351,7 @@ class RuleSpecImpl implements RuleSpec {
 
     return this
   }
+
 
   process(rule: Rule, ctx: Context, lex: Lex, state: RuleState): Rule {
     ctx.log && ctx.log(S.rule, ctx, rule, lex)
@@ -637,8 +673,9 @@ function parse_alts(
   return out
 }
 
+
 // Normalize AltSpec (mutates).
-function normalt(a: AltSpec): NormAltSpec {
+function normalt(a: AltSpec, r: RuleSpec): NormAltSpec {
   // Ensure groups are a string[]
   if (STRING === typeof a.g) {
     a.g = (a as any).g.split(/\s*,\s*/)
@@ -650,9 +687,16 @@ function normalt(a: AltSpec): NormAltSpec {
 
   if (!a.s || 0 === a.s.length) {
     a.s = null
-  } else {
+  }
+  else {
+    if ('string' === typeof a.s) {
+      a.s = a.s.split(/\s*[, ]\s*/)
+    }
+
     const tinsify = (s: any[]): Tin[] =>
-      s.flat().filter((tin) => 'number' === typeof tin)
+      s.flat()
+        .map((n) => 'string' === typeof n ? (r.ji.tokenSet(n) ?? r.ji.token(n)) : n)
+        .filter((tin) => 'number' === typeof tin)
 
     const partify = (tins: Tin[], part: number) =>
       tins.filter((tin) => 31 * part <= tin && tin < 31 * (part + 1))
@@ -689,13 +733,34 @@ function normalt(a: AltSpec): NormAltSpec {
   if (!a.p) {
     a.p = null
   }
+  else if (isfnref(a.p)) {
+    a.p = r.def.fnref[(a as any).p] as AltNext
+  }
 
   if (!a.r) {
     a.r = null
   }
+  else if (isfnref(a.r)) {
+    a.r = r.def.fnref[(a as any).r] as AltNext
+  }
 
   if (!a.b) {
     a.b = null
+  }
+  else if (isfnref(a.b)) {
+    a.b = r.def.fnref[(a as any).b] as AltBack
+  }
+
+  if (isfnref(a.a)) {
+    a.a = r.def.fnref[(a as any).a] as AltAction
+  }
+
+  if (isfnref(a.h)) {
+    a.h = r.def.fnref[(a as any).h] as AltModifier
+  }
+
+  if (isfnref(a.e)) {
+    a.e = r.def.fnref[(a as any).e] as AltError
   }
 
 
@@ -703,7 +768,7 @@ function normalt(a: AltSpec): NormAltSpec {
     const ct = typeof a.c
 
     if ('string' === ct) {
-
+      a.c = r.def.fnref[a.c as unknown as `@${string}`] as AltCond
     }
     else if ('function' === ct) {
       if ('c' === a.c.name) {
@@ -757,6 +822,11 @@ function normalt(a: AltSpec): NormAltSpec {
 }
 
 
+function isfnref(v: any) {
+  return 'string' === typeof v && v.startsWith('@')
+}
+
+
 const COND_OPS: Record<string, number> = {
   $eq: 1,
   $ne: 1,
@@ -765,7 +835,6 @@ const COND_OPS: Record<string, number> = {
   $gt: 1,
   $gte: 1,
 }
-
 
 
 function makeRuleCond(co: string, prop: string, val: any) {

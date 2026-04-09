@@ -1,4 +1,4 @@
-import type { RuleState, RuleStep, StateAction, Tin, Token, Config, Context, Rule, RuleSpec, ListMods, AltSpec, Lex } from './types';
+import type { AltSpec, Config, Context, FuncRef, FuncRefMap, Lex, ListMods, Rule, RuleSpec, RuleState, RuleStep, StateAction, Tin, Token, Jsonic } from './types';
 declare class RuleImpl implements Rule {
     i: number;
     name: string;
@@ -34,7 +34,7 @@ declare class RuleImpl implements Rule {
     toString(): string;
 }
 declare const makeRule: (...params: ConstructorParameters<typeof RuleImpl>) => RuleImpl;
-declare const makeNoRule: (ctx: Context) => RuleImpl;
+declare const makeNoRule: (j: Jsonic, ctx: Context) => RuleImpl;
 declare class RuleSpecImpl implements RuleSpec {
     name: string;
     def: {
@@ -45,18 +45,21 @@ declare class RuleSpecImpl implements RuleSpec {
         ao: StateAction[];
         ac: StateAction[];
         tcol: Tin[][][];
+        fnref: FuncRefMap<Function>;
     };
     cfg: Config;
-    constructor(cfg: Config, def: any);
+    ji: Jsonic;
+    constructor(j: Jsonic, cfg: Config, def: any);
     tin<R extends string | Tin, T extends R extends Tin ? string : Tin>(ref: R): T;
+    fnref(frm: Record<string, Function>): RuleSpec;
     add(state: RuleState, a: AltSpec | AltSpec[], mods?: ListMods): RuleSpec;
     open(a: AltSpec | AltSpec[], mods?: ListMods): RuleSpec;
     close(a: AltSpec | AltSpec[], mods?: ListMods): RuleSpec;
     action(append: boolean, step: RuleStep, state: RuleState, action: StateAction): RuleSpec;
-    bo(append: StateAction | boolean, action?: StateAction): RuleSpec;
+    bo(append: StateAction | boolean | FuncRef, action?: StateAction): RuleSpec;
     ao(append: StateAction | boolean, action?: StateAction): RuleSpec;
-    bc(first: StateAction | boolean, second?: StateAction): RuleSpec;
-    ac(first: StateAction | boolean, second?: StateAction): RuleSpec;
+    bc(append: StateAction | boolean, action?: StateAction): RuleSpec;
+    ac(append: StateAction | boolean, action?: StateAction): RuleSpec;
     clear(): this;
     norm(): this;
     process(rule: Rule, ctx: Context, lex: Lex, state: RuleState): Rule;

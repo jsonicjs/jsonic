@@ -286,32 +286,30 @@ describe('jsonic', function () {
   it('rule-spec', () => {
     let cfg = {}
 
-    let rs0 = j.makeRuleSpec(cfg, {})
+    let rs0 = j.makeRuleSpec({}, cfg, {})
     assert.deepEqual(rs0.name, '')
     assert.deepEqual(rs0.def.open, [])
     assert.deepEqual(rs0.def.close, [])
 
-    let rs1 = j.makeRuleSpec(cfg, {
+    let rs1 = j.makeRuleSpec({}, cfg, {
       open: [
         {},
         { c: () => true },
-        // { c: { n: {} } },
         { c: (r) => r.lte() },
         { c: {} },
       ],
     })
+    
     assert.deepEqual(rs1.def.open[0].c, undefined)
     assert.deepEqual(typeof rs1.def.open[1].c === 'function', true)
     assert.deepEqual(typeof rs1.def.open[2].c === 'function', true)
 
-    let rs2 = j.makeRuleSpec(cfg, {
+    let rs2 = j.makeRuleSpec({}, cfg, {
       open: [
-        // { c: { n: { a: 10, b: 20 } } }
         { c: (r) => r.lte('a', 10) && r.lte('b', 20) },
       ],
     })
     let c0 = rs2.def.open[0].c
-    // expect(c0({ n: {} })).equal(true)
     let mr = (n) => {
       let r = makeRule({ name: '', def: {} }, { uI: 0 })
       r.n = n

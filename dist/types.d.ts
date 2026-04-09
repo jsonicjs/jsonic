@@ -206,16 +206,19 @@ export interface RuleSpec {
         ao: StateAction[];
         ac: StateAction[];
         tcol: Tin[][][];
+        fnref: FuncRefMap<AltNext | AltBack | AltCond | AltModifier | AltError>;
     };
+    ji: Jsonic;
     tin<R extends string | Tin, T extends R extends Tin ? string : Tin>(ref: R): T;
+    fnref(frm: Record<FuncRef, Function>): RuleSpec;
     add(state: RuleState, a: AltSpec | AltSpec[], flags: any): RuleSpec;
     open(a: AltSpec | AltSpecish[], flags?: any): RuleSpec;
     close(a: AltSpec | AltSpecish[], flags?: any): RuleSpec;
     action(prepend: boolean, step: RuleStep, state: RuleState, action: StateAction): RuleSpec;
-    bo(first: StateAction | boolean, second?: StateAction): RuleSpec;
-    ao(first: StateAction | boolean, second?: StateAction): RuleSpec;
-    bc(first: StateAction | boolean, second?: StateAction): RuleSpec;
-    ac(first: StateAction | boolean, second?: StateAction): RuleSpec;
+    bo(first: StateAction | boolean | FuncRef, second?: StateAction): RuleSpec;
+    ao(first: StateAction | boolean | FuncRef, second?: StateAction): RuleSpec;
+    bc(first: StateAction | boolean | FuncRef, second?: StateAction): RuleSpec;
+    ac(first: StateAction | boolean | FuncRef, second?: StateAction): RuleSpec;
     clear(): RuleSpec;
     norm(): RuleSpec;
     process(rule: Rule, ctx: Context, lex: Lex, state: RuleState): Rule;
@@ -481,7 +484,7 @@ export interface Token {
     resolveVal(rule: Rule, ctx: Context): any;
 }
 export interface AltSpec {
-    s?: (Tin | Tin[] | null | undefined)[] | null;
+    s?: (Tin | Tin[] | null | undefined | string)[] | null | string;
     p?: string | AltNext | null | false;
     r?: string | AltNext | null | false;
     b?: number | AltBack | null | false;
@@ -517,6 +520,8 @@ export interface AltMatch {
 export type Bag = {
     [key: string]: any;
 };
+export type FuncRef = `@${string}`;
+export type FuncRefMap<FT> = Record<FuncRef, FT>;
 export type Counters = {
     [key: string]: number;
 };
@@ -579,7 +584,7 @@ export interface Parser {
     rsm: RuleSpecMap;
     rule(name?: string, define?: RuleDefiner | null): RuleSpec | RuleSpecMap | undefined;
     start(src: string, jsonic: any, meta?: any, parent_ctx?: any): any;
-    clone(options: Options, config: Config): Parser;
+    clone(options: Options, config: Config, jsonic: Jsonic): Parser;
     norm(): void;
 }
 export {};
