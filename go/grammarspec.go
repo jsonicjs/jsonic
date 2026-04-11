@@ -16,7 +16,7 @@ type GrammarSpec struct {
 	Ref map[FuncRef]any
 
 	// Options to merge into the Jsonic instance before processing rules.
-	// Can be a typed *Options struct or a map[string]any with FuncRef resolution.
+	// Applied via SetOptions.
 	Options *Options
 
 	// OptionsMap is an alternative to Options that accepts a map[string]any.
@@ -73,8 +73,8 @@ type GrammarAltSpec struct {
 
 // Grammar applies a declarative grammar specification to this Jsonic instance.
 // Options are applied first, then rules are processed.
-// Returns the Jsonic instance for chaining.
-func (j *Jsonic) Grammar(gs *GrammarSpec) *Jsonic {
+// Returns an error if any FuncRef is missing or has the wrong type.
+func (j *Jsonic) Grammar(gs *GrammarSpec) error {
 	// Apply typed Options directly.
 	if gs.Options != nil {
 		j.SetOptions(*gs.Options)
@@ -92,15 +92,22 @@ func (j *Jsonic) Grammar(gs *GrammarSpec) *Jsonic {
 	if gs.Rule != nil {
 		for rulename, rulespec := range gs.Rule {
 			ref := gs.Ref
+			var resolveErr error
 			j.Rule(rulename, func(rs *RuleSpec) {
 				// Process Open alts.
 				if rulespec.Open != nil {
-					applyGrammarAlts(j, rs, rulespec.Open, ref, true)
+					if err := applyGrammarAlts(j, rs, rulespec.Open, ref, true); err != nil {
+						resolveErr = err
+						return
+					}
 				}
 
 				// Process Close alts.
 				if rulespec.Close != nil {
-					applyGrammarAlts(j, rs, rulespec.Close, ref, false)
+					if err := applyGrammarAlts(j, rs, rulespec.Close, ref, false); err != nil {
+						resolveErr = err
+						return
+					}
 				}
 
 				// Auto-wire reserved FuncRef names for state actions.
@@ -108,15 +115,18 @@ func (j *Jsonic) Grammar(gs *GrammarSpec) *Jsonic {
 					wireStateActions(rs, ref)
 				}
 			})
+			if resolveErr != nil {
+				return resolveErr
+			}
 		}
 	}
 
-	return j
+	return nil
 }
 
 // applyGrammarAlts resolves and applies grammar alts to a rule spec.
 // Handles both plain []*GrammarAltSpec and *GrammarAltListSpec with inject.
-func applyGrammarAlts(j *Jsonic, rs *RuleSpec, spec any, ref map[FuncRef]any, isOpen bool) {
+func applyGrammarAlts(j *Jsonic, rs *RuleSpec, spec any, ref map[FuncRef]any, isOpen bool) error {
 	var gas []*GrammarAltSpec
 	var inject *GrammarInjectSpec
 
@@ -127,10 +137,13 @@ func applyGrammarAlts(j *Jsonic, rs *RuleSpec, spec any, ref map[FuncRef]any, is
 		gas = v.Alts
 		inject = v.Inject
 	default:
-		return
+		return nil
 	}
 
-	resolved := j.resolveGrammarAlts(gas, ref)
+	resolved, err := j.resolveGrammarAlts(gas, ref)
+	if err != nil {
+		return err
+	}
 
 	dest := &rs.Close
 	if isOpen {
@@ -151,19 +164,25 @@ func applyGrammarAlts(j *Jsonic, rs *RuleSpec, spec any, ref map[FuncRef]any, is
 	} else {
 		*dest = append(resolved, *dest...)
 	}
+
+	return nil
 }
 
 // resolveGrammarAlts converts a slice of GrammarAltSpec to concrete AltSpec.
-func (j *Jsonic) resolveGrammarAlts(gas []*GrammarAltSpec, ref map[FuncRef]any) []*AltSpec {
+func (j *Jsonic) resolveGrammarAlts(gas []*GrammarAltSpec, ref map[FuncRef]any) ([]*AltSpec, error) {
 	alts := make([]*AltSpec, 0, len(gas))
 	for _, ga := range gas {
-		alts = append(alts, j.resolveGrammarAlt(ga, ref))
+		alt, err := j.resolveGrammarAlt(ga, ref)
+		if err != nil {
+			return nil, err
+		}
+		alts = append(alts, alt)
 	}
-	return alts
+	return alts, nil
 }
 
 // resolveGrammarAlt converts a single GrammarAltSpec to a concrete AltSpec.
-func (j *Jsonic) resolveGrammarAlt(ga *GrammarAltSpec, ref map[FuncRef]any) *AltSpec {
+func (j *Jsonic) resolveGrammarAlt(ga *GrammarAltSpec, ref map[FuncRef]any) (*AltSpec, error) {
 	alt := &AltSpec{}
 
 	// Resolve S (token spec: string or []string → [][]Tin)
@@ -178,22 +197,28 @@ func (j *Jsonic) resolveGrammarAlt(ga *GrammarAltSpec, ref map[FuncRef]any) *Alt
 	case float64:
 		alt.B = int(v)
 	case string:
-		fn := requireRef(ref, v, "backtrack")
+		fn, err := requireRef(ref, v, "backtrack")
+		if err != nil {
+			return nil, err
+		}
 		if bf, ok := fn.(func(*Rule, *Context) int); ok {
 			alt.BF = bf
 		} else {
-			panic(fmt.Sprintf("Grammar: ref %q is not a backtrack function", v))
+			return nil, fmt.Errorf("Grammar: ref %q is not a backtrack function", v)
 		}
 	}
 
 	// Resolve P (push: rule name or FuncRef)
 	if ga.P != "" {
 		if isFuncRef(ga.P) {
-			fn := requireRef(ref, ga.P, "push")
+			fn, err := requireRef(ref, ga.P, "push")
+			if err != nil {
+				return nil, err
+			}
 			if pf, ok := fn.(func(*Rule, *Context) string); ok {
 				alt.PF = pf
 			} else {
-				panic(fmt.Sprintf("Grammar: ref %q is not a push function", ga.P))
+				return nil, fmt.Errorf("Grammar: ref %q is not a push function", ga.P)
 			}
 		} else {
 			alt.P = ga.P
@@ -203,11 +228,14 @@ func (j *Jsonic) resolveGrammarAlt(ga *GrammarAltSpec, ref map[FuncRef]any) *Alt
 	// Resolve R (replace: rule name or FuncRef)
 	if ga.R != "" {
 		if isFuncRef(ga.R) {
-			fn := requireRef(ref, ga.R, "replace")
+			fn, err := requireRef(ref, ga.R, "replace")
+			if err != nil {
+				return nil, err
+			}
 			if rf, ok := fn.(func(*Rule, *Context) string); ok {
 				alt.RF = rf
 			} else {
-				panic(fmt.Sprintf("Grammar: ref %q is not a replace function", ga.R))
+				return nil, fmt.Errorf("Grammar: ref %q is not a replace function", ga.R)
 			}
 		} else {
 			alt.R = ga.R
@@ -216,42 +244,54 @@ func (j *Jsonic) resolveGrammarAlt(ga *GrammarAltSpec, ref map[FuncRef]any) *Alt
 
 	// Resolve A (action)
 	if ga.A != "" {
-		fn := requireRef(ref, ga.A, "action")
+		fn, err := requireRef(ref, ga.A, "action")
+		if err != nil {
+			return nil, err
+		}
 		if af, ok := fn.(AltAction); ok {
 			alt.A = af
 		} else {
-			panic(fmt.Sprintf("Grammar: ref %q is not an AltAction", ga.A))
+			return nil, fmt.Errorf("Grammar: ref %q is not an AltAction", ga.A)
 		}
 	}
 
 	// Resolve E (error)
 	if ga.E != "" {
-		fn := requireRef(ref, ga.E, "error")
+		fn, err := requireRef(ref, ga.E, "error")
+		if err != nil {
+			return nil, err
+		}
 		if ef, ok := fn.(AltError); ok {
 			alt.E = ef
 		} else {
-			panic(fmt.Sprintf("Grammar: ref %q is not an AltError", ga.E))
+			return nil, fmt.Errorf("Grammar: ref %q is not an AltError", ga.E)
 		}
 	}
 
 	// Resolve H (modifier)
 	if ga.H != "" {
-		fn := requireRef(ref, ga.H, "modifier")
+		fn, err := requireRef(ref, ga.H, "modifier")
+		if err != nil {
+			return nil, err
+		}
 		if hf, ok := fn.(AltModifier); ok {
 			alt.H = hf
 		} else {
-			panic(fmt.Sprintf("Grammar: ref %q is not an AltModifier", ga.H))
+			return nil, fmt.Errorf("Grammar: ref %q is not an AltModifier", ga.H)
 		}
 	}
 
 	// Resolve C (condition: FuncRef or declarative map)
 	switch cv := ga.C.(type) {
 	case string:
-		fn := requireRef(ref, cv, "condition")
+		fn, err := requireRef(ref, cv, "condition")
+		if err != nil {
+			return nil, err
+		}
 		if cf, ok := fn.(AltCond); ok {
 			alt.C = cf
 		} else {
-			panic(fmt.Sprintf("Grammar: ref %q is not an AltCond", cv))
+			return nil, fmt.Errorf("Grammar: ref %q is not an AltCond", cv)
 		}
 	case map[string]any:
 		alt.CD = cv
@@ -281,7 +321,7 @@ func (j *Jsonic) resolveGrammarAlt(ga *GrammarAltSpec, ref map[FuncRef]any) *Alt
 	// Normalize declarative conditions
 	NormAlt(alt)
 
-	return alt
+	return alt, nil
 }
 
 // resolveTokenField resolves the S field of a GrammarAltSpec.
@@ -340,17 +380,17 @@ func isFuncRef(s string) bool {
 	return len(s) > 0 && s[0] == '@'
 }
 
-// requireRef looks up a FuncRef in the ref map and panics if not found.
+// requireRef looks up a FuncRef in the ref map and returns an error if not found.
 // Matches TS behavior which throws on missing refs.
-func requireRef(ref map[FuncRef]any, name string, kind string) any {
+func requireRef(ref map[FuncRef]any, name string, kind string) (any, error) {
 	if ref == nil {
-		panic(fmt.Sprintf("Grammar: unknown %s function reference: %s (no ref map)", kind, name))
+		return nil, fmt.Errorf("Grammar: unknown %s function reference: %s (no ref map)", kind, name)
 	}
 	fn, ok := ref[name]
 	if !ok {
-		panic(fmt.Sprintf("Grammar: unknown %s function reference: %s", kind, name))
+		return nil, fmt.Errorf("Grammar: unknown %s function reference: %s", kind, name)
 	}
-	return fn
+	return fn, nil
 }
 
 // lookupRef looks up a FuncRef in the ref map. Returns nil if not found.
@@ -568,11 +608,14 @@ func resolveTokenNameStatic(name string) []Tin {
 	if tin, ok := builtinTins[name]; ok {
 		return []Tin{tin}
 	}
-	panic("resolveTokenNameStatic: unknown token: " + name)
+	// Unknown tokens in static context are programming errors in the internal grammar.
+	// Return empty slice rather than panicking.
+	return nil
 }
 
 // resolveGrammarAltStatic converts a GrammarAltSpec to a concrete AltSpec
 // using only built-in token resolution. Used by the internal Grammar().
+// Errors cause the returned alt to have nil fields (best-effort).
 func resolveGrammarAltStatic(ga *GrammarAltSpec, ref map[FuncRef]any) *AltSpec {
 	alt := &AltSpec{}
 
@@ -586,17 +629,19 @@ func resolveGrammarAltStatic(ga *GrammarAltSpec, ref map[FuncRef]any) *AltSpec {
 	case float64:
 		alt.B = int(v)
 	case string:
-		fn := requireRef(ref, v, "backtrack")
-		if bf, ok := fn.(func(*Rule, *Context) int); ok {
-			alt.BF = bf
+		if fn := lookupRef(ref, v); fn != nil {
+			if bf, ok := fn.(func(*Rule, *Context) int); ok {
+				alt.BF = bf
+			}
 		}
 	}
 
 	if ga.P != "" {
 		if isFuncRef(ga.P) {
-			fn := requireRef(ref, ga.P, "push")
-			if pf, ok := fn.(func(*Rule, *Context) string); ok {
-				alt.PF = pf
+			if fn := lookupRef(ref, ga.P); fn != nil {
+				if pf, ok := fn.(func(*Rule, *Context) string); ok {
+					alt.PF = pf
+				}
 			}
 		} else {
 			alt.P = ga.P
@@ -605,9 +650,10 @@ func resolveGrammarAltStatic(ga *GrammarAltSpec, ref map[FuncRef]any) *AltSpec {
 
 	if ga.R != "" {
 		if isFuncRef(ga.R) {
-			fn := requireRef(ref, ga.R, "replace")
-			if rf, ok := fn.(func(*Rule, *Context) string); ok {
-				alt.RF = rf
+			if fn := lookupRef(ref, ga.R); fn != nil {
+				if rf, ok := fn.(func(*Rule, *Context) string); ok {
+					alt.RF = rf
+				}
 			}
 		} else {
 			alt.R = ga.R
@@ -615,22 +661,26 @@ func resolveGrammarAltStatic(ga *GrammarAltSpec, ref map[FuncRef]any) *AltSpec {
 	}
 
 	if ga.A != "" {
-		fn := requireRef(ref, ga.A, "action")
-		alt.A = fn.(AltAction)
+		if fn := lookupRef(ref, ga.A); fn != nil {
+			alt.A = fn.(AltAction)
+		}
 	}
 	if ga.E != "" {
-		fn := requireRef(ref, ga.E, "error")
-		alt.E = fn.(AltError)
+		if fn := lookupRef(ref, ga.E); fn != nil {
+			alt.E = fn.(AltError)
+		}
 	}
 	if ga.H != "" {
-		fn := requireRef(ref, ga.H, "modifier")
-		alt.H = fn.(AltModifier)
+		if fn := lookupRef(ref, ga.H); fn != nil {
+			alt.H = fn.(AltModifier)
+		}
 	}
 
 	switch cv := ga.C.(type) {
 	case string:
-		fn := requireRef(ref, cv, "condition")
-		alt.C = fn.(AltCond)
+		if fn := lookupRef(ref, cv); fn != nil {
+			alt.C = fn.(AltCond)
+		}
 	case map[string]any:
 		alt.CD = cv
 	}

@@ -1,12 +1,19 @@
 package jsonic
 
 import (
-	"fmt"
 	"reflect"
 	"regexp"
 	"strings"
 	"testing"
 )
+
+// mustGrammar calls Grammar and fails the test on error.
+func mustGrammar(t *testing.T, j *Jsonic, gs *GrammarSpec) {
+	t.Helper()
+	if err := j.Grammar(gs); err != nil {
+		t.Fatal(err)
+	}
+}
 
 // --- Skip sentinel ---
 
@@ -147,7 +154,7 @@ func TestResolveFuncRefsArray(t *testing.T) {
 func TestGrammarOptionsValueDef(t *testing.T) {
 	j := Make()
 	yes := true
-	j.Grammar(&GrammarSpec{
+	mustGrammar(t, j, &GrammarSpec{
 		Options: &Options{
 			Value: &ValueOptions{
 				Lex: &yes,
@@ -172,7 +179,7 @@ func TestGrammarOptionsValueDef(t *testing.T) {
 func TestGrammarOptionsNumberHex(t *testing.T) {
 	j := Make()
 	yes := true
-	j.Grammar(&GrammarSpec{
+	mustGrammar(t, j, &GrammarSpec{
 		Options: &Options{
 			Number: &NumberOptions{Hex: &yes},
 		},
@@ -190,7 +197,7 @@ func TestGrammarOptionsNumberHex(t *testing.T) {
 
 func TestGrammarOptionsNumberSep(t *testing.T) {
 	j := Make()
-	j.Grammar(&GrammarSpec{
+	mustGrammar(t, j, &GrammarSpec{
 		Options: &Options{
 			Number: &NumberOptions{Sep: "_"},
 		},
@@ -212,7 +219,7 @@ func TestGrammarRuleConditionFuncRef(t *testing.T) {
 	j := Make()
 	condCalls := 0
 
-	j.Grammar(&GrammarSpec{
+	mustGrammar(t, j, &GrammarSpec{
 		Ref: map[FuncRef]any{
 			"@topOnly": AltCond(func(r *Rule, ctx *Context) bool {
 				condCalls++
@@ -251,7 +258,7 @@ func TestGrammarRuleConditionFuncRef(t *testing.T) {
 func TestGrammarRuleConditionFalseSkips(t *testing.T) {
 	j := Make()
 
-	j.Grammar(&GrammarSpec{
+	mustGrammar(t, j, &GrammarSpec{
 		Ref: map[FuncRef]any{
 			"@never": AltCond(func(r *Rule, ctx *Context) bool {
 				return false
@@ -284,7 +291,7 @@ func TestGrammarOptionsAndRulesCombined(t *testing.T) {
 	j := Make()
 	yes := true
 
-	j.Grammar(&GrammarSpec{
+	mustGrammar(t, j, &GrammarSpec{
 		Ref: map[FuncRef]any{
 			"@upper": AltAction(func(r *Rule, ctx *Context) {
 				if s, ok := r.Node.(string); ok {
@@ -324,7 +331,7 @@ func TestGrammarMultipleCalls(t *testing.T) {
 	j := Make()
 	yes := true
 
-	j.Grammar(&GrammarSpec{
+	mustGrammar(t, j, &GrammarSpec{
 		Options: &Options{
 			Value: &ValueOptions{
 				Lex: &yes,
@@ -335,7 +342,7 @@ func TestGrammarMultipleCalls(t *testing.T) {
 		},
 	})
 
-	j.Grammar(&GrammarSpec{
+	mustGrammar(t, j, &GrammarSpec{
 		Options: &Options{
 			Value: &ValueOptions{
 				Lex: &yes,
@@ -358,7 +365,7 @@ func TestGrammarMultipleCalls(t *testing.T) {
 
 func TestGrammarOptionsOnly(t *testing.T) {
 	j := Make()
-	j.Grammar(&GrammarSpec{
+	mustGrammar(t, j, &GrammarSpec{
 		Options: &Options{
 			Number: &NumberOptions{Sep: "_"},
 		},
@@ -377,7 +384,7 @@ func TestGrammarOptionsOnly(t *testing.T) {
 func TestGrammarRulesOnly(t *testing.T) {
 	j := Make()
 
-	j.Grammar(&GrammarSpec{
+	mustGrammar(t, j, &GrammarSpec{
 		Ref: map[FuncRef]any{
 			"@tag": AltAction(func(r *Rule, ctx *Context) {
 				if s, ok := r.Node.(string); ok {
@@ -456,7 +463,7 @@ func TestGrammarStateActionWiring(t *testing.T) {
 	j := Make()
 	boCalled := false
 
-	j.Grammar(&GrammarSpec{
+	mustGrammar(t, j, &GrammarSpec{
 		Ref: map[FuncRef]any{
 			"@val-bo": StateAction(func(r *Rule, ctx *Context) {
 				boCalled = true
@@ -481,7 +488,7 @@ func TestGrammarStateActionWiring(t *testing.T) {
 func TestGrammarDeclarativeCondition(t *testing.T) {
 	j := Make()
 
-	j.Grammar(&GrammarSpec{
+	mustGrammar(t, j, &GrammarSpec{
 		Ref: map[FuncRef]any{
 			"@mark": AltAction(func(r *Rule, ctx *Context) {
 				r.Node = "marked"
@@ -514,7 +521,7 @@ func TestGrammarFixedToken(t *testing.T) {
 	// Register a custom fixed token via the instance API.
 	arrow := j.Token("#ARROW", "=>")
 
-	j.Grammar(&GrammarSpec{
+	mustGrammar(t, j, &GrammarSpec{
 		Ref: map[FuncRef]any{
 			"@arrowAction": AltAction(func(r *Rule, ctx *Context) {
 				r.Node = "<arrow>"
@@ -541,22 +548,11 @@ func TestGrammarFixedToken(t *testing.T) {
 	}
 }
 
-// --- Parity fix: missing FuncRef panics ---
+// --- Parity fix: missing FuncRef returns error ---
 
-func TestGrammarMissingFuncRefPanics(t *testing.T) {
-	defer func() {
-		r := recover()
-		if r == nil {
-			t.Fatal("expected panic for missing FuncRef, got none")
-		}
-		msg := fmt.Sprintf("%v", r)
-		if !strings.Contains(msg, "@missing") {
-			t.Errorf("panic message should mention @missing, got: %s", msg)
-		}
-	}()
-
+func TestGrammarMissingFuncRefReturnsError(t *testing.T) {
 	j := Make()
-	j.Grammar(&GrammarSpec{
+	err := j.Grammar(&GrammarSpec{
 		Ref: map[FuncRef]any{},
 		Rule: map[string]*GrammarRuleSpec{
 			"val": {
@@ -566,6 +562,12 @@ func TestGrammarMissingFuncRefPanics(t *testing.T) {
 			},
 		},
 	})
+	if err == nil {
+		t.Fatal("expected error for missing FuncRef, got nil")
+	}
+	if !strings.Contains(err.Error(), "@missing") {
+		t.Errorf("error should mention @missing, got: %s", err)
+	}
 }
 
 // --- Parity fix: inject modifiers ---
@@ -575,7 +577,7 @@ func TestGrammarInjectAppend(t *testing.T) {
 	j := Make()
 	origCloseLen := len(j.RSM()["val"].Close)
 
-	j.Grammar(&GrammarSpec{
+	mustGrammar(t, j, &GrammarSpec{
 		Ref: map[FuncRef]any{
 			"@noop": AltAction(func(r *Rule, ctx *Context) {}),
 		},
@@ -606,7 +608,7 @@ func TestGrammarInjectPrepend(t *testing.T) {
 	// Default (no inject or Append:false) prepends new alts before existing ones.
 	j := Make()
 
-	j.Grammar(&GrammarSpec{
+	mustGrammar(t, j, &GrammarSpec{
 		Ref: map[FuncRef]any{
 			"@noop": AltAction(func(r *Rule, ctx *Context) {}),
 		},
@@ -619,7 +621,7 @@ func TestGrammarInjectPrepend(t *testing.T) {
 		},
 	})
 
-	j.Grammar(&GrammarSpec{
+	mustGrammar(t, j, &GrammarSpec{
 		Ref: map[FuncRef]any{
 			"@noop2": AltAction(func(r *Rule, ctx *Context) {}),
 		},
@@ -647,7 +649,7 @@ func TestGrammarInjectPrepend(t *testing.T) {
 func TestGrammarOptionsMapMerge(t *testing.T) {
 	j := Make()
 
-	j.Grammar(&GrammarSpec{
+	mustGrammar(t, j, &GrammarSpec{
 		Ref: map[FuncRef]any{
 			"@addMerge": func(prev, curr any, r *Rule, ctx *Context) any {
 				pf, pok := prev.(float64)
@@ -678,7 +680,7 @@ func TestGrammarOptionsMapMerge(t *testing.T) {
 func TestGrammarOptionsMapValueDef(t *testing.T) {
 	j := Make()
 
-	j.Grammar(&GrammarSpec{
+	mustGrammar(t, j, &GrammarSpec{
 		OptionsMap: map[string]any{
 			"value": map[string]any{
 				"lex": true,
@@ -704,7 +706,7 @@ func TestGrammarOptionsMapSkip(t *testing.T) {
 	j := Make()
 
 	// First: set tag
-	j.Grammar(&GrammarSpec{
+	mustGrammar(t, j, &GrammarSpec{
 		OptionsMap: map[string]any{
 			"tag": "original",
 		},
@@ -714,7 +716,7 @@ func TestGrammarOptionsMapSkip(t *testing.T) {
 	}
 
 	// Second: @SKIP preserves existing tag
-	j.Grammar(&GrammarSpec{
+	mustGrammar(t, j, &GrammarSpec{
 		OptionsMap: map[string]any{
 			"tag": "@SKIP",
 		},
@@ -727,7 +729,7 @@ func TestGrammarOptionsMapSkip(t *testing.T) {
 func TestGrammarOptionsMapAtEscape(t *testing.T) {
 	j := Make()
 
-	j.Grammar(&GrammarSpec{
+	mustGrammar(t, j, &GrammarSpec{
 		OptionsMap: map[string]any{
 			"tag": "@@literal-at",
 		},
