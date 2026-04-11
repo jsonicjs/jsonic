@@ -459,8 +459,6 @@ function tokenize<
   let tokenmap: any = cfg.t
   let token: string | Tin = tokenmap[ref]
 
-  // console.log('TOKENIZE', ref, token, tokenmap)
-
   if (null == token && STRING === typeof ref) {
     token = cfg.tI++
     tokenmap[token] = ref
@@ -483,9 +481,6 @@ function findTokenSet<
   let tokenSetMap: any = cfg.tokenSet
   let found: string | Tin[] = (tokenSetMap[ref] ??
     ('string' == typeof ref ? tokenSetMap[ref.replace(/#/g, '')] : undefined))
-  if ('#KEY' === ref) {
-    console.log('FTS', ref, found)
-  }
   return found as T
 }
 

@@ -63,10 +63,6 @@ describe('custom', () => {
 
     let j = Jsonic.make()
 
-    j.use(Debug)
-    
-    console.log('AAA================')
-    
     j.options({
       match: {
         token: {
@@ -101,10 +97,7 @@ describe('custom', () => {
       },
     })
 
-    console.log('BBB================')
-
-    console.log(j.debug.describe())
-    
+    j.use(Debug)
 
     let DAY = j.token('#DAY')
 

@@ -363,7 +363,6 @@ function configure(jsonic, incfg, opts) {
 function tokenize(ref, cfg, jsonic) {
     let tokenmap = cfg.t;
     let token = tokenmap[ref];
-    // console.log('TOKENIZE', ref, token, tokenmap)
     if (null == token && types_1.STRING === typeof ref) {
         token = cfg.tI++;
         tokenmap[token] = ref;
@@ -380,9 +379,6 @@ function findTokenSet(ref, cfg) {
     let tokenSetMap = cfg.tokenSet;
     let found = (tokenSetMap[ref] ??
         ('string' == typeof ref ? tokenSetMap[ref.replace(/#/g, '')] : undefined));
-    if ('#KEY' === ref) {
-        console.log('FTS', ref, found);
-    }
     return found;
 }
 // Mark a string for escaping by `util.regexp`.

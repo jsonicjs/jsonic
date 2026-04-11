@@ -212,8 +212,9 @@ class RuleSpecImpl {
             let tins = (columns[stateI][tokenI] = columns[stateI][tokenI] || []);
             return [
                 function (tins, alt) {
-                    if (alt.s && alt.s[tokenI]) {
-                        let newtins = [...new Set(tins.concat(alt.s[tokenI]))];
+                    let resolved = 0 === tokenI ? alt.t0 : alt.t1;
+                    if (resolved && 0 < resolved.length) {
+                        let newtins = [...new Set(tins.concat(resolved))];
                         tins.length = 0;
                         tins.push(...newtins);
                     }
@@ -513,7 +514,10 @@ function normalt(a, rs, r) {
         }
         const tins0 = tinsify([a.s[0]]);
         const tins1 = tinsify([a.s[1]]);
+        // Store resolved tins for tcol collation (keep a.s for re-normalization).
         const aa = a;
+        aa.t0 = tins0;
+        aa.t1 = tins1;
         // Create as many bit fields as needed, each of size 31 bits.
         aa.S0 =
             0 < tins0.length
