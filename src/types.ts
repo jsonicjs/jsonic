@@ -871,6 +871,10 @@ export interface Parser {
 export type GrammarSpec = {
   ref?: Record<FuncRef, Function>
 
+  // JSON-serializable options. Function-valued fields use FuncRef strings
+  // that are resolved against `ref` before being applied.
+  options?: Bag
+
   rule?: Record<string, {
     open?: GrammarAltSpec[] |
     {

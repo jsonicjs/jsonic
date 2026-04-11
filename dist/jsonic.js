@@ -168,6 +168,10 @@ function make(param_options, parent) {
         },
         util,
         grammar: (gs) => {
+            if (gs.options) {
+                const resolved = resolveFuncRefs(gs.options, gs.ref);
+                ji.options(resolved);
+            }
             if (gs.rule) {
                 for (const rulename of Object.keys(gs.rule)) {
                     const rulespec = gs.rule[rulename];
@@ -236,6 +240,31 @@ function make(param_options, parent) {
         }
     }
     return jsonic;
+}
+// Recursively resolve FuncRef strings in an options object to actual functions.
+function resolveFuncRefs(obj, ref) {
+    if (null == obj || 'object' !== typeof obj) {
+        if ('string' === typeof obj && '@' === obj[0] && ref) {
+            const fn = ref[obj];
+            if ('function' === typeof fn) {
+                return fn;
+            }
+        }
+        return obj;
+    }
+    if (Array.isArray(obj)) {
+        return obj.map((item) => resolveFuncRefs(item, ref));
+    }
+    // Preserve non-plain objects (RegExp, Date, etc.) without recursion.
+    const ctor = obj.constructor;
+    if (ctor && 'Object' !== ctor.name) {
+        return obj;
+    }
+    const out = {};
+    for (const key of Object.keys(obj)) {
+        out[key] = resolveFuncRefs(obj[key], ref);
+    }
+    return out;
 }
 let root = undefined;
 exports.root = root;

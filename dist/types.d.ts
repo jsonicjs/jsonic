@@ -595,6 +595,7 @@ export interface Parser {
 }
 export type GrammarSpec = {
     ref?: Record<FuncRef, Function>;
+    options?: Bag;
     rule?: Record<string, {
         open?: GrammarAltSpec[] | {
             alts: GrammarAltSpec[];
