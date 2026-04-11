@@ -678,4 +678,76 @@ describe('grammar-options', () => {
     assert.equal(j.options.tag, 'original')
   })
 
+
+  it('alt-condition-funcref', () => {
+    // The `c` property of an alt can be a FuncRef that resolves to a
+    // condition function: (rule, ctx, altmatch) => boolean.
+    // When the condition returns false the alt is skipped.
+    let j = Jsonic.make()
+
+    let condCalls = 0
+
+    j.grammar({
+      ref: {
+        // Condition: only match when depth is 0 (top-level value).
+        '@topOnly': (rule) => {
+          condCalls++
+          return rule.d === 0
+        },
+        // Action: wrap the value in an array.
+        '@wrapArr': (rule) => {
+          rule.node = [rule.node]
+        },
+      },
+      rule: {
+        val: {
+          close: [
+            {
+              c: '@topOnly',
+              a: '@wrapArr',
+              g: 'custom',
+            },
+          ],
+        },
+      },
+    })
+
+    // Top-level value is wrapped in an array by the conditioned alt.
+    assert.deepEqual(j('a:1'), [{ a: 1 }])
+    assert.ok(condCalls > 0, 'condition function was called')
+
+    // The inner value 1 is at depth > 0, so the condition returns false
+    // for it — only the top-level map gets wrapped.
+    assert.deepEqual(j('a:1,b:2'), [{ a: 1, b: 2 }])
+  })
+
+
+  it('alt-condition-funcref-false-skips', () => {
+    // A condition FuncRef that always returns false causes the alt
+    // to never match, so it has no effect.
+    let j = Jsonic.make()
+
+    j.grammar({
+      ref: {
+        '@never': () => false,
+        '@boom': () => { throw new Error('should not fire') },
+      },
+      rule: {
+        val: {
+          close: [
+            {
+              c: '@never',
+              a: '@boom',
+              g: 'custom',
+            },
+          ],
+        },
+      },
+    })
+
+    // The @boom action never fires because @never blocks the alt.
+    assert.deepEqual(j('a:1'), { a: 1 })
+    assert.deepEqual(j('[1,2]'), [1, 2])
+  })
+
 })
