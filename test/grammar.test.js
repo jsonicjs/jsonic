@@ -532,4 +532,61 @@ describe('grammar-options', () => {
     assert.deepEqual(j('[T, F, 1]'), [true, false, 1])
   })
 
+
+  it('options-escape-at-prefix', () => {
+    // @@ escapes to a literal @ string.
+    let j = Jsonic.make()
+    j.grammar({
+      options: {
+        tag: '@@my-tag',
+      },
+    })
+
+    assert.equal(j.options.tag, '@my-tag')
+  })
+
+
+  it('options-escape-at-regex-like', () => {
+    // @@ prevents @/…/ from being interpreted as a regex.
+    let j = Jsonic.make()
+    j.grammar({
+      options: {
+        tag: '@@/not-a-regex/',
+      },
+    })
+
+    assert.equal(j.options.tag, '@/not-a-regex/')
+  })
+
+
+  it('options-escape-at-funcref-like', () => {
+    // @@ prevents @name from being interpreted as a FuncRef.
+    let j = Jsonic.make()
+    j.grammar({
+      ref: {
+        '@myFunc': () => 'resolved',
+      },
+      options: {
+        tag: '@@myFunc',
+      },
+    })
+
+    assert.equal(j.options.tag, '@myFunc')
+  })
+
+
+  it('options-escape-at-nested', () => {
+    // @@ escape works inside nested objects and arrays.
+    let j = Jsonic.make()
+    j.grammar({
+      options: {
+        error: {
+          my_error: '@@special: something went wrong',
+        },
+      },
+    })
+
+    assert.equal(j.options.error.my_error, '@special: something went wrong')
+  })
+
 })

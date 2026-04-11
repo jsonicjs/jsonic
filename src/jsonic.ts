@@ -398,6 +398,10 @@ function resolveFuncRefs(
 ): any {
   if (null == obj || 'object' !== typeof obj) {
     if ('string' === typeof obj && '@' === obj[0]) {
+      // Escape: `@@` prefix produces a literal `@`-prefixed string.
+      if ('@' === obj[1]) {
+        return obj.substring(1)
+      }
       // Match `@/pattern/flags` — a JSON-serializable RegExp literal.
       const m = obj.match(/^@\/(.*)\/([\w]*)$/)
       if (m) {
