@@ -390,16 +390,24 @@ function make(param_options?: Bag | string, parent?: Jsonic): Jsonic {
 }
 
 
-// Recursively resolve FuncRef strings in an options object to actual functions.
+// Recursively resolve FuncRef strings in an options object to actual functions,
+// and `@/pattern/flags` strings to RegExp instances.
 function resolveFuncRefs(
   obj: any,
   ref?: Record<string, Function>,
 ): any {
   if (null == obj || 'object' !== typeof obj) {
-    if ('string' === typeof obj && '@' === obj[0] && ref) {
-      const fn = ref[obj]
-      if ('function' === typeof fn) {
-        return fn
+    if ('string' === typeof obj && '@' === obj[0]) {
+      // Match `@/pattern/flags` — a JSON-serializable RegExp literal.
+      const m = obj.match(/^@\/(.*)\/([\w]*)$/)
+      if (m) {
+        return new RegExp(m[1], m[2])
+      }
+      if (ref) {
+        const fn = ref[obj]
+        if ('function' === typeof fn) {
+          return fn
+        }
       }
     }
     return obj

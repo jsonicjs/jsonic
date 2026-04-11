@@ -374,4 +374,162 @@ describe('grammar-options', () => {
     assert.equal(modified, true)
   })
 
+
+  it('options-regex-match-token', () => {
+    // Use @/…/ to specify a RegExp for a custom match token.
+    let j = Jsonic.make()
+    j.grammar({
+      options: {
+        match: {
+          token: {
+            '#ID': '@/^[a-zA-Z_][a-zA-Z_0-9]*/',
+          },
+        },
+        tokenSet: {
+          KEY: ['#ST', '#ID', null, null],
+          VAL: [, , , , '#ID'],
+        },
+      },
+    })
+
+    // 'a' matches #ID and #ID is in KEY, so a:1 parses as a pair.
+    assert.deepEqual(j('a:1'), { a: 1 })
+    assert.deepEqual(j('foo:bar'), { foo: 'bar' })
+    // 'a*' does not match #ID, and #TX is not in KEY, so this throws.
+    assert.throws(() => j('a*:1'), /unexpected/)
+  })
+
+
+  it('options-regex-number-exclude', () => {
+    // Use @/…/ for number.exclude to reject leading-zero numbers.
+    let j = Jsonic.make()
+    j.grammar({
+      options: {
+        number: {
+          exclude: '@/^00+/',
+        },
+      },
+    })
+
+    assert.deepEqual(j('a:0'), { a: 0 })
+    assert.deepEqual(j('a:01'), { a: '01' })
+    assert.deepEqual(j('a:123'), { a: 123 })
+  })
+
+
+  it('options-regex-value-match', () => {
+    // Use @/…/ in value.def with a FuncRef val for regex-matched values.
+    // When value.def has a `match` RegExp, `val` must be a function.
+    let j = Jsonic.make()
+    j.grammar({
+      ref: {
+        '@valOn': () => true,
+        '@valOff': () => false,
+      },
+      options: {
+        value: {
+          def: {
+            on: { val: '@valOn', match: '@/^on$/i' },
+            off: { val: '@valOff', match: '@/^off$/i' },
+          },
+        },
+      },
+    })
+
+    assert.deepEqual(j('a:ON,b:Off,c:1'), { a: true, b: false, c: 1 })
+    assert.deepEqual(j('a:on,b:OFF'), { a: true, b: false })
+  })
+
+
+  it('options-regex-with-flags', () => {
+    // Verify regex flags are passed through correctly.
+    let j = Jsonic.make()
+    j.grammar({
+      ref: {
+        '@valYes': () => 'YES!',
+      },
+      options: {
+        value: {
+          def: {
+            yes: { val: '@valYes', match: '@/^yes$/i' },
+          },
+        },
+      },
+    })
+
+    // The /i flag makes it case-insensitive.
+    assert.deepEqual(j('a:YES'), { a: 'YES!' })
+    assert.deepEqual(j('a:Yes'), { a: 'YES!' })
+    assert.deepEqual(j('a:yes'), { a: 'YES!' })
+  })
+
+
+  it('options-regex-no-flags', () => {
+    // Verify @/…/ without flags produces a flagless (case-sensitive) RegExp.
+    let j = Jsonic.make()
+    j.grammar({
+      options: {
+        number: {
+          exclude: '@/^0[0-9]+$/',
+        },
+      },
+    })
+
+    // Without flags, the regex is case-sensitive (irrelevant for numbers,
+    // but tests the no-flags code path).
+    assert.deepEqual(j('a:0'), { a: 0 })
+    assert.deepEqual(j('a:42'), { a: 42 })
+    assert.deepEqual(j('a:01'), { a: '01' })
+  })
+
+
+  it('options-regex-mixed-with-funcref', () => {
+    // Both @/…/ regex and @name FuncRef in the same grammar spec.
+    let j = Jsonic.make()
+    j.grammar({
+      ref: {
+        '@prepend': (prev, curr) => {
+          if ('string' === typeof prev && 'string' === typeof curr) {
+            return prev + curr
+          }
+          return curr
+        },
+      },
+      options: {
+        map: { merge: '@prepend' },
+        number: {
+          exclude: '@/^0[0-9]+/',
+        },
+      },
+    })
+
+    // FuncRef merge: duplicate keys concatenate.
+    assert.deepEqual(j('a:x,a:y'), { a: 'xy' })
+    // RegExp exclude: leading-zero numbers become text.
+    assert.deepEqual(j('a:007'), { a: '007' })
+    assert.deepEqual(j('a:42'), { a: 42 })
+  })
+
+
+  it('options-regex-in-array', () => {
+    // @/…/ resolution should work inside arrays.
+    let j = Jsonic.make()
+    j.grammar({
+      ref: {
+        '@valT': () => true,
+        '@valF': () => false,
+      },
+      options: {
+        value: {
+          def: {
+            t: { val: '@valT', match: '@/^t$/i' },
+            f: { val: '@valF', match: '@/^f$/i' },
+          },
+        },
+      },
+    })
+
+    assert.deepEqual(j('[T, F, 1]'), [true, false, 1])
+  })
+
 })
