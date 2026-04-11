@@ -363,6 +363,7 @@ function configure(jsonic, incfg, opts) {
 function tokenize(ref, cfg, jsonic) {
     let tokenmap = cfg.t;
     let token = tokenmap[ref];
+    // console.log('TOKENIZE', ref, token, tokenmap)
     if (null == token && types_1.STRING === typeof ref) {
         token = cfg.tI++;
         tokenmap[token] = ref;
@@ -377,7 +378,8 @@ function tokenize(ref, cfg, jsonic) {
 // Find a tokenSet by name, or find the name of the TokenSet containing a given Tin.
 function findTokenSet(ref, cfg) {
     let tokenSetMap = cfg.tokenSet;
-    let found = tokenSetMap[ref];
+    let found = (tokenSetMap[ref] ??
+        ('string' == typeof ref ? tokenSetMap[ref.replace(/#/g, '')] : undefined));
     return found;
 }
 // Mark a string for escaping by `util.regexp`.

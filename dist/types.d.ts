@@ -24,6 +24,7 @@ export interface JsonicAPI {
         rule?: RuleSub;
     }) => Jsonic;
     util: Bag;
+    grammar: (gs: GrammarSpec) => void;
 }
 export type Jsonic = JsonicParse & // A function that parses.
 JsonicAPI & {
@@ -449,7 +450,7 @@ export type Config = {
     rePart: any;
     re: any;
     tI: number;
-    t: any;
+    t: Record<string, Tin>;
     color: {
         active: boolean;
         reset: string;
@@ -485,17 +486,17 @@ export interface Token {
 }
 export interface AltSpec {
     s?: (Tin | Tin[] | null | undefined | string)[] | null | string;
-    p?: string | AltNext | null | false;
-    r?: string | AltNext | null | false;
-    b?: number | AltBack | null | false;
-    c?: AltCond;
+    p?: string | AltNext | null | false | FuncRef;
+    r?: string | AltNext | null | false | FuncRef;
+    b?: number | AltBack | null | false | FuncRef;
+    c?: AltCond | null;
     n?: Counters;
-    a?: AltAction;
-    h?: AltModifier;
+    a?: AltAction | FuncRef | null;
+    h?: AltModifier | null;
     u?: Bag;
     k?: Bag;
     g?: string | string[];
-    e?: AltError;
+    e?: AltError | FuncRef | null;
 }
 type AltSpecish = AltSpec | undefined | null | false | 0 | typeof NaN;
 export type ListMods = {
@@ -562,10 +563,15 @@ export type RuleSpecMap = {
 export type RuleDefiner = (rs: RuleSpec, p: Parser) => void | RuleSpec;
 export interface NormAltSpec extends AltSpec {
     s: (Tin | Tin[] | null | undefined)[];
+    p: string | AltNext | null | false;
+    r: string | AltNext | null | false;
+    b: number | AltBack | null | false;
     S0: number[] | null;
     S1: number[] | null;
-    c?: NormAltCond;
+    c: NormAltCond | null | undefined;
     g: string[];
+    a: AltAction | null | undefined;
+    e: AltError | null | undefined;
 }
 export type AltCond = ((rule: Rule, ctx: Context, alt: AltMatch) => boolean) | Record<string, any>;
 export type NormAltCond = ((rule: Rule, ctx: Context, alt: AltMatch) => boolean);
@@ -587,4 +593,39 @@ export interface Parser {
     clone(options: Options, config: Config, jsonic: Jsonic): Parser;
     norm(): void;
 }
+export type GrammarSpec = {
+    ref?: Record<FuncRef, Function>;
+    rule?: Record<string, {
+        open?: GrammarAltSpec[] | {
+            alts: GrammarAltSpec[];
+            inject: {
+                append?: boolean;
+                delete?: number[];
+                move?: number[];
+            };
+        };
+        close?: GrammarAltSpec[] | {
+            alts: GrammarAltSpec[];
+            inject: {
+                append?: boolean;
+                delete?: number[];
+                move?: number[];
+            };
+        };
+    }>;
+};
+export type GrammarAltSpec = {
+    s?: string | string[];
+    b?: FuncRef | number;
+    p?: FuncRef | string;
+    r?: FuncRef | string;
+    a?: FuncRef;
+    e?: FuncRef;
+    h?: FuncRef;
+    c?: FuncRef | Record<string, any>;
+    n?: Record<string, number>;
+    u?: Record<string, any>;
+    k?: Record<string, any>;
+    g?: string | string[];
+};
 export {};

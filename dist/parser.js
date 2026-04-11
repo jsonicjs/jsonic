@@ -32,8 +32,8 @@ class ParserImpl {
         // Else add or redefine a rule by name.
         else if (undefined !== define) {
             rs = this.rsm[name] = this.rsm[name] || (0, rules_1.makeRuleSpec)(this.ji, this.cfg, {});
-            rs = this.rsm[name] = define(this.rsm[name], this) || this.rsm[name];
             rs.name = name;
+            rs = this.rsm[name] = define(this.rsm[name], this) || this.rsm[name];
             // Ensures jsonic.rule can chain
             return undefined;
         }

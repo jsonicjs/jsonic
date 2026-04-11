@@ -1,4 +1,4 @@
-import type { AltSpec, Config, Context, FuncRef, FuncRefMap, Lex, ListMods, Rule, RuleSpec, RuleState, RuleStep, StateAction, Tin, Token, Jsonic } from './types';
+import type { AltSpec, Config, Context, FuncRef, FuncRefMap, Jsonic, Lex, ListMods, Rule, RuleSpec, RuleState, RuleStep, StateAction, Tin, Token } from './types';
 declare class RuleImpl implements Rule {
     i: number;
     name: string;
@@ -51,8 +51,8 @@ declare class RuleSpecImpl implements RuleSpec {
     ji: Jsonic;
     constructor(j: Jsonic, cfg: Config, def: any);
     tin<R extends string | Tin, T extends R extends Tin ? string : Tin>(ref: R): T;
-    fnref(frm: Record<string, Function>): RuleSpec;
-    add(state: RuleState, a: AltSpec | AltSpec[], mods?: ListMods): RuleSpec;
+    fnref(frm: Record<FuncRef, Function>): RuleSpec;
+    add(rs: RuleState, a: AltSpec | AltSpec[], mods?: ListMods): RuleSpec;
     open(a: AltSpec | AltSpec[], mods?: ListMods): RuleSpec;
     close(a: AltSpec | AltSpec[], mods?: ListMods): RuleSpec;
     action(append: boolean, step: RuleStep, state: RuleState, action: StateAction): RuleSpec;

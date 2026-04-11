@@ -6,12 +6,9 @@
 
 import type {
   AltAction,
-  AltBack,
   AltCond,
-  AltError,
   AltMatch,
   AltModifier,
-  AltNext,
   AltSpec,
   Bag,
   Config,
@@ -19,6 +16,7 @@ import type {
   Counters,
   FuncRef,
   FuncRefMap,
+  Jsonic,
   Lex,
   ListMods,
   NormAltCond,
@@ -30,19 +28,18 @@ import type {
   StateAction,
   Tin,
   Token,
-  Jsonic,
 } from './types'
 
 import { OPEN, CLOSE, BEFORE, AFTER, EMPTY, STRING } from './types'
 
 import {
   S,
+  defprop,
   filterRules,
   getpath,
   isarr,
-  tokenize,
   modlist,
-  defprop,
+  tokenize,
 } from './utility'
 
 import { JsonicError } from './error'
@@ -189,11 +186,11 @@ class RuleSpecImpl implements RuleSpec {
     )
 
     for (let alt of this.def.open) {
-      normalt(alt, this)
+      normalt(alt, OPEN, this)
     }
 
     for (let alt of this.def.close) {
-      normalt(alt, this)
+      normalt(alt, CLOSE, this)
     }
 
     const anames = ['bo', 'ao', 'bc', 'ac']
@@ -215,18 +212,37 @@ class RuleSpecImpl implements RuleSpec {
   }
 
 
-  fnref(frm: Record<string, Function>): RuleSpec {
+  fnref(frm: Record<FuncRef, Function>): RuleSpec {
     Object.assign(this.def.fnref, frm)
+
+    const rn = this.name
+    const reserved: FuncRef[] = [`@${rn}-bo`, `@${rn}-ao`, `@${rn}-bc`, `@${rn}-ac`]
+    const fr: any = this.def.fnref
+    for (let rn of reserved) {
+      let append = true
+      let func = fr[rn + '/prepend']
+      if (func) {
+        append = false
+      }
+      else {
+        func = fr[rn + '/append'] ?? fr[rn]
+      }
+      if (func) {
+        const aname = rn.replace(/^[^-]+-/, '')
+          ; (this as any)[aname](append, func)
+      }
+    }
+
     return this
   }
 
 
-  add(state: RuleState, a: AltSpec | AltSpec[], mods?: ListMods): RuleSpec {
+  add(rs: RuleState, a: AltSpec | AltSpec[], mods?: ListMods): RuleSpec {
     let inject = mods?.append ? 'push' : 'unshift'
     let aa = ((isarr(a) ? a : [a]) as AltSpec[])
       .filter((alt: AltSpec) => null != alt && 'object' === typeof alt)
-      .map((a) => normalt(a, this))
-    let altState: 'open' | 'close' = 'o' === state ? 'open' : 'close'
+      .map((a) => normalt(a, rs, this))
+    let altState: 'open' | 'close' = 'o' === rs ? 'open' : 'close'
     let alts: any = this.def[altState]
 
     alts[inject](...aa)
@@ -315,8 +331,8 @@ class RuleSpecImpl implements RuleSpec {
   }
 
   norm() {
-    this.def.open.map((alt) => normalt(alt, this))
-    this.def.close.map((alt) => normalt(alt, this))
+    this.def.open.map((alt) => normalt(alt, OPEN, this))
+    this.def.close.map((alt) => normalt(alt, CLOSE, this))
 
     // [stateI is o=0,c=1][tokenI is t0=0,t1=1][tins]
     const columns: Tin[][][] = []
@@ -675,7 +691,7 @@ function parse_alts(
 
 
 // Normalize AltSpec (mutates).
-function normalt(a: AltSpec, r: RuleSpec): NormAltSpec {
+function normalt(a: AltSpec, rs: RuleState, r: RuleSpec): NormAltSpec {
   // Ensure groups are a string[]
   if (STRING === typeof a.g) {
     a.g = (a as any).g.split(/\s*,\s*/)
@@ -689,14 +705,16 @@ function normalt(a: AltSpec, r: RuleSpec): NormAltSpec {
     a.s = null
   }
   else {
-    if ('string' === typeof a.s) {
-      a.s = a.s.split(/\s*[, ]\s*/)
-    }
-
-    const tinsify = (s: any[]): Tin[] =>
-      s.flat()
+    const tinsify = (s: any[]): Tin[] => {
+      const tins = s
+        .flat()
+        .map((n) => 'string' === typeof n ? n.split(/\s* +\s*/) : n)
+        .flat()
         .map((n) => 'string' === typeof n ? (r.ji.tokenSet(n) ?? r.ji.token(n)) : n)
+        .flat()
         .filter((tin) => 'number' === typeof tin)
+      return tins
+    }
 
     const partify = (tins: Tin[], part: number) =>
       tins.filter((tin) => 31 * part <= tin && tin < 31 * (part + 1))
@@ -706,6 +724,10 @@ function normalt(a: AltSpec, r: RuleSpec): NormAltSpec {
         (bits: number, tin: Tin) => (1 << (tin - (31 * part + 1))) | bits,
         0,
       )
+
+    if ('string' === typeof a.s) {
+      a.s = a.s.split(/\s* +\s*/)
+    }
 
     const tins0: Tin[] = tinsify([a.s[0]])
     const tins1: Tin[] = tinsify([a.s[1]])
@@ -733,42 +755,54 @@ function normalt(a: AltSpec, r: RuleSpec): NormAltSpec {
   if (!a.p) {
     a.p = null
   }
-  else if (isfnref(a.p)) {
-    a.p = r.def.fnref[(a as any).p] as AltNext
+  else {
+    resolveFunctionRef('push', rs, r, a, 'p')
   }
 
   if (!a.r) {
     a.r = null
   }
-  else if (isfnref(a.r)) {
-    a.r = r.def.fnref[(a as any).r] as AltNext
+  else {
+    resolveFunctionRef('replace', rs, r, a, 'r')
   }
 
   if (!a.b) {
     a.b = null
   }
-  else if (isfnref(a.b)) {
-    a.b = r.def.fnref[(a as any).b] as AltBack
+  else {
+    resolveFunctionRef('back', rs, r, a, 'b')
   }
 
-  if (isfnref(a.a)) {
-    a.a = r.def.fnref[(a as any).a] as AltAction
+  if (!a.a) {
+    a.a = null
+  }
+  else {
+    resolveFunctionRef('action', rs, r, a, 'a')
   }
 
-  if (isfnref(a.h)) {
-    a.h = r.def.fnref[(a as any).h] as AltModifier
+  if (!a.h) {
+    a.h = null
+  }
+  else {
+    resolveFunctionRef('modify', rs, r, a, 'h')
   }
 
-  if (isfnref(a.e)) {
-    a.e = r.def.fnref[(a as any).e] as AltError
+  if (!a.e) {
+    a.e = null
+  }
+  else {
+    resolveFunctionRef('error', rs, r, a, 'e')
   }
 
 
-  if (null != a.c) {
+  if (!a.c) {
+    a.c = null
+  }
+  else {
     const ct = typeof a.c
 
     if ('string' === ct) {
-      a.c = r.def.fnref[a.c as unknown as `@${string}`] as AltCond
+      resolveFunctionRef('condition', rs, r, a, 'c')
     }
     else if ('function' === ct) {
       if ('c' === a.c.name) {
@@ -824,6 +858,26 @@ function normalt(a: AltSpec, r: RuleSpec): NormAltSpec {
 
 function isfnref(v: any) {
   return 'string' === typeof v && v.startsWith('@')
+}
+
+
+function resolveFunctionRef(
+  fkind: string,
+  rs: RuleState,
+  r: RuleSpec,
+  a: AltSpec,
+  k: keyof AltSpec
+) {
+  const val = a[k]
+
+  if (isfnref(val)) {
+    const func = r.def.fnref[val as FuncRef] as Function
+    if (null == func) {
+      throw new Error(`Grammar: unknown ${fkind} function reference: ` + val +
+        ` for rule ${r.name} (${rs}) and alt ${a.s} (${a.g})`)
+    }
+    a[k] = func as any
+  }
 }
 
 

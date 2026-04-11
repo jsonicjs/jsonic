@@ -109,7 +109,8 @@ function make(param_options, parent) {
     };
     // Define the API
     let api = {
-        token: ((ref) => (0, utility_1.tokenize)(ref, internal.config, jsonic)),
+        token: ((ref) => internal.config.fixed.token[ref] ??
+            (0, utility_1.tokenize)(ref, internal.config, jsonic)),
         tokenSet: ((ref) => (0, utility_1.findTokenSet)(ref, internal.config)),
         fixed: ((ref) => internal.config.fixed.ref[ref]),
         options: (0, utility_1.deep)(options, merged_options),
@@ -166,6 +167,30 @@ function make(param_options, parent) {
             return jsonic;
         },
         util,
+        grammar: (gs) => {
+            if (gs.rule) {
+                for (const rulename of Object.keys(gs.rule)) {
+                    const rulespec = gs.rule[rulename];
+                    ji.rule(rulename, (rs) => {
+                        if (gs.ref) {
+                            rs.fnref(gs.ref);
+                        }
+                        if (rulespec.open) {
+                            const isarr = Array.isArray(rulespec.open);
+                            const alts = isarr ? rulespec.open : rulespec.open.alts;
+                            const inject = isarr ? {} : rulespec.open.inject;
+                            rs.open(alts, inject);
+                        }
+                        if (rulespec.close) {
+                            const isarr = Array.isArray(rulespec.close);
+                            const alts = isarr ? rulespec.close : rulespec.close.alts;
+                            const inject = isarr ? {} : rulespec.close.inject;
+                            rs.close(alts, inject);
+                        }
+                    });
+                }
+            }
+        }
     };
     // Has to be done indirectly as we are in a fuction named `make`.
     (0, utility_1.defprop)(api.make, utility_1.S.name, { value: utility_1.S.make });

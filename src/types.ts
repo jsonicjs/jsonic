@@ -76,7 +76,10 @@ export interface JsonicAPI {
   sub: (spec: { lex?: LexSub; rule?: RuleSub }) => Jsonic
 
   util: Bag
+
+  grammar: (gs: GrammarSpec) => void
 }
+
 
 // The full library type.
 export type Jsonic = JsonicParse & // A function that parses.
@@ -598,7 +601,7 @@ export type Config = {
   re: any
 
   tI: number // Token identifier index.
-  t: any // Token index map.
+  t: Record<string, Tin> // Token index map.
 
   color: {
     active: boolean
@@ -656,26 +659,21 @@ export interface AltSpec {
   s?: (Tin | Tin[] | null | undefined | string)[] | null | string
 
   // Push named Rule onto stack (create child).
-  p?: string | AltNext | null | false
+  p?: string | AltNext | null | false | FuncRef
 
   // Replace current rule with named Rule on stack (create sibling).
-  r?: string | AltNext | null | false
+  r?: string | AltNext | null | false | FuncRef
 
   // Move token pointer back by indicated number of steps.
-  b?: number | AltBack | null | false
+  b?: number | AltBack | null | false | FuncRef
 
   // Condition function, return true to match alternate.
   // NOTE: Token sequence (s) must also match.
-  c?: AltCond
-  // | {
-  //   // Condition convenience definitions (all must pass).
-  //   d?: number // - Match if rule stack depth <= d.
-  //   n?: Counters // - Match if rule counters <= respective given values.
-  // }
+  c?: AltCond | null
 
   n?: Counters // Increment counters by specified amounts.
-  a?: AltAction // Perform an action if this alternate matches.
-  h?: AltModifier // Modify current Alt to customize parser.
+  a?: AltAction | FuncRef | null // Perform an action if this alternate matches.
+  h?: AltModifier | null // Modify current Alt to customize parser.
   u?: Bag // Key-value custom data.
   k?: Bag // Key-value custom data (propagated).
 
@@ -683,7 +681,7 @@ export interface AltSpec {
   | string // Named group tags for the alternate (allows filtering).
   | string[] // - comma separated or string array
 
-  e?: AltError // Generate an error token (alternate is not allowed).
+  e?: AltError | FuncRef | null// Generate an error token (alternate is not allowed).
 }
 
 // Allow AltSpecs to be "empty" and thus ignored.
@@ -781,10 +779,15 @@ export type RuleDefiner = (rs: RuleSpec, p: Parser) => void | RuleSpec
 // Normalized parse-alternate.
 export interface NormAltSpec extends AltSpec {
   s: (Tin | Tin[] | null | undefined)[]
+  p: string | AltNext | null | false
+  r: string | AltNext | null | false
+  b: number | AltBack | null | false
   S0: number[] | null
   S1: number[] | null
-  c?: NormAltCond // Convenience definition reduce to function for processing.
+  c: NormAltCond | null | undefined // Convenience definition reduce to function for processing.
   g: string[] // Named group tags
+  a: AltAction | null | undefined // Generate an error token (alternate is not allowed).
+  e: AltError | null | undefined // Generate an error token (alternate is not allowed).
 }
 
 // Conditionally pass an alternate.
@@ -864,3 +867,40 @@ export interface Parser {
 
   norm(): void
 }
+
+
+export type GrammarSpec = {
+  ref?: Record<FuncRef, Function>
+
+  rule?: Record<string, {
+    open?: GrammarAltSpec[] |
+    {
+      alts: GrammarAltSpec[],
+      inject: { append?: boolean, delete?: number[], move?: number[] }
+    }
+    close?: GrammarAltSpec[] |
+    {
+      alts: GrammarAltSpec[],
+      inject: { append?: boolean, delete?: number[], move?: number[] }
+    }
+
+  }>
+
+}
+
+
+export type GrammarAltSpec = {
+  s?: string | string[],
+  b?: FuncRef | number,
+  p?: FuncRef | string,
+  r?: FuncRef | string,
+  a?: FuncRef,
+  e?: FuncRef,
+  h?: FuncRef,
+  c?: FuncRef | Record<string, any>,
+  n?: Record<string, number>,
+  u?: Record<string, any>
+  k?: Record<string, any>
+  g?: string | string[],
+}
+

@@ -5,37 +5,39 @@
  */
 
 import type {
+  AltAction,
+  AltCond,
+  AltError,
+  AltMatch,
+  AltModifier,
+  AltSpec,
+  Bag,
   Config,
   Context,
   Counters,
-  Bag,
-  Tin,
-  Point,
-  Token,
-  Rule,
-  RuleSpec,
-  Lex,
-  RuleDefiner,
-  RuleState,
-  RuleSpecMap,
-  LexMatcher,
-  MakeLexMatcher,
-  AltSpec,
-  AltMatch,
-  AltAction,
-  AltCond,
-  AltModifier,
-  AltError,
-  Options,
+  FuncRef,
   JsonicAPI,
   JsonicParse,
-  Plugin,
-  StateAction,
-  LexSub,
-  RuleSub,
-  Parser,
-  NormAltSpec,
+  Lex,
   LexCheck,
+  LexMatcher,
+  LexSub,
+  MakeLexMatcher,
+  NormAltSpec,
+  Options,
+  Parser,
+  Plugin,
+  Point,
+  Rule,
+  RuleDefiner,
+  RuleSpec,
+  RuleSpecMap,
+  RuleState,
+  RuleSub,
+  StateAction,
+  Tin,
+  Token,
+  GrammarSpec
 } from './types'
 
 import { OPEN, CLOSE, BEFORE, AFTER, EMPTY } from './types'
@@ -206,6 +208,7 @@ function make(param_options?: Bag | string, parent?: Jsonic): Jsonic {
   // Define the API
   let api: JsonicAPI = {
     token: ((ref: string | Tin) =>
+      internal.config.fixed.token[ref] ??
       tokenize(ref, internal.config, jsonic)) as unknown as JsonicAPI['token'],
 
     tokenSet: ((ref: string | Tin) =>
@@ -289,6 +292,38 @@ function make(param_options?: Bag | string, parent?: Jsonic): Jsonic {
     },
 
     util,
+
+
+    grammar: (gs: GrammarSpec) => {
+      if (gs.rule) {
+        for (const rulename of Object.keys(gs.rule)) {
+          const rulespec = gs.rule[rulename]
+          ji.rule(rulename, (rs: RuleSpec) => {
+
+            if (gs.ref) {
+              rs.fnref(gs.ref)
+            }
+
+            if (rulespec.open) {
+              const isarr = Array.isArray(rulespec.open)
+              const alts = isarr ? rulespec.open : (rulespec.open as any).alts
+              const inject = isarr ? {} : (rulespec.open as any).inject
+              rs.open(alts, inject)
+            }
+
+            if (rulespec.close) {
+              const isarr = Array.isArray(rulespec.close)
+              const alts = isarr ? rulespec.close : (rulespec.close as any).alts
+              const inject = isarr ? {} : (rulespec.close as any).inject
+              rs.close(alts, inject)
+            }
+
+          })
+        }
+      }
+    }
+
+
   }
 
   // Has to be done indirectly as we are in a fuction named `make`.
@@ -383,32 +418,33 @@ root.S = S
 
 // Export most of the types for use by plugins.
 export type {
-  Plugin,
-  Options,
+  AltAction,
+  AltCond,
+  AltError,
+  AltMatch,
+  AltModifier,
+  AltSpec,
+  Bag,
   Config,
   Context,
-  Token,
+  Counters,
+  FuncRef,
+  Lex,
+  LexCheck,
+  LexMatcher,
+  MakeLexMatcher,
+  NormAltSpec,
+  Options,
+  Plugin,
   Point,
   Rule,
-  RuleSpec,
-  Lex,
-  Counters,
-  Bag,
-  Tin,
-  MakeLexMatcher,
-  LexMatcher,
   RuleDefiner,
-  RuleState,
+  RuleSpec,
   RuleSpecMap,
-  AltSpec,
-  AltMatch,
-  AltCond,
-  AltAction,
-  AltModifier,
-  AltError,
+  RuleState,
   StateAction,
-  NormAltSpec,
-  LexCheck,
+  Tin,
+  Token,
 }
 
 export {

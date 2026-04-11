@@ -103,10 +103,10 @@ class RuleSpecImpl {
         this.def.open = (this.def.open || []).filter((alt) => null != alt);
         this.def.close = (this.def.close || []).filter((alt) => null != alt);
         for (let alt of this.def.open) {
-            normalt(alt, this);
+            normalt(alt, types_1.OPEN, this);
         }
         for (let alt of this.def.close) {
-            normalt(alt, this);
+            normalt(alt, types_1.CLOSE, this);
         }
         const anames = ['bo', 'ao', 'bc', 'ac'];
         for (let an of anames) {
@@ -124,14 +124,31 @@ class RuleSpecImpl {
     }
     fnref(frm) {
         Object.assign(this.def.fnref, frm);
+        const rn = this.name;
+        const reserved = [`@${rn}-bo`, `@${rn}-ao`, `@${rn}-bc`, `@${rn}-ac`];
+        const fr = this.def.fnref;
+        for (let rn of reserved) {
+            let append = true;
+            let func = fr[rn + '/prepend'];
+            if (func) {
+                append = false;
+            }
+            else {
+                func = fr[rn + '/append'] ?? fr[rn];
+            }
+            if (func) {
+                const aname = rn.replace(/^[^-]+-/, '');
+                this[aname](append, func);
+            }
+        }
         return this;
     }
-    add(state, a, mods) {
+    add(rs, a, mods) {
         let inject = mods?.append ? 'push' : 'unshift';
         let aa = ((0, utility_1.isarr)(a) ? a : [a])
             .filter((alt) => null != alt && 'object' === typeof alt)
-            .map((a) => normalt(a, this));
-        let altState = 'o' === state ? 'open' : 'close';
+            .map((a) => normalt(a, rs, this));
+        let altState = 'o' === rs ? 'open' : 'close';
         let alts = this.def[altState];
         alts[inject](...aa);
         alts = this.def[altState] = (0, utility_1.modlist)(alts, mods);
@@ -181,8 +198,8 @@ class RuleSpecImpl {
         return this;
     }
     norm() {
-        this.def.open.map((alt) => normalt(alt, this));
-        this.def.close.map((alt) => normalt(alt, this));
+        this.def.open.map((alt) => normalt(alt, types_1.OPEN, this));
+        this.def.close.map((alt) => normalt(alt, types_1.CLOSE, this));
         // [stateI is o=0,c=1][tokenI is t0=0,t1=1][tins]
         const columns = [];
         this.def.open.reduce(...collate(0, 0, columns));
@@ -466,7 +483,7 @@ function parse_alts(is_open, alts, lex, rule, ctx) {
     return out;
 }
 // Normalize AltSpec (mutates).
-function normalt(a, r) {
+function normalt(a, rs, r) {
     // Ensure groups are a string[]
     if (types_1.STRING === typeof a.g) {
         a.g = a.g.split(/\s*,\s*/);
@@ -479,14 +496,21 @@ function normalt(a, r) {
         a.s = null;
     }
     else {
-        if ('string' === typeof a.s) {
-            a.s = a.s.split(/\s*[, ]\s*/);
-        }
-        const tinsify = (s) => s.flat()
-            .map((n) => 'string' === typeof n ? (r.ji.tokenSet(n) ?? r.ji.token(n)) : n)
-            .filter((tin) => 'number' === typeof tin);
+        const tinsify = (s) => {
+            const tins = s
+                .flat()
+                .map((n) => 'string' === typeof n ? n.split(/\s* +\s*/) : n)
+                .flat()
+                .map((n) => 'string' === typeof n ? (r.ji.tokenSet(n) ?? r.ji.token(n)) : n)
+                .flat()
+                .filter((tin) => 'number' === typeof tin);
+            return tins;
+        };
         const partify = (tins, part) => tins.filter((tin) => 31 * part <= tin && tin < 31 * (part + 1));
         const bitify = (s, part) => s.reduce((bits, tin) => (1 << (tin - (31 * part + 1))) | bits, 0);
+        if ('string' === typeof a.s) {
+            a.s = a.s.split(/\s* +\s*/);
+        }
         const tins0 = tinsify([a.s[0]]);
         const tins1 = tinsify([a.s[1]]);
         const aa = a;
@@ -509,34 +533,46 @@ function normalt(a, r) {
     if (!a.p) {
         a.p = null;
     }
-    else if (isfnref(a.p)) {
-        a.p = r.def.fnref[a.p];
+    else {
+        resolveFunctionRef('push', rs, r, a, 'p');
     }
     if (!a.r) {
         a.r = null;
     }
-    else if (isfnref(a.r)) {
-        a.r = r.def.fnref[a.r];
+    else {
+        resolveFunctionRef('replace', rs, r, a, 'r');
     }
     if (!a.b) {
         a.b = null;
     }
-    else if (isfnref(a.b)) {
-        a.b = r.def.fnref[a.b];
+    else {
+        resolveFunctionRef('back', rs, r, a, 'b');
     }
-    if (isfnref(a.a)) {
-        a.a = r.def.fnref[a.a];
+    if (!a.a) {
+        a.a = null;
     }
-    if (isfnref(a.h)) {
-        a.h = r.def.fnref[a.h];
+    else {
+        resolveFunctionRef('action', rs, r, a, 'a');
     }
-    if (isfnref(a.e)) {
-        a.e = r.def.fnref[a.e];
+    if (!a.h) {
+        a.h = null;
     }
-    if (null != a.c) {
+    else {
+        resolveFunctionRef('modify', rs, r, a, 'h');
+    }
+    if (!a.e) {
+        a.e = null;
+    }
+    else {
+        resolveFunctionRef('error', rs, r, a, 'e');
+    }
+    if (!a.c) {
+        a.c = null;
+    }
+    else {
         const ct = typeof a.c;
         if ('string' === ct) {
-            a.c = r.def.fnref[a.c];
+            resolveFunctionRef('condition', rs, r, a, 'c');
         }
         else if ('function' === ct) {
             if ('c' === a.c.name) {
@@ -588,6 +624,17 @@ function normalt(a, r) {
 }
 function isfnref(v) {
     return 'string' === typeof v && v.startsWith('@');
+}
+function resolveFunctionRef(fkind, rs, r, a, k) {
+    const val = a[k];
+    if (isfnref(val)) {
+        const func = r.def.fnref[val];
+        if (null == func) {
+            throw new Error(`Grammar: unknown ${fkind} function reference: ` + val +
+                ` for rule ${r.name} (${rs}) and alt ${a.s} (${a.g})`);
+        }
+        a[k] = func;
+    }
 }
 const COND_OPS = {
     $eq: 1,
