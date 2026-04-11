@@ -11,6 +11,10 @@ export const AFTER: RuleStep = 'a'
 export const EMPTY = ''
 export const INSPECT = Symbol.for('nodejs.util.inspect.custom')
 
+// Sentinel value that acts as `undefined` in deep merge — the base value
+// is preserved.  Represented as "@SKIP" in grammar options.
+export const SKIP: unique symbol = Symbol.for('jsonic.SKIP')
+
 // Empty rule used as a no-value placeholder.
 // export const NONE = ({ name: 'none', state: OPEN } as Rule)
 

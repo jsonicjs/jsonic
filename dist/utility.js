@@ -425,7 +425,7 @@ function deep(base, ...rest) {
         }
         else {
             base =
-                undefined === over
+                undefined === over || types_1.SKIP === over
                     ? base
                     : over_isf
                         ? over

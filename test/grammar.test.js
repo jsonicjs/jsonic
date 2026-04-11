@@ -589,4 +589,93 @@ describe('grammar-options', () => {
     assert.equal(j.options.error.my_error, '@special: something went wrong')
   })
 
+
+  it('skip-sentinel-exported', () => {
+    // SKIP is available on the Jsonic object as an immutable symbol.
+    assert.equal(typeof Jsonic.SKIP, 'symbol')
+    assert.equal(Jsonic.SKIP, Symbol.for('jsonic.SKIP'))
+  })
+
+
+  it('skip-in-deep-merge', () => {
+    // SKIP acts like undefined in deep merge — the base value is preserved.
+    let { deep } = Jsonic.util
+    let SKIP = Jsonic.SKIP
+
+    assert.deepEqual(deep({ a: 1 }, { a: SKIP }), { a: 1 })
+    assert.deepEqual(deep({ a: 1, b: 2 }, { a: SKIP, b: 3 }), { a: 1, b: 3 })
+    assert.deepEqual(deep({ a: { x: 1 } }, { a: SKIP }), { a: { x: 1 } })
+  })
+
+
+  it('skip-in-grammar-options-tokenset', () => {
+    // @SKIP in tokenSet arrays preserves defaults at those positions,
+    // acting like undefined (sparse array holes).
+    let j = Jsonic.make()
+    j.grammar({
+      options: {
+        tokenSet: {
+          // Default KEY is ['#TX', '#NR', '#ST', '#VL'].
+          // @SKIP preserves positions 0-3, adds '#ID' at position 4.
+          // This would not work with null (null overwrites in deep merge).
+          KEY: ['@SKIP', '@SKIP', '@SKIP', '@SKIP', '#ST'],
+        },
+      },
+    })
+
+    // #TX is still in KEY (preserved by @SKIP), so text keys work.
+    assert.deepEqual(j('a:1'), { a: 1 })
+    // #ST is added to KEY.
+    assert.deepEqual(j('"b":2'), { b: 2 })
+  })
+
+
+  it('skip-in-grammar-options-value-def', () => {
+    // @SKIP can preserve existing value definitions when merging.
+    let j = Jsonic.make()
+
+    // First, add a custom value.
+    j.grammar({
+      options: {
+        value: { def: { yes: { val: true } } },
+      },
+    })
+    assert.deepEqual(j('a:yes'), { a: true })
+
+    // Second grammar call: use @SKIP to avoid overwriting 'yes'.
+    j.grammar({
+      options: {
+        value: { def: { yes: '@SKIP', no: { val: false } } },
+      },
+    })
+    // 'yes' is preserved, 'no' is added.
+    assert.deepEqual(j('a:yes,b:no'), { a: true, b: false })
+  })
+
+
+  it('skip-does-not-resolve-as-funcref', () => {
+    // @SKIP is a built-in sentinel, not a FuncRef lookup.
+    // Even if ref contains '@SKIP', the sentinel takes precedence.
+    let j = Jsonic.make()
+    j.grammar({
+      options: {
+        tag: 'original',
+      },
+    })
+    assert.equal(j.options.tag, 'original')
+
+    j.grammar({
+      ref: {
+        '@SKIP': () => 'should-not-resolve',
+      },
+      options: {
+        tag: '@SKIP',
+      },
+    })
+
+    // @SKIP resolves to the SKIP symbol (not the function in ref),
+    // and deep merge preserves the existing value.
+    assert.equal(j.options.tag, 'original')
+  })
+
 })

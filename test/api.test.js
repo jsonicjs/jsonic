@@ -38,6 +38,7 @@ describe('api', function () {
       'BEFORE',
       'AFTER',
       'EMPTY',
+      'SKIP',
       'util',
       'make',
       'S',

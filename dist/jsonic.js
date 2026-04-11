@@ -1,7 +1,7 @@
 "use strict";
 /* Copyright (c) 2013-2023 Richard Rodger, MIT License */
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.root = exports.S = exports.EMPTY = exports.AFTER = exports.BEFORE = exports.CLOSE = exports.OPEN = exports.makeTextMatcher = exports.makeNumberMatcher = exports.makeCommentMatcher = exports.makeStringMatcher = exports.makeLineMatcher = exports.makeSpaceMatcher = exports.makeFixedMatcher = exports.makeParser = exports.makeLex = exports.makeRuleSpec = exports.makeRule = exports.makePoint = exports.makeToken = exports.util = exports.JsonicError = exports.Jsonic = void 0;
+exports.root = exports.S = exports.SKIP = exports.EMPTY = exports.AFTER = exports.BEFORE = exports.CLOSE = exports.OPEN = exports.makeTextMatcher = exports.makeNumberMatcher = exports.makeCommentMatcher = exports.makeStringMatcher = exports.makeLineMatcher = exports.makeSpaceMatcher = exports.makeFixedMatcher = exports.makeParser = exports.makeLex = exports.makeRuleSpec = exports.makeRule = exports.makePoint = exports.makeToken = exports.util = exports.JsonicError = exports.Jsonic = void 0;
 exports.make = make;
 const types_1 = require("./types");
 Object.defineProperty(exports, "OPEN", { enumerable: true, get: function () { return types_1.OPEN; } });
@@ -9,6 +9,7 @@ Object.defineProperty(exports, "CLOSE", { enumerable: true, get: function () { r
 Object.defineProperty(exports, "BEFORE", { enumerable: true, get: function () { return types_1.BEFORE; } });
 Object.defineProperty(exports, "AFTER", { enumerable: true, get: function () { return types_1.AFTER; } });
 Object.defineProperty(exports, "EMPTY", { enumerable: true, get: function () { return types_1.EMPTY; } });
+Object.defineProperty(exports, "SKIP", { enumerable: true, get: function () { return types_1.SKIP; } });
 const utility_1 = require("./utility");
 Object.defineProperty(exports, "S", { enumerable: true, get: function () { return utility_1.S; } });
 const error_1 = require("./error");
@@ -250,6 +251,10 @@ function resolveFuncRefs(obj, ref) {
             if ('@' === obj[1]) {
                 return obj.substring(1);
             }
+            // Sentinel: `@SKIP` resolves to the SKIP symbol (acts as undefined in deep merge).
+            if ('SKIP' === obj.substring(1)) {
+                return types_1.SKIP;
+            }
             // Match `@/pattern/flags` — a JSON-serializable RegExp literal.
             const m = obj.match(/^@\/(.*)\/([\w]*)$/);
             if (m) {
@@ -305,6 +310,7 @@ root.CLOSE = types_1.CLOSE;
 root.BEFORE = types_1.BEFORE;
 root.AFTER = types_1.AFTER;
 root.EMPTY = types_1.EMPTY;
+root.SKIP = types_1.SKIP;
 root.util = util;
 root.make = make;
 root.S = utility_1.S;

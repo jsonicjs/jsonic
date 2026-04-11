@@ -40,7 +40,7 @@ import type {
   GrammarSpec
 } from './types'
 
-import { OPEN, CLOSE, BEFORE, AFTER, EMPTY } from './types'
+import { OPEN, CLOSE, BEFORE, AFTER, EMPTY, SKIP } from './types'
 
 import {
   S,
@@ -402,6 +402,10 @@ function resolveFuncRefs(
       if ('@' === obj[1]) {
         return obj.substring(1)
       }
+      // Sentinel: `@SKIP` resolves to the SKIP symbol (acts as undefined in deep merge).
+      if ('SKIP' === obj.substring(1)) {
+        return SKIP
+      }
       // Match `@/pattern/flags` — a JSON-serializable RegExp literal.
       const m = obj.match(/^@\/(.*)\/([\w]*)$/)
       if (m) {
@@ -462,6 +466,7 @@ root.CLOSE = CLOSE
 root.BEFORE = BEFORE
 root.AFTER = AFTER
 root.EMPTY = EMPTY
+root.SKIP = SKIP
 
 root.util = util
 root.make = make
@@ -523,6 +528,7 @@ export {
   BEFORE,
   AFTER,
   EMPTY,
+  SKIP,
   S,
   root,
 }
