@@ -345,16 +345,6 @@ func Grammar(rsm map[string]*RuleSpec, cfg *LexConfig) {
 		return alts
 	}
 
-	// Merge helper for token specs in S field.
-	// e.g. mergeS("#CB", "#CS") → "#CB #CS" (two slots)
-	// For single-slot multi-token, use resolveTokenSpecStatic directly.
-	mergeTins := func(a, b []Tin) []Tin {
-		r := make([]Tin, 0, len(a)+len(b))
-		r = append(r, a...)
-		r = append(r, b...)
-		return r
-	}
-
 	// ====== VAL rule ======
 	valSpec := &RuleSpec{Name: "val"}
 
@@ -369,10 +359,8 @@ func Grammar(rsm map[string]*RuleSpec, cfg *LexConfig) {
 		{S: "#VAL", G: "jsonic"},
 	})
 	// CB|CS in single slot:
-	valOpen = append(valOpen, &AltSpec{
-		S: [][]Tin{{TinCB, TinCS}}, CD: map[string]any{"d": CGt(0)}, B: 1, G: "jsonic",
-	})
-	NormAlt(valOpen[len(valOpen)-1])
+	valOpen = append(valOpen, resolveGrammarAltStatic(
+		&GrammarAltSpec{S: []string{"#CB #CS"}, C: map[string]any{"d": CGt(0)}, B: 1, G: "jsonic"}, ref))
 	valOpen = append(valOpen, resolve([]*GrammarAltSpec{
 		{S: "#CA", C: map[string]any{"d": 0}, P: "list", B: 1, G: "jsonic"},
 		{S: "#CA", B: 1, G: "jsonic"},
@@ -384,10 +372,8 @@ func Grammar(rsm map[string]*RuleSpec, cfg *LexConfig) {
 		{S: "#ZZ", G: "json"},
 	})
 	// CB|CS in single slot:
-	valClose = append(valClose, &AltSpec{
-		S: [][]Tin{{TinCB, TinCS}}, B: 1,
-		E: ref["@val-close-err"].(AltError), G: "jsonic",
-	})
+	valClose = append(valClose, resolveGrammarAltStatic(
+		&GrammarAltSpec{S: []string{"#CB #CS"}, B: 1, E: "@val-close-err", G: "jsonic"}, ref))
 	valClose = append(valClose, resolve([]*GrammarAltSpec{
 		{S: "#CA", C: map[string]any{"n.dlist": CLte(0), "n.dmap": CLte(0)},
 			R: "list", U: map[string]any{"implist": true}, G: "jsonic"},
@@ -421,11 +407,9 @@ func Grammar(rsm map[string]*RuleSpec, cfg *LexConfig) {
 		{S: "#CB", B: 1, G: "jsonic"},
 		// slot 0 = merge(CA, CS, VAL) — handled below
 	})
-	// Third alt: merge tokens manually
-	mapClose = append(mapClose, &AltSpec{
-		S: [][]Tin{mergeTins([]Tin{TinCA, TinCS}, TinSetVAL)},
-		B: 1, G: "jsonic",
-	})
+	// Third alt: CA|CS|VAL tokens in single slot
+	mapClose = append(mapClose, resolveGrammarAltStatic(
+		&GrammarAltSpec{S: []string{"#CA #CS #VAL"}, B: 1, G: "jsonic"}, ref))
 	mapClose = append(mapClose, resolveGrammarAltStatic(
 		&GrammarAltSpec{S: "#ZZ", E: "@finish", G: "jsonic"}, ref))
 	mapSpec.Close = mapClose
@@ -485,23 +469,16 @@ func Grammar(rsm map[string]*RuleSpec, cfg *LexConfig) {
 		{S: "#KEY", C: map[string]any{"n.dmap": CLte(1)}, R: "pair", B: 1, G: "jsonic"},
 	})
 
-	// For pair.Close[6], we need merged tokens: CB, CA, CS, KEY.
-	pairSpec.Close = append(pairSpec.Close, &AltSpec{
-		S:  [][]Tin{mergeTins([]Tin{TinCB, TinCA, TinCS}, TinSetKEY)},
-		CD: map[string]any{"n.pk": CGte(0)},
-		B:  1, G: "jsonic",
-	})
+	// CB|CA|CS|KEY in single slot
+	pairSpec.Close = append(pairSpec.Close, resolveGrammarAltStatic(
+		&GrammarAltSpec{S: []string{"#CB #CA #CS #KEY"}, C: map[string]any{"n.pk": CGte(0)},
+			B: 1, G: "jsonic"}, ref))
 	// Remaining pair close alts.
 	pairSpec.Close = append(pairSpec.Close, resolve([]*GrammarAltSpec{
 		{S: "#CS", E: "@elem-close-err", G: "jsonic"},
 		{S: "#ZZ", E: "@finish", G: "jsonic"},
 		{R: "pair", B: 1, G: "jsonic"},
 	})...)
-
-	// Normalize merged CD conditions.
-	for _, alt := range pairSpec.Close {
-		NormAlt(alt)
-	}
 
 	// ====== ELEM rule ======
 	elemSpec := &RuleSpec{Name: "elem"}
@@ -531,7 +508,7 @@ func Grammar(rsm map[string]*RuleSpec, cfg *LexConfig) {
 
 	elemClose := []*AltSpec{
 		// CA in slot 0, CS|ZZ in slot 1:
-		{S: [][]Tin{{TinCA}, {TinCS, TinZZ}}, B: 1, G: "jsonic"},
+		resolveGrammarAltStatic(&GrammarAltSpec{S: []string{"#CA", "#CS #ZZ"}, B: 1, G: "jsonic"}, ref),
 	}
 	elemClose = append(elemClose, resolve([]*GrammarAltSpec{
 		{S: "#CA", R: "elem", G: "jsonic"},

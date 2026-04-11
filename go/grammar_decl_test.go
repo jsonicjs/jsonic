@@ -424,6 +424,30 @@ func TestResolveTokenSpecStatic(t *testing.T) {
 	}
 }
 
+func TestResolveTokenFieldStaticSlice(t *testing.T) {
+	// []string form: each element is a slot, space-separated names are alternatives.
+	tests := []struct {
+		input []string
+		want  [][]Tin
+	}{
+		// Single slot with two alternatives: CB or CS
+		{[]string{"#CB #CS"}, [][]Tin{{TinCB, TinCS}}},
+		// Two slots: CA in slot 0, CS or ZZ in slot 1
+		{[]string{"#CA", "#CS #ZZ"}, [][]Tin{{TinCA}, {TinCS, TinZZ}}},
+		// Single slot with token set + individual tokens
+		{[]string{"#CA #CS #VAL"}, [][]Tin{{TinCA, TinCS, TinTX, TinNR, TinST, TinVL}}},
+		// Single token in single slot (equivalent to string form)
+		{[]string{"#OB"}, [][]Tin{{TinOB}}},
+	}
+
+	for _, tt := range tests {
+		got := resolveTokenFieldStatic(tt.input)
+		if !reflect.DeepEqual(got, tt.want) {
+			t.Errorf("resolveTokenFieldStatic(%v) = %v, want %v", tt.input, got, tt.want)
+		}
+	}
+}
+
 // --- State action wiring ---
 
 func TestGrammarStateActionWiring(t *testing.T) {

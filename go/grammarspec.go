@@ -33,7 +33,11 @@ type GrammarRuleSpec struct {
 // Token fields use "#NAME" strings resolved via Token/TokenSet lookup.
 // Function fields use "@name" FuncRef strings resolved via the Ref map.
 type GrammarAltSpec struct {
-	S string          // Token spec: "#OB", "#KEY #CL", "#CB #CS"
+	// Token spec. Either a string or []string.
+	//   string:   "#OB", "#KEY #CL" — each space-separated name is a slot.
+	//   []string: ["#CB #CS"] — each element is a slot; within an element,
+	//             space-separated names are alternatives for that slot.
+	S any
 	B any             // Backtrack: int or FuncRef string
 	P string          // Push rule name or FuncRef
 	R string          // Replace rule name or FuncRef
@@ -92,9 +96,9 @@ func (j *Jsonic) resolveGrammarAlts(gas []*GrammarAltSpec, ref map[FuncRef]any) 
 func (j *Jsonic) resolveGrammarAlt(ga *GrammarAltSpec, ref map[FuncRef]any) *AltSpec {
 	alt := &AltSpec{}
 
-	// Resolve S (token spec string → [][]Tin)
-	if ga.S != "" {
-		alt.S = j.resolveTokenSpec(ga.S)
+	// Resolve S (token spec: string or []string → [][]Tin)
+	if ga.S != nil {
+		alt.S = j.resolveTokenField(ga.S)
 	}
 
 	// Resolve B (backtrack: int or FuncRef)
@@ -211,7 +215,35 @@ func (j *Jsonic) resolveGrammarAlt(ga *GrammarAltSpec, ref map[FuncRef]any) *Alt
 	return alt
 }
 
+// resolveTokenField resolves the S field of a GrammarAltSpec.
+// Accepts string or []string.
+//
+//	string:     "#KEY #CL" — each space-separated name is a separate slot.
+//	[]string:   ["#CB #CS"] — each element is a slot; within an element,
+//	            space-separated names are alternatives for that slot.
+func (j *Jsonic) resolveTokenField(s any) [][]Tin {
+	switch v := s.(type) {
+	case string:
+		if v == "" {
+			return nil
+		}
+		return j.resolveTokenSpec(v)
+	case []string:
+		result := make([][]Tin, len(v))
+		for i, slot := range v {
+			var tins []Tin
+			for _, name := range strings.Fields(slot) {
+				tins = append(tins, j.resolveTokenName(name)...)
+			}
+			result[i] = tins
+		}
+		return result
+	}
+	return nil
+}
+
 // resolveTokenSpec resolves a token spec string into [][]Tin.
+// Each space-separated name becomes a separate slot.
 // Examples:
 //
 //	"#OB"       → [][]Tin{{TinOB}}
@@ -309,6 +341,28 @@ var builtinTokenSets = map[string][]Tin{
 	"KEY": TinSetKEY,
 }
 
+// resolveTokenFieldStatic resolves a string or []string S field using built-in tokens.
+func resolveTokenFieldStatic(s any) [][]Tin {
+	switch v := s.(type) {
+	case string:
+		if v == "" {
+			return nil
+		}
+		return resolveTokenSpecStatic(v)
+	case []string:
+		result := make([][]Tin, len(v))
+		for i, slot := range v {
+			var tins []Tin
+			for _, name := range strings.Fields(slot) {
+				tins = append(tins, resolveTokenNameStatic(name)...)
+			}
+			result[i] = tins
+		}
+		return result
+	}
+	return nil
+}
+
 // resolveTokenSpecStatic resolves a token spec string using built-in tokens only.
 // Used by the internal grammar which is built before a *Jsonic instance exists.
 func resolveTokenSpecStatic(s string) [][]Tin {
@@ -341,8 +395,8 @@ func resolveTokenNameStatic(name string) []Tin {
 func resolveGrammarAltStatic(ga *GrammarAltSpec, ref map[FuncRef]any) *AltSpec {
 	alt := &AltSpec{}
 
-	if ga.S != "" {
-		alt.S = resolveTokenSpecStatic(ga.S)
+	if ga.S != nil {
+		alt.S = resolveTokenFieldStatic(ga.S)
 	}
 
 	switch v := ga.B.(type) {
