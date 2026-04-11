@@ -22,6 +22,18 @@ func IsUndefined(v any) bool {
 	return ok
 }
 
+// Skip is a sentinel value that acts as undefined in deep merge — the base
+// value is preserved. Represented as "@SKIP" in grammar options.
+type skipType struct{}
+
+var Skip any = &skipType{}
+
+// IsSkip checks if a value is the Skip sentinel.
+func IsSkip(v any) bool {
+	_, ok := v.(*skipType)
+	return ok
+}
+
 // UnwrapUndefined converts Undefined sentinels to nil in the result.
 func UnwrapUndefined(v any) any {
 	if IsUndefined(v) {
