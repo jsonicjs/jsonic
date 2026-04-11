@@ -483,6 +483,9 @@ function findTokenSet<
   let tokenSetMap: any = cfg.tokenSet
   let found: string | Tin[] = (tokenSetMap[ref] ??
     ('string' == typeof ref ? tokenSetMap[ref.replace(/#/g, '')] : undefined))
+  if ('#KEY' === ref) {
+    console.log('FTS', ref, found)
+  }
   return found as T
 }
 
@@ -846,7 +849,6 @@ function parserwrap(parser: any) {
             ex.token ||
             makeToken(
               '#UK',
-              // tokenize('#UK', jsonic.config),
               tokenize('#UK', jsonic.internal().config),
               undefined,
               tsrc,

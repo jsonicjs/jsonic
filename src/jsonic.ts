@@ -184,8 +184,8 @@ function make(param_options?: Bag | string, parent?: Jsonic): Jsonic {
   ): any {
     if (S.string === typeof src) {
       let internal = jsonic.internal()
-      let parser = options.parser?.start
-        ? parserwrap(options.parser)
+      let parser = optionsMethod.parser?.start
+        ? parserwrap(optionsMethod.parser)
         : internal.parser
       return parser.start(src, jsonic, meta, parent_ctx)
     }
@@ -195,7 +195,7 @@ function make(param_options?: Bag | string, parent?: Jsonic): Jsonic {
 
   // This lets you access options as direct properties,
   // and set them as a function call.
-  let options: any = (change_options?: Bag) => {
+  let optionsMethod: any = (change_options?: Bag) => {
     if (null != change_options && S.object === typeof change_options) {
       deep(merged_options, change_options)
       configure(jsonic, internal.config, merged_options)
@@ -217,7 +217,7 @@ function make(param_options?: Bag | string, parent?: Jsonic): Jsonic {
     fixed: ((ref: string | Tin) =>
       internal.config.fixed.ref[ref]) as unknown as JsonicAPI['fixed'],
 
-    options: deep(options, merged_options),
+    options: deep(optionsMethod, merged_options),
 
     config: () => deep(internal.config),
 
@@ -273,7 +273,7 @@ function make(param_options?: Bag | string, parent?: Jsonic): Jsonic {
       Date.now() +
       '/' +
       ('' + Math.random()).substring(2, 8).padEnd(6, '0') +
-      (null == options.tag ? '' : '/' + options.tag),
+      (null == optionsMethod.tag ? '' : '/' + optionsMethod.tag),
 
     toString: () => {
       return api.id

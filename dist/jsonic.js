@@ -89,8 +89,8 @@ function make(param_options, parent) {
     let jsonic = function Jsonic(src, meta, parent_ctx) {
         if (utility_1.S.string === typeof src) {
             let internal = jsonic.internal();
-            let parser = options.parser?.start
-                ? (0, utility_1.parserwrap)(options.parser)
+            let parser = optionsMethod.parser?.start
+                ? (0, utility_1.parserwrap)(optionsMethod.parser)
                 : internal.parser;
             return parser.start(src, jsonic, meta, parent_ctx);
         }
@@ -98,7 +98,7 @@ function make(param_options, parent) {
     };
     // This lets you access options as direct properties,
     // and set them as a function call.
-    let options = (change_options) => {
+    let optionsMethod = (change_options) => {
         if (null != change_options && utility_1.S.object === typeof change_options) {
             (0, utility_1.deep)(merged_options, change_options);
             (0, utility_1.configure)(jsonic, internal.config, merged_options);
@@ -113,7 +113,7 @@ function make(param_options, parent) {
             (0, utility_1.tokenize)(ref, internal.config, jsonic)),
         tokenSet: ((ref) => (0, utility_1.findTokenSet)(ref, internal.config)),
         fixed: ((ref) => internal.config.fixed.ref[ref]),
-        options: (0, utility_1.deep)(options, merged_options),
+        options: (0, utility_1.deep)(optionsMethod, merged_options),
         config: () => (0, utility_1.deep)(internal.config),
         parse: jsonic,
         // TODO: how to handle null plugin?
@@ -151,7 +151,7 @@ function make(param_options, parent) {
             Date.now() +
             '/' +
             ('' + Math.random()).substring(2, 8).padEnd(6, '0') +
-            (null == options.tag ? '' : '/' + options.tag),
+            (null == optionsMethod.tag ? '' : '/' + optionsMethod.tag),
         toString: () => {
             return api.id;
         },

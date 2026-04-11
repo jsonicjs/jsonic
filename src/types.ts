@@ -470,7 +470,6 @@ export type Config = {
 
   // Token set derived config.
   tokenSet: TokenSetMap
-  // { [name: string]: number[] }
 
   // Token set derived config.
   tokenSetTins: {

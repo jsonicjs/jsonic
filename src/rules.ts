@@ -690,6 +690,16 @@ function parse_alts(
 }
 
 
+const partify = (tins: Tin[], part: number) =>
+  tins.filter((tin) => 31 * part <= tin && tin < 31 * (part + 1))
+
+const bitify = (s: Tin[], part: number) =>
+  s.reduce(
+    (bits: number, tin: Tin) => (1 << (tin - (31 * part + 1))) | bits,
+    0,
+  )
+
+
 // Normalize AltSpec (mutates).
 function normalt(a: AltSpec, rs: RuleState, r: RuleSpec): NormAltSpec {
   // Ensure groups are a string[]
@@ -716,14 +726,6 @@ function normalt(a: AltSpec, rs: RuleState, r: RuleSpec): NormAltSpec {
       return tins
     }
 
-    const partify = (tins: Tin[], part: number) =>
-      tins.filter((tin) => 31 * part <= tin && tin < 31 * (part + 1))
-
-    const bitify = (s: Tin[], part: number) =>
-      s.reduce(
-        (bits: number, tin: Tin) => (1 << (tin - (31 * part + 1))) | bits,
-        0,
-      )
 
     if ('string' === typeof a.s) {
       a.s = a.s.split(/\s* +\s*/)

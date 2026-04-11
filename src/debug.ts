@@ -81,6 +81,20 @@ const Debug: Plugin = (jsonic: Jsonic, options: DebugOptions) => {
           .join('\n'),
         '\n',
 
+        Object.entries(cfg.tokenSet)
+          .map((te) => {
+            return (
+              '    ' +
+              te[0] +
+              '\t' +
+              Object.keys(cfg.tokenSetTins[te[0]] ?? [])
+            )
+          })
+          .join('\n'),
+        '\n',
+
+        ,
+
         '========= RULES =========',
         ruleTree(jsonic, keys(rules), rules),
         '\n',

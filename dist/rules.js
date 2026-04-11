@@ -482,6 +482,8 @@ function parse_alts(is_open, alts, lex, rule, ctx) {
     ctx.log && ctx.log(utility_1.S.parse, ctx, rule, lex, match, cond, altI, alt, out);
     return out;
 }
+const partify = (tins, part) => tins.filter((tin) => 31 * part <= tin && tin < 31 * (part + 1));
+const bitify = (s, part) => s.reduce((bits, tin) => (1 << (tin - (31 * part + 1))) | bits, 0);
 // Normalize AltSpec (mutates).
 function normalt(a, rs, r) {
     // Ensure groups are a string[]
@@ -506,8 +508,6 @@ function normalt(a, rs, r) {
                 .filter((tin) => 'number' === typeof tin);
             return tins;
         };
-        const partify = (tins, part) => tins.filter((tin) => 31 * part <= tin && tin < 31 * (part + 1));
-        const bitify = (s, part) => s.reduce((bits, tin) => (1 << (tin - (31 * part + 1))) | bits, 0);
         if ('string' === typeof a.s) {
             a.s = a.s.split(/\s* +\s*/);
         }

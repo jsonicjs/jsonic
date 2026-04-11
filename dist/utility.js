@@ -380,6 +380,9 @@ function findTokenSet(ref, cfg) {
     let tokenSetMap = cfg.tokenSet;
     let found = (tokenSetMap[ref] ??
         ('string' == typeof ref ? tokenSetMap[ref.replace(/#/g, '')] : undefined));
+    if ('#KEY' === ref) {
+        console.log('FTS', ref, found);
+    }
     return found;
 }
 // Mark a string for escaping by `util.regexp`.
@@ -668,9 +671,7 @@ function parserwrap(parser) {
                         col = Math.max(src.substring(cI, loc).length, 0);
                     }
                     let token = ex.token ||
-                        (0, lexer_1.makeToken)('#UK', 
-                        // tokenize('#UK', jsonic.config),
-                        tokenize('#UK', jsonic.internal().config), undefined, tsrc, (0, lexer_1.makePoint)(tsrc.length, loc, ex.lineNumber || row, ex.columnNumber || col));
+                        (0, lexer_1.makeToken)('#UK', tokenize('#UK', jsonic.internal().config), undefined, tsrc, (0, lexer_1.makePoint)(tsrc.length, loc, ex.lineNumber || row, ex.columnNumber || col));
                     throw new error_1.JsonicError(ex.code || 'json', ex.details || {
                         msg: ex.message,
                     }, token, {}, 
