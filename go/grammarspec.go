@@ -16,17 +16,37 @@ type GrammarSpec struct {
 	Ref map[FuncRef]any
 
 	// Options to merge into the Jsonic instance before processing rules.
-	// Applied via SetOptions.
+	// Can be a typed *Options struct or a map[string]any with FuncRef resolution.
 	Options *Options
+
+	// OptionsMap is an alternative to Options that accepts a map[string]any.
+	// FuncRef strings in values are resolved via Ref before applying.
+	// Use for JSON-serializable grammars where function fields use "@name" refs.
+	OptionsMap map[string]any
 
 	// Rule defines open/close alternates per rule name.
 	Rule map[string]*GrammarRuleSpec
 }
 
 // GrammarRuleSpec defines open and close alternates for a single rule.
+// Open and Close can be a plain []*GrammarAltSpec or a *GrammarAltListSpec
+// with inject modifiers (append, delete, move).
 type GrammarRuleSpec struct {
-	Open  []*GrammarAltSpec
-	Close []*GrammarAltSpec
+	Open  any // []*GrammarAltSpec or *GrammarAltListSpec
+	Close any // []*GrammarAltSpec or *GrammarAltListSpec
+}
+
+// GrammarAltListSpec wraps alt specs with injection modifiers.
+type GrammarAltListSpec struct {
+	Alts   []*GrammarAltSpec
+	Inject *GrammarInjectSpec
+}
+
+// GrammarInjectSpec controls how alts are merged into existing rule alternates.
+type GrammarInjectSpec struct {
+	Append bool  // If true, append; if false, prepend (default).
+	Delete []int // Indices to delete (supports negative).
+	Move   []int // Pairs: [from, to, from, to, ...].
 }
 
 // GrammarAltSpec is a declarative alternate specification using string references.
@@ -55,21 +75,32 @@ type GrammarAltSpec struct {
 // Options are applied first, then rules are processed.
 // Returns the Jsonic instance for chaining.
 func (j *Jsonic) Grammar(gs *GrammarSpec) *Jsonic {
+	// Apply typed Options directly.
 	if gs.Options != nil {
 		j.SetOptions(*gs.Options)
+	}
+
+	// Apply OptionsMap with FuncRef resolution.
+	if gs.OptionsMap != nil {
+		resolved := ResolveFuncRefs(gs.OptionsMap, gs.Ref)
+		if resolvedMap, ok := resolved.(map[string]any); ok {
+			opts := mapToOptions(resolvedMap)
+			j.SetOptions(opts)
+		}
 	}
 
 	if gs.Rule != nil {
 		for rulename, rulespec := range gs.Rule {
 			ref := gs.Ref
 			j.Rule(rulename, func(rs *RuleSpec) {
+				// Process Open alts.
 				if rulespec.Open != nil {
-					resolved := j.resolveGrammarAlts(rulespec.Open, ref)
-					rs.Open = append(resolved, rs.Open...)
+					applyGrammarAlts(j, rs, rulespec.Open, ref, true)
 				}
+
+				// Process Close alts.
 				if rulespec.Close != nil {
-					resolved := j.resolveGrammarAlts(rulespec.Close, ref)
-					rs.Close = append(resolved, rs.Close...)
+					applyGrammarAlts(j, rs, rulespec.Close, ref, false)
 				}
 
 				// Auto-wire reserved FuncRef names for state actions.
@@ -81,6 +112,45 @@ func (j *Jsonic) Grammar(gs *GrammarSpec) *Jsonic {
 	}
 
 	return j
+}
+
+// applyGrammarAlts resolves and applies grammar alts to a rule spec.
+// Handles both plain []*GrammarAltSpec and *GrammarAltListSpec with inject.
+func applyGrammarAlts(j *Jsonic, rs *RuleSpec, spec any, ref map[FuncRef]any, isOpen bool) {
+	var gas []*GrammarAltSpec
+	var inject *GrammarInjectSpec
+
+	switch v := spec.(type) {
+	case []*GrammarAltSpec:
+		gas = v
+	case *GrammarAltListSpec:
+		gas = v.Alts
+		inject = v.Inject
+	default:
+		return
+	}
+
+	resolved := j.resolveGrammarAlts(gas, ref)
+
+	dest := &rs.Close
+	if isOpen {
+		dest = &rs.Open
+	}
+
+	// Apply inject modifiers (delete, move) to existing alts first.
+	if inject != nil && (len(inject.Delete) > 0 || len(inject.Move) > 0) {
+		*dest = modifyAltList(*dest, &AltModListOpts{
+			Delete: inject.Delete,
+			Move:   inject.Move,
+		})
+	}
+
+	// Insert resolved alts: append or prepend (default: prepend).
+	if inject != nil && inject.Append {
+		*dest = append(*dest, resolved...)
+	} else {
+		*dest = append(resolved, *dest...)
+	}
 }
 
 // resolveGrammarAlts converts a slice of GrammarAltSpec to concrete AltSpec.
@@ -108,20 +178,22 @@ func (j *Jsonic) resolveGrammarAlt(ga *GrammarAltSpec, ref map[FuncRef]any) *Alt
 	case float64:
 		alt.B = int(v)
 	case string:
-		if fn := lookupRef(ref, v); fn != nil {
-			if bf, ok := fn.(func(*Rule, *Context) int); ok {
-				alt.BF = bf
-			}
+		fn := requireRef(ref, v, "backtrack")
+		if bf, ok := fn.(func(*Rule, *Context) int); ok {
+			alt.BF = bf
+		} else {
+			panic(fmt.Sprintf("Grammar: ref %q is not a backtrack function", v))
 		}
 	}
 
 	// Resolve P (push: rule name or FuncRef)
 	if ga.P != "" {
 		if isFuncRef(ga.P) {
-			if fn := lookupRef(ref, ga.P); fn != nil {
-				if pf, ok := fn.(func(*Rule, *Context) string); ok {
-					alt.PF = pf
-				}
+			fn := requireRef(ref, ga.P, "push")
+			if pf, ok := fn.(func(*Rule, *Context) string); ok {
+				alt.PF = pf
+			} else {
+				panic(fmt.Sprintf("Grammar: ref %q is not a push function", ga.P))
 			}
 		} else {
 			alt.P = ga.P
@@ -131,10 +203,11 @@ func (j *Jsonic) resolveGrammarAlt(ga *GrammarAltSpec, ref map[FuncRef]any) *Alt
 	// Resolve R (replace: rule name or FuncRef)
 	if ga.R != "" {
 		if isFuncRef(ga.R) {
-			if fn := lookupRef(ref, ga.R); fn != nil {
-				if rf, ok := fn.(func(*Rule, *Context) string); ok {
-					alt.RF = rf
-				}
+			fn := requireRef(ref, ga.R, "replace")
+			if rf, ok := fn.(func(*Rule, *Context) string); ok {
+				alt.RF = rf
+			} else {
+				panic(fmt.Sprintf("Grammar: ref %q is not a replace function", ga.R))
 			}
 		} else {
 			alt.R = ga.R
@@ -143,46 +216,42 @@ func (j *Jsonic) resolveGrammarAlt(ga *GrammarAltSpec, ref map[FuncRef]any) *Alt
 
 	// Resolve A (action)
 	if ga.A != "" {
-		if fn := lookupRef(ref, ga.A); fn != nil {
-			if af, ok := fn.(AltAction); ok {
-				alt.A = af
-			} else {
-				panic(fmt.Sprintf("Grammar: ref %q is not an AltAction", ga.A))
-			}
+		fn := requireRef(ref, ga.A, "action")
+		if af, ok := fn.(AltAction); ok {
+			alt.A = af
+		} else {
+			panic(fmt.Sprintf("Grammar: ref %q is not an AltAction", ga.A))
 		}
 	}
 
 	// Resolve E (error)
 	if ga.E != "" {
-		if fn := lookupRef(ref, ga.E); fn != nil {
-			if ef, ok := fn.(AltError); ok {
-				alt.E = ef
-			} else {
-				panic(fmt.Sprintf("Grammar: ref %q is not an AltError", ga.E))
-			}
+		fn := requireRef(ref, ga.E, "error")
+		if ef, ok := fn.(AltError); ok {
+			alt.E = ef
+		} else {
+			panic(fmt.Sprintf("Grammar: ref %q is not an AltError", ga.E))
 		}
 	}
 
 	// Resolve H (modifier)
 	if ga.H != "" {
-		if fn := lookupRef(ref, ga.H); fn != nil {
-			if hf, ok := fn.(AltModifier); ok {
-				alt.H = hf
-			} else {
-				panic(fmt.Sprintf("Grammar: ref %q is not an AltModifier", ga.H))
-			}
+		fn := requireRef(ref, ga.H, "modifier")
+		if hf, ok := fn.(AltModifier); ok {
+			alt.H = hf
+		} else {
+			panic(fmt.Sprintf("Grammar: ref %q is not an AltModifier", ga.H))
 		}
 	}
 
 	// Resolve C (condition: FuncRef or declarative map)
 	switch cv := ga.C.(type) {
 	case string:
-		if fn := lookupRef(ref, cv); fn != nil {
-			if cf, ok := fn.(AltCond); ok {
-				alt.C = cf
-			} else {
-				panic(fmt.Sprintf("Grammar: ref %q is not an AltCond", cv))
-			}
+		fn := requireRef(ref, cv, "condition")
+		if cf, ok := fn.(AltCond); ok {
+			alt.C = cf
+		} else {
+			panic(fmt.Sprintf("Grammar: ref %q is not an AltCond", cv))
 		}
 	case map[string]any:
 		alt.CD = cv
@@ -244,11 +313,6 @@ func (j *Jsonic) resolveTokenField(s any) [][]Tin {
 
 // resolveTokenSpec resolves a token spec string into [][]Tin.
 // Each space-separated name becomes a separate slot.
-// Examples:
-//
-//	"#OB"       → [][]Tin{{TinOB}}
-//	"#KEY #CL"  → [][]Tin{TinSetKEY, {TinCL}}
-//	"#CB #CS"   → [][]Tin{{TinCB}, {TinCS}}  (two slots)
 func (j *Jsonic) resolveTokenSpec(s string) [][]Tin {
 	parts := strings.Fields(s)
 	if len(parts) == 0 {
@@ -262,15 +326,11 @@ func (j *Jsonic) resolveTokenSpec(s string) [][]Tin {
 }
 
 // resolveTokenName resolves a single token name (like "#OB" or "#KEY") to a []Tin.
-// If it matches a token set, the full set is returned.
-// Otherwise, the single token tin is returned.
 func (j *Jsonic) resolveTokenName(name string) []Tin {
-	// Try token set first (strip # prefix for set lookup)
 	setName := strings.TrimPrefix(name, "#")
 	if tins := j.TokenSet(setName); tins != nil {
 		return tins
 	}
-	// Single token
 	tin := j.Token(name)
 	return []Tin{tin}
 }
@@ -280,7 +340,20 @@ func isFuncRef(s string) bool {
 	return len(s) > 0 && s[0] == '@'
 }
 
-// lookupRef looks up a FuncRef in the ref map.
+// requireRef looks up a FuncRef in the ref map and panics if not found.
+// Matches TS behavior which throws on missing refs.
+func requireRef(ref map[FuncRef]any, name string, kind string) any {
+	if ref == nil {
+		panic(fmt.Sprintf("Grammar: unknown %s function reference: %s (no ref map)", kind, name))
+	}
+	fn, ok := ref[name]
+	if !ok {
+		panic(fmt.Sprintf("Grammar: unknown %s function reference: %s", kind, name))
+	}
+	return fn
+}
+
+// lookupRef looks up a FuncRef in the ref map. Returns nil if not found.
 func lookupRef(ref map[FuncRef]any, name string) any {
 	if ref == nil {
 		return nil
@@ -326,6 +399,115 @@ func wireStateActions(rs *RuleSpec, ref map[FuncRef]any) {
 	}
 }
 
+// mapToOptions converts a map[string]any (with resolved FuncRefs) to an Options struct.
+// Only handles fields that are commonly set via grammar options.
+func mapToOptions(m map[string]any) Options {
+	var opts Options
+
+	if v, ok := m["tag"].(string); ok {
+		opts.Tag = v
+	}
+
+	if vm, ok := m["value"].(map[string]any); ok {
+		opts.Value = &ValueOptions{}
+		if lex, ok := vm["lex"].(bool); ok {
+			opts.Value.Lex = &lex
+		}
+		if defm, ok := vm["def"].(map[string]any); ok {
+			opts.Value.Def = make(map[string]*ValueDef, len(defm))
+			for k, v := range defm {
+				switch vv := v.(type) {
+				case map[string]any:
+					vd := &ValueDef{}
+					if val, ok := vv["val"]; ok {
+						vd.Val = val
+					}
+					opts.Value.Def[k] = vd
+				case nil, bool:
+					// nil or false removes the value def
+				}
+			}
+		}
+	}
+
+	if nm, ok := m["number"].(map[string]any); ok {
+		opts.Number = &NumberOptions{}
+		if hex, ok := nm["hex"].(bool); ok {
+			opts.Number.Hex = &hex
+		}
+		if oct, ok := nm["oct"].(bool); ok {
+			opts.Number.Oct = &oct
+		}
+		if bin, ok := nm["bin"].(bool); ok {
+			opts.Number.Bin = &bin
+		}
+		if sep, ok := nm["sep"].(string); ok {
+			opts.Number.Sep = sep
+		}
+		if fn, ok := nm["exclude"].(func(string) bool); ok {
+			opts.Number.Exclude = fn
+		}
+	}
+
+	if mm, ok := m["map"].(map[string]any); ok {
+		opts.Map = &MapOptions{}
+		if ext, ok := mm["extend"].(bool); ok {
+			opts.Map.Extend = &ext
+		}
+		if fn, ok := mm["merge"].(func(any, any, *Rule, *Context) any); ok {
+			opts.Map.Merge = fn
+		}
+	}
+
+	if sm, ok := m["string"].(map[string]any); ok {
+		opts.String = &StringOptions{}
+		if esc, ok := sm["escape"].(map[string]any); ok {
+			opts.String.Escape = make(map[string]string, len(esc))
+			for k, v := range esc {
+				if s, ok := v.(string); ok {
+					opts.String.Escape[k] = s
+				}
+			}
+		}
+		if rep, ok := sm["replace"].(map[string]any); ok {
+			opts.String.Replace = make(map[rune]string, len(rep))
+			for k, v := range rep {
+				if len(k) > 0 {
+					if s, ok := v.(string); ok {
+						opts.String.Replace[rune(k[0])] = s
+					}
+				}
+			}
+		}
+	}
+
+	if cm, ok := m["comment"].(map[string]any); ok {
+		opts.Comment = &CommentOptions{}
+		if lex, ok := cm["lex"].(bool); ok {
+			opts.Comment.Lex = &lex
+		}
+	}
+
+	if rm, ok := m["rule"].(map[string]any); ok {
+		opts.Rule = &RuleOptions{}
+		if start, ok := rm["start"].(string); ok {
+			opts.Rule.Start = start
+		}
+		if finish, ok := rm["finish"].(bool); ok {
+			opts.Rule.Finish = &finish
+		}
+	}
+
+	if safe, ok := m["safe"].(map[string]any); ok {
+		opts.Safe = &SafeOptions{}
+		if key, ok := safe["key"].(bool); ok {
+			opts.Safe.Key = &key
+		}
+	}
+
+	return opts
+}
+
 // builtinTins maps standard token names to their Tin values.
 var builtinTins = map[string]Tin{
 	"#BD": TinBD, "#ZZ": TinZZ, "#UK": TinUK, "#AA": TinAA,
@@ -364,7 +546,6 @@ func resolveTokenFieldStatic(s any) [][]Tin {
 }
 
 // resolveTokenSpecStatic resolves a token spec string using built-in tokens only.
-// Used by the internal grammar which is built before a *Jsonic instance exists.
 func resolveTokenSpecStatic(s string) [][]Tin {
 	parts := strings.Fields(s)
 	if len(parts) == 0 {
@@ -405,19 +586,17 @@ func resolveGrammarAltStatic(ga *GrammarAltSpec, ref map[FuncRef]any) *AltSpec {
 	case float64:
 		alt.B = int(v)
 	case string:
-		if fn := lookupRef(ref, v); fn != nil {
-			if bf, ok := fn.(func(*Rule, *Context) int); ok {
-				alt.BF = bf
-			}
+		fn := requireRef(ref, v, "backtrack")
+		if bf, ok := fn.(func(*Rule, *Context) int); ok {
+			alt.BF = bf
 		}
 	}
 
 	if ga.P != "" {
 		if isFuncRef(ga.P) {
-			if fn := lookupRef(ref, ga.P); fn != nil {
-				if pf, ok := fn.(func(*Rule, *Context) string); ok {
-					alt.PF = pf
-				}
+			fn := requireRef(ref, ga.P, "push")
+			if pf, ok := fn.(func(*Rule, *Context) string); ok {
+				alt.PF = pf
 			}
 		} else {
 			alt.P = ga.P
@@ -426,10 +605,9 @@ func resolveGrammarAltStatic(ga *GrammarAltSpec, ref map[FuncRef]any) *AltSpec {
 
 	if ga.R != "" {
 		if isFuncRef(ga.R) {
-			if fn := lookupRef(ref, ga.R); fn != nil {
-				if rf, ok := fn.(func(*Rule, *Context) string); ok {
-					alt.RF = rf
-				}
+			fn := requireRef(ref, ga.R, "replace")
+			if rf, ok := fn.(func(*Rule, *Context) string); ok {
+				alt.RF = rf
 			}
 		} else {
 			alt.R = ga.R
@@ -437,26 +615,22 @@ func resolveGrammarAltStatic(ga *GrammarAltSpec, ref map[FuncRef]any) *AltSpec {
 	}
 
 	if ga.A != "" {
-		if fn := lookupRef(ref, ga.A); fn != nil {
-			alt.A = fn.(AltAction)
-		}
+		fn := requireRef(ref, ga.A, "action")
+		alt.A = fn.(AltAction)
 	}
 	if ga.E != "" {
-		if fn := lookupRef(ref, ga.E); fn != nil {
-			alt.E = fn.(AltError)
-		}
+		fn := requireRef(ref, ga.E, "error")
+		alt.E = fn.(AltError)
 	}
 	if ga.H != "" {
-		if fn := lookupRef(ref, ga.H); fn != nil {
-			alt.H = fn.(AltModifier)
-		}
+		fn := requireRef(ref, ga.H, "modifier")
+		alt.H = fn.(AltModifier)
 	}
 
 	switch cv := ga.C.(type) {
 	case string:
-		if fn := lookupRef(ref, cv); fn != nil {
-			alt.C = fn.(AltCond)
-		}
+		fn := requireRef(ref, cv, "condition")
+		alt.C = fn.(AltCond)
 	case map[string]any:
 		alt.CD = cv
 	}

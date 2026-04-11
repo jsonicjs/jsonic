@@ -1,8 +1,10 @@
 package jsonic
 
 import (
+	"fmt"
 	"reflect"
 	"regexp"
+	"strings"
 	"testing"
 )
 
@@ -536,5 +538,201 @@ func TestGrammarFixedToken(t *testing.T) {
 	m := result.(map[string]any)
 	if m["a"] != "<arrow>" {
 		t.Errorf("expected <arrow>, got %v", m["a"])
+	}
+}
+
+// --- Parity fix: missing FuncRef panics ---
+
+func TestGrammarMissingFuncRefPanics(t *testing.T) {
+	defer func() {
+		r := recover()
+		if r == nil {
+			t.Fatal("expected panic for missing FuncRef, got none")
+		}
+		msg := fmt.Sprintf("%v", r)
+		if !strings.Contains(msg, "@missing") {
+			t.Errorf("panic message should mention @missing, got: %s", msg)
+		}
+	}()
+
+	j := Make()
+	j.Grammar(&GrammarSpec{
+		Ref: map[FuncRef]any{},
+		Rule: map[string]*GrammarRuleSpec{
+			"val": {
+				Close: []*GrammarAltSpec{
+					{A: "@missing", G: "custom"},
+				},
+			},
+		},
+	})
+}
+
+// --- Parity fix: inject modifiers ---
+
+func TestGrammarInjectAppend(t *testing.T) {
+	// With Append: true, new alts go after existing ones.
+	j := Make()
+	origCloseLen := len(j.RSM()["val"].Close)
+
+	j.Grammar(&GrammarSpec{
+		Ref: map[FuncRef]any{
+			"@noop": AltAction(func(r *Rule, ctx *Context) {}),
+		},
+		Rule: map[string]*GrammarRuleSpec{
+			"val": {
+				Close: &GrammarAltListSpec{
+					Alts: []*GrammarAltSpec{
+						{S: "#ZZ", A: "@noop", G: "appended"},
+					},
+					Inject: &GrammarInjectSpec{Append: true},
+				},
+			},
+		},
+	})
+
+	valClose := j.RSM()["val"].Close
+	// The appended alt should be at the end.
+	last := valClose[len(valClose)-1]
+	if last.G != "appended" {
+		t.Errorf("expected last alt group=appended, got %q", last.G)
+	}
+	if len(valClose) != origCloseLen+1 {
+		t.Errorf("expected %d close alts, got %d", origCloseLen+1, len(valClose))
+	}
+}
+
+func TestGrammarInjectPrepend(t *testing.T) {
+	// Default (no inject or Append:false) prepends new alts before existing ones.
+	j := Make()
+
+	j.Grammar(&GrammarSpec{
+		Ref: map[FuncRef]any{
+			"@noop": AltAction(func(r *Rule, ctx *Context) {}),
+		},
+		Rule: map[string]*GrammarRuleSpec{
+			"val": {
+				Close: []*GrammarAltSpec{
+					{S: "#ZZ", A: "@noop", G: "first"},
+				},
+			},
+		},
+	})
+
+	j.Grammar(&GrammarSpec{
+		Ref: map[FuncRef]any{
+			"@noop2": AltAction(func(r *Rule, ctx *Context) {}),
+		},
+		Rule: map[string]*GrammarRuleSpec{
+			"val": {
+				Close: []*GrammarAltSpec{
+					{S: "#ZZ", A: "@noop2", G: "second"},
+				},
+			},
+		},
+	})
+
+	valClose := j.RSM()["val"].Close
+	// Second prepend goes before first prepend.
+	if valClose[0].G != "second" {
+		t.Errorf("expected first alt group=second, got %q", valClose[0].G)
+	}
+	if valClose[1].G != "first" {
+		t.Errorf("expected second alt group=first, got %q", valClose[1].G)
+	}
+}
+
+// --- Parity fix: OptionsMap with FuncRef resolution ---
+
+func TestGrammarOptionsMapMerge(t *testing.T) {
+	j := Make()
+
+	j.Grammar(&GrammarSpec{
+		Ref: map[FuncRef]any{
+			"@addMerge": func(prev, curr any, r *Rule, ctx *Context) any {
+				pf, pok := prev.(float64)
+				cf, cok := curr.(float64)
+				if pok && cok {
+					return pf + cf
+				}
+				return curr
+			},
+		},
+		OptionsMap: map[string]any{
+			"map": map[string]any{
+				"merge": "@addMerge",
+			},
+		},
+	})
+
+	result, err := j.Parse("a:1,a:2")
+	if err != nil {
+		t.Fatal(err)
+	}
+	m := result.(map[string]any)
+	if m["a"] != float64(3) {
+		t.Errorf("expected a:3, got %v", m["a"])
+	}
+}
+
+func TestGrammarOptionsMapValueDef(t *testing.T) {
+	j := Make()
+
+	j.Grammar(&GrammarSpec{
+		OptionsMap: map[string]any{
+			"value": map[string]any{
+				"lex": true,
+				"def": map[string]any{
+					"yes": map[string]any{"val": true},
+					"no":  map[string]any{"val": false},
+				},
+			},
+		},
+	})
+
+	result, err := j.Parse("a:yes,b:no")
+	if err != nil {
+		t.Fatal(err)
+	}
+	m := result.(map[string]any)
+	if m["a"] != true || m["b"] != false {
+		t.Errorf("expected a:true b:false, got %v", m)
+	}
+}
+
+func TestGrammarOptionsMapSkip(t *testing.T) {
+	j := Make()
+
+	// First: set tag
+	j.Grammar(&GrammarSpec{
+		OptionsMap: map[string]any{
+			"tag": "original",
+		},
+	})
+	if j.Options().Tag != "original" {
+		t.Fatalf("expected tag=original, got %v", j.Options().Tag)
+	}
+
+	// Second: @SKIP preserves existing tag
+	j.Grammar(&GrammarSpec{
+		OptionsMap: map[string]any{
+			"tag": "@SKIP",
+		},
+	})
+	if j.Options().Tag != "original" {
+		t.Errorf("expected tag=original (preserved by @SKIP), got %v", j.Options().Tag)
+	}
+}
+
+func TestGrammarOptionsMapAtEscape(t *testing.T) {
+	j := Make()
+
+	j.Grammar(&GrammarSpec{
+		OptionsMap: map[string]any{
+			"tag": "@@literal-at",
+		},
+	})
+	if j.Options().Tag != "@literal-at" {
+		t.Errorf("expected @literal-at, got %v", j.Options().Tag)
 	}
 }
