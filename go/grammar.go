@@ -1,9 +1,9 @@
 package jsonic
 
-// Grammar builds the default jsonic grammar rules using declarative GrammarAltSpec.
+// buildGrammar populates the default jsonic grammar rules using declarative GrammarAltSpec.
 // This is a faithful port of grammar.ts, matching the exact alternate orderings
 // produced by the JSON phase followed by the Jsonic extension phase.
-func Grammar(rsm map[string]*RuleSpec, cfg *LexConfig) {
+func buildGrammar(rsm map[string]*RuleSpec, cfg *LexConfig) {
 	// Named function references for the grammar.
 	// These closures capture cfg for runtime configuration access.
 	ref := map[FuncRef]any{

@@ -51,7 +51,7 @@ type Parser struct {
 func NewParser() *Parser {
 	cfg := DefaultLexConfig()
 	rsm := make(map[string]*RuleSpec)
-	Grammar(rsm, cfg)
+	buildGrammar(rsm, cfg)
 	// Copy global error messages as defaults.
 	msgs := make(map[string]string, len(errorMessages))
 	for k, v := range errorMessages {
