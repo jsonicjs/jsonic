@@ -320,7 +320,7 @@ func Make(opts ...Options) *Jsonic {
 
 	cfg := buildConfig(&o)
 	rsm := make(map[string]*RuleSpec)
-	Grammar(rsm, cfg)
+	buildGrammar(rsm, cfg)
 
 	maxmul := 3
 	if o.Rule != nil && o.Rule.MaxMul != nil {
