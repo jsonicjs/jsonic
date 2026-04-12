@@ -170,7 +170,7 @@ function make(param_options, parent) {
         util,
         grammar: (gs) => {
             if (gs.options) {
-                const resolved = resolveFuncRefs(gs.options, gs.ref);
+                const resolved = (0, utility_1.resolveFuncRefs)(gs.options, gs.ref);
                 ji.options(resolved);
             }
             if (gs.rule) {
@@ -241,47 +241,6 @@ function make(param_options, parent) {
         }
     }
     return jsonic;
-}
-// Recursively resolve FuncRef strings in an options object to actual functions,
-// and `@/pattern/flags` strings to RegExp instances.
-function resolveFuncRefs(obj, ref) {
-    if (null == obj || 'object' !== typeof obj) {
-        if ('string' === typeof obj && '@' === obj[0]) {
-            // Escape: `@@` prefix produces a literal `@`-prefixed string.
-            if ('@' === obj[1]) {
-                return obj.substring(1);
-            }
-            // Sentinel: `@SKIP` resolves to the SKIP symbol (acts as undefined in deep merge).
-            if ('SKIP' === obj.substring(1)) {
-                return types_1.SKIP;
-            }
-            // Match `@/pattern/flags` — a JSON-serializable RegExp literal.
-            const m = obj.match(/^@\/(.*)\/([\w]*)$/);
-            if (m) {
-                return new RegExp(m[1], m[2]);
-            }
-            if (ref) {
-                const fn = ref[obj];
-                if ('function' === typeof fn) {
-                    return fn;
-                }
-            }
-        }
-        return obj;
-    }
-    if (Array.isArray(obj)) {
-        return obj.map((item) => resolveFuncRefs(item, ref));
-    }
-    // Preserve non-plain objects (RegExp, Date, etc.) without recursion.
-    const ctor = obj.constructor;
-    if (ctor && 'Object' !== ctor.name) {
-        return obj;
-    }
-    const out = {};
-    for (const key of Object.keys(obj)) {
-        out[key] = resolveFuncRefs(obj[key], ref);
-    }
-    return out;
 }
 let root = undefined;
 exports.root = root;

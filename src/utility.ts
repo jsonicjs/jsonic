@@ -914,6 +914,55 @@ function getpath(root: any, path: string | string[]): any {
 }
 
 
+// Recursively resolve FuncRef strings in an options object to actual functions,
+// and `@/pattern/flags` strings to RegExp instances.
+function resolveFuncRefs(
+  obj: any,
+  ref?: Record<string, Function>,
+): any {
+  if (null == obj || 'object' !== typeof obj) {
+    if ('string' === typeof obj && '@' === obj[0]) {
+      // Escape: `@@` prefix produces a literal `@`-prefixed string.
+      if ('@' === obj[1]) {
+        return obj.substring(1)
+      }
+      // Sentinel: `@SKIP` resolves to the SKIP symbol (acts as undefined in deep merge).
+      if ('SKIP' === obj.substring(1)) {
+        return SKIP
+      }
+      // Match `@/pattern/flags` — a JSON-serializable RegExp literal.
+      const m = obj.match(/^@\/(.*)\/([\w]*)$/)
+      if (m) {
+        return new RegExp(m[1], m[2])
+      }
+      if (ref) {
+        const fn = ref[obj]
+        if ('function' === typeof fn) {
+          return fn
+        }
+      }
+    }
+    return obj
+  }
+
+  if (Array.isArray(obj)) {
+    return obj.map((item: any) => resolveFuncRefs(item, ref))
+  }
+
+  // Preserve non-plain objects (RegExp, Date, etc.) without recursion.
+  const ctor = obj.constructor
+  if (ctor && 'Object' !== ctor.name) {
+    return obj
+  }
+
+  const out: any = {}
+  for (const key of Object.keys(obj)) {
+    out[key] = resolveFuncRefs(obj[key], ref)
+  }
+  return out
+}
+
+
 export {
   S,
   assign,
@@ -942,4 +991,5 @@ export {
   values,
   findTokenSet,
   modlist,
+  resolveFuncRefs,
 }
