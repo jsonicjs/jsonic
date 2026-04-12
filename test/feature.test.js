@@ -739,6 +739,10 @@ describe('feature', function () {
     tsvTest('feature-implicit-map')
   })
 
+  it('nested-space-pairs', () => {
+    tsvTest('feature-nested-space-pairs')
+  })
+
   it('extension', () => {
     assert.deepEqual(j('a:{b:1,c:2},a:{c:3,e:4}'), { a: { b: 1, c: 3, e: 4 } })
 

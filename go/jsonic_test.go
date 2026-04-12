@@ -183,6 +183,7 @@ var parserTSVFiles = []string{
 	"feature-debug-cases.tsv",
 	"feature-implicit-map.tsv",
 	"feature-implicit-object.tsv",
+	"feature-nested-space-pairs.tsv",
 	"fv-arrays.tsv",
 	"fv-comma.tsv",
 	"fv-deep.tsv",
