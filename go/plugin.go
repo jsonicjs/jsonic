@@ -393,11 +393,11 @@ func (j *Jsonic) Derive(opts ...Options) *Jsonic {
 }
 
 // SetOptions deep-merges new options into this instance and rebuilds the
-// config, grammar, and plugins. This matches the TypeScript options() setter
-// behavior: nil/zero fields in opts do not overwrite existing values.
+// config. Existing grammar rules (including plugin modifications) are
+// preserved — matching the TypeScript clone/inherit pattern where
+// options() does not rebuild the grammar.
 // When called from within a plugin (during re-apply), skips plugin
-// re-application to avoid infinite recursion, matching TS behavior where
-// options() does not re-trigger plugins.
+// re-application to avoid infinite recursion.
 // Returns the instance for chaining.
 func (j *Jsonic) SetOptions(opts Options) *Jsonic {
 	merged := Deep(*j.options, opts).(Options)
@@ -412,12 +412,16 @@ func (j *Jsonic) SetOptions(opts Options) *Jsonic {
 	cfg.TinNames = j.parser.Config.TinNames
 	cfg.CustomMatchers = j.parser.Config.CustomMatchers
 
-	j.parser.Config = cfg
+	// Update config in-place to preserve pointer identity.
+	// Grammar closures capture the original *LexConfig pointer, so updating
+	// the object they point to (rather than replacing it) ensures they see
+	// the new config values. This matches TS behavior where configure()
+	// mutates the existing config and parser.clone() inherits the rules.
+	*j.parser.Config = *cfg
 
-	// Rebuild grammar.
-	rsm := make(map[string]*RuleSpec)
-	Grammar(rsm, cfg)
-	j.parser.RSM = rsm
+	// Do NOT rebuild grammar — preserve existing RSM with user rule
+	// modifications. This matches TS where options() calls parser.clone()
+	// which inherits existing rules rather than rebuilding from scratch.
 
 	// Re-apply plugins (with re-entrancy guard to match TS behavior where
 	// options() setter does not re-trigger plugin application).

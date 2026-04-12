@@ -738,3 +738,123 @@ func TestGrammarOptionsMapAtEscape(t *testing.T) {
 		t.Errorf("expected @literal-at, got %v", j.Options().Tag)
 	}
 }
+
+// --- SetOptions preserves rule modifications (clone/inherit parity) ---
+
+func TestSetOptionsPreservesRuleModifications(t *testing.T) {
+	// In TS, j.rule() then j.options() preserves the rule modification.
+	// This test verifies Go matches that behavior.
+	j := Make()
+
+	// Add a custom close alt to val via Rule().
+	tagged := false
+	j.Rule("val", func(rs *RuleSpec) {
+		rs.Close = append([]*AltSpec{{
+			A: func(r *Rule, ctx *Context) { tagged = true },
+			G: "custom-tag",
+		}}, rs.Close...)
+	})
+
+	// Now call SetOptions — this must NOT destroy the rule modification.
+	yes := true
+	j.SetOptions(Options{
+		Number: &NumberOptions{Hex: &yes},
+	})
+
+	// The custom alt should still be in val.Close.
+	valClose := j.RSM()["val"].Close
+	found := false
+	for _, alt := range valClose {
+		if alt.G == "custom-tag" {
+			found = true
+			break
+		}
+	}
+	if !found {
+		t.Error("rule modification lost after SetOptions — val.Close missing custom-tag alt")
+	}
+
+	// Parse should work and trigger the custom action.
+	_, err := j.Parse("a:1")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !tagged {
+		t.Error("custom action did not fire after SetOptions")
+	}
+}
+
+func TestSetOptionsPreservesGrammarModifications(t *testing.T) {
+	// Grammar() then SetOptions() should preserve the grammar modifications.
+	j := Make()
+
+	marked := false
+	mustGrammar(t, j, &GrammarSpec{
+		Ref: map[FuncRef]any{
+			"@mark": AltAction(func(r *Rule, ctx *Context) {
+				marked = true
+			}),
+		},
+		Rule: map[string]*GrammarRuleSpec{
+			"val": {
+				Close: []*GrammarAltSpec{
+					{A: "@mark", G: "grammar-mod"},
+				},
+			},
+		},
+	})
+
+	// SetOptions after Grammar should NOT destroy the grammar modification.
+	sep := "_"
+	j.SetOptions(Options{
+		Number: &NumberOptions{Sep: sep},
+	})
+
+	_, err := j.Parse("a:1_000")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !marked {
+		t.Error("grammar modification lost after SetOptions")
+	}
+}
+
+func TestRuleThenOptionsThenParse(t *testing.T) {
+	// The exact pattern from the user report: Rule() before Options().
+	j := Make()
+
+	customVal := ""
+	j.Rule("val", func(rs *RuleSpec) {
+		rs.Close = append([]*AltSpec{{
+			A: func(r *Rule, ctx *Context) {
+				if s, ok := r.Node.(string); ok {
+					customVal = s
+				}
+			},
+			G: "plugin-mod",
+		}}, rs.Close...)
+	})
+
+	// Options change after rule modification — must not lose the modification.
+	yes := true
+	j.SetOptions(Options{
+		Value: &ValueOptions{
+			Lex: &yes,
+			Def: map[string]*ValueDef{
+				"yes": {Val: true},
+			},
+		},
+	})
+
+	result, err := j.Parse("a:hello")
+	if err != nil {
+		t.Fatal(err)
+	}
+	m := result.(map[string]any)
+	if m["a"] != "hello" {
+		t.Errorf("expected a:hello, got %v", m)
+	}
+	if customVal != "hello" {
+		t.Errorf("custom rule action should have captured hello, got %q", customVal)
+	}
+}
