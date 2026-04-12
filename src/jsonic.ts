@@ -40,7 +40,7 @@ import type {
   GrammarSpec
 } from './types'
 
-import { OPEN, CLOSE, BEFORE, AFTER, EMPTY } from './types'
+import { OPEN, CLOSE, BEFORE, AFTER, EMPTY, SKIP } from './types'
 
 import {
   S,
@@ -295,6 +295,11 @@ function make(param_options?: Bag | string, parent?: Jsonic): Jsonic {
 
 
     grammar: (gs: GrammarSpec) => {
+      if (gs.options) {
+        const resolved = resolveFuncRefs(gs.options, gs.ref)
+        ji.options(resolved)
+      }
+
       if (gs.rule) {
         for (const rulename of Object.keys(gs.rule)) {
           const rulespec = gs.rule[rulename]
@@ -384,6 +389,56 @@ function make(param_options?: Bag | string, parent?: Jsonic): Jsonic {
   return jsonic
 }
 
+
+// Recursively resolve FuncRef strings in an options object to actual functions,
+// and `@/pattern/flags` strings to RegExp instances.
+function resolveFuncRefs(
+  obj: any,
+  ref?: Record<string, Function>,
+): any {
+  if (null == obj || 'object' !== typeof obj) {
+    if ('string' === typeof obj && '@' === obj[0]) {
+      // Escape: `@@` prefix produces a literal `@`-prefixed string.
+      if ('@' === obj[1]) {
+        return obj.substring(1)
+      }
+      // Sentinel: `@SKIP` resolves to the SKIP symbol (acts as undefined in deep merge).
+      if ('SKIP' === obj.substring(1)) {
+        return SKIP
+      }
+      // Match `@/pattern/flags` — a JSON-serializable RegExp literal.
+      const m = obj.match(/^@\/(.*)\/([\w]*)$/)
+      if (m) {
+        return new RegExp(m[1], m[2])
+      }
+      if (ref) {
+        const fn = ref[obj]
+        if ('function' === typeof fn) {
+          return fn
+        }
+      }
+    }
+    return obj
+  }
+
+  if (Array.isArray(obj)) {
+    return obj.map((item: any) => resolveFuncRefs(item, ref))
+  }
+
+  // Preserve non-plain objects (RegExp, Date, etc.) without recursion.
+  const ctor = obj.constructor
+  if (ctor && 'Object' !== ctor.name) {
+    return obj
+  }
+
+  const out: any = {}
+  for (const key of Object.keys(obj)) {
+    out[key] = resolveFuncRefs(obj[key], ref)
+  }
+  return out
+}
+
+
 let root: any = undefined
 
 // The global root Jsonic instance parsing rules cannot be modified.
@@ -411,6 +466,7 @@ root.CLOSE = CLOSE
 root.BEFORE = BEFORE
 root.AFTER = AFTER
 root.EMPTY = EMPTY
+root.SKIP = SKIP
 
 root.util = util
 root.make = make
@@ -472,6 +528,7 @@ export {
   BEFORE,
   AFTER,
   EMPTY,
+  SKIP,
   S,
   root,
 }

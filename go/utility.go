@@ -20,8 +20,8 @@ func Deep(base any, rest ...any) any {
 }
 
 func deepMerge(base, over any) any {
-	// Match TS: undefined preserves base.
-	if IsUndefined(over) {
+	// Match TS: undefined and Skip preserve base.
+	if IsUndefined(over) || IsSkip(over) {
 		return base
 	}
 

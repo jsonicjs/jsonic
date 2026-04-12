@@ -4,6 +4,7 @@ export declare const BEFORE: RuleStep;
 export declare const AFTER: RuleStep;
 export declare const EMPTY = "";
 export declare const INSPECT: unique symbol;
+export declare const SKIP: unique symbol;
 export declare const STRING = "string";
 export type JsonicParse = (src: any, meta?: any, parent_ctx?: any) => any;
 export interface JsonicAPI {
@@ -595,6 +596,7 @@ export interface Parser {
 }
 export type GrammarSpec = {
     ref?: Record<FuncRef, Function>;
+    options?: Bag;
     rule?: Record<string, {
         open?: GrammarAltSpec[] | {
             alts: GrammarAltSpec[];

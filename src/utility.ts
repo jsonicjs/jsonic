@@ -21,7 +21,7 @@ import type {
   ListMods,
 } from './types'
 
-import { EMPTY, STRING } from './types'
+import { EMPTY, SKIP, STRING } from './types'
 
 import { makeToken, makePoint } from './lexer'
 import { JsonicError } from './error'
@@ -540,7 +540,7 @@ function deep(base?: any, ...rest: any): any {
       }
     } else {
       base =
-        undefined === over
+        undefined === over || SKIP === over
           ? base
           : over_isf
             ? over
