@@ -75,4 +75,5 @@ declare function parserwrap(parser: any): {
     start: (src: string, jsonic: any, meta?: any, parent_ctx?: any) => any;
 };
 declare function getpath(root: any, path: string | string[]): any;
-export { S, assign, badlex, charset, clean, clone, configure, deep, defprop, entries, escre, filterRules, getpath, isarr, makelog, mesc, regexp, snip, srcfmt, tokenize, parserwrap, str, omap, keys, values, findTokenSet, modlist, };
+declare function resolveFuncRefs(obj: any, ref?: Record<string, Function>): any;
+export { S, assign, badlex, charset, clean, clone, configure, deep, defprop, entries, escre, filterRules, getpath, isarr, makelog, mesc, regexp, snip, srcfmt, tokenize, parserwrap, str, omap, keys, values, findTokenSet, modlist, resolveFuncRefs, };
