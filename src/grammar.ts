@@ -804,7 +804,7 @@ function grammar(jsonic: Jsonic) {
           // End of implicit path (eg. a:b:1), keep closing until pk=0.
           {
             s: ['#CB #CA #CS #KEY'],
-            c: { 'n.pk': { $gte: 0 } },
+            c: { 'n.pk': { $gt: 0 } },
             b: 1,
             g: 'map,pair,imp,path,jsonic',
           },

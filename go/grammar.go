@@ -471,7 +471,7 @@ func buildGrammar(rsm map[string]*RuleSpec, cfg *LexConfig) {
 
 	// CB|CA|CS|KEY in single slot
 	pairSpec.Close = append(pairSpec.Close, resolveGrammarAltStatic(
-		&GrammarAltSpec{S: []string{"#CB #CA #CS #KEY"}, C: map[string]any{"n.pk": CGte(0)},
+		&GrammarAltSpec{S: []string{"#CB #CA #CS #KEY"}, C: map[string]any{"n.pk": CGt(0)},
 			B: 1, G: "jsonic"}, ref))
 	// Remaining pair close alts.
 	pairSpec.Close = append(pairSpec.Close, resolve([]*GrammarAltSpec{
