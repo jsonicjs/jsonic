@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"reflect"
+	"regexp"
 	"strconv"
 	"strings"
 )
@@ -586,4 +587,200 @@ func ModList(list []any, opts *ModListOpts) []any {
 // Used internally for testing.
 func deepEqual(a, b any) bool {
 	return reflect.DeepEqual(a, b)
+}
+
+// IsFuncRef checks if a string is a function reference (starts with "@").
+func IsFuncRef(s string) bool {
+	return len(s) > 0 && s[0] == '@'
+}
+
+// RequireRef looks up a FuncRef in the ref map and returns an error if not found.
+func RequireRef(ref map[FuncRef]any, name string, kind string) (any, error) {
+	if ref == nil {
+		return nil, fmt.Errorf("Grammar: unknown %s function reference: %s (no ref map)", kind, name)
+	}
+	fn, ok := ref[name]
+	if !ok {
+		return nil, fmt.Errorf("Grammar: unknown %s function reference: %s", kind, name)
+	}
+	return fn, nil
+}
+
+// LookupRef looks up a FuncRef in the ref map. Returns nil if not found.
+func LookupRef(ref map[FuncRef]any, name string) any {
+	if ref == nil {
+		return nil
+	}
+	return ref[name]
+}
+
+// MapToOptions converts a map[string]any (with resolved FuncRefs) to an Options struct.
+// Only handles fields that are commonly set via grammar options.
+func MapToOptions(m map[string]any) Options {
+	var opts Options
+
+	if v, ok := m["tag"].(string); ok {
+		opts.Tag = v
+	}
+
+	if vm, ok := m["value"].(map[string]any); ok {
+		opts.Value = &ValueOptions{}
+		if lex, ok := vm["lex"].(bool); ok {
+			opts.Value.Lex = &lex
+		}
+		if defm, ok := vm["def"].(map[string]any); ok {
+			opts.Value.Def = make(map[string]*ValueDef, len(defm))
+			for k, v := range defm {
+				switch vv := v.(type) {
+				case map[string]any:
+					vd := &ValueDef{}
+					if val, ok := vv["val"]; ok {
+						vd.Val = val
+					}
+					opts.Value.Def[k] = vd
+				case nil, bool:
+					// nil or false removes the value def
+				}
+			}
+		}
+	}
+
+	if nm, ok := m["number"].(map[string]any); ok {
+		opts.Number = &NumberOptions{}
+		if hex, ok := nm["hex"].(bool); ok {
+			opts.Number.Hex = &hex
+		}
+		if oct, ok := nm["oct"].(bool); ok {
+			opts.Number.Oct = &oct
+		}
+		if bin, ok := nm["bin"].(bool); ok {
+			opts.Number.Bin = &bin
+		}
+		if sep, ok := nm["sep"].(string); ok {
+			opts.Number.Sep = sep
+		}
+		if fn, ok := nm["exclude"].(func(string) bool); ok {
+			opts.Number.Exclude = fn
+		}
+	}
+
+	if mm, ok := m["map"].(map[string]any); ok {
+		opts.Map = &MapOptions{}
+		if ext, ok := mm["extend"].(bool); ok {
+			opts.Map.Extend = &ext
+		}
+		if fn, ok := mm["merge"].(func(any, any, *Rule, *Context) any); ok {
+			opts.Map.Merge = fn
+		}
+	}
+
+	if sm, ok := m["string"].(map[string]any); ok {
+		opts.String = &StringOptions{}
+		if esc, ok := sm["escape"].(map[string]any); ok {
+			opts.String.Escape = make(map[string]string, len(esc))
+			for k, v := range esc {
+				if s, ok := v.(string); ok {
+					opts.String.Escape[k] = s
+				}
+			}
+		}
+		if rep, ok := sm["replace"].(map[string]any); ok {
+			opts.String.Replace = make(map[rune]string, len(rep))
+			for k, v := range rep {
+				if len(k) > 0 {
+					if s, ok := v.(string); ok {
+						opts.String.Replace[rune(k[0])] = s
+					}
+				}
+			}
+		}
+	}
+
+	if cm, ok := m["comment"].(map[string]any); ok {
+		opts.Comment = &CommentOptions{}
+		if lex, ok := cm["lex"].(bool); ok {
+			opts.Comment.Lex = &lex
+		}
+	}
+
+	if rm, ok := m["rule"].(map[string]any); ok {
+		opts.Rule = &RuleOptions{}
+		if start, ok := rm["start"].(string); ok {
+			opts.Rule.Start = start
+		}
+		if finish, ok := rm["finish"].(bool); ok {
+			opts.Rule.Finish = &finish
+		}
+	}
+
+	if safe, ok := m["safe"].(map[string]any); ok {
+		opts.Safe = &SafeOptions{}
+		if key, ok := safe["key"].(bool); ok {
+			opts.Safe.Key = &key
+		}
+	}
+
+	return opts
+}
+
+// ResolveFuncRefs recursively resolves FuncRef strings in a map[string]any:
+//   - "@@prefix" → literal "@prefix"
+//   - "@SKIP" → Skip sentinel
+//   - "@/pattern/flags" → *regexp.Regexp
+//   - "@name" → function from ref map
+func ResolveFuncRefs(obj any, ref map[FuncRef]any) any {
+	if obj == nil {
+		return nil
+	}
+	if s, ok := obj.(string); ok && len(s) > 0 && s[0] == '@' {
+		// Escape: @@ → literal @-prefixed string
+		if len(s) > 1 && s[1] == '@' {
+			return s[1:]
+		}
+		// Sentinel: @SKIP → Skip
+		if s == "@SKIP" {
+			return Skip
+		}
+		// Regex: @/pattern/flags → *regexp.Regexp
+		if len(s) > 2 && s[1] == '/' {
+			if idx := strings.LastIndex(s, "/"); idx > 1 {
+				pattern := s[2:idx]
+				flags := s[idx+1:]
+				if flags != "" {
+					pattern = "(?" + flags + ")" + pattern
+				}
+				re, err := regexp.Compile(pattern)
+				if err == nil {
+					return re
+				}
+			}
+		}
+		// FuncRef: @name → function from ref
+		if ref != nil {
+			if fn, ok := ref[s]; ok {
+				return fn
+			}
+		}
+		return obj
+	}
+
+	// Recurse into maps
+	if m, ok := obj.(map[string]any); ok {
+		out := make(map[string]any, len(m))
+		for k, v := range m {
+			out[k] = ResolveFuncRefs(v, ref)
+		}
+		return out
+	}
+
+	// Recurse into slices
+	if arr, ok := obj.([]any); ok {
+		out := make([]any, len(arr))
+		for i, v := range arr {
+			out[i] = ResolveFuncRefs(v, ref)
+		}
+		return out
+	}
+
+	return obj
 }
