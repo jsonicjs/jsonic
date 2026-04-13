@@ -4,9 +4,6 @@ The TypeScript version is the authoritative implementation. The Go version is
 a faithful port but has some differences in behavior, missing features, and
 Go-specific additions.
 
-For the detailed, line-by-line analysis, see
-[TS_GO_DIFFERENCES.md](../TS_GO_DIFFERENCES.md).
-
 ## Behavioral Differences
 
 These affect parse output for the same input.
@@ -23,8 +20,9 @@ but is rejected as not-a-number in Go (treated as text).
 
 ### Empty / Whitespace Input
 
-TypeScript processes whitespace-only strings through the full parse flow.
-Go short-circuits whitespace-only input to `nil`.
+Both implementations short-circuit exact empty-string input (`""`).
+Whitespace/comment-only input is processed through the normal parse flow in both
+implementations and resolves to `null`/`nil` by grammar behavior.
 
 ### Token Consumption
 
