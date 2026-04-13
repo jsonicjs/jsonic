@@ -18,18 +18,11 @@ This review covers both the canonical TypeScript implementation and the Go port,
 
 ## Findings
 
-### 1) [High] Go rule-stack push could panic on capacity exhaustion
+### 1) [High] Go rule-stack push could panic on capacity exhaustion — **RESOLVED**
 
-**Where**
-- `go/rule.go` push path writes directly into `ctx.RS[ctx.RSI]`.
-
-**Why it matters**
-- `ctx.RS` is preallocated from an estimate in `go/parser.go`; if the estimate is exceeded, direct indexed writes can panic.
-- TS uses dynamic arrays and does not have this fixed-capacity write hazard.
-
-**Recommendation**
-- Use dynamic growth (`append`) when `ctx.RSI >= len(ctx.RS)`.
-- Keep pop semantics unchanged.
+Fixed in `2bbd7cb`: push path now bounds-checks `ctx.RSI < len(ctx.RS)` and
+falls back to `append` for dynamic growth. Regression tests added in
+`TestDeepNesting` (maps, arrays, and mixed nesting up to depth 500).
 
 ---
 
@@ -47,19 +40,11 @@ This review covers both the canonical TypeScript implementation and the Go port,
 
 ---
 
-### 3) [Medium] Documented and actual unmatched-alt behavior differs across TS/Go internals
+### 3) [Medium] Documented and actual unmatched-alt behavior differs across TS/Go internals — **RESOLVED**
 
-**Where**
-- TS unmatched-alt path sets parse error token and throws earlier.
-- Go unmatched-alt handling can defer failure to trailing-content checks.
-
-**Why it matters**
-- Error timing/location can differ in edge grammars and plugin-heavy flows.
-
-**Recommendation**
-- Decide whether this is intentional divergence.
-- If intentional: codify with explicit alignment tests + documentation.
-- If not: align Go alt-miss handling with TS parse-time error behavior.
+Fixed in `d0e47c9`: Go `Process` now sets `ctx.ParseErr = ctx.T0` and returns
+immediately when no alternate matches (matching TS `parse_alts` behavior).
+`go/doc/differences.md` updated to reflect aligned behavior.
 
 ## Positive Notes
 
@@ -69,7 +54,7 @@ This review covers both the canonical TypeScript implementation and the Go port,
 
 ## Follow-up Work (Suggested Order)
 
-1. Fix/guard Go rule-stack growth (runtime safety).
-2. Add regression tests for very deep/virtual rule nesting and stack churn.
-3. Decide and codify policy for unmatched-alt behavior parity.
+1. ~~Fix/guard Go rule-stack growth (runtime safety).~~ **Done** (`2bbd7cb`).
+2. ~~Add regression tests for very deep/virtual rule nesting and stack churn.~~ **Done** (`TestDeepNesting`).
+3. ~~Decide and codify policy for unmatched-alt behavior parity.~~ **Done** (`d0e47c9`).
 4. Evaluate TS `PALT` singleton risk and optionally make it per-call state.

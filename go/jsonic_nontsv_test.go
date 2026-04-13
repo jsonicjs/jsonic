@@ -1043,3 +1043,35 @@ func TestLexFlagNumberHexOff(t *testing.T) {
 		t.Errorf("hex off: Parse(\"0xFF\") should not parse as number, got %v", got)
 	}
 }
+
+// --- Rule stack depth regression tests ---
+// Verify rule stack grows dynamically without panic under deep nesting.
+
+func TestDeepNesting(t *testing.T) {
+	// Build deeply nested maps: {a:{a:{a:...{a:1}...}}}
+	for _, depth := range []int{50, 200, 500} {
+		input := strings.Repeat("{a:", depth) + "1" + strings.Repeat("}", depth)
+		_, err := Parse(input)
+		if err != nil {
+			t.Errorf("depth %d: Parse(deeply nested map) unexpected error: %v", depth, err)
+		}
+	}
+
+	// Build deeply nested arrays: [[[[...[1]...]]]
+	for _, depth := range []int{50, 200, 500} {
+		input := strings.Repeat("[", depth) + "1" + strings.Repeat("]", depth)
+		_, err := Parse(input)
+		if err != nil {
+			t.Errorf("depth %d: Parse(deeply nested array) unexpected error: %v", depth, err)
+		}
+	}
+
+	// Mixed deep nesting: {a:[{a:[...1...]}]}
+	for _, depth := range []int{50, 200} {
+		input := strings.Repeat("{a:[", depth) + "1" + strings.Repeat("]}", depth)
+		_, err := Parse(input)
+		if err != nil {
+			t.Errorf("depth %d: Parse(mixed nested) unexpected error: %v", depth, err)
+		}
+	}
+}
