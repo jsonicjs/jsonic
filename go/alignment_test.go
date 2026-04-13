@@ -391,6 +391,144 @@ func TestAlignmentListPropertyGuard(t *testing.T) {
 
 // --- Exclude (alt.g tags): strict JSON mode ---
 
+// TestAlignmentGrammarGTags validates that every grammar alt G-tag in Go
+// matches the authoritative TypeScript grammar (dist/grammar.js).
+// The TS grammar builds rules in two phases (JSON base + jsonic extensions)
+// with append/prepend/delete/move operations. The final alt order and tags
+// must be identical.
+func TestAlignmentGrammarGTags(t *testing.T) {
+	j := Make()
+
+	// Expected G-tags per rule, per state, in order.
+	// Source of truth: TS dist/grammar.js after JSON + jsonic extension phases.
+	type ruleGTags struct {
+		name  string
+		open  []string
+		close []string
+	}
+
+	expected := []ruleGTags{
+		{
+			name: "val",
+			open: []string{
+				"map,json",                  // #OB -> map
+				"list,json",                 // #OS -> list
+				"pair,jsonic,top",           // #KEY #CL d=0 -> map
+				"pair,jsonic",               // #KEY #CL -> map (dive)
+				"val,json",                  // #VAL
+				"val,imp,null,jsonic",       // #CB|#CS impl null
+				"list,imp,jsonic",           // #CA d=0 -> list
+				"list,val,imp,null,jsonic",  // #CA impl null
+				"jsonic",                    // #ZZ
+			},
+			close: []string{
+				"end,json",                  // #ZZ end
+				"val,json,close",            // #CB|#CS close error
+				"list,val,imp,comma,jsonic", // #CA -> list (comma)
+				"list,val,imp,space,jsonic", // imp list (space)
+				"jsonic",                    // #ZZ jsonic
+				"more,json",                 // b:1 more
+			},
+		},
+		{
+			name: "map",
+			open: []string{
+				"end,jsonic",              // #OB #ZZ autoclose
+				"map,json",                // #OB #CB empty
+				"map,json,pair",           // #OB -> pair
+				"pair,list,val,imp,jsonic", // #KEY #CL -> pair (imp)
+			},
+			close: []string{
+				"end,json",        // #CB n.pk<=0
+				"path,jsonic",     // #CB path dive
+				"end,path,jsonic", // #CA|#CS|#VAL end path
+				"end,jsonic",      // #ZZ autoclose
+			},
+		},
+		{
+			name: "list",
+			open: []string{
+				"",                          // implist cond (no tag)
+				"list,json",                 // #OS #CS empty
+				"list,elem,json",            // #OS -> elem
+				"list,elem,val,imp,jsonic",  // #CA -> elem (imp)
+				"list,elem,jsonic",          // -> elem default
+			},
+			close: []string{
+				"end,json",   // #CS end
+				"end,jsonic", // #ZZ autoclose
+			},
+		},
+		{
+			name: "pair",
+			open: []string{
+				"map,pair,key,json",    // #KEY #CL -> val
+				"map,pair,comma,jsonic", // #CA comma
+			},
+			close: []string{
+				"map,pair,json",             // #CB n.pk<=0
+				"map,pair,comma,jsonic",     // #CA #CB trailing comma
+				"end,jsonic",                // #CA #ZZ end
+				"map,pair,json",             // #CA n.pk<=0 -> pair
+				"map,pair,jsonic",           // #CA n.dmap<=1 -> pair
+				"map,pair,imp,jsonic",       // #KEY n.dmap<=1 -> pair
+				"map,pair,imp,path,jsonic",  // #CB|#CA|#CS|#KEY n.pk>0 path
+				"end,jsonic",                // #CS error
+				"map,pair,json",             // #ZZ @finish
+				"map,pair,imp,jsonic",       // -> pair (catchall)
+			},
+		},
+		{
+			name: "elem",
+			open: []string{
+				"list,elem,imp,null,jsonic", // #CA #CA double comma
+				"list,elem,imp,null,jsonic", // #CA single comma
+				"elem,pair,jsonic",          // #KEY #CL -> val (pair)
+				// Note: ListChild alt ("elem,child,jsonic") only present when cfg.ListChild is true.
+				"list,elem,val,json",        // -> val default
+			},
+			close: []string{
+				"list,elem,comma,jsonic", // #CA, #CS|#ZZ trailing comma
+				"list,elem,json",         // #CA -> elem
+				"list,elem,json",         // #CS end
+				"list,elem,json",         // #ZZ @finish
+				"end,jsonic",             // #CB error
+				"list,elem,imp,jsonic",   // -> elem (catchall)
+			},
+		},
+	}
+
+	for _, exp := range expected {
+		rs, ok := j.parser.RSM[exp.name]
+		if !ok {
+			t.Errorf("rule %q not found in grammar", exp.name)
+			continue
+		}
+
+		// Check open alts.
+		if len(rs.Open) != len(exp.open) {
+			t.Errorf("rule %q open: got %d alts, want %d", exp.name, len(rs.Open), len(exp.open))
+		} else {
+			for i, alt := range rs.Open {
+				if alt.G != exp.open[i] {
+					t.Errorf("rule %q open[%d]: G=%q, want %q", exp.name, i, alt.G, exp.open[i])
+				}
+			}
+		}
+
+		// Check close alts.
+		if len(rs.Close) != len(exp.close) {
+			t.Errorf("rule %q close: got %d alts, want %d", exp.name, len(rs.Close), len(exp.close))
+		} else {
+			for i, alt := range rs.Close {
+				if alt.G != exp.close[i] {
+					t.Errorf("rule %q close[%d]: G=%q, want %q", exp.name, i, alt.G, exp.close[i])
+				}
+			}
+		}
+	}
+}
+
 func TestAlignmentExclude(t *testing.T) {
 	// Exclude removes alternates tagged with matching group tags.
 	// Verify the mechanism works by checking that alternates are removed.
@@ -416,15 +554,19 @@ func TestAlignmentExclude(t *testing.T) {
 			closeAfter, closeBefore)
 	}
 
-	// Remaining alts should all be tagged "json" or untagged.
+	// Remaining alts should not contain the "jsonic" tag.
 	for _, alt := range valSpec.Open {
-		if alt.G != "" && alt.G != "json" {
-			t.Errorf("exclude: val.Open alt still has non-json tag %q", alt.G)
+		for _, tag := range strings.Split(alt.G, ",") {
+			if strings.TrimSpace(tag) == "jsonic" {
+				t.Errorf("exclude: val.Open alt still has jsonic tag in %q", alt.G)
+			}
 		}
 	}
 	for _, alt := range valSpec.Close {
-		if alt.G != "" && alt.G != "json" {
-			t.Errorf("exclude: val.Close alt still has non-json tag %q", alt.G)
+		for _, tag := range strings.Split(alt.G, ",") {
+			if strings.TrimSpace(tag) == "jsonic" {
+				t.Errorf("exclude: val.Close alt still has jsonic tag in %q", alt.G)
+			}
 		}
 	}
 }

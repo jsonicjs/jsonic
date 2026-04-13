@@ -352,35 +352,35 @@ func buildGrammar(rsm map[string]*RuleSpec, cfg *LexConfig) {
 	valSpec.BC = []StateAction{ref["@val-bc"].(StateAction)}
 
 	valOpen := resolve([]*GrammarAltSpec{
-		{S: "#OB", P: "map", B: 1, G: "json"},
-		{S: "#OS", P: "list", B: 1, G: "json"},
-		{S: "#KEY #CL", C: map[string]any{"d": 0}, P: "map", B: 2, G: "jsonic"},
-		{S: "#KEY #CL", P: "map", B: 2, N: map[string]int{"pk": 1}, G: "jsonic"},
-		{S: "#VAL", G: "jsonic"},
+		{S: "#OB", P: "map", B: 1, G: "map,json"},
+		{S: "#OS", P: "list", B: 1, G: "list,json"},
+		{S: "#KEY #CL", C: map[string]any{"d": 0}, P: "map", B: 2, G: "pair,jsonic,top"},
+		{S: "#KEY #CL", P: "map", B: 2, N: map[string]int{"pk": 1}, G: "pair,jsonic"},
+		{S: "#VAL", G: "val,json"},
 	})
 	// CB|CS in single slot:
 	valOpen = append(valOpen, resolveGrammarAltStatic(
-		&GrammarAltSpec{S: []string{"#CB #CS"}, C: map[string]any{"d": CGt(0)}, B: 1, G: "jsonic"}, ref))
+		&GrammarAltSpec{S: []string{"#CB #CS"}, C: map[string]any{"d": CGt(0)}, B: 1, G: "val,imp,null,jsonic"}, ref))
 	valOpen = append(valOpen, resolve([]*GrammarAltSpec{
-		{S: "#CA", C: map[string]any{"d": 0}, P: "list", B: 1, G: "jsonic"},
-		{S: "#CA", B: 1, G: "jsonic"},
+		{S: "#CA", C: map[string]any{"d": 0}, P: "list", B: 1, G: "list,imp,jsonic"},
+		{S: "#CA", B: 1, G: "list,val,imp,null,jsonic"},
 		{S: "#ZZ", G: "jsonic"},
 	})...)
 	valSpec.Open = valOpen
 
 	valClose := resolve([]*GrammarAltSpec{
-		{S: "#ZZ", G: "json"},
+		{S: "#ZZ", G: "end,json"},
 	})
 	// CB|CS in single slot:
 	valClose = append(valClose, resolveGrammarAltStatic(
-		&GrammarAltSpec{S: []string{"#CB #CS"}, B: 1, E: "@val-close-err", G: "jsonic"}, ref))
+		&GrammarAltSpec{S: []string{"#CB #CS"}, B: 1, E: "@val-close-err", G: "val,json,close"}, ref))
 	valClose = append(valClose, resolve([]*GrammarAltSpec{
 		{S: "#CA", C: map[string]any{"n.dlist": CLte(0), "n.dmap": CLte(0)},
-			R: "list", U: map[string]any{"implist": true}, G: "jsonic"},
+			R: "list", U: map[string]any{"implist": true}, G: "list,val,imp,comma,jsonic"},
 		{C: map[string]any{"n.dlist": CLte(0), "n.dmap": CLte(0)},
-			R: "list", U: map[string]any{"implist": true}, B: 1, G: "jsonic"},
+			R: "list", U: map[string]any{"implist": true}, B: 1, G: "list,val,imp,space,jsonic"},
 		{S: "#ZZ", G: "jsonic"},
-		{B: 1, G: "json"},
+		{B: 1, G: "more,json"},
 	})...)
 	valSpec.Close = valClose
 
@@ -394,24 +394,24 @@ func buildGrammar(rsm map[string]*RuleSpec, cfg *LexConfig) {
 	mapSpec.BC = []StateAction{ref["@map-bc"].(StateAction)}
 
 	mapSpec.Open = resolve([]*GrammarAltSpec{
-		{S: "#OB #ZZ", B: 1, E: "@finish", G: "jsonic"},
-		{S: "#OB #CB", B: 1, N: map[string]int{"pk": 0}, G: "json"},
-		{S: "#OB", P: "pair", N: map[string]int{"pk": 0}, G: "json"},
-		{S: "#KEY #CL", P: "pair", B: 2, G: "jsonic"},
+		{S: "#OB #ZZ", B: 1, E: "@finish", G: "end,jsonic"},
+		{S: "#OB #CB", B: 1, N: map[string]int{"pk": 0}, G: "map,json"},
+		{S: "#OB", P: "pair", N: map[string]int{"pk": 0}, G: "map,json,pair"},
+		{S: "#KEY #CL", P: "pair", B: 2, G: "pair,list,val,imp,jsonic"},
 	})
 
 	// For map.Close, we need to merge token sets for the third alt.
 	// "#CA #CS" + VAL tokens in a single slot → need raw AltSpec for that one.
 	mapClose := resolve([]*GrammarAltSpec{
-		{S: "#CB", C: map[string]any{"n.pk": CLte(0)}, G: "jsonic"},
-		{S: "#CB", B: 1, G: "jsonic"},
+		{S: "#CB", C: map[string]any{"n.pk": CLte(0)}, G: "end,json"},
+		{S: "#CB", B: 1, G: "path,jsonic"},
 		// slot 0 = merge(CA, CS, VAL) — handled below
 	})
 	// Third alt: CA|CS|VAL tokens in single slot
 	mapClose = append(mapClose, resolveGrammarAltStatic(
-		&GrammarAltSpec{S: []string{"#CA #CS #VAL"}, B: 1, G: "jsonic"}, ref))
+		&GrammarAltSpec{S: []string{"#CA #CS #VAL"}, B: 1, G: "end,path,jsonic"}, ref))
 	mapClose = append(mapClose, resolveGrammarAltStatic(
-		&GrammarAltSpec{S: "#ZZ", E: "@finish", G: "jsonic"}, ref))
+		&GrammarAltSpec{S: "#ZZ", E: "@finish", G: "end,jsonic"}, ref))
 	mapSpec.Close = mapClose
 
 	// ====== LIST rule ======
@@ -425,19 +425,19 @@ func buildGrammar(rsm map[string]*RuleSpec, cfg *LexConfig) {
 
 	// First alt uses a condition function directly (not declarative).
 	listOpen := []*AltSpec{
-		resolveGrammarAltStatic(&GrammarAltSpec{C: "@implist-cond", P: "elem", G: "jsonic"}, ref),
+		resolveGrammarAltStatic(&GrammarAltSpec{C: "@implist-cond", P: "elem"}, ref),
 	}
 	listOpen = append(listOpen, resolve([]*GrammarAltSpec{
-		{S: "#OS #CS", B: 1, G: "json"},
-		{S: "#OS", P: "elem", G: "json"},
-		{S: "#CA", P: "elem", B: 1, G: "jsonic"},
-		{P: "elem", G: "jsonic"},
+		{S: "#OS #CS", B: 1, G: "list,json"},
+		{S: "#OS", P: "elem", G: "list,elem,json"},
+		{S: "#CA", P: "elem", B: 1, G: "list,elem,val,imp,jsonic"},
+		{P: "elem", G: "list,elem,jsonic"},
 	})...)
 	listSpec.Open = listOpen
 
 	listSpec.Close = resolve([]*GrammarAltSpec{
-		{S: "#CS", G: "json"},
-		{S: "#ZZ", E: "@finish", G: "jsonic"},
+		{S: "#CS", G: "end,json"},
+		{S: "#ZZ", E: "@finish", G: "end,jsonic"},
 	})
 
 	// ====== PAIR rule ======
@@ -450,8 +450,8 @@ func buildGrammar(rsm map[string]*RuleSpec, cfg *LexConfig) {
 	}
 
 	pairOpen := resolve([]*GrammarAltSpec{
-		{S: "#KEY #CL", P: "val", U: map[string]any{"pair": true}, A: "@pairkey", G: "json"},
-		{S: "#CA", G: "jsonic"},
+		{S: "#KEY #CL", P: "val", U: map[string]any{"pair": true}, A: "@pairkey", G: "map,pair,key,json"},
+		{S: "#CA", G: "map,pair,comma,jsonic"},
 	})
 	if cfg.MapChild {
 		pairOpen = append(pairOpen, resolveGrammarAltStatic(
@@ -461,23 +461,23 @@ func buildGrammar(rsm map[string]*RuleSpec, cfg *LexConfig) {
 	pairSpec.Open = pairOpen
 
 	pairSpec.Close = resolve([]*GrammarAltSpec{
-		{S: "#CB", C: map[string]any{"n.pk": CLte(0)}, B: 1, G: "jsonic"},
-		{S: "#CA #CB", C: map[string]any{"n.pk": CLte(0)}, B: 1, G: "jsonic"},
-		{S: "#CA #ZZ", G: "jsonic"},
-		{S: "#CA", C: map[string]any{"n.pk": CLte(0)}, R: "pair", G: "jsonic"},
-		{S: "#CA", C: map[string]any{"n.dmap": CLte(1)}, R: "pair", G: "jsonic"},
-		{S: "#KEY", C: map[string]any{"n.dmap": CLte(1)}, R: "pair", B: 1, G: "jsonic"},
+		{S: "#CB", C: map[string]any{"n.pk": CLte(0)}, B: 1, G: "map,pair,json"},
+		{S: "#CA #CB", C: map[string]any{"n.pk": CLte(0)}, B: 1, G: "map,pair,comma,jsonic"},
+		{S: "#CA #ZZ", G: "end,jsonic"},
+		{S: "#CA", C: map[string]any{"n.pk": CLte(0)}, R: "pair", G: "map,pair,json"},
+		{S: "#CA", C: map[string]any{"n.dmap": CLte(1)}, R: "pair", G: "map,pair,jsonic"},
+		{S: "#KEY", C: map[string]any{"n.dmap": CLte(1)}, R: "pair", B: 1, G: "map,pair,imp,jsonic"},
 	})
 
 	// CB|CA|CS|KEY in single slot
 	pairSpec.Close = append(pairSpec.Close, resolveGrammarAltStatic(
 		&GrammarAltSpec{S: []string{"#CB #CA #CS #KEY"}, C: map[string]any{"n.pk": CGt(0)},
-			B: 1, G: "jsonic"}, ref))
+			B: 1, G: "map,pair,imp,path,jsonic"}, ref))
 	// Remaining pair close alts.
 	pairSpec.Close = append(pairSpec.Close, resolve([]*GrammarAltSpec{
-		{S: "#CS", E: "@elem-close-err", G: "jsonic"},
-		{S: "#ZZ", E: "@finish", G: "jsonic"},
-		{R: "pair", B: 1, G: "jsonic"},
+		{S: "#CS", E: "@elem-close-err", G: "end,jsonic"},
+		{S: "#ZZ", E: "@finish", G: "map,pair,json"},
+		{R: "pair", B: 1, G: "map,pair,imp,jsonic"},
 	})...)
 
 	// ====== ELEM rule ======
@@ -490,32 +490,35 @@ func buildGrammar(rsm map[string]*RuleSpec, cfg *LexConfig) {
 	}
 
 	elemOpen := resolve([]*GrammarAltSpec{
-		{S: "#CA #CA", B: 2, U: map[string]any{"done": true}, A: "@elem-double-comma"},
-		{S: "#CA", U: map[string]any{"done": true}, A: "@elem-single-comma"},
+		{S: "#CA #CA", B: 2, U: map[string]any{"done": true}, A: "@elem-double-comma",
+			G: "list,elem,imp,null,jsonic"},
+		{S: "#CA", U: map[string]any{"done": true}, A: "@elem-single-comma",
+			G: "list,elem,imp,null,jsonic"},
 		{S: "#KEY #CL", P: "val",
 			N: map[string]int{"pk": 1, "dmap": 1},
 			U: map[string]any{"done": true, "pair": true, "list": true},
-			A: "@pairkey", E: "@elem-pair-err"},
+			A: "@pairkey", E: "@elem-pair-err", G: "elem,pair,jsonic"},
 	})
 	if cfg.ListChild {
 		elemOpen = append(elemOpen, resolveGrammarAltStatic(
 			&GrammarAltSpec{S: "#CL", P: "val",
-				U: map[string]any{"done": true, "child": true, "list": true}}, ref))
+				U: map[string]any{"done": true, "child": true, "list": true},
+				G: "elem,child,jsonic"}, ref))
 	}
 	elemOpen = append(elemOpen, resolveGrammarAltStatic(
-		&GrammarAltSpec{P: "val"}, ref))
+		&GrammarAltSpec{P: "val", G: "list,elem,val,json"}, ref))
 	elemSpec.Open = elemOpen
 
 	elemClose := []*AltSpec{
 		// CA in slot 0, CS|ZZ in slot 1:
-		resolveGrammarAltStatic(&GrammarAltSpec{S: []string{"#CA", "#CS #ZZ"}, B: 1, G: "jsonic"}, ref),
+		resolveGrammarAltStatic(&GrammarAltSpec{S: []string{"#CA", "#CS #ZZ"}, B: 1, G: "list,elem,comma,jsonic"}, ref),
 	}
 	elemClose = append(elemClose, resolve([]*GrammarAltSpec{
-		{S: "#CA", R: "elem", G: "jsonic"},
-		{S: "#CS", B: 1, G: "jsonic"},
-		{S: "#ZZ", E: "@finish", G: "jsonic"},
-		{S: "#CB", E: "@elem-close-err", G: "jsonic"},
-		{R: "elem", B: 1, G: "jsonic"},
+		{S: "#CA", R: "elem", G: "list,elem,json"},
+		{S: "#CS", B: 1, G: "list,elem,json"},
+		{S: "#ZZ", E: "@finish", G: "list,elem,json"},
+		{S: "#CB", E: "@elem-close-err", G: "end,jsonic"},
+		{R: "elem", B: 1, G: "list,elem,imp,jsonic"},
 	})...)
 	elemSpec.Close = elemClose
 
