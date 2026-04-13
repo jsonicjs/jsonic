@@ -87,22 +87,22 @@ func CGte(val int) CondOp { return CondOp{Op: "$gte", Val: val} }
 
 // AltSpec defines a parse alternate specification.
 type AltSpec struct {
-	S [][]Tin         // Token Tin sequences to match: s[0] for t0, s[1] for t1
-	P string          // Push rule name (create child)
-	R string          // Replace rule name (create sibling)
-	B int             // Move token pointer backward (backtrack)
-	C  AltCond         // Custom condition (function)
-	CD map[string]any  // Declarative condition (converted to C by NormAlt)
-	N  map[string]int  // Counter increments
-	A AltAction       // Match action
-	U map[string]any  // Custom props added to Rule.u
-	K map[string]any  // Custom props added to Rule.k (propagated)
-	G string          // Named group tags (comma-separated)
-	H AltModifier     // Alt modifier (called after match to potentially modify the alt)
-	E AltError        // Error generation
-	PF func(r *Rule, ctx *Context) string  // Dynamic push rule name
-	RF func(r *Rule, ctx *Context) string  // Dynamic replace rule name
-	BF func(r *Rule, ctx *Context) int     // Dynamic backtrack
+	S  [][]Tin                            // Token Tin sequences to match: s[0] for t0, s[1] for t1
+	P  string                             // Push rule name (create child)
+	R  string                             // Replace rule name (create sibling)
+	B  int                                // Move token pointer backward (backtrack)
+	C  AltCond                            // Custom condition (function)
+	CD map[string]any                     // Declarative condition (converted to C by NormAlt)
+	N  map[string]int                     // Counter increments
+	A  AltAction                          // Match action
+	U  map[string]any                     // Custom props added to Rule.u
+	K  map[string]any                     // Custom props added to Rule.k (propagated)
+	G  string                             // Named group tags (comma-separated)
+	H  AltModifier                        // Alt modifier (called after match to potentially modify the alt)
+	E  AltError                           // Error generation
+	PF func(r *Rule, ctx *Context) string // Dynamic push rule name
+	RF func(r *Rule, ctx *Context) string // Dynamic replace rule name
+	BF func(r *Rule, ctx *Context) int    // Dynamic backtrack
 }
 
 // RuleSpec defines the specification for a parsing rule.
@@ -154,8 +154,8 @@ func (rs *RuleSpec) PrependClose(alts ...*AltSpec) *RuleSpec {
 // AltModListOpts configures modifications for RuleSpec alternate lists.
 // Matches the TS ListMods parameter to rs.open(alts, mods)/rs.close(alts, mods).
 type AltModListOpts struct {
-	Delete []int                         // Indices to delete (supports negative).
-	Move   []int                         // Pairs: [from, to, from, to, ...].
+	Delete []int                            // Indices to delete (supports negative).
+	Move   []int                            // Pairs: [from, to, from, to, ...].
 	Custom func(list []*AltSpec) []*AltSpec // Custom modification callback.
 }
 
@@ -497,7 +497,11 @@ func (r *Rule) Process(ctx *Context, lex *Lex) *Rule {
 		if pushName != "" {
 			rulespec, ok := ctx.RSM[pushName]
 			if ok {
-				ctx.RS[ctx.RSI] = r
+				if ctx.RSI < len(ctx.RS) {
+					ctx.RS[ctx.RSI] = r
+				} else {
+					ctx.RS = append(ctx.RS, r)
+				}
 				ctx.RSI++
 				next = MakeRule(rulespec, ctx, r.Node)
 				r.Child = next
