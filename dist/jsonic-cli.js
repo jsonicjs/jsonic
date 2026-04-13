@@ -141,6 +141,9 @@ function handle_plugins(plugins) {
                     throw err; // NOTE: throws original error
                 }
             }
+            else {
+                throw err;
+            }
         }
         // Handle some variations in the way the plugin function is exported.
         if ('function' !== typeof out[name]) {
