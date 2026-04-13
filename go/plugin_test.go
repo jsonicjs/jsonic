@@ -1152,6 +1152,77 @@ func TestTokenSetUnknown(t *testing.T) {
 	}
 }
 
+func TestSetTokenSetIGNORE(t *testing.T) {
+	// Setting IGNORE via SetTokenSet should update the per-instance IgnoreSet
+	// used by the lexer, matching TS behavior where cfg.tokenSetTins.IGNORE is mutable.
+	j := Make()
+
+	// Default: IGNORE has 3 tokens (SP, LN, CM).
+	ign := j.TokenSet("IGNORE")
+	if len(ign) != 3 {
+		t.Fatalf("expected 3 default IGNORE tokens, got %d", len(ign))
+	}
+
+	// Remove LN from the IGNORE set (keep only SP and CM).
+	j.SetTokenSet("IGNORE", []Tin{TinSP, TinCM})
+
+	ign2 := j.TokenSet("IGNORE")
+	if len(ign2) != 2 {
+		t.Errorf("expected 2 IGNORE tokens after SetTokenSet, got %d", len(ign2))
+	}
+
+	// Verify the lexer config's IgnoreSet was updated.
+	if j.Config().IgnoreSet[TinLN] {
+		t.Error("expected TinLN removed from IgnoreSet, but it is still present")
+	}
+	if !j.Config().IgnoreSet[TinSP] {
+		t.Error("expected TinSP in IgnoreSet")
+	}
+	if !j.Config().IgnoreSet[TinCM] {
+		t.Error("expected TinCM in IgnoreSet")
+	}
+}
+
+func TestSetTokenSetIGNOREPerInstance(t *testing.T) {
+	// Verify that modifying IGNORE on one instance does not affect another.
+	j1 := Make()
+	j2 := Make()
+
+	j1.SetTokenSet("IGNORE", []Tin{TinSP}) // Only spaces
+
+	// j1 should have 1 IGNORE token.
+	if len(j1.TokenSet("IGNORE")) != 1 {
+		t.Errorf("j1 should have 1 IGNORE token, got %d", len(j1.TokenSet("IGNORE")))
+	}
+
+	// j2 should still have the default 3 IGNORE tokens.
+	if len(j2.TokenSet("IGNORE")) != 3 {
+		t.Errorf("j2 should still have 3 IGNORE tokens, got %d", len(j2.TokenSet("IGNORE")))
+	}
+}
+
+func TestDeriveInheritsIgnoreSet(t *testing.T) {
+	// A derived instance should inherit the parent's customized IGNORE set.
+	parent := Make()
+	parent.SetTokenSet("IGNORE", []Tin{TinSP, TinCM}) // Remove LN
+
+	child := parent.Derive()
+
+	childIgn := child.TokenSet("IGNORE")
+	if len(childIgn) != 2 {
+		t.Errorf("child should inherit 2 IGNORE tokens, got %d", len(childIgn))
+	}
+	if child.Config().IgnoreSet[TinLN] {
+		t.Error("child should not have TinLN in IgnoreSet")
+	}
+
+	// Modifying child should not affect parent.
+	child.SetTokenSet("IGNORE", []Tin{TinSP})
+	if len(parent.TokenSet("IGNORE")) != 2 {
+		t.Errorf("parent should still have 2 IGNORE tokens, got %d", len(parent.TokenSet("IGNORE")))
+	}
+}
+
 // --- LexCheck callbacks ---
 
 func TestLexCheckFixed(t *testing.T) {

@@ -644,6 +644,9 @@ func buildConfig(o *Options) *LexConfig {
 	// Safe
 	cfg.SafeKey = boolVal(optBool(o.Safe, func(s *SafeOptions) *bool { return s.Key }), true)
 
+	// Initialize per-instance IGNORE set from defaults (matching TS cfg.tokenSetTins.IGNORE).
+	cfg.IgnoreSet = map[Tin]bool{TinSP: true, TinLN: true, TinCM: true}
+
 	// Property (Go-specific options)
 	if o.Property != nil {
 		cfg.TextInfo = boolVal(o.Property.TextInfo, false)

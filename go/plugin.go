@@ -243,8 +243,9 @@ func (j *Jsonic) TokenSet(name string) []Tin {
 	}
 	switch name {
 	case "IGNORE":
-		tins := make([]Tin, 0, len(TinSetIGNORE))
-		for tin := range TinSetIGNORE {
+		ignoreSet := j.parser.Config.IgnoreSet
+		tins := make([]Tin, 0, len(ignoreSet))
+		for tin := range ignoreSet {
 			tins = append(tins, tin)
 		}
 		return tins
@@ -263,11 +264,21 @@ func (j *Jsonic) TokenSet(name string) []Tin {
 
 // SetTokenSet registers a custom named token set.
 // Matches TS options.tokenSet.
+// When name is "IGNORE", also updates the per-instance IgnoreSet used by the lexer.
 func (j *Jsonic) SetTokenSet(name string, tins []Tin) {
 	if j.customTokenSets == nil {
 		j.customTokenSets = make(map[string][]Tin)
 	}
 	j.customTokenSets[name] = tins
+
+	// Keep per-instance IgnoreSet in sync (matching TS cfg.tokenSetTins.IGNORE).
+	if name == "IGNORE" {
+		ignoreSet := make(map[Tin]bool, len(tins))
+		for _, tin := range tins {
+			ignoreSet[tin] = true
+		}
+		j.parser.Config.IgnoreSet = ignoreSet
+	}
 }
 
 // Sub subscribes to lex and/or rule events.
@@ -352,6 +363,14 @@ func (j *Jsonic) Derive(opts ...Options) *Jsonic {
 			copied := make([]Tin, len(tins))
 			copy(copied, tins)
 			child.customTokenSets[name] = copied
+		}
+	}
+
+	// Copy per-instance IgnoreSet (matching TS cfg.tokenSetTins.IGNORE inheritance).
+	if j.parser.Config.IgnoreSet != nil {
+		child.parser.Config.IgnoreSet = make(map[Tin]bool, len(j.parser.Config.IgnoreSet))
+		for k, v := range j.parser.Config.IgnoreSet {
+			child.parser.Config.IgnoreSet[k] = v
 		}
 	}
 

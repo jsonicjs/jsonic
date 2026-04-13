@@ -105,6 +105,10 @@ type LexConfig struct {
 	// MapRef wraps map output values in MapRef structs.
 	MapRef bool
 
+	// IgnoreSet is the per-instance set of token Tins to skip during lexing.
+	// Matches TS cfg.tokenSetTins.IGNORE. Plugins can customize this per-instance.
+	IgnoreSet map[Tin]bool
+
 	// ParsePrepare hooks called before parsing begins.
 	ParsePrepare []func(ctx *Context)
 
@@ -164,6 +168,8 @@ func DefaultLexConfig() *LexConfig {
 
 		FinishRule: true,
 		RuleStart:  "val",
+
+		IgnoreSet: map[Tin]bool{TinSP: true, TinLN: true, TinCM: true},
 
 		FixedTokens: map[string]Tin{
 			"{": TinOB, "}": TinCB,
@@ -267,8 +273,8 @@ func (l *Lex) Next(rule ...*Rule) *Token {
 			l.Err = makeJsonicError(tkn.Why, tkn.Src, l.Src, tkn.SI, tkn.RI, tkn.CI)
 			return &Token{Name: "#ZZ", Tin: TinZZ, Val: Undefined, SI: tkn.SI, RI: tkn.RI, CI: tkn.CI}
 		}
-		// Skip IGNORE tokens (space, line, comment)
-		if TinSetIGNORE[tkn.Tin] {
+		// Skip IGNORE tokens (per-instance set, matching TS cfg.tokenSetTins.IGNORE)
+		if l.Config.IgnoreSet[tkn.Tin] {
 			continue
 		}
 		return tkn
