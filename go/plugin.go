@@ -243,18 +243,21 @@ func (j *Jsonic) TokenSet(name string) []Tin {
 	}
 	switch name {
 	case "IGNORE":
-		tins := make([]Tin, 0, len(TinSetIGNORE))
-		for tin := range TinSetIGNORE {
+		ignoreSet := j.parser.Config.IgnoreSet
+		tins := make([]Tin, 0, len(ignoreSet))
+		for tin := range ignoreSet {
 			tins = append(tins, tin)
 		}
 		return tins
 	case "VAL":
-		result := make([]Tin, len(TinSetVAL))
-		copy(result, TinSetVAL)
+		valSet := j.parser.Config.ValSet
+		result := make([]Tin, len(valSet))
+		copy(result, valSet)
 		return result
 	case "KEY":
-		result := make([]Tin, len(TinSetKEY))
-		copy(result, TinSetKEY)
+		keySet := j.parser.Config.KeySet
+		result := make([]Tin, len(keySet))
+		copy(result, keySet)
 		return result
 	default:
 		return nil
@@ -263,11 +266,31 @@ func (j *Jsonic) TokenSet(name string) []Tin {
 
 // SetTokenSet registers a custom named token set.
 // Matches TS options.tokenSet.
+// Also updates the per-instance config sets (IgnoreSet, ValSet, KeySet)
+// to keep them in sync, matching TS cfg.tokenSetTins behavior.
 func (j *Jsonic) SetTokenSet(name string, tins []Tin) {
 	if j.customTokenSets == nil {
 		j.customTokenSets = make(map[string][]Tin)
 	}
 	j.customTokenSets[name] = tins
+
+	// Keep per-instance config sets in sync (matching TS cfg.tokenSetTins).
+	switch name {
+	case "IGNORE":
+		ignoreSet := make(map[Tin]bool, len(tins))
+		for _, tin := range tins {
+			ignoreSet[tin] = true
+		}
+		j.parser.Config.IgnoreSet = ignoreSet
+	case "VAL":
+		copied := make([]Tin, len(tins))
+		copy(copied, tins)
+		j.parser.Config.ValSet = copied
+	case "KEY":
+		copied := make([]Tin, len(tins))
+		copy(copied, tins)
+		j.parser.Config.KeySet = copied
+	}
 }
 
 // Sub subscribes to lex and/or rule events.
@@ -353,6 +376,22 @@ func (j *Jsonic) Derive(opts ...Options) *Jsonic {
 			copy(copied, tins)
 			child.customTokenSets[name] = copied
 		}
+	}
+
+	// Copy per-instance token sets (matching TS cfg.tokenSetTins inheritance).
+	if j.parser.Config.IgnoreSet != nil {
+		child.parser.Config.IgnoreSet = make(map[Tin]bool, len(j.parser.Config.IgnoreSet))
+		for k, v := range j.parser.Config.IgnoreSet {
+			child.parser.Config.IgnoreSet[k] = v
+		}
+	}
+	if j.parser.Config.ValSet != nil {
+		child.parser.Config.ValSet = make([]Tin, len(j.parser.Config.ValSet))
+		copy(child.parser.Config.ValSet, j.parser.Config.ValSet)
+	}
+	if j.parser.Config.KeySet != nil {
+		child.parser.Config.KeySet = make([]Tin, len(j.parser.Config.KeySet))
+		copy(child.parser.Config.KeySet, j.parser.Config.KeySet)
 	}
 
 	// Re-apply parent's plugins on the child.

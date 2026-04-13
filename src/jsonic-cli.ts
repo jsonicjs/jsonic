@@ -158,6 +158,8 @@ function handle_plugins(plugins: string[]): Bag {
         } catch (e) {
           throw err // NOTE: throws original error
         }
+      } else {
+        throw err
       }
     }
 

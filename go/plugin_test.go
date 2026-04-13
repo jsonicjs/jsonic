@@ -1152,6 +1152,158 @@ func TestTokenSetUnknown(t *testing.T) {
 	}
 }
 
+func TestSetTokenSetIGNORE(t *testing.T) {
+	// Setting IGNORE via SetTokenSet should update the per-instance IgnoreSet
+	// used by the lexer, matching TS behavior where cfg.tokenSetTins.IGNORE is mutable.
+	j := Make()
+
+	// Default: IGNORE has 3 tokens (SP, LN, CM).
+	ign := j.TokenSet("IGNORE")
+	if len(ign) != 3 {
+		t.Fatalf("expected 3 default IGNORE tokens, got %d", len(ign))
+	}
+
+	// Remove LN from the IGNORE set (keep only SP and CM).
+	j.SetTokenSet("IGNORE", []Tin{TinSP, TinCM})
+
+	ign2 := j.TokenSet("IGNORE")
+	if len(ign2) != 2 {
+		t.Errorf("expected 2 IGNORE tokens after SetTokenSet, got %d", len(ign2))
+	}
+
+	// Verify the lexer config's IgnoreSet was updated.
+	if j.Config().IgnoreSet[TinLN] {
+		t.Error("expected TinLN removed from IgnoreSet, but it is still present")
+	}
+	if !j.Config().IgnoreSet[TinSP] {
+		t.Error("expected TinSP in IgnoreSet")
+	}
+	if !j.Config().IgnoreSet[TinCM] {
+		t.Error("expected TinCM in IgnoreSet")
+	}
+}
+
+func TestSetTokenSetIGNOREPerInstance(t *testing.T) {
+	// Verify that modifying IGNORE on one instance does not affect another.
+	j1 := Make()
+	j2 := Make()
+
+	j1.SetTokenSet("IGNORE", []Tin{TinSP}) // Only spaces
+
+	// j1 should have 1 IGNORE token.
+	if len(j1.TokenSet("IGNORE")) != 1 {
+		t.Errorf("j1 should have 1 IGNORE token, got %d", len(j1.TokenSet("IGNORE")))
+	}
+
+	// j2 should still have the default 3 IGNORE tokens.
+	if len(j2.TokenSet("IGNORE")) != 3 {
+		t.Errorf("j2 should still have 3 IGNORE tokens, got %d", len(j2.TokenSet("IGNORE")))
+	}
+}
+
+func TestDeriveInheritsIgnoreSet(t *testing.T) {
+	// A derived instance should inherit the parent's customized IGNORE set.
+	parent := Make()
+	parent.SetTokenSet("IGNORE", []Tin{TinSP, TinCM}) // Remove LN
+
+	child := parent.Derive()
+
+	childIgn := child.TokenSet("IGNORE")
+	if len(childIgn) != 2 {
+		t.Errorf("child should inherit 2 IGNORE tokens, got %d", len(childIgn))
+	}
+	if child.Config().IgnoreSet[TinLN] {
+		t.Error("child should not have TinLN in IgnoreSet")
+	}
+
+	// Modifying child should not affect parent.
+	child.SetTokenSet("IGNORE", []Tin{TinSP})
+	if len(parent.TokenSet("IGNORE")) != 2 {
+		t.Errorf("parent should still have 2 IGNORE tokens, got %d", len(parent.TokenSet("IGNORE")))
+	}
+}
+
+func TestSetTokenSetVAL(t *testing.T) {
+	j := Make()
+
+	// Default: VAL has 4 tokens (TX, NR, ST, VL).
+	val := j.TokenSet("VAL")
+	if len(val) != 4 {
+		t.Fatalf("expected 4 default VAL tokens, got %d", len(val))
+	}
+
+	// Add a custom token to VAL.
+	rl := j.Token("#RL")
+	j.SetTokenSet("VAL", append(val, rl))
+
+	val2 := j.TokenSet("VAL")
+	if len(val2) != 5 {
+		t.Errorf("expected 5 VAL tokens after SetTokenSet, got %d", len(val2))
+	}
+
+	// Verify the config's ValSet was updated.
+	if len(j.Config().ValSet) != 5 {
+		t.Errorf("expected Config.ValSet to have 5 entries, got %d", len(j.Config().ValSet))
+	}
+}
+
+func TestSetTokenSetKEY(t *testing.T) {
+	j := Make()
+
+	key := j.TokenSet("KEY")
+	if len(key) != 4 {
+		t.Fatalf("expected 4 default KEY tokens, got %d", len(key))
+	}
+
+	// Reduce KEY to just text and string.
+	j.SetTokenSet("KEY", []Tin{TinTX, TinST})
+
+	key2 := j.TokenSet("KEY")
+	if len(key2) != 2 {
+		t.Errorf("expected 2 KEY tokens after SetTokenSet, got %d", len(key2))
+	}
+	if len(j.Config().KeySet) != 2 {
+		t.Errorf("expected Config.KeySet to have 2 entries, got %d", len(j.Config().KeySet))
+	}
+}
+
+func TestSetTokenSetVALPerInstance(t *testing.T) {
+	j1 := Make()
+	j2 := Make()
+
+	j1.SetTokenSet("VAL", []Tin{TinTX, TinST})
+
+	if len(j1.TokenSet("VAL")) != 2 {
+		t.Errorf("j1 should have 2 VAL tokens, got %d", len(j1.TokenSet("VAL")))
+	}
+	if len(j2.TokenSet("VAL")) != 4 {
+		t.Errorf("j2 should still have 4 VAL tokens, got %d", len(j2.TokenSet("VAL")))
+	}
+}
+
+func TestDeriveInheritsValKeySet(t *testing.T) {
+	parent := Make()
+	parent.SetTokenSet("VAL", []Tin{TinTX, TinNR, TinST}) // Remove VL
+	parent.SetTokenSet("KEY", []Tin{TinTX})                 // Only TX
+
+	child := parent.Derive()
+
+	childVal := child.TokenSet("VAL")
+	if len(childVal) != 3 {
+		t.Errorf("child should inherit 3 VAL tokens, got %d", len(childVal))
+	}
+	childKey := child.TokenSet("KEY")
+	if len(childKey) != 1 {
+		t.Errorf("child should inherit 1 KEY token, got %d", len(childKey))
+	}
+
+	// Modifying child should not affect parent.
+	child.SetTokenSet("VAL", []Tin{TinTX})
+	if len(parent.TokenSet("VAL")) != 3 {
+		t.Errorf("parent should still have 3 VAL tokens, got %d", len(parent.TokenSet("VAL")))
+	}
+}
+
 // --- LexCheck callbacks ---
 
 func TestLexCheckFixed(t *testing.T) {

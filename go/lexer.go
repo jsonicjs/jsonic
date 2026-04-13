@@ -105,6 +105,18 @@ type LexConfig struct {
 	// MapRef wraps map output values in MapRef structs.
 	MapRef bool
 
+	// IgnoreSet is the per-instance set of token Tins to skip during lexing.
+	// Matches TS cfg.tokenSetTins.IGNORE. Plugins can customize this per-instance.
+	IgnoreSet map[Tin]bool
+
+	// ValSet is the per-instance VAL token set (text, number, string, value).
+	// Matches TS cfg.tokenSet.VAL. Plugins can customize this per-instance.
+	ValSet []Tin
+
+	// KeySet is the per-instance KEY token set (text, number, string, value).
+	// Matches TS cfg.tokenSet.KEY. Plugins can customize this per-instance.
+	KeySet []Tin
+
 	// ParsePrepare hooks called before parsing begins.
 	ParsePrepare []func(ctx *Context)
 
@@ -164,6 +176,10 @@ func DefaultLexConfig() *LexConfig {
 
 		FinishRule: true,
 		RuleStart:  "val",
+
+		IgnoreSet: map[Tin]bool{TinSP: true, TinLN: true, TinCM: true},
+		ValSet:    []Tin{TinTX, TinNR, TinST, TinVL},
+		KeySet:    []Tin{TinTX, TinNR, TinST, TinVL},
 
 		FixedTokens: map[string]Tin{
 			"{": TinOB, "}": TinCB,
@@ -267,8 +283,8 @@ func (l *Lex) Next(rule ...*Rule) *Token {
 			l.Err = makeJsonicError(tkn.Why, tkn.Src, l.Src, tkn.SI, tkn.RI, tkn.CI)
 			return &Token{Name: "#ZZ", Tin: TinZZ, Val: Undefined, SI: tkn.SI, RI: tkn.RI, CI: tkn.CI}
 		}
-		// Skip IGNORE tokens (space, line, comment)
-		if TinSetIGNORE[tkn.Tin] {
+		// Skip IGNORE tokens (per-instance set, matching TS cfg.tokenSetTins.IGNORE)
+		if l.Config.IgnoreSet[tkn.Tin] {
 			continue
 		}
 		return tkn
@@ -391,10 +407,6 @@ func (l *Lex) matchFixed() *Token {
 	if l.pnt.SI >= l.pnt.Len {
 		return nil
 	}
-	ftoks := l.Config.FixedTokens
-	if ftoks == nil {
-		ftoks = FixedTokens
-	}
 	remaining := l.Src[l.pnt.SI:]
 
 	// Use sorted list for longest-match-first. Fall back to single-char lookup
@@ -402,7 +414,7 @@ func (l *Lex) matchFixed() *Token {
 	if len(l.Config.FixedSorted) > 0 {
 		for _, fs := range l.Config.FixedSorted {
 			if strings.HasPrefix(remaining, fs) {
-				tin := ftoks[fs]
+				tin := l.Config.FixedTokens[fs]
 				tkn := l.Token(l.tinNameFor(tin), tin, nil, fs)
 				l.pnt.SI += len(fs)
 				l.pnt.CI += len(fs)
@@ -414,7 +426,7 @@ func (l *Lex) matchFixed() *Token {
 
 	// Fallback: single-char lookup.
 	src := string(l.Src[l.pnt.SI])
-	tin, ok := ftoks[src]
+	tin, ok := l.Config.FixedTokens[src]
 	if !ok {
 		return nil
 	}
@@ -1011,11 +1023,7 @@ func (l *Lex) matchNumber() *Token {
 		remaining := src[l.pnt.SI:]
 		for _, fs := range l.Config.FixedSorted {
 			if strings.HasPrefix(remaining, fs) {
-				ftoks := l.Config.FixedTokens
-				if ftoks == nil {
-					ftoks = FixedTokens
-				}
-				tin := ftoks[fs]
+				tin := l.Config.FixedTokens[fs]
 				fixTkn := l.Token(l.tinNameFor(tin), tin, nil, fs)
 				l.pnt.SI += len(fs)
 				l.pnt.CI += len(fs)
@@ -1150,11 +1158,7 @@ func (l *Lex) matchText() *Token {
 		matched := false
 		for _, fs := range l.Config.FixedSorted {
 			if strings.HasPrefix(remaining, fs) {
-				ftoks := l.Config.FixedTokens
-				if ftoks == nil {
-					ftoks = FixedTokens
-				}
-				tin := ftoks[fs]
+				tin := l.Config.FixedTokens[fs]
 				fixTkn := l.Token(l.tinNameFor(tin), tin, nil, fs)
 				l.pnt.SI += len(fs)
 				l.pnt.CI += len(fs)
@@ -1166,11 +1170,7 @@ func (l *Lex) matchText() *Token {
 		if !matched && len(l.Config.FixedSorted) == 0 {
 			// Fallback for standalone lexer
 			nextCh := string(src[l.pnt.SI])
-			ftoks := l.Config.FixedTokens
-			if ftoks == nil {
-				ftoks = FixedTokens
-			}
-			if tin, ok := ftoks[nextCh]; ok {
+			if tin, ok := l.Config.FixedTokens[nextCh]; ok {
 				fixTkn := l.Token(l.tinNameFor(tin), tin, nil, nextCh)
 				l.pnt.SI++
 				l.pnt.CI++
