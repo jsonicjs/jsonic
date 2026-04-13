@@ -437,6 +437,13 @@ func (r *Rule) Process(ctx *Context, lex *Lex) *Rule {
 	// Match alternates
 	alt, _ := ParseAlts(isOpen, alts, lex, r, ctx)
 
+	// No alternate matched: immediate parse error (matching TS parse_alts behavior).
+	// In TS, when alts exist but none match, out.e = ctx.t0 which triggers this.bad().
+	if alt == nil && len(alts) > 0 {
+		ctx.ParseErr = ctx.T0
+		return next
+	}
+
 	// Alt modifier
 	if alt != nil && alt.H != nil {
 		alt = alt.H(alt, r, ctx)

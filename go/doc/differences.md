@@ -26,9 +26,8 @@ implementations and resolves to `null`/`nil` by grammar behavior.
 
 ### Token Consumption
 
-When no grammar alternate matches, TypeScript shifts tokens forward
-unconditionally. Go leaves them in place, which can affect subsequent parsing
-in edge cases.
+When no grammar alternate matches, both implementations now raise an immediate
+parse error. Token consumption behavior is aligned.
 
 ## Missing Features
 
