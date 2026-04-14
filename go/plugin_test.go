@@ -20,8 +20,9 @@ func hasExactTag(tagStr, tag string) bool {
 func TestUseInvokesPlugin(t *testing.T) {
 	invoked := false
 	j := Make()
-	j.Use(func(j *Jsonic, opts map[string]any) {
+	j.Use(func(j *Jsonic, opts map[string]any) error {
 		invoked = true
+		return nil
 	})
 	if !invoked {
 		t.Error("plugin was not invoked")
@@ -31,8 +32,9 @@ func TestUseInvokesPlugin(t *testing.T) {
 func TestUsePassesOptions(t *testing.T) {
 	var got map[string]any
 	j := Make()
-	j.Use(func(j *Jsonic, opts map[string]any) {
+	j.Use(func(j *Jsonic, opts map[string]any) error {
 		got = opts
+		return nil
 	}, map[string]any{"key": "value"})
 	if got == nil || got["key"] != "value" {
 		t.Errorf("plugin options not passed correctly: %v", got)
@@ -42,10 +44,13 @@ func TestUsePassesOptions(t *testing.T) {
 func TestUseChaining(t *testing.T) {
 	order := []string{}
 	j := Make()
-	j.Use(func(j *Jsonic, opts map[string]any) {
+	j.Use(func(j *Jsonic, opts map[string]any) error {
 		order = append(order, "first")
-	}).Use(func(j *Jsonic, opts map[string]any) {
+		return nil
+	})
+	j.Use(func(j *Jsonic, opts map[string]any) error {
 		order = append(order, "second")
+		return nil
 	})
 	if len(order) != 2 || order[0] != "first" || order[1] != "second" {
 		t.Errorf("expected [first second], got %v", order)
@@ -54,8 +59,8 @@ func TestUseChaining(t *testing.T) {
 
 func TestPlugins(t *testing.T) {
 	j := Make()
-	j.Use(func(j *Jsonic, opts map[string]any) {})
-	j.Use(func(j *Jsonic, opts map[string]any) {})
+	j.Use(func(j *Jsonic, opts map[string]any) error { return nil })
+	j.Use(func(j *Jsonic, opts map[string]any) error { return nil })
 	if len(j.Plugins()) != 2 {
 		t.Errorf("expected 2 plugins, got %d", len(j.Plugins()))
 	}
@@ -123,9 +128,10 @@ func TestTinName(t *testing.T) {
 
 func TestPluginCustomFixedToken(t *testing.T) {
 	// Plugin that makes '~' a separator (like comma).
-	tildeSep := func(j *Jsonic, opts map[string]any) {
+	tildeSep := func(j *Jsonic, opts map[string]any) error {
 		// Register ~ as the comma token (replacing comma behavior).
 		j.Token("#CA", "~")
+		return nil
 	}
 
 	j := Make()
@@ -152,7 +158,7 @@ func TestPluginCustomFixedToken(t *testing.T) {
 
 func TestPluginRuleModification(t *testing.T) {
 	// Plugin that makes all string values uppercase.
-	upperPlugin := func(j *Jsonic, opts map[string]any) {
+	upperPlugin := func(j *Jsonic, opts map[string]any) error {
 		j.Rule("val", func(rs *RuleSpec) {
 			// Add an after-close action that uppercases string nodes.
 			rs.AC = append(rs.AC, func(r *Rule, ctx *Context) {
@@ -161,6 +167,7 @@ func TestPluginRuleModification(t *testing.T) {
 				}
 			})
 		})
+		return nil
 	}
 
 	j := Make()
@@ -177,7 +184,7 @@ func TestPluginRuleModification(t *testing.T) {
 
 func TestPluginRuleAddAlternate(t *testing.T) {
 	// Plugin that adds a custom "hundred" rule.
-	hundredPlugin := func(j *Jsonic, opts map[string]any) {
+	hundredPlugin := func(j *Jsonic, opts map[string]any) error {
 		// Register a custom fixed token 'H'.
 		TH := j.Token("#TH", "H")
 
@@ -195,6 +202,7 @@ func TestPluginRuleAddAlternate(t *testing.T) {
 				P: "hundred",
 			}}, rs.Open...)
 		})
+		return nil
 	}
 
 	j := Make()
@@ -226,7 +234,7 @@ func TestPluginRuleNewRule(t *testing.T) {
 
 func TestPluginCustomMatcher(t *testing.T) {
 	// Plugin that matches "$$" as a special value.
-	dollarPlugin := func(j *Jsonic, opts map[string]any) {
+	dollarPlugin := func(j *Jsonic, opts map[string]any) error {
 		j.AddMatcher("dollar", 1500000, func(lex *Lex, rule *Rule) *Token {
 			pnt := lex.Cursor()
 			if pnt.SI+2 <= pnt.Len && lex.Src[pnt.SI:pnt.SI+2] == "$$" {
@@ -237,6 +245,7 @@ func TestPluginCustomMatcher(t *testing.T) {
 			}
 			return nil
 		})
+		return nil
 	}
 
 	j := Make()
@@ -253,7 +262,7 @@ func TestPluginCustomMatcher(t *testing.T) {
 
 func TestPluginCustomMatcherInObject(t *testing.T) {
 	// Custom matcher that matches "@" as a special value.
-	atPlugin := func(j *Jsonic, opts map[string]any) {
+	atPlugin := func(j *Jsonic, opts map[string]any) error {
 		j.AddMatcher("at", 1500000, func(lex *Lex, rule *Rule) *Token {
 			pnt := lex.Cursor()
 			if pnt.SI < pnt.Len && lex.Src[pnt.SI] == '@' {
@@ -264,6 +273,7 @@ func TestPluginCustomMatcherInObject(t *testing.T) {
 			}
 			return nil
 		})
+		return nil
 	}
 
 	j := Make()
@@ -371,8 +381,9 @@ func TestPluginComposite(t *testing.T) {
 	// 1. Registers a custom token ';' as separator (replacing comma)
 	// 2. Adds a before-open action to list rule
 
-	semiPlugin := func(j *Jsonic, opts map[string]any) {
+	semiPlugin := func(j *Jsonic, opts map[string]any) error {
 		j.Token("#CA", ";")
+		return nil
 	}
 
 	j := Make()
@@ -410,11 +421,12 @@ func TestPluginComposite(t *testing.T) {
 func TestUseNilOptions(t *testing.T) {
 	invoked := false
 	j := Make()
-	j.Use(func(j *Jsonic, opts map[string]any) {
+	j.Use(func(j *Jsonic, opts map[string]any) error {
 		invoked = true
 		if opts != nil {
 			t.Errorf("expected nil opts, got %v", opts)
 		}
+		return nil
 	})
 	if !invoked {
 		t.Error("plugin not invoked")
@@ -702,8 +714,9 @@ func TestDeriveIsolation(t *testing.T) {
 func TestDeriveInheritsPlugins(t *testing.T) {
 	count := 0
 	parent := Make()
-	parent.Use(func(j *Jsonic, opts map[string]any) {
+	parent.Use(func(j *Jsonic, opts map[string]any) error {
 		count++
+		return nil
 	})
 
 	// Plugin was invoked once on parent.
@@ -1544,7 +1557,7 @@ func TestDeriveTokenInheritance(t *testing.T) {
 // and a val rule alternate that produces `val` when that token is seen.
 // This mirrors the TS make_token_plugin helper.
 func makeTokenPlugin(char, val string) Plugin {
-	return func(j *Jsonic, opts map[string]any) {
+	return func(j *Jsonic, opts map[string]any) error {
 		tn := "#T<" + char + ">"
 		j.Token(tn, char)
 		TT := j.Token(tn, "")
@@ -1560,6 +1573,7 @@ func makeTokenPlugin(char, val string) Plugin {
 				},
 			}}, rs.Open...)
 		})
+		return nil
 	}
 }
 
@@ -1698,12 +1712,13 @@ func TestCustomParserStartError(t *testing.T) {
 
 func TestPluginErrorHints(t *testing.T) {
 	j := Make()
-	j.Use(func(j *Jsonic, opts map[string]any) {
+	j.Use(func(j *Jsonic, opts map[string]any) error {
 		j.SetOptions(Options{
 			Hint: map[string]string{
 				"unexpected": "FOO",
 			},
 		})
+		return nil
 	})
 
 	_, err := j.Parse("x::1")
@@ -1730,8 +1745,9 @@ func TestDecorate(t *testing.T) {
 	//   let jp0 = j.use(function foo(jsonic) { jsonic.foo = () => 'FOO' })
 	//   expect(jp0.foo()).equal('FOO')
 	j := Make()
-	j.Use(func(j *Jsonic, opts map[string]any) {
+	j.Use(func(j *Jsonic, opts map[string]any) error {
 		j.Decorate("foo", "FOO")
+		return nil
 	})
 	if j.Decoration("foo") != "FOO" {
 		t.Errorf("expected Decoration('foo') = 'FOO', got %v", j.Decoration("foo"))
@@ -1741,11 +1757,13 @@ func TestDecorate(t *testing.T) {
 func TestDecorateChaining(t *testing.T) {
 	// TS: jp0 adds foo, jp1 adds bar, both accessible on jp1, foo still on jp0.
 	j := Make()
-	j.Use(func(j *Jsonic, opts map[string]any) {
+	j.Use(func(j *Jsonic, opts map[string]any) error {
 		j.Decorate("foo", "FOO")
+		return nil
 	})
-	j.Use(func(j *Jsonic, opts map[string]any) {
+	j.Use(func(j *Jsonic, opts map[string]any) error {
 		j.Decorate("bar", "BAR")
+		return nil
 	})
 
 	if j.Decoration("foo") != "FOO" {
@@ -1922,8 +1940,9 @@ func TestContextMeta(t *testing.T) {
 
 func TestPluginOptions(t *testing.T) {
 	j := Make()
-	j.Use(func(j *Jsonic, opts map[string]any) {
+	j.Use(func(j *Jsonic, opts map[string]any) error {
 		j.SetPluginOptions("foo", map[string]any{"x": 1})
+		return nil
 	})
 
 	po := j.PluginOptions("foo")
@@ -1973,10 +1992,11 @@ func TestErrMsgName(t *testing.T) {
 
 func TestErrMsgNameViaPlugin(t *testing.T) {
 	j := Make()
-	j.Use(func(j *Jsonic, opts map[string]any) {
+	j.Use(func(j *Jsonic, opts map[string]any) error {
 		j.SetOptions(Options{
 			ErrMsg: &ErrMsgOptions{Name: "myplugin"},
 		})
+		return nil
 	})
 	_, err := j.Parse("x::1")
 	if err == nil {

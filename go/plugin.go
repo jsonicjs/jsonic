@@ -7,8 +7,8 @@ import (
 
 // Plugin is a function that modifies a Jsonic instance.
 // Plugins can add custom tokens, matchers, and rule modifications.
-// Matching the TypeScript pattern: (jsonic, plugin_options?) => void
-type Plugin func(j *Jsonic, opts map[string]any)
+// Returns an error if the plugin fails to initialize.
+type Plugin func(j *Jsonic, opts map[string]any) error
 
 // LexMatcher is a custom lexer matcher function.
 // It receives the lexer and the current parsing rule, and returns a Token
@@ -58,21 +58,20 @@ type pluginEntry struct {
 
 // Use registers and invokes a plugin on this Jsonic instance.
 // The plugin function is called with the Jsonic instance and optional options.
-// Returns the Jsonic instance for chaining.
+// Returns an error if the plugin fails to initialize.
 //
 // Example:
 //
 //	j := jsonic.Make()
-//	j.Use(myPlugin, map[string]any{"key": "value"})
-func (j *Jsonic) Use(plugin Plugin, opts ...map[string]any) *Jsonic {
+//	err := j.Use(myPlugin, map[string]any{"key": "value"})
+func (j *Jsonic) Use(plugin Plugin, opts ...map[string]any) error {
 	var pluginOpts map[string]any
 	if len(opts) > 0 && opts[0] != nil {
 		pluginOpts = opts[0]
 	}
 
 	j.plugins = append(j.plugins, pluginEntry{plugin: plugin, opts: pluginOpts})
-	plugin(j, pluginOpts)
-	return j
+	return plugin(j, pluginOpts)
 }
 
 // Rule modifies or creates a grammar rule by name.
@@ -397,7 +396,11 @@ func (j *Jsonic) Derive(opts ...Options) *Jsonic {
 	// Re-apply parent's plugins on the child.
 	for _, pe := range j.plugins {
 		child.plugins = append(child.plugins, pe)
-		pe.plugin(child, pe.opts)
+		if err := pe.plugin(child, pe.opts); err != nil {
+			// Plugin errors during Derive are programming errors; panic
+			// since Derive doesn't return an error.
+			panic("jsonic: plugin error during Derive: " + err.Error())
+		}
 	}
 
 	// Copy subscriptions.
@@ -476,7 +479,9 @@ func (j *Jsonic) SetOptions(opts Options) *Jsonic {
 	if !j.inSetOptions {
 		j.inSetOptions = true
 		for _, pe := range j.plugins {
-			pe.plugin(j, pe.opts)
+			// Ignore errors during re-application: the plugin already
+			// succeeded on initial Use(); re-invocation is for config sync.
+			_ = pe.plugin(j, pe.opts)
 		}
 		j.inSetOptions = false
 	}
