@@ -534,6 +534,56 @@ describe('grammar-options', () => {
   })
 
 
+  it('options-regex-match-value', () => {
+    // Use @/…/ in match.value for regexp-based value matching.
+    // match.value runs against the forward source, so no $ anchor.
+    let j = Jsonic.make()
+    j.grammar({
+      ref: {
+        '@valOn': () => true,
+        '@valOff': () => false,
+      },
+      options: {
+        match: {
+          value: {
+            on: { match: '@/^on/i', val: '@valOn' },
+            off: { match: '@/^off/i', val: '@valOff' },
+          },
+        },
+      },
+    })
+
+    assert.deepEqual(j('a:ON,b:off'), { a: true, b: false })
+    assert.deepEqual(j('a:on'), { a: true })
+  })
+
+
+  it('options-regex-resolve-nested', () => {
+    // @/…/ resolution works inside nested option objects.
+    let j = Jsonic.make()
+    j.grammar({
+      ref: {
+        '@valYes': () => 'yes!',
+      },
+      options: {
+        value: {
+          def: {
+            y: { val: '@valYes', match: '@/^y$/i' },
+          },
+        },
+        number: {
+          exclude: '@/^0[0-9]+$/',
+        },
+      },
+    })
+
+    // Both nested @/…/ patterns resolve correctly.
+    assert.deepEqual(j('a:Y'), { a: 'yes!' })
+    assert.deepEqual(j('a:01'), { a: '01' })
+    assert.deepEqual(j('a:42'), { a: 42 })
+  })
+
+
   it('options-escape-at-prefix', () => {
     // @@ escapes to a literal @ string.
     let j = Jsonic.make()
