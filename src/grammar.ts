@@ -139,8 +139,12 @@ function grammar(jsonic: Jsonic) {
         }
       },
 
-      '@pair-bc': (r: Rule, _ctx: Context) => {
+      '@pair-bc': (r: Rule, ctx: Context) => {
         if (r.u.pair) {
+          // Drop keys that match the info marker to preserve metadata.
+          if (ctx.cfg.info.map && r.u.key === ctx.cfg.info.marker) {
+            return
+          }
           // Store previous value (if any, for extensions).
           r.u.prev = r.node[r.u.key]
           r.node[r.u.key] = r.child.node
@@ -441,6 +445,11 @@ function grammar(jsonic: Jsonic) {
       if ('__proto__' === key || 'constructor' === key) {
         return
       }
+    }
+
+    // Drop keys that match the info marker to preserve metadata.
+    if (ctx.cfg.info.map && key === ctx.cfg.info.marker) {
+      return
     }
 
     val = null == prev

@@ -1613,6 +1613,53 @@ func TestGrammarLexEmpty(t *testing.T) {
 	}
 }
 
+// --- Info marker key protection ---
+
+func TestInfoMarkerKeyDropped(t *testing.T) {
+	// User keys matching the info marker are dropped when info.map is enabled.
+	j := Make(Options{Info: &InfoOptions{Map: boolPtr(true)}})
+	result, err := j.Parse(`a:1,__info__:2,b:3`)
+	if err != nil {
+		t.Fatal(err)
+	}
+	mr := result.(MapRef)
+	if mr.Val["a"] != float64(1) {
+		t.Errorf("expected a:1, got %v", mr.Val["a"])
+	}
+	if mr.Val["b"] != float64(3) {
+		t.Errorf("expected b:3, got %v", mr.Val["b"])
+	}
+	if _, exists := mr.Val["__info__"]; exists {
+		t.Error("__info__ key should have been dropped")
+	}
+}
+
+func TestInfoMarkerKeyDroppedJSON(t *testing.T) {
+	// Also works in strict JSON syntax path.
+	j := Make(Options{Info: &InfoOptions{Map: boolPtr(true)}})
+	result, err := j.Parse(`{"a":1,"__info__":2}`)
+	if err != nil {
+		t.Fatal(err)
+	}
+	mr := result.(MapRef)
+	if _, exists := mr.Val["__info__"]; exists {
+		t.Error("__info__ key should have been dropped in JSON path")
+	}
+}
+
+func TestInfoMarkerKeyNotDroppedWhenOff(t *testing.T) {
+	// When info.map is off, the key is NOT dropped.
+	j := Make()
+	result, err := j.Parse(`a:1,__info__:2`)
+	if err != nil {
+		t.Fatal(err)
+	}
+	m := result.(map[string]any)
+	if m["__info__"] != float64(2) {
+		t.Errorf("expected __info__:2, got %v", m["__info__"])
+	}
+}
+
 // TestValueDefReUsesValWhenValFuncNil verifies that regex-based value.def
 // entries return ValueDef.Val (not the matched source text) when ValFunc is nil.
 func TestValueDefReUsesValWhenValFuncNil(t *testing.T) {

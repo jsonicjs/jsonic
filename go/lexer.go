@@ -121,6 +121,11 @@ type LexConfig struct {
 	// MapRef wraps map output values in MapRef structs.
 	MapRef bool
 
+	// InfoMarker is the key name to protect from user data when info options
+	// are enabled. Keys matching this value are dropped during parsing.
+	// Matches TS cfg.info.marker. Empty string means no protection.
+	InfoMarker string
+
 	// IgnoreSet is the per-instance set of token Tins to skip during lexing.
 	// Matches TS cfg.tokenSetTins.IGNORE. Plugins can customize this per-instance.
 	IgnoreSet map[Tin]bool

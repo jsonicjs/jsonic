@@ -976,6 +976,47 @@ describe('info-marker', () => {
   })
 
 
+  it('info-marker-key-dropped', () => {
+    // User keys matching the info marker are silently dropped.
+    let j = Jsonic.make()
+    j.options({ info: { map: true } })
+    let r = j('a:1,__info__:2,b:3')
+    assert.deepEqual(Object.keys(r).sort(), ['a', 'b'])
+    assert.equal(r.a, 1)
+    assert.equal(r.b, 3)
+    // The marker is still the metadata, not the user value.
+    assert.equal(r.__info__.implicit, true)
+  })
+
+
+  it('info-marker-key-dropped-json', () => {
+    // Also works in strict JSON syntax path.
+    let j = Jsonic.make()
+    j.options({ info: { map: true } })
+    let r = j('{"a":1,"__info__":2}')
+    assert.deepEqual(Object.keys(r), ['a'])
+    assert.equal(r.__info__.implicit, false)
+  })
+
+
+  it('info-marker-key-dropped-custom', () => {
+    // Custom marker name is also protected.
+    let j = Jsonic.make()
+    j.options({ info: { map: true, marker: '__meta__' } })
+    let r = j('a:1,__meta__:2')
+    assert.deepEqual(Object.keys(r).sort(), ['a'])
+    assert.equal(r.__meta__.implicit, true)
+  })
+
+
+  it('info-marker-key-not-dropped-when-off', () => {
+    // When info.map is off, the key is NOT dropped.
+    let j = Jsonic.make()
+    let r = j('a:1,__info__:2')
+    assert.equal(r.__info__, 2)
+  })
+
+
   it('info-child$-unchanged', () => {
     // list.child behavior is unaffected by info.list.
     let j = Jsonic.make({ list: { child: true }, info: { list: true } })

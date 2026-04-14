@@ -729,6 +729,9 @@ func buildConfig(o *Options) *LexConfig {
 		cfg.TextInfo = boolVal(o.Info.Text, false)
 		cfg.ListRef = boolVal(o.Info.List, false)
 		cfg.MapRef = boolVal(o.Info.Map, false)
+		if cfg.MapRef || cfg.ListRef || cfg.TextInfo {
+			cfg.InfoMarker = "__info__"
+		}
 	}
 	// list.child requires ListRef to store the child value on ListRef.Child.
 	if cfg.ListChild {
