@@ -1762,6 +1762,38 @@ func TestTextLexFalseCustomValueDef(t *testing.T) {
 	}
 }
 
+func TestGroupTagsValidFormat(t *testing.T) {
+	// All group tags (G fields) in grammar alts must be comma-separated
+	// lowercase identifiers [a-z] only. No dots, spaces, or other chars.
+	// Regression guard for the "elem.jsonic" typo (TS grammar.ts:737).
+	j := Make()
+	tagRe := regexp.MustCompile(`^[a-z]+$`)
+	for name, rs := range j.RSM() {
+		for _, alt := range rs.Open {
+			if alt.G != "" {
+				for _, tag := range strings.Split(alt.G, ",") {
+					if !tagRe.MatchString(tag) {
+						t.Errorf("rule %s open: invalid group tag %q in G=%q "+
+							"(must be comma-separated lowercase [a-z] identifiers)",
+							name, tag, alt.G)
+					}
+				}
+			}
+		}
+		for _, alt := range rs.Close {
+			if alt.G != "" {
+				for _, tag := range strings.Split(alt.G, ",") {
+					if !tagRe.MatchString(tag) {
+						t.Errorf("rule %s close: invalid group tag %q in G=%q "+
+							"(must be comma-separated lowercase [a-z] identifiers)",
+							name, tag, alt.G)
+					}
+				}
+			}
+		}
+	}
+}
+
 func TestSetOptionsRuleExclude(t *testing.T) {
 	// rule.exclude can be set via SetOptions after Make().
 	j := Make()

@@ -709,6 +709,59 @@ describe('grammar-options', () => {
   })
 
 
+  it('exclude-jsonic-imp-no-residual-alts', () => {
+    // Excluding "jsonic" and "imp" should remove ALL jsonic/imp-tagged alts.
+    // Regression: a typo "elem.jsonic" (dot) instead of "elem,jsonic" (comma)
+    // left a list alt active that broke string matching in strict JSON mode.
+    let j = Jsonic.make({ rule: { exclude: 'jsonic,imp' } })
+    let rules = j.internal().parser.rule()
+    for (let [name, rs] of Object.entries(rules)) {
+      for (let alt of [...(rs.def.open || []), ...(rs.def.close || [])]) {
+        if (alt.g) {
+          let gstr = typeof alt.g === 'string' ? alt.g : String(alt.g)
+          let tags = gstr.split(',')
+          for (let tag of tags) {
+            tag = tag.trim()
+            assert.ok(
+              tag !== 'jsonic' && tag !== 'imp',
+              `rule ${name} still has "${tag}" tag in g="${gstr}" after exclude`
+            )
+          }
+        }
+      }
+    }
+
+    // Strict JSON parsing should work correctly.
+    assert.deepEqual(j('{"a":"hello","b":1}'), { a: 'hello', b: 1 })
+    assert.deepEqual(j('[1,"two",3]'), [1, 'two', 3])
+  })
+
+
+  it('group-tags-valid-format', () => {
+    // All group tags (g fields) in grammar alts must be comma-separated
+    // lowercase identifiers [a-z] only. No dots, spaces, or other chars.
+    // Regression guard for the "elem.jsonic" typo.
+    let j = Jsonic.make()
+    let rules = j.internal().parser.rule()
+    let tagRe = /^[a-z]+$/
+    for (let [name, rs] of Object.entries(rules)) {
+      for (let alt of [...(rs.def.open || []), ...(rs.def.close || [])]) {
+        let gstr = alt.g ? (typeof alt.g === 'string' ? alt.g : String(alt.g)) : ''
+        if (gstr.length > 0) {
+          let tags = gstr.split(',')
+          for (let tag of tags) {
+            assert.ok(
+              tagRe.test(tag),
+              `rule ${name}: invalid group tag "${tag}" in g="${gstr}" ` +
+              `(must be comma-separated lowercase [a-z] identifiers)`
+            )
+          }
+        }
+      }
+    }
+  })
+
+
   it('skip-sentinel-exported', () => {
     // SKIP is available on the Jsonic object as an immutable symbol.
     assert.equal(typeof Jsonic.SKIP, 'symbol')

@@ -734,7 +734,7 @@ function grammar(jsonic: Jsonic) {
           { s: '#CA', p: 'elem', b: 1, g: 'list,elem,val,imp,jsonic' },
 
           // Another element.
-          { p: 'elem', g: 'list,elem.jsonic' },
+          { p: 'elem', g: 'list,elem,jsonic' },
         ],
         { append: true },
       )
