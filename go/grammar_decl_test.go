@@ -1469,6 +1469,57 @@ func TestGrammarTextInvalidSource(t *testing.T) {
 	}
 }
 
+// --- SetOptions applies lex.empty ---
+
+func TestSetOptionsLexEmpty(t *testing.T) {
+	// lex.empty can be set via SetOptions after Make(), matching TS behavior.
+	j := Make()
+
+	// Default: empty source is allowed.
+	result, err := j.Parse("")
+	if err != nil {
+		t.Fatalf("empty source should be allowed by default: %v", err)
+	}
+	if result != nil {
+		t.Errorf("expected nil for empty source, got %v", result)
+	}
+
+	// Disable empty source via SetOptions.
+	no := false
+	j.SetOptions(Options{Lex: &LexOptions{Empty: &no}})
+
+	_, err = j.Parse("")
+	if err == nil {
+		t.Fatal("expected error for empty source after disabling lex.empty")
+	}
+
+	// Re-enable via SetOptions.
+	yes := true
+	j.SetOptions(Options{Lex: &LexOptions{Empty: &yes}})
+
+	result, err = j.Parse("")
+	if err != nil {
+		t.Fatalf("empty source should be allowed again: %v", err)
+	}
+	if result != nil {
+		t.Errorf("expected nil, got %v", result)
+	}
+}
+
+func TestGrammarLexEmpty(t *testing.T) {
+	// lex.empty can be set via Grammar, not just Make().
+	j := Make()
+	no := false
+	mustGrammar(t, j, &GrammarSpec{
+		Options: &Options{Lex: &LexOptions{Empty: &no}},
+	})
+
+	_, err := j.Parse("")
+	if err == nil {
+		t.Fatal("expected error for empty source after Grammar sets lex.empty=false")
+	}
+}
+
 // TestValueDefReUsesValWhenValFuncNil verifies that regex-based value.def
 // entries return ValueDef.Val (not the matched source text) when ValFunc is nil.
 func TestValueDefReUsesValWhenValFuncNil(t *testing.T) {

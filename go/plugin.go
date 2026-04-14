@@ -538,6 +538,21 @@ func (j *Jsonic) SetOptions(opts Options) *Jsonic {
 		j.parser.ErrTag = j.options.ErrMsg.Name
 	}
 
+	// Apply lex options (empty source handling).
+	// Uses merged options so that values set at Make() or via prior
+	// SetOptions/Grammar calls are preserved.
+	if j.options.Lex != nil {
+		if j.options.Lex.Empty != nil {
+			j.emptyAllow = *j.options.Lex.Empty
+		}
+		j.emptyResult = j.options.Lex.EmptyResult
+	}
+
+	// Apply custom parser start.
+	if j.options.Parser != nil && j.options.Parser.Start != nil {
+		j.parserStart = j.options.Parser.Start
+	}
+
 	return j
 }
 
