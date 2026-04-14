@@ -457,7 +457,7 @@ func Make(opts ...Options) *Jsonic {
 
 	// Apply rule exclude.
 	if o.Rule != nil && o.Rule.Exclude != "" {
-		j.Exclude(o.Rule.Exclude)
+		j.exclude(o.Rule.Exclude)
 	}
 
 	return j

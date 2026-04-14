@@ -556,17 +556,16 @@ func (j *Jsonic) SetOptions(opts Options) *Jsonic {
 	// Apply rule exclude. Only apply from the incoming opts (not merged)
 	// to avoid re-excluding already-excluded groups.
 	if opts.Rule != nil && opts.Rule.Exclude != "" {
-		j.Exclude(opts.Rule.Exclude)
+		j.exclude(opts.Rule.Exclude)
 	}
 
 	return j
 }
 
-// Exclude removes grammar alternates tagged with any of the given group names.
+// exclude removes grammar alternates tagged with any of the given group names.
 // Group names are comma-separated in AltSpec.G fields.
-// Use Exclude("json") to strip all jsonic extensions and get strict JSON parsing.
-// Returns the Jsonic instance for chaining.
-func (j *Jsonic) Exclude(groups ...string) *Jsonic {
+// Use rule.exclude option to strip groups (e.g. "jsonic" for strict JSON).
+func (j *Jsonic) exclude(groups ...string) *Jsonic {
 	excludeSet := make(map[string]bool)
 	for _, g := range groups {
 		for _, part := range strings.Split(g, ",") {
