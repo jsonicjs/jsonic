@@ -21,23 +21,27 @@ function deepEqual(actual, expected, msg) {
 
 // --- Shared TSV test helpers ---
 
-function tsvTest(name) {
+function tsvTest(name, parser) {
+  parser = parser || Jsonic
   const entries = loadTSV(name)
   for (const { cols: [input, expected], row } of entries) {
-    const result = Jsonic(input)
+    const result = parser(input)
     deepEqual(result, JSON.parse(expected),
       `${name} row ${row}: input=${input} expected=${expected}`)
   }
 }
 
-function tsvErrorTest(name) {
+function tsvErrorTest(name, parser) {
+  parser = parser || Jsonic
   const entries = loadTSV(name)
   for (const { cols: [input, expected], row } of entries) {
     if (!expected.startsWith('ERROR:')) {
       throw new Error(`${name} row ${row}: expected column must start with ERROR:`)
     }
-    assert.throws(() => Jsonic(input), JsonicError,
-      `${name} row ${row}: input=${input} expected=${expected}`)
+    const code = expected.slice(6)
+    assert.throws(() => parser(input), (err) => {
+      return err instanceof JsonicError && err.code === code
+    }, `${name} row ${row}: input=${input} expected=${expected}`)
   }
 }
 
@@ -89,6 +93,46 @@ describe('alignment', function () {
 
   it('alignment-errors', () => {
     tsvErrorTest('alignment-errors')
+  })
+
+  // --- Exclude group TSV tests ---
+
+  it('exclude-strict-json', () => {
+    const jj = Jsonic.make({ rule: { exclude: 'jsonic,imp' } })
+    tsvTest('exclude-strict-json', jj)
+  })
+
+  it('exclude-strict-json-errors', () => {
+    const jj = Jsonic.make({ rule: { exclude: 'jsonic,imp' } })
+    tsvErrorTest('exclude-strict-json-errors', jj)
+  })
+
+  it('exclude-comma', () => {
+    const jj = Jsonic.make({ rule: { exclude: 'comma' } })
+    tsvTest('exclude-comma', jj)
+  })
+
+  it('exclude-comma-errors', () => {
+    const jj = Jsonic.make({ rule: { exclude: 'comma' } })
+    tsvErrorTest('exclude-comma-errors', jj)
+  })
+
+  // --- Lex error propagation tests ---
+  // Verifies that lex-level errors (unterminated_string, unterminated_comment)
+  // are not masked by generic "unexpected" in any parser state.
+
+  it('lex-errors-default', () => {
+    tsvErrorTest('lex-errors')
+  })
+
+  it('lex-errors-exclude-jsonic-imp', () => {
+    const jj = Jsonic.make({ rule: { exclude: 'jsonic,imp' } })
+    tsvErrorTest('lex-errors', jj)
+  })
+
+  it('lex-errors-exclude-jsonic-imp-comma', () => {
+    const jj = Jsonic.make({ rule: { exclude: 'jsonic,imp,comma' } })
+    tsvErrorTest('lex-errors', jj)
   })
 
   // --- Direct TS tests for option-dependent features ---

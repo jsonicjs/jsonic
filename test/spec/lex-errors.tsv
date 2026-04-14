@@ -1,0 +1,7 @@
+input	expected
+"unterminated	ERROR:unterminated_string
+'unterminated	ERROR:unterminated_string
+`unterminated	ERROR:unterminated_string
+/*unterminated	ERROR:unterminated_comment
+{"a":"unterminated}	ERROR:unterminated_string
+["unterminated]	ERROR:unterminated_string

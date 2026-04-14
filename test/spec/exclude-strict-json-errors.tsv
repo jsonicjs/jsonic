@@ -1,0 +1,5 @@
+input	expected
+"unterminated	ERROR:unterminated_string
+{"a":1,}	ERROR:unexpected
+[1,2,]	ERROR:unexpected
+a:1	ERROR:unexpected

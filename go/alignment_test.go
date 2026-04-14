@@ -125,6 +125,85 @@ func TestAlignmentErrors(t *testing.T) {
 	}
 }
 
+// --- Error TSV runner (2-column: input, ERROR:<code>) ---
+
+func runErrorTSV(t *testing.T, file string, j *Jsonic) {
+	t.Helper()
+	path := filepath.Join(specDir(), file)
+	rows, err := loadTSV(path)
+	if err != nil {
+		t.Fatalf("failed to load %s: %v", file, err)
+	}
+
+	for _, row := range rows {
+		if len(row.cols) < 2 {
+			continue
+		}
+		input := preprocessEscapes(row.cols[0])
+		expectedStr := row.cols[1]
+
+		if !strings.HasPrefix(expectedStr, "ERROR:") {
+			t.Errorf("line %d: expected must start with ERROR:, got %q", row.lineNo, expectedStr)
+			continue
+		}
+		expectedCode := strings.TrimPrefix(expectedStr, "ERROR:")
+
+		_, parseErr := j.Parse(input)
+		if parseErr == nil {
+			t.Errorf("line %d: Parse(%q) should error (want %s), got nil", row.lineNo, input, expectedCode)
+			continue
+		}
+		je, ok := parseErr.(*JsonicError)
+		if !ok {
+			t.Errorf("line %d: Parse(%q) error should be *JsonicError, got %T", row.lineNo, input, parseErr)
+			continue
+		}
+		if je.Code != expectedCode {
+			t.Errorf("line %d: Parse(%q) error code got %q, want %q", row.lineNo, input, je.Code, expectedCode)
+		}
+	}
+}
+
+// --- Lex error propagation tests ---
+// Verifies that lex-level errors are not masked by generic "unexpected"
+// in any parser state.
+
+func TestLexErrorsDefault(t *testing.T) {
+	runErrorTSV(t, "lex-errors.tsv", Make())
+}
+
+func TestLexErrorsExcludeJsonicImp(t *testing.T) {
+	j := Make(Options{Rule: &RuleOptions{Exclude: "jsonic,imp"}})
+	runErrorTSV(t, "lex-errors.tsv", j)
+}
+
+func TestLexErrorsExcludeJsonicImpComma(t *testing.T) {
+	j := Make(Options{Rule: &RuleOptions{Exclude: "jsonic,imp,comma"}})
+	runErrorTSV(t, "lex-errors.tsv", j)
+}
+
+// --- Exclude group TSV tests ---
+
+func TestExcludeStrictJSON(t *testing.T) {
+	j := Make(Options{Rule: &RuleOptions{Exclude: "jsonic,imp"}})
+	runParserTSV(t, "exclude-strict-json.tsv", j)
+}
+
+func TestExcludeStrictJSONErrors(t *testing.T) {
+	j := Make(Options{Rule: &RuleOptions{Exclude: "jsonic,imp"}})
+	runErrorTSV(t, "exclude-strict-json-errors.tsv", j)
+}
+
+func TestExcludeComma(t *testing.T) {
+	j := Make(Options{Rule: &RuleOptions{Exclude: "comma"}})
+	runParserTSV(t, "exclude-comma.tsv", j)
+}
+
+func TestExcludeCommaErrors(t *testing.T) {
+	j := Make(Options{Rule: &RuleOptions{Exclude: "comma"}})
+	runErrorTSV(t, "exclude-comma-errors.tsv", j)
+}
+
 // =====================================================================
 // Direct Go tests for option-dependent alignment features
 // =====================================================================
