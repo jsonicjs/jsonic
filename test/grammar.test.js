@@ -802,3 +802,185 @@ describe('grammar-options', () => {
   })
 
 })
+
+
+describe('info-marker', () => {
+  const { Jsonic, jsonic_info } = require('..')
+
+  it('info-default-off', () => {
+    // By default, no marker is attached.
+    let j = Jsonic.make()
+    let r = j('a:1')
+    assert.equal(r.__info__, undefined)
+    assert.equal(jsonic_info(r), undefined)
+
+    let arr = j('[1,2]')
+    assert.equal(arr.__info__, undefined)
+  })
+
+
+  it('info-map-explicit', () => {
+    let j = Jsonic.make()
+    j.options({ info: { map: true } })
+    let r = j('{a:1}')
+    assert.equal(r.__info__.implicit, false)
+    assert.deepEqual(r.__info__.meta, {})
+  })
+
+
+  it('info-map-implicit', () => {
+    let j = Jsonic.make()
+    j.options({ info: { map: true } })
+    let r = j('a:1')
+    assert.equal(r.__info__.implicit, true)
+    assert.deepEqual(r.__info__.meta, {})
+  })
+
+
+  it('info-list-explicit', () => {
+    let j = Jsonic.make()
+    j.options({ info: { list: true } })
+    let r = j('[1,2]')
+    assert.equal(r.__info__.implicit, false)
+  })
+
+
+  it('info-list-implicit', () => {
+    let j = Jsonic.make()
+    j.options({ info: { list: true } })
+    let r = j('1,2')
+    assert.equal(r.__info__.implicit, true)
+  })
+
+
+  it('info-map-only', () => {
+    // info.map without info.list: list nodes have no marker.
+    let j = Jsonic.make()
+    j.options({ info: { map: true } })
+    let r = j('a:[1,2]')
+    assert.notEqual(r.__info__, undefined)
+    assert.equal(r.a.__info__, undefined)
+  })
+
+
+  it('info-list-only', () => {
+    // info.list without info.map: map nodes have no marker.
+    let j = Jsonic.make()
+    j.options({ info: { list: true } })
+    let r = j('[{a:1}]')
+    assert.notEqual(r.__info__, undefined)
+    assert.equal(r[0].__info__, undefined)
+  })
+
+
+  it('info-non-enumerable', () => {
+    let j = Jsonic.make()
+    j.options({ info: { map: true, list: true } })
+    let r = j('a:1,b:2')
+    // __info__ should not appear in Object.keys
+    assert.ok(!Object.keys(r).includes('__info__'))
+    // __info__ should not appear in JSON.stringify
+    assert.ok(!JSON.stringify(r).includes('__info__'))
+    // __info__ should not appear in for-in
+    let keys = []
+    for (let k in r) { keys.push(k) }
+    assert.ok(!keys.includes('__info__'))
+  })
+
+
+  it('info-meta-bag', () => {
+    let j = Jsonic.make()
+    j.options({ info: { map: true } })
+    let r = j('a:1')
+    assert.deepEqual(r.__info__.meta, {})
+    // Should be writable.
+    r.__info__.meta.custom = 'test'
+    assert.equal(r.__info__.meta.custom, 'test')
+  })
+
+
+  it('info-text-quoted', () => {
+    let j = Jsonic.make()
+    j.options({ info: { text: true } })
+    let r = j('"hello"')
+    assert.equal(r.__info__.quote, '"')
+    assert.equal(r + '', 'hello')
+    assert.equal(r.valueOf(), 'hello')
+  })
+
+
+  it('info-text-single-quoted', () => {
+    let j = Jsonic.make()
+    j.options({ info: { text: true } })
+    let r = j("'hello'")
+    assert.equal(r.__info__.quote, "'")
+    assert.equal(r + '', 'hello')
+  })
+
+
+  it('info-text-unquoted', () => {
+    let j = Jsonic.make()
+    j.options({ info: { text: true } })
+    let r = j('hello')
+    assert.equal(r.__info__.quote, '')
+    assert.equal(r + '', 'hello')
+  })
+
+
+  it('info-text-off-by-default', () => {
+    // Strings remain primitives when only map/list are enabled.
+    let j = Jsonic.make()
+    j.options({ info: { map: true, list: true } })
+    let r = j('a:hello')
+    assert.equal(typeof r.a, 'string')
+    assert.equal(r.a, 'hello')
+  })
+
+
+  it('info-custom-marker', () => {
+    let j = Jsonic.make()
+    j.options({ info: { map: true, marker: '__meta__' } })
+    let r = j('a:1')
+    assert.equal(r.__info__, undefined)
+    assert.notEqual(r.__meta__, undefined)
+    assert.equal(r.__meta__.implicit, true)
+    assert.equal(jsonic_info(r, '__meta__').implicit, true)
+  })
+
+
+  it('info-nested', () => {
+    let j = Jsonic.make()
+    j.options({ info: { map: true, list: true } })
+    let r = j('a:[1,2],b:{c:3}')
+    // Top-level map is implicit.
+    assert.equal(r.__info__.implicit, true)
+    // Nested list is explicit.
+    assert.equal(r.a.__info__.implicit, false)
+    // Nested map is explicit.
+    assert.equal(r.b.__info__.implicit, false)
+  })
+
+
+  it('info-jsonic_info-helper', () => {
+    let j = Jsonic.make()
+    j.options({ info: { map: true } })
+    let r = j('{a:1}')
+    assert.notEqual(jsonic_info(r), undefined)
+    assert.equal(jsonic_info(r).implicit, false)
+    // Returns undefined for non-marked values.
+    assert.equal(jsonic_info(42), undefined)
+    assert.equal(jsonic_info(null), undefined)
+    assert.equal(jsonic_info('hello'), undefined)
+  })
+
+
+  it('info-child$-unchanged', () => {
+    // list.child behavior is unaffected by info.list.
+    let j = Jsonic.make({ list: { child: true }, info: { list: true } })
+    let r = j('[:1,a,b]')
+    assert.equal(r['child$'], 1)
+    assert.deepEqual(Array.from(r), ['a', 'b'])
+    assert.notEqual(r.__info__, undefined)
+  })
+
+})

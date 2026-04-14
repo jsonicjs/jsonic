@@ -313,6 +313,13 @@ function configure(
     child: !!opts.list?.child,
   }
 
+  cfg.info = {
+    map: !!opts.info?.map,
+    list: !!opts.info?.list,
+    text: !!opts.info?.text,
+    marker: opts.info?.marker || '__info__',
+  }
+
   let fixedSorted = Object.keys(cfg.fixed.token).sort(
     (a: string, b: string) => b.length - a.length,
   )

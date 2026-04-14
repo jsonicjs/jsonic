@@ -126,6 +126,12 @@ export type Options = {
         pair: boolean;
         child: boolean;
     };
+    info?: {
+        map?: boolean;
+        list?: boolean;
+        text?: boolean;
+        marker?: string;
+    };
     value?: {
         lex?: boolean;
         def?: {
@@ -429,6 +435,12 @@ export type Config = {
         pair: boolean;
         child: boolean;
     };
+    info: {
+        map: boolean;
+        list: boolean;
+        text: boolean;
+        marker: string;
+    };
     debug: {
         get_console: () => any;
         maxlen: number;
@@ -630,4 +642,5 @@ export type GrammarAltSpec = {
     k?: Record<string, any>;
     g?: string | string[];
 };
-export {};
+declare function jsonic_info(val: any, marker?: string): any;
+export { jsonic_info, };

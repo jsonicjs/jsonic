@@ -9,6 +9,14 @@
 
 import { Jsonic, Rule, RuleSpec, Context, Parser, FuncRef } from './jsonic'
 
+const defprop = Object.defineProperty
+
+function mark(node: any, marker: string, data: any): void {
+  if (node != null && typeof node === 'object') {
+    defprop(node, marker, { value: data, writable: true })
+  }
+}
+
 function grammar(jsonic: Jsonic) {
   const { deep } = jsonic.util
 
@@ -98,19 +106,37 @@ function grammar(jsonic: Jsonic) {
                 ? // ... then the node has no value
                 undefined
                 : // .. otherwise use the token value
-                r.o0.resolveVal(r, ctx)
+                (() => {
+                  let val = r.o0.resolveVal(r, ctx)
+                  if (ctx.cfg.info.text &&
+                    typeof val === 'string' &&
+                    (r.o0.tin === ctx.cfg.t.ST || r.o0.tin === ctx.cfg.t.TX)) {
+                    let quote = r.o0.tin === ctx.cfg.t.ST && r.o0.src.length > 0
+                      ? r.o0.src[0] : ''
+                    let sv = new String(val)
+                    mark(sv, ctx.cfg.info.marker, { quote })
+                    val = sv as any
+                  }
+                  return val
+                })()
               : r.child.node
             : r.node
       },
 
-      '@map-bo': (r: Rule) => {
+      '@map-bo': (r: Rule, ctx: Context) => {
         // Create a new empty map.
         r.node = Object.create(null)
+        if (ctx.cfg.info.map) {
+          mark(r.node, ctx.cfg.info.marker, { implicit: false, meta: {} })
+        }
       },
 
-      '@list-bo': (r: Rule) => {
+      '@list-bo': (r: Rule, ctx: Context) => {
         // Create a new empty list.
         r.node = []
+        if (ctx.cfg.info.list) {
+          mark(r.node, ctx.cfg.info.marker, { implicit: false, meta: {} })
+        }
       },
 
       '@pair-bc': (r: Rule, _ctx: Context) => {
@@ -666,6 +692,12 @@ function grammar(jsonic: Jsonic) {
         ],
         { append: true, delete: [0] },
       )
+      .bc((r: Rule, ctx: Context) => {
+        let m = ctx.cfg.info.marker
+        if (ctx.cfg.info.map && r.node?.[m]) {
+          r.node[m].implicit = !(r.o0 && r.o0.tin === ctx.cfg.t.OB)
+        }
+      })
   })
 
   jsonic.rule('list', (rs: RuleSpec) => {
@@ -704,6 +736,12 @@ function grammar(jsonic: Jsonic) {
         ],
         { append: true },
       )
+      .bc((r: Rule, ctx: Context) => {
+        let m = ctx.cfg.info.marker
+        if (ctx.cfg.info.list && r.node?.[m]) {
+          r.node[m].implicit = !(r.o0 && r.o0.tin === ctx.cfg.t.OS)
+        }
+      })
   })
 
   // sets key:val on node

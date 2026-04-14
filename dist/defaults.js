@@ -154,6 +154,18 @@ const defaults = {
         // Multiple child values merge.
         child: false,
     },
+    // Metadata info markers. When enabled, a non-enumerable marker property
+    // is attached to parsed nodes with metadata (implicit flag, meta bag, etc.).
+    info: {
+        // Attach marker to map nodes.
+        map: false,
+        // Attach marker to list nodes.
+        list: false,
+        // Wrap string values as String objects with marker (quote info).
+        text: false,
+        // Property name for the marker.
+        marker: '__info__',
+    },
     // Keyword values.
     value: {
         lex: true,

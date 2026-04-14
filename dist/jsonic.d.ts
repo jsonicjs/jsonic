@@ -1,5 +1,5 @@
 import type { AltAction, AltCond, AltError, AltMatch, AltModifier, AltSpec, Bag, Config, Context, Counters, FuncRef, JsonicAPI, JsonicParse, Lex, LexCheck, LexMatcher, MakeLexMatcher, NormAltSpec, Options, Parser, Plugin, Point, Rule, RuleDefiner, RuleSpec, RuleSpecMap, RuleState, StateAction, Tin, Token } from './types';
-import { OPEN, CLOSE, BEFORE, AFTER, EMPTY, SKIP } from './types';
+import { OPEN, CLOSE, BEFORE, AFTER, EMPTY, SKIP, jsonic_info } from './types';
 import { S, badlex, deep, makelog, mesc, regexp, tokenize, srcfmt, clone, charset, configure, escre, parserwrap, str, clean } from './utility';
 import { JsonicError, errdesc, errinject, errsite, errmsg, trimstk, strinject, prop } from './error';
 import { makePoint, makeToken, makeLex, makeFixedMatcher, makeSpaceMatcher, makeLineMatcher, makeStringMatcher, makeCommentMatcher, makeNumberMatcher, makeTextMatcher } from './lexer';
@@ -43,5 +43,5 @@ declare function make(param_options?: Bag | string, parent?: Jsonic): Jsonic;
 declare let root: any;
 declare let Jsonic: Jsonic;
 export type { AltAction, AltCond, AltError, AltMatch, AltModifier, AltSpec, Bag, Config, Context, Counters, FuncRef, Lex, LexCheck, LexMatcher, MakeLexMatcher, NormAltSpec, Options, Plugin, Point, Rule, RuleDefiner, RuleSpec, RuleSpecMap, RuleState, StateAction, Tin, Token, };
-export { Jsonic as Jsonic, JsonicError, Parser, util, make, makeToken, makePoint, makeRule, makeRuleSpec, makeLex, makeParser, makeFixedMatcher, makeSpaceMatcher, makeLineMatcher, makeStringMatcher, makeCommentMatcher, makeNumberMatcher, makeTextMatcher, OPEN, CLOSE, BEFORE, AFTER, EMPTY, SKIP, S, root, };
+export { Jsonic as Jsonic, JsonicError, Parser, util, make, makeToken, makePoint, makeRule, makeRuleSpec, makeLex, makeParser, makeFixedMatcher, makeSpaceMatcher, makeLineMatcher, makeStringMatcher, makeCommentMatcher, makeNumberMatcher, makeTextMatcher, OPEN, CLOSE, BEFORE, AFTER, EMPTY, SKIP, S, root, jsonic_info, };
 export default Jsonic;
