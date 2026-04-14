@@ -1506,6 +1506,65 @@ func TestSetOptionsLexEmpty(t *testing.T) {
 	}
 }
 
+// --- text.lex=false should not disable value keywords ---
+
+func TestTextLexFalseValueKeywordsStillWork(t *testing.T) {
+	// In TS, text.lex:false disables bare text tokens but value keywords
+	// (true, false, null) still match. Go must behave the same way.
+	no := false
+	j := Make(Options{Text: &TextOptions{Lex: &no}})
+
+	// Value keywords should still work.
+	result, err := j.Parse(`{"a":true,"b":false,"c":null}`)
+	if err != nil {
+		t.Fatal(err)
+	}
+	m := result.(map[string]any)
+	if m["a"] != true {
+		t.Errorf("expected a:true, got %v", m["a"])
+	}
+	if m["b"] != false {
+		t.Errorf("expected b:false, got %v (%T)", m["b"], m["b"])
+	}
+	if m["c"] != nil {
+		t.Errorf("expected c:nil, got %v", m["c"])
+	}
+
+	// Bare text should NOT work (should error or not parse as text).
+	_, err = j.Parse("hello")
+	if err == nil {
+		t.Fatal("expected error for bare text when text.lex=false")
+	}
+}
+
+func TestTextLexFalseCustomValueDef(t *testing.T) {
+	// Custom value.def keywords should also work with text.lex=false.
+	no := false
+	yes := true
+	j := Make(Options{
+		Text: &TextOptions{Lex: &no},
+		Value: &ValueOptions{
+			Lex: &yes,
+			Def: map[string]*ValueDef{
+				"yes": {Val: true},
+				"no":  {Val: false},
+			},
+		},
+	})
+
+	result, err := j.Parse(`{"a":yes,"b":no}`)
+	if err != nil {
+		t.Fatal(err)
+	}
+	m := result.(map[string]any)
+	if m["a"] != true {
+		t.Errorf("expected a:true, got %v", m["a"])
+	}
+	if m["b"] != false {
+		t.Errorf("expected b:false, got %v", m["b"])
+	}
+}
+
 func TestSetOptionsRuleExclude(t *testing.T) {
 	// rule.exclude can be set via SetOptions after Make().
 	j := Make()

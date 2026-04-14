@@ -390,7 +390,7 @@ func (l *Lex) nextRaw(rule *Rule) *Token {
 			} else if tkn := l.matchNumber(); tkn != nil { return tkn }
 		} else if tkn := l.matchNumber(); tkn != nil { return tkn }
 	}
-	if l.Config.TextLex {
+	if l.Config.TextLex || l.Config.ValueLex {
 		if l.Config.TextCheck != nil {
 			if cr := l.Config.TextCheck(l); cr != nil && cr.Done {
 				if cr.Token != nil { return cr.Token }
@@ -1263,7 +1263,14 @@ func (l *Lex) matchText() *Token {
 		}
 	}
 
-	// Plain text
+	// Plain text — only emit #TX when text lexing is enabled.
+	// When text.lex is false but value.lex is true, we still reach here
+	// to check value keywords (above), but unmatched text is not emitted.
+	// This matches TS behavior (lexer.ts line 506: `if (null == out && mcfg.lex)`).
+	if !l.Config.TextLex {
+		return nil
+	}
+
 	var textVal any = msrc
 	// Run text.modify pipeline
 	if len(l.Config.TextModify) > 0 {
