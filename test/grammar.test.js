@@ -686,6 +686,29 @@ describe('grammar-options', () => {
   })
 
 
+  it('grammar-text-then-options-preserved', () => {
+    // grammar(string) sets options and rules. A subsequent options() call
+    // must preserve both (options via deep merge, rules via RSM preservation).
+    let j = Jsonic.make()
+    j.grammar(`
+      options: { number: { sep: "_" } },
+      rule: {
+        val: {
+          close: [
+            { s: "#ZZ", g: "from-text,jsonic" }
+          ]
+        }
+      }
+    `)
+
+    // Now call options() with an unrelated change.
+    j.options({ number: { hex: true } })
+
+    // Options from grammar(string) should still be in effect.
+    assert.deepEqual(j('a:1_000'), { a: 1000 })
+  })
+
+
   it('skip-sentinel-exported', () => {
     // SKIP is available on the Jsonic object as an immutable symbol.
     assert.equal(typeof Jsonic.SKIP, 'symbol')

@@ -1519,6 +1519,53 @@ func TestGrammarTextRulesWithFuncRef(t *testing.T) {
 	}
 }
 
+func TestGrammarTextThenSetOptionsPreserved(t *testing.T) {
+	// GrammarText sets options and rules. A subsequent SetOptions must
+	// preserve both the options (via deep merge) and the rule modifications.
+	j := Make()
+
+	// Apply options and a rule alt via GrammarText.
+	err := j.GrammarText(`
+		options: { number: { sep: "_" } },
+		rule: {
+			val: {
+				close: [
+					{ s: "#ZZ", g: "from-text" }
+				]
+			}
+		}
+	`)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// Now call SetOptions with an unrelated option change.
+	yes := true
+	j.SetOptions(Options{Number: &NumberOptions{Hex: &yes}})
+
+	// Options from GrammarText should still be in effect (number.sep).
+	result, err := j.Parse("a:1_000")
+	if err != nil {
+		t.Fatal(err)
+	}
+	m := result.(map[string]any)
+	if m["a"] != float64(1000) {
+		t.Errorf("expected a:1000 (number.sep preserved), got %v", m["a"])
+	}
+
+	// Rule alt from GrammarText should still exist.
+	found := false
+	for _, alt := range j.RSM()["val"].Close {
+		if alt.G == "from-text" {
+			found = true
+			break
+		}
+	}
+	if !found {
+		t.Error("rule alt 'from-text' lost after SetOptions")
+	}
+}
+
 func TestGrammarTextInvalidSource(t *testing.T) {
 	j := Make()
 	// Empty string should not error (jsonic allows empty source by default).
