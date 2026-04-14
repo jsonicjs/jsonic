@@ -1564,6 +1564,37 @@ func TestGrammarTextWithInjectAndExclude(t *testing.T) {
 	}
 }
 
+func TestExcludeCommaTrailingComma(t *testing.T) {
+	// With only "comma" excluded, trailing commas in lists should produce
+	// clean output (no nil element), matching TS behavior.
+	j := Make(Options{Rule: &RuleOptions{Exclude: "comma"}})
+
+	result, err := j.Parse("[1,2,]")
+	if err != nil {
+		t.Fatal(err)
+	}
+	arr := result.([]any)
+	if len(arr) != 2 || arr[0] != float64(1) || arr[1] != float64(2) {
+		t.Errorf("expected [1,2], got %v", arr)
+	}
+
+	// Trailing comma in map should fail.
+	_, err = j.Parse(`{"a":1,}`)
+	if err == nil {
+		t.Fatal("expected error for trailing comma in map")
+	}
+
+	// Normal cases still work.
+	result, err = j.Parse(`{"a":null}`)
+	if err != nil {
+		t.Fatal(err)
+	}
+	m := result.(map[string]any)
+	if m["a"] != nil {
+		t.Errorf("expected a:nil, got %v", m["a"])
+	}
+}
+
 func TestGrammarTextThenSetOptionsPreserved(t *testing.T) {
 	// GrammarText sets options and rules. A subsequent SetOptions must
 	// preserve both the options (via deep merge) and the rule modifications.

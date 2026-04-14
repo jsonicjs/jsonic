@@ -67,15 +67,22 @@ func buildGrammar(rsm map[string]*RuleSpec, cfg *LexConfig) {
 						r.Node = Undefined
 					} else {
 						val := r.O0.ResolveVal()
-						if cfg.TextInfo && (r.O0.Tin == TinST || r.O0.Tin == TinTX) {
-							quote := ""
-							if r.O0.Tin == TinST && len(r.O0.Src) > 0 {
-								quote = string(r.O0.Src[0])
+						// A nil value from a non-value token (e.g. #CS, #CB)
+						// means "no value", not "null". Keep Undefined to match
+						// TS where resolveVal returns undefined for such tokens.
+						if val == nil && r.O0.Tin != TinVL {
+							r.Node = Undefined
+						} else {
+							if cfg.TextInfo && (r.O0.Tin == TinST || r.O0.Tin == TinTX) {
+								quote := ""
+								if r.O0.Tin == TinST && len(r.O0.Src) > 0 {
+									quote = string(r.O0.Src[0])
+								}
+								str, _ := val.(string)
+								val = Text{Quote: quote, Str: str}
 							}
-							str, _ := val.(string)
-							val = Text{Quote: quote, Str: str}
+							r.Node = val
 						}
-						r.Node = val
 					}
 				} else {
 					r.Node = r.Child.Node
