@@ -709,6 +709,34 @@ describe('grammar-options', () => {
   })
 
 
+  it('exclude-jsonic-imp-no-residual-alts', () => {
+    // Excluding "jsonic" and "imp" should remove ALL jsonic/imp-tagged alts.
+    // Regression: a typo "elem.jsonic" (dot) instead of "elem,jsonic" (comma)
+    // left a list alt active that broke string matching in strict JSON mode.
+    let j = Jsonic.make({ rule: { exclude: 'jsonic,imp' } })
+    let rules = j.internal().parser.rule()
+    for (let [name, rs] of Object.entries(rules)) {
+      for (let alt of [...(rs.def.open || []), ...(rs.def.close || [])]) {
+        if (alt.g) {
+          let gstr = typeof alt.g === 'string' ? alt.g : String(alt.g)
+          let tags = gstr.split(',')
+          for (let tag of tags) {
+            tag = tag.trim()
+            assert.ok(
+              tag !== 'jsonic' && tag !== 'imp',
+              `rule ${name} still has "${tag}" tag in g="${gstr}" after exclude`
+            )
+          }
+        }
+      }
+    }
+
+    // Strict JSON parsing should work correctly.
+    assert.deepEqual(j('{"a":"hello","b":1}'), { a: 'hello', b: 1 })
+    assert.deepEqual(j('[1,"two",3]'), [1, 'two', 3])
+  })
+
+
   it('skip-sentinel-exported', () => {
     // SKIP is available on the Jsonic object as an immutable symbol.
     assert.equal(typeof Jsonic.SKIP, 'symbol')

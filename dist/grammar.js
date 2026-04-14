@@ -639,7 +639,7 @@ function grammar(jsonic) {
             // Initial comma [, will insert null as [null,
             { s: '#CA', p: 'elem', b: 1, g: 'list,elem,val,imp,jsonic' },
             // Another element.
-            { p: 'elem', g: 'list,elem.jsonic' },
+            { p: 'elem', g: 'list,elem,jsonic' },
         ], { append: true })
             .close([
             // Fail if rule.finish option is false.
