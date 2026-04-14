@@ -14,7 +14,7 @@ import (
 //	j := jsonic.Make()
 //	j.Use(jsonic.Debug, map[string]any{"trace": true})
 //	fmt.Println(jsonic.Describe(j))
-var Debug Plugin = func(j *Jsonic, opts map[string]any) {
+var Debug Plugin = func(j *Jsonic, opts map[string]any) error {
 	if opts != nil {
 		if trace, ok := opts["trace"]; ok {
 			if traceBool, ok := trace.(bool); ok && traceBool {
@@ -22,6 +22,7 @@ var Debug Plugin = func(j *Jsonic, opts map[string]any) {
 			}
 		}
 	}
+	return nil
 }
 
 // addTrace installs lex and rule subscribers that log each step.
