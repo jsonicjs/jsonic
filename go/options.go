@@ -75,6 +75,10 @@ type Options struct {
 	// ErrMsg controls error message formatting.
 	ErrMsg *ErrMsgOptions
 
+	// Info controls metadata attachment to parsed output nodes.
+	// Matches TS options.info.
+	Info *InfoOptions
+
 	// Property holds Go-specific options not present in the TypeScript version.
 	Property *PropertyOptions
 
@@ -90,26 +94,30 @@ type ErrMsgOptions struct {
 	Name string
 }
 
+// InfoOptions controls metadata attachment to parsed output nodes.
+// Matches TS options.info.
+type InfoOptions struct {
+	// Map enables returning maps as MapRef structs instead of map[string]any.
+	// When true, map values include an Implicit flag indicating whether
+	// the map was created implicitly (without braces). Default: false.
+	Map *bool
+
+	// List enables returning lists as ListRef structs instead of []any.
+	// When true, list values include an Implicit flag indicating whether
+	// the list was created implicitly (without brackets). Default: false.
+	List *bool
+
+	// Text enables extended text info in output.
+	// When true, string and text values are wrapped in Text structs
+	// that include the quote character used. Default: false.
+	Text *bool
+}
+
 // PropertyOptions holds Go-specific options not present in the TypeScript version.
 type PropertyOptions struct {
 	// ConfigModify callbacks, keyed by name.
 	// Called after config construction to allow dynamic customization.
 	ConfigModify map[string]ConfigModifier
-
-	// TextInfo enables extended text info in output.
-	// When true, string and text values are wrapped in Text structs
-	// that include the quote character used. Default: false.
-	TextInfo *bool
-
-	// ListRef enables returning lists as ListRef structs instead of []any.
-	// When true, list values include an Implicit flag indicating whether
-	// the list was created implicitly (without brackets). Default: false.
-	ListRef *bool
-
-	// MapRef enables returning maps as MapRef structs instead of map[string]any.
-	// When true, map values include an Implicit flag indicating whether
-	// the map was created implicitly (without braces). Default: false.
-	MapRef *bool
 }
 
 // MatchOptions controls custom regexp-based matching.
@@ -449,7 +457,7 @@ func Make(opts ...Options) *Jsonic {
 
 	// Apply rule exclude.
 	if o.Rule != nil && o.Rule.Exclude != "" {
-		j.Exclude(o.Rule.Exclude)
+		j.exclude(o.Rule.Exclude)
 	}
 
 	return j
@@ -716,11 +724,14 @@ func buildConfig(o *Options) *LexConfig {
 	cfg.KeySet = make([]Tin, len(TinSetKEY))
 	copy(cfg.KeySet, TinSetKEY)
 
-	// Property (Go-specific options)
-	if o.Property != nil {
-		cfg.TextInfo = boolVal(o.Property.TextInfo, false)
-		cfg.ListRef = boolVal(o.Property.ListRef, false)
-		cfg.MapRef = boolVal(o.Property.MapRef, false)
+	// Info options (metadata on parsed output)
+	if o.Info != nil {
+		cfg.TextInfo = boolVal(o.Info.Text, false)
+		cfg.ListRef = boolVal(o.Info.List, false)
+		cfg.MapRef = boolVal(o.Info.Map, false)
+		if cfg.MapRef || cfg.ListRef || cfg.TextInfo {
+			cfg.InfoMarker = "__info__"
+		}
 	}
 	// list.child requires ListRef to store the child value on ListRef.Child.
 	if cfg.ListChild {

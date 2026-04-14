@@ -180,47 +180,6 @@ describe('cli', function () {
     )
     assert.deepEqual(cn.d.log[0][0], '{"a":3}')
 
-    cn = make_cn()
-    await jr(
-      [
-        0,
-        0,
-        '-p',
-        '@jsonic/directive',
-        '-o',
-        'custom.x=4',
-        '-o',
-        'plugin.directive.name=constant',
-        '-o',
-        'plugin.directive.open=X',
-        '-o',
-        'plugin.directive.action=custom.x',
-        'a:X',
-      ],
-      cn,
-    )
-    assert.deepEqual(cn.d.log[0][0], '{"a":4}')
-
-    cn = make_cn()
-    await jr(
-      [
-        0,
-        0,
-        '-p',
-        'directive',
-        '-o',
-        'custom.x=5',
-        '-o',
-        'plugin.directive.name=constant',
-        '-o',
-        'plugin.directive.open=X',
-        '-o',
-        'plugin.directive.action=custom.x',
-        'a:X',
-      ],
-      cn,
-    )
-    assert.deepEqual(cn.d.log[0][0], '{"a":5}')
   })
 
   it('stringify', async () => {

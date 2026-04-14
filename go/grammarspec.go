@@ -123,6 +123,36 @@ func (j *Jsonic) Grammar(gs *GrammarSpec) error {
 	return nil
 }
 
+// GrammarText parses a jsonic grammar text string into a GrammarSpec
+// and applies it. The text is parsed using a default Jsonic instance,
+// and the resulting map is used as the OptionsMap of a GrammarSpec.
+// This is a convenience that replaces:
+//
+//	gs := jsonic.Make()
+//	parsed, _ := gs.Parse(text)
+//	j.Grammar(&GrammarSpec{OptionsMap: parsed.(map[string]any)})
+func (j *Jsonic) GrammarText(text string) error {
+	parsed, err := Make().Parse(text)
+	if err != nil {
+		return err
+	}
+	if parsed == nil {
+		return nil
+	}
+	gsMap, ok := parsed.(map[string]any)
+	if !ok {
+		return fmt.Errorf("GrammarText: expected map, got %T", parsed)
+	}
+	gs := &GrammarSpec{}
+	if optionsMap, ok := gsMap["options"].(map[string]any); ok {
+		gs.OptionsMap = optionsMap
+	} else {
+		// No "options" wrapper — treat the entire map as options.
+		gs.OptionsMap = gsMap
+	}
+	return j.Grammar(gs)
+}
+
 // applyGrammarAlts resolves and applies grammar alts to a rule spec.
 // Handles both plain []*GrammarAltSpec and *GrammarAltListSpec with inject.
 func applyGrammarAlts(j *Jsonic, rs *RuleSpec, spec any, ref map[FuncRef]any, isOpen bool) error {

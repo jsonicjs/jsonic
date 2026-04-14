@@ -3,6 +3,12 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.grammar = grammar;
 exports.makeJSON = makeJSON;
+const defprop = Object.defineProperty;
+function mark(node, marker, data) {
+    if (node != null && typeof node === 'object') {
+        defprop(node, marker, { value: data, writable: true });
+    }
+}
 function grammar(jsonic) {
     const { deep } = jsonic.util;
     const { 
@@ -76,20 +82,42 @@ function grammar(jsonic) {
                                         ? // ... then the node has no value
                                             undefined
                                         : // .. otherwise use the token value
-                                            r.o0.resolveVal(r, ctx)
+                                            (() => {
+                                                let val = r.o0.resolveVal(r, ctx);
+                                                if (ctx.cfg.info.text &&
+                                                    typeof val === 'string' &&
+                                                    (r.o0.tin === ctx.cfg.t.ST || r.o0.tin === ctx.cfg.t.TX)) {
+                                                    let quote = r.o0.tin === ctx.cfg.t.ST && r.o0.src.length > 0
+                                                        ? r.o0.src[0] : '';
+                                                    let sv = new String(val);
+                                                    mark(sv, ctx.cfg.info.marker, { quote });
+                                                    val = sv;
+                                                }
+                                                return val;
+                                            })()
                                 : r.child.node
                         : r.node;
             },
-            '@map-bo': (r) => {
+            '@map-bo': (r, ctx) => {
                 // Create a new empty map.
                 r.node = Object.create(null);
+                if (ctx.cfg.info.map) {
+                    mark(r.node, ctx.cfg.info.marker, { implicit: false, meta: {} });
+                }
             },
-            '@list-bo': (r) => {
+            '@list-bo': (r, ctx) => {
                 // Create a new empty list.
                 r.node = [];
+                if (ctx.cfg.info.list) {
+                    mark(r.node, ctx.cfg.info.marker, { implicit: false, meta: {} });
+                }
             },
-            '@pair-bc': (r, _ctx) => {
+            '@pair-bc': (r, ctx) => {
                 if (r.u.pair) {
+                    // Drop keys that match the info marker to preserve metadata.
+                    if (ctx.cfg.info.map && r.u.key === ctx.cfg.info.marker) {
+                        return;
+                    }
                     // Store previous value (if any, for extensions).
                     r.u.prev = r.node[r.u.key];
                     r.node[r.u.key] = r.child.node;
@@ -360,6 +388,10 @@ function grammar(jsonic) {
                 return;
             }
         }
+        // Drop keys that match the info marker to preserve metadata.
+        if (ctx.cfg.info.map && key === ctx.cfg.info.marker) {
+            return;
+        }
         val = null == prev
             ? val
             : ctx.cfg.map.merge
@@ -577,7 +609,13 @@ function grammar(jsonic) {
             { s: ['#CA #CS #VAL'], b: 1, g: 'end,path,jsonic' },
             // Auto-close; fail if rule.finish option is false.
             { s: '#ZZ', e: '@finish', g: 'end,jsonic' },
-        ], { append: true, delete: [0] });
+        ], { append: true, delete: [0] })
+            .bc((r, ctx) => {
+            let m = ctx.cfg.info.marker;
+            if (ctx.cfg.info.map && r.node?.[m]) {
+                r.node[m].implicit = !(r.o0 && r.o0.tin === ctx.cfg.t.OB);
+            }
+        });
     });
     jsonic.rule('list', (rs) => {
         rs
@@ -606,7 +644,13 @@ function grammar(jsonic) {
             .close([
             // Fail if rule.finish option is false.
             { s: '#ZZ', e: '@finish', g: 'end,jsonic' },
-        ], { append: true });
+        ], { append: true })
+            .bc((r, ctx) => {
+            let m = ctx.cfg.info.marker;
+            if (ctx.cfg.info.list && r.node?.[m]) {
+                r.node[m].implicit = !(r.o0 && r.o0.tin === ctx.cfg.t.OS);
+            }
+        });
     });
     // sets key:val on node
     jsonic.rule('pair', (rs, p) => {

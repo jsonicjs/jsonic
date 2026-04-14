@@ -7,7 +7,7 @@ import (
 // expectBothRef parses input with both MapRef and ListRef enabled and checks the result.
 func expectBothRef(t *testing.T, input string, expected any) {
 	t.Helper()
-	j := Make(Options{Property: &PropertyOptions{MapRef: boolPtr(true), ListRef: boolPtr(true)}})
+	j := Make(Options{Info: &InfoOptions{Map: boolPtr(true), List: boolPtr(true)}})
 	got, err := j.Parse(input)
 	if err != nil {
 		t.Errorf("Parse(%q) unexpected error: %v", input, err)
@@ -287,7 +287,7 @@ func TestBothRefListWithMixedValues(t *testing.T) {
 func TestBothRefImplicitListOfImplicitListsInMaps(t *testing.T) {
 	// {a:1} {b:2} → implicit ListRef of explicit MapRefs (already tested above, but
 	// verify types more explicitly)
-	j := Make(Options{Property: &PropertyOptions{MapRef: boolPtr(true), ListRef: boolPtr(true)}})
+	j := Make(Options{Info: &InfoOptions{Map: boolPtr(true), List: boolPtr(true)}})
 	got, err := j.Parse("{a:1} {b:2}")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -320,7 +320,7 @@ func TestBothRefImplicitListOfImplicitListsInMaps(t *testing.T) {
 // --- Scalars still pass through unchanged ---
 
 func TestBothRefScalarNumber(t *testing.T) {
-	j := Make(Options{Property: &PropertyOptions{MapRef: boolPtr(true), ListRef: boolPtr(true)}})
+	j := Make(Options{Info: &InfoOptions{Map: boolPtr(true), List: boolPtr(true)}})
 	got, err := j.Parse("42")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -331,7 +331,7 @@ func TestBothRefScalarNumber(t *testing.T) {
 }
 
 func TestBothRefScalarString(t *testing.T) {
-	j := Make(Options{Property: &PropertyOptions{MapRef: boolPtr(true), ListRef: boolPtr(true)}})
+	j := Make(Options{Info: &InfoOptions{Map: boolPtr(true), List: boolPtr(true)}})
 	got, err := j.Parse(`"hello"`)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -342,7 +342,7 @@ func TestBothRefScalarString(t *testing.T) {
 }
 
 func TestBothRefScalarBool(t *testing.T) {
-	j := Make(Options{Property: &PropertyOptions{MapRef: boolPtr(true), ListRef: boolPtr(true)}})
+	j := Make(Options{Info: &InfoOptions{Map: boolPtr(true), List: boolPtr(true)}})
 	got, err := j.Parse("true")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -353,7 +353,7 @@ func TestBothRefScalarBool(t *testing.T) {
 }
 
 func TestBothRefScalarNull(t *testing.T) {
-	j := Make(Options{Property: &PropertyOptions{MapRef: boolPtr(true), ListRef: boolPtr(true)}})
+	j := Make(Options{Info: &InfoOptions{Map: boolPtr(true), List: boolPtr(true)}})
 	got, err := j.Parse("null")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -367,7 +367,7 @@ func TestBothRefScalarNull(t *testing.T) {
 
 func TestBothRefPairInList(t *testing.T) {
 	// [a:1,b:2] → explicit ListRef with key-value properties
-	j := Make(Options{Property: &PropertyOptions{MapRef: boolPtr(true), ListRef: boolPtr(true)}})
+	j := Make(Options{Info: &InfoOptions{Map: boolPtr(true), List: boolPtr(true)}})
 	got, err := j.Parse("[a:1,b:2]")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -430,10 +430,10 @@ func TestBothRefDeepMergePreservesListRef(t *testing.T) {
 
 func TestBothRefWithTextInfo(t *testing.T) {
 	// All three options: MapRef + ListRef + TextInfo
-	j := Make(Options{Property: &PropertyOptions{
-		MapRef:   boolPtr(true),
-		ListRef:  boolPtr(true),
-		TextInfo: boolPtr(true),
+	j := Make(Options{Info: &InfoOptions{
+		Map:  boolPtr(true),
+		List: boolPtr(true),
+		Text: boolPtr(true),
 	}})
 	got, err := j.Parse(`{a:["x"]}`)
 	if err != nil {
@@ -496,7 +496,7 @@ func TestBothRefMapWithNullAndList(t *testing.T) {
 
 func TestMapRefMetaInitialized(t *testing.T) {
 	// MapRef.Meta should be initialized as an empty map when MapRef is enabled.
-	j := Make(Options{Property: &PropertyOptions{MapRef: boolPtr(true)}})
+	j := Make(Options{Info: &InfoOptions{Map: boolPtr(true)}})
 	got, err := j.Parse("{a:1}")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -515,7 +515,7 @@ func TestMapRefMetaInitialized(t *testing.T) {
 
 func TestListRefMetaInitialized(t *testing.T) {
 	// ListRef.Meta should be initialized as an empty map when ListRef is enabled.
-	j := Make(Options{Property: &PropertyOptions{ListRef: boolPtr(true)}})
+	j := Make(Options{Info: &InfoOptions{List: boolPtr(true)}})
 	got, err := j.Parse("[1,2]")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -534,7 +534,7 @@ func TestListRefMetaInitialized(t *testing.T) {
 
 func TestMapRefMetaAvailableInBOPhase(t *testing.T) {
 	// Verify that Meta is available during parsing (set in BO, accessible in BC).
-	j := Make(Options{Property: &PropertyOptions{MapRef: boolPtr(true)}})
+	j := Make(Options{Info: &InfoOptions{Map: boolPtr(true)}})
 
 	// Add a custom BO action that writes to Meta
 	j.Rule("map", func(rs *RuleSpec) {
@@ -561,7 +561,7 @@ func TestMapRefMetaAvailableInBOPhase(t *testing.T) {
 
 func TestListRefMetaAvailableInBOPhase(t *testing.T) {
 	// Verify that Meta is available during parsing (set in BO, accessible in BC).
-	j := Make(Options{Property: &PropertyOptions{ListRef: boolPtr(true)}})
+	j := Make(Options{Info: &InfoOptions{List: boolPtr(true)}})
 
 	// Add a custom BO action that writes to Meta
 	j.Rule("list", func(rs *RuleSpec) {

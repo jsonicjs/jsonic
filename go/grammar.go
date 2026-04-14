@@ -37,6 +37,10 @@ func buildGrammar(rsm map[string]*RuleSpec, cfg *LexConfig) {
 					return
 				}
 			}
+			// Drop keys that match the info marker to preserve metadata.
+			if cfg.InfoMarker != "" && key == cfg.InfoMarker {
+				return
+			}
 			prev := r.U["prev"]
 			if prev == nil {
 				nodeMapSet(r.Node, key, val)
@@ -165,6 +169,10 @@ func buildGrammar(rsm map[string]*RuleSpec, cfg *LexConfig) {
 				if cfg.SafeKey && r.U["list"] == true && (key == "__proto__" || key == "constructor") {
 					return
 				}
+				// Drop keys that match the info marker to preserve metadata.
+				if cfg.InfoMarker != "" && key == cfg.InfoMarker {
+					return
+				}
 				r.U["prev"] = nodeMapGetVal(r.Node, r.U["key"])
 				nodeMapSet(r.Node, key, r.Child.Node)
 			}
@@ -181,6 +189,10 @@ func buildGrammar(rsm map[string]*RuleSpec, cfg *LexConfig) {
 					if key == "__proto__" || key == "constructor" {
 						return
 					}
+				}
+				// Drop keys that match the info marker to preserve metadata.
+				if cfg.InfoMarker != "" && key == cfg.InfoMarker {
+					return
 				}
 				prev := r.U["prev"]
 				if prev == nil {
@@ -257,6 +269,10 @@ func buildGrammar(rsm map[string]*RuleSpec, cfg *LexConfig) {
 					if key == "__proto__" || key == "constructor" {
 						return
 					}
+				}
+				// Drop keys that match the info marker to preserve metadata.
+				if cfg.InfoMarker != "" && key == cfg.InfoMarker {
+					return
 				}
 				prev := r.U["prev"]
 				if prev == nil {

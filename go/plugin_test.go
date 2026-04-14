@@ -844,13 +844,13 @@ func TestExclude(t *testing.T) {
 
 	if !hasJsonGroup {
 		// Grammar doesn't use "json" group tags, so exclude won't remove anything.
-		// But Exclude() should still work without error.
-		j.Exclude("json")
+		// But the option should still work without error.
+		j.SetOptions(Options{Rule: &RuleOptions{Exclude: "json"}})
 		return
 	}
 
 	// If there are "json" tagged alts, exclude should remove them.
-	j.Exclude("json")
+	j.SetOptions(Options{Rule: &RuleOptions{Exclude: "json"}})
 
 	for _, rs := range j.RSM() {
 		for _, alt := range rs.Open {
@@ -879,8 +879,8 @@ func TestExcludeCustomGroup(t *testing.T) {
 		})
 	})
 
-	// Exclude "custom" group.
-	j.Exclude("custom")
+	// Exclude "custom" group via option.
+	j.SetOptions(Options{Rule: &RuleOptions{Exclude: "custom"}})
 
 	// The custom alt should be removed.
 	found := false
@@ -1495,7 +1495,7 @@ func TestRuleExcludeFromOptions(t *testing.T) {
 			A: func(r *Rule, ctx *Context) { r.Node = "BANG" },
 		})
 	})
-	j2.Exclude("experimental")
+	j2.SetOptions(Options{Rule: &RuleOptions{Exclude: "experimental"}})
 
 	// The experimental alt should be excluded.
 	found := false

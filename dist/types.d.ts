@@ -126,6 +126,12 @@ export type Options = {
         pair: boolean;
         child: boolean;
     };
+    info?: {
+        map?: boolean;
+        list?: boolean;
+        text?: boolean;
+        marker?: string;
+    };
     value?: {
         lex?: boolean;
         def?: {
@@ -428,6 +434,12 @@ export type Config = {
         property: boolean;
         pair: boolean;
         child: boolean;
+    };
+    info: {
+        map: boolean;
+        list: boolean;
+        text: boolean;
+        marker: string;
     };
     debug: {
         get_console: () => any;

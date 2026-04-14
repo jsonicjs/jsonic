@@ -539,7 +539,7 @@ func TestAlignmentExclude(t *testing.T) {
 	openBefore := len(valSpec.Open)
 	closeBefore := len(valSpec.Close)
 
-	j.Exclude("jsonic")
+	j.SetOptions(Options{Rule: &RuleOptions{Exclude: "jsonic"}})
 
 	openAfter := len(valSpec.Open)
 	closeAfter := len(valSpec.Close)

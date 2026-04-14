@@ -538,14 +538,34 @@ func (j *Jsonic) SetOptions(opts Options) *Jsonic {
 		j.parser.ErrTag = j.options.ErrMsg.Name
 	}
 
+	// Apply lex options (empty source handling).
+	// Uses merged options so that values set at Make() or via prior
+	// SetOptions/Grammar calls are preserved.
+	if j.options.Lex != nil {
+		if j.options.Lex.Empty != nil {
+			j.emptyAllow = *j.options.Lex.Empty
+		}
+		j.emptyResult = j.options.Lex.EmptyResult
+	}
+
+	// Apply custom parser start.
+	if j.options.Parser != nil && j.options.Parser.Start != nil {
+		j.parserStart = j.options.Parser.Start
+	}
+
+	// Apply rule exclude. Only apply from the incoming opts (not merged)
+	// to avoid re-excluding already-excluded groups.
+	if opts.Rule != nil && opts.Rule.Exclude != "" {
+		j.exclude(opts.Rule.Exclude)
+	}
+
 	return j
 }
 
-// Exclude removes grammar alternates tagged with any of the given group names.
+// exclude removes grammar alternates tagged with any of the given group names.
 // Group names are comma-separated in AltSpec.G fields.
-// Use Exclude("json") to strip all jsonic extensions and get strict JSON parsing.
-// Returns the Jsonic instance for chaining.
-func (j *Jsonic) Exclude(groups ...string) *Jsonic {
+// Use rule.exclude option to strip groups (e.g. "jsonic" for strict JSON).
+func (j *Jsonic) exclude(groups ...string) *Jsonic {
 	excludeSet := make(map[string]bool)
 	for _, g := range groups {
 		for _, part := range strings.Split(g, ",") {

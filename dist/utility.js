@@ -257,6 +257,12 @@ function configure(jsonic, incfg, opts) {
         pair: !!opts.list?.pair,
         child: !!opts.list?.child,
     };
+    cfg.info = {
+        map: !!opts.info?.map,
+        list: !!opts.info?.list,
+        text: !!opts.info?.text,
+        marker: opts.info?.marker || '__info__',
+    };
     let fixedSorted = Object.keys(cfg.fixed.token).sort((a, b) => b.length - a.length);
     let fixedRE = fixedSorted.map((fixed) => escre(fixed)).join('|');
     let commentStartRE = opts.comment?.lex

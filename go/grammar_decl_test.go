@@ -1409,6 +1409,257 @@ func TestMatchTokenNilRegexpNoPanic(t *testing.T) {
 	}
 }
 
+// --- GrammarText: string grammar ---
+
+func TestGrammarTextNumberSep(t *testing.T) {
+	j := Make()
+	err := j.GrammarText(`options: { number: { sep: "_" } }`)
+	if err != nil {
+		t.Fatal(err)
+	}
+	result, err := j.Parse("a:1_000")
+	if err != nil {
+		t.Fatal(err)
+	}
+	m := result.(map[string]any)
+	if m["a"] != float64(1000) {
+		t.Errorf("expected a:1000, got %v", m["a"])
+	}
+}
+
+func TestGrammarTextNumberExclude(t *testing.T) {
+	j := Make()
+	err := j.GrammarText(`options: { number: { exclude: '@/^0[0-9]+$/' } }`)
+	if err != nil {
+		t.Fatal(err)
+	}
+	result, err := j.Parse("a:01")
+	if err != nil {
+		t.Fatal(err)
+	}
+	m := result.(map[string]any)
+	if m["a"] != "01" {
+		t.Errorf("expected a:'01' (text), got %v (%T)", m["a"], m["a"])
+	}
+}
+
+func TestGrammarTextFlatOptions(t *testing.T) {
+	// When there's no "options" wrapper, the entire parsed map is treated as options.
+	j := Make()
+	err := j.GrammarText(`number: { sep: "_" }`)
+	if err != nil {
+		t.Fatal(err)
+	}
+	result, err := j.Parse("a:1_000")
+	if err != nil {
+		t.Fatal(err)
+	}
+	m := result.(map[string]any)
+	if m["a"] != float64(1000) {
+		t.Errorf("expected a:1000, got %v", m["a"])
+	}
+}
+
+func TestGrammarTextInvalidSource(t *testing.T) {
+	j := Make()
+	// Empty string should not error (jsonic allows empty source by default).
+	err := j.GrammarText("")
+	if err != nil {
+		t.Fatal(err)
+	}
+}
+
+// --- SetOptions applies lex.empty ---
+
+func TestSetOptionsLexEmpty(t *testing.T) {
+	// lex.empty can be set via SetOptions after Make(), matching TS behavior.
+	j := Make()
+
+	// Default: empty source is allowed.
+	result, err := j.Parse("")
+	if err != nil {
+		t.Fatalf("empty source should be allowed by default: %v", err)
+	}
+	if result != nil {
+		t.Errorf("expected nil for empty source, got %v", result)
+	}
+
+	// Disable empty source via SetOptions.
+	no := false
+	j.SetOptions(Options{Lex: &LexOptions{Empty: &no}})
+
+	_, err = j.Parse("")
+	if err == nil {
+		t.Fatal("expected error for empty source after disabling lex.empty")
+	}
+
+	// Re-enable via SetOptions.
+	yes := true
+	j.SetOptions(Options{Lex: &LexOptions{Empty: &yes}})
+
+	result, err = j.Parse("")
+	if err != nil {
+		t.Fatalf("empty source should be allowed again: %v", err)
+	}
+	if result != nil {
+		t.Errorf("expected nil, got %v", result)
+	}
+}
+
+// --- text.lex=false should not disable value keywords ---
+
+func TestTextLexFalseValueKeywordsStillWork(t *testing.T) {
+	// In TS, text.lex:false disables bare text tokens but value keywords
+	// (true, false, null) still match. Go must behave the same way.
+	no := false
+	j := Make(Options{Text: &TextOptions{Lex: &no}})
+
+	// Value keywords should still work.
+	result, err := j.Parse(`{"a":true,"b":false,"c":null}`)
+	if err != nil {
+		t.Fatal(err)
+	}
+	m := result.(map[string]any)
+	if m["a"] != true {
+		t.Errorf("expected a:true, got %v", m["a"])
+	}
+	if m["b"] != false {
+		t.Errorf("expected b:false, got %v (%T)", m["b"], m["b"])
+	}
+	if m["c"] != nil {
+		t.Errorf("expected c:nil, got %v", m["c"])
+	}
+
+	// Bare text should NOT work (should error or not parse as text).
+	_, err = j.Parse("hello")
+	if err == nil {
+		t.Fatal("expected error for bare text when text.lex=false")
+	}
+}
+
+func TestTextLexFalseCustomValueDef(t *testing.T) {
+	// Custom value.def keywords should also work with text.lex=false.
+	no := false
+	yes := true
+	j := Make(Options{
+		Text: &TextOptions{Lex: &no},
+		Value: &ValueOptions{
+			Lex: &yes,
+			Def: map[string]*ValueDef{
+				"yes": {Val: true},
+				"no":  {Val: false},
+			},
+		},
+	})
+
+	result, err := j.Parse(`{"a":yes,"b":no}`)
+	if err != nil {
+		t.Fatal(err)
+	}
+	m := result.(map[string]any)
+	if m["a"] != true {
+		t.Errorf("expected a:true, got %v", m["a"])
+	}
+	if m["b"] != false {
+		t.Errorf("expected b:false, got %v", m["b"])
+	}
+}
+
+func TestSetOptionsRuleExclude(t *testing.T) {
+	// rule.exclude can be set via SetOptions after Make().
+	j := Make()
+
+	// Before exclude: jsonic extensions are active (implicit maps work).
+	result, err := j.Parse("a:1")
+	if err != nil {
+		t.Fatal(err)
+	}
+	m := result.(map[string]any)
+	if m["a"] != float64(1) {
+		t.Errorf("expected a:1, got %v", m["a"])
+	}
+
+	// Exclude jsonic extensions: only strict JSON syntax works.
+	j.SetOptions(Options{Rule: &RuleOptions{Exclude: "jsonic"}})
+
+	// Strict JSON should still work.
+	result, err = j.Parse(`{"a":1}`)
+	if err != nil {
+		t.Fatal(err)
+	}
+	m = result.(map[string]any)
+	if m["a"] != float64(1) {
+		t.Errorf("expected a:1, got %v", m["a"])
+	}
+
+	// Implicit map (jsonic extension) should now fail.
+	_, err = j.Parse("a:1")
+	if err == nil {
+		t.Fatal("expected error for implicit map after excluding jsonic")
+	}
+}
+
+func TestGrammarLexEmpty(t *testing.T) {
+	// lex.empty can be set via Grammar, not just Make().
+	j := Make()
+	no := false
+	mustGrammar(t, j, &GrammarSpec{
+		Options: &Options{Lex: &LexOptions{Empty: &no}},
+	})
+
+	_, err := j.Parse("")
+	if err == nil {
+		t.Fatal("expected error for empty source after Grammar sets lex.empty=false")
+	}
+}
+
+// --- Info marker key protection ---
+
+func TestInfoMarkerKeyDropped(t *testing.T) {
+	// User keys matching the info marker are dropped when info.map is enabled.
+	j := Make(Options{Info: &InfoOptions{Map: boolPtr(true)}})
+	result, err := j.Parse(`a:1,__info__:2,b:3`)
+	if err != nil {
+		t.Fatal(err)
+	}
+	mr := result.(MapRef)
+	if mr.Val["a"] != float64(1) {
+		t.Errorf("expected a:1, got %v", mr.Val["a"])
+	}
+	if mr.Val["b"] != float64(3) {
+		t.Errorf("expected b:3, got %v", mr.Val["b"])
+	}
+	if _, exists := mr.Val["__info__"]; exists {
+		t.Error("__info__ key should have been dropped")
+	}
+}
+
+func TestInfoMarkerKeyDroppedJSON(t *testing.T) {
+	// Also works in strict JSON syntax path.
+	j := Make(Options{Info: &InfoOptions{Map: boolPtr(true)}})
+	result, err := j.Parse(`{"a":1,"__info__":2}`)
+	if err != nil {
+		t.Fatal(err)
+	}
+	mr := result.(MapRef)
+	if _, exists := mr.Val["__info__"]; exists {
+		t.Error("__info__ key should have been dropped in JSON path")
+	}
+}
+
+func TestInfoMarkerKeyNotDroppedWhenOff(t *testing.T) {
+	// When info.map is off, the key is NOT dropped.
+	j := Make()
+	result, err := j.Parse(`a:1,__info__:2`)
+	if err != nil {
+		t.Fatal(err)
+	}
+	m := result.(map[string]any)
+	if m["__info__"] != float64(2) {
+		t.Errorf("expected __info__:2, got %v", m["__info__"])
+	}
+}
+
 // TestValueDefReUsesValWhenValFuncNil verifies that regex-based value.def
 // entries return ValueDef.Val (not the matched source text) when ValFunc is nil.
 func TestValueDefReUsesValWhenValFuncNil(t *testing.T) {

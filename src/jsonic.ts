@@ -296,7 +296,15 @@ function make(param_options?: Bag | string, parent?: Jsonic): Jsonic {
     util,
 
 
-    grammar: (gs: GrammarSpec) => {
+    grammar: (gs: GrammarSpec | string) => {
+      if ('string' === typeof gs) {
+        const parsed = make()(gs)
+        if (null == parsed || 'object' !== typeof parsed) {
+          return
+        }
+        gs = parsed as GrammarSpec
+      }
+
       if (gs.options) {
         const resolved = resolveFuncRefs(gs.options, gs.ref)
         ji.options(resolved)
