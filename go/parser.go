@@ -178,11 +178,18 @@ func (p *Parser) startParse(src string, meta map[string]any, lexSubs []LexSub, r
 	// Check for unconsumed tokens (syntax error) - explicit trailing content check.
 	// First check tokens already in the lookahead buffer.
 	if ctx.T0 != nil && !ctx.T0.IsNoToken() && ctx.T0.Tin != TinZZ {
+		// Prefer lex errors over generic unexpected for unconsumed tokens too.
+		if lex.Err != nil {
+			return nil, lex.Err
+		}
 		return nil, p.makeError("unexpected", ctx.T0.Src, src, ctx.T0.SI, ctx.T0.RI, ctx.T0.CI)
 	}
 	// Also explicitly ask lexer for more (matching TS parser.ts:187-189).
 	endTkn := lex.Next(rule)
 	if endTkn.Tin != TinZZ {
+		if lex.Err != nil {
+			return nil, lex.Err
+		}
 		return nil, p.makeError("unexpected", endTkn.Src, src, endTkn.SI, endTkn.RI, endTkn.CI)
 	}
 	// Check lexer errors from that final Next() call.
