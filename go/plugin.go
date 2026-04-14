@@ -553,6 +553,12 @@ func (j *Jsonic) SetOptions(opts Options) *Jsonic {
 		j.parserStart = j.options.Parser.Start
 	}
 
+	// Apply rule exclude. Only apply from the incoming opts (not merged)
+	// to avoid re-excluding already-excluded groups.
+	if opts.Rule != nil && opts.Rule.Exclude != "" {
+		j.Exclude(opts.Rule.Exclude)
+	}
+
 	return j
 }
 

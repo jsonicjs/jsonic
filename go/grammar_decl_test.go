@@ -1506,6 +1506,40 @@ func TestSetOptionsLexEmpty(t *testing.T) {
 	}
 }
 
+func TestSetOptionsRuleExclude(t *testing.T) {
+	// rule.exclude can be set via SetOptions after Make().
+	j := Make()
+
+	// Before exclude: jsonic extensions are active (implicit maps work).
+	result, err := j.Parse("a:1")
+	if err != nil {
+		t.Fatal(err)
+	}
+	m := result.(map[string]any)
+	if m["a"] != float64(1) {
+		t.Errorf("expected a:1, got %v", m["a"])
+	}
+
+	// Exclude jsonic extensions: only strict JSON syntax works.
+	j.SetOptions(Options{Rule: &RuleOptions{Exclude: "jsonic"}})
+
+	// Strict JSON should still work.
+	result, err = j.Parse(`{"a":1}`)
+	if err != nil {
+		t.Fatal(err)
+	}
+	m = result.(map[string]any)
+	if m["a"] != float64(1) {
+		t.Errorf("expected a:1, got %v", m["a"])
+	}
+
+	// Implicit map (jsonic extension) should now fail.
+	_, err = j.Parse("a:1")
+	if err == nil {
+		t.Fatal("expected error for implicit map after excluding jsonic")
+	}
+}
+
 func TestGrammarLexEmpty(t *testing.T) {
 	// lex.empty can be set via Grammar, not just Make().
 	j := Make()
