@@ -1575,6 +1575,97 @@ func TestGrammarTextInvalidSource(t *testing.T) {
 	}
 }
 
+// --- MapToOptions coverage for previously missing options ---
+
+func TestGrammarTextRuleExclude(t *testing.T) {
+	j := Make()
+	err := j.GrammarText(`options: { rule: { exclude: "jsonic" } }`)
+	if err != nil {
+		t.Fatal(err)
+	}
+	// Strict JSON should work.
+	result, err := j.Parse(`{"a":1}`)
+	if err != nil {
+		t.Fatal(err)
+	}
+	m := result.(map[string]any)
+	if m["a"] != float64(1) {
+		t.Errorf("expected a:1, got %v", m["a"])
+	}
+	// Implicit map (jsonic extension) should fail.
+	_, err = j.Parse("a:1")
+	if err == nil {
+		t.Fatal("expected error for implicit map after excluding jsonic via GrammarText")
+	}
+}
+
+func TestGrammarTextTextLex(t *testing.T) {
+	j := Make()
+	err := j.GrammarText(`options: { text: { lex: false } }`)
+	if err != nil {
+		t.Fatal(err)
+	}
+	// Bare text should fail, but value keywords still work.
+	result, err := j.Parse(`{"a":true}`)
+	if err != nil {
+		t.Fatal(err)
+	}
+	m := result.(map[string]any)
+	if m["a"] != true {
+		t.Errorf("expected a:true, got %v", m["a"])
+	}
+}
+
+func TestGrammarTextLexEmpty(t *testing.T) {
+	j := Make()
+	err := j.GrammarText(`options: { lex: { empty: false } }`)
+	if err != nil {
+		t.Fatal(err)
+	}
+	_, err = j.Parse("")
+	if err == nil {
+		t.Fatal("expected error for empty source after disabling via GrammarText")
+	}
+}
+
+func TestMapToOptionsListChild(t *testing.T) {
+	// list.child is a grammar-level option, so must be set at Make() time.
+	// This tests that MapToOptions correctly parses the list options.
+	j := Make(MapToOptions(map[string]any{
+		"list": map[string]any{"child": true},
+	}))
+	result, err := j.Parse("[:1,a,b]")
+	if err != nil {
+		t.Fatal(err)
+	}
+	lr := result.(ListRef)
+	if lr.Child != float64(1) {
+		t.Errorf("expected child=1, got %v", lr.Child)
+	}
+}
+
+func TestMapToOptionsMapChild(t *testing.T) {
+	j := Make(MapToOptions(map[string]any{
+		"map": map[string]any{"child": true},
+	}))
+	result, err := j.Parse("{:1,a:2}")
+	if err != nil {
+		t.Fatal(err)
+	}
+	m := result.(map[string]any)
+	if m["child$"] != float64(1) {
+		t.Errorf("expected child$=1, got %v", m["child$"])
+	}
+}
+
+func TestMapToOptionsEnder(t *testing.T) {
+	// Verify MapToOptions parses the ender option correctly.
+	opts := MapToOptions(map[string]any{"ender": ";"})
+	if len(opts.Ender) != 1 || opts.Ender[0] != ";" {
+		t.Errorf("expected Ender=[;], got %v", opts.Ender)
+	}
+}
+
 // --- SetOptions applies lex.empty ---
 
 func TestSetOptionsLexEmpty(t *testing.T) {

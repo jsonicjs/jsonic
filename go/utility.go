@@ -623,40 +623,64 @@ func MapToOptions(m map[string]any) Options {
 		opts.Tag = v
 	}
 
-	if vm, ok := m["value"].(map[string]any); ok {
-		opts.Value = &ValueOptions{}
-		if lex, ok := vm["lex"].(bool); ok {
-			opts.Value.Lex = &lex
-		}
-		if defm, ok := vm["def"].(map[string]any); ok {
-			opts.Value.Def = make(map[string]*ValueDef, len(defm))
-			for k, v := range defm {
-				switch vv := v.(type) {
-				case map[string]any:
-					vd := &ValueDef{}
-					if val, ok := vv["val"]; ok {
-						vd.Val = val
-						// If val is a function, store it as ValFunc for regex matches.
-						if fn, ok := val.(func([]string) any); ok {
-							vd.ValFunc = fn
-						}
-					}
-					if m, ok := vv["match"].(*regexp.Regexp); ok {
-						vd.Match = m
-					}
-					if c, ok := vv["consume"].(bool); ok {
-						vd.Consume = c
-					}
-					opts.Value.Def[k] = vd
-				case nil, bool:
-					// nil or false removes the value def
-				}
-			}
+	// safe
+	if safe, ok := m["safe"].(map[string]any); ok {
+		opts.Safe = &SafeOptions{}
+		if key, ok := safe["key"].(bool); ok {
+			opts.Safe.Key = &key
 		}
 	}
 
+	// fixed
+	if fm, ok := m["fixed"].(map[string]any); ok {
+		opts.Fixed = &FixedOptions{}
+		if lex, ok := fm["lex"].(bool); ok {
+			opts.Fixed.Lex = &lex
+		}
+	}
+
+	// space
+	if sp, ok := m["space"].(map[string]any); ok {
+		opts.Space = &SpaceOptions{}
+		if lex, ok := sp["lex"].(bool); ok {
+			opts.Space.Lex = &lex
+		}
+		if chars, ok := sp["chars"].(string); ok {
+			opts.Space.Chars = chars
+		}
+	}
+
+	// line
+	if ln, ok := m["line"].(map[string]any); ok {
+		opts.Line = &LineOptions{}
+		if lex, ok := ln["lex"].(bool); ok {
+			opts.Line.Lex = &lex
+		}
+		if chars, ok := ln["chars"].(string); ok {
+			opts.Line.Chars = chars
+		}
+		if rowChars, ok := ln["rowChars"].(string); ok {
+			opts.Line.RowChars = rowChars
+		}
+		if single, ok := ln["single"].(bool); ok {
+			opts.Line.Single = &single
+		}
+	}
+
+	// text
+	if tm, ok := m["text"].(map[string]any); ok {
+		opts.Text = &TextOptions{}
+		if lex, ok := tm["lex"].(bool); ok {
+			opts.Text.Lex = &lex
+		}
+	}
+
+	// number
 	if nm, ok := m["number"].(map[string]any); ok {
 		opts.Number = &NumberOptions{}
+		if lex, ok := nm["lex"].(bool); ok {
+			opts.Number.Lex = &lex
+		}
 		if hex, ok := nm["hex"].(bool); ok {
 			opts.Number.Hex = &hex
 		}
@@ -678,18 +702,61 @@ func MapToOptions(m map[string]any) Options {
 		}
 	}
 
-	if mm, ok := m["map"].(map[string]any); ok {
-		opts.Map = &MapOptions{}
-		if ext, ok := mm["extend"].(bool); ok {
-			opts.Map.Extend = &ext
+	// comment
+	if cm, ok := m["comment"].(map[string]any); ok {
+		opts.Comment = &CommentOptions{}
+		if lex, ok := cm["lex"].(bool); ok {
+			opts.Comment.Lex = &lex
 		}
-		if fn, ok := mm["merge"].(func(any, any, *Rule, *Context) any); ok {
-			opts.Map.Merge = fn
+		if defm, ok := cm["def"].(map[string]any); ok {
+			opts.Comment.Def = make(map[string]*CommentDef, len(defm))
+			for k, v := range defm {
+				dm, ok := v.(map[string]any)
+				if !ok {
+					continue
+				}
+				cd := &CommentDef{}
+				if line, ok := dm["line"].(bool); ok {
+					cd.Line = line
+				}
+				if start, ok := dm["start"].(string); ok {
+					cd.Start = start
+				}
+				if end, ok := dm["end"].(string); ok {
+					cd.End = end
+				}
+				if lex, ok := dm["lex"].(bool); ok {
+					cd.Lex = &lex
+				}
+				if eatline, ok := dm["eatline"].(bool); ok {
+					cd.EatLine = &eatline
+				}
+				opts.Comment.Def[k] = cd
+			}
 		}
 	}
 
+	// string
 	if sm, ok := m["string"].(map[string]any); ok {
 		opts.String = &StringOptions{}
+		if lex, ok := sm["lex"].(bool); ok {
+			opts.String.Lex = &lex
+		}
+		if chars, ok := sm["chars"].(string); ok {
+			opts.String.Chars = chars
+		}
+		if multiChars, ok := sm["multiChars"].(string); ok {
+			opts.String.MultiChars = multiChars
+		}
+		if escapeChar, ok := sm["escapeChar"].(string); ok {
+			opts.String.EscapeChar = escapeChar
+		}
+		if allowUnknown, ok := sm["allowUnknown"].(bool); ok {
+			opts.String.AllowUnknown = &allowUnknown
+		}
+		if abandon, ok := sm["abandon"].(bool); ok {
+			opts.String.Abandon = &abandon
+		}
 		if esc, ok := sm["escape"].(map[string]any); ok {
 			opts.String.Escape = make(map[string]string, len(esc))
 			for k, v := range esc {
@@ -710,13 +777,81 @@ func MapToOptions(m map[string]any) Options {
 		}
 	}
 
-	if cm, ok := m["comment"].(map[string]any); ok {
-		opts.Comment = &CommentOptions{}
-		if lex, ok := cm["lex"].(bool); ok {
-			opts.Comment.Lex = &lex
+	// map
+	if mm, ok := m["map"].(map[string]any); ok {
+		opts.Map = &MapOptions{}
+		if ext, ok := mm["extend"].(bool); ok {
+			opts.Map.Extend = &ext
+		}
+		if child, ok := mm["child"].(bool); ok {
+			opts.Map.Child = &child
+		}
+		if fn, ok := mm["merge"].(func(any, any, *Rule, *Context) any); ok {
+			opts.Map.Merge = fn
 		}
 	}
 
+	// list
+	if lm, ok := m["list"].(map[string]any); ok {
+		opts.List = &ListOptions{}
+		if prop, ok := lm["property"].(bool); ok {
+			opts.List.Property = &prop
+		}
+		if pair, ok := lm["pair"].(bool); ok {
+			opts.List.Pair = &pair
+		}
+		if child, ok := lm["child"].(bool); ok {
+			opts.List.Child = &child
+		}
+	}
+
+	// value
+	if vm, ok := m["value"].(map[string]any); ok {
+		opts.Value = &ValueOptions{}
+		if lex, ok := vm["lex"].(bool); ok {
+			opts.Value.Lex = &lex
+		}
+		if defm, ok := vm["def"].(map[string]any); ok {
+			opts.Value.Def = make(map[string]*ValueDef, len(defm))
+			for k, v := range defm {
+				switch vv := v.(type) {
+				case map[string]any:
+					vd := &ValueDef{}
+					if val, ok := vv["val"]; ok {
+						vd.Val = val
+						if fn, ok := val.(func([]string) any); ok {
+							vd.ValFunc = fn
+						}
+					}
+					if m, ok := vv["match"].(*regexp.Regexp); ok {
+						vd.Match = m
+					}
+					if c, ok := vv["consume"].(bool); ok {
+						vd.Consume = c
+					}
+					opts.Value.Def[k] = vd
+				case nil, bool:
+					// nil or false removes the value def
+				}
+			}
+		}
+	}
+
+	// ender
+	if ender, ok := m["ender"]; ok {
+		switch v := ender.(type) {
+		case string:
+			opts.Ender = []string{v}
+		case []any:
+			for _, item := range v {
+				if s, ok := item.(string); ok {
+					opts.Ender = append(opts.Ender, s)
+				}
+			}
+		}
+	}
+
+	// rule
 	if rm, ok := m["rule"].(map[string]any); ok {
 		opts.Rule = &RuleOptions{}
 		if start, ok := rm["start"].(string); ok {
@@ -725,16 +860,51 @@ func MapToOptions(m map[string]any) Options {
 		if finish, ok := rm["finish"].(bool); ok {
 			opts.Rule.Finish = &finish
 		}
-	}
-
-	if safe, ok := m["safe"].(map[string]any); ok {
-		opts.Safe = &SafeOptions{}
-		if key, ok := safe["key"].(bool); ok {
-			opts.Safe.Key = &key
+		if exclude, ok := rm["exclude"].(string); ok {
+			opts.Rule.Exclude = exclude
 		}
 	}
 
-	// Match options (TS: options.match)
+	// lex
+	if lx, ok := m["lex"].(map[string]any); ok {
+		opts.Lex = &LexOptions{}
+		if empty, ok := lx["empty"].(bool); ok {
+			opts.Lex.Empty = &empty
+		}
+		if emptyResult, ok := lx["emptyResult"]; ok {
+			opts.Lex.EmptyResult = emptyResult
+		}
+	}
+
+	// error
+	if em, ok := m["error"].(map[string]any); ok {
+		opts.Error = make(map[string]string, len(em))
+		for k, v := range em {
+			if s, ok := v.(string); ok {
+				opts.Error[k] = s
+			}
+		}
+	}
+
+	// hint
+	if hm, ok := m["hint"].(map[string]any); ok {
+		opts.Hint = make(map[string]string, len(hm))
+		for k, v := range hm {
+			if s, ok := v.(string); ok {
+				opts.Hint[k] = s
+			}
+		}
+	}
+
+	// errmsg
+	if em, ok := m["errmsg"].(map[string]any); ok {
+		opts.ErrMsg = &ErrMsgOptions{}
+		if name, ok := em["name"].(string); ok {
+			opts.ErrMsg.Name = name
+		}
+	}
+
+	// match
 	if mm, ok := m["match"].(map[string]any); ok {
 		opts.Match = &MatchOptions{}
 		if lex, ok := mm["lex"].(bool); ok {
@@ -765,7 +935,7 @@ func MapToOptions(m map[string]any) Options {
 		}
 	}
 
-	// TokenSet options (TS: options.tokenSet)
+	// tokenSet
 	if ts, ok := m["tokenSet"].(map[string]any); ok {
 		opts.TokenSet = make(map[string][]string, len(ts))
 		for name, v := range ts {
@@ -776,7 +946,6 @@ func MapToOptions(m map[string]any) Options {
 					if s, ok := item.(string); ok {
 						names = append(names, s)
 					}
-					// nil entries are skipped (matching TS where null entries are filtered)
 				}
 				opts.TokenSet[name] = names
 			case []string:
@@ -785,7 +954,7 @@ func MapToOptions(m map[string]any) Options {
 		}
 	}
 
-	// Info options (TS: options.info)
+	// info
 	if im, ok := m["info"].(map[string]any); ok {
 		opts.Info = &InfoOptions{}
 		if v, ok := im["map"].(bool); ok {
