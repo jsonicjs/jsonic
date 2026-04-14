@@ -156,6 +156,13 @@ func (p *Parser) startParse(src string, meta map[string]any, lexSubs []LexSub, r
 
 		// Check for parse error from alt.E or actions.
 		if ctx.ParseErr != nil {
+			// Prefer lexer errors (e.g. unterminated_string) over generic
+			// "unexpected" from alt matching, since the lex error is more
+			// specific about what went wrong. Matches TS behavior where
+			// lex errors propagate through #ZZ tokens.
+			if lex.Err != nil {
+				return nil, lex.Err
+			}
 			tkn := ctx.ParseErr
 			return nil, p.makeError("unexpected", tkn.Src, src, tkn.SI, tkn.RI, tkn.CI)
 		}
