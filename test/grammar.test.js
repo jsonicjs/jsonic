@@ -658,6 +658,16 @@ describe('grammar-options', () => {
   })
 
 
+  it('grammar-text-string-empty', () => {
+    // Empty/whitespace grammar text is a no-op, not a crash.
+    let j = Jsonic.make()
+    j.grammar('')
+    j.grammar('  ')
+    j.grammar('# just a comment')
+    assert.deepEqual(j('a:1'), { a: 1 })
+  })
+
+
   it('skip-sentinel-exported', () => {
     // SKIP is available on the Jsonic object as an immutable symbol.
     assert.equal(typeof Jsonic.SKIP, 'symbol')

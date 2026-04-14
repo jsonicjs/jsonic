@@ -298,7 +298,11 @@ function make(param_options?: Bag | string, parent?: Jsonic): Jsonic {
 
     grammar: (gs: GrammarSpec | string) => {
       if ('string' === typeof gs) {
-        gs = make()(gs) as GrammarSpec
+        const parsed = make()(gs)
+        if (null == parsed || 'object' !== typeof parsed) {
+          return
+        }
+        gs = parsed as GrammarSpec
       }
 
       if (gs.options) {

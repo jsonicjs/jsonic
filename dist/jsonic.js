@@ -170,7 +170,11 @@ function make(param_options, parent) {
         util,
         grammar: (gs) => {
             if ('string' === typeof gs) {
-                gs = make()(gs);
+                const parsed = make()(gs);
+                if (null == parsed || 'object' !== typeof parsed) {
+                    return;
+                }
+                gs = parsed;
             }
             if (gs.options) {
                 const resolved = (0, utility_1.resolveFuncRefs)(gs.options, gs.ref);
