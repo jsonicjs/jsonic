@@ -169,6 +169,9 @@ function make(param_options, parent) {
         },
         util,
         grammar: (gs) => {
+            if ('string' === typeof gs) {
+                gs = make()(gs);
+            }
             if (gs.options) {
                 const resolved = (0, utility_1.resolveFuncRefs)(gs.options, gs.ref);
                 ji.options(resolved);

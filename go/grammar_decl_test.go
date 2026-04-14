@@ -1409,6 +1409,66 @@ func TestMatchTokenNilRegexpNoPanic(t *testing.T) {
 	}
 }
 
+// --- GrammarText: string grammar ---
+
+func TestGrammarTextNumberSep(t *testing.T) {
+	j := Make()
+	err := j.GrammarText(`options: { number: { sep: "_" } }`)
+	if err != nil {
+		t.Fatal(err)
+	}
+	result, err := j.Parse("a:1_000")
+	if err != nil {
+		t.Fatal(err)
+	}
+	m := result.(map[string]any)
+	if m["a"] != float64(1000) {
+		t.Errorf("expected a:1000, got %v", m["a"])
+	}
+}
+
+func TestGrammarTextNumberExclude(t *testing.T) {
+	j := Make()
+	err := j.GrammarText(`options: { number: { exclude: '@/^0[0-9]+$/' } }`)
+	if err != nil {
+		t.Fatal(err)
+	}
+	result, err := j.Parse("a:01")
+	if err != nil {
+		t.Fatal(err)
+	}
+	m := result.(map[string]any)
+	if m["a"] != "01" {
+		t.Errorf("expected a:'01' (text), got %v (%T)", m["a"], m["a"])
+	}
+}
+
+func TestGrammarTextFlatOptions(t *testing.T) {
+	// When there's no "options" wrapper, the entire parsed map is treated as options.
+	j := Make()
+	err := j.GrammarText(`number: { sep: "_" }`)
+	if err != nil {
+		t.Fatal(err)
+	}
+	result, err := j.Parse("a:1_000")
+	if err != nil {
+		t.Fatal(err)
+	}
+	m := result.(map[string]any)
+	if m["a"] != float64(1000) {
+		t.Errorf("expected a:1000, got %v", m["a"])
+	}
+}
+
+func TestGrammarTextInvalidSource(t *testing.T) {
+	j := Make()
+	// Empty string should not error (jsonic allows empty source by default).
+	err := j.GrammarText("")
+	if err != nil {
+		t.Fatal(err)
+	}
+}
+
 // TestValueDefReUsesValWhenValFuncNil verifies that regex-based value.def
 // entries return ValueDef.Val (not the matched source text) when ValFunc is nil.
 func TestValueDefReUsesValWhenValFuncNil(t *testing.T) {

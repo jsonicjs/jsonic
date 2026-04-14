@@ -641,6 +641,23 @@ describe('grammar-options', () => {
   })
 
 
+  it('grammar-text-string', () => {
+    // grammar() accepts a string, parsing it internally.
+    let j = Jsonic.make()
+    j.grammar('options: { number: { sep: "_" } }')
+    assert.deepEqual(j('a:1_000'), { a: 1000 })
+  })
+
+
+  it('grammar-text-string-number-exclude', () => {
+    // grammar() with string can use @/<regexp>/ declarative form.
+    let j = Jsonic.make()
+    j.grammar(`options: { number: { exclude: '@/^0[0-9]+$/' } }`)
+    assert.deepEqual(j('a:01'), { a: '01' })
+    assert.deepEqual(j('a:42'), { a: 42 })
+  })
+
+
   it('skip-sentinel-exported', () => {
     // SKIP is available on the Jsonic object as an immutable symbol.
     assert.equal(typeof Jsonic.SKIP, 'symbol')
