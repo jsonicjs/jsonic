@@ -166,22 +166,63 @@ func mapToGrammarRules(ruleMap map[string]any) map[string]*GrammarRuleSpec {
 		}
 		spec := &GrammarRuleSpec{}
 		if open, ok := rm["open"]; ok {
-			spec.Open = parseGrammarAlts(open)
+			spec.Open = parseGrammarAltsOrSpec(open)
 		}
 		if close, ok := rm["close"]; ok {
-			spec.Close = parseGrammarAlts(close)
+			spec.Close = parseGrammarAltsOrSpec(close)
 		}
 		rules[name] = spec
 	}
 	return rules
 }
 
-// parseGrammarAlts converts a parsed alt list ([]any of maps) to []*GrammarAltSpec.
-func parseGrammarAlts(v any) []*GrammarAltSpec {
-	arr, ok := v.([]any)
-	if !ok {
-		return nil
+// parseGrammarAltsOrSpec handles both forms:
+//   - []any (plain alt array) → []*GrammarAltSpec
+//   - map[string]any with "alts" and "inject" → *GrammarAltListSpec
+func parseGrammarAltsOrSpec(v any) any {
+	// Plain array form.
+	if arr, ok := v.([]any); ok {
+		return parseGrammarAlts(arr)
 	}
+	// Map form with alts + inject.
+	if m, ok := v.(map[string]any); ok {
+		altsRaw, hasAlts := m["alts"]
+		if !hasAlts {
+			return nil
+		}
+		altsArr, ok := altsRaw.([]any)
+		if !ok {
+			return nil
+		}
+		alts := parseGrammarAlts(altsArr)
+		spec := &GrammarAltListSpec{Alts: alts}
+		if injectRaw, ok := m["inject"].(map[string]any); ok {
+			spec.Inject = &GrammarInjectSpec{}
+			if append_, ok := injectRaw["append"].(bool); ok {
+				spec.Inject.Append = append_
+			}
+			if del, ok := injectRaw["delete"].([]any); ok {
+				for _, d := range del {
+					if f, ok := d.(float64); ok {
+						spec.Inject.Delete = append(spec.Inject.Delete, int(f))
+					}
+				}
+			}
+			if mv, ok := injectRaw["move"].([]any); ok {
+				for _, m := range mv {
+					if f, ok := m.(float64); ok {
+						spec.Inject.Move = append(spec.Inject.Move, int(f))
+					}
+				}
+			}
+		}
+		return spec
+	}
+	return nil
+}
+
+// parseGrammarAlts converts a parsed alt array ([]any of maps) to []*GrammarAltSpec.
+func parseGrammarAlts(arr []any) []*GrammarAltSpec {
 	alts := make([]*GrammarAltSpec, 0, len(arr))
 	for _, item := range arr {
 		m, ok := item.(map[string]any)

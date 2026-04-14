@@ -1519,6 +1519,51 @@ func TestGrammarTextRulesWithFuncRef(t *testing.T) {
 	}
 }
 
+func TestGrammarTextWithInjectAndExclude(t *testing.T) {
+	// Regression: GrammarText with {alts, inject} form was not parsed,
+	// so rule alts were silently dropped, breaking string matching when
+	// combined with rule.exclude.
+	j := Make()
+	err := j.GrammarText(`
+		options: { text:{lex:false}, string:{chars:'"'}, rule:{finish:false} },
+		rule: { val: { open: { alts:[{s:'#ZZ', g:jsonc}], inject:{append:true} } } }
+	`)
+	if err != nil {
+		t.Fatal(err)
+	}
+	j.SetOptions(Options{Rule: &RuleOptions{Exclude: "jsonic,imp"}})
+
+	// Complete string should parse.
+	result, err := j.Parse(`"test"`)
+	if err != nil {
+		t.Fatalf("complete string failed: %v", err)
+	}
+	if result != "test" {
+		t.Errorf("expected 'test', got %v", result)
+	}
+
+	// Unterminated string should produce unterminated_string, not unexpected.
+	_, err = j.Parse(`"test`)
+	if err == nil {
+		t.Fatal("expected error for unterminated string")
+	}
+	if je, ok := err.(*JsonicError); ok {
+		if je.Code != "unterminated_string" {
+			t.Errorf("expected unterminated_string, got %s", je.Code)
+		}
+	}
+
+	// JSON structures should work.
+	result, err = j.Parse(`{"a":"b","c":1}`)
+	if err != nil {
+		t.Fatalf("JSON object failed: %v", err)
+	}
+	m := result.(map[string]any)
+	if m["a"] != "b" || m["c"] != float64(1) {
+		t.Errorf("expected {a:b, c:1}, got %v", m)
+	}
+}
+
 func TestGrammarTextThenSetOptionsPreserved(t *testing.T) {
 	// GrammarText sets options and rules. A subsequent SetOptions must
 	// preserve both the options (via deep merge) and the rule modifications.
