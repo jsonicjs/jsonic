@@ -40,7 +40,7 @@ import type {
   GrammarSpec
 } from './types'
 
-import { OPEN, CLOSE, BEFORE, AFTER, EMPTY, SKIP, jsonic_info } from './types'
+import { OPEN, CLOSE, BEFORE, AFTER, EMPTY, SKIP } from './types'
 
 import {
   S,
@@ -424,7 +424,6 @@ root.SKIP = SKIP
 root.util = util
 root.make = make
 root.S = S
-root.jsonic_info = jsonic_info
 
 // Export most of the types for use by plugins.
 export type {
@@ -485,7 +484,6 @@ export {
   SKIP,
   S,
   root,
-  jsonic_info,
 }
 
 export default Jsonic

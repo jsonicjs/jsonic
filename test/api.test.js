@@ -42,7 +42,6 @@ describe('api', function () {
       'util',
       'make',
       'S',
-      'jsonic_info',
     ])
 
     assert.ok(Debug != null)

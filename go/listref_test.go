@@ -7,7 +7,7 @@ import (
 // expectListRef parses input with ListRef enabled and checks the result.
 func expectListRef(t *testing.T, input string, expected any) {
 	t.Helper()
-	j := Make(Options{Property: &PropertyOptions{ListRef: boolPtr(true)}})
+	j := Make(Options{Info: &InfoOptions{List: boolPtr(true)}})
 	got, err := j.Parse(input)
 	if err != nil {
 		t.Errorf("Parse(%q) unexpected error: %v", input, err)
@@ -117,7 +117,7 @@ func TestListRefOff(t *testing.T) {
 
 func TestListRefExplicitOff(t *testing.T) {
 	// Explicitly setting ListRef to false.
-	j := Make(Options{Property: &PropertyOptions{ListRef: boolPtr(false)}})
+	j := Make(Options{Info: &InfoOptions{List: boolPtr(false)}})
 	got, err := j.Parse("[1,2]")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -195,7 +195,7 @@ func TestListRefSpaceSeparatedLists(t *testing.T) {
 
 func TestListRefMapsUnaffected(t *testing.T) {
 	// Maps should not be wrapped in ListRef.
-	j := Make(Options{Property: &PropertyOptions{ListRef: boolPtr(true)}})
+	j := Make(Options{Info: &InfoOptions{List: boolPtr(true)}})
 	got, err := j.Parse("a:1")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -207,7 +207,7 @@ func TestListRefMapsUnaffected(t *testing.T) {
 
 func TestListRefScalarsUnaffected(t *testing.T) {
 	// Scalars should not be affected.
-	j := Make(Options{Property: &PropertyOptions{ListRef: boolPtr(true)}})
+	j := Make(Options{Info: &InfoOptions{List: boolPtr(true)}})
 
 	got, err := j.Parse("42")
 	if err != nil {
@@ -260,7 +260,7 @@ func TestListRefSingleElement(t *testing.T) {
 
 func TestListRefCombinedWithTextInfo(t *testing.T) {
 	// Both ListRef and TextInfo enabled.
-	j := Make(Options{Property: &PropertyOptions{ListRef: boolPtr(true), TextInfo: boolPtr(true)}})
+	j := Make(Options{Info: &InfoOptions{List: boolPtr(true), Text: boolPtr(true)}})
 	got, err := j.Parse(`["a",'b',c]`)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)

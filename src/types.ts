@@ -923,17 +923,3 @@ export type GrammarAltSpec = {
   k?: Record<string, any>
   g?: string | string[],
 }
-
-
-// Returns the info metadata object from a value, or undefined.
-// Uses the default marker '__info__' unless a custom marker is provided.
-function jsonic_info(val: any, marker?: string): any {
-  if (val != null && typeof val === 'object') {
-    return val[marker || '__info__']
-  }
-  return undefined
-}
-
-export {
-  jsonic_info,
-}

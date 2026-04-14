@@ -1,7 +1,7 @@
 "use strict";
 /* Copyright (c) 2013-2023 Richard Rodger, MIT License */
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.jsonic_info = exports.root = exports.S = exports.SKIP = exports.EMPTY = exports.AFTER = exports.BEFORE = exports.CLOSE = exports.OPEN = exports.makeTextMatcher = exports.makeNumberMatcher = exports.makeCommentMatcher = exports.makeStringMatcher = exports.makeLineMatcher = exports.makeSpaceMatcher = exports.makeFixedMatcher = exports.makeParser = exports.makeLex = exports.makeRuleSpec = exports.makeRule = exports.makePoint = exports.makeToken = exports.util = exports.JsonicError = exports.Jsonic = void 0;
+exports.root = exports.S = exports.SKIP = exports.EMPTY = exports.AFTER = exports.BEFORE = exports.CLOSE = exports.OPEN = exports.makeTextMatcher = exports.makeNumberMatcher = exports.makeCommentMatcher = exports.makeStringMatcher = exports.makeLineMatcher = exports.makeSpaceMatcher = exports.makeFixedMatcher = exports.makeParser = exports.makeLex = exports.makeRuleSpec = exports.makeRule = exports.makePoint = exports.makeToken = exports.util = exports.JsonicError = exports.Jsonic = void 0;
 exports.make = make;
 const types_1 = require("./types");
 Object.defineProperty(exports, "OPEN", { enumerable: true, get: function () { return types_1.OPEN; } });
@@ -10,7 +10,6 @@ Object.defineProperty(exports, "BEFORE", { enumerable: true, get: function () { 
 Object.defineProperty(exports, "AFTER", { enumerable: true, get: function () { return types_1.AFTER; } });
 Object.defineProperty(exports, "EMPTY", { enumerable: true, get: function () { return types_1.EMPTY; } });
 Object.defineProperty(exports, "SKIP", { enumerable: true, get: function () { return types_1.SKIP; } });
-Object.defineProperty(exports, "jsonic_info", { enumerable: true, get: function () { return types_1.jsonic_info; } });
 const utility_1 = require("./utility");
 Object.defineProperty(exports, "S", { enumerable: true, get: function () { return utility_1.S; } });
 const error_1 = require("./error");
@@ -274,7 +273,6 @@ root.SKIP = types_1.SKIP;
 root.util = util;
 root.make = make;
 root.S = utility_1.S;
-root.jsonic_info = types_1.jsonic_info;
 exports.default = Jsonic;
 if ('undefined' !== typeof module) {
     module.exports = Jsonic;

@@ -785,6 +785,20 @@ func MapToOptions(m map[string]any) Options {
 		}
 	}
 
+	// Info options (TS: options.info)
+	if im, ok := m["info"].(map[string]any); ok {
+		opts.Info = &InfoOptions{}
+		if v, ok := im["map"].(bool); ok {
+			opts.Info.Map = &v
+		}
+		if v, ok := im["list"].(bool); ok {
+			opts.Info.List = &v
+		}
+		if v, ok := im["text"].(bool); ok {
+			opts.Info.Text = &v
+		}
+	}
+
 	return opts
 }
 

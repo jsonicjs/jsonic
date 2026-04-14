@@ -642,5 +642,4 @@ export type GrammarAltSpec = {
     k?: Record<string, any>;
     g?: string | string[];
 };
-declare function jsonic_info(val: any, marker?: string): any;
-export { jsonic_info, };
+export {};

@@ -319,7 +319,7 @@ func TestListChildWithMapRef(t *testing.T) {
 	// list.child + MapRef: child map should be MapRef
 	j := Make(Options{
 		List:     &ListOptions{Child: boolPtr(true)},
-		Property: &PropertyOptions{MapRef: boolPtr(true)},
+		Info: &InfoOptions{Map: boolPtr(true)},
 	})
 	got, err := j.Parse("[:{a:1}]")
 	if err != nil {
@@ -344,7 +344,7 @@ func TestListChildWithTextInfo(t *testing.T) {
 	// list.child + TextInfo: child text should be Text struct
 	j := Make(Options{
 		List:     &ListOptions{Child: boolPtr(true)},
-		Property: &PropertyOptions{TextInfo: boolPtr(true)},
+		Info: &InfoOptions{Text: boolPtr(true)},
 	})
 	got, err := j.Parse(`[:"hello"]`)
 	if err != nil {
