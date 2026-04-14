@@ -1228,6 +1228,8 @@ func (l *Lex) matchText() *Token {
 							var val any
 							if vspec.ValFunc != nil {
 								val = vspec.ValFunc(res)
+							} else if vspec.Val != nil {
+								val = vspec.Val
 							} else {
 								val = remsrc
 							}

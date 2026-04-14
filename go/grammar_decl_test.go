@@ -1409,6 +1409,42 @@ func TestMatchTokenNilRegexpNoPanic(t *testing.T) {
 	}
 }
 
+// TestValueDefReUsesValWhenValFuncNil verifies that regex-based value.def
+// entries return ValueDef.Val (not the matched source text) when ValFunc is nil.
+func TestValueDefReUsesValWhenValFuncNil(t *testing.T) {
+	j := Make()
+	lex := true
+	mustGrammar(t, j, &GrammarSpec{
+		Options: &Options{
+			Value: &ValueOptions{
+				Lex: &lex,
+				Def: map[string]*ValueDef{
+					"yes": {
+						Val:   true,
+						Match: regexp.MustCompile(`(?i)^yes$`),
+					},
+					"no": {
+						Val:   false,
+						Match: regexp.MustCompile(`(?i)^no$`),
+					},
+				},
+			},
+		},
+	})
+
+	result, err := j.Parse("a:YES,b:No")
+	if err != nil {
+		t.Fatal(err)
+	}
+	m := result.(map[string]any)
+	if m["a"] != true {
+		t.Errorf("expected a:true, got %v (%T)", m["a"], m["a"])
+	}
+	if m["b"] != false {
+		t.Errorf("expected b:false, got %v (%T)", m["b"], m["b"])
+	}
+}
+
 // TestMatchValueNilSpecNoPanic verifies that nil entries in Match.Value
 // are skipped rather than causing a nil-pointer panic in buildConfig.
 func TestMatchValueNilSpecNoPanic(t *testing.T) {
