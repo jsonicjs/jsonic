@@ -402,11 +402,12 @@ describe('grammar-options', () => {
 
   it('options-regex-number-exclude', () => {
     // Use @/…/ for number.exclude to reject leading-zero numbers.
+    // Note: ^0[0-9]+$ properly matches "01", "023" etc. but not "0" alone.
     let j = Jsonic.make()
     j.grammar({
       options: {
         number: {
-          exclude: '@/^00+/',
+          exclude: '@/^0[0-9]+$/',
         },
       },
     })

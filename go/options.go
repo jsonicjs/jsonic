@@ -1,6 +1,9 @@
 package jsonic
 
-import "strconv"
+import (
+	"regexp"
+	"strconv"
+)
 
 // Options configures a Jsonic parser instance.
 // All fields use pointer types so that nil means "use default".
@@ -11,6 +14,14 @@ type Options struct {
 
 	// Fixed controls fixed token recognition ({, }, [, ], :, ,).
 	Fixed *FixedOptions
+
+	// Match controls custom regexp-based token and value matching.
+	// Matches TS options.match.
+	Match *MatchOptions
+
+	// TokenSet allows customizing token sets (VAL, KEY, etc.).
+	// Matches TS options.tokenSet.
+	TokenSet map[string][]string
 
 	// Space controls space/tab lexing.
 	Space *SpaceOptions
@@ -99,6 +110,21 @@ type PropertyOptions struct {
 	// When true, map values include an Implicit flag indicating whether
 	// the map was created implicitly (without braces). Default: false.
 	MapRef *bool
+}
+
+// MatchOptions controls custom regexp-based matching.
+// Matches TS options.match.
+type MatchOptions struct {
+	Lex   *bool                           // Enable custom matching. Default: true.
+	Token map[string]*regexp.Regexp        // "#NAME" → regexp pattern for custom tokens.
+	Value map[string]*MatchValueSpec       // name → {Match, Val} for custom value matchers.
+}
+
+// MatchValueSpec defines a regexp-based value matcher.
+// Matches TS options.match.value[name].
+type MatchValueSpec struct {
+	Match *regexp.Regexp       // Regexp pattern to match against.
+	Val   func([]string) any   // Optional value transformer, receives match groups.
 }
 
 // SafeOptions controls key safety.
@@ -192,6 +218,20 @@ type ListOptions struct {
 // ValueDef defines a keyword value.
 type ValueDef struct {
 	Val any // Value to produce for this keyword.
+
+	// Match is a RegExp pattern for regex-based value matching.
+	// When set, the value keyword is matched by regex instead of exact string.
+	// Matches TS options.value.def[name].match.
+	Match *regexp.Regexp
+
+	// ValFunc is a function that produces the value from regex match groups.
+	// Used when Match is set and the value depends on the match result.
+	// Matches TS value.def[name].val when val is a function.
+	ValFunc func(match []string) any
+
+	// Consume, when true, matches against the full forward source (not just
+	// the text token). The regexp should start with ^.
+	Consume bool
 }
 
 // ValueOptions controls keyword value matching.
@@ -497,6 +537,22 @@ func buildConfig(o *Options) *LexConfig {
 	// Fixed tokens
 	cfg.FixedLex = boolVal(optBool(o.Fixed, func(f *FixedOptions) *bool { return f.Lex }), true)
 
+	// Match (custom regexp matchers - TS: options.match)
+	// Always initialize maps so SetOptions can add entries later.
+	cfg.MatchTokens = make(map[Tin]*regexp.Regexp)
+	if o.Match != nil {
+		cfg.MatchLex = boolVal(o.Match.Lex, true)
+		if o.Match.Value != nil {
+			cfg.MatchValues = make([]*MatchValueEntry, 0, len(o.Match.Value))
+			for _, spec := range o.Match.Value {
+				cfg.MatchValues = append(cfg.MatchValues, &MatchValueEntry{
+					Match: spec.Match,
+					Val:   spec.Val,
+				})
+			}
+		}
+	}
+
 	// Space
 	cfg.SpaceLex = boolVal(optBool(o.Space, func(s *SpaceOptions) *bool { return s.Lex }), true)
 	if o.Space != nil && o.Space.Chars != "" {
@@ -614,9 +670,15 @@ func buildConfig(o *Options) *LexConfig {
 	cfg.ValueLex = boolVal(optBool(o.Value, func(v *ValueOptions) *bool { return v.Lex }), true)
 	if o.Value != nil && o.Value.Def != nil {
 		cfg.ValueDef = make(map[string]any)
+		cfg.ValueDefRe = make(map[string]*ValueDef)
 		for k, v := range o.Value.Def {
 			if v != nil {
-				cfg.ValueDef[k] = v.Val
+				if v.Match != nil {
+					// Regex-based value def goes into ValueDefRe (TS: cfg.value.defre)
+					cfg.ValueDefRe[k] = v
+				} else {
+					cfg.ValueDef[k] = v.Val
+				}
 			}
 		}
 	}

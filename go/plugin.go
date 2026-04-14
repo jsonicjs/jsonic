@@ -450,6 +450,15 @@ func (j *Jsonic) SetOptions(opts Options) *Jsonic {
 	cfg.FixedSorted = j.parser.Config.FixedSorted
 	cfg.TinNames = j.parser.Config.TinNames
 	cfg.CustomMatchers = j.parser.Config.CustomMatchers
+	// Preserve match token/value entries added by prior SetOptions/Grammar calls.
+	if len(j.parser.Config.MatchTokens) > 0 {
+		for k, v := range j.parser.Config.MatchTokens {
+			cfg.MatchTokens[k] = v
+		}
+	}
+	if len(j.parser.Config.MatchValues) > 0 {
+		cfg.MatchValues = append(cfg.MatchValues, j.parser.Config.MatchValues...)
+	}
 
 	// Update config in-place to preserve pointer identity.
 	// Grammar closures capture the original *LexConfig pointer, so updating
@@ -477,6 +486,29 @@ func (j *Jsonic) SetOptions(opts Options) *Jsonic {
 		for name, spec := range opts.Lex.Match {
 			matcher := spec.Make(j.parser.Config, j.options)
 			j.AddMatcher(name, spec.Order, matcher)
+		}
+	}
+
+	// Apply match.token: resolve token names to Tins and register regexp matchers.
+	if opts.Match != nil && opts.Match.Token != nil {
+		for name, re := range opts.Match.Token {
+			tin := j.Token(name)
+			j.parser.Config.MatchTokens[tin] = re
+		}
+	}
+
+	// Apply tokenSet: resolve token names and update per-instance sets.
+	if opts.TokenSet != nil {
+		for setName, names := range opts.TokenSet {
+			var tins []Tin
+			for _, name := range names {
+				if name == "" {
+					continue
+				}
+				resolved := j.resolveTokenName(name)
+				tins = append(tins, resolved...)
+			}
+			j.SetTokenSet(setName, tins)
 		}
 	}
 
