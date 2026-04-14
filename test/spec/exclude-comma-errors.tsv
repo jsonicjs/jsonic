@@ -1,0 +1,2 @@
+input	expected
+{"a":1,}	ERROR:unexpected
