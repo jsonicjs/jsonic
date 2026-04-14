@@ -668,6 +668,24 @@ describe('grammar-options', () => {
   })
 
 
+  it('grammar-text-string-options-and-rules', () => {
+    // grammar(string) processes both options and rule definitions.
+    let j = Jsonic.make()
+    j.grammar(`
+      options: { number: { sep: "_" } },
+      rule: {
+        val: {
+          close: [
+            { s: "#ZZ", g: "test,jsonic" }
+          ]
+        }
+      }
+    `)
+    // Options took effect.
+    assert.deepEqual(j('a:1_000'), { a: 1000 })
+  })
+
+
   it('skip-sentinel-exported', () => {
     // SKIP is available on the Jsonic object as an immutable symbol.
     assert.equal(typeof Jsonic.SKIP, 'symbol')

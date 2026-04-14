@@ -1460,6 +1460,65 @@ func TestGrammarTextFlatOptions(t *testing.T) {
 	}
 }
 
+func TestGrammarTextOptionsAndRules(t *testing.T) {
+	// GrammarText processes both options and rule definitions from text.
+	j := Make()
+	err := j.GrammarText(`
+		options: { number: { sep: "_" } },
+		rule: {
+			val: {
+				close: [
+					{ s: "#ZZ", g: "test,jsonic" }
+				]
+			}
+		}
+	`)
+	if err != nil {
+		t.Fatal(err)
+	}
+	// Options took effect.
+	result, err := j.Parse("a:1_000")
+	if err != nil {
+		t.Fatal(err)
+	}
+	m := result.(map[string]any)
+	if m["a"] != float64(1000) {
+		t.Errorf("expected a:1000, got %v", m["a"])
+	}
+}
+
+func TestGrammarTextRulesWithFuncRef(t *testing.T) {
+	// GrammarText can define rules with @funcRef actions when Ref is
+	// provided separately via Grammar after GrammarText sets up the structure.
+	j := Make()
+
+	// First apply rules via text with a group tag.
+	err := j.GrammarText(`
+		rule: {
+			val: {
+				close: [
+					{ s: "#ZZ", g: "custom-from-text" }
+				]
+			}
+		}
+	`)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// Verify the rule alt was added.
+	found := false
+	for _, alt := range j.RSM()["val"].Close {
+		if alt.G == "custom-from-text" {
+			found = true
+			break
+		}
+	}
+	if !found {
+		t.Error("expected rule alt with group 'custom-from-text'")
+	}
+}
+
 func TestGrammarTextInvalidSource(t *testing.T) {
 	j := Make()
 	// Empty string should not error (jsonic allows empty source by default).

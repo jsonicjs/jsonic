@@ -146,11 +146,99 @@ func (j *Jsonic) GrammarText(text string) error {
 	gs := &GrammarSpec{}
 	if optionsMap, ok := gsMap["options"].(map[string]any); ok {
 		gs.OptionsMap = optionsMap
-	} else {
-		// No "options" wrapper — treat the entire map as options.
+	} else if _, hasRule := gsMap["rule"]; !hasRule {
+		// No "options" wrapper and no "rule" key — treat the entire map as options.
 		gs.OptionsMap = gsMap
 	}
+	if ruleMap, ok := gsMap["rule"].(map[string]any); ok {
+		gs.Rule = mapToGrammarRules(ruleMap)
+	}
 	return j.Grammar(gs)
+}
+
+// mapToGrammarRules converts a parsed rule map into typed GrammarRuleSpec map.
+func mapToGrammarRules(ruleMap map[string]any) map[string]*GrammarRuleSpec {
+	rules := make(map[string]*GrammarRuleSpec, len(ruleMap))
+	for name, v := range ruleMap {
+		rm, ok := v.(map[string]any)
+		if !ok {
+			continue
+		}
+		spec := &GrammarRuleSpec{}
+		if open, ok := rm["open"]; ok {
+			spec.Open = parseGrammarAlts(open)
+		}
+		if close, ok := rm["close"]; ok {
+			spec.Close = parseGrammarAlts(close)
+		}
+		rules[name] = spec
+	}
+	return rules
+}
+
+// parseGrammarAlts converts a parsed alt list ([]any of maps) to []*GrammarAltSpec.
+func parseGrammarAlts(v any) []*GrammarAltSpec {
+	arr, ok := v.([]any)
+	if !ok {
+		return nil
+	}
+	alts := make([]*GrammarAltSpec, 0, len(arr))
+	for _, item := range arr {
+		m, ok := item.(map[string]any)
+		if !ok {
+			continue
+		}
+		alt := mapToGrammarAltSpec(m)
+		alts = append(alts, alt)
+	}
+	return alts
+}
+
+// mapToGrammarAltSpec converts a parsed map to a GrammarAltSpec.
+func mapToGrammarAltSpec(m map[string]any) *GrammarAltSpec {
+	alt := &GrammarAltSpec{}
+	if v, ok := m["s"]; ok {
+		alt.S = v // string or []string ([]any of strings)
+	}
+	if v, ok := m["b"]; ok {
+		alt.B = v // int (float64 from parse) or FuncRef string
+	}
+	if v, ok := m["p"].(string); ok {
+		alt.P = v
+	}
+	if v, ok := m["r"].(string); ok {
+		alt.R = v
+	}
+	if v, ok := m["a"].(string); ok {
+		alt.A = v
+	}
+	if v, ok := m["e"].(string); ok {
+		alt.E = v
+	}
+	if v, ok := m["h"].(string); ok {
+		alt.H = v
+	}
+	if v, ok := m["c"]; ok {
+		alt.C = v // FuncRef string or map[string]any
+	}
+	if v, ok := m["n"].(map[string]any); ok {
+		alt.N = make(map[string]int, len(v))
+		for k, val := range v {
+			if f, ok := val.(float64); ok {
+				alt.N[k] = int(f)
+			}
+		}
+	}
+	if v, ok := m["u"].(map[string]any); ok {
+		alt.U = v
+	}
+	if v, ok := m["k"].(map[string]any); ok {
+		alt.K = v
+	}
+	if v, ok := m["g"].(string); ok {
+		alt.G = v
+	}
+	return alt
 }
 
 // applyGrammarAlts resolves and applies grammar alts to a rule spec.
