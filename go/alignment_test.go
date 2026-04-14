@@ -164,6 +164,24 @@ func runErrorTSV(t *testing.T, file string, j *Jsonic) {
 	}
 }
 
+// --- Lex error propagation tests ---
+// Verifies that lex-level errors are not masked by generic "unexpected"
+// in any parser state.
+
+func TestLexErrorsDefault(t *testing.T) {
+	runErrorTSV(t, "lex-errors.tsv", Make())
+}
+
+func TestLexErrorsExcludeJsonicImp(t *testing.T) {
+	j := Make(Options{Rule: &RuleOptions{Exclude: "jsonic,imp"}})
+	runErrorTSV(t, "lex-errors.tsv", j)
+}
+
+func TestLexErrorsExcludeJsonicImpComma(t *testing.T) {
+	j := Make(Options{Rule: &RuleOptions{Exclude: "jsonic,imp,comma"}})
+	runErrorTSV(t, "lex-errors.tsv", j)
+}
+
 // --- Exclude group TSV tests ---
 
 func TestExcludeStrictJSON(t *testing.T) {

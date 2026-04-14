@@ -117,6 +117,24 @@ describe('alignment', function () {
     tsvErrorTest('exclude-comma-errors', jj)
   })
 
+  // --- Lex error propagation tests ---
+  // Verifies that lex-level errors (unterminated_string, unterminated_comment)
+  // are not masked by generic "unexpected" in any parser state.
+
+  it('lex-errors-default', () => {
+    tsvErrorTest('lex-errors')
+  })
+
+  it('lex-errors-exclude-jsonic-imp', () => {
+    const jj = Jsonic.make({ rule: { exclude: 'jsonic,imp' } })
+    tsvErrorTest('lex-errors', jj)
+  })
+
+  it('lex-errors-exclude-jsonic-imp-comma', () => {
+    const jj = Jsonic.make({ rule: { exclude: 'jsonic,imp,comma' } })
+    tsvErrorTest('lex-errors', jj)
+  })
+
   // --- Direct TS tests for option-dependent features ---
 
   it('map-extend-false', () => {
