@@ -636,6 +636,16 @@ func MapToOptions(m map[string]any) Options {
 					vd := &ValueDef{}
 					if val, ok := vv["val"]; ok {
 						vd.Val = val
+						// If val is a function, store it as ValFunc for regex matches.
+						if fn, ok := val.(func([]string) any); ok {
+							vd.ValFunc = fn
+						}
+					}
+					if m, ok := vv["match"].(*regexp.Regexp); ok {
+						vd.Match = m
+					}
+					if c, ok := vv["consume"].(bool); ok {
+						vd.Consume = c
 					}
 					opts.Value.Def[k] = vd
 				case nil, bool:
@@ -661,6 +671,10 @@ func MapToOptions(m map[string]any) Options {
 		}
 		if fn, ok := nm["exclude"].(func(string) bool); ok {
 			opts.Number.Exclude = fn
+		} else if re, ok := nm["exclude"].(*regexp.Regexp); ok {
+			opts.Number.Exclude = func(s string) bool {
+				return re.MatchString(s)
+			}
 		}
 	}
 
@@ -717,6 +731,57 @@ func MapToOptions(m map[string]any) Options {
 		opts.Safe = &SafeOptions{}
 		if key, ok := safe["key"].(bool); ok {
 			opts.Safe.Key = &key
+		}
+	}
+
+	// Match options (TS: options.match)
+	if mm, ok := m["match"].(map[string]any); ok {
+		opts.Match = &MatchOptions{}
+		if lex, ok := mm["lex"].(bool); ok {
+			opts.Match.Lex = &lex
+		}
+		if tok, ok := mm["token"].(map[string]any); ok {
+			opts.Match.Token = make(map[string]*regexp.Regexp, len(tok))
+			for name, v := range tok {
+				if re, ok := v.(*regexp.Regexp); ok {
+					opts.Match.Token[name] = re
+				}
+			}
+		}
+		if val, ok := mm["value"].(map[string]any); ok {
+			opts.Match.Value = make(map[string]*MatchValueSpec, len(val))
+			for name, v := range val {
+				if spec, ok := v.(map[string]any); ok {
+					mvs := &MatchValueSpec{}
+					if re, ok := spec["match"].(*regexp.Regexp); ok {
+						mvs.Match = re
+					}
+					if fn, ok := spec["val"].(func([]string) any); ok {
+						mvs.Val = fn
+					}
+					opts.Match.Value[name] = mvs
+				}
+			}
+		}
+	}
+
+	// TokenSet options (TS: options.tokenSet)
+	if ts, ok := m["tokenSet"].(map[string]any); ok {
+		opts.TokenSet = make(map[string][]string, len(ts))
+		for name, v := range ts {
+			switch arr := v.(type) {
+			case []any:
+				var names []string
+				for _, item := range arr {
+					if s, ok := item.(string); ok {
+						names = append(names, s)
+					}
+					// nil entries are skipped (matching TS where null entries are filtered)
+				}
+				opts.TokenSet[name] = names
+			case []string:
+				opts.TokenSet[name] = arr
+			}
 		}
 	}
 

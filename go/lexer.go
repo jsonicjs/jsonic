@@ -1,9 +1,16 @@
 package jsonic
 
 import (
+	"regexp"
 	"sort"
 	"strings"
 )
+
+// MatchValueEntry holds a resolved match.value matcher entry.
+type MatchValueEntry struct {
+	Match *regexp.Regexp
+	Val   func([]string) any
+}
 
 // Lex is the lexer that produces tokens from source text.
 type Lex struct {
@@ -48,6 +55,15 @@ type LexConfig struct {
 	// Value definitions: keyword → value (e.g. "true" → true)
 	// If nil, uses built-in defaults (true, false, null).
 	ValueDef map[string]any
+
+	// ValueDefRe holds regex-processed value definitions (TS: cfg.value.defre).
+	// These are value defs with a Match regexp, checked after exact matches fail.
+	ValueDefRe map[string]*ValueDef
+
+	// Match options (TS: cfg.match)
+	MatchLex          bool                          // Enable custom matching. Default: false.
+	MatchTokens       map[Tin]*regexp.Regexp         // Custom token tin → regexp.
+	MatchValues       []*MatchValueEntry             // Custom value matchers.
 
 	// Number options
 	NumberExclude func(string) bool // Exclude certain number-like strings.
@@ -313,7 +329,14 @@ func (l *Lex) nextRaw(rule *Rule) *Token {
 	}
 
 	// Try matchers in order (matching TS lex.match ordering):
-	// custom(<2e6), fixed(2e6), space(3e6), line(4e6), string(5e6), comment(6e6), number(7e6), text(8e6)
+	// match(1e6), custom(<2e6), fixed(2e6), space(3e6), line(4e6), string(5e6), comment(6e6), number(7e6), text(8e6)
+
+	// Match matcher (priority 1e6) — regexp-based token and value matching.
+	if l.Config.MatchLex {
+		if tkn := l.matchMatch(rule); tkn != nil {
+			return tkn
+		}
+	}
 
 	// Run custom matchers with priority < 2000000 (before fixed).
 	for _, m := range l.Config.CustomMatchers {
@@ -386,6 +409,76 @@ func (l *Lex) nextRaw(rule *Rule) *Token {
 	}
 
 	// No matcher matched
+	return nil
+}
+
+// matchMatch implements the match matcher (TS: makeMatchMatcher at priority 1e6).
+// Handles both match.value (regexp → #VL) and match.token (regexp → custom token).
+func (l *Lex) matchMatch(rule *Rule) *Token {
+	if l.pnt.SI >= l.pnt.Len {
+		return nil
+	}
+
+	fwd := l.Src[l.pnt.SI:]
+
+	// Match values first (TS: valueMatchers loop).
+	for _, vm := range l.Config.MatchValues {
+		if vm.Match != nil {
+			res := vm.Match.FindStringSubmatch(fwd)
+			if res != nil && len(res[0]) > 0 {
+				msrc := res[0]
+				mlen := len(msrc)
+				var val any
+				if vm.Val != nil {
+					val = vm.Val(res)
+				} else {
+					val = msrc
+				}
+				tkn := l.Token("#VL", TinVL, val, msrc)
+				l.pnt.SI += mlen
+				l.pnt.CI += mlen
+				return tkn
+			}
+		}
+	}
+
+	// Match tokens (TS: tokenMatchers loop).
+	// Only match if the token type is expected in the current rule position.
+	if rule != nil && rule.Spec != nil {
+		var alts []*AltSpec
+		if rule.State == OPEN {
+			alts = rule.Spec.Open
+		} else {
+			alts = rule.Spec.Close
+		}
+
+		for tin, re := range l.Config.MatchTokens {
+			if re == nil {
+				continue
+			}
+			// Check if this Tin is expected at position 0 in any alt.
+			expected := false
+			for _, alt := range alts {
+				if len(alt.S) > 0 && tinMatch(tin, alt.S[0]) {
+					expected = true
+					break
+				}
+			}
+			if !expected {
+				continue
+			}
+
+			res := re.FindString(fwd)
+			if res != "" {
+				name := l.tinNameFor(tin)
+				tkn := l.Token(name, tin, res, res)
+				l.pnt.SI += len(res)
+				l.pnt.CI += len(res)
+				return tkn
+			}
+		}
+	}
+
 	return nil
 }
 
@@ -1111,12 +1204,42 @@ func (l *Lex) matchText() *Token {
 	// Check for value keywords
 	if l.Config.ValueLex {
 		if l.Config.ValueDef != nil {
-			// Custom value definitions
+			// Custom value definitions (exact match)
 			if val, ok := l.Config.ValueDef[msrc]; ok {
 				tkn := l.Token("#VL", TinVL, val, msrc)
 				l.pnt.SI += mlen
 				l.pnt.CI += mlen
 				return tkn
+			}
+
+			// Regex-processed value definitions (TS: cfg.value.defre)
+			if len(l.Config.ValueDefRe) > 0 {
+				for _, vspec := range l.Config.ValueDefRe {
+					if vspec.Match != nil {
+						var matchSrc string
+						if vspec.Consume {
+							matchSrc = src[start:]
+						} else {
+							matchSrc = msrc
+						}
+						res := vspec.Match.FindStringSubmatch(matchSrc)
+						if res != nil && (vspec.Consume || len(res[0]) == len(msrc)) {
+							remsrc := res[0]
+							var val any
+							if vspec.ValFunc != nil {
+								val = vspec.ValFunc(res)
+							} else if vspec.Val != nil {
+								val = vspec.Val
+							} else {
+								val = remsrc
+							}
+							tkn := l.Token("#VL", TinVL, val, remsrc)
+							l.pnt.SI = start + len(remsrc)
+							l.pnt.CI += len(remsrc)
+							return tkn
+						}
+					}
+				}
 			}
 		} else {
 			// Default value keywords (matching TS: true, false, null only)

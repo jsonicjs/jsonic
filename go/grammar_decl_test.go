@@ -858,3 +858,613 @@ func TestRuleThenOptionsThenParse(t *testing.T) {
 		t.Errorf("custom rule action should have captured hello, got %q", customVal)
 	}
 }
+
+// === Regexp support tests (parity with TS grammar.test.js) ===
+
+// TestGrammarRegexNumberExclude mirrors TS "options-regex-number-exclude".
+// Uses @/…/ in OptionsMap to specify a RegExp for number.exclude.
+// Uses ^0[0-9]+$ which correctly matches leading-zero numbers like "01".
+func TestGrammarRegexNumberExclude(t *testing.T) {
+	j := Make()
+	mustGrammar(t, j, &GrammarSpec{
+		OptionsMap: map[string]any{
+			"number": map[string]any{
+				"exclude": "@/^0[0-9]+$/",
+			},
+		},
+	})
+
+	result, err := j.Parse("a:0")
+	if err != nil {
+		t.Fatal(err)
+	}
+	m := result.(map[string]any)
+	if m["a"] != float64(0) {
+		t.Errorf("expected a:0, got %v", m["a"])
+	}
+
+	result, err = j.Parse("a:01")
+	if err != nil {
+		t.Fatal(err)
+	}
+	m = result.(map[string]any)
+	if m["a"] != "01" {
+		t.Errorf("expected a:'01' (text), got %v (%T)", m["a"], m["a"])
+	}
+
+	result, err = j.Parse("a:123")
+	if err != nil {
+		t.Fatal(err)
+	}
+	m = result.(map[string]any)
+	if m["a"] != float64(123) {
+		t.Errorf("expected a:123, got %v", m["a"])
+	}
+}
+
+// TestGrammarRegexNumberExcludeTyped tests number.exclude with a *regexp.Regexp
+// via the typed Options API (not OptionsMap).
+func TestGrammarRegexNumberExcludeTyped(t *testing.T) {
+	re := regexp.MustCompile(`^0[0-9]+$`)
+	j := Make()
+	mustGrammar(t, j, &GrammarSpec{
+		Options: &Options{
+			Number: &NumberOptions{
+				Exclude: func(s string) bool {
+					return re.MatchString(s)
+				},
+			},
+		},
+	})
+
+	result, err := j.Parse("a:01")
+	if err != nil {
+		t.Fatal(err)
+	}
+	m := result.(map[string]any)
+	if m["a"] != "01" {
+		t.Errorf("expected a:'01' (text), got %v (%T)", m["a"], m["a"])
+	}
+}
+
+// TestGrammarRegexValueMatch mirrors TS "options-regex-value-match".
+// Uses @/…/ in value.def with a FuncRef val for regex-matched values.
+func TestGrammarRegexValueMatch(t *testing.T) {
+	j := Make()
+	mustGrammar(t, j, &GrammarSpec{
+		Ref: map[FuncRef]any{
+			"@valOn":  func(match []string) any { return true },
+			"@valOff": func(match []string) any { return false },
+		},
+		OptionsMap: map[string]any{
+			"value": map[string]any{
+				"def": map[string]any{
+					"on":  map[string]any{"val": "@valOn", "match": "@/^on$/i"},
+					"off": map[string]any{"val": "@valOff", "match": "@/^off$/i"},
+				},
+			},
+		},
+	})
+
+	result, err := j.Parse("a:ON,b:Off,c:1")
+	if err != nil {
+		t.Fatal(err)
+	}
+	m := result.(map[string]any)
+	if m["a"] != true {
+		t.Errorf("expected a:true, got %v", m["a"])
+	}
+	if m["b"] != false {
+		t.Errorf("expected b:false, got %v", m["b"])
+	}
+	if m["c"] != float64(1) {
+		t.Errorf("expected c:1, got %v", m["c"])
+	}
+
+	result, err = j.Parse("a:on,b:OFF")
+	if err != nil {
+		t.Fatal(err)
+	}
+	m = result.(map[string]any)
+	if m["a"] != true {
+		t.Errorf("expected a:true, got %v", m["a"])
+	}
+	if m["b"] != false {
+		t.Errorf("expected b:false, got %v", m["b"])
+	}
+}
+
+// TestGrammarRegexValueMatchTyped tests value.def Match via typed API.
+func TestGrammarRegexValueMatchTyped(t *testing.T) {
+	j := Make()
+	lex := true
+	mustGrammar(t, j, &GrammarSpec{
+		Options: &Options{
+			Value: &ValueOptions{
+				Lex: &lex,
+				Def: map[string]*ValueDef{
+					"on": {
+						Match:   regexp.MustCompile(`(?i)^on$`),
+						ValFunc: func(m []string) any { return true },
+					},
+					"off": {
+						Match:   regexp.MustCompile(`(?i)^off$`),
+						ValFunc: func(m []string) any { return false },
+					},
+				},
+			},
+		},
+	})
+
+	result, err := j.Parse("a:ON,b:Off")
+	if err != nil {
+		t.Fatal(err)
+	}
+	m := result.(map[string]any)
+	if m["a"] != true {
+		t.Errorf("expected a:true, got %v", m["a"])
+	}
+	if m["b"] != false {
+		t.Errorf("expected b:false, got %v", m["b"])
+	}
+}
+
+// TestGrammarRegexWithFlags mirrors TS "options-regex-with-flags".
+func TestGrammarRegexWithFlags(t *testing.T) {
+	j := Make()
+	mustGrammar(t, j, &GrammarSpec{
+		Ref: map[FuncRef]any{
+			"@valYes": func(match []string) any { return "YES!" },
+		},
+		OptionsMap: map[string]any{
+			"value": map[string]any{
+				"def": map[string]any{
+					"yes": map[string]any{"val": "@valYes", "match": "@/^yes$/i"},
+				},
+			},
+		},
+	})
+
+	// The /i flag makes it case-insensitive.
+	result, err := j.Parse("a:YES")
+	if err != nil {
+		t.Fatal(err)
+	}
+	m := result.(map[string]any)
+	if m["a"] != "YES!" {
+		t.Errorf("expected a:YES!, got %v", m["a"])
+	}
+
+	result, err = j.Parse("a:Yes")
+	if err != nil {
+		t.Fatal(err)
+	}
+	m = result.(map[string]any)
+	if m["a"] != "YES!" {
+		t.Errorf("expected a:YES!, got %v", m["a"])
+	}
+
+	result, err = j.Parse("a:yes")
+	if err != nil {
+		t.Fatal(err)
+	}
+	m = result.(map[string]any)
+	if m["a"] != "YES!" {
+		t.Errorf("expected a:YES!, got %v", m["a"])
+	}
+}
+
+// TestGrammarRegexNoFlags mirrors TS "options-regex-no-flags".
+func TestGrammarRegexNoFlags(t *testing.T) {
+	j := Make()
+	mustGrammar(t, j, &GrammarSpec{
+		OptionsMap: map[string]any{
+			"number": map[string]any{
+				"exclude": "@/^0[0-9]+$/",
+			},
+		},
+	})
+
+	result, err := j.Parse("a:0")
+	if err != nil {
+		t.Fatal(err)
+	}
+	m := result.(map[string]any)
+	if m["a"] != float64(0) {
+		t.Errorf("expected a:0, got %v", m["a"])
+	}
+
+	result, err = j.Parse("a:42")
+	if err != nil {
+		t.Fatal(err)
+	}
+	m = result.(map[string]any)
+	if m["a"] != float64(42) {
+		t.Errorf("expected a:42, got %v", m["a"])
+	}
+
+	result, err = j.Parse("a:01")
+	if err != nil {
+		t.Fatal(err)
+	}
+	m = result.(map[string]any)
+	if m["a"] != "01" {
+		t.Errorf("expected a:'01' (text), got %v (%T)", m["a"], m["a"])
+	}
+}
+
+// TestGrammarRegexMixedWithFuncref mirrors TS "options-regex-mixed-with-funcref".
+func TestGrammarRegexMixedWithFuncref(t *testing.T) {
+	j := Make()
+	mustGrammar(t, j, &GrammarSpec{
+		Ref: map[FuncRef]any{
+			"@prepend": func(prev, curr any, r *Rule, ctx *Context) any {
+				ps, pok := prev.(string)
+				cs, cok := curr.(string)
+				if pok && cok {
+					return ps + cs
+				}
+				return curr
+			},
+		},
+		OptionsMap: map[string]any{
+			"map": map[string]any{
+				"merge": "@prepend",
+			},
+			"number": map[string]any{
+				"exclude": "@/^0[0-9]+$/",
+			},
+		},
+	})
+
+	// FuncRef merge: duplicate keys concatenate.
+	result, err := j.Parse("a:x,a:y")
+	if err != nil {
+		t.Fatal(err)
+	}
+	m := result.(map[string]any)
+	if m["a"] != "xy" {
+		t.Errorf("expected a:xy, got %v", m["a"])
+	}
+
+	// RegExp exclude: leading-zero numbers become text.
+	result, err = j.Parse("a:007")
+	if err != nil {
+		t.Fatal(err)
+	}
+	m = result.(map[string]any)
+	if m["a"] != "007" {
+		t.Errorf("expected a:'007' (text), got %v (%T)", m["a"], m["a"])
+	}
+
+	result, err = j.Parse("a:42")
+	if err != nil {
+		t.Fatal(err)
+	}
+	m = result.(map[string]any)
+	if m["a"] != float64(42) {
+		t.Errorf("expected a:42, got %v", m["a"])
+	}
+}
+
+// TestGrammarRegexInArray mirrors TS "options-regex-in-array".
+// @/…/ resolution should work inside arrays (ResolveFuncRefs recurses into slices).
+func TestGrammarRegexInArray(t *testing.T) {
+	j := Make()
+	mustGrammar(t, j, &GrammarSpec{
+		Ref: map[FuncRef]any{
+			"@valT": func(match []string) any { return true },
+			"@valF": func(match []string) any { return false },
+		},
+		OptionsMap: map[string]any{
+			"value": map[string]any{
+				"def": map[string]any{
+					"t": map[string]any{"val": "@valT", "match": "@/^t$/i"},
+					"f": map[string]any{"val": "@valF", "match": "@/^f$/i"},
+				},
+			},
+		},
+	})
+
+	result, err := j.Parse("[T, F, 1]")
+	if err != nil {
+		t.Fatal(err)
+	}
+	arr := result.([]any)
+	if len(arr) != 3 {
+		t.Fatalf("expected 3 elements, got %d", len(arr))
+	}
+	if arr[0] != true {
+		t.Errorf("expected [0]=true, got %v", arr[0])
+	}
+	if arr[1] != false {
+		t.Errorf("expected [1]=false, got %v", arr[1])
+	}
+	if arr[2] != float64(1) {
+		t.Errorf("expected [2]=1, got %v", arr[2])
+	}
+}
+
+// TestGrammarRegexEscapeAtPrefix mirrors TS "options-escape-at-regex-like".
+// @@ prevents @/…/ from being interpreted as a regex.
+func TestGrammarRegexEscapeAtPrefix(t *testing.T) {
+	j := Make()
+	mustGrammar(t, j, &GrammarSpec{
+		OptionsMap: map[string]any{
+			"tag": "@@/not-a-regex/",
+		},
+	})
+
+	if j.Options().Tag != "@/not-a-regex/" {
+		t.Errorf("expected @/not-a-regex/, got %v", j.Options().Tag)
+	}
+}
+
+// TestGrammarRegexMatchToken mirrors TS "options-regex-match-token".
+// Uses @/…/ to specify a RegExp for a custom match token.
+func TestGrammarRegexMatchToken(t *testing.T) {
+	j := Make()
+	mustGrammar(t, j, &GrammarSpec{
+		OptionsMap: map[string]any{
+			"match": map[string]any{
+				"token": map[string]any{
+					"#ID": "@/^[a-zA-Z_][a-zA-Z_0-9]*/",
+				},
+			},
+			"tokenSet": map[string]any{
+				"KEY": []any{"#ST", "#ID"},
+				"VAL": []any{"#TX", "#NR", "#ST", "#VL", "#ID"},
+			},
+		},
+	})
+
+	// 'a' matches #ID and #ID is in KEY, so a:1 parses as a pair.
+	result, err := j.Parse("a:1")
+	if err != nil {
+		t.Fatal(err)
+	}
+	m := result.(map[string]any)
+	if m["a"] != float64(1) {
+		t.Errorf("expected a:1, got %v", m["a"])
+	}
+
+	result, err = j.Parse("foo:bar")
+	if err != nil {
+		t.Fatal(err)
+	}
+	m = result.(map[string]any)
+	if m["foo"] != "bar" {
+		t.Errorf("expected foo:bar, got %v", m["foo"])
+	}
+}
+
+// TestGrammarRegexMatchTokenTyped tests match.token via typed Options API.
+func TestGrammarRegexMatchTokenTyped(t *testing.T) {
+	j := Make()
+	mustGrammar(t, j, &GrammarSpec{
+		Options: &Options{
+			Match: &MatchOptions{
+				Token: map[string]*regexp.Regexp{
+					"#ID": regexp.MustCompile(`^[a-zA-Z_][a-zA-Z_0-9]*`),
+				},
+			},
+			TokenSet: map[string][]string{
+				"KEY": {"#ST", "#ID"},
+				"VAL": {"#TX", "#NR", "#ST", "#VL", "#ID"},
+			},
+		},
+	})
+
+	result, err := j.Parse("a:1")
+	if err != nil {
+		t.Fatal(err)
+	}
+	m := result.(map[string]any)
+	if m["a"] != float64(1) {
+		t.Errorf("expected a:1, got %v", m["a"])
+	}
+}
+
+// TestGrammarRegexMatchValue tests match.value via OptionsMap (declarative form).
+// Note: match.value runs against the forward source (remaining input), so regexps
+// should NOT use $ anchor. Use value.def[name].match for extracted-text matching.
+func TestGrammarRegexMatchValue(t *testing.T) {
+	j := Make()
+	mustGrammar(t, j, &GrammarSpec{
+		Ref: map[FuncRef]any{
+			"@valOn":  func(match []string) any { return true },
+			"@valOff": func(match []string) any { return false },
+		},
+		OptionsMap: map[string]any{
+			"match": map[string]any{
+				"value": map[string]any{
+					// No $ anchor — matches against forward source, not extracted text.
+					"on":  map[string]any{"match": "@/^on/i", "val": "@valOn"},
+					"off": map[string]any{"match": "@/^off/i", "val": "@valOff"},
+				},
+			},
+		},
+	})
+
+	result, err := j.Parse("a:ON,b:off")
+	if err != nil {
+		t.Fatal(err)
+	}
+	m := result.(map[string]any)
+	if m["a"] != true {
+		t.Errorf("expected a:true, got %v", m["a"])
+	}
+	if m["b"] != false {
+		t.Errorf("expected b:false, got %v", m["b"])
+	}
+}
+
+// TestGrammarRegexMatchValueTyped tests match.value via typed Options API.
+func TestGrammarRegexMatchValueTyped(t *testing.T) {
+	j := Make()
+	mustGrammar(t, j, &GrammarSpec{
+		Options: &Options{
+			Match: &MatchOptions{
+				Value: map[string]*MatchValueSpec{
+					"on": {
+						Match: regexp.MustCompile(`(?i)^on`),
+						Val:   func(m []string) any { return true },
+					},
+					"off": {
+						Match: regexp.MustCompile(`(?i)^off`),
+						Val:   func(m []string) any { return false },
+					},
+				},
+			},
+		},
+	})
+
+	result, err := j.Parse("a:ON,b:off")
+	if err != nil {
+		t.Fatal(err)
+	}
+	m := result.(map[string]any)
+	if m["a"] != true {
+		t.Errorf("expected a:true, got %v", m["a"])
+	}
+	if m["b"] != false {
+		t.Errorf("expected b:false, got %v", m["b"])
+	}
+}
+
+// TestResolveFuncRefsRegexInNestedMap verifies @/…/ resolution in nested structures.
+func TestResolveFuncRefsRegexInNestedMap(t *testing.T) {
+	input := map[string]any{
+		"number": map[string]any{
+			"exclude": "@/^0[0-9]+/",
+		},
+		"value": map[string]any{
+			"def": map[string]any{
+				"on": map[string]any{
+					"match": "@/^on$/i",
+				},
+			},
+		},
+	}
+	result := ResolveFuncRefs(input, nil).(map[string]any)
+
+	num := result["number"].(map[string]any)
+	if _, ok := num["exclude"].(*regexp.Regexp); !ok {
+		t.Errorf("number.exclude should be *regexp.Regexp, got %T", num["exclude"])
+	}
+
+	val := result["value"].(map[string]any)
+	def := val["def"].(map[string]any)
+	on := def["on"].(map[string]any)
+	if _, ok := on["match"].(*regexp.Regexp); !ok {
+		t.Errorf("value.def.on.match should be *regexp.Regexp, got %T", on["match"])
+	}
+}
+
+// TestResolveFuncRefsRegexInSlice verifies @/…/ resolution inside slices.
+func TestResolveFuncRefsRegexInSlice(t *testing.T) {
+	input := []any{"@/^test$/i", "@SKIP", "@@at"}
+	result := ResolveFuncRefs(input, nil).([]any)
+
+	if _, ok := result[0].(*regexp.Regexp); !ok {
+		t.Errorf("[0] should be *regexp.Regexp, got %T", result[0])
+	}
+	re := result[0].(*regexp.Regexp)
+	if !re.MatchString("TEST") {
+		t.Error("regex should match TEST (case insensitive)")
+	}
+	if !IsSkip(result[1]) {
+		t.Errorf("[1] should be Skip, got %v", result[1])
+	}
+	if result[2] != "@at" {
+		t.Errorf("[2] expected @at, got %v", result[2])
+	}
+}
+
+// TestMatchTokenNilRegexpNoPanic verifies that a nil *regexp.Regexp entry
+// in Match.Token is skipped during parsing instead of causing a panic.
+func TestMatchTokenNilRegexpNoPanic(t *testing.T) {
+	j := Make()
+	mustGrammar(t, j, &GrammarSpec{
+		Options: &Options{
+			Match: &MatchOptions{
+				Token: map[string]*regexp.Regexp{
+					"#ID": nil,
+				},
+			},
+			TokenSet: map[string][]string{
+				"KEY": {"#ST", "#ID"},
+				"VAL": {"#TX", "#NR", "#ST", "#VL", "#ID"},
+			},
+		},
+	})
+
+	result, err := j.Parse("a:1")
+	if err != nil {
+		t.Fatal(err)
+	}
+	m := result.(map[string]any)
+	if m["a"] != float64(1) {
+		t.Errorf("expected a:1, got %v", m["a"])
+	}
+}
+
+// TestValueDefReUsesValWhenValFuncNil verifies that regex-based value.def
+// entries return ValueDef.Val (not the matched source text) when ValFunc is nil.
+func TestValueDefReUsesValWhenValFuncNil(t *testing.T) {
+	j := Make()
+	lex := true
+	mustGrammar(t, j, &GrammarSpec{
+		Options: &Options{
+			Value: &ValueOptions{
+				Lex: &lex,
+				Def: map[string]*ValueDef{
+					"yes": {
+						Val:   true,
+						Match: regexp.MustCompile(`(?i)^yes$`),
+					},
+					"no": {
+						Val:   false,
+						Match: regexp.MustCompile(`(?i)^no$`),
+					},
+				},
+			},
+		},
+	})
+
+	result, err := j.Parse("a:YES,b:No")
+	if err != nil {
+		t.Fatal(err)
+	}
+	m := result.(map[string]any)
+	if m["a"] != true {
+		t.Errorf("expected a:true, got %v (%T)", m["a"], m["a"])
+	}
+	if m["b"] != false {
+		t.Errorf("expected b:false, got %v (%T)", m["b"], m["b"])
+	}
+}
+
+// TestMatchValueNilSpecNoPanic verifies that nil entries in Match.Value
+// are skipped rather than causing a nil-pointer panic in buildConfig.
+func TestMatchValueNilSpecNoPanic(t *testing.T) {
+	j := Make()
+	mustGrammar(t, j, &GrammarSpec{
+		Options: &Options{
+			Match: &MatchOptions{
+				Value: map[string]*MatchValueSpec{
+					"x": nil,
+				},
+			},
+		},
+	})
+
+	result, err := j.Parse("a:1")
+	if err != nil {
+		t.Fatal(err)
+	}
+	m := result.(map[string]any)
+	if m["a"] != float64(1) {
+		t.Errorf("expected a:1, got %v", m["a"])
+	}
+}

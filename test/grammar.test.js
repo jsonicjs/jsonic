@@ -402,11 +402,12 @@ describe('grammar-options', () => {
 
   it('options-regex-number-exclude', () => {
     // Use @/…/ for number.exclude to reject leading-zero numbers.
+    // Note: ^0[0-9]+$ properly matches "01", "023" etc. but not "0" alone.
     let j = Jsonic.make()
     j.grammar({
       options: {
         number: {
-          exclude: '@/^00+/',
+          exclude: '@/^0[0-9]+$/',
         },
       },
     })
@@ -530,6 +531,56 @@ describe('grammar-options', () => {
     })
 
     assert.deepEqual(j('[T, F, 1]'), [true, false, 1])
+  })
+
+
+  it('options-regex-match-value', () => {
+    // Use @/…/ in match.value for regexp-based value matching.
+    // match.value runs against the forward source, so no $ anchor.
+    let j = Jsonic.make()
+    j.grammar({
+      ref: {
+        '@valOn': () => true,
+        '@valOff': () => false,
+      },
+      options: {
+        match: {
+          value: {
+            on: { match: '@/^on/i', val: '@valOn' },
+            off: { match: '@/^off/i', val: '@valOff' },
+          },
+        },
+      },
+    })
+
+    assert.deepEqual(j('a:ON,b:off'), { a: true, b: false })
+    assert.deepEqual(j('a:on'), { a: true })
+  })
+
+
+  it('options-regex-resolve-nested', () => {
+    // @/…/ resolution works inside nested option objects.
+    let j = Jsonic.make()
+    j.grammar({
+      ref: {
+        '@valYes': () => 'yes!',
+      },
+      options: {
+        value: {
+          def: {
+            y: { val: '@valYes', match: '@/^y$/i' },
+          },
+        },
+        number: {
+          exclude: '@/^0[0-9]+$/',
+        },
+      },
+    })
+
+    // Both nested @/…/ patterns resolve correctly.
+    assert.deepEqual(j('a:Y'), { a: 'yes!' })
+    assert.deepEqual(j('a:01'), { a: '01' })
+    assert.deepEqual(j('a:42'), { a: 42 })
   })
 
 
