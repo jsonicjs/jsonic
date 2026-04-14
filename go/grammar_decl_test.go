@@ -1381,6 +1381,34 @@ func TestResolveFuncRefsRegexInSlice(t *testing.T) {
 	}
 }
 
+// TestMatchTokenNilRegexpNoPanic verifies that a nil *regexp.Regexp entry
+// in Match.Token is skipped during parsing instead of causing a panic.
+func TestMatchTokenNilRegexpNoPanic(t *testing.T) {
+	j := Make()
+	mustGrammar(t, j, &GrammarSpec{
+		Options: &Options{
+			Match: &MatchOptions{
+				Token: map[string]*regexp.Regexp{
+					"#ID": nil,
+				},
+			},
+			TokenSet: map[string][]string{
+				"KEY": {"#ST", "#ID"},
+				"VAL": {"#TX", "#NR", "#ST", "#VL", "#ID"},
+			},
+		},
+	})
+
+	result, err := j.Parse("a:1")
+	if err != nil {
+		t.Fatal(err)
+	}
+	m := result.(map[string]any)
+	if m["a"] != float64(1) {
+		t.Errorf("expected a:1, got %v", m["a"])
+	}
+}
+
 // TestMatchValueNilSpecNoPanic verifies that nil entries in Match.Value
 // are skipped rather than causing a nil-pointer panic in buildConfig.
 func TestMatchValueNilSpecNoPanic(t *testing.T) {

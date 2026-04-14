@@ -453,6 +453,9 @@ func (l *Lex) matchMatch(rule *Rule) *Token {
 		}
 
 		for tin, re := range l.Config.MatchTokens {
+			if re == nil {
+				continue
+			}
 			// Check if this Tin is expected at position 0 in any alt.
 			expected := false
 			for _, alt := range alts {
