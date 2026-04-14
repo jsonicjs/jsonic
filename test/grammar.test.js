@@ -737,6 +737,31 @@ describe('grammar-options', () => {
   })
 
 
+  it('group-tags-valid-format', () => {
+    // All group tags (g fields) in grammar alts must be comma-separated
+    // lowercase identifiers [a-z] only. No dots, spaces, or other chars.
+    // Regression guard for the "elem.jsonic" typo.
+    let j = Jsonic.make()
+    let rules = j.internal().parser.rule()
+    let tagRe = /^[a-z]+$/
+    for (let [name, rs] of Object.entries(rules)) {
+      for (let alt of [...(rs.def.open || []), ...(rs.def.close || [])]) {
+        let gstr = alt.g ? (typeof alt.g === 'string' ? alt.g : String(alt.g)) : ''
+        if (gstr.length > 0) {
+          let tags = gstr.split(',')
+          for (let tag of tags) {
+            assert.ok(
+              tagRe.test(tag),
+              `rule ${name}: invalid group tag "${tag}" in g="${gstr}" ` +
+              `(must be comma-separated lowercase [a-z] identifiers)`
+            )
+          }
+        }
+      }
+    }
+  })
+
+
   it('skip-sentinel-exported', () => {
     // SKIP is available on the Jsonic object as an immutable symbol.
     assert.equal(typeof Jsonic.SKIP, 'symbol')
