@@ -1380,3 +1380,27 @@ func TestResolveFuncRefsRegexInSlice(t *testing.T) {
 		t.Errorf("[2] expected @at, got %v", result[2])
 	}
 }
+
+// TestMatchValueNilSpecNoPanic verifies that nil entries in Match.Value
+// are skipped rather than causing a nil-pointer panic in buildConfig.
+func TestMatchValueNilSpecNoPanic(t *testing.T) {
+	j := Make()
+	mustGrammar(t, j, &GrammarSpec{
+		Options: &Options{
+			Match: &MatchOptions{
+				Value: map[string]*MatchValueSpec{
+					"x": nil,
+				},
+			},
+		},
+	})
+
+	result, err := j.Parse("a:1")
+	if err != nil {
+		t.Fatal(err)
+	}
+	m := result.(map[string]any)
+	if m["a"] != float64(1) {
+		t.Errorf("expected a:1, got %v", m["a"])
+	}
+}

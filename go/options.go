@@ -545,6 +545,9 @@ func buildConfig(o *Options) *LexConfig {
 		if o.Match.Value != nil {
 			cfg.MatchValues = make([]*MatchValueEntry, 0, len(o.Match.Value))
 			for _, spec := range o.Match.Value {
+				if spec == nil {
+					continue
+				}
 				cfg.MatchValues = append(cfg.MatchValues, &MatchValueEntry{
 					Match: spec.Match,
 					Val:   spec.Val,
