@@ -334,7 +334,18 @@ func (l *Lex) nextRaw(rule *Rule) *Token {
 	}
 
 	// Try matchers in order (matching TS lex.match ordering):
-	// match(1e6), custom(<2e6), fixed(2e6), space(3e6), line(4e6), string(5e6), comment(6e6), number(7e6), text(8e6)
+	// match(1e6), fixed(2e6), space(3e6), line(4e6), string(5e6), comment(6e6), number(7e6), text(8e6)
+	// Custom matchers are interleaved by priority (already sorted).
+
+	cI := 0 // index into CustomMatchers
+
+	// Run custom matchers with priority before match (< 1e6).
+	for cI < len(l.Config.CustomMatchers) && l.Config.CustomMatchers[cI].Priority < 1000000 {
+		if tkn := l.Config.CustomMatchers[cI].Match(l, rule); tkn != nil {
+			return tkn
+		}
+		cI++
+	}
 
 	// Match matcher (priority 1e6) — regexp-based token and value matching.
 	if l.Config.MatchLex {
@@ -343,14 +354,12 @@ func (l *Lex) nextRaw(rule *Rule) *Token {
 		}
 	}
 
-	// Run custom matchers with priority < 2000000 (before fixed).
-	for _, m := range l.Config.CustomMatchers {
-		if m.Priority >= 2000000 {
-			break
-		}
-		if tkn := m.Match(l, rule); tkn != nil {
+	// Run custom matchers with priority before fixed (< 2e6).
+	for cI < len(l.Config.CustomMatchers) && l.Config.CustomMatchers[cI].Priority < 2000000 {
+		if tkn := l.Config.CustomMatchers[cI].Match(l, rule); tkn != nil {
 			return tkn
 		}
+		cI++
 	}
 
 	if l.Config.FixedLex {
@@ -360,6 +369,15 @@ func (l *Lex) nextRaw(rule *Rule) *Token {
 			} else if tkn := l.matchFixed(); tkn != nil { return tkn }
 		} else if tkn := l.matchFixed(); tkn != nil { return tkn }
 	}
+
+	// Run custom matchers with priority before space (< 3e6).
+	for cI < len(l.Config.CustomMatchers) && l.Config.CustomMatchers[cI].Priority < 3000000 {
+		if tkn := l.Config.CustomMatchers[cI].Match(l, rule); tkn != nil {
+			return tkn
+		}
+		cI++
+	}
+
 	if l.Config.SpaceLex {
 		if l.Config.SpaceCheck != nil {
 			if cr := l.Config.SpaceCheck(l); cr != nil && cr.Done {
@@ -367,6 +385,15 @@ func (l *Lex) nextRaw(rule *Rule) *Token {
 			} else if tkn := l.matchSpace(); tkn != nil { return tkn }
 		} else if tkn := l.matchSpace(); tkn != nil { return tkn }
 	}
+
+	// Run custom matchers with priority before line (< 4e6).
+	for cI < len(l.Config.CustomMatchers) && l.Config.CustomMatchers[cI].Priority < 4000000 {
+		if tkn := l.Config.CustomMatchers[cI].Match(l, rule); tkn != nil {
+			return tkn
+		}
+		cI++
+	}
+
 	if l.Config.LineLex {
 		if l.Config.LineCheck != nil {
 			if cr := l.Config.LineCheck(l); cr != nil && cr.Done {
@@ -374,6 +401,15 @@ func (l *Lex) nextRaw(rule *Rule) *Token {
 			} else if tkn := l.matchLine(); tkn != nil { return tkn }
 		} else if tkn := l.matchLine(); tkn != nil { return tkn }
 	}
+
+	// Run custom matchers with priority before string (< 5e6).
+	for cI < len(l.Config.CustomMatchers) && l.Config.CustomMatchers[cI].Priority < 5000000 {
+		if tkn := l.Config.CustomMatchers[cI].Match(l, rule); tkn != nil {
+			return tkn
+		}
+		cI++
+	}
+
 	if l.Config.StringLex {
 		if l.Config.StringCheck != nil {
 			if cr := l.Config.StringCheck(l); cr != nil && cr.Done {
@@ -381,6 +417,15 @@ func (l *Lex) nextRaw(rule *Rule) *Token {
 			} else if tkn := l.matchString(); tkn != nil { return tkn }
 		} else if tkn := l.matchString(); tkn != nil { return tkn }
 	}
+
+	// Run custom matchers with priority before comment (< 6e6).
+	for cI < len(l.Config.CustomMatchers) && l.Config.CustomMatchers[cI].Priority < 6000000 {
+		if tkn := l.Config.CustomMatchers[cI].Match(l, rule); tkn != nil {
+			return tkn
+		}
+		cI++
+	}
+
 	if l.Config.CommentLex {
 		if l.Config.CommentCheck != nil {
 			if cr := l.Config.CommentCheck(l); cr != nil && cr.Done {
@@ -388,6 +433,15 @@ func (l *Lex) nextRaw(rule *Rule) *Token {
 			} else if tkn := l.matchComment(); tkn != nil { return tkn }
 		} else if tkn := l.matchComment(); tkn != nil { return tkn }
 	}
+
+	// Run custom matchers with priority before number (< 7e6).
+	for cI < len(l.Config.CustomMatchers) && l.Config.CustomMatchers[cI].Priority < 7000000 {
+		if tkn := l.Config.CustomMatchers[cI].Match(l, rule); tkn != nil {
+			return tkn
+		}
+		cI++
+	}
+
 	if l.Config.NumberLex {
 		if l.Config.NumberCheck != nil {
 			if cr := l.Config.NumberCheck(l); cr != nil && cr.Done {
@@ -395,6 +449,15 @@ func (l *Lex) nextRaw(rule *Rule) *Token {
 			} else if tkn := l.matchNumber(); tkn != nil { return tkn }
 		} else if tkn := l.matchNumber(); tkn != nil { return tkn }
 	}
+
+	// Run custom matchers with priority before text (< 8e6).
+	for cI < len(l.Config.CustomMatchers) && l.Config.CustomMatchers[cI].Priority < 8000000 {
+		if tkn := l.Config.CustomMatchers[cI].Match(l, rule); tkn != nil {
+			return tkn
+		}
+		cI++
+	}
+
 	if l.Config.TextLex || l.Config.ValueLex {
 		if l.Config.TextCheck != nil {
 			if cr := l.Config.TextCheck(l); cr != nil && cr.Done {
@@ -403,14 +466,12 @@ func (l *Lex) nextRaw(rule *Rule) *Token {
 		} else if tkn := l.matchText(); tkn != nil { return tkn }
 	}
 
-	// Run custom matchers with priority >= 8000000 (after text).
-	for _, m := range l.Config.CustomMatchers {
-		if m.Priority < 8000000 {
-			continue
-		}
-		if tkn := m.Match(l, rule); tkn != nil {
+	// Run remaining custom matchers (priority >= 8e6).
+	for cI < len(l.Config.CustomMatchers) {
+		if tkn := l.Config.CustomMatchers[cI].Match(l, rule); tkn != nil {
 			return tkn
 		}
+		cI++
 	}
 
 	// No matcher matched

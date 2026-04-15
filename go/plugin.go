@@ -74,6 +74,26 @@ func (j *Jsonic) Use(plugin Plugin, opts ...map[string]any) error {
 	return plugin(j, pluginOpts)
 }
 
+// UseDefaults registers and invokes a plugin, merging default options with
+// user-provided options before calling the plugin. This matches the TS pattern
+// where plugins have a .defaults property:
+//
+//	deep({}, plugin.defaults || {}, plugin_options || {})
+//
+// Example:
+//
+//	j := jsonic.Make()
+//	err := j.UseDefaults(hoover.Hoover, hoover.Defaults, map[string]any{...})
+func (j *Jsonic) UseDefaults(plugin Plugin, defaults map[string]any, opts ...map[string]any) error {
+	pluginOpts := Deep(map[string]any{}, defaults).(map[string]any)
+	if len(opts) > 0 && opts[0] != nil {
+		pluginOpts = Deep(pluginOpts, opts[0]).(map[string]any)
+	}
+
+	j.plugins = append(j.plugins, pluginEntry{plugin: plugin, opts: pluginOpts})
+	return plugin(j, pluginOpts)
+}
+
 // Rule modifies or creates a grammar rule by name.
 // The definer callback receives the RuleSpec and can modify its Open/Close
 // alternates, and BO/BC/AO/AC state actions.
