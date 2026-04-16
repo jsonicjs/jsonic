@@ -225,10 +225,17 @@ function configure(jsonic, incfg, opts) {
     cfg.value = {
         lex: !!opts.value?.lex,
         def: entries(opts.value?.def || {}).reduce((a, e) => (null == e[1] || false === e[1] || e[1].match || (a[e[0]] = e[1]), a), {}),
-        defre: entries(opts.value?.def || {}).reduce((a, e) => (e[1] &&
-            e[1].match &&
-            ((a[e[0]] = e[1]), (a[e[0]].consume = !!a[e[0]].consume)),
-            a), {}),
+        // Pre-sort by name at configure time so iteration at lex time is
+        // deterministic across runtimes (does not depend on object key order).
+        defre: entries(opts.value?.def || {})
+            .filter(([, spec]) => spec && spec.match)
+            .map(([name, spec]) => ({
+            name,
+            val: spec.val,
+            match: spec.match,
+            consume: !!spec.consume,
+        }))
+            .sort((a, b) => (a.name < b.name ? -1 : a.name > b.name ? 1 : 0)),
         // TODO: just testing, move to a plugin for extended values
         // 'undefined': { v: undefined },
         // 'NaN': { v: NaN },

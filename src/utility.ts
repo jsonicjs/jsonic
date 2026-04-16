@@ -271,15 +271,17 @@ function configure(
       ),
       {} as any,
     ),
-    defre: entries(opts.value?.def || {}).reduce(
-      (a: any, e: any[]) => (
-        e[1] &&
-        e[1].match &&
-        ((a[e[0]] = e[1]), (a[e[0]].consume = !!a[e[0]].consume)),
-        a
-      ),
-      {} as any,
-    ),
+    // Pre-sort by name at configure time so iteration at lex time is
+    // deterministic across runtimes (does not depend on object key order).
+    defre: entries(opts.value?.def || {})
+      .filter(([, spec]: [string, any]) => spec && spec.match)
+      .map(([name, spec]: [string, any]) => ({
+        name,
+        val: spec.val,
+        match: spec.match,
+        consume: !!spec.consume,
+      }))
+      .sort((a, b) => (a.name < b.name ? -1 : a.name > b.name ? 1 : 0)),
 
     // TODO: just testing, move to a plugin for extended values
     // 'undefined': { v: undefined },

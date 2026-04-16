@@ -193,28 +193,80 @@ func (j *Jsonic) FixedTin(tin Tin) string {
 	return ""
 }
 
-// AddMatcher adds a custom lexer matcher with the given name and priority.
-// Matchers are tried in priority order (lower first). Built-in matchers use:
+// registerMatchSpecs materializes the factories in opts.Lex.Match into
+// LexMatchers and appends them to Config.CustomMatchers, keeping the slice
+// sorted by priority (lower first). Built-in matcher priorities:
 //
 //	fixed=2000000, space=3000000, line=4000000, string=5000000,
 //	comment=6000000, number=7000000, text=8000000
 //
-// Use priority < 2000000 to run before all built-ins (matching TS match behavior).
-// The matcher receives the current parsing rule for context-sensitive lexing.
-// Returns the Jsonic instance for chaining.
-func (j *Jsonic) AddMatcher(name string, priority int, matcher LexMatcher) *Jsonic {
-	entry := &MatcherEntry{
-		Name:     name,
-		Priority: priority,
-		Match:    matcher,
+// Use Order < 2000000 to run before all built-ins (matching TS match behavior).
+func (j *Jsonic) registerMatchSpecs(opts *Options) {
+	if opts.Lex == nil || opts.Lex.Match == nil {
+		return
 	}
-	j.parser.Config.CustomMatchers = append(j.parser.Config.CustomMatchers, entry)
-
-	// Keep sorted by priority.
+	byName := make(map[string]int, len(j.parser.Config.CustomMatchers))
+	for i, m := range j.parser.Config.CustomMatchers {
+		byName[m.Name] = i
+	}
+	for name, spec := range opts.Lex.Match {
+		if spec == nil || spec.Make == nil {
+			continue
+		}
+		matcher := spec.Make(j.parser.Config, j.options)
+		if matcher == nil {
+			continue
+		}
+		entry := &MatcherEntry{Name: name, Priority: spec.Order, Match: matcher}
+		if idx, ok := byName[name]; ok {
+			j.parser.Config.CustomMatchers[idx] = entry
+		} else {
+			j.parser.Config.CustomMatchers = append(j.parser.Config.CustomMatchers, entry)
+			byName[name] = len(j.parser.Config.CustomMatchers) - 1
+		}
+	}
 	sort.Slice(j.parser.Config.CustomMatchers, func(i, k int) bool {
 		return j.parser.Config.CustomMatchers[i].Priority < j.parser.Config.CustomMatchers[k].Priority
 	})
-	return j
+}
+
+// applyFixedTokens updates the lexer's fixed-token table from opts.Fixed.Token.
+// Keys are token names, values are pointers to the intended source string:
+//   - non-nil: remove any existing src→tin mapping for that name, then set
+//     *srcPtr → tin. Unknown names are registered as new tokens.
+//   - nil: remove any existing src→tin mapping(s) for that name.
+//
+// Mirrors the TS `options.fixed.token` semantics (StrMap with null = delete).
+func (j *Jsonic) applyFixedTokens(opts *Options) {
+	if opts.Fixed == nil || opts.Fixed.Token == nil {
+		return
+	}
+	if j.parser.Config.FixedTokens == nil {
+		j.parser.Config.FixedTokens = make(map[string]Tin)
+	}
+	changed := false
+	for name, srcPtr := range opts.Fixed.Token {
+		tin, ok := j.tinByName[name]
+		if !ok {
+			if srcPtr == nil {
+				continue // nothing to delete for an unknown name
+			}
+			tin = j.Token(name) // allocate
+		}
+		for src, t := range j.parser.Config.FixedTokens {
+			if t == tin {
+				delete(j.parser.Config.FixedTokens, src)
+				changed = true
+			}
+		}
+		if srcPtr != nil && *srcPtr != "" {
+			j.parser.Config.FixedTokens[*srcPtr] = tin
+			changed = true
+		}
+	}
+	if changed {
+		j.parser.Config.SortFixedTokens()
+	}
 }
 
 
@@ -228,7 +280,7 @@ func (j *Jsonic) Plugins() []Plugin {
 }
 
 // Config returns the parser's LexConfig for direct inspection or modification.
-// Use with care — prefer Token(), Rule(), and AddMatcher() for most plugin work.
+// Use with care — prefer Token(), Rule(), and options.lex.match for most work.
 func (j *Jsonic) Config() *LexConfig {
 	return j.parser.Config
 }
@@ -481,7 +533,14 @@ func (j *Jsonic) SetOptions(opts Options) *Jsonic {
 	}
 	if len(j.parser.Config.MatchValues) > 0 {
 		cfg.MatchValues = append(cfg.MatchValues, j.parser.Config.MatchValues...)
+		// Re-sort: the preserved entries may break the name-ascending order
+		// built by buildConfig. Keep lex-time iteration deterministic.
+		sort.Slice(cfg.MatchValues, func(i, k int) bool {
+			return cfg.MatchValues[i].Name < cfg.MatchValues[k].Name
+		})
 	}
+	// Re-project the merged MatchTokens map to its sorted view.
+	cfg.RebuildMatchTokensSorted()
 
 	// Update config in-place to preserve pointer identity.
 	// Grammar closures capture the original *LexConfig pointer, so updating
@@ -507,12 +566,10 @@ func (j *Jsonic) SetOptions(opts Options) *Jsonic {
 	}
 
 	// Apply lex.match specs: create matchers from MakeLexMatcher factories.
-	if opts.Lex != nil && opts.Lex.Match != nil {
-		for name, spec := range opts.Lex.Match {
-			matcher := spec.Make(j.parser.Config, j.options)
-			j.AddMatcher(name, spec.Order, matcher)
-		}
-	}
+	j.registerMatchSpecs(&opts)
+
+	// Apply fixed.token overrides (add, swap, or delete fixed-token mappings).
+	j.applyFixedTokens(&opts)
 
 	// Apply match.token: resolve token names to Tins and register regexp matchers.
 	if opts.Match != nil && opts.Match.Token != nil {
@@ -520,6 +577,8 @@ func (j *Jsonic) SetOptions(opts Options) *Jsonic {
 			tin := j.Token(name)
 			j.parser.Config.MatchTokens[tin] = re
 		}
+		// Project map → sorted slice so lex-time iteration is deterministic.
+		j.parser.Config.RebuildMatchTokensSorted()
 	}
 
 	// Apply tokenSet: resolve token names and update per-instance sets.

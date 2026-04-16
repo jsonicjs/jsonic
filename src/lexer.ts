@@ -197,8 +197,16 @@ let makeFixedMatcher: MakeLexMatcher = (cfg: Config, _opts: Options) => {
 }
 
 let makeMatchMatcher: MakeLexMatcher = (cfg: Config, _opts: Options) => {
-  let valueMatchers = values(cfg.match.value)
-  let tokenMatchers = values(cfg.match.token)
+  // Pre-sort both matcher lists at configure time so lexing iterates in
+  // a deterministic order regardless of how the config object was built.
+  // Value matchers: sort by user-supplied name (ascending).
+  // Token matchers: sort by attached tin$ (ascending), set in utility.ts.
+  let valueMatchers = entries(cfg.match.value)
+    .sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0))
+    .map(([, spec]) => spec)
+  let tokenMatchers = values(cfg.match.token).sort(
+    (a: any, b: any) => (a.tin$ || 0) - (b.tin$ || 0),
+  )
 
   // Don't add a matcher if there's nothing to do.
   if (0 === valueMatchers.length && 0 === tokenMatchers.length) {
@@ -328,11 +336,18 @@ let makeCommentMatcher: MakeLexMatcher = (cfg: Config, opts: Options) => {
     ),
   }
 
+  // Pre-sort by start length (longest first) so that a longer marker
+  // shadows any shorter marker it contains (e.g. '##' wins over '#'),
+  // regardless of the insertion order of cfg.comment.def. Ties break by
+  // name for deterministic iteration across runtimes.
+  let byStartLenDesc = (a: CommentDef, b: CommentDef) =>
+    b.start.length - a.start.length ||
+    (a.name < b.name ? -1 : a.name > b.name ? 1 : 0)
   let lineComments = cfg.comment.lex
-    ? values(cfg.comment.def).filter((c) => c.lex && c.line)
+    ? values(cfg.comment.def).filter((c) => c.lex && c.line).sort(byStartLenDesc)
     : []
   let blockComments = cfg.comment.lex
-    ? values(cfg.comment.def).filter((c) => c.lex && !c.line)
+    ? values(cfg.comment.def).filter((c) => c.lex && !c.line).sort(byStartLenDesc)
     : []
 
   return function matchComment(lex: Lex, _rule: Rule) {
@@ -476,8 +491,9 @@ let makeTextMatcher: MakeLexMatcher = (cfg: Config, opts: Options) => {
 
             // Regexp processed values.
             else {
-              for (let vname in defre) {
-                let vspec = defre[vname]
+              // defre is a name-sorted array (see cfg.value.defre build in
+              // utility.ts) — iteration order is deterministic.
+              for (let vspec of defre) {
                 if (vspec.match) {
                   // If consume, assume regexp starts with ^.
                   let res = vspec.match.exec(vspec.consume ? fwd : msrc)

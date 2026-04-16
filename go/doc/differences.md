@@ -35,7 +35,7 @@ The following TypeScript features are not yet available in Go:
 
 | Feature | TS Option | Notes |
 |---|---|---|
-| Custom match matchers | `match.token`, `match.value` | Use `AddMatcher()` instead |
+| Custom match matchers | `match.token`, `match.value` | Use `options.lex.match` instead |
 | Regex-based values | `value.defre` | Only exact string matching |
 | Strict-JSON mode | `Jsonic.make('json')` | Use `Exclude("jsonic")` as approximation |
 | Empty parser | `Jsonic.empty()` | -- |
@@ -86,7 +86,7 @@ result, _ := j.Parse("a:1")
 | Rule definer | Receives `RuleSpec` + `Parser` | Receives `*RuleSpec` only |
 | State actions | Can return error tokens | No return value |
 | Option namespacing | Plugin options merged by name | No namespacing |
-| Custom matchers | Via `match` option or direct | Via `AddMatcher()` only |
+| Custom matchers | Via `match` option | Via `options.lex.match` (keyed by name, same shape) |
 
 ## Error Handling Differences
 

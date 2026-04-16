@@ -7,9 +7,28 @@ import (
 )
 
 // MatchValueEntry holds a resolved match.value matcher entry.
+// Name carries the user-supplied name so the slice can be sorted
+// deterministically at configure time (independent of the map iteration
+// order that built it).
 type MatchValueEntry struct {
+	Name  string
 	Match *regexp.Regexp
 	Val   func([]string) any
+}
+
+// ValueDefEntry is a name-tagged wrapper around *ValueDef used to sort
+// regex-based value definitions at configure time so iteration during
+// lexing is deterministic (mirrors TS cfg.value.defre being a sorted array).
+type ValueDefEntry struct {
+	Name string
+	Def  *ValueDef
+}
+
+// MatchTokenEntry pairs a Tin with its match regexp, pre-sorted by Tin at
+// configure time so MatchTokens iteration during lexing is deterministic.
+type MatchTokenEntry struct {
+	Tin   Tin
+	Match *regexp.Regexp
 }
 
 // Lex is the lexer that produces tokens from source text.
@@ -57,13 +76,14 @@ type LexConfig struct {
 	ValueDef map[string]any
 
 	// ValueDefRe holds regex-processed value definitions (TS: cfg.value.defre).
-	// These are value defs with a Match regexp, checked after exact matches fail.
-	ValueDefRe map[string]*ValueDef
+	// Sorted by name at configure time for deterministic iteration.
+	ValueDefRe []*ValueDefEntry
 
 	// Match options (TS: cfg.match)
 	MatchLex          bool                          // Enable custom matching. Default: false.
-	MatchTokens       map[Tin]*regexp.Regexp         // Custom token tin → regexp.
-	MatchValues       []*MatchValueEntry             // Custom value matchers.
+	MatchTokens       map[Tin]*regexp.Regexp         // Custom token tin → regexp (storage).
+	MatchTokensSorted []*MatchTokenEntry             // Sorted-by-tin view for deterministic iteration.
+	MatchValues       []*MatchValueEntry             // Custom value matchers, sorted by name.
 
 	// Number options
 	NumberExclude func(string) bool // Exclude certain number-like strings.
@@ -225,6 +245,21 @@ func (cfg *LexConfig) SortFixedTokens() {
 		return sorted[i] < sorted[j] // stable tie-break
 	})
 	cfg.FixedSorted = sorted
+}
+
+// RebuildMatchTokensSorted projects MatchTokens (map[Tin]*regexp.Regexp) into
+// MatchTokensSorted ([]*MatchTokenEntry) in ascending Tin order. Call this
+// after any mutation of MatchTokens so the lexer can iterate deterministically
+// without sorting during parse.
+func (cfg *LexConfig) RebuildMatchTokensSorted() {
+	sorted := make([]*MatchTokenEntry, 0, len(cfg.MatchTokens))
+	for tin, re := range cfg.MatchTokens {
+		sorted = append(sorted, &MatchTokenEntry{Tin: tin, Match: re})
+	}
+	sort.Slice(sorted, func(i, j int) bool {
+		return sorted[i].Tin < sorted[j].Tin
+	})
+	cfg.MatchTokensSorted = sorted
 }
 
 // NewLex creates a new lexer for the given source.
@@ -518,7 +553,8 @@ func (l *Lex) matchMatch(rule *Rule) *Token {
 			alts = rule.Spec.Close
 		}
 
-		for tin, re := range l.Config.MatchTokens {
+		for _, mt := range l.Config.MatchTokensSorted {
+			tin, re := mt.Tin, mt.Match
 			if re == nil {
 				continue
 			}
@@ -1278,9 +1314,11 @@ func (l *Lex) matchText() *Token {
 				return tkn
 			}
 
-			// Regex-processed value definitions (TS: cfg.value.defre)
+			// Regex-processed value definitions (TS: cfg.value.defre).
+			// Iterated in configure-time name-sorted order for determinism.
 			if len(l.Config.ValueDefRe) > 0 {
-				for _, vspec := range l.Config.ValueDefRe {
+				for _, entry := range l.Config.ValueDefRe {
+					vspec := entry.Def
 					if vspec.Match != nil {
 						var matchSrc string
 						if vspec.Consume {

@@ -157,10 +157,9 @@ Returns the list of installed plugins.
 
 ## Custom Matchers
 
-### `(*Jsonic) AddMatcher(name string, priority int, matcher LexMatcher) *Jsonic`
-
-Add a custom lexer matcher. Matchers are tried in priority order (lower
-first). Built-in priorities:
+Register custom lexer matchers via `options.lex.match`, keyed by name.
+This mirrors the TypeScript `jsonic.options({ lex: { match: ... } })` API.
+Matchers are tried in priority order (lower first). Built-in priorities:
 
 | Matcher | Priority |
 |---|---|
@@ -172,12 +171,34 @@ first). Built-in priorities:
 | number | 7,000,000 |
 | text | 8,000,000 |
 
-Use a priority below 2,000,000 to run before all built-ins.
-
-### `LexMatcher` type
+Use an `Order` below 2,000,000 to run before all built-ins.
 
 ```go
-type LexMatcher func(lex *Lex, rule *Rule) *Token
+j := jsonic.Make()
+j.SetOptions(jsonic.Options{Lex: &jsonic.LexOptions{
+    Match: map[string]*jsonic.MatchSpec{
+        "date": {Order: 1_000_000, Make: func(_ *jsonic.LexConfig, _ *jsonic.Options) jsonic.LexMatcher {
+            return func(lex *jsonic.Lex, rule *jsonic.Rule) *jsonic.Token {
+                // ... read from lex.Cursor(), advance on match, return a Token
+                return nil
+            }
+        }},
+    },
+}})
+```
+
+Setting a spec under an existing name replaces it.
+
+### `LexMatcher` and `MakeLexMatcher` types
+
+```go
+type LexMatcher     func(lex *Lex, rule *Rule) *Token
+type MakeLexMatcher func(cfg *LexConfig, opts *Options) LexMatcher
+
+type MatchSpec struct {
+    Order int            // lower runs first
+    Make  MakeLexMatcher // factory invoked when options are applied
+}
 ```
 
 The matcher reads the current position via `lex.Cursor()` and must advance
@@ -207,7 +228,7 @@ type RuleSub func(rule *Rule, ctx *Context)
 ### `(*Jsonic) Config() *LexConfig`
 
 Returns the parser's internal configuration for direct inspection or
-modification. Prefer `Token()`, `Rule()`, and `AddMatcher()` for most work.
+modification. Prefer `Token()`, `Rule()`, and `options.lex.match` for most work.
 
 ### `(*Jsonic) Exclude(groups ...string) *Jsonic`
 

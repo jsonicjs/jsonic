@@ -116,17 +116,25 @@ j.Rule("map", func(rs *jsonic.RuleSpec) {
 
 ## Custom Matchers
 
-For syntax beyond the built-in matchers, use `AddMatcher`:
+For syntax beyond the built-in matchers, register a matcher via
+`options.lex.match` (mirrors TS `jsonic.options({ lex: { match: ... } })`):
 
 ```go
-j.AddMatcher("date", 1_000_000, func(lex *jsonic.Lex, rule *jsonic.Rule) *jsonic.Token {
-    // Read from lex.Cursor(), advance if matched, return *Token or nil
-    return nil
-})
+j.SetOptions(jsonic.Options{Lex: &jsonic.LexOptions{
+    Match: map[string]*jsonic.MatchSpec{
+        "date": {Order: 1_000_000, Make: func(_ *jsonic.LexConfig, _ *jsonic.Options) jsonic.LexMatcher {
+            return func(lex *jsonic.Lex, rule *jsonic.Rule) *jsonic.Token {
+                // Read from lex.Cursor(), advance if matched, return *Token or nil
+                return nil
+            }
+        }},
+    },
+}})
 ```
 
-Priority determines ordering (lower runs first). Built-in priorities:
+`Order` determines ordering (lower runs first). Built-in priorities:
 fixed=2M, space=3M, line=4M, string=5M, comment=6M, number=7M, text=8M.
+Setting a spec under an existing name replaces it.
 
 ## Subscribing to Events
 
@@ -158,5 +166,5 @@ keys   := j.TokenSet("KEY")    // [#TX, #NR, #ST, #VL]
 - `RuleDefiner` receives only `*RuleSpec`, not the full `Parser`
 - No plugin option namespacing or defaults merging
 - `StateAction` has no return value (cannot return error tokens)
-- Use `AddMatcher` instead of the `match` option for custom matchers
+- Custom matchers register via `options.lex.match` (same key/order shape as TS)
 - See [differences.md](differences.md) for the full list

@@ -547,14 +547,14 @@ export type Config = {
       }
     }
 
-    // Regexp processed values
+    // Regexp processed values, pre-sorted by name at configure time so
+    // iteration during lexing is deterministic across runtimes.
     defre: {
-      [src: string]: {
-        val: (res: any) => any
-        match: RegExp
-        consume: boolean
-      }
-    }
+      name: string
+      val: (res: any) => any
+      match: RegExp
+      consume: boolean
+    }[]
   }
 
   // Comment markers

@@ -404,12 +404,11 @@ export type Config = {
             };
         };
         defre: {
-            [src: string]: {
-                val: (res: any) => any;
-                match: RegExp;
-                consume: boolean;
-            };
-        };
+            name: string;
+            val: (res: any) => any;
+            match: RegExp;
+            consume: boolean;
+        }[];
     };
     comment: {
         lex: boolean;

@@ -235,16 +235,20 @@ func TestPluginRuleNewRule(t *testing.T) {
 func TestPluginCustomMatcher(t *testing.T) {
 	// Plugin that matches "$$" as a special value.
 	dollarPlugin := func(j *Jsonic, opts map[string]any) error {
-		j.AddMatcher("dollar", 1500000, func(lex *Lex, rule *Rule) *Token {
-			pnt := lex.Cursor()
-			if pnt.SI+2 <= pnt.Len && lex.Src[pnt.SI:pnt.SI+2] == "$$" {
-				tkn := lex.Token("#VL", TinVL, "DOLLAR", "$$")
-				pnt.SI += 2
-				pnt.CI += 2
-				return tkn
-			}
-			return nil
-		})
+		j.SetOptions(Options{Lex: &LexOptions{Match: map[string]*MatchSpec{
+			"dollar": {Order: 1500000, Make: func(_ *LexConfig, _ *Options) LexMatcher {
+				return func(lex *Lex, rule *Rule) *Token {
+					pnt := lex.Cursor()
+					if pnt.SI+2 <= pnt.Len && lex.Src[pnt.SI:pnt.SI+2] == "$$" {
+						tkn := lex.Token("#VL", TinVL, "DOLLAR", "$$")
+						pnt.SI += 2
+						pnt.CI += 2
+						return tkn
+					}
+					return nil
+				}
+			}},
+		}}})
 		return nil
 	}
 
@@ -263,16 +267,20 @@ func TestPluginCustomMatcher(t *testing.T) {
 func TestPluginCustomMatcherInObject(t *testing.T) {
 	// Custom matcher that matches "@" as a special value.
 	atPlugin := func(j *Jsonic, opts map[string]any) error {
-		j.AddMatcher("at", 1500000, func(lex *Lex, rule *Rule) *Token {
-			pnt := lex.Cursor()
-			if pnt.SI < pnt.Len && lex.Src[pnt.SI] == '@' {
-				tkn := lex.Token("#VL", TinVL, "AT_VALUE", "@")
-				pnt.SI++
-				pnt.CI++
-				return tkn
-			}
-			return nil
-		})
+		j.SetOptions(Options{Lex: &LexOptions{Match: map[string]*MatchSpec{
+			"at": {Order: 1500000, Make: func(_ *LexConfig, _ *Options) LexMatcher {
+				return func(lex *Lex, rule *Rule) *Token {
+					pnt := lex.Cursor()
+					if pnt.SI < pnt.Len && lex.Src[pnt.SI] == '@' {
+						tkn := lex.Token("#VL", TinVL, "AT_VALUE", "@")
+						pnt.SI++
+						pnt.CI++
+						return tkn
+					}
+					return nil
+				}
+			}},
+		}}})
 		return nil
 	}
 
@@ -298,13 +306,17 @@ func TestPluginMatcherPriority(t *testing.T) {
 	earlySawInput := false
 
 	j := Make()
-	j.AddMatcher("early", 1000000, func(lex *Lex, rule *Rule) *Token {
-		pnt := lex.Cursor()
-		if pnt.SI < pnt.Len && lex.Src[pnt.SI] == '4' {
-			earlySawInput = true
-		}
-		return nil // Pass through to built-in matchers.
-	})
+	j.SetOptions(Options{Lex: &LexOptions{Match: map[string]*MatchSpec{
+		"early": {Order: 1000000, Make: func(_ *LexConfig, _ *Options) LexMatcher {
+			return func(lex *Lex, rule *Rule) *Token {
+				pnt := lex.Cursor()
+				if pnt.SI < pnt.Len && lex.Src[pnt.SI] == '4' {
+					earlySawInput = true
+				}
+				return nil // Pass through to built-in matchers.
+			}
+		}},
+	}}})
 
 	j.Parse("42")
 
@@ -316,16 +328,20 @@ func TestPluginMatcherPriority(t *testing.T) {
 func TestPluginMatcherLowPriorityCaptures(t *testing.T) {
 	// An early custom matcher can capture input before built-in matchers.
 	j := Make()
-	j.AddMatcher("capture42", 1000000, func(lex *Lex, rule *Rule) *Token {
-		pnt := lex.Cursor()
-		if pnt.SI+2 <= pnt.Len && lex.Src[pnt.SI:pnt.SI+2] == "42" {
-			tkn := lex.Token("#VL", TinVL, "FORTY_TWO", "42")
-			pnt.SI += 2
-			pnt.CI += 2
-			return tkn
-		}
-		return nil
-	})
+	j.SetOptions(Options{Lex: &LexOptions{Match: map[string]*MatchSpec{
+		"capture42": {Order: 1000000, Make: func(_ *LexConfig, _ *Options) LexMatcher {
+			return func(lex *Lex, rule *Rule) *Token {
+				pnt := lex.Cursor()
+				if pnt.SI+2 <= pnt.Len && lex.Src[pnt.SI:pnt.SI+2] == "42" {
+					tkn := lex.Token("#VL", TinVL, "FORTY_TWO", "42")
+					pnt.SI += 2
+					pnt.CI += 2
+					return tkn
+				}
+				return nil
+			}
+		}},
+	}}})
 
 	result, err := j.Parse("42")
 	if err != nil {
@@ -2045,6 +2061,55 @@ func TestFixedCustomToken(t *testing.T) {
 	}
 }
 
+// --- FixedOptions.Token (TS: options.fixed.token StrMap) ---
+
+func TestFixedOptionsTokenOverride(t *testing.T) {
+	// Swap #CA source from "," to ";" via options; the old "," mapping goes away.
+	sep := ";"
+	j := Make()
+	j.SetOptions(Options{Fixed: &FixedOptions{Token: map[string]*string{"#CA": &sep}}})
+
+	if _, ok := j.Config().FixedTokens[","]; ok {
+		t.Error("old #CA source ',' should be removed after override")
+	}
+	if tin := j.Config().FixedTokens[";"]; tin != TinCA {
+		t.Errorf("';' should map to TinCA, got %v", tin)
+	}
+
+	// A list using ';' as separator should parse.
+	result, err := j.Parse("a;b;c")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	list, ok := result.([]any)
+	if !ok || len(list) != 3 {
+		t.Fatalf("expected 3-element list, got %T %v", result, result)
+	}
+}
+
+func TestFixedOptionsTokenDelete(t *testing.T) {
+	// Deleting #CL (':') via nil should remove the colon mapping.
+	j := Make()
+	j.SetOptions(Options{Fixed: &FixedOptions{Token: map[string]*string{"#CL": nil}}})
+
+	if _, ok := j.Config().FixedTokens[":"]; ok {
+		t.Error("':' should be removed from FixedTokens after nil override")
+	}
+}
+
+func TestFixedOptionsTokenViaMake(t *testing.T) {
+	// The same override works when passed to Make(), not just SetOptions().
+	sep := "|"
+	j := Make(Options{Fixed: &FixedOptions{Token: map[string]*string{"#CA": &sep}}})
+
+	if _, ok := j.Config().FixedTokens[","]; ok {
+		t.Error("old ',' mapping should be gone when passed via Make()")
+	}
+	if tin := j.Config().FixedTokens["|"]; tin != TinCA {
+		t.Errorf("'|' should map to TinCA, got %v", tin)
+	}
+}
+
 // --- ModifyOpen/ModifyClose with ListMods (TS: rs.open(alts, mods)) ---
 
 func TestModifyOpen(t *testing.T) {
@@ -2165,17 +2230,21 @@ func TestTokenUse(t *testing.T) {
 	j := Make()
 	var gotUse map[string]any
 
-	j.AddMatcher("test", 1500000, func(lex *Lex, rule *Rule) *Token {
-		pnt := lex.Cursor()
-		if pnt.SI < pnt.Len && lex.Src[pnt.SI] == '@' {
-			tkn := lex.Token("#VL", TinVL, "AT", "@")
-			tkn.Use = map[string]any{"custom": true}
-			pnt.SI++
-			pnt.CI++
-			return tkn
-		}
-		return nil
-	})
+	j.SetOptions(Options{Lex: &LexOptions{Match: map[string]*MatchSpec{
+		"test": {Order: 1500000, Make: func(_ *LexConfig, _ *Options) LexMatcher {
+			return func(lex *Lex, rule *Rule) *Token {
+				pnt := lex.Cursor()
+				if pnt.SI < pnt.Len && lex.Src[pnt.SI] == '@' {
+					tkn := lex.Token("#VL", TinVL, "AT", "@")
+					tkn.Use = map[string]any{"custom": true}
+					pnt.SI++
+					pnt.CI++
+					return tkn
+				}
+				return nil
+			}
+		}},
+	}}})
 
 	j.Sub(func(tkn *Token, rule *Rule, ctx *Context) {
 		if tkn.Use != nil {

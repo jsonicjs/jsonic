@@ -176,3 +176,4 @@ result, err := jsonic.Parse("a:1, b:2")
 ## License
 
 MIT. Copyright (c) Richard Rodger.
+

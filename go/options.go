@@ -2,6 +2,7 @@ package jsonic
 
 import (
 	"regexp"
+	"sort"
 	"strconv"
 )
 
@@ -143,6 +144,15 @@ type SafeOptions struct {
 // FixedOptions controls fixed token recognition.
 type FixedOptions struct {
 	Lex *bool // Enable fixed tokens. Default: true.
+
+	// Token overrides the source string for named fixed tokens.
+	// Mirrors TS `options.fixed.token` (a StrMap of name → src).
+	// Keys are token names (e.g. "#CA"). Values:
+	//   - non-nil string pointer: set that name's fixed source, removing any
+	//     previous source for the same name ("#CA" → ";" swaps the comma).
+	//     Unknown names are allocated a new Tin (matches (*Jsonic).Token).
+	//   - nil pointer: remove the name's fixed mapping(s) from the lexer.
+	Token map[string]*string
 }
 
 // SpaceOptions controls space lexing.
@@ -460,6 +470,12 @@ func Make(opts ...Options) *Jsonic {
 		j.exclude(o.Rule.Exclude)
 	}
 
+	// Apply lex.match specs passed at construction.
+	j.registerMatchSpecs(&o)
+
+	// Apply fixed.token overrides passed at construction.
+	j.applyFixedTokens(&o)
+
 	return j
 }
 
@@ -552,15 +568,20 @@ func buildConfig(o *Options) *LexConfig {
 		cfg.MatchLex = boolVal(o.Match.Lex, true)
 		if o.Match.Value != nil {
 			cfg.MatchValues = make([]*MatchValueEntry, 0, len(o.Match.Value))
-			for _, spec := range o.Match.Value {
+			for name, spec := range o.Match.Value {
 				if spec == nil {
 					continue
 				}
 				cfg.MatchValues = append(cfg.MatchValues, &MatchValueEntry{
+					Name:  name,
 					Match: spec.Match,
 					Val:   spec.Val,
 				})
 			}
+			// Sort by name for deterministic iteration at lex time.
+			sort.Slice(cfg.MatchValues, func(i, j int) bool {
+				return cfg.MatchValues[i].Name < cfg.MatchValues[j].Name
+			})
 		}
 	}
 
@@ -633,6 +654,21 @@ func buildConfig(o *Options) *LexConfig {
 				}
 			}
 		}
+		// Sort by marker length descending (ties by start ascending) so
+		// longer markers shadow shorter ones regardless of how the caller's
+		// Comment.Def map iterated. Mirrors TS makeCommentMatcher.
+		sort.Slice(cfg.CommentLine, func(i, j int) bool {
+			if len(cfg.CommentLine[i]) != len(cfg.CommentLine[j]) {
+				return len(cfg.CommentLine[i]) > len(cfg.CommentLine[j])
+			}
+			return cfg.CommentLine[i] < cfg.CommentLine[j]
+		})
+		sort.Slice(cfg.CommentBlock, func(i, j int) bool {
+			if len(cfg.CommentBlock[i][0]) != len(cfg.CommentBlock[j][0]) {
+				return len(cfg.CommentBlock[i][0]) > len(cfg.CommentBlock[j][0])
+			}
+			return cfg.CommentBlock[i][0] < cfg.CommentBlock[j][0]
+		})
 	} else {
 		cfg.CommentLine = []string{"#", "//"}
 		cfg.CommentBlock = [][2]string{{"/*", "*/"}}
@@ -681,17 +717,22 @@ func buildConfig(o *Options) *LexConfig {
 	cfg.ValueLex = boolVal(optBool(o.Value, func(v *ValueOptions) *bool { return v.Lex }), true)
 	if o.Value != nil && o.Value.Def != nil {
 		cfg.ValueDef = make(map[string]any)
-		cfg.ValueDefRe = make(map[string]*ValueDef)
+		cfg.ValueDefRe = cfg.ValueDefRe[:0]
 		for k, v := range o.Value.Def {
-			if v != nil {
-				if v.Match != nil {
-					// Regex-based value def goes into ValueDefRe (TS: cfg.value.defre)
-					cfg.ValueDefRe[k] = v
-				} else {
-					cfg.ValueDef[k] = v.Val
-				}
+			if v == nil {
+				continue
+			}
+			if v.Match != nil {
+				// Regex-based value def goes into ValueDefRe (TS: cfg.value.defre)
+				cfg.ValueDefRe = append(cfg.ValueDefRe, &ValueDefEntry{Name: k, Def: v})
+			} else {
+				cfg.ValueDef[k] = v.Val
 			}
 		}
+		// Sort by name for deterministic iteration at lex time.
+		sort.Slice(cfg.ValueDefRe, func(i, j int) bool {
+			return cfg.ValueDefRe[i].Name < cfg.ValueDefRe[j].Name
+		})
 	}
 
 	// Map
