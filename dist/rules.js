@@ -485,6 +485,9 @@ function parse_alts(is_open, alts, lex, rule, ctx) {
 }
 const partify = (tins, part) => tins.filter((tin) => 31 * part <= tin && tin < 31 * (part + 1));
 const bitify = (s, part) => s.reduce((bits, tin) => (1 << (tin - (31 * part + 1))) | bits, 0);
+// Valid group-tag pattern: lowercase letter followed by one or more
+// lowercase letters, digits, or hyphens. Enforced by normalt().
+const GROUP_TAG_RE = /^[a-z][a-z0-9-]+$/;
 // Normalize AltSpec (mutates).
 function normalt(a, rs, r) {
     // Ensure groups are a string[]
@@ -493,6 +496,13 @@ function normalt(a, rs, r) {
     }
     else if (null == a.g) {
         a.g = [];
+    }
+    // Validate every group tag (reject empty and non-matching tags).
+    for (let tag of a.g) {
+        if (!GROUP_TAG_RE.test(tag)) {
+            throw new Error(`Grammar: invalid group tag "${tag}" ` +
+                `in rule ${r.name} (${rs}) — must match ${GROUP_TAG_RE}`);
+        }
     }
     a.g = a.g.sort();
     if (!a.s || 0 === a.s.length) {

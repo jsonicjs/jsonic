@@ -204,6 +204,52 @@ func TestExcludeCommaErrors(t *testing.T) {
 	runErrorTSV(t, "exclude-comma-errors.tsv", j)
 }
 
+// --- Include group TSV tests (parity for rule.include) ---
+
+// TestIncludeJSON runs the shared include-json.tsv to confirm that
+// include="json" produces the same strict-JSON surface as the
+// TypeScript runner.
+func TestIncludeJSON(t *testing.T) {
+	j := Make(Options{Rule: &RuleOptions{Include: "json"}})
+	runParserTSV(t, "include-json.tsv", j)
+}
+
+func TestIncludeJSONErrors(t *testing.T) {
+	j := Make(Options{Rule: &RuleOptions{Include: "json"}})
+	runErrorTSV(t, "include-json-errors.tsv", j)
+}
+
+// --- Comment suffix TSV tests (parity for comment.def.suffix) ---
+
+// TestFeatureCommentSuffixLine exercises the shared comment-suffix-line
+// TSV with a hash line-comment that terminates at a custom '@@' suffix.
+func TestFeatureCommentSuffixLine(t *testing.T) {
+	yes := true
+	j := Make(Options{Comment: &CommentOptions{
+		Def: map[string]*CommentDef{
+			"hash":  {Line: true, Start: "#", Lex: &yes, Suffix: "@@"},
+			"line":  {Line: true, Start: "//", Lex: &yes},
+			"block": {Line: false, Start: "/*", End: "*/", Lex: &yes},
+		},
+	}})
+	runParserTSV(t, "feature-comment-suffix-line.tsv", j)
+}
+
+// TestFeatureCommentSuffixBlock exercises the shared
+// comment-suffix-block TSV with a /* */ block comment that also
+// accepts a '!!' suffix to terminate early.
+func TestFeatureCommentSuffixBlock(t *testing.T) {
+	yes := true
+	j := Make(Options{Comment: &CommentOptions{
+		Def: map[string]*CommentDef{
+			"hash":  {Line: true, Start: "#", Lex: &yes},
+			"line":  {Line: true, Start: "//", Lex: &yes},
+			"block": {Line: false, Start: "/*", End: "*/", Lex: &yes, Suffix: "!!"},
+		},
+	}})
+	runParserTSV(t, "feature-comment-suffix-block.tsv", j)
+}
+
 // =====================================================================
 // Direct Go tests for option-dependent alignment features
 // =====================================================================

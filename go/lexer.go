@@ -98,6 +98,22 @@ type LexConfig struct {
 	CommentLineEatLine  map[string]bool // Line comment starter → eatline flag.
 	CommentBlockEatLine map[string]bool // Block comment start → eatline flag.
 
+	// Comment suffix terminators — optional, non-consuming.
+	// Per start-marker, a list of string prefixes that terminate the
+	// comment body when encountered. The suffix remains in the input.
+	CommentLineSuffixes  map[string][]string
+	CommentBlockSuffixes map[string][]string
+
+	// LexMatcher-form suffix terminators. Invoked at each candidate
+	// position inside the comment body; a non-nil returned token signals
+	// termination at that offset. The returned token is discarded.
+	CommentLineSuffixFuncs  map[string]LexMatcher
+	CommentBlockSuffixFuncs map[string]LexMatcher
+
+	// Color carries the resolved ANSI escape codes for error formatting.
+	// Populated from Options.Color by buildConfig.
+	Color ColorConfig
+
 	// Map/List options
 	MapExtend    bool         // Deep-merge duplicate keys. Default: true.
 	MapMerge     MapMergeFunc // Custom merge function for duplicate keys.
@@ -173,6 +189,27 @@ type LexConfig struct {
 	CommentCheck LexCheck
 	NumberCheck  LexCheck
 	TextCheck    LexCheck
+	MatchCheck   LexCheck
+}
+
+// ColorConfig is the resolved ANSI-escape palette used by the error
+// formatter. Active false means all codes are emitted as empty strings.
+type ColorConfig struct {
+	Active bool
+	Reset  string
+	Hi     string
+	Lo     string
+	Line   string
+}
+
+// Codes returns the four escape sequences the formatter needs as plain
+// strings. When Active is false they are all empty, so the formatter
+// can append them unconditionally.
+func (c ColorConfig) Codes() (hi, lo, line, reset string) {
+	if !c.Active {
+		return "", "", "", ""
+	}
+	return c.Hi, c.Lo, c.Line, c.Reset
 }
 
 // LexCheck is a function that can intercept a matcher before it runs.
@@ -331,12 +368,20 @@ func (l *Lex) Next(rule ...*Rule) *Token {
 			if l.pnt.SI < len(l.Src) {
 				src = string(l.Src[l.pnt.SI])
 			}
-			l.Err = makeJsonicError("unexpected", src, l.Src, l.pnt.SI, l.pnt.RI, l.pnt.CI)
+			je := makeJsonicError("unexpected", src, l.Src, l.pnt.SI, l.pnt.RI, l.pnt.CI)
+			if l.Config != nil {
+				je.color = l.Config.Color
+			}
+			l.Err = je
 			return &Token{Name: "#ZZ", Tin: TinZZ, Val: Undefined, SI: l.pnt.SI, RI: l.pnt.RI, CI: l.pnt.CI}
 		}
 		// Bad token → store error and return end-of-source
 		if tkn.Tin == TinBD {
-			l.Err = makeJsonicError(tkn.Why, tkn.Src, l.Src, tkn.SI, tkn.RI, tkn.CI)
+			je := makeJsonicError(tkn.Why, tkn.Src, l.Src, tkn.SI, tkn.RI, tkn.CI)
+			if l.Config != nil {
+				je.color = l.Config.Color
+			}
+			l.Err = je
 			return &Token{Name: "#ZZ", Tin: TinZZ, Val: Undefined, SI: tkn.SI, RI: tkn.RI, CI: tkn.CI}
 		}
 		// Skip IGNORE tokens (per-instance set, matching TS cfg.tokenSetTins.IGNORE)
@@ -384,7 +429,15 @@ func (l *Lex) nextRaw(rule *Rule) *Token {
 
 	// Match matcher (priority 1e6) — regexp-based token and value matching.
 	if l.Config.MatchLex {
-		if tkn := l.matchMatch(rule); tkn != nil {
+		if l.Config.MatchCheck != nil {
+			if cr := l.Config.MatchCheck(l); cr != nil && cr.Done {
+				if cr.Token != nil {
+					return cr.Token
+				}
+			} else if tkn := l.matchMatch(rule); tkn != nil {
+				return tkn
+			}
+		} else if tkn := l.matchMatch(rule); tkn != nil {
 			return tkn
 		}
 	}
@@ -703,14 +756,37 @@ func (l *Lex) matchComment() *Token {
 	// Line comments
 	for _, start := range l.Config.CommentLine {
 		if strings.HasPrefix(fwd, start) {
+			suffixes := l.Config.CommentLineSuffixes[start]
+			suffixFn := l.Config.CommentLineSuffixFuncs[start]
 			fI := len(start)
 			cI := l.pnt.CI + len(start)
+			suffixLen := 0
 			for fI < len(fwd) && !l.Config.LineChars[rune(fwd[fI])] {
+				if n := commentSuffixMatch(fwd, fI, suffixes); n > 0 {
+					suffixLen = n
+					break
+				}
+				if n := commentSuffixFnMatch(l, fI, suffixFn); n > 0 {
+					suffixLen = n
+					break
+				}
 				cI++
 				fI++
 			}
-			// EatLine: also consume trailing line characters
-			if l.Config.CommentLineEatLine[start] {
+			if suffixLen > 0 {
+				// Consume the suffix as part of the comment body.
+				fI += suffixLen
+				cI += suffixLen
+				src := fwd[:fI]
+				tkn := l.Token("#CM", TinCM, nil, src)
+				l.pnt.SI += len(src)
+				l.pnt.CI = cI
+				return tkn
+			}
+			// EatLine: also consume trailing line characters, only when
+			// the comment terminated at a line-char (not via suffix).
+			atLineChar := fI < len(fwd) && l.Config.LineChars[rune(fwd[fI])]
+			if atLineChar && l.Config.CommentLineEatLine[start] {
 				rI := l.pnt.RI
 				for fI < len(fwd) && l.Config.LineChars[rune(fwd[fI])] {
 					if l.Config.RowChars[rune(fwd[fI])] {
@@ -737,16 +813,44 @@ func (l *Lex) matchComment() *Token {
 	for _, pair := range l.Config.CommentBlock {
 		start, end := pair[0], pair[1]
 		if strings.HasPrefix(fwd, start) {
+			suffixes := l.Config.CommentBlockSuffixes[start]
+			suffixFn := l.Config.CommentBlockSuffixFuncs[start]
 			rI := l.pnt.RI
 			cI := l.pnt.CI + len(start)
 			fI := len(start)
+			suffixLen := 0
 			for fI < len(fwd) && !strings.HasPrefix(fwd[fI:], end) {
+				if n := commentSuffixMatch(fwd, fI, suffixes); n > 0 {
+					suffixLen = n
+					break
+				}
+				if n := commentSuffixFnMatch(l, fI, suffixFn); n > 0 {
+					suffixLen = n
+					break
+				}
 				if l.Config.RowChars[rune(fwd[fI])] {
 					rI++
 					cI = 0
 				}
 				cI++
 				fI++
+			}
+			if suffixLen > 0 {
+				// Consume the suffix, advancing column/row like the End path.
+				for k := 0; k < suffixLen; k++ {
+					if l.Config.RowChars[rune(fwd[fI+k])] {
+						rI++
+						cI = 0
+					}
+					cI++
+				}
+				fI += suffixLen
+				src := fwd[:fI]
+				tkn := l.Token("#CM", TinCM, nil, src)
+				l.pnt.SI += len(src)
+				l.pnt.RI = rI
+				l.pnt.CI = cI
+				return tkn
 			}
 			if strings.HasPrefix(fwd[fI:], end) {
 				cI += len(end)
@@ -774,6 +878,43 @@ func (l *Lex) matchComment() *Token {
 	}
 
 	return nil
+}
+
+// commentSuffixMatch returns the length of the suffix match at fwd[fI:]
+// or zero if no suffix matches. Suffixes are pre-sorted longest-first,
+// so the first match is the longest.
+func commentSuffixMatch(fwd string, fI int, suffixes []string) int {
+	if len(suffixes) == 0 {
+		return 0
+	}
+	rest := fwd[fI:]
+	for _, s := range suffixes {
+		if strings.HasPrefix(rest, s) {
+			return len(s)
+		}
+	}
+	return 0
+}
+
+// commentSuffixFnMatch probes the LexMatcher-form suffix terminator at
+// offset fI. Returns the length of the returned token's Src (to be
+// consumed as part of the comment body) or zero if the matcher passes.
+// The lexer point is snapshotted and restored so the matcher cannot
+// advance the stream itself.
+func commentSuffixFnMatch(lex *Lex, fI int, fn LexMatcher) int {
+	if fn == nil {
+		return 0
+	}
+	saved := lex.pnt
+	// Position the lexer at the candidate offset so the matcher sees
+	// the current body-scan location, not the comment start.
+	lex.pnt.SI = saved.SI + fI
+	tkn := fn(lex, nil)
+	lex.pnt = saved
+	if tkn == nil {
+		return 0
+	}
+	return len(tkn.Src)
 }
 
 // matchString matches quoted strings: "...", '...', `...`

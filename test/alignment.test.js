@@ -117,6 +117,54 @@ describe('alignment', function () {
     tsvErrorTest('exclude-comma-errors', jj)
   })
 
+  // --- Include group TSV tests (parity for rule.include) ---
+
+  it('include-json', () => {
+    // include="json" keeps only json-tagged alts, producing a parser that
+    // behaves like strict-JSON. Shared TSV ensures TS and Go agree.
+    const jj = Jsonic.make({ rule: { include: 'json' } })
+    tsvTest('include-json', jj)
+  })
+
+  it('include-json-errors', () => {
+    const jj = Jsonic.make({ rule: { include: 'json' } })
+    tsvErrorTest('include-json-errors', jj)
+  })
+
+  // --- Comment suffix TSV tests (parity for comment.def.suffix) ---
+
+  it('feature-comment-suffix-line', () => {
+    // Line comment with a custom suffix terminator — suffix is consumed.
+    // NOTE: TS's makeCommentMatcher requires lex:true explicitly on every
+    // def (Go defaults it to true); setting it here keeps both runners
+    // configured identically.
+    const jj = Jsonic.make({
+      comment: {
+        def: {
+          hash: { line: true, start: '#', lex: true, suffix: '@@' },
+          line: { line: true, start: '//', lex: true },
+          block: { line: false, start: '/*', end: '*/', lex: true },
+        },
+      },
+    })
+    tsvTest('feature-comment-suffix-line', jj)
+  })
+
+  it('feature-comment-suffix-block', () => {
+    // Block comment with a custom suffix terminator — suffix is consumed
+    // and short-circuits the usual End-required behaviour.
+    const jj = Jsonic.make({
+      comment: {
+        def: {
+          hash: { line: true, start: '#', lex: true },
+          line: { line: true, start: '//', lex: true },
+          block: { line: false, start: '/*', end: '*/', lex: true, suffix: '!!' },
+        },
+      },
+    })
+    tsvTest('feature-comment-suffix-block', jj)
+  })
+
   // --- Lex error propagation tests ---
   // Verifies that lex-level errors (unterminated_string, unterminated_comment)
   // are not masked by generic "unexpected" in any parser state.

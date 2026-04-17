@@ -240,7 +240,7 @@ func (p *Parser) makeError(code, src, fullSource string, pos, row, col int) *Jso
 		hint = p.Hints[code]
 	}
 
-	return &JsonicError{
+	je := &JsonicError{
 		Code:       code,
 		Detail:     detail,
 		Pos:        pos,
@@ -251,6 +251,10 @@ func (p *Parser) makeError(code, src, fullSource string, pos, row, col int) *Jso
 		fullSource: fullSource,
 		tag:        p.ErrTag,
 	}
+	if p.Config != nil {
+		je.color = p.Config.Color
+	}
+	return je
 }
 
 // parseNumericString converts a numeric string to float64.

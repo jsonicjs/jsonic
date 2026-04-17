@@ -1583,7 +1583,7 @@ func makeTokenPlugin(char, val string) Plugin {
 			capturedTT := TT
 			rs.Open = append([]*AltSpec{{
 				S: [][]Tin{{capturedTT}},
-				G: "CV=" + capturedVal,
+				G: "cv" + strings.ToLower(capturedVal),
 				A: func(r *Rule, ctx *Context) {
 					r.Node = capturedVal
 				},

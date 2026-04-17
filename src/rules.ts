@@ -701,6 +701,10 @@ const bitify = (s: Tin[], part: number) =>
   )
 
 
+// Valid group-tag pattern: lowercase letter followed by one or more
+// lowercase letters, digits, or hyphens. Enforced by normalt().
+const GROUP_TAG_RE = /^[a-z][a-z0-9-]+$/
+
 // Normalize AltSpec (mutates).
 function normalt(a: AltSpec, rs: RuleState, r: RuleSpec): NormAltSpec {
   // Ensure groups are a string[]
@@ -708,6 +712,16 @@ function normalt(a: AltSpec, rs: RuleState, r: RuleSpec): NormAltSpec {
     a.g = (a as any).g.split(/\s*,\s*/)
   } else if (null == a.g) {
     a.g = []
+  }
+
+  // Validate every group tag (reject empty and non-matching tags).
+  for (let tag of (a.g as string[])) {
+    if (!GROUP_TAG_RE.test(tag)) {
+      throw new Error(
+        `Grammar: invalid group tag "${tag}" ` +
+        `in rule ${r.name} (${rs}) — must match ${GROUP_TAG_RE}`
+      )
+    }
   }
 
   a.g = (a as any).g.sort()

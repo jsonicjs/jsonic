@@ -33,8 +33,9 @@ type JsonicError struct {
 	Src    string // Source fragment at the error (the token text)
 	Hint   string // Additional explanatory text for this error code
 
-	fullSource string // Complete input source (for generating site extract)
-	tag        string // Custom error tag name (TS: errmsg.name), defaults to "jsonic"
+	fullSource string      // Complete input source (for generating site extract)
+	tag        string      // Custom error tag name (TS: errmsg.name), defaults to "jsonic"
+	color      ColorConfig // ANSI palette applied by Error(); zero value disables colour
 }
 
 // Error returns a formatted error message matching the TypeScript JsonicError format:
@@ -47,8 +48,13 @@ type JsonicError struct {
 //	             ^^^^ <message>
 //	 <line+1> | <source>
 //	 <line+2> | <source>
+//
+// When e.color.Active is true the header, arrow, caret, and line-number
+// gutter are wrapped in ANSI escapes — matching TS error.ts output.
 func (e *JsonicError) Error() string {
 	msg := e.Detail
+
+	hi, _, line, reset := e.color.Codes()
 
 	var b strings.Builder
 
@@ -57,22 +63,29 @@ func (e *JsonicError) Error() string {
 	if tag == "" {
 		tag = "jsonic"
 	}
+	b.WriteString(hi)
 	b.WriteString("[")
 	b.WriteString(tag)
 	b.WriteString("/")
 	b.WriteString(e.Code)
-	b.WriteString("]: ")
+	b.WriteString("]:")
+	b.WriteString(reset)
+	b.WriteString(" ")
 	b.WriteString(msg)
 
 	// Line 2: --> <row>:<col>
-	b.WriteString("\n  --> ")
+	b.WriteString("\n  ")
+	b.WriteString(line)
+	b.WriteString("-->")
+	b.WriteString(reset)
+	b.WriteString(" ")
 	b.WriteString(strconv.Itoa(e.Row))
 	b.WriteString(":")
 	b.WriteString(strconv.Itoa(e.Col))
 
 	// Source site extract
 	if e.fullSource != "" {
-		site := errsite(e.fullSource, e.Src, msg, e.Row, e.Col)
+		site := errsite(e.fullSource, e.Src, msg, e.Row, e.Col, e.color)
 		if site != "" {
 			b.WriteString("\n")
 			b.WriteString(site)
@@ -89,14 +102,18 @@ func (e *JsonicError) Error() string {
 }
 
 // errsite generates a source code extract showing the error location,
-// matching the TypeScript errsite() function output format.
-func errsite(src, sub, msg string, row, col int) string {
+// matching the TypeScript errsite() function output format.  When color
+// is active, line-number gutters and the caret row are wrapped in the
+// configured ANSI Line/Reset codes.
+func errsite(src, sub, msg string, row, col int, color ColorConfig) string {
 	if row < 1 {
 		row = 1
 	}
 	if col < 1 {
 		col = 1
 	}
+
+	_, _, line, reset := color.Codes()
 
 	lines := strings.Split(src, "\n")
 
@@ -115,7 +132,7 @@ func errsite(src, sub, msg string, row, col int) string {
 
 	ln := func(num int, text string) string {
 		numStr := strconv.Itoa(num)
-		return strings.Repeat(" ", pad-len(numStr)) + numStr + " | " + text
+		return line + strings.Repeat(" ", pad-len(numStr)) + numStr + " | " + reset + text
 	}
 
 	// 2 lines before
@@ -137,7 +154,7 @@ func errsite(src, sub, msg string, row, col int) string {
 		caretCount = 1
 	}
 	indent := strings.Repeat(" ", pad) + "   " + strings.Repeat(" ", col-1)
-	result = append(result, indent+strings.Repeat("^", caretCount)+" "+msg)
+	result = append(result, indent+line+strings.Repeat("^", caretCount)+" "+msg+reset)
 
 	// 2 lines after
 	if lineIdx+1 < len(lines) {
@@ -151,6 +168,9 @@ func errsite(src, sub, msg string, row, col int) string {
 }
 
 // makeJsonicError creates a JsonicError with the proper Detail message.
+// The colour palette defaults to disabled (zero-value ColorConfig); for
+// parser-path errors use (*Parser).makeError instead, which injects the
+// resolved palette from config.
 func makeJsonicError(code, src, fullSource string, pos, row, col int) *JsonicError {
 	tmpl, ok := errorMessages[code]
 	if !ok {

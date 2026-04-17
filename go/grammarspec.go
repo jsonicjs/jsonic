@@ -48,6 +48,27 @@ type GrammarInjectSpec struct {
 	Move   []int // Pairs: [from, to, from, to, ...].
 }
 
+// GrammarSetting carries optional settings applied when a grammar
+// spec (Grammar/GrammarText) is installed. If Rule.Alt.G is defined,
+// its tag(s) are appended to every rule-alt G property in the grammar
+// before the alts are installed.
+//
+// G can be a comma-separated string or a []string of tag names.
+type GrammarSetting struct {
+	Rule *GrammarSettingRule
+}
+
+// GrammarSettingRule wraps alt-level settings.
+type GrammarSettingRule struct {
+	Alt *GrammarSettingAlt
+}
+
+// GrammarSettingAlt carries per-alt settings (currently only G).
+// G accepts string (comma-separated) or []string.
+type GrammarSettingAlt struct {
+	G any
+}
+
 // GrammarAltSpec is a declarative alternate specification using string references.
 // Token fields use "#NAME" strings resolved via Token/TokenSet lookup.
 // Function fields use "@name" FuncRef strings resolved via the Ref map.
@@ -72,8 +93,10 @@ type GrammarAltSpec struct {
 
 // Grammar applies a declarative grammar specification to this Jsonic instance.
 // Options are applied first, then rules are processed.
+// An optional *GrammarSetting may be supplied to append a tag (or tags) to
+// every rule-alt G property in the spec.
 // Returns an error if any FuncRef is missing or has the wrong type.
-func (j *Jsonic) Grammar(gs *GrammarSpec) error {
+func (j *Jsonic) Grammar(gs *GrammarSpec, setting ...*GrammarSetting) error {
 	// Apply typed Options directly.
 	if gs.Options != nil {
 		j.SetOptions(*gs.Options)
@@ -88,6 +111,9 @@ func (j *Jsonic) Grammar(gs *GrammarSpec) error {
 		}
 	}
 
+	// Resolve the optional grammar setting's alt.g tags once.
+	altGTags := extractSettingAltG(setting)
+
 	if gs.Rule != nil {
 		for rulename, rulespec := range gs.Rule {
 			ref := gs.Ref
@@ -95,7 +121,7 @@ func (j *Jsonic) Grammar(gs *GrammarSpec) error {
 			j.Rule(rulename, func(rs *RuleSpec) {
 				// Process Open alts.
 				if rulespec.Open != nil {
-					if err := applyGrammarAlts(j, rs, rulespec.Open, ref, true); err != nil {
+					if err := applyGrammarAlts(j, rs, rulespec.Open, ref, true, altGTags); err != nil {
 						resolveErr = err
 						return
 					}
@@ -103,7 +129,7 @@ func (j *Jsonic) Grammar(gs *GrammarSpec) error {
 
 				// Process Close alts.
 				if rulespec.Close != nil {
-					if err := applyGrammarAlts(j, rs, rulespec.Close, ref, false); err != nil {
+					if err := applyGrammarAlts(j, rs, rulespec.Close, ref, false, altGTags); err != nil {
 						resolveErr = err
 						return
 					}
@@ -123,15 +149,70 @@ func (j *Jsonic) Grammar(gs *GrammarSpec) error {
 	return nil
 }
 
+// extractSettingAltG returns the list of tag strings from the variadic
+// setting slice (first non-nil entry wins).  Returns nil when no tags
+// are supplied.  Accepts string (comma-separated) or []string.
+func extractSettingAltG(setting []*GrammarSetting) []string {
+	for _, s := range setting {
+		if s == nil || s.Rule == nil || s.Rule.Alt == nil || s.Rule.Alt.G == nil {
+			continue
+		}
+		switch v := s.Rule.Alt.G.(type) {
+		case string:
+			return splitGroupTags(v)
+		case []string:
+			out := make([]string, 0, len(v))
+			for _, t := range v {
+				t = strings.TrimSpace(t)
+				if t != "" {
+					out = append(out, t)
+				}
+			}
+			return out
+		}
+	}
+	return nil
+}
+
+// splitGroupTags splits a comma-separated tag string into a []string,
+// trimming surrounding whitespace and discarding empty entries.
+func splitGroupTags(s string) []string {
+	if s == "" {
+		return nil
+	}
+	parts := strings.Split(s, ",")
+	out := make([]string, 0, len(parts))
+	for _, p := range parts {
+		p = strings.TrimSpace(p)
+		if p != "" {
+			out = append(out, p)
+		}
+	}
+	return out
+}
+
+// mergeG combines the existing g tag string with the supplied extra tags,
+// returning a single comma-separated string.
+func mergeG(existing string, extra []string) string {
+	if len(extra) == 0 {
+		return existing
+	}
+	tags := splitGroupTags(existing)
+	tags = append(tags, extra...)
+	return strings.Join(tags, ",")
+}
+
 // GrammarText parses a jsonic grammar text string into a GrammarSpec
 // and applies it. The text is parsed using a default Jsonic instance,
 // and the resulting map is used as the OptionsMap of a GrammarSpec.
+// An optional *GrammarSetting may be supplied to append a tag (or tags)
+// to every rule-alt G property in the spec.
 // This is a convenience that replaces:
 //
 //	gs := jsonic.Make()
 //	parsed, _ := gs.Parse(text)
 //	j.Grammar(&GrammarSpec{OptionsMap: parsed.(map[string]any)})
-func (j *Jsonic) GrammarText(text string) error {
+func (j *Jsonic) GrammarText(text string, setting ...*GrammarSetting) error {
 	parsed, err := Make().Parse(text)
 	if err != nil {
 		return err
@@ -153,7 +234,7 @@ func (j *Jsonic) GrammarText(text string) error {
 	if ruleMap, ok := gsMap["rule"].(map[string]any); ok {
 		gs.Rule = mapToGrammarRules(ruleMap)
 	}
-	return j.Grammar(gs)
+	return j.Grammar(gs, setting...)
 }
 
 // mapToGrammarRules converts a parsed rule map into typed GrammarRuleSpec map.
@@ -284,7 +365,8 @@ func mapToGrammarAltSpec(m map[string]any) *GrammarAltSpec {
 
 // applyGrammarAlts resolves and applies grammar alts to a rule spec.
 // Handles both plain []*GrammarAltSpec and *GrammarAltListSpec with inject.
-func applyGrammarAlts(j *Jsonic, rs *RuleSpec, spec any, ref map[FuncRef]any, isOpen bool) error {
+// When extraG is non-empty, those tags are appended to every alt's G field.
+func applyGrammarAlts(j *Jsonic, rs *RuleSpec, spec any, ref map[FuncRef]any, isOpen bool, extraG []string) error {
 	var gas []*GrammarAltSpec
 	var inject *GrammarInjectSpec
 
@@ -296,6 +378,21 @@ func applyGrammarAlts(j *Jsonic, rs *RuleSpec, spec any, ref map[FuncRef]any, is
 		inject = v.Inject
 	default:
 		return nil
+	}
+
+	// Append the setting's alt-g tags to each alt's G prior to resolution.
+	if len(extraG) > 0 {
+		merged := make([]*GrammarAltSpec, len(gas))
+		for i, ga := range gas {
+			if ga == nil {
+				merged[i] = nil
+				continue
+			}
+			cp := *ga
+			cp.G = mergeG(ga.G, extraG)
+			merged[i] = &cp
+		}
+		gas = merged
 	}
 
 	resolved, err := j.resolveGrammarAlts(gas, ref)
@@ -476,8 +573,10 @@ func (j *Jsonic) resolveGrammarAlt(ga *GrammarAltSpec, ref map[FuncRef]any) (*Al
 	}
 	alt.G = ga.G
 
-	// Normalize declarative conditions
-	NormAlt(alt)
+	// Normalize declarative conditions and validate group tags.
+	if err := NormAlt(alt); err != nil {
+		return nil, err
+	}
 
 	return alt, nil
 }
@@ -719,6 +818,10 @@ func resolveGrammarAltStatic(ga *GrammarAltSpec, ref map[FuncRef]any) *AltSpec {
 	}
 	alt.G = ga.G
 
-	NormAlt(alt)
+	// Internal grammar is constructed from trusted tag literals, so a
+	// validation error here indicates a programming bug rather than bad
+	// user input. Ignore the error — it will surface if a library author
+	// ever adds a malformed tag, via the regular Grammar/GrammarText path.
+	_ = NormAlt(alt)
 	return alt
 }

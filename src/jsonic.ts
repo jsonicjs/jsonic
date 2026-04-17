@@ -37,7 +37,8 @@ import type {
   StateAction,
   Tin,
   Token,
-  GrammarSpec
+  GrammarSpec,
+  GrammarSetting,
 } from './types'
 
 import { OPEN, CLOSE, BEFORE, AFTER, EMPTY, SKIP } from './types'
@@ -197,12 +198,23 @@ function make(param_options?: Bag | string, parent?: Jsonic): Jsonic {
 
   // This lets you access options as direct properties,
   // and set them as a function call.
-  let optionsMethod: any = (change_options?: Bag) => {
-    if (null != change_options && S.object === typeof change_options) {
-      deep(merged_options, change_options)
-      configure(jsonic, internal.config, merged_options)
-      let parser: Parser = jsonic.internal().parser
-      internal.parser = parser.clone(merged_options, internal.config, jsonic)
+  // `change_options` can be a Bag object or a jsonic-format string that
+  // is parsed into a Bag before applying.
+  let optionsMethod: any = (change_options?: Bag | string) => {
+    if (null != change_options) {
+      if (S.string === typeof change_options) {
+        const parsed = make()(change_options as string)
+        change_options =
+          null != parsed && S.object === typeof parsed
+            ? (parsed as Bag)
+            : undefined
+      }
+      if (null != change_options && S.object === typeof change_options) {
+        deep(merged_options, change_options)
+        configure(jsonic, internal.config, merged_options)
+        let parser: Parser = jsonic.internal().parser
+        internal.parser = parser.clone(merged_options, internal.config, jsonic)
+      }
     }
     return { ...jsonic.options }
   }
@@ -296,13 +308,39 @@ function make(param_options?: Bag | string, parent?: Jsonic): Jsonic {
     util,
 
 
-    grammar: (gs: GrammarSpec | string) => {
+    grammar: (gs: GrammarSpec | string, setting?: GrammarSetting) => {
       if ('string' === typeof gs) {
         const parsed = make()(gs)
         if (null == parsed || 'object' !== typeof parsed) {
           return
         }
         gs = parsed as GrammarSpec
+      }
+
+      // Normalize the optional setting's rule.alt.g value to a string[] once.
+      const altG = setting?.rule?.alt?.g
+      const altGArr: string[] | null =
+        null == altG
+          ? null
+          : Array.isArray(altG)
+            ? [...altG]
+            : String(altG).split(/\s*,\s*/).filter((s) => s.length > 0)
+
+      // Append altGArr tags to each alt's g field without mutating the input alt.
+      const applyG = (alts: any): any => {
+        if (null == altGArr || 0 === altGArr.length || !Array.isArray(alts)) {
+          return alts
+        }
+        return alts.map((a: any) => {
+          if (null == a || 'object' !== typeof a) return a
+          const existing: string[] =
+            null == a.g
+              ? []
+              : Array.isArray(a.g)
+                ? [...a.g]
+                : String(a.g).split(/\s*,\s*/).filter((s) => s.length > 0)
+          return { ...a, g: [...existing, ...altGArr] }
+        })
       }
 
       if (gs.options) {
@@ -323,14 +361,14 @@ function make(param_options?: Bag | string, parent?: Jsonic): Jsonic {
               const isarr = Array.isArray(rulespec.open)
               const alts = isarr ? rulespec.open : (rulespec.open as any).alts
               const inject = isarr ? {} : (rulespec.open as any).inject
-              rs.open(alts, inject)
+              rs.open(applyG(alts), inject)
             }
 
             if (rulespec.close) {
               const isarr = Array.isArray(rulespec.close)
               const alts = isarr ? rulespec.close : (rulespec.close as any).alts
               const inject = isarr ? {} : (rulespec.close as any).inject
-              rs.close(alts, inject)
+              rs.close(applyG(alts), inject)
             }
 
           })

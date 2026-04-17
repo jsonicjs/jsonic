@@ -922,6 +922,242 @@ describe('grammar-options', () => {
     assert.deepEqual(j('[1,2]'), [1, 2])
   })
 
+
+  // --- grammar(gs, setting) — rule.alt.g append --------------------------
+
+  function altGTags(j, rulename, state) {
+    // Flatten every alt's g array for the named rule/state.
+    const rs = j.internal().parser.rule()[rulename]
+    const alts = state === 'open' ? rs.def.open : rs.def.close
+    return alts.map((a) => [...(a.g || [])].sort())
+  }
+
+
+  it('grammar-setting-alt-g-string', () => {
+    // A comma-separated string value for setting.rule.alt.g is split and
+    // appended to every alt's g array in the grammar.
+    let j = Jsonic.make()
+    j.grammar(
+      {
+        rule: {
+          val: {
+            close: [
+              { s: '#ZZ', g: 'alpha' },
+              { s: '#CA', g: 'beta,gamma' },
+            ],
+          },
+        },
+      },
+      { rule: { alt: { g: 'extraa,extrab' } } }
+    )
+
+    const tags = altGTags(j, 'val', 'close')
+    // Last two alts are ours (prepended by default).
+    assert.deepEqual(tags[0], ['alpha', 'extraa', 'extrab'])
+    assert.deepEqual(tags[1], ['beta', 'extraa', 'extrab', 'gamma'])
+  })
+
+
+  it('grammar-setting-alt-g-array', () => {
+    // An array value for setting.rule.alt.g is appended verbatim.
+    let j = Jsonic.make()
+    j.grammar(
+      {
+        rule: {
+          val: {
+            close: [
+              { s: '#ZZ', g: 'alpha' },
+              { s: '#CA' },
+            ],
+          },
+        },
+      },
+      { rule: { alt: { g: ['p1', 'p2'] } } }
+    )
+
+    const tags = altGTags(j, 'val', 'close')
+    assert.deepEqual(tags[0], ['alpha', 'p1', 'p2'])
+    assert.deepEqual(tags[1], ['p1', 'p2'])
+  })
+
+
+  it('grammar-setting-alt-g-absent-is-noop', () => {
+    // Omitting the setting leaves the grammar's g tags untouched.
+    let j = Jsonic.make()
+    j.grammar({
+      rule: {
+        val: {
+          close: [{ s: '#ZZ', g: 'alpha,beta' }],
+        },
+      },
+    })
+    const tags = altGTags(j, 'val', 'close')
+    assert.deepEqual(tags[0], ['alpha', 'beta'])
+  })
+
+
+  it('grammar-setting-alt-g-empty-string', () => {
+    // An empty g string in the setting is a no-op (no empty tags appended).
+    let j = Jsonic.make()
+    j.grammar(
+      { rule: { val: { close: [{ s: '#ZZ', g: 'alpha' }] } } },
+      { rule: { alt: { g: '' } } }
+    )
+    const tags = altGTags(j, 'val', 'close')
+    assert.deepEqual(tags[0], ['alpha'])
+  })
+
+
+  it('grammar-setting-alt-g-preserves-input', () => {
+    // The grammar spec passed in must not be mutated by the append logic.
+    const gs = {
+      rule: {
+        val: {
+          close: [{ s: '#ZZ', g: 'alpha' }],
+        },
+      },
+    }
+    let j = Jsonic.make()
+    j.grammar(gs, { rule: { alt: { g: 'extra' } } })
+
+    // Caller's alt object still has its original g value.
+    assert.strictEqual(gs.rule.val.close[0].g, 'alpha')
+  })
+
+
+  it('grammar-setting-alt-g-on-text-grammar', () => {
+    // Setting works when gs is a jsonic text string too.
+    let j = Jsonic.make()
+    j.grammar(
+      `
+        rule: {
+          val: {
+            close: [
+              { s: "#ZZ", g: "first" },
+              { s: "#CA", g: "second" }
+            ]
+          }
+        }
+      `,
+      { rule: { alt: { g: 'common' } } }
+    )
+
+    const tags = altGTags(j, 'val', 'close')
+    assert.deepEqual(tags[0], ['common', 'first'])
+    assert.deepEqual(tags[1], ['common', 'second'])
+  })
+
+
+  it('grammar-setting-alt-g-inject-form', () => {
+    // The setting is also applied when the rule uses the {alts, inject} form.
+    let j = Jsonic.make()
+    j.grammar(
+      {
+        rule: {
+          val: {
+            close: {
+              alts: [{ s: '#ZZ', g: 'solo' }],
+              inject: { append: true },
+            },
+          },
+        },
+      },
+      { rule: { alt: { g: 'shared' } } }
+    )
+
+    // Our alt is now at the tail (append:true).
+    const all = altGTags(j, 'val', 'close')
+    const last = all[all.length - 1]
+    assert.ok(last.includes('solo'))
+    assert.ok(last.includes('shared'))
+  })
+
+
+  // --- normalt g tag validation -----------------------------------------
+
+  it('grammar-g-tag-invalid-rejected', () => {
+    // Invalid group tags (single-char, uppercase, digit-leading,
+    // punctuation, spaces) are rejected by normalt().
+    let bad = [
+      'a', 'Foo', '1foo', '', 'foo!', 'foo bar', 'FOO',
+    ]
+    for (let tag of bad) {
+      let j = Jsonic.make()
+      assert.throws(
+        () => j.grammar({
+          rule: { val: { close: [{ s: '#ZZ', g: tag }] } },
+        }),
+        /invalid group tag/,
+        `expected rejection of tag "${tag}"`
+      )
+    }
+  })
+
+
+  it('grammar-g-tag-valid-accepted', () => {
+    // Valid tags: letter + one or more letters/digits/hyphens.
+    let good = [
+      'ab', 'a1', 'abc', 'a1b2', 'foo', 'z99',
+      'fo-o', 'custom-from-text', 'alpha-beta',
+    ]
+    for (let tag of good) {
+      let j = Jsonic.make()
+      j.grammar({
+        rule: { val: { close: [{ s: '#ZZ', g: tag }] } },
+      })
+    }
+  })
+
+
+  it('grammar-setting-invalid-tag-rejected', () => {
+    // A setting-supplied tag is also validated by normalt().
+    let j = Jsonic.make()
+    assert.throws(
+      () => j.grammar(
+        { rule: { val: { close: [{ s: '#ZZ', g: 'ok' }] } } },
+        { rule: { alt: { g: 'BAD' } } }
+      ),
+      /invalid group tag "BAD"/
+    )
+  })
+
+
+  // --- options() accepts a jsonic-format string --------------------------
+
+  it('options-as-string-basic', () => {
+    let j = Jsonic.make()
+    j.options('number: { sep: "_" }')
+    assert.deepEqual(j('a:1_000'), { a: 1000 })
+  })
+
+
+  it('options-as-string-deep-merge', () => {
+    let j = Jsonic.make()
+    // First apply one option via string, then another via object — both
+    // survive because options() deep-merges.
+    j.options('number: { sep: "_" }')
+    j.options({ number: { hex: true } })
+    assert.deepEqual(j('a:1_000'), { a: 1000 })
+    assert.deepEqual(j('b:0xff'), { b: 255 })
+  })
+
+
+  it('options-as-string-empty-noop', () => {
+    let j = Jsonic.make()
+    // Empty string parses to null — should be a no-op, not an error.
+    j.options('')
+    assert.deepEqual(j('a:1'), { a: 1 })
+  })
+
+
+  it('options-string-via-grammar-still-works', () => {
+    // grammar(string) continues to accept options + rules in text form;
+    // this exercises the shared code path.
+    let j = Jsonic.make()
+    j.grammar(`options: { number: { sep: "_" } }`)
+    assert.deepEqual(j('a:1_000'), { a: 1000 })
+  })
+
 })
 
 

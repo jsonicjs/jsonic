@@ -28,8 +28,9 @@ export interface JsonicAPI {
   // Explicit parse method.
   parse: JsonicParse
 
-  // Get and set partial option trees.
-  options: Options & ((change_options?: Bag) => Bag)
+  // Get and set partial option trees. Accepts a Bag object or a
+  // jsonic-format string that is parsed into a Bag before applying.
+  options: Options & ((change_options?: Bag | string) => Bag)
 
   // Get the current configuration (derived from options).
   config: () => Config
@@ -81,7 +82,19 @@ export interface JsonicAPI {
 
   util: Bag
 
-  grammar: (gs: GrammarSpec) => void
+  grammar: (gs: GrammarSpec | string, setting?: GrammarSetting) => void
+}
+
+
+// Additional settings applied when processing a grammar spec.
+// If `rule.alt.g` is defined, its value(s) are appended to every
+// rule-alt `g` property in the grammar before the alts are installed.
+export type GrammarSetting = {
+  rule?: {
+    alt?: {
+      g?: string | string[]
+    }
+  }
 }
 
 
@@ -568,6 +581,12 @@ export type Config = {
         end?: string
         lex: boolean
         eatline: boolean
+        // Normalized suffix terminators. Matches are consumed as the
+        // final part of the comment body.  Sorted longest-first.
+        suffixes?: string[]
+        // Optional function-form suffix probe. A non-nil return signals
+        // termination; len(token.src) characters are consumed.
+        suffixFn?: LexMatcher
       }
     }
     check?: LexCheck

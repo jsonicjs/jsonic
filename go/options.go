@@ -60,6 +60,10 @@ type Options struct {
 	// Lex controls global lexer behavior (empty source, etc.).
 	Lex *LexOptions
 
+	// Parse provides hooks invoked during parsing (distinct from Parser,
+	// which replaces the parser entrypoint). Mirrors TS `options.parse`.
+	Parse *ParseOptions
+
 	// Parser allows custom parser overrides.
 	Parser *ParserOptions
 
@@ -83,8 +87,36 @@ type Options struct {
 	// Property holds Go-specific options not present in the TypeScript version.
 	Property *PropertyOptions
 
+	// Color controls ANSI colour codes in formatted error messages.
+	// Mirrors TS `options.color`.
+	Color *ColorOptions
+
 	// Tag is an instance identifier tag.
 	Tag string
+}
+
+// ColorOptions configures the ANSI escape codes used when formatting a
+// JsonicError. When Active is nil or *Active is true, the non-empty
+// codes are wrapped around the appropriate parts of the error output.
+// Setting *Active to false disables colour output entirely regardless
+// of the other fields. Mirrors TS `options.color`.
+type ColorOptions struct {
+	// Active toggles colour output. Default: true (matches TS).
+	Active *bool
+
+	// Reset clears all colour/style attributes. Default: ESC[0m.
+	Reset string
+
+	// Hi highlights the error header (`[tag/code]:`). Default: ESC[91m.
+	Hi string
+
+	// Lo dims trailing suffix material (internal diagnostics, links).
+	// Default: ESC[2m.
+	Lo string
+
+	// Line colours the source-location arrow and line-number gutter.
+	// Default: ESC[34m.
+	Line string
 }
 
 // ErrMsgOptions controls error message formatting.
@@ -93,6 +125,15 @@ type ErrMsgOptions struct {
 	// Name sets the error tag in formatted messages.
 	// Default: "jsonic". E.g. Name="bar" → "[bar/unexpected]: ..."
 	Name string
+
+	// Suffix controls the optional trailing text after an error message.
+	// Mirrors TS `options.errmsg.suffix` which accepts bool | string |
+	// function. In Go the permitted concrete types are:
+	//   bool   — true (default) enables the standard suffix, false disables.
+	//   string — literal text appended to the error message.
+	//   func(code, src string) string — dynamic suffix computation.
+	// Stored as any because the TS field is also polymorphic.
+	Suffix any
 }
 
 // InfoOptions controls metadata attachment to parsed output nodes.
@@ -112,6 +153,10 @@ type InfoOptions struct {
 	// When true, string and text values are wrapped in Text structs
 	// that include the quote character used. Default: false.
 	Text *bool
+
+	// Marker is the key under which info metadata is stored on wrapped
+	// values. Mirrors TS `options.info.marker`. Default: "__info__".
+	Marker string
 }
 
 // PropertyOptions holds Go-specific options not present in the TypeScript version.
@@ -124,9 +169,13 @@ type PropertyOptions struct {
 // MatchOptions controls custom regexp-based matching.
 // Matches TS options.match.
 type MatchOptions struct {
-	Lex   *bool                           // Enable custom matching. Default: true.
-	Token map[string]*regexp.Regexp        // "#NAME" → regexp pattern for custom tokens.
-	Value map[string]*MatchValueSpec       // name → {Match, Val} for custom value matchers.
+	Lex   *bool                     // Enable custom matching. Default: true.
+	Token map[string]*regexp.Regexp // "#NAME" → regexp pattern for custom tokens.
+	Value map[string]*MatchValueSpec // name → {Match, Val} for custom value matchers.
+
+	// Check is a LexCheck hook invoked before the match matcher runs.
+	// Mirrors TS `options.match.check`.
+	Check LexCheck
 }
 
 // MatchValueSpec defines a regexp-based value matcher.
@@ -153,12 +202,21 @@ type FixedOptions struct {
 	//     Unknown names are allocated a new Tin (matches (*Jsonic).Token).
 	//   - nil pointer: remove the name's fixed mapping(s) from the lexer.
 	Token map[string]*string
+
+	// Check is a LexCheck hook invoked before the fixed matcher runs.
+	// Return nil to continue normal matching or a LexCheckResult to
+	// override. Mirrors TS `options.fixed.check`.
+	Check LexCheck
 }
 
 // SpaceOptions controls space lexing.
 type SpaceOptions struct {
 	Lex   *bool  // Enable space lexing. Default: true.
 	Chars string // Space characters. Default: " \t".
+
+	// Check is a LexCheck hook invoked before the space matcher runs.
+	// Mirrors TS `options.space.check`.
+	Check LexCheck
 }
 
 // LineOptions controls line-ending lexing.
@@ -167,6 +225,10 @@ type LineOptions struct {
 	Chars    string // Line characters. Default: "\r\n".
 	RowChars string // Row-counting characters. Default: "\n".
 	Single   *bool  // Generate separate tokens per newline. Default: false.
+
+	// Check is a LexCheck hook invoked before the line matcher runs.
+	// Mirrors TS `options.line.check`.
+	Check LexCheck
 }
 
 // ValModifier transforms a text token value after lexing.
@@ -176,6 +238,10 @@ type ValModifier func(val any) any
 type TextOptions struct {
 	Lex    *bool         // Enable text matching. Default: true.
 	Modify []ValModifier // Pipeline of value modifiers applied after text matching.
+
+	// Check is a LexCheck hook invoked before the text matcher runs.
+	// Mirrors TS `options.text.check`.
+	Check LexCheck
 }
 
 // NumberOptions controls numeric literal lexing.
@@ -186,6 +252,10 @@ type NumberOptions struct {
 	Bin     *bool             // Support 0b binary format. Default: true.
 	Sep     string            // Number separator character. Default: "_". Empty string disables.
 	Exclude func(string) bool // Exclude certain number-like strings from number matching.
+
+	// Check is a LexCheck hook invoked before the number matcher runs.
+	// Mirrors TS `options.number.check`.
+	Check LexCheck
 }
 
 // CommentDef defines a single comment type.
@@ -195,12 +265,34 @@ type CommentDef struct {
 	End     string // End marker for block comments, e.g. "*/".
 	Lex     *bool  // Enable this comment type. Default: true.
 	EatLine *bool  // Also consume trailing line chars. Default: false.
+
+	// Suffix terminates a comment body at an additional marker beyond
+	// its natural end (line char for line comments, End for block
+	// comments). When matched, the suffix is CONSUMED as the last part
+	// of the comment body.
+	//
+	// Accepts one of:
+	//   string                — single suffix marker.
+	//   []string              — any of these markers terminates.
+	//   LexMatcher            — custom terminator probe: a non-nil
+	//                           returned token signals termination;
+	//                           len(token.Src) characters are consumed.
+	//
+	// EatLine still only fires for line-char termination; it does not
+	// stack with Suffix consumption.
+	//
+	// Mirrors TS `options.comment.def.<name>.suffix`.
+	Suffix any
 }
 
 // CommentOptions controls comment lexing.
 type CommentOptions struct {
 	Lex *bool                  // Enable all comment lexing. Default: true.
 	Def map[string]*CommentDef // Comment type definitions.
+
+	// Check is a LexCheck hook invoked before the comment matcher runs.
+	// Mirrors TS `options.comment.check`.
+	Check LexCheck
 }
 
 // StringOptions controls quoted string lexing.
@@ -213,6 +305,10 @@ type StringOptions struct {
 	AllowUnknown *bool             // Allow unknown escapes. Default: true.
 	Abandon      *bool             // On string error, return nil to let next matcher try. Default: false.
 	Replace      map[rune]string   // Character replacements applied during string scanning.
+
+	// Check is a LexCheck hook invoked before the string matcher runs.
+	// Mirrors TS `options.string.check`.
+	Check LexCheck
 }
 
 // MapMergeFunc is a custom merge function for duplicate map keys.
@@ -260,10 +356,20 @@ type ValueOptions struct {
 
 // RuleOptions controls parser rule behavior.
 type RuleOptions struct {
-	Start   string   // Starting rule name. Default: "val".
-	Finish  *bool    // Auto-close unclosed structures at EOF. Default: true.
-	MaxMul  *int     // Max rule occurrence multiplier. Default: 3.
-	Exclude string   // Comma-separated group tags to exclude from grammar.
+	Start  string // Starting rule name. Default: "val".
+	Finish *bool  // Auto-close unclosed structures at EOF. Default: true.
+	MaxMul *int   // Max rule occurrence multiplier. Default: 3.
+
+	// Include is a comma-separated list of group tags. When non-empty,
+	// only grammar alternates whose G field contains at least one of
+	// these tags survive; all other alts (including those with no tags)
+	// are dropped. Applied before Exclude.
+	Include string
+
+	// Exclude is a comma-separated list of group tags. Grammar
+	// alternates whose G field contains any of these tags are removed.
+	// Applied after Include.
+	Exclude string
 }
 
 // LexOptions controls global lex behavior.
@@ -279,6 +385,14 @@ type LexOptions struct {
 // ParserOptions allows custom parser overrides.
 type ParserOptions struct {
 	Start func(src string, j *Jsonic, meta map[string]any) (any, error)
+}
+
+// ParseOptions holds parse-time hooks. Mirrors TS `options.parse`.
+type ParseOptions struct {
+	// Prepare is a map of named callbacks invoked once at the start of
+	// every parse, in name order. The map form matches TS (which uses
+	// an object so plugins can replace each others' entries by name).
+	Prepare map[string]func(ctx *Context)
 }
 
 // ResultOptions controls parse result validation.
@@ -465,7 +579,10 @@ func Make(opts ...Options) *Jsonic {
 		j.parserStart = o.Parser.Start
 	}
 
-	// Apply rule exclude.
+	// Apply rule include first, then exclude — mirrors SetOptions.
+	if o.Rule != nil && o.Rule.Include != "" {
+		j.include(o.Rule.Include)
+	}
 	if o.Rule != nil && o.Rule.Exclude != "" {
 		j.exclude(o.Rule.Exclude)
 	}
@@ -560,6 +677,9 @@ func buildConfig(o *Options) *LexConfig {
 
 	// Fixed tokens
 	cfg.FixedLex = boolVal(optBool(o.Fixed, func(f *FixedOptions) *bool { return f.Lex }), true)
+	if o.Fixed != nil {
+		cfg.FixedCheck = o.Fixed.Check
+	}
 
 	// Match (custom regexp matchers - TS: options.match)
 	// Always initialize maps so SetOptions can add entries later.
@@ -583,6 +703,7 @@ func buildConfig(o *Options) *LexConfig {
 				return cfg.MatchValues[i].Name < cfg.MatchValues[j].Name
 			})
 		}
+		cfg.MatchCheck = o.Match.Check
 	}
 
 	// Space
@@ -592,10 +713,16 @@ func buildConfig(o *Options) *LexConfig {
 	} else {
 		cfg.SpaceChars = map[rune]bool{' ': true, '\t': true}
 	}
+	if o.Space != nil {
+		cfg.SpaceCheck = o.Space.Check
+	}
 
 	// Line
 	cfg.LineLex = boolVal(optBool(o.Line, func(l *LineOptions) *bool { return l.Lex }), true)
 	cfg.LineSingle = boolVal(optBool(o.Line, func(l *LineOptions) *bool { return l.Single }), false)
+	if o.Line != nil {
+		cfg.LineCheck = o.Line.Check
+	}
 	if o.Line != nil && o.Line.Chars != "" {
 		cfg.LineChars = runeSet(o.Line.Chars)
 	} else {
@@ -612,11 +739,17 @@ func buildConfig(o *Options) *LexConfig {
 	if o.Text != nil && len(o.Text.Modify) > 0 {
 		cfg.TextModify = o.Text.Modify
 	}
+	if o.Text != nil {
+		cfg.TextCheck = o.Text.Check
+	}
 
 	// Number
 	cfg.NumberLex = boolVal(optBool(o.Number, func(n *NumberOptions) *bool { return n.Lex }), true)
 	if o.Number != nil && o.Number.Exclude != nil {
 		cfg.NumberExclude = o.Number.Exclude
+	}
+	if o.Number != nil {
+		cfg.NumberCheck = o.Number.Check
 	}
 	cfg.NumberHex = boolVal(optBool(o.Number, func(n *NumberOptions) *bool { return n.Hex }), true)
 	cfg.NumberOct = boolVal(optBool(o.Number, func(n *NumberOptions) *bool { return n.Oct }), true)
@@ -632,25 +765,57 @@ func buildConfig(o *Options) *LexConfig {
 
 	// Comment
 	cfg.CommentLex = boolVal(optBool(o.Comment, func(c *CommentOptions) *bool { return c.Lex }), true)
+	if o.Comment != nil {
+		cfg.CommentCheck = o.Comment.Check
+	}
 	if o.Comment != nil && o.Comment.Def != nil {
 		cfg.CommentLine = nil
 		cfg.CommentBlock = nil
 		cfg.CommentLineEatLine = make(map[string]bool)
 		cfg.CommentBlockEatLine = make(map[string]bool)
+		cfg.CommentLineSuffixes = nil
+		cfg.CommentBlockSuffixes = nil
+		cfg.CommentLineSuffixFuncs = nil
+		cfg.CommentBlockSuffixFuncs = nil
 		for _, def := range o.Comment.Def {
 			if def == nil || !boolVal(def.Lex, true) {
 				continue
 			}
 			eatLine := boolVal(def.EatLine, false)
+			suffixStrs, suffixFn := normalizeCommentSuffix(def.Suffix)
 			if def.Line {
 				cfg.CommentLine = append(cfg.CommentLine, def.Start)
 				if eatLine {
 					cfg.CommentLineEatLine[def.Start] = true
 				}
+				if len(suffixStrs) > 0 {
+					if cfg.CommentLineSuffixes == nil {
+						cfg.CommentLineSuffixes = make(map[string][]string)
+					}
+					cfg.CommentLineSuffixes[def.Start] = suffixStrs
+				}
+				if suffixFn != nil {
+					if cfg.CommentLineSuffixFuncs == nil {
+						cfg.CommentLineSuffixFuncs = make(map[string]LexMatcher)
+					}
+					cfg.CommentLineSuffixFuncs[def.Start] = suffixFn
+				}
 			} else {
 				cfg.CommentBlock = append(cfg.CommentBlock, [2]string{def.Start, def.End})
 				if eatLine {
 					cfg.CommentBlockEatLine[def.Start] = true
+				}
+				if len(suffixStrs) > 0 {
+					if cfg.CommentBlockSuffixes == nil {
+						cfg.CommentBlockSuffixes = make(map[string][]string)
+					}
+					cfg.CommentBlockSuffixes[def.Start] = suffixStrs
+				}
+				if suffixFn != nil {
+					if cfg.CommentBlockSuffixFuncs == nil {
+						cfg.CommentBlockSuffixFuncs = make(map[string]LexMatcher)
+					}
+					cfg.CommentBlockSuffixFuncs[def.Start] = suffixFn
 				}
 			}
 		}
@@ -676,6 +841,9 @@ func buildConfig(o *Options) *LexConfig {
 
 	// String
 	cfg.StringLex = boolVal(optBool(o.String, func(s *StringOptions) *bool { return s.Lex }), true)
+	if o.String != nil {
+		cfg.StringCheck = o.String.Check
+	}
 	if o.String != nil && o.String.Chars != "" {
 		cfg.StringChars = runeSet(o.String.Chars)
 	} else {
@@ -772,6 +940,9 @@ func buildConfig(o *Options) *LexConfig {
 		cfg.MapRef = boolVal(o.Info.Map, false)
 		if cfg.MapRef || cfg.ListRef || cfg.TextInfo {
 			cfg.InfoMarker = "__info__"
+			if o.Info.Marker != "" {
+				cfg.InfoMarker = o.Info.Marker
+			}
 		}
 	}
 	// list.child requires ListRef to store the child value on ListRef.Child.
@@ -779,9 +950,50 @@ func buildConfig(o *Options) *LexConfig {
 		cfg.ListRef = true
 	}
 
+	// Parse-time hooks. The TS map is keyed by name so plugins can replace
+	// each others' entries; we preserve insertion-order-free semantics by
+	// sorting the callbacks by key before storing them.
+	if o.Parse != nil && len(o.Parse.Prepare) > 0 {
+		names := make([]string, 0, len(o.Parse.Prepare))
+		for name := range o.Parse.Prepare {
+			names = append(names, name)
+		}
+		sort.Strings(names)
+		cfg.ParsePrepare = cfg.ParsePrepare[:0]
+		for _, name := range names {
+			if fn := o.Parse.Prepare[name]; fn != nil {
+				cfg.ParsePrepare = append(cfg.ParsePrepare, fn)
+			}
+		}
+	}
+
 	// Result fail values.
 	if o.Result != nil && len(o.Result.Fail) > 0 {
 		cfg.ResultFail = append(cfg.ResultFail, o.Result.Fail...)
+	}
+
+	// Colour palette for error formatting. Defaults mirror TS: active,
+	// bright red header, dim suffix, blue line gutter.
+	cfg.Color = ColorConfig{
+		Active: boolVal(optBool(o.Color, func(c *ColorOptions) *bool { return c.Active }), true),
+		Reset:  "\x1b[0m",
+		Hi:     "\x1b[91m",
+		Lo:     "\x1b[2m",
+		Line:   "\x1b[34m",
+	}
+	if o.Color != nil {
+		if o.Color.Reset != "" {
+			cfg.Color.Reset = o.Color.Reset
+		}
+		if o.Color.Hi != "" {
+			cfg.Color.Hi = o.Color.Hi
+		}
+		if o.Color.Lo != "" {
+			cfg.Color.Lo = o.Color.Lo
+		}
+		if o.Color.Line != "" {
+			cfg.Color.Line = o.Color.Line
+		}
 	}
 
 	// Apply config modifiers.
@@ -809,4 +1021,53 @@ func runeSet(s string) map[rune]bool {
 		m[r] = true
 	}
 	return m
+}
+
+// normalizeCommentSuffix splits the polymorphic CommentDef.Suffix value
+// into two internal forms: a list of suffix strings (sorted longest-first
+// so a longer marker shadows a shorter one) and an optional LexMatcher
+// probe. The matcher may also produce strings via non-nil returns; those
+// are handled at match time, not here.  Returns zero-length slice and
+// nil when no suffix is configured.
+func normalizeCommentSuffix(raw any) ([]string, LexMatcher) {
+	if raw == nil {
+		return nil, nil
+	}
+
+	var strs []string
+	var fn LexMatcher
+
+	switch v := raw.(type) {
+	case string:
+		if v != "" {
+			strs = []string{v}
+		}
+	case []string:
+		for _, s := range v {
+			if s != "" {
+				strs = append(strs, s)
+			}
+		}
+	case []any:
+		// MapToOptions parses JSON arrays into []any.
+		for _, el := range v {
+			if s, ok := el.(string); ok && s != "" {
+				strs = append(strs, s)
+			}
+		}
+	case LexMatcher:
+		fn = v
+	case func(lex *Lex, rule *Rule) *Token:
+		fn = LexMatcher(v)
+	}
+
+	if len(strs) > 1 {
+		sort.Slice(strs, func(i, j int) bool {
+			if len(strs[i]) != len(strs[j]) {
+				return len(strs[i]) > len(strs[j])
+			}
+			return strs[i] < strs[j]
+		})
+	}
+	return strs, fn
 }

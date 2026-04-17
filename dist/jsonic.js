@@ -99,12 +99,23 @@ function make(param_options, parent) {
     };
     // This lets you access options as direct properties,
     // and set them as a function call.
+    // `change_options` can be a Bag object or a jsonic-format string that
+    // is parsed into a Bag before applying.
     let optionsMethod = (change_options) => {
-        if (null != change_options && utility_1.S.object === typeof change_options) {
-            (0, utility_1.deep)(merged_options, change_options);
-            (0, utility_1.configure)(jsonic, internal.config, merged_options);
-            let parser = jsonic.internal().parser;
-            internal.parser = parser.clone(merged_options, internal.config, jsonic);
+        if (null != change_options) {
+            if (utility_1.S.string === typeof change_options) {
+                const parsed = make()(change_options);
+                change_options =
+                    null != parsed && utility_1.S.object === typeof parsed
+                        ? parsed
+                        : undefined;
+            }
+            if (null != change_options && utility_1.S.object === typeof change_options) {
+                (0, utility_1.deep)(merged_options, change_options);
+                (0, utility_1.configure)(jsonic, internal.config, merged_options);
+                let parser = jsonic.internal().parser;
+                internal.parser = parser.clone(merged_options, internal.config, jsonic);
+            }
         }
         return { ...jsonic.options };
     };
@@ -168,7 +179,7 @@ function make(param_options, parent) {
             return jsonic;
         },
         util,
-        grammar: (gs) => {
+        grammar: (gs, setting) => {
             if ('string' === typeof gs) {
                 const parsed = make()(gs);
                 if (null == parsed || 'object' !== typeof parsed) {
@@ -176,6 +187,29 @@ function make(param_options, parent) {
                 }
                 gs = parsed;
             }
+            // Normalize the optional setting's rule.alt.g value to a string[] once.
+            const altG = setting?.rule?.alt?.g;
+            const altGArr = null == altG
+                ? null
+                : Array.isArray(altG)
+                    ? [...altG]
+                    : String(altG).split(/\s*,\s*/).filter((s) => s.length > 0);
+            // Append altGArr tags to each alt's g field without mutating the input alt.
+            const applyG = (alts) => {
+                if (null == altGArr || 0 === altGArr.length || !Array.isArray(alts)) {
+                    return alts;
+                }
+                return alts.map((a) => {
+                    if (null == a || 'object' !== typeof a)
+                        return a;
+                    const existing = null == a.g
+                        ? []
+                        : Array.isArray(a.g)
+                            ? [...a.g]
+                            : String(a.g).split(/\s*,\s*/).filter((s) => s.length > 0);
+                    return { ...a, g: [...existing, ...altGArr] };
+                });
+            };
             if (gs.options) {
                 const resolved = (0, utility_1.resolveFuncRefs)(gs.options, gs.ref);
                 ji.options(resolved);
@@ -191,13 +225,13 @@ function make(param_options, parent) {
                             const isarr = Array.isArray(rulespec.open);
                             const alts = isarr ? rulespec.open : rulespec.open.alts;
                             const inject = isarr ? {} : rulespec.open.inject;
-                            rs.open(alts, inject);
+                            rs.open(applyG(alts), inject);
                         }
                         if (rulespec.close) {
                             const isarr = Array.isArray(rulespec.close);
                             const alts = isarr ? rulespec.close : rulespec.close.alts;
                             const inject = isarr ? {} : rulespec.close.inject;
-                            rs.close(alts, inject);
+                            rs.close(applyG(alts), inject);
                         }
                     });
                 }

@@ -320,6 +320,8 @@ let makeCommentMatcher: MakeLexMatcher = (cfg: Config, opts: Options) => {
           return def
         }
 
+        let { suffixes, suffixFn } = normalizeCommentSuffix(om.suffix)
+
         let cm: CommentDef = {
           name,
           start: om.start as string,
@@ -327,6 +329,8 @@ let makeCommentMatcher: MakeLexMatcher = (cfg: Config, opts: Options) => {
           line: !!om.line,
           lex: !!om.lex,
           eatline: !!om.eatline,
+          suffixes,
+          suffixFn,
         }
 
         def[name] = cm
@@ -374,12 +378,24 @@ let makeCommentMatcher: MakeLexMatcher = (cfg: Config, opts: Options) => {
         let fwdlen = fwd.length
         let fI = mc.start.length
         cI += mc.start.length
+        let suffixLen = 0
         while (fI < fwdlen && !cfg.line.chars[fwd[fI]]) {
+          let n = commentSuffixMatch(fwd, fI, mc.suffixes)
+          if (n > 0) { suffixLen = n; break }
+          n = commentSuffixFnMatch(lex, fI, mc.suffixFn)
+          if (n > 0) { suffixLen = n; break }
           cI++
           fI++
         }
 
-        if (mc.eatline) {
+        if (suffixLen > 0) {
+          // Consume the suffix as the tail of the comment body.
+          fI += suffixLen
+          cI += suffixLen
+        }
+        else if (mc.eatline) {
+          // Only absorb trailing line chars when termination came from
+          // a line char (not from a suffix match).
           while (fI < fwdlen && cfg.line.chars[fwd[fI]]) {
             if (cfg.line.rowChars[fwd[fI]]) {
               rI++
@@ -407,7 +423,12 @@ let makeCommentMatcher: MakeLexMatcher = (cfg: Config, opts: Options) => {
         let fI = mc.start.length
         let end = mc.end as string
         cI += mc.start.length
+        let suffixLen = 0
         while (fI < fwdlen && !fwd.substring(fI).startsWith(end)) {
+          let n = commentSuffixMatch(fwd, fI, mc.suffixes)
+          if (n > 0) { suffixLen = n; break }
+          n = commentSuffixFnMatch(lex, fI, mc.suffixFn)
+          if (n > 0) { suffixLen = n; break }
           if (cfg.line.rowChars[fwd[fI]]) {
             rI++
             cI = 0
@@ -415,6 +436,23 @@ let makeCommentMatcher: MakeLexMatcher = (cfg: Config, opts: Options) => {
 
           cI++
           fI++
+        }
+
+        if (suffixLen > 0) {
+          // Advance through the consumed suffix, tracking newlines.
+          for (let k = 0; k < suffixLen; k++) {
+            if (cfg.line.rowChars[fwd[fI + k]]) {
+              rI++
+              cI = 0
+            }
+            cI++
+          }
+          let csrc = fwd.substring(0, fI + suffixLen)
+          let tkn = lex.token('#CM', undefined, csrc, pnt)
+          pnt.sI += csrc.length
+          pnt.rI = rI
+          pnt.cI = cI
+          return tkn
         }
 
         if (fwd.substring(fI).startsWith(end)) {
@@ -447,6 +485,68 @@ let makeCommentMatcher: MakeLexMatcher = (cfg: Config, opts: Options) => {
       }
     }
   }
+}
+
+// normalizeCommentSuffix splits the polymorphic suffix option value
+// (string | string[] | LexMatcher) into a length-sorted string list and
+// an optional LexMatcher probe. Empty/absent input yields empty outputs.
+function normalizeCommentSuffix(raw: any):
+  { suffixes: string[] | undefined, suffixFn: LexMatcher | undefined } {
+  if (null == raw) {
+    return { suffixes: undefined, suffixFn: undefined }
+  }
+  if ('function' === typeof raw) {
+    return { suffixes: undefined, suffixFn: raw as LexMatcher }
+  }
+  let list: string[] = []
+  if ('string' === typeof raw) {
+    if ('' !== raw) list.push(raw)
+  } else if (Array.isArray(raw)) {
+    for (let s of raw) {
+      if ('string' === typeof s && '' !== s) list.push(s)
+    }
+  }
+  if (list.length > 1) {
+    list.sort((a, b) => b.length - a.length || (a < b ? -1 : a > b ? 1 : 0))
+  }
+  return {
+    suffixes: 0 === list.length ? undefined : list,
+    suffixFn: undefined,
+  }
+}
+
+// commentSuffixMatch returns the length of the best suffix match at
+// fwd[fI:] or 0 if none matches. Suffixes are pre-sorted longest-first,
+// so the first match is the best match.
+function commentSuffixMatch(fwd: string, fI: number, suffixes?: string[]): number {
+  if (!suffixes || 0 === suffixes.length) return 0
+  for (let s of suffixes) {
+    if (fwd.substring(fI, fI + s.length) === s) return s.length
+  }
+  return 0
+}
+
+// commentSuffixFnMatch probes the LexMatcher-form suffix terminator at
+// offset fI. Returns the length of the returned token's src (to be
+// consumed) or 0 if no termination. The lex point is snapshotted and
+// restored so a misbehaving matcher can't advance the stream itself.
+function commentSuffixFnMatch(lex: Lex, fI: number, fn?: LexMatcher): number {
+  if (!fn) return 0
+  let pnt = lex.pnt
+  let savedSI = pnt.sI
+  let savedRI = pnt.rI
+  let savedCI = pnt.cI
+  pnt.sI = savedSI + fI
+  let tkn: any
+  try {
+    tkn = fn(lex, undefined as any)
+  } finally {
+    pnt.sI = savedSI
+    pnt.rI = savedRI
+    pnt.cI = savedCI
+  }
+  if (null == tkn) return 0
+  return ('string' === typeof tkn.src) ? tkn.src.length : 0
 }
 
 // Match text, checking for literal values, optionally followed by a fixed token.

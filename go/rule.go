@@ -1,6 +1,33 @@
 package jsonic
 
-import "strings"
+import (
+	"fmt"
+	"regexp"
+	"strings"
+)
+
+// groupTagRe is the regex every g tag must match: a lowercase letter
+// followed by one or more lowercase letters, digits, or hyphens.
+// Validated by NormAlt (and, transitively, by Grammar/GrammarText).
+var groupTagRe = regexp.MustCompile(`^[a-z][a-z0-9-]+$`)
+
+// ValidateGroupTags returns an error if any tag in the supplied
+// comma-separated string fails the group-tag regex.
+func ValidateGroupTags(g string) error {
+	if g == "" {
+		return nil
+	}
+	for _, tag := range strings.Split(g, ",") {
+		tag = strings.TrimSpace(tag)
+		if tag == "" {
+			continue
+		}
+		if !groupTagRe.MatchString(tag) {
+			return fmt.Errorf("Grammar: invalid group tag %q — must match %s", tag, groupTagRe)
+		}
+	}
+	return nil
+}
 
 // RuleState represents whether a rule is in open or close state.
 type RuleState = string
@@ -280,12 +307,21 @@ func MakeRuleCond(op string, prop string, subprop string, val int) AltCond {
 	}
 }
 
-// NormAlt normalizes an AltSpec by converting a declarative CD condition into a C function.
-// Matches the TypeScript normalt() behavior for the c: field.
-// If C is already set, CD is ignored.
-func NormAlt(alt *AltSpec) {
-	if alt == nil || alt.CD == nil || alt.C != nil {
-		return
+// NormAlt normalizes an AltSpec by converting a declarative CD condition
+// into a C function and validating the G tag format.  Returns a non-nil
+// error if any G tag fails the group-tag regex; callers must check the
+// return value and surface the error (no panics).
+func NormAlt(alt *AltSpec) error {
+	if alt == nil {
+		return nil
+	}
+
+	if err := ValidateGroupTags(alt.G); err != nil {
+		return err
+	}
+
+	if alt.CD == nil || alt.C != nil {
+		return nil
 	}
 
 	var conds []AltCond
@@ -317,16 +353,24 @@ func NormAlt(alt *AltSpec) {
 			return true
 		}
 	}
+
+	return nil
 }
 
-// NormAlts normalizes all alternates in a RuleSpec.
-func NormAlts(spec *RuleSpec) {
+// NormAlts normalizes all alternates in a RuleSpec.  Returns the first
+// validation error encountered, if any.
+func NormAlts(spec *RuleSpec) error {
 	for _, alt := range spec.Open {
-		NormAlt(alt)
+		if err := NormAlt(alt); err != nil {
+			return err
+		}
 	}
 	for _, alt := range spec.Close {
-		NormAlt(alt)
+		if err := NormAlt(alt); err != nil {
+			return err
+		}
 	}
+	return nil
 }
 
 // Rule represents a rule instance during parsing.

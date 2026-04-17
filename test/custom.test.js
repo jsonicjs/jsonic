@@ -327,14 +327,14 @@ describe('custom', () => {
         rs
           .bo((r) => (r.node = r.node || { o: '' }))
           .open([
-            { s: [ZZ], g: 'E' },
+            { s: [ZZ], g: 'gz' },
             { s: [Ta], r: 'top', a: (r) => (r.node.o += 'A'), g: 'ga' },
           ]),
       )
     })
 
     assert.deepEqual(j('a', { xlog: -1 }), { o: 'A' })
-    assert.deepEqual(j.rule('top').def.open.map((alt) => alt.g[0]), ['E', 'ga'])
+    assert.deepEqual(j.rule('top').def.open.map((alt) => alt.g[0]), ['gz', 'ga'])
 
     // Prepend by default
     j.use((j) => {
@@ -346,7 +346,7 @@ describe('custom', () => {
     assert.deepEqual(j('ab'), { o: 'AB' })
     assert.deepEqual(j.rule('top').def.open.map((alt) => alt.g[0]), [
       'gb',
-      'E',
+      'gz',
       'ga',
     ])
 
@@ -362,7 +362,7 @@ describe('custom', () => {
     assert.deepEqual(j('abc'), { o: 'ABC' })
     assert.deepEqual(j.rule('top').def.open.map((alt) => alt.g[0]), [
       'gb',
-      'E',
+      'gz',
       'ga',
       'gc',
     ])
@@ -380,7 +380,7 @@ describe('custom', () => {
     assert.deepEqual(j('bcd'), { o: 'BCD' })
     assert.deepEqual(j.rule('top').def.open.map((alt) => alt.g[0]), [
       'gb',
-      'E',
+      'gz',
       'gc',
       'gd',
     ])
@@ -397,7 +397,7 @@ describe('custom', () => {
 
     assert.deepEqual(j('bcde'), { o: 'BCDE' })
     assert.deepEqual(j.rule('top').def.open.map((alt) => alt.g[0]), [
-      'E',
+      'gz',
       'gb', // 0 -> 1
       'gd',
       'ge',
@@ -411,7 +411,7 @@ describe('custom', () => {
 
     assert.deepEqual(j('cd'), { o: 'CD' })
     assert.deepEqual(j.rule('top').def.open.map((alt) => alt.g[0]), [
-      'E',
+      'gz',
       'gd',
       'gc',
     ])

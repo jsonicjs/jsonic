@@ -1,6 +1,7 @@
 package jsonic
 
 import (
+	"fmt"
 	"sort"
 	"strings"
 )
@@ -637,8 +638,12 @@ func (j *Jsonic) SetOptions(opts Options) *Jsonic {
 		j.parserStart = j.options.Parser.Start
 	}
 
-	// Apply rule exclude. Only apply from the incoming opts (not merged)
-	// to avoid re-excluding already-excluded groups.
+	// Apply rule include first, then exclude. Only apply from the
+	// incoming opts (not merged) to avoid re-filtering groups that
+	// earlier SetOptions/Grammar calls already handled.
+	if opts.Rule != nil && opts.Rule.Include != "" {
+		j.include(opts.Rule.Include)
+	}
 	if opts.Rule != nil && opts.Rule.Exclude != "" {
 		j.exclude(opts.Rule.Exclude)
 	}
@@ -646,25 +651,73 @@ func (j *Jsonic) SetOptions(opts Options) *Jsonic {
 	return j
 }
 
+// SetOptionsText parses a jsonic-format options string, converts it to an
+// Options struct via MapToOptions, and applies it via SetOptions.
+// Returns the instance for chaining and any parse error encountered.
+// Complement to SetOptions that accepts a textual specification of the
+// desired options tree.
+func (j *Jsonic) SetOptionsText(text string) (*Jsonic, error) {
+	if text == "" {
+		return j, nil
+	}
+	parsed, err := Make().Parse(text)
+	if err != nil {
+		return j, err
+	}
+	if parsed == nil {
+		return j, nil
+	}
+	m, ok := parsed.(map[string]any)
+	if !ok {
+		return j, fmt.Errorf("SetOptionsText: expected map, got %T", parsed)
+	}
+	j.SetOptions(MapToOptions(m))
+	return j, nil
+}
+
+// include keeps only grammar alternates whose G tags intersect the
+// given group names. Group names are comma-separated in AltSpec.G
+// fields and in the supplied arguments. Alts with no G tags are
+// dropped whenever the include set is non-empty.
+// Use rule.include option to opt alts into the grammar (e.g. "json"
+// for strict-JSON mode where plugins pre-tag their alts with "json").
+func (j *Jsonic) include(groups ...string) *Jsonic {
+	includeSet := buildTagSet(groups)
+	if len(includeSet) == 0 {
+		return j
+	}
+	for _, rs := range j.parser.RSM {
+		rs.Open = filterAltsInclude(rs.Open, includeSet)
+		rs.Close = filterAltsInclude(rs.Close, includeSet)
+	}
+	return j
+}
+
 // exclude removes grammar alternates tagged with any of the given group names.
 // Group names are comma-separated in AltSpec.G fields.
 // Use rule.exclude option to strip groups (e.g. "jsonic" for strict JSON).
 func (j *Jsonic) exclude(groups ...string) *Jsonic {
-	excludeSet := make(map[string]bool)
-	for _, g := range groups {
-		for _, part := range strings.Split(g, ",") {
-			part = strings.TrimSpace(part)
-			if part != "" {
-				excludeSet[part] = true
-			}
-		}
-	}
+	excludeSet := buildTagSet(groups)
 
 	for _, rs := range j.parser.RSM {
 		rs.Open = filterAlts(rs.Open, excludeSet)
 		rs.Close = filterAlts(rs.Close, excludeSet)
 	}
 	return j
+}
+
+// buildTagSet parses one or more comma-separated tag strings into a set.
+func buildTagSet(groups []string) map[string]bool {
+	out := make(map[string]bool)
+	for _, g := range groups {
+		for _, part := range strings.Split(g, ",") {
+			part = strings.TrimSpace(part)
+			if part != "" {
+				out[part] = true
+			}
+		}
+	}
+	return out
 }
 
 // filterAlts removes alternates whose G tags overlap with the exclude set.
@@ -684,6 +737,30 @@ func filterAlts(alts []*AltSpec, excludeSet map[string]bool) []*AltSpec {
 			}
 		}
 		if !excluded {
+			result = append(result, alt)
+		}
+	}
+	return result
+}
+
+// filterAltsInclude keeps only alternates whose G tags intersect the
+// include set. Alts with no G tags are dropped when includeSet is
+// non-empty; callers should short-circuit for the empty-set case.
+func filterAltsInclude(alts []*AltSpec, includeSet map[string]bool) []*AltSpec {
+	result := make([]*AltSpec, 0, len(alts))
+	for _, alt := range alts {
+		if alt.G == "" {
+			continue
+		}
+		kept := false
+		for _, tag := range strings.Split(alt.G, ",") {
+			tag = strings.TrimSpace(tag)
+			if includeSet[tag] {
+				kept = true
+				break
+			}
+		}
+		if kept {
 			result = append(result, alt)
 		}
 	}

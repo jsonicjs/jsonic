@@ -9,7 +9,7 @@ export declare const STRING = "string";
 export type JsonicParse = (src: any, meta?: any, parent_ctx?: any) => any;
 export interface JsonicAPI {
     parse: JsonicParse;
-    options: Options & ((change_options?: Bag) => Bag);
+    options: Options & ((change_options?: Bag | string) => Bag);
     config: () => Config;
     make: (options?: Options | string) => Jsonic;
     use: (plugin: Plugin, plugin_options?: Bag) => Jsonic;
@@ -25,8 +25,15 @@ export interface JsonicAPI {
         rule?: RuleSub;
     }) => Jsonic;
     util: Bag;
-    grammar: (gs: GrammarSpec) => void;
+    grammar: (gs: GrammarSpec | string, setting?: GrammarSetting) => void;
 }
+export type GrammarSetting = {
+    rule?: {
+        alt?: {
+            g?: string | string[];
+        };
+    };
+};
 export type Jsonic = JsonicParse & // A function that parses.
 JsonicAPI & {
     [prop: string]: any;
@@ -420,6 +427,8 @@ export type Config = {
                 end?: string;
                 lex: boolean;
                 eatline: boolean;
+                suffixes?: string[];
+                suffixFn?: LexMatcher;
             };
         };
         check?: LexCheck;

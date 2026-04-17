@@ -731,6 +731,24 @@ func MapToOptions(m map[string]any) Options {
 				if eatline, ok := dm["eatline"].(bool); ok {
 					cd.EatLine = &eatline
 				}
+				// Suffix round-trip via text: accept string or array.
+				// The LexMatcher form requires the typed Go API.
+				if suffix, ok := dm["suffix"]; ok {
+					switch v := suffix.(type) {
+					case string:
+						cd.Suffix = v
+					case []any:
+						strs := make([]string, 0, len(v))
+						for _, el := range v {
+							if s, ok := el.(string); ok {
+								strs = append(strs, s)
+							}
+						}
+						cd.Suffix = strs
+					case []string:
+						cd.Suffix = v
+					}
+				}
 				opts.Comment.Def[k] = cd
 			}
 		}
@@ -860,6 +878,9 @@ func MapToOptions(m map[string]any) Options {
 		if finish, ok := rm["finish"].(bool); ok {
 			opts.Rule.Finish = &finish
 		}
+		if include, ok := rm["include"].(string); ok {
+			opts.Rule.Include = include
+		}
 		if exclude, ok := rm["exclude"].(string); ok {
 			opts.Rule.Exclude = exclude
 		}
@@ -901,6 +922,15 @@ func MapToOptions(m map[string]any) Options {
 		opts.ErrMsg = &ErrMsgOptions{}
 		if name, ok := em["name"].(string); ok {
 			opts.ErrMsg.Name = name
+		}
+		if suffix, ok := em["suffix"]; ok {
+			// TS accepts bool | string | function; only the JSON-serialisable
+			// subset round-trips through a jsonic text source, so we only
+			// pass those along. Functions need the typed API.
+			switch v := suffix.(type) {
+			case bool, string:
+				opts.ErrMsg.Suffix = v
+			}
 		}
 	}
 
@@ -965,6 +995,29 @@ func MapToOptions(m map[string]any) Options {
 		}
 		if v, ok := im["text"].(bool); ok {
 			opts.Info.Text = &v
+		}
+		if v, ok := im["marker"].(string); ok {
+			opts.Info.Marker = v
+		}
+	}
+
+	// color
+	if cm, ok := m["color"].(map[string]any); ok {
+		opts.Color = &ColorOptions{}
+		if v, ok := cm["active"].(bool); ok {
+			opts.Color.Active = &v
+		}
+		if v, ok := cm["reset"].(string); ok {
+			opts.Color.Reset = v
+		}
+		if v, ok := cm["hi"].(string); ok {
+			opts.Color.Hi = v
+		}
+		if v, ok := cm["lo"].(string); ok {
+			opts.Color.Lo = v
+		}
+		if v, ok := cm["line"].(string); ok {
+			opts.Color.Line = v
 		}
 	}
 
