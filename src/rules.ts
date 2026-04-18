@@ -58,8 +58,8 @@ class RuleImpl implements Rule {
   bc = false
   ac = false
 
-  os = 0
-  cs = 0
+  oN = 0
+  cN = 0
 
   spec: RuleSpec
   child: Rule
@@ -67,10 +67,14 @@ class RuleImpl implements Rule {
   prev: Rule
   next: Rule
 
-  o0: Token
-  o1: Token
-  c0: Token
-  c1: Token
+  // Canonical storage for matched tokens at each lookahead position.
+  o: Token[]
+  c: Token[]
+
+  // Per-rule NOTOKEN reference (from ctx), used by legacy accessors.
+  // Optional so the structural type of RuleImpl stays compatible with
+  // the Rule interface (which does not declare this field).
+  _NOTOKEN?: Token
 
   need = 0
 
@@ -84,10 +88,9 @@ class RuleImpl implements Rule {
     this.prev = ctx.NORULE
     this.next = ctx.NORULE
 
-    this.o0 = ctx.NOTOKEN
-    this.o1 = ctx.NOTOKEN
-    this.c0 = ctx.NOTOKEN
-    this.c1 = ctx.NOTOKEN
+    this._NOTOKEN = ctx.NOTOKEN
+    this.o = []
+    this.c = []
 
     this.node = node
     this.d = ctx.rsI
@@ -96,6 +99,22 @@ class RuleImpl implements Rule {
     this.bc = null != spec.def.bc
     this.ac = null != spec.def.ac
   }
+
+  // Legacy aliases for o[0], o[1], c[0], c[1] and the count fields.
+  // Maintained so existing grammar/plugin code that reads r.o0/r.o1/r.os
+  // (and r.c0/r.c1/r.cs) continues to work unchanged.
+  get o0(): Token { return this.o[0] ?? (this._NOTOKEN as Token) }
+  set o0(v: Token) { this.o[0] = v }
+  get o1(): Token { return this.o[1] ?? (this._NOTOKEN as Token) }
+  set o1(v: Token) { this.o[1] = v }
+  get c0(): Token { return this.c[0] ?? (this._NOTOKEN as Token) }
+  set c0(v: Token) { this.c[0] = v }
+  get c1(): Token { return this.c[1] ?? (this._NOTOKEN as Token) }
+  set c1(v: Token) { this.c[1] = v }
+  get os(): number { return this.oN }
+  set os(v: number) { this.oN = v }
+  get cs(): number { return this.cN }
+  set cs(v: number) { this.cN = v }
 
   process(ctx: Context, lex: Lex): Rule {
     let rule = this.spec.process(this, ctx, lex, this.state)
@@ -334,13 +353,30 @@ class RuleSpecImpl implements RuleSpec {
     this.def.open.map((alt) => normalt(alt, OPEN, this))
     this.def.close.map((alt) => normalt(alt, CLOSE, this))
 
-    // [stateI is o=0,c=1][tokenI is t0=0,t1=1][tins]
+    // [stateI is o=0,c=1][tokenI is 0..maxS-1][tins]
     const columns: Tin[][][] = []
 
-    this.def.open.reduce(...collate(0, 0, columns))
-    this.def.open.reduce(...collate(0, 1, columns))
-    this.def.close.reduce(...collate(1, 0, columns))
-    this.def.close.reduce(...collate(1, 1, columns))
+    // Compute max lookahead depth declared across this rule's alts,
+    // per state. Generalizes the previous hard-coded 2-slot collation.
+    const maxS = (alts: any[]): number =>
+      alts.reduce((m: number, a: any) => Math.max(m, a.sN || 0), 0)
+    const maxOpen = maxS(this.def.open)
+    const maxClose = maxS(this.def.close)
+
+    for (let tI = 0; tI < maxOpen; tI++) {
+      this.def.open.reduce(...collate(0, tI, columns))
+    }
+    for (let tI = 0; tI < maxClose; tI++) {
+      this.def.close.reduce(...collate(1, tI, columns))
+    }
+
+    // Ensure tcol[stateI] exists with enough slots so lexer.ts:264-268
+    // can always index `tcol[oc][tI]` safely for any tI the parser
+    // passes (bounded by this rule's own maxS).
+    columns[0] = columns[0] || []
+    columns[1] = columns[1] || []
+    for (let tI = 0; tI < maxOpen; tI++) columns[0][tI] = columns[0][tI] || []
+    for (let tI = 0; tI < maxClose; tI++) columns[1][tI] = columns[1][tI] || []
 
     this.def.tcol = columns
 
@@ -354,7 +390,7 @@ class RuleSpecImpl implements RuleSpec {
 
       return [
         function(tins: any, alt: any) {
-          let resolved = 0 === tokenI ? alt.t0 : alt.t1
+          let resolved = alt.t && alt.t[tokenI]
           if (resolved && 0 < resolved.length) {
             let newtins = [...new Set(tins.concat(resolved))]
             tins.length = 0
@@ -512,18 +548,26 @@ class RuleSpecImpl implements RuleSpec {
     }
 
     // Backtrack reduces consumed token count.
-    let consumed = rule[is_open ? 'os' : 'cs'] - (alt.b || 0)
+    let consumed = rule[is_open ? 'oN' : 'cN'] - (alt.b || 0)
+    if (consumed < 0) consumed = 0
 
-    if (1 === consumed) {
-      ctx.v2 = ctx.v1
-      ctx.v1 = ctx.t0
-      ctx.t0 = ctx.t1
-      ctx.t1 = ctx.NOTOKEN
-    } else if (2 == consumed) {
-      ctx.v2 = ctx.t1
-      ctx.v1 = ctx.t0
-      ctx.t0 = ctx.NOTOKEN
-      ctx.t1 = ctx.NOTOKEN
+    if (0 < consumed) {
+      // Maintain the 2-slot history (v1 = last consumed, v2 = prior).
+      // Semantics are preserved for consumed==1,2 and extend cleanly
+      // for larger N (history still holds the two most recent).
+      if (1 === consumed) {
+        ctx.v2 = ctx.v1
+        ctx.v1 = ctx.t[0]
+      } else {
+        ctx.v2 = ctx.t[consumed - 2]
+        ctx.v1 = ctx.t[consumed - 1]
+      }
+
+      // Shift the lookahead buffer left by `consumed` slots, filling
+      // vacated tail positions with NOTOKEN so later alts re-fetch.
+      const L = ctx.t.length
+      for (let i = 0; i < L - consumed; i++) ctx.t[i] = ctx.t[i + consumed]
+      for (let i = Math.max(0, L - consumed); i < L; i++) ctx.t[i] = ctx.NOTOKEN
     }
 
     return next
@@ -592,46 +636,56 @@ function parse_alts(
 
   // TODO: replace with lookup map
   let len = alts.length
+  const NOTOKEN = ctx.NOTOKEN
+  const tbuf = ctx.t
+
   for (altI = 0; altI < len; altI++) {
     alt = alts[altI] as NormAltSpec
 
-    let has0 = false
-    let has1 = false
-
+    // Number of positions that matched in this alt. Tracked so the
+    // rule can record exactly which tokens it consumed.
+    let matched = 0
     cond = true
 
-    if (alt.S0) {
-      let tin0 = (ctx.t0 =
-        ctx.NOTOKEN !== ctx.t0 ? ctx.t0 : (ctx.t0 = next(rule, alt, altI, 0)))
-        .tin
-      has0 = true
-      cond = !!(alt.S0[(tin0 / 31) | 0] & ((1 << ((tin0 % 31) - 1)) | bitAA))
+    const S = alt.S
+    const sN = alt.sN | 0
 
-      if (cond) {
-        has1 = null != alt.S1
+    // Iterate alt's lookahead positions. Each position is fetched
+    // lazily and only when the previous position matched, preserving
+    // the original 2-slot lazy behaviour for any N.
+    //
+    // A null entry in S[i] means "no Tin constraint at this position"
+    // (wildcard) - the token is still fetched and consumed, but the
+    // bit-field check is skipped. This matches the `s` docstring
+    // ("null if position matches any token") and prevents silently
+    // dropping the check at a later required position.
+    for (let i = 0; i < sN; i++) {
+      let tkn = tbuf[i]
+      if (null == tkn || NOTOKEN === tkn) {
+        tkn = tbuf[i] = next(rule, alt, altI, i)
+      }
 
-        if (alt.S1) {
-          let tin1 = (ctx.t1 =
-            ctx.NOTOKEN !== ctx.t1
-              ? ctx.t1
-              : (ctx.t1 = next(rule, alt, altI, 1))).tin
-          has1 = true
-          cond = !!(
-            alt.S1[(tin1 / 31) | 0] &
-            ((1 << ((tin1 % 31) - 1)) | bitAA)
-          )
+      const Si = S ? S[i] : null
+      if (null != Si) {
+        const tin = tkn.tin
+        if (!(Si[(tin / 31) | 0] & ((1 << ((tin % 31) - 1)) | bitAA))) {
+          cond = false
+          break
         }
       }
+      matched = i + 1
     }
 
     if (is_open) {
-      rule.o0 = has0 ? ctx.t0 : ctx.NOTOKEN
-      rule.o1 = has1 ? ctx.t1 : ctx.NOTOKEN
-      rule.os = (has0 ? 1 : 0) + (has1 ? 1 : 0)
+      rule.oN = matched
+      for (let i = 0; i < matched; i++) rule.o[i] = tbuf[i]
+      // Clear trailing slots so stale matches from earlier alts are
+      // not observed via rule.o[i] / rule.o0 / rule.o1 accessors.
+      for (let i = matched; i < rule.o.length; i++) rule.o[i] = NOTOKEN
     } else {
-      rule.c0 = has0 ? ctx.t0 : ctx.NOTOKEN
-      rule.c1 = has1 ? ctx.t1 : ctx.NOTOKEN
-      rule.cs = (has0 ? 1 : 0) + (has1 ? 1 : 0)
+      rule.cN = matched
+      for (let i = 0; i < matched; i++) rule.c[i] = tbuf[i]
+      for (let i = matched; i < rule.c.length; i++) rule.c[i] = NOTOKEN
     }
 
     // Optional custom condition
@@ -648,7 +702,7 @@ function parse_alts(
   }
 
   if (!cond) {
-    out.e = ctx.t0
+    out.e = tbuf[0] ?? NOTOKEN
   }
 
   if (alt) {
@@ -726,8 +780,13 @@ function normalt(a: AltSpec, rs: RuleState, r: RuleSpec): NormAltSpec {
 
   a.g = (a as any).g.sort()
 
+  const aa = a as any
+
   if (!a.s || 0 === a.s.length) {
     a.s = null
+    aa.t = []
+    aa.S = null
+    aa.sN = 0
   }
   else {
     const tinsify = (s: any[]): Tin[] => {
@@ -746,30 +805,29 @@ function normalt(a: AltSpec, rs: RuleState, r: RuleSpec): NormAltSpec {
       a.s = a.s.split(/\s* +\s*/)
     }
 
-    const tins0: Tin[] = tinsify([a.s[0]])
-    const tins1: Tin[] = tinsify([a.s[1]])
+    // Per-position resolved tins and bit-field match tables.
+    // alt.t[i] holds the Tin[] for position i (used by tcol collation);
+    // alt.S[i] holds the bit-packed lookup (null if position is empty,
+    // which should not normally occur - tinsify filters nulls).
+    const sN = a.s.length
+    const t: Tin[][] = new Array(sN)
+    const S: (number[] | null)[] = new Array(sN)
 
-    // Store resolved tins for tcol collation (keep a.s for re-normalization).
-    const aa = a as any
-    aa.t0 = tins0
-    aa.t1 = tins1
+    for (let i = 0; i < sN; i++) {
+      const tins: Tin[] = tinsify([a.s[i]])
+      t[i] = tins
+      S[i] =
+        0 < tins.length
+          ? new Array(Math.max(...tins.map((tin) => (1 + tin / 31) | 0)))
+            .fill(null)
+            .map((_, j) => j)
+            .map((part) => bitify(partify(tins, part), part))
+          : null
+    }
 
-    // Create as many bit fields as needed, each of size 31 bits.
-    aa.S0 =
-      0 < tins0.length
-        ? new Array(Math.max(...tins0.map((tin) => (1 + tin / 31) | 0)))
-          .fill(null)
-          .map((_, i) => i)
-          .map((part) => bitify(partify(tins0, part), part))
-        : null
-
-    aa.S1 =
-      0 < tins1.length
-        ? new Array(Math.max(...tins1.map((tin) => (1 + tin / 31) | 0)))
-          .fill(null)
-          .map((_, i) => i)
-          .map((part) => bitify(partify(tins1, part), part))
-        : null
+    aa.t = t
+    aa.S = S
+    aa.sN = sN
   }
 
   if (!a.p) {

@@ -385,12 +385,27 @@ type Rule struct {
 	Parent *Rule
 	Prev   *Rule
 	Next   *Rule
-	O0     *Token
-	O1     *Token
-	C0     *Token
-	C1     *Token
-	OS     int
-	CS     int
+
+	// Generalized per-position matched tokens. O[i] holds the token
+	// matched at the i-th lookahead position during OPEN (mirroring C
+	// for CLOSE). ON / CN give the number of matched positions. This
+	// supersedes the legacy O0/O1/OS (and C0/C1/CS) two-slot fields,
+	// which are still maintained below for backward compatibility.
+	O  []*Token
+	ON int
+	C  []*Token
+	CN int
+
+	// Legacy two-slot aliases. Kept in sync with O[0..1] / C[0..1] by
+	// ParseAlts so existing grammar code and plugins that read r.O0,
+	// r.O1, r.C0, r.C1, r.OS, r.CS continue to work unchanged.
+	O0 *Token
+	O1 *Token
+	C0 *Token
+	C1 *Token
+	OS int
+	CS int
+
 	N      map[string]int
 	U      map[string]any
 	K      map[string]any
@@ -442,6 +457,7 @@ func MakeRule(spec *RuleSpec, ctx *Context, node any) *Rule {
 		I: ctx.UI, Name: spec.Name, Spec: spec, Node: node,
 		State: OPEN, D: ctx.RSI,
 		Child: NoRule, Parent: NoRule, Prev: NoRule, Next: NoRule,
+		O: nil, ON: 0, C: nil, CN: 0,
 		O0: NoToken, O1: NoToken, C0: NoToken, C1: NoToken,
 		N: make(map[string]int), U: make(map[string]any), K: make(map[string]any),
 	}
@@ -618,7 +634,10 @@ func (r *Rule) Process(ctx *Context, lex *Lex) *Rule {
 		r.State = CLOSE
 	}
 
-	// Token consumption with backtrack (only when an alt matched)
+	// Token consumption with backtrack (only when an alt matched).
+	// Generalized from the previous 2-slot shift to any number of
+	// consumed positions, to match the N-token lookahead support in
+	// ParseAlts.
 	if alt != nil {
 		backtrack := alt.B
 		if alt.BF != nil {
@@ -626,23 +645,53 @@ func (r *Rule) Process(ctx *Context, lex *Lex) *Rule {
 		}
 		var consumed int
 		if isOpen {
-			consumed = r.OS - backtrack
+			consumed = r.ON - backtrack
 		} else {
-			consumed = r.CS - backtrack
+			consumed = r.CN - backtrack
+		}
+		if consumed < 0 {
+			consumed = 0
 		}
 
-		if consumed == 1 {
-			ctx.V2 = ctx.V1
-			ctx.V1 = ctx.T0
-			ctx.T0 = ctx.T1
-			ctx.T1 = NoToken
-			ctx.TC++
-		} else if consumed == 2 {
-			ctx.V2 = ctx.T1
-			ctx.V1 = ctx.T0
-			ctx.T0 = NoToken
-			ctx.T1 = NoToken
-			ctx.TC += 2
+		if consumed > 0 {
+			// Maintain the 2-slot history (V1 = last consumed,
+			// V2 = prior). Semantics preserved for consumed == 1, 2.
+			if consumed == 1 {
+				ctx.V2 = ctx.V1
+				ctx.V1 = ctx.T[0]
+			} else {
+				ctx.V2 = ctx.T[consumed-2]
+				ctx.V1 = ctx.T[consumed-1]
+			}
+
+			// Shift the lookahead buffer left by `consumed` slots,
+			// filling vacated tail positions with NoToken so later
+			// alts re-fetch from the lexer.
+			L := len(ctx.T)
+			for i := 0; i < L-consumed; i++ {
+				ctx.T[i] = ctx.T[i+consumed]
+			}
+			start := L - consumed
+			if start < 0 {
+				start = 0
+			}
+			for i := start; i < L; i++ {
+				ctx.T[i] = NoToken
+			}
+
+			// Sync legacy T0 / T1 aliases.
+			if len(ctx.T) >= 1 {
+				ctx.T0 = ctx.T[0]
+			} else {
+				ctx.T0 = NoToken
+			}
+			if len(ctx.T) >= 2 {
+				ctx.T1 = ctx.T[1]
+			} else {
+				ctx.T1 = NoToken
+			}
+
+			ctx.TC += consumed
 		}
 	}
 
@@ -650,66 +699,104 @@ func (r *Rule) Process(ctx *Context, lex *Lex) *Rule {
 }
 
 // ParseAlts attempts to match one of the alternates.
+//
+// Supports arbitrary N-token lookahead: an alt's S slice may declare
+// any number of positions (previously capped at 2). Tokens are fetched
+// lazily - position i is only requested after position i-1 matches.
 func ParseAlts(isOpen bool, alts []*AltSpec, lex *Lex, rule *Rule, ctx *Context) (*AltSpec, bool) {
 	if len(alts) == 0 {
 		return nil, false
 	}
 
 	for _, alt := range alts {
-		has0, has1 := false, false
+		matched := 0
 		cond := true
 
-		if len(alt.S) > 0 && len(alt.S[0]) > 0 {
-			if ctx.T0.IsNoToken() {
-				ctx.T0 = lex.Next(rule)
-				// Fire lex subscribers.
+		sN := len(alt.S)
+		for i := 0; i < sN; i++ {
+			// Grow the lookahead buffer on demand.
+			for len(ctx.T) <= i {
+				ctx.T = append(ctx.T, NoToken)
+			}
+
+			// Lazy fetch: only pull a new token from the lexer if this
+			// slot has not been populated by a previous alt / fetch.
+			if ctx.T[i].IsNoToken() {
+				tkn := lex.Next(rule)
+				ctx.T[i] = tkn
+				// Keep the legacy T0 / T1 aliases in sync so existing
+				// grammar / plugin code that reads them observes the
+				// same values as ctx.T[0] / ctx.T[1].
+				if i == 0 {
+					ctx.T0 = tkn
+				} else if i == 1 {
+					ctx.T1 = tkn
+				}
 				if len(ctx.LexSubs) > 0 {
 					for _, sub := range ctx.LexSubs {
-						sub(ctx.T0, rule, ctx)
+						sub(tkn, rule, ctx)
 					}
 				}
 			}
-			has0 = true
-			cond = tinMatch(ctx.T0.Tin, alt.S[0])
 
-			if cond && len(alt.S) > 1 && len(alt.S[1]) > 0 {
-				if ctx.T1.IsNoToken() {
-					ctx.T1 = lex.Next(rule)
-					if len(ctx.LexSubs) > 0 {
-						for _, sub := range ctx.LexSubs {
-							sub(ctx.T1, rule, ctx)
-						}
-					}
+			// Empty alt.S[i] means "no Tin constraint at this position"
+			// (wildcard) - the token is still fetched and consumed but
+			// the match check is skipped. This prevents silently
+			// dropping the check at a later required position.
+			if len(alt.S[i]) != 0 {
+				if !tinMatch(ctx.T[i].Tin, alt.S[i]) {
+					cond = false
+					break
 				}
-				has1 = true
-				cond = tinMatch(ctx.T1.Tin, alt.S[1])
 			}
+			matched = i + 1
 		}
 
+		// Record the matched tokens on the rule. Both the generalized
+		// O / ON (or C / CN) slice form and the legacy O0 / O1 / OS
+		// (or C0 / C1 / CS) two-slot form are populated.
 		if isOpen {
-			if has0 {
-				rule.O0 = ctx.T0
+			if cap(rule.O) < matched {
+				rule.O = make([]*Token, matched)
+			} else {
+				rule.O = rule.O[:matched]
+			}
+			for i := 0; i < matched; i++ {
+				rule.O[i] = ctx.T[i]
+			}
+			rule.ON = matched
+			rule.OS = matched
+			if matched >= 1 {
+				rule.O0 = rule.O[0]
 			} else {
 				rule.O0 = NoToken
 			}
-			if has1 {
-				rule.O1 = ctx.T1
+			if matched >= 2 {
+				rule.O1 = rule.O[1]
 			} else {
 				rule.O1 = NoToken
 			}
-			rule.OS = boolToInt(has0) + boolToInt(has1)
 		} else {
-			if has0 {
-				rule.C0 = ctx.T0
+			if cap(rule.C) < matched {
+				rule.C = make([]*Token, matched)
+			} else {
+				rule.C = rule.C[:matched]
+			}
+			for i := 0; i < matched; i++ {
+				rule.C[i] = ctx.T[i]
+			}
+			rule.CN = matched
+			rule.CS = matched
+			if matched >= 1 {
+				rule.C0 = rule.C[0]
 			} else {
 				rule.C0 = NoToken
 			}
-			if has1 {
-				rule.C1 = ctx.T1
+			if matched >= 2 {
+				rule.C1 = rule.C[1]
 			} else {
 				rule.C1 = NoToken
 			}
-			rule.CS = boolToInt(has0) + boolToInt(has1)
 		}
 
 		if cond && alt.C != nil {
@@ -731,11 +818,4 @@ func tinMatch(tin Tin, tins []Tin) bool {
 		}
 	}
 	return false
-}
-
-func boolToInt(b bool) int {
-	if b {
-		return 1
-	}
-	return 0
 }

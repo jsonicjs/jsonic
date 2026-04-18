@@ -351,12 +351,22 @@ export interface Rule {
   prev: Rule // The previous sibling rule, that issued an `r` command.
   next: Rule
 
-  os: number // Number of open state tokens (# 'opens').
-  o0: Token // First open state token.
-  o1: Token // Second open state token.
-  cs: number // Number of close state tokens (# 'closes').
-  c0: Token // First close state token.
-  c1: Token // Second close state token.
+  // Open state tokens (matched against alt.s during OPEN).
+  o: Token[] // Array of matched tokens; o[i] is NOTOKEN if not matched.
+  oN: number // Number of open state tokens consumed (# 'opens').
+
+  // Close state tokens (matched against alt.s during CLOSE).
+  c: Token[] // Array of matched tokens; c[i] is NOTOKEN if not matched.
+  cN: number // Number of close state tokens consumed (# 'closes').
+
+  // Legacy aliases for the first two slots of o/c and the counters.
+  // @deprecated Use o[0], o[1], oN (and c[0], c[1], cN) instead.
+  os: number // Alias of oN.
+  o0: Token // Alias of o[0].
+  o1: Token // Alias of o[1].
+  cs: number // Alias of cN.
+  c0: Token // Alias of c[0].
+  c1: Token // Alias of c[1].
 
   n: Counters // Named counter values.
   d: number // The current stack depth.
@@ -401,8 +411,13 @@ export type Context = {
   xs: Tin // Lex state tin.
   v2: Token // Previous previous token.
   v1: Token // Previous token.
-  t0: Token // Current token.
-  t1: Token // Next token.
+  t: Token[] // Lookahead buffer; t[i] is NOTOKEN if unfetched.
+
+  // Legacy aliases for the first two slots of the lookahead buffer.
+  // @deprecated Use t[0] and t[1] instead.
+  t0: Token // Alias of t[0] (current token).
+  t1: Token // Alias of t[1] (next token).
+
   tC: number // Token count.
   kI: number // Parser rule iteration count.
   rs: Rule[] // Rule stack.
@@ -817,8 +832,13 @@ export interface NormAltSpec extends AltSpec {
   p: string | AltNext | null | false
   r: string | AltNext | null | false
   b: number | AltBack | null | false
-  S0: number[] | null
-  S1: number[] | null
+  // Per-position bit-field match tables. S[i] is the bit-packed Tin set
+  // for the i-th token in `s` (null if position matches any token).
+  S: (number[] | null)[] | null
+  // Per-position resolved Tin arrays (used for tcol collation).
+  t: Tin[][]
+  // Cached length of `s` (number of lookahead positions this alt requires).
+  sN: number
   c: NormAltCond | null | undefined // Convenience definition reduce to function for processing.
   g: string[] // Named group tags
   a: AltAction | null | undefined // Generate an error token (alternate is not allowed).
