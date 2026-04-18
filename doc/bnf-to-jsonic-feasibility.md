@@ -81,7 +81,7 @@ regex matchers (`options.match.token`), and token sets grouped by tag
 | Grouping `(A B)` | Auxiliary rule | Good |
 | Lookahead `(?=A)` | Built-in 2-token lookahead via `s` | Limited to depth 2 |
 | Negative lookahead `!A` | Custom `c:` predicate or `e:` error function | Possible but awkward |
-| Left recursion `E → E '+' T` | **Must be rewritten** to right recursion / iteration before conversion | Blocked without rewrite |
+| Left recursion `E → E '+' T` | Static rewrite to `E → T (op T)*`, **or** runtime guard using `k` + token `sI` (see §4) | Workable without static rewrite for common cases |
 | Ambiguity / precedence | Resolved by alternate order + counters; no built-in precedence table | Manual |
 
 Canonical shapes already present in the codebase:
@@ -100,9 +100,14 @@ Canonical shapes already present in the codebase:
    requires looking at the 3rd+ token must be refactored into a chain of
    auxiliary rules. A mechanical converter can do this, but the output
    grows with the number of "split points".
-2. **Left recursion.** Jsonic's stack model cannot express `E → E op T`
-   directly. Standard left-recursion removal
-   (`E → T (op T)*`) must run before emission.
+2. **Left recursion.** Jsonic's stack model cannot execute `E → E op T`
+   naively — a `p: 'E'` at the same token position as the current `E`
+   would infinite-loop. Two options:
+   - **Static rewrite** to `E → T (op T)*` before emission.
+   - **Runtime guard** using the `k` bag and token `sI`; see §4
+     "Runtime left-recursion handling" — this avoids the rewrite for
+     direct and many indirect left-recursive cycles but does not give
+     full packrat seed-and-grow semantics.
 3. **Ambiguity resolution.** BNF routinely relies on external precedence
    and associativity tables (e.g. Yacc `%left`). Jsonic has no such
    mechanism; ambiguity must be resolved at rewrite time, typically by
@@ -120,7 +125,91 @@ Canonical shapes already present in the codebase:
 
 ---
 
-## 4. Suggested Conversion Pipeline
+## 4. Runtime Left-Recursion Handling via `k` + Token `sI`
+
+Static left-recursion elimination is the textbook fix, but jsonic
+exposes enough metadata to handle many left-recursive grammars
+**without** rewriting them — useful for indirect cycles where the
+rewrite is noisy, or for converter output that should stay close to
+the original BNF.
+
+**Two facts make this work.**
+
+1. The `k` bag on a `Rule` is shallow-copied onto the next rule on both
+   `p:` (push) and `r:` (replace). Verified at `src/rules.ts:452-455`
+   and `src/rules.ts:470-473`. So any data placed in `k` flows down
+   and forward through the rule stack.
+2. Every token carries an absolute source index `sI` (plus `rI`, `cI`)
+   from the lexer (`src/lexer.ts:85,106`). Two tokens with the same
+   `sI` are the *same* token instance.
+
+**The pattern.** On first entry to a left-recursive rule, record the
+entry token's `sI` in `k`. Guard the left-recursive alternate with a
+`c:` condition that rejects it when the current token's `sI` matches
+the one already recorded for this rule. On rejection, the parser falls
+through to a non-left-recursive alternate (the "seed"). The close
+state then tail-recurses via `r:` on each operator token, folding the
+accumulated node left-associatively in the `ac` hook. Sketch:
+
+```ts
+expr: {
+  open: [
+    // Left-recursive alt — skipped on same-position re-entry.
+    { s: '#OP', c: (r, ctx) => r.k.seenExprAt !== ctx.t0.sI, ... },
+    // Seed: non-left-recursive fallback.
+    { p: 'term', a: (r, ctx) => { r.k.seenExprAt = ctx.t0.sI } },
+  ],
+  close: [
+    { s: '#OP', r: 'expr' },
+    { b: 1 },
+  ],
+  ac: (r) => {
+    r.node = r.prev
+      ? { op: r.o0.val, left: r.prev.node, right: r.child.node }
+      : r.child.node
+  },
+}
+```
+
+**What this covers.**
+
+- Direct left recursion: `E → E op T | T`.
+- Indirect left recursion: `A → B x`, `B → A y | ε`, provided the
+  cycle members each record their own `sI` in `k` under distinct keys
+  (`k.seenAAt`, `k.seenBAt`) so the guard is precise.
+- Left-associative tree shape via the `ac` fold.
+
+**What this does *not* cover.**
+
+- **Full packrat seed-and-grow semantics.** Real seed-and-grow
+  iteratively re-parses the same rule at the same position with a
+  progressively richer memoized seed, producing matches that require
+  more than one "grow" pass to discover. Jsonic's parse loop
+  (`src/parser.ts:172`) is a single forward pass; there is no
+  primitive to rewind `ctx.t0` and re-enter a completed rule with a
+  seeded result. `k` flows forward only and does not outlive a rule
+  instance, so it cannot serve as a cross-position memo cell.
+- **Ambiguous left recursion** where multiple derivations produce
+  different trees. The runtime guard is deterministic (first matching
+  alternate wins), so it picks one derivation; BNF that relied on
+  ambiguity plus a precedence table still needs stratification.
+
+**Implication for the converter.** Left recursion no longer has to be
+statically eliminated as a hard precondition. The converter can:
+
+1. Detect left-recursive cycles in the grammar AST.
+2. For each cycle, emit a `k.seenXAt` guard on the offending alternate
+   and an `sI` record on the non-left-recursive alternates.
+3. Emit an `ac` hook that folds left-associatively for left-recursive
+   rules (and right-associatively — the default — otherwise).
+
+Grammars requiring true seed-and-grow (hidden left recursion with
+nullable intermediates, ambiguous left recursion) still need static
+rewrite or fall outside the tractable subset.
+
+---
+
+## 5. Suggested Conversion Pipeline
 
 A BNF → jsonic converter is realistic for the subset of BNF that is
 LL(2)-compatible after standard rewrites. A workable pipeline:
@@ -148,7 +237,7 @@ LL(2)-compatible after standard rewrites. A workable pipeline:
 
 ---
 
-## 5. Feasibility Verdict
+## 6. Feasibility Verdict
 
 - **Feasible today** for: JSON-like config languages, straightforward
   DSLs, expression grammars after left-recursion removal and precedence
@@ -166,7 +255,7 @@ rewriter** that normalises BNF into the LL(2) shape jsonic can execute.
 
 ---
 
-## 6. If the User Wants to Build This
+## 7. If the User Wants to Build This
 
 1. Pick a BNF dialect to accept (classic BNF, ISO EBNF, or ANTLR-lite).
 2. Build the grammar-AST and normaliser first; test it on small grammars
