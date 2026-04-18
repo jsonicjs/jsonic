@@ -702,8 +702,7 @@ function parserwrap(parser) {
                             xs: -1,
                             v2: token,
                             v1: token,
-                            t0: token,
-                            t1: token, // TODO: should be end token
+                            t: [token, token], // TODO: t[1] should be end token
                             tC: -1,
                             kI: -1,
                             rs: [],

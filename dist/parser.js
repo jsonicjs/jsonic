@@ -9,6 +9,30 @@ const lexer_1 = require("./lexer");
 const rules_1 = require("./rules");
 Object.defineProperty(exports, "makeRule", { enumerable: true, get: function () { return rules_1.makeRule; } });
 Object.defineProperty(exports, "makeRuleSpec", { enumerable: true, get: function () { return rules_1.makeRuleSpec; } });
+// Install ES getter/setter accessors on a Context so the legacy
+// `ctx.t0` / `ctx.t1` names proxy to `ctx.t[0]` / `ctx.t[1]`. Reading
+// an unfetched slot yields NOTOKEN; writing seeds the array slot.
+function defineLookaheadAliases(ctx, notoken) {
+    // Skip if already installed (a plain own-data property would be
+    // overwritten; an accessor matching ours is left alone).
+    const existing = Object.getOwnPropertyDescriptor(ctx, 't0');
+    if (existing && existing.get)
+        return;
+    Object.defineProperties(ctx, {
+        t0: {
+            configurable: true,
+            enumerable: true,
+            get() { return this.t[0] ?? notoken; },
+            set(v) { this.t[0] = v; },
+        },
+        t1: {
+            configurable: true,
+            enumerable: true,
+            get() { return this.t[1] ?? notoken; },
+            set(v) { this.t[1] = v; },
+        },
+    });
+}
 class ParserImpl {
     constructor(options, cfg, j) {
         this.rsm = {};
@@ -57,9 +81,10 @@ class ParserImpl {
             xs: -1,
             v2: endtkn,
             v1: endtkn,
-            t0: notoken,
-            t1: notoken,
-            tC: -2, // Prepare count for 2-token lookahead.
+            // Lookahead buffer. Seeded with two NOTOKEN slots; grows as alts
+            // request deeper positions via ctx.t[i].
+            t: [notoken, notoken],
+            tC: -2, // Prepare count for lookahead (two slots preseeded above).
             kI: -1,
             rs: [],
             rsI: 0,
@@ -70,7 +95,12 @@ class ParserImpl {
             NOTOKEN: notoken,
             NORULE: {},
         };
+        // Legacy accessors: ctx.t0 / ctx.t1 proxy to ctx.t[0] / ctx.t[1].
+        defineLookaheadAliases(ctx, notoken);
         ctx = (0, utility_1.deep)(ctx, parent_ctx);
+        // `deep` may return a fresh object (when parent_ctx is a plain
+        // object); re-install the accessors on the result so they survive.
+        defineLookaheadAliases(ctx, notoken);
         let norule = (0, rules_1.makeNoRule)(this.ji, ctx);
         ctx.NORULE = norule;
         ctx.rule = norule;

@@ -251,6 +251,10 @@ export interface Rule {
     parent: Rule;
     prev: Rule;
     next: Rule;
+    o: Token[];
+    oN: number;
+    c: Token[];
+    cN: number;
     os: number;
     o0: Token;
     o1: Token;
@@ -291,6 +295,7 @@ export type Context = {
     xs: Tin;
     v2: Token;
     v1: Token;
+    t: Token[];
     t0: Token;
     t1: Token;
     tC: number;
@@ -587,8 +592,9 @@ export interface NormAltSpec extends AltSpec {
     p: string | AltNext | null | false;
     r: string | AltNext | null | false;
     b: number | AltBack | null | false;
-    S0: number[] | null;
-    S1: number[] | null;
+    S: (number[] | null)[] | null;
+    t: Tin[][];
+    sN: number;
     c: NormAltCond | null | undefined;
     g: string[];
     a: AltAction | null | undefined;
