@@ -8,11 +8,19 @@ import (
 
 // Context holds the parse state, matching the TypeScript Context type.
 type Context struct {
-	UI       int               // Unique rule ID counter (TS: uI)
-	T0       *Token            // Current token (TS: t0)
-	T1       *Token            // Next token / lookahead (TS: t1)
-	V1       *Token            // Previous token (TS: v1)
-	V2       *Token            // Previous previous token (TS: v2)
+	UI int // Unique rule ID counter (TS: uI)
+
+	// Generalized lookahead buffer. T[i] is the token at position i,
+	// or NoToken if that slot has not yet been fetched. This supersedes
+	// the legacy T0 / T1 two-slot fields, which are kept in sync for
+	// backward compatibility (plugins / grammars / debug.go that read
+	// ctx.T0 and ctx.T1 directly continue to work unchanged).
+	T []*Token
+
+	T0 *Token // Alias of T[0] (legacy). Kept in sync with T[0].
+	T1 *Token // Alias of T[1] (legacy). Kept in sync with T[1].
+	V1 *Token // Previous token (TS: v1)
+	V2 *Token // Previous previous token (TS: v2)
 	RS       []*Rule           // Rule stack (TS: rs)
 	RSI      int               // Rule stack index (TS: rsI)
 	RSM      map[string]*RuleSpec // Rule spec map (TS: rsm)
@@ -87,6 +95,7 @@ func (p *Parser) startParse(src string, meta map[string]any, lexSubs []LexSub, r
 
 	ctx := &Context{
 		UI:       0,
+		T:        []*Token{NoToken, NoToken},
 		T0:       NoToken,
 		T1:       NoToken,
 		V1:       NoToken,
