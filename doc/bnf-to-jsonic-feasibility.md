@@ -209,7 +209,103 @@ rewrite or fall outside the tractable subset.
 
 ---
 
-## 5. Suggested Conversion Pipeline
+## 5. Remaining Issues After Metadata-Based Workarounds
+
+Once the runtime left-recursion guard from §4 is available, the
+residual list of BNF constructs that jsonic cannot cleanly absorb
+shrinks. This section enumerates what is left, grouped by how much
+each costs a converter.
+
+### 5.1 Hard / still blocking
+
+**Lookahead beyond 2 tokens.** `s:` matches `s0, s1` only. Conditions
+(`c:`) can inspect `ctx.t0` and `ctx.t1` but jsonic does not lex
+tokens 3+ ahead eagerly — `src/lexer.ts` produces tokens on demand.
+Productions whose decisive prefix exceeds two tokens must be split
+into auxiliary rules, one per decision point. No metadata trick
+circumvents this because the data has not yet been computed.
+*Cost:* linear blow-up in rule count; unavoidable.
+
+**Ambiguity with external precedence/associativity tables.** Yacc-style
+`%left`, `%right`, `%nonassoc` declarations have no direct jsonic
+equivalent. `n:` counters plus `c:` conditions can encode precedence
+climbing (track `n.prec`, guard alternates with
+`c: { 'n.prec': { $lte: X } }`), but this is a grammar rewrite, not a
+one-to-one mapping. The converter must either stratify
+(`expr/term/factor`) or emit a precedence-climbing scheme.
+*Cost:* a precedence planner is its own subsystem.
+
+**Context-sensitive grammars.** Python-style INDENT/DEDENT, heredocs,
+C typedef-sensitive parsing. Jsonic's lexer is regular; custom
+matchers can be registered via `src/lexer.ts:216`, but that is
+per-language lexer work, not a grammar transformation.
+*Cost:* out of scope for a pure BNF → jsonic converter.
+
+### 5.2 Partially resolved, with caveats
+
+**Hidden left recursion through nullable intermediates.** The `k` +
+`sI` guard handles direct and clean indirect left recursion. It does
+*not* handle cases like `A → B x`, `B → A y | ε` where true packrat
+seed-and-grow is needed. The converter must either statically rewrite
+these or flag them as unsupported.
+
+**Non-associative operators** (e.g. disallowing `a < b < c`). Needs an
+`n:` counter to detect repeat occurrence plus an `e:` error function.
+Mechanically emittable but grammar-specific.
+
+**Per-alternate semantic actions.** BNF's `$1`, `$3` positional
+references map to `rule.o0`, `rule.o1`, `rule.child.node`, but BNF
+typically attaches actions to individual productions whereas
+`bo/ao/bc/ac` are rule-scoped. The fix is to emit a dispatcher in the
+alternate's `a:` function, which works but means the emitter
+synthesises and routes rather than emitting a clean rule-level hook.
+
+### 5.3 Fine but worth flagging
+
+**Empty productions / nullable alternates.** Fully supportable
+(matching alternate, plus a `b:1` fallback), but every nullable rule
+multiplies the alternate count and is the main source of lookahead
+conflicts inside recursive sequences.
+
+**Keywords vs identifiers.** Jsonic's fixed tokens outrank `#TX` text
+matching, so `if`/`while`/etc. can be declared as fixed tokens and
+will win over identifier matching. The converter must decide which
+BNF terminals become fixed tokens and which become regex-matched.
+
+**Error messages / error recovery.** BNF does not specify these.
+Jsonic has per-alternate `e:` error functions and `bad()` in
+`src/rules.ts:440`, but no panic-mode recovery or error productions.
+Generated output will have generic "unexpected token" errors unless
+the source BNF is annotated.
+
+**Parameterised rules** (ANTLR `list[sep]<T>` and similar). Must be
+monomorphised at convert time — emit a concrete rule per
+instantiation. Mechanical but adds a specialisation pass.
+
+**EBNF extensions** — `{n,m}` counted repetition, `A - B` exclusion,
+character classes. All need explicit desugaring:
+
+- Character classes → regex matchers.
+- Counted repetition → `n:` counter plus `c:` guard.
+- Exclusion `A - B` → `a:` action with a rejection check.
+
+### 5.4 The shortlist
+
+If constrained to naming the three issues that most shape the
+converter's design after §4's guard is in place:
+
+1. **>2-token lookahead** — inflates rule count, cannot be avoided.
+2. **Precedence/associativity planning** — needs a real algorithm in
+   the normaliser, not a rewrite rule.
+3. **Context-sensitivity and custom lexer states** — outside scope.
+
+Everything else is either solvable with metadata (left recursion,
+attributes, non-associativity) or is a mechanical desugar (EBNF
+sugar, parameterised rules, empty productions).
+
+---
+
+## 6. Suggested Conversion Pipeline
 
 A BNF → jsonic converter is realistic for the subset of BNF that is
 LL(2)-compatible after standard rewrites. A workable pipeline:
@@ -237,7 +333,7 @@ LL(2)-compatible after standard rewrites. A workable pipeline:
 
 ---
 
-## 6. Feasibility Verdict
+## 7. Feasibility Verdict
 
 - **Feasible today** for: JSON-like config languages, straightforward
   DSLs, expression grammars after left-recursion removal and precedence
@@ -255,7 +351,7 @@ rewriter** that normalises BNF into the LL(2) shape jsonic can execute.
 
 ---
 
-## 7. If the User Wants to Build This
+## 8. If the User Wants to Build This
 
 1. Pick a BNF dialect to accept (classic BNF, ISO EBNF, or ANTLR-lite).
 2. Build the grammar-AST and normaliser first; test it on small grammars
