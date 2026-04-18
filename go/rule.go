@@ -714,11 +714,6 @@ func ParseAlts(isOpen bool, alts []*AltSpec, lex *Lex, rule *Rule, ctx *Context)
 
 		sN := len(alt.S)
 		for i := 0; i < sN; i++ {
-			if len(alt.S[i]) == 0 {
-				// Empty position = no constraint; stop matching here.
-				break
-			}
-
 			// Grow the lookahead buffer on demand.
 			for len(ctx.T) <= i {
 				ctx.T = append(ctx.T, NoToken)
@@ -744,9 +739,15 @@ func ParseAlts(isOpen bool, alts []*AltSpec, lex *Lex, rule *Rule, ctx *Context)
 				}
 			}
 
-			if !tinMatch(ctx.T[i].Tin, alt.S[i]) {
-				cond = false
-				break
+			// Empty alt.S[i] means "no Tin constraint at this position"
+			// (wildcard) - the token is still fetched and consumed but
+			// the match check is skipped. This prevents silently
+			// dropping the check at a later required position.
+			if len(alt.S[i]) != 0 {
+				if !tinMatch(ctx.T[i].Tin, alt.S[i]) {
+					cond = false
+					break
+				}
 			}
 			matched = i + 1
 		}

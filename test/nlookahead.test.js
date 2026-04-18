@@ -221,6 +221,35 @@ describe('nlookahead', () => {
   })
 
 
+  it('null-middle-slot-is-wildcard-not-terminator', () => {
+    // Regression: previously a null/empty slot caused the match loop
+    // to break, silently dropping checks at later required positions.
+    // A null S[i] must act as "accept any token at position i" while
+    // still requiring S[i+1..] to match.
+    let j = make_norules({
+      rule: { start: 'top' },
+      fixed: { token: { Ta: 'a', Tc: 'c' } },
+    })
+    let { Ta, Tc } = j.token
+
+    j.rule('top', (rs) =>
+      rs
+        .open([{ s: [Ta, null, Tc] }])
+        .ac((r) => {
+          r.node = r.o.slice(0, r.oN).map((t) => t.src).join('')
+        }),
+    )
+
+    // Middle position is unconstrained, outer positions must match.
+    assert.deepEqual(j('axc'), 'axc')
+    assert.deepEqual(j('a!c'), 'a!c')
+    // Third token still required to be 'c'.
+    assert.throws(() => j('axd'), /unexpected/)
+    // First token still required to be 'a'.
+    assert.throws(() => j('bxc'), /unexpected/)
+  })
+
+
   it('four-token-with-alternatives-at-positions', () => {
     let j = make_norules({
       rule: { start: 'top' },

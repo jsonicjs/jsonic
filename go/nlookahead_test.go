@@ -179,6 +179,55 @@ func TestNLookaheadCtxTSlice(t *testing.T) {
 	}
 }
 
+// TestNLookaheadNullMiddleSlotIsWildcard is a regression test for an
+// earlier bug where an empty alt.S[i] caused the match loop to break,
+// silently dropping checks at later required positions. An empty
+// inner slice must act as "accept any token at position i" while still
+// enforcing S[i+1..].
+func TestNLookaheadNullMiddleSlotIsWildcard(t *testing.T) {
+	j := Make()
+	TA := j.Token("#TA", "A")
+	TC := j.Token("#TC", "C")
+
+	j.Rule("val", func(rs *RuleSpec) {
+		rs.Open = append([]*AltSpec{{
+			// Middle position empty = wildcard (no Tin constraint).
+			// Outer positions must still match.
+			S: [][]Tin{{TA}, nil, {TC}},
+			A: func(r *Rule, ctx *Context) {
+				r.Node = "ok"
+			},
+		}}, rs.Open...)
+	})
+
+	cases := []struct {
+		in     string
+		want   string
+		errStr string
+	}{
+		{"AxC", "ok", ""},
+		{"A!C", "ok", ""},
+		{"AxD", "", "unexpected"},
+		{"BxC", "", "unexpected"},
+	}
+	for _, tc := range cases {
+		got, err := j.Parse(tc.in)
+		if tc.errStr != "" {
+			if err == nil {
+				t.Errorf("%q: expected error, got %v", tc.in, got)
+			}
+			continue
+		}
+		if err != nil {
+			t.Errorf("%q: unexpected error: %v", tc.in, err)
+			continue
+		}
+		if got != tc.want {
+			t.Errorf("%q: want %s, got %v", tc.in, tc.want, got)
+		}
+	}
+}
+
 // TestNLookaheadBacktrackN3 verifies that a three-token match with
 // b: 3 leaves all three tokens in ctx.T for the child / next rule to
 // consume. The consumed count becomes 0 so the buffer is not shifted.

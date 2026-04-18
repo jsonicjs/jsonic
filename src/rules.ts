@@ -653,19 +653,25 @@ function parse_alts(
     // Iterate alt's lookahead positions. Each position is fetched
     // lazily and only when the previous position matched, preserving
     // the original 2-slot lazy behaviour for any N.
+    //
+    // A null entry in S[i] means "no Tin constraint at this position"
+    // (wildcard) - the token is still fetched and consumed, but the
+    // bit-field check is skipped. This matches the `s` docstring
+    // ("null if position matches any token") and prevents silently
+    // dropping the check at a later required position.
     for (let i = 0; i < sN; i++) {
-      const Si = S ? S[i] : null
-      if (null == Si) break // position has no constraint (empty tins)
-
       let tkn = tbuf[i]
       if (null == tkn || NOTOKEN === tkn) {
         tkn = tbuf[i] = next(rule, alt, altI, i)
       }
 
-      const tin = tkn.tin
-      if (!(Si[(tin / 31) | 0] & ((1 << ((tin % 31) - 1)) | bitAA))) {
-        cond = false
-        break
+      const Si = S ? S[i] : null
+      if (null != Si) {
+        const tin = tkn.tin
+        if (!(Si[(tin / 31) | 0] & ((1 << ((tin % 31) - 1)) | bitAA))) {
+          cond = false
+          break
+        }
       }
       matched = i + 1
     }
