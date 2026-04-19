@@ -33,9 +33,9 @@ describe('bnf', () => {
         { s: '#HI', g: 'bnf' },
         { s: '#HELLO', g: 'bnf' },
       ])
-      assert.deepEqual(spec.rule.greet.close, [
-        { s: '#ZZ', g: 'bnf' },
-      ])
+      // Start rule has no explicit close — the parser's end-of-source
+      // check fires once the rule pops.
+      assert.equal(spec.rule.greet.close, undefined)
     })
 
 
@@ -51,17 +51,37 @@ describe('bnf', () => {
     it('honours override of start rule', () => {
       const spec = bnf('<a> ::= "x"\n<b> ::= "y"', { start: 'b' })
       assert.equal(spec.options.rule.start, 'b')
-      // Only the designated start rule carries the #ZZ close alt.
-      assert.deepEqual(spec.rule.b.close, [{ s: '#ZZ', g: 'bnf' }])
-      assert.equal(spec.rule.a.close, undefined)
     })
 
 
-    it('rejects unsupported sequence length', () => {
-      assert.throws(
-        () => bnf('<too> ::= "a" "b" "c"'),
-        /only up to 2 are supported/,
-      )
+    it('emits a single N-token alt for long terminal sequences', () => {
+      const spec = bnf('<long> ::= "a" "b" "c" "d"')
+      assert.deepEqual(spec.rule.long.open, [
+        { s: '#A #B #C #D', g: 'bnf' },
+      ])
+    })
+
+
+    it('chains aux rules for multi-segment alternatives', () => {
+      const spec = bnf('<chain> ::= "a" <inner> "b" <inner> "c"\n' +
+        '<inner> ::= "x"')
+      // Root rule consumes 'a' then pushes inner; close replaces with
+      // the first continuation rule.
+      assert.deepEqual(spec.rule.chain.open, [
+        { s: '#A', p: 'inner', g: 'bnf' },
+      ])
+      assert.deepEqual(spec.rule.chain.close, [
+        { r: 'chain$step1', g: 'bnf' },
+      ])
+      // First continuation handles 'b' + inner.
+      assert.deepEqual(spec.rule['chain$step1'].open, [
+        { s: '#B', p: 'inner', g: 'bnf' },
+      ])
+      // Last continuation handles the trailing 'c' and has no close.
+      assert.deepEqual(spec.rule['chain$step2'].open, [
+        { s: '#C', g: 'bnf' },
+      ])
+      assert.equal(spec.rule['chain$step2'].close, undefined)
     })
 
 

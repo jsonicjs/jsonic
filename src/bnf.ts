@@ -3,21 +3,25 @@
 /*  bnf.ts
  *  BNF -> jsonic grammar spec converter.
  *
- *  This is a first-step implementation that handles a very small subset
- *  of BNF: productions of the form `<name> ::= rhs`, where `rhs` is an
- *  alternation (`|`) of sequences of terminal literals ("foo") and
- *  nonterminal references (<name> or bare name). Each sequence is
- *  limited to the jsonic two-token lookahead (`s0`, `s1`); longer
- *  sequences are rejected with a clear error.
+ *  Accepts a small BNF dialect: productions of the form
+ *  `<name> ::= rhs`, where `rhs` is an alternation (`|`) of sequences
+ *  of terminal literals (`"foo"`, `'foo'`) and nonterminal references
+ *  (`<name>` or a bare `name`).
  *
  *  The BNF source is itself parsed by a jsonic instance whose grammar
  *  is defined below in `bnfRules`. That grammar is declarative — a
  *  table of `open`/`close` alt specs per rule, with small `bo`/`bc`
- *  state hooks for AST assembly. See `buildBnfParser` for how those
+ *  state hooks for AST assembly. See `getBnfParser` for how those
  *  rules are installed on a fresh jsonic instance.
  *
+ *  The emitter turns each alternative into one or more jsonic rule
+ *  alts. A "single-segment" alternative (at most one rule reference,
+ *  trailing) collapses to a single jsonic alt; any alternative with
+ *  two or more ref boundaries is chained through synthetic
+ *  continuation rules named `<prodname>$stepN`.
+ *
  *  Larger BNF features — repetition, optionality, grouping, left
- *  recursion, precedence — are deliberately out of scope for now; see
+ *  recursion, precedence — are still out of scope; see
  *  doc/bnf-to-jsonic-feasibility.md for the full plan.
  */
 
@@ -253,23 +257,13 @@ function emitGrammarSpec(
 
   const knownRules = new Set(grammar.productions.map((p) => p.name))
 
-  // Emit each production as a rule. Each alternate must fit in the
-  // jsonic two-token lookahead; additional constraints are enforced in
-  // `emitAlt`.
+  // Emit each production as one or more jsonic rules. Simple
+  // (single-segment) alternatives fit directly into `rule.open`;
+  // multi-segment alternatives need a chain of auxiliary rules, one
+  // per segment after the first.
   const ruleSpec: NonNullable<GrammarSpec['rule']> = {}
   for (const prod of grammar.productions) {
-    const opens = prod.alts.map((alt) =>
-      emitAlt(alt, literals, knownRules, tag, prod.name))
-
-    const rs: NonNullable<GrammarSpec['rule']>[string] = { open: opens }
-
-    // Only the start rule is required to close on end-of-source. Other
-    // rules return to their caller — jsonic's default close behaviour is
-    // adequate for this simple subset.
-    if (prod.name === start) {
-      rs.close = [{ s: '#ZZ', g: tag }]
-    }
-    ruleSpec[prod.name] = rs
+    emitProduction(prod, literals, knownRules, tag, ruleSpec)
   }
 
   const spec: GrammarSpec = {
@@ -284,56 +278,128 @@ function emitGrammarSpec(
 }
 
 
-function emitAlt(
+type Segment = {
+  terms: string[]   // token names (e.g. '#HI')
+  ref: string | null // rule name to push after consuming terms
+}
+
+
+// Break an alternative into segments. Each segment is a (possibly
+// empty) run of terminal tokens followed by at most one rule
+// reference. A single-segment alt has at most one ref, located at the
+// very end; everything else has two or more segments.
+function segmentize(
   alt: BnfSequence,
+  literals: Map<string, string>,
+): Segment[] {
+  const segs: Segment[] = []
+  let current: Segment = { terms: [], ref: null }
+  for (const el of alt) {
+    if (el.kind === 'term') {
+      current.terms.push(literals.get(el.literal) as string)
+    } else {
+      current.ref = el.name
+      segs.push(current)
+      current = { terms: [], ref: null }
+    }
+  }
+  if (current.terms.length > 0 || segs.length === 0) {
+    segs.push(current)
+  }
+  return segs
+}
+
+
+function isSingleSegment(alt: BnfSequence): boolean {
+  let sawRef = false
+  for (const el of alt) {
+    if (el.kind === 'ref') {
+      if (sawRef) return false
+      sawRef = true
+    } else if (sawRef) {
+      return false // terminal after a ref — multi-segment
+    }
+  }
+  return true
+}
+
+
+function validateRefs(
+  alt: BnfSequence,
+  knownRules: Set<string>,
+  ruleName: string,
+) {
+  for (const el of alt) {
+    if (el.kind === 'ref' && !knownRules.has(el.name)) {
+      throw new Error(
+        `bnf: rule '${ruleName}' references unknown rule '${el.name}'`)
+    }
+  }
+}
+
+
+function segmentToAlt(seg: Segment, tag: string): any {
+  const spec: any = { g: tag }
+  if (seg.terms.length > 0) spec.s = seg.terms.join(' ')
+  if (seg.ref) spec.p = seg.ref
+  return spec
+}
+
+
+function emitProduction(
+  prod: BnfProduction,
   literals: Map<string, string>,
   knownRules: Set<string>,
   tag: string,
-  ruleName: string,
-): any {
-  // Shapes supported in the first cut:
-  //   1..2 terminals:                s: '#A (#B)?'
-  //   one ref:                       p: 'name'
-  //   terminal then ref:             s: '#A', p: 'name'
-  const terms = alt.filter((e) => e.kind === 'term')
-  const refs = alt.filter((e) => e.kind === 'ref')
+  ruleSpec: NonNullable<GrammarSpec['rule']>,
+) {
+  for (const alt of prod.alts) {
+    validateRefs(alt, knownRules, prod.name)
+  }
 
-  // Validate references up front.
-  for (const r of refs) {
-    if (r.kind === 'ref' && !knownRules.has(r.name)) {
-      throw new Error(
-        `bnf: rule '${ruleName}' references unknown rule '${r.name}'`)
+  const allSimple = prod.alts.every(isSingleSegment)
+
+  if (allSimple) {
+    // Every alternative collapses to one jsonic alt — emit them
+    // directly into the production's open state.
+    const opens = prod.alts.map((alt) => {
+      const segs = segmentize(alt, literals)
+      return segmentToAlt(segs[0], tag)
+    })
+    ruleSpec[prod.name] = { open: opens }
+    return
+  }
+
+  if (prod.alts.length !== 1) {
+    throw new Error(
+      `bnf: rule '${prod.name}' has a multi-alternative production ` +
+      `where at least one alternative needs sequence chaining; this ` +
+      `combination is not yet supported by the first-step emitter`)
+  }
+
+  // Single-alt, multi-segment: chain rules. Segment 0 lives on the
+  // production's own rule; segments 1..N-1 each get a synthetic
+  // continuation rule (`<name>$stepN`) that the previous step's
+  // close-state replaces into.
+  const alt = prod.alts[0]
+  const segs = segmentize(alt, literals)
+  const chainName = (i: number) =>
+    i === 0 ? prod.name : `${prod.name}$step${i}`
+
+  for (let i = 0; i < segs.length; i++) {
+    const name = chainName(i)
+    const open = [segmentToAlt(segs[i], tag)]
+    const rs: any = { open }
+
+    if (i < segs.length - 1) {
+      // After this segment's push returns, replace with the next
+      // continuation rule. Always-match (no `s:`) so it fires the
+      // first — and only — time close is entered.
+      rs.close = [{ r: chainName(i + 1), g: tag }]
     }
-  }
 
-  if (alt.length === 0) {
-    return { g: tag }
+    ruleSpec[name] = rs
   }
-
-  if (refs.length === 0) {
-    if (terms.length > 2) {
-      throw new Error(
-        `bnf: rule '${ruleName}' has a sequence of ${terms.length} ` +
-        `terminals; only up to 2 are supported in this first-step ` +
-        `converter`)
-    }
-    const tokens = terms.map((t) =>
-      literals.get((t as any).literal) as string)
-    return { s: tokens.join(' '), g: tag }
-  }
-
-  if (refs.length === 1 && terms.length === 0) {
-    return { p: (refs[0] as any).name, g: tag }
-  }
-
-  if (refs.length === 1 && terms.length === 1 && alt[0].kind === 'term') {
-    const tok = literals.get((alt[0] as any).literal) as string
-    return { s: tok, p: (refs[0] as any).name, g: tag }
-  }
-
-  throw new Error(
-    `bnf: rule '${ruleName}' has an alternative shape that the ` +
-    `first-step converter does not yet support`)
 }
 
 

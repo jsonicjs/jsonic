@@ -195,20 +195,13 @@ function emitGrammarSpec(grammar, opts) {
         }
     }
     const knownRules = new Set(grammar.productions.map((p) => p.name));
-    // Emit each production as a rule. Each alternate must fit in the
-    // jsonic two-token lookahead; additional constraints are enforced in
-    // `emitAlt`.
+    // Emit each production as one or more jsonic rules. Simple
+    // (single-segment) alternatives fit directly into `rule.open`;
+    // multi-segment alternatives need a chain of auxiliary rules, one
+    // per segment after the first.
     const ruleSpec = {};
     for (const prod of grammar.productions) {
-        const opens = prod.alts.map((alt) => emitAlt(alt, literals, knownRules, tag, prod.name));
-        const rs = { open: opens };
-        // Only the start rule is required to close on end-of-source. Other
-        // rules return to their caller — jsonic's default close behaviour is
-        // adequate for this simple subset.
-        if (prod.name === start) {
-            rs.close = [{ s: '#ZZ', g: tag }];
-        }
-        ruleSpec[prod.name] = rs;
+        emitProduction(prod, literals, knownRules, tag, ruleSpec);
     }
     const spec = {
         options: {
@@ -219,40 +212,96 @@ function emitGrammarSpec(grammar, opts) {
     };
     return spec;
 }
-function emitAlt(alt, literals, knownRules, tag, ruleName) {
-    // Shapes supported in the first cut:
-    //   1..2 terminals:                s: '#A (#B)?'
-    //   one ref:                       p: 'name'
-    //   terminal then ref:             s: '#A', p: 'name'
-    const terms = alt.filter((e) => e.kind === 'term');
-    const refs = alt.filter((e) => e.kind === 'ref');
-    // Validate references up front.
-    for (const r of refs) {
-        if (r.kind === 'ref' && !knownRules.has(r.name)) {
-            throw new Error(`bnf: rule '${ruleName}' references unknown rule '${r.name}'`);
+// Break an alternative into segments. Each segment is a (possibly
+// empty) run of terminal tokens followed by at most one rule
+// reference. A single-segment alt has at most one ref, located at the
+// very end; everything else has two or more segments.
+function segmentize(alt, literals) {
+    const segs = [];
+    let current = { terms: [], ref: null };
+    for (const el of alt) {
+        if (el.kind === 'term') {
+            current.terms.push(literals.get(el.literal));
+        }
+        else {
+            current.ref = el.name;
+            segs.push(current);
+            current = { terms: [], ref: null };
         }
     }
-    if (alt.length === 0) {
-        return { g: tag };
+    if (current.terms.length > 0 || segs.length === 0) {
+        segs.push(current);
     }
-    if (refs.length === 0) {
-        if (terms.length > 2) {
-            throw new Error(`bnf: rule '${ruleName}' has a sequence of ${terms.length} ` +
-                `terminals; only up to 2 are supported in this first-step ` +
-                `converter`);
+    return segs;
+}
+function isSingleSegment(alt) {
+    let sawRef = false;
+    for (const el of alt) {
+        if (el.kind === 'ref') {
+            if (sawRef)
+                return false;
+            sawRef = true;
         }
-        const tokens = terms.map((t) => literals.get(t.literal));
-        return { s: tokens.join(' '), g: tag };
+        else if (sawRef) {
+            return false; // terminal after a ref — multi-segment
+        }
     }
-    if (refs.length === 1 && terms.length === 0) {
-        return { p: refs[0].name, g: tag };
+    return true;
+}
+function validateRefs(alt, knownRules, ruleName) {
+    for (const el of alt) {
+        if (el.kind === 'ref' && !knownRules.has(el.name)) {
+            throw new Error(`bnf: rule '${ruleName}' references unknown rule '${el.name}'`);
+        }
     }
-    if (refs.length === 1 && terms.length === 1 && alt[0].kind === 'term') {
-        const tok = literals.get(alt[0].literal);
-        return { s: tok, p: refs[0].name, g: tag };
+}
+function segmentToAlt(seg, tag) {
+    const spec = { g: tag };
+    if (seg.terms.length > 0)
+        spec.s = seg.terms.join(' ');
+    if (seg.ref)
+        spec.p = seg.ref;
+    return spec;
+}
+function emitProduction(prod, literals, knownRules, tag, ruleSpec) {
+    for (const alt of prod.alts) {
+        validateRefs(alt, knownRules, prod.name);
     }
-    throw new Error(`bnf: rule '${ruleName}' has an alternative shape that the ` +
-        `first-step converter does not yet support`);
+    const allSimple = prod.alts.every(isSingleSegment);
+    if (allSimple) {
+        // Every alternative collapses to one jsonic alt — emit them
+        // directly into the production's open state.
+        const opens = prod.alts.map((alt) => {
+            const segs = segmentize(alt, literals);
+            return segmentToAlt(segs[0], tag);
+        });
+        ruleSpec[prod.name] = { open: opens };
+        return;
+    }
+    if (prod.alts.length !== 1) {
+        throw new Error(`bnf: rule '${prod.name}' has a multi-alternative production ` +
+            `where at least one alternative needs sequence chaining; this ` +
+            `combination is not yet supported by the first-step emitter`);
+    }
+    // Single-alt, multi-segment: chain rules. Segment 0 lives on the
+    // production's own rule; segments 1..N-1 each get a synthetic
+    // continuation rule (`<name>$stepN`) that the previous step's
+    // close-state replaces into.
+    const alt = prod.alts[0];
+    const segs = segmentize(alt, literals);
+    const chainName = (i) => i === 0 ? prod.name : `${prod.name}$step${i}`;
+    for (let i = 0; i < segs.length; i++) {
+        const name = chainName(i);
+        const open = [segmentToAlt(segs[i], tag)];
+        const rs = { open };
+        if (i < segs.length - 1) {
+            // After this segment's push returns, replace with the next
+            // continuation rule. Always-match (no `s:`) so it fires the
+            // first — and only — time close is entered.
+            rs.close = [{ r: chainName(i + 1), g: tag }];
+        }
+        ruleSpec[name] = rs;
+    }
 }
 function allocTokenName(literal, used) {
     const base = literal
