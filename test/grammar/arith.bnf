@@ -1,0 +1,5 @@
+# Arithmetic grammar, stratified to avoid left recursion.
+# Supports + - * / and parenthesised sub-expressions.
+<expr>   ::= <term> ( "+" <term> | "-" <term> )*
+<term>   ::= <factor> ( "*" <factor> | "/" <factor> )*
+<factor> ::= "(" <expr> ")" | /[0-9]+/

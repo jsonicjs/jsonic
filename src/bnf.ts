@@ -769,10 +769,40 @@ function emitProduction(
       ...prod.alts.filter((alt) => alt.length > 0),
       ...prod.alts.filter((alt) => alt.length === 0),
     ]
-    const opens = ordered.map((alt) => {
+
+    // Ref-only alternatives have no terminal to discriminate on, so
+    // jsonic's first-match-wins would silently let them shadow any
+    // later alternative. Guard them with FIRST-set peeks when the
+    // production has more than one alt.
+    const needsPeek = ordered.length > 1
+    const opens: any[] = []
+    for (const alt of ordered) {
       const segs = segmentize(alt, literals, regexTokens)
-      return segmentToAlt(segs[0], tag, refs, true)
-    })
+      const seg = segs[0]
+      const isRefOnly = alt.length >= 1 &&
+        alt.every((el) => el.kind === 'ref') &&
+        seg.terms.length === 0 &&
+        seg.ref != null
+
+      if (needsPeek && isRefOnly) {
+        const firstTokens = firstOfAlt(
+          alt, literals, regexTokens, firstSets, nullable)
+        if (firstTokens) {
+          for (const tok of firstTokens) {
+            opens.push({
+              s: tok,
+              b: 1,
+              p: seg.ref,
+              a: refs.register((r: Rule) => { r.node = [] }),
+              g: tag,
+            })
+          }
+          continue
+        }
+      }
+      opens.push(segmentToAlt(seg, tag, refs, true))
+    }
+
     const rs: any = { open: opens }
 
     // If any alt has a push, the close state must capture the

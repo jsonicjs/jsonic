@@ -307,6 +307,35 @@ describe('bnf', () => {
   })
 
 
+  describe('fixture round-trips', () => {
+
+    it('arith.bnf accepts precedence-free arithmetic', () => {
+      const j = Jsonic.make()
+      j.bnf(loadFixture('arith.bnf'))
+      assert.doesNotThrow(() => j('1'))
+      assert.doesNotThrow(() => j('1 + 2'))
+      assert.doesNotThrow(() => j('1 + 2 * 3'))
+      assert.doesNotThrow(() => j('( 1 + 2 ) * 3'))
+      assert.doesNotThrow(() => j('1 + ( 2 * 3 ) - 4 / 5'))
+      assert.throws(() => j('1 +'), /unexpected/)
+      assert.throws(() => j('+ 1'), /unexpected/)
+    })
+
+
+    it('json-subset.bnf accepts nested structures', () => {
+      const j = Jsonic.make()
+      j.bnf(loadFixture('json-subset.bnf'))
+      assert.doesNotThrow(() => j('1'))
+      assert.doesNotThrow(() => j('"hi"'))
+      assert.doesNotThrow(() => j('{ "a" : 1 }'))
+      assert.doesNotThrow(() => j('[ 1 , 2 , 3 ]'))
+      assert.doesNotThrow(() => j('{ "a" : [ 1 , 2 ] , "b" : "hi" }'))
+      assert.throws(() => j('{ "a" 1 }'), /unexpected/)  // missing colon
+    })
+
+  })
+
+
   describe('jsonic.bnf()', () => {
 
     it('installs grammar and parses matching input', () => {
