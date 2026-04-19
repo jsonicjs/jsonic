@@ -526,6 +526,19 @@ func (j *Jsonic) SetOptions(opts Options) *Jsonic {
 	cfg.FixedSorted = j.parser.Config.FixedSorted
 	cfg.TinNames = j.parser.Config.TinNames
 	cfg.CustomMatchers = j.parser.Config.CustomMatchers
+	// Preserve token sets. buildConfig unconditionally resets IgnoreSet/
+	// ValSet/KeySet to defaults, which would clobber SetTokenSet mutations
+	// made by plugins or prior calls. opts.TokenSet below reapplies any
+	// explicit override from the incoming options.
+	if j.parser.Config.IgnoreSet != nil {
+		cfg.IgnoreSet = j.parser.Config.IgnoreSet
+	}
+	if j.parser.Config.ValSet != nil {
+		cfg.ValSet = j.parser.Config.ValSet
+	}
+	if j.parser.Config.KeySet != nil {
+		cfg.KeySet = j.parser.Config.KeySet
+	}
 	// Preserve match token/value entries added by prior SetOptions/Grammar calls.
 	if len(j.parser.Config.MatchTokens) > 0 {
 		for k, v := range j.parser.Config.MatchTokens {
