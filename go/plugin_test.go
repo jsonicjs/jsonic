@@ -1252,6 +1252,42 @@ func TestDeriveInheritsIgnoreSet(t *testing.T) {
 	}
 }
 
+func TestSetOptionsPreservesIgnoreSet(t *testing.T) {
+	// A plugin (or prior call) may mutate IGNORE via SetTokenSet. A
+	// subsequent SetOptions — including one triggered internally by
+	// Grammar() — must not silently reset IGNORE to defaults.
+	j := Make()
+	j.SetTokenSet("IGNORE", []Tin{TinSP, TinCM}) // Remove LN
+
+	// Unrelated SetOptions call must not reset the IGNORE set.
+	yes := true
+	j.SetOptions(Options{Number: &NumberOptions{Hex: &yes}})
+
+	if j.Config().IgnoreSet[TinLN] {
+		t.Error("SetOptions reset IgnoreSet — TinLN re-added after unrelated options change")
+	}
+	if len(j.TokenSet("IGNORE")) != 2 {
+		t.Errorf("expected 2 IGNORE tokens after SetOptions, got %d", len(j.TokenSet("IGNORE")))
+	}
+
+	// Grammar() applies Options via SetOptions internally — same guarantee must hold.
+	if err := j.Grammar(&GrammarSpec{Options: &Options{Tag: "t"}}); err != nil {
+		t.Fatalf("Grammar failed: %v", err)
+	}
+	if j.Config().IgnoreSet[TinLN] {
+		t.Error("Grammar's internal SetOptions reset IgnoreSet — TinLN re-added")
+	}
+	if len(j.TokenSet("IGNORE")) != 2 {
+		t.Errorf("expected 2 IGNORE tokens after Grammar, got %d", len(j.TokenSet("IGNORE")))
+	}
+
+	// Explicit TokenSet override in the new options must still win.
+	j.SetOptions(Options{TokenSet: map[string][]string{"IGNORE": {"#SP"}}})
+	if len(j.TokenSet("IGNORE")) != 1 {
+		t.Errorf("expected TokenSet override to shrink IGNORE to 1 token, got %d", len(j.TokenSet("IGNORE")))
+	}
+}
+
 func TestSetTokenSetVAL(t *testing.T) {
 	j := Make()
 
