@@ -340,6 +340,19 @@ describe('bnf', () => {
     })
 
 
+    it('bnf.toSpec builds the spec without installing', () => {
+      const j = Jsonic.make()
+      const spec = j.bnf.toSpec('<g> ::= "x"')
+      // Spec is returned; the default JSON grammar is still active
+      // since toSpec does not install the BNF grammar.
+      assert.equal(spec.options.rule.start, '__start__')
+      assert.deepEqual(j('a:1'), { a: 1 })
+      // A second call to install still works afterwards.
+      j.bnf('<g> ::= "x"')
+      assert.deepEqual(j('x'), ['x'])
+    })
+
+
     it('produces a parse tree of matched terminals', () => {
       // Terminals are pushed as their source text; nested rules
       // appear as nested arrays.

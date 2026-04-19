@@ -382,12 +382,18 @@ function make(param_options?: Bag | string, parent?: Jsonic): Jsonic {
 
     // Convert a BNF grammar string into a jsonic GrammarSpec and install
     // it on this instance. Returns the generated spec so callers can
-    // inspect, serialise or diff it.
-    bnf: (src: string, opts?: BnfConvertOptions) => {
-      const spec = bnfConvert(src, opts)
-      ji.grammar(spec)
-      return spec
-    },
+    // inspect, serialise or diff it. Use `bnf.toSpec(src, opts)` to
+    // build the spec without installing it.
+    bnf: (() => {
+      const impl = (src: string, opts?: BnfConvertOptions) => {
+        const spec = bnfConvert(src, opts)
+        ji.grammar(spec)
+        return spec
+      }
+      impl.toSpec = (src: string, opts?: BnfConvertOptions) =>
+        bnfConvert(src, opts)
+      return impl
+    })(),
 
   }
 
