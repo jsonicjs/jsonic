@@ -424,6 +424,36 @@ describe('bnf', () => {
       assert.match(cn.d.log[0][0], /Usage:/)
     })
 
+
+    it('--parse validates a sample and prints the tree', async () => {
+      const cn = makeConsole()
+      const prevExitCode = process.exitCode
+      await BnfCli.run(
+        [0, 0, '<g> ::= "hi" | "hello"', '--parse', 'hi'],
+        cn,
+      )
+      // Validation prints an `ok:` line to stdout; no spec dump.
+      assert.equal(cn.d.log.length, 1)
+      assert.match(cn.d.log[0][0], /^ok: "hi" ->/)
+      // A successful --parse leaves the process exit code unchanged.
+      assert.equal(process.exitCode, prevExitCode)
+    })
+
+
+    it('--parse flags mismatched samples as failures', async () => {
+      const cn = makeConsole()
+      const prevExitCode = process.exitCode
+      await BnfCli.run(
+        [0, 0, '<g> ::= "hi"', '--parse', 'bye'],
+        cn,
+      )
+      assert.equal(cn.d.log.length, 0)
+      assert.equal(cn.d.err.length, 1)
+      assert.match(cn.d.err[0][0], /^fail: "bye":/)
+      assert.equal(process.exitCode, 1)
+      process.exitCode = prevExitCode
+    })
+
   })
 
 })
