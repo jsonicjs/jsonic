@@ -26,7 +26,12 @@ export interface JsonicAPI {
     }) => Jsonic;
     util: Bag;
     grammar: (gs: GrammarSpec | string, setting?: GrammarSetting) => void;
+    bnf: (src: string, opts?: BnfConvertOptions) => GrammarSpec;
 }
+export type BnfConvertOptions = {
+    start?: string;
+    tag?: string;
+};
 export type GrammarSetting = {
     rule?: {
         alt?: {

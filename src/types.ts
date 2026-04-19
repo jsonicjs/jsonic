@@ -83,6 +83,17 @@ export interface JsonicAPI {
   util: Bag
 
   grammar: (gs: GrammarSpec | string, setting?: GrammarSetting) => void
+
+  // Convert a BNF grammar string into a jsonic GrammarSpec and install
+  // it on this instance. Returns the generated spec. See src/bnf.ts.
+  bnf: (src: string, opts?: BnfConvertOptions) => GrammarSpec
+}
+
+// BNF converter options. Re-declared here rather than imported to keep
+// types.ts free of circular cross-file references.
+export type BnfConvertOptions = {
+  start?: string
+  tag?: string
 }
 
 

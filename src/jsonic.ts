@@ -102,6 +102,9 @@ import { makeRule, makeRuleSpec, makeParser } from './parser'
 
 import { grammar, makeJSON } from './grammar'
 
+import { bnf as bnfConvert } from './bnf'
+import type { BnfConvertOptions } from './types'
+
 // TODO: remove - too much for an API!
 const util = {
   tokenize,
@@ -374,8 +377,17 @@ function make(param_options?: Bag | string, parent?: Jsonic): Jsonic {
           })
         }
       }
-    }
+    },
 
+
+    // Convert a BNF grammar string into a jsonic GrammarSpec and install
+    // it on this instance. Returns the generated spec so callers can
+    // inspect, serialise or diff it.
+    bnf: (src: string, opts?: BnfConvertOptions) => {
+      const spec = bnfConvert(src, opts)
+      ji.grammar(spec)
+      return spec
+    },
 
   }
 
