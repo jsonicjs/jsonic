@@ -18,6 +18,22 @@ function loadFixture(name) {
 }
 
 
+// Strip emitter-injected action references from a spec so tests can
+// assert the structural shape without pinning the action identities.
+function stripActions(alt) {
+  if (Array.isArray(alt)) return alt.map(stripActions)
+  if (alt && typeof alt === 'object') {
+    const out = {}
+    for (const [k, v] of Object.entries(alt)) {
+      if (k === 'a') continue
+      out[k] = stripActions(v)
+    }
+    return out
+  }
+  return alt
+}
+
+
 describe('bnf', () => {
 
   describe('converter', () => {
@@ -27,17 +43,17 @@ describe('bnf', () => {
       // A synthetic `__start__` wrapper ensures end-of-source is
       // always consumed; it pushes the user's start rule.
       assert.equal(spec.options.rule.start, '__start__')
-      assert.deepEqual(spec.rule.__start__.open, [
+      assert.deepEqual(stripActions(spec.rule.__start__.open), [
         { p: 'greet', g: 'bnf' },
       ])
-      assert.deepEqual(spec.rule.__start__.close, [
+      assert.deepEqual(stripActions(spec.rule.__start__.close), [
         { s: '#ZZ', g: 'bnf' },
       ])
       assert.deepEqual(spec.options.fixed.token, {
         '#HI': 'hi',
         '#HELLO': 'hello',
       })
-      assert.deepEqual(spec.rule.greet.open, [
+      assert.deepEqual(stripActions(spec.rule.greet.open), [
         { s: '#HI', g: 'bnf' },
         { s: '#HELLO', g: 'bnf' },
       ])
@@ -47,10 +63,10 @@ describe('bnf', () => {
 
     it('emits spec for two-terminal sequence', () => {
       const spec = bnf(loadFixture('pair.bnf'))
-      assert.deepEqual(spec.rule.__start__.open, [
+      assert.deepEqual(stripActions(spec.rule.__start__.open), [
         { p: 'pair', g: 'bnf' },
       ])
-      assert.deepEqual(spec.rule.pair.open, [
+      assert.deepEqual(stripActions(spec.rule.pair.open), [
         { s: '#A #B', g: 'bnf' },
       ])
     })
@@ -58,7 +74,7 @@ describe('bnf', () => {
 
     it('honours override of start rule', () => {
       const spec = bnf('<a> ::= "x"\n<b> ::= "y"', { start: 'b' })
-      assert.deepEqual(spec.rule.__start__.open, [
+      assert.deepEqual(stripActions(spec.rule.__start__.open), [
         { p: 'b', g: 'bnf' },
       ])
     })
@@ -66,7 +82,7 @@ describe('bnf', () => {
 
     it('emits a single N-token alt for long terminal sequences', () => {
       const spec = bnf('<long> ::= "a" "b" "c" "d"')
-      assert.deepEqual(spec.rule.long.open, [
+      assert.deepEqual(stripActions(spec.rule.long.open), [
         { s: '#A #B #C #D', g: 'bnf' },
       ])
     })
@@ -77,18 +93,18 @@ describe('bnf', () => {
         '<inner> ::= "x"')
       // Root rule consumes 'a' then pushes inner; close replaces with
       // the first continuation rule.
-      assert.deepEqual(spec.rule.chain.open, [
+      assert.deepEqual(stripActions(spec.rule.chain.open), [
         { s: '#A', p: 'inner', g: 'bnf' },
       ])
-      assert.deepEqual(spec.rule.chain.close, [
+      assert.deepEqual(stripActions(spec.rule.chain.close), [
         { r: 'chain$step1', g: 'bnf' },
       ])
       // First continuation handles 'b' + inner.
-      assert.deepEqual(spec.rule['chain$step1'].open, [
+      assert.deepEqual(stripActions(spec.rule['chain$step1'].open), [
         { s: '#B', p: 'inner', g: 'bnf' },
       ])
       // Last continuation handles the trailing 'c' and has no close.
-      assert.deepEqual(spec.rule['chain$step2'].open, [
+      assert.deepEqual(stripActions(spec.rule['chain$step2'].open), [
         { s: '#C', g: 'bnf' },
       ])
       assert.equal(spec.rule['chain$step2'].close, undefined)
@@ -273,6 +289,22 @@ describe('bnf', () => {
       assert.equal(spec.options.fixed.token['#X'], 'x')
     })
 
+
+    it('produces a parse tree of matched terminals', () => {
+      // Terminals are pushed as their source text; nested rules
+      // appear as nested arrays.
+      const j = Jsonic.make()
+      j.bnf('<g> ::= "hi" | "hello"')
+      assert.deepEqual(j('hi'), ['hi'])
+      assert.deepEqual(j('hello'), ['hello'])
+
+      const j2 = Jsonic.make()
+      j2.bnf('<p> ::= "a" <q>\n<q> ::= "b"')
+      // 'a' is a terminal of p; q's result [b] is appended as a
+      // nested array.
+      assert.deepEqual(j2('a b'), ['a', ['b']])
+    })
+
   })
 
 
@@ -285,9 +317,9 @@ describe('bnf', () => {
         cn,
       )
       const out = JSON.parse(cn.d.log[0][0])
-      assert.deepEqual(out.rule.__start__.open, [
-        { p: 'greet', g: 'bnf' },
-      ])
+      // CLI output serialises actions as FuncRef strings; only assert
+      // that the dispatch to the user's start rule is in place.
+      assert.equal(out.rule.__start__.open[0].p, 'greet')
       assert.deepEqual(out.options.fixed.token, {
         '#HI': 'hi',
         '#HELLO': 'hello',
@@ -299,9 +331,7 @@ describe('bnf', () => {
       const cn = makeConsole()
       await BnfCli.run([0, 0, '<g> ::= "x"'], cn)
       const out = JSON.parse(cn.d.log[0][0])
-      assert.deepEqual(out.rule.__start__.open, [
-        { p: 'g', g: 'bnf' },
-      ])
+      assert.equal(out.rule.__start__.open[0].p, 'g')
     })
 
 
@@ -312,9 +342,7 @@ describe('bnf', () => {
         cn,
       )
       const out = JSON.parse(cn.d.log[0][0])
-      assert.deepEqual(out.rule.__start__.open, [
-        { p: 'b', g: 'bnf' },
-      ])
+      assert.equal(out.rule.__start__.open[0].p, 'b')
     })
 
 
@@ -323,9 +351,7 @@ describe('bnf', () => {
       cn.test$ = '<g> ::= "x"'
       await BnfCli.run([0, 0, '-'], cn)
       const out = JSON.parse(cn.d.log[0][0])
-      assert.deepEqual(out.rule.__start__.open, [
-        { p: 'g', g: 'bnf' },
-      ])
+      assert.equal(out.rule.__start__.open[0].p, 'g')
     })
 
 

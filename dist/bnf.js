@@ -358,6 +358,7 @@ function emitGrammarSpec(grammar, opts) {
     }
     const knownRules = new Set(grammar.productions.map((p) => p.name));
     const { firstSets, nullable } = computeFirstSets(grammar, literals);
+    const refs = new RefRegistry();
     // Emit each production as one or more jsonic rules. Simple
     // (single-segment) alternatives fit directly into `rule.open`;
     // multi-segment alternatives need a chain of auxiliary rules, one
@@ -365,7 +366,7 @@ function emitGrammarSpec(grammar, opts) {
     // two use a FIRST-set dispatcher.
     const ruleSpec = {};
     for (const prod of grammar.productions) {
-        emitProduction(prod, literals, knownRules, tag, ruleSpec, firstSets, nullable);
+        emitProduction(prod, literals, knownRules, tag, ruleSpec, firstSets, nullable, refs);
     }
     // Wrap the user-visible start rule in a synthetic rule that
     // explicitly consumes #ZZ. Without this, a user rule that pops
@@ -374,10 +375,27 @@ function emitGrammarSpec(grammar, opts) {
     // outlives the parse loop).
     const startWrapper = '__start__';
     ruleSpec[startWrapper] = {
-        open: [{ p: start, g: tag }],
-        close: [{ s: '#ZZ', g: tag }],
+        open: [{
+                p: start,
+                // Initialise the top-level node so descendants can accumulate.
+                a: refs.register((r) => { r.node = []; }),
+                g: tag,
+            }],
+        close: [{
+                s: '#ZZ',
+                // Lift the child's result into this rule's node so the value
+                // returned to the caller of `jsonic(...)` is the tree, not the
+                // initial empty array.
+                a: refs.register((r) => {
+                    if (r.child && r.child.node !== undefined) {
+                        r.node = r.child.node;
+                    }
+                }),
+                g: tag,
+            }],
     };
     const spec = {
+        ref: refs.map,
         options: {
             fixed: { token: fixedTokens },
             rule: { start: startWrapper },
@@ -434,39 +452,98 @@ function validateRefs(alt, knownRules, ruleName) {
         }
     }
 }
-function segmentToAlt(seg, tag) {
+// Registry used by the emitter to allocate unique `@`-prefixed
+// FuncRef names for inline action functions. The resulting spec is
+// still declarative: every function appears once, keyed by name,
+// under the spec's `ref` map.
+class RefRegistry {
+    constructor() {
+        this.refs = {};
+        this.counter = 0;
+    }
+    register(fn) {
+        const name = `@bnf_a${this.counter++}`;
+        this.refs[name] = fn;
+        return name;
+    }
+    get map() {
+        return this.refs;
+    }
+}
+function segmentToAlt(seg, tag, refs, initNode) {
     const spec = { g: tag };
     if (seg.terms.length > 0)
         spec.s = seg.terms.join(' ');
     if (seg.ref)
         spec.p = seg.ref;
+    // Default tree-building: push each matched terminal's source text
+    // into the rule's node. The first alt of a head rule also resets
+    // `r.node` to a fresh array — otherwise a child rule would inherit
+    // (and then mutate) its parent's node, giving a circular tree.
+    const nterms = seg.terms.length;
+    if (nterms > 0 || initNode) {
+        spec.a = refs.register((r) => {
+            if (initNode)
+                r.node = [];
+            for (let i = 0; i < nterms; i++) {
+                r.node.push(r.o[i].src);
+            }
+        });
+    }
     return spec;
 }
-function emitProduction(prod, literals, knownRules, tag, ruleSpec, firstSets, nullable) {
+// Close-state action: append the just-returned child rule's node
+// (if any) to the current rule's node array.
+function captureChildRef(refs) {
+    return refs.register((r) => {
+        if (r.node == null)
+            r.node = [];
+        if (r.child && r.child.node !== undefined) {
+            r.node.push(r.child.node);
+        }
+    });
+}
+function emitProduction(prod, literals, knownRules, tag, ruleSpec, firstSets, nullable, refs) {
     for (const alt of prod.alts) {
         validateRefs(alt, knownRules, prod.name);
     }
     const allSimple = prod.alts.every(isSingleSegment);
     if (allSimple) {
         // Every alternative collapses to one jsonic alt — emit them
-        // directly into the production's open state.
-        const opens = prod.alts.map((alt) => {
+        // directly into the production's open state. This is a head
+        // rule, so each alt initialises its own node array. Empty alts
+        // are sorted to the end so jsonic's first-match-wins doesn't let
+        // them short-circuit non-empty alternatives.
+        const ordered = [
+            ...prod.alts.filter((alt) => alt.length > 0),
+            ...prod.alts.filter((alt) => alt.length === 0),
+        ];
+        const opens = ordered.map((alt) => {
             const segs = segmentize(alt, literals);
-            return segmentToAlt(segs[0], tag);
+            return segmentToAlt(segs[0], tag, refs, true);
         });
-        ruleSpec[prod.name] = { open: opens };
+        const rs = { open: opens };
+        // If any alt has a push, the close state must capture the
+        // returned child. Add a universal fallback close alt whose
+        // action is a no-op when there was no push.
+        if (prod.alts.some((alt) => alt.some((el) => el.kind === 'ref'))) {
+            rs.close = [{ a: captureChildRef(refs), g: tag }];
+        }
+        ruleSpec[prod.name] = rs;
         return;
     }
     if (prod.alts.length === 1) {
         // Single-alt, multi-segment: chain rules directly on the
         // production.
-        emitChain(prod.name, prod.alts[0], literals, tag, ruleSpec);
+        emitChain(prod.name, prod.alts[0], literals, tag, ruleSpec, refs);
         return;
     }
     // Multi-alt with at least one multi-segment alternative: emit a
     // dispatcher. Each alt becomes its own chained impl rule
     // (`<prodname>$alt<i>`); the main rule's open peeks the first token
-    // and replaces with the matching impl rule.
+    // and pushes the matching impl rule. Using `p:` (not `r:`) keeps
+    // the parent's `child` pointer valid so the parent can read the
+    // impl's node in its close-state action.
     const dispatchOpen = [];
     let emptyAltSeen = false;
     for (let i = 0; i < prod.alts.length; i++) {
@@ -477,7 +554,7 @@ function emitProduction(prod, literals, knownRules, tag, ruleSpec, firstSets, nu
             emptyAltSeen = true;
             continue;
         }
-        emitChain(implName, alt, literals, tag, ruleSpec);
+        emitChain(implName, alt, literals, tag, ruleSpec, refs);
         // Compute FIRST(alt) to drive the dispatch lookahead. Any token
         // in that set routes to this impl rule. The `b: 1` restores the
         // peeked token so the impl can re-consume it.
@@ -487,27 +564,59 @@ function emitProduction(prod, literals, knownRules, tag, ruleSpec, firstSets, nu
                 `is not the only empty alt; FIRST set is ambiguous`);
         }
         for (const tok of firstTokens) {
-            dispatchOpen.push({ s: tok, b: 1, r: implName, g: tag });
+            dispatchOpen.push({ s: tok, b: 1, p: implName, g: tag });
         }
     }
     if (emptyAltSeen) {
-        // Fallback: matches any token (or none), pops immediately.
-        dispatchOpen.push({ g: tag });
+        // Fallback: matches any token (or none), pops immediately with
+        // an empty tree.
+        dispatchOpen.push({
+            a: refs.register((r) => { r.node = []; }),
+            g: tag,
+        });
     }
-    ruleSpec[prod.name] = { open: dispatchOpen };
+    ruleSpec[prod.name] = {
+        open: dispatchOpen,
+        close: [{
+                // Promote the chosen impl's result up to the dispatcher's node
+                // so the calling rule sees the impl's tree (not the
+                // dispatcher's empty placeholder).
+                a: refs.register((r) => {
+                    if (r.child && r.child.node !== undefined) {
+                        r.node = r.child.node;
+                    }
+                }),
+                g: tag,
+            }],
+    };
 }
 // Emit a (possibly single-step) chain of rules for one alt under the
 // given head rule name. Segment 0 goes into `headName`; later
 // segments get synthetic `<headName>$stepN` continuations.
-function emitChain(headName, alt, literals, tag, ruleSpec) {
+function emitChain(headName, alt, literals, tag, ruleSpec, refs) {
     const segs = segmentize(alt, literals);
     const chainName = (i) => i === 0 ? headName : `${headName}$step${i}`;
     for (let i = 0; i < segs.length; i++) {
         const name = chainName(i);
-        const open = [segmentToAlt(segs[i], tag)];
+        const seg = segs[i];
+        // Only the head of the chain initialises the node array; later
+        // steps inherit and continue to accumulate into it.
+        const open = [segmentToAlt(seg, tag, refs, i === 0)];
         const rs = { open };
-        if (i < segs.length - 1) {
-            rs.close = [{ r: chainName(i + 1), g: tag }];
+        const isLast = i === segs.length - 1;
+        if (!isLast) {
+            // Non-last step: after the push returns, capture the child's
+            // node and replace with the next step rule.
+            rs.close = [{
+                    r: chainName(i + 1),
+                    a: captureChildRef(refs),
+                    g: tag,
+                }];
+        }
+        else if (seg.ref) {
+            // Last step, but it had a push — we still need to capture the
+            // final child before popping.
+            rs.close = [{ a: captureChildRef(refs), g: tag }];
         }
         ruleSpec[name] = rs;
     }
