@@ -7,7 +7,12 @@ const Fs = require('node:fs')
 const Path = require('node:path')
 
 const { Jsonic } = require('..')
-const { bnf, parseBnf, BnfParseError } = require('../dist/bnf')
+const {
+  bnf,
+  parseBnf,
+  eliminateLeftRecursion,
+  BnfParseError,
+} = require('../dist/bnf')
 const BnfCli = require('../dist/jsonic-bnf-cli')
 
 
@@ -331,6 +336,87 @@ describe('bnf', () => {
       assert.doesNotThrow(() => j('[ 1 , 2 , 3 ]'))
       assert.doesNotThrow(() => j('{ "a" : [ 1 , 2 ] , "b" : "hi" }'))
       assert.throws(() => j('{ "a" 1 }'), /unexpected/)  // missing colon
+    })
+
+
+    it('arith-leftrec.bnf parses the same language as arith.bnf', () => {
+      // Same language, but written in the natural left-recursive form.
+      const j = Jsonic.make()
+      j.bnf(loadFixture('arith-leftrec.bnf'))
+      assert.doesNotThrow(() => j('1'))
+      assert.doesNotThrow(() => j('1 + 2 * 3'))
+      assert.doesNotThrow(() => j('( 1 + 2 ) * 3'))
+      assert.doesNotThrow(() => j('1 / 2 + 3 - 4 * 5'))
+      assert.throws(() => j('+ 1'), /unexpected/)
+    })
+
+  })
+
+
+  describe('left-recursion elimination', () => {
+
+    it('rewrites P -> P alpha | beta into P -> beta (alpha)*', () => {
+      const g = parseBnf('<e> ::= <e> "+" <t> | <t>\n<t> ::= /[0-9]+/')
+      const r = eliminateLeftRecursion(g)
+      const expr = r.productions.find((p) => p.name === 'e')
+      assert.equal(expr.alts.length, 1)
+      const alt = expr.alts[0]
+      assert.equal(alt.length, 2)
+      // Seed (collapsed to a bare element since there's only one).
+      assert.deepEqual(alt[0], { kind: 'ref', name: 't' })
+      // Tail wrapped in a star.
+      assert.equal(alt[1].kind, 'star')
+    })
+
+
+    it('handles multiple recursive and seed alternatives', () => {
+      const g = parseBnf(
+        '<e> ::= <e> "+" <t> | <e> "-" <t> | <t> | "(" <e> ")"\n' +
+        '<t> ::= /[0-9]+/')
+      const r = eliminateLeftRecursion(g)
+      const e = r.productions.find((p) => p.name === 'e')
+      assert.equal(e.alts.length, 1)
+      const [seed, star] = e.alts[0]
+      // Two seeds → grouped.
+      assert.equal(seed.kind, 'group')
+      assert.equal(seed.alts.length, 2)
+      // Two recursives → star of group.
+      assert.equal(star.kind, 'star')
+      assert.equal(star.inner.kind, 'group')
+      assert.equal(star.inner.alts.length, 2)
+    })
+
+
+    it('rejects purely left-recursive productions (no seed)', () => {
+      assert.throws(
+        () => bnf('<a> ::= <a> "x"'),
+        /purely left-recursive/,
+      )
+    })
+
+
+    it('rejects trivial P ::= P', () => {
+      assert.throws(
+        () => bnf('<a> ::= <a> | "x"'),
+        /trivial left-recursive/,
+      )
+    })
+
+
+    it('left-recursive grammar produces the same parses as the rewritten one', () => {
+      const j1 = Jsonic.make()
+      j1.bnf(loadFixture('arith.bnf'))
+      const j2 = Jsonic.make()
+      j2.bnf(loadFixture('arith-leftrec.bnf'))
+      // The two grammars accept the same set of strings (we only
+      // assert that both either accept or both reject — the trees
+      // differ in shape because the helpers are constructed
+      // differently).
+      const samples = ['1', '1 + 2', '( 1 + 2 ) * 3', '1 / 2 + 3 - 4']
+      for (const s of samples) {
+        assert.doesNotThrow(() => j1(s), `arith should accept ${s}`)
+        assert.doesNotThrow(() => j2(s), `arith-leftrec should accept ${s}`)
+      }
     })
 
   })

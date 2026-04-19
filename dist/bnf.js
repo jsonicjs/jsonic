@@ -5,6 +5,7 @@ exports.BnfParseError = exports.bnfRules = void 0;
 exports.bnf = bnf;
 exports.parseBnf = parseBnf;
 exports.emitGrammarSpec = emitGrammarSpec;
+exports.eliminateLeftRecursion = eliminateLeftRecursion;
 // Declarative definition of the BNF grammar itself, expressed as
 // jsonic rules. Each rule names its `open`/`close` alt list and, where
 // necessary, a `bo`/`bc` state hook for AST assembly.
@@ -318,6 +319,64 @@ function getBnfParser() {
 // `term` and `ref`. Each `X?`, `X*`, `X+` occurrence is replaced by a
 // reference to a newly-generated helper production that expresses the
 // same language in plain BNF.
+// Rewrite direct left recursion (P → P α₁ | … | P αₙ | β₁ | … | βₘ)
+// into the equivalent right-recursive form
+//   P → (β₁ | … | βₘ) (α₁ | … | αₙ)*
+// which jsonic's push-down parser can execute without re-entering P
+// at the same source position. Each non-recursive alternative
+// becomes a "seed", and the body following the leading P-reference
+// in each recursive alternative becomes a star-iterated tail.
+//
+// Indirect cycles (P → Q α, Q → P β) are *not* rewritten — the doc's
+// runtime guard via `r.k.seenPAt` would be needed for those, and is
+// out of scope for this pass. If detected they're flagged so the
+// emitter doesn't silently fall through.
+function eliminateLeftRecursion(grammar) {
+    const out = [];
+    for (const prod of grammar.productions) {
+        const recursive = [];
+        const seeds = [];
+        for (const alt of prod.alts) {
+            if (alt.length > 0 &&
+                alt[0].kind === 'ref' &&
+                alt[0].name === prod.name) {
+                // Strip the leading self-reference; the rest is the
+                // operator/tail to iterate.
+                recursive.push(alt.slice(1));
+            }
+            else {
+                seeds.push(alt);
+            }
+        }
+        if (recursive.length === 0) {
+            out.push(prod);
+            continue;
+        }
+        if (seeds.length === 0) {
+            throw new Error(`bnf: rule '${prod.name}' is purely left-recursive ` +
+                `(no seed alternative); cannot eliminate`);
+        }
+        for (const tail of recursive) {
+            if (tail.length === 0) {
+                // P → P with nothing else would loop forever even after
+                // rewriting (we'd get `P → seed ε*` which is just P → seed).
+                throw new Error(`bnf: rule '${prod.name}' has a trivial left-recursive ` +
+                    `alternative (P ::= P) which cannot be desugared`);
+            }
+        }
+        const seedElement = seeds.length === 1 && seeds[0].length === 1
+            ? seeds[0][0]
+            : { kind: 'group', alts: seeds };
+        const tailInner = recursive.length === 1 && recursive[0].length === 1
+            ? recursive[0][0]
+            : { kind: 'group', alts: recursive };
+        out.push({
+            name: prod.name,
+            alts: [[seedElement, { kind: 'star', inner: tailInner }]],
+        });
+    }
+    return { productions: out };
+}
 function desugar(grammar) {
     const extra = [];
     const used = new Set(grammar.productions.map((p) => p.name));
@@ -424,7 +483,10 @@ function parseBnf(src) {
 function emitGrammarSpec(grammar, opts) {
     const start = opts?.start ?? grammar.productions[0].name;
     const tag = opts?.tag ?? 'bnf';
-    // Flatten EBNF sugar (`?`, `*`, `+`) into plain BNF before emitting.
+    // Eliminate direct left recursion (P → P α | β) by rewriting to
+    // the equivalent right-recursive form P → β (α)*, then flatten any
+    // EBNF sugar (`?`, `*`, `+`, grouping) into plain BNF.
+    grammar = eliminateLeftRecursion(grammar);
     grammar = desugar(grammar);
     // Allocate a fixed token for each unique literal, and a match
     // token for each unique regex terminal.

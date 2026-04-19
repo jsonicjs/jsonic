@@ -36,6 +36,7 @@ declare const bnfRules: Record<string, {
     open?: any[];
     close?: any[];
 }>;
+declare function eliminateLeftRecursion(grammar: BnfGrammar): BnfGrammar;
 declare class BnfParseError extends Error {
     readonly line?: number;
     readonly column?: number;
@@ -48,4 +49,4 @@ declare class BnfParseError extends Error {
 declare function parseBnf(src: string): BnfGrammar;
 declare function emitGrammarSpec(grammar: BnfGrammar, opts?: BnfConvertOptions): GrammarSpec;
 declare function bnf(src: string, opts?: BnfConvertOptions): GrammarSpec;
-export { bnf, parseBnf, emitGrammarSpec, bnfRules, BnfParseError };
+export { bnf, parseBnf, emitGrammarSpec, eliminateLeftRecursion, bnfRules, BnfParseError, };
