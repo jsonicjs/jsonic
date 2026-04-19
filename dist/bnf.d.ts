@@ -6,6 +6,10 @@ type BnfElement = {
     kind: 'ref';
     name: string;
 } | {
+    kind: 'regex';
+    pattern: string;
+    flags: string;
+} | {
     kind: 'opt';
     inner: BnfElement;
 } | {

@@ -31,6 +31,7 @@ import type { BnfConvertOptions, GrammarSpec, Rule } from './types'
 type BnfElement =
   | { kind: 'term'; literal: string }
   | { kind: 'ref'; name: string }
+  | { kind: 'regex'; pattern: string; flags: string }  // /…/flags
   | { kind: 'opt'; inner: BnfElement }     // X?
   | { kind: 'star'; inner: BnfElement }    // X*
   | { kind: 'plus'; inner: BnfElement }    // X+
@@ -62,6 +63,7 @@ type BnfGrammar = {
 //   #PLUS  `+`
 //   #LP    `(`
 //   #RP    `)`
+//   #RX    /pattern/flags (regex terminal, matched via match.token)
 //   #TX    bare identifier (jsonic default text token)
 //   #ST    quoted string literal (jsonic default string token)
 //   #ZZ    end-of-source
@@ -72,7 +74,7 @@ type BnfGrammar = {
 //   alts       ::= seq ('|' seq)*
 //   seq        ::= element*
 //   element    ::= atom postfix?
-//   atom       ::= '<' IDENT '>' | STRING | IDENT | '(' alts ')'
+//   atom       ::= '<' IDENT '>' | STRING | REGEX | IDENT | '(' alts ')'
 //   postfix    ::= '?' | '*' | '+'
 const bnfRules: Record<
   string,
@@ -143,6 +145,14 @@ const bnfRules: Record<
       { s: '#PIPE', b: 1, g: 'end' },
       { s: '#ZZ', b: 1, g: 'end' },
       { s: '#RP', b: 1, g: 'end' },
+      // Listing element-starter tokens in `s:` here ensures each one
+      // appears in the rule's tcol so the match-matcher (for `#RX`)
+      // is allowed to fire when the source is lexed.
+      { s: '#LT', b: 1, p: 'elem' },
+      { s: '#ST', b: 1, p: 'elem' },
+      { s: '#RX', b: 1, p: 'elem' },
+      { s: '#TX', b: 1, p: 'elem' },
+      { s: '#LP', b: 1, p: 'elem' },
       { p: 'elem' },
     ],
     close: [
@@ -152,6 +162,7 @@ const bnfRules: Record<
       { s: '#RP', b: 1, g: 'end' },
       { s: '#LT', b: 1, p: 'elem' },
       { s: '#ST', b: 1, p: 'elem' },
+      { s: '#RX', b: 1, p: 'elem' },
       { s: '#TX', b: 1, p: 'elem' },
       { s: '#LP', b: 1, p: 'elem' },
       { b: 1 },
@@ -176,6 +187,19 @@ const bnfRules: Record<
         s: '#ST',
         a: (r: Rule) => {
           r.u.atom = { kind: 'term', literal: r.o[0].val }
+        },
+      },
+      {
+        s: '#RX',
+        a: (r: Rule) => {
+          // r.o[0].src is the raw text `/pattern/flags`. Split it.
+          const raw = r.o[0].src as string
+          const lastSlash = raw.lastIndexOf('/')
+          r.u.atom = {
+            kind: 'regex',
+            pattern: raw.slice(1, lastSlash),
+            flags: raw.slice(lastSlash + 1),
+          }
         },
       },
       {
@@ -252,7 +276,32 @@ const bnfRules: Record<
           r.node.push({ kind: 'plus', inner: r.u.atom })
         },
       },
-      // Simple atom, no postfix.
+      // Simple atom, no postfix. These alts declare the "next atom"
+      // tokens so the lexer — which consults tcol to decide which
+      // matchers to try — emits them as their proper types (in
+      // particular `#RX`) rather than as generic text.
+      {
+        s: '#LT', b: 1,
+        a: (r: Rule) => { r.node.push(r.u.atom) },
+      },
+      {
+        s: '#ST', b: 1,
+        a: (r: Rule) => { r.node.push(r.u.atom) },
+      },
+      {
+        s: '#RX', b: 1,
+        a: (r: Rule) => { r.node.push(r.u.atom) },
+      },
+      {
+        s: '#TX', b: 1,
+        a: (r: Rule) => { r.node.push(r.u.atom) },
+      },
+      {
+        s: '#LP', b: 1,
+        a: (r: Rule) => { r.node.push(r.u.atom) },
+      },
+      // Final fallback for end-of-sequence markers (`|`, `)`, `#ZZ`,
+      // or a production boundary).
       {
         b: 1,
         a: (r: Rule) => { r.node.push(r.u.atom) },
@@ -275,6 +324,15 @@ function getBnfParser(): (src: string) => BnfProduction[] {
     rule: { start: 'bnf' },
     fixed: {
       token: {
+        // Clear JSON-oriented defaults — `[` and friends would
+        // otherwise pre-empt the `#RX` regex matcher for
+        // `/[class]/` terminals.
+        '#OB': null,
+        '#CB': null,
+        '#OS': null,
+        '#CS': null,
+        '#CL': null,
+        '#CA': null,
         '#LT': '<',
         '#GT': '>',
         '#DEF': '::=',
@@ -284,6 +342,12 @@ function getBnfParser(): (src: string) => BnfProduction[] {
         '#PLUS': '+',
         '#LP': '(',
         '#RP': ')',
+      },
+    },
+    match: {
+      // Regex terminals inside BNF source: /pattern/flags.
+      token: {
+        '#RX': /^\/(?:[^\/\\]|\\.)*\/[a-z]*/,
       },
     },
   })
@@ -335,7 +399,9 @@ function desugar(grammar: BnfGrammar): BnfGrammar {
   }
 
   function desugarElement(el: BnfElement): BnfElement {
-    if (el.kind === 'term' || el.kind === 'ref') return el
+    if (el.kind === 'term' || el.kind === 'ref' || el.kind === 'regex') {
+      return el
+    }
 
     if (el.kind === 'group') {
       // Recurse into the group's alts so nested sugar is flattened,
@@ -447,10 +513,13 @@ function emitGrammarSpec(
   // Flatten EBNF sugar (`?`, `*`, `+`) into plain BNF before emitting.
   grammar = desugar(grammar)
 
-  // Allocate a fixed token for each unique literal.
-  const literals = new Map<string, string>() // literal -> token name
+  // Allocate a fixed token for each unique literal, and a match
+  // token for each unique regex terminal.
+  const literals = new Map<string, string>()        // literal -> token name
+  const regexTokens = new Map<string, string>()     // regex key -> token name
   const usedNames = new Set<string>()
   const fixedTokens: Record<string, string> = {}
+  const matchTokens: Record<string, RegExp> = {}
   for (const prod of grammar.productions) {
     for (const alt of prod.alts) {
       for (const el of alt) {
@@ -458,13 +527,27 @@ function emitGrammarSpec(
           const name = allocTokenName(el.literal, usedNames)
           literals.set(el.literal, name)
           fixedTokens[name] = el.literal
+        } else if (el.kind === 'regex') {
+          const key = regexKey(el)
+          if (!regexTokens.has(key)) {
+            const name = allocTokenName('rx_' + el.pattern, usedNames)
+            regexTokens.set(key, name)
+            // Anchor at the start of the forward-facing source — the
+            // lexer calls the matcher with `fwd`, so a leading `^` is
+            // required to avoid matching mid-stream.
+            matchTokens[name] = new RegExp(
+              '^' + el.pattern,
+              el.flags,
+            )
+          }
         }
       }
     }
   }
 
   const knownRules = new Set(grammar.productions.map((p) => p.name))
-  const { firstSets, nullable } = computeFirstSets(grammar, literals)
+  const { firstSets, nullable } = computeFirstSets(
+    grammar, literals, regexTokens)
   const refs = new RefRegistry()
 
   // Emit each production as one or more jsonic rules. Simple
@@ -475,7 +558,7 @@ function emitGrammarSpec(
   const ruleSpec: NonNullable<GrammarSpec['rule']> = {}
   for (const prod of grammar.productions) {
     emitProduction(
-      prod, literals, knownRules, tag, ruleSpec,
+      prod, literals, regexTokens, knownRules, tag, ruleSpec,
       firstSets, nullable, refs,
     )
   }
@@ -507,12 +590,17 @@ function emitGrammarSpec(
     }],
   }
 
+  const options: any = {
+    fixed: { token: fixedTokens },
+    rule: { start: startWrapper },
+  }
+  if (Object.keys(matchTokens).length > 0) {
+    options.match = { token: matchTokens }
+  }
+
   const spec: GrammarSpec = {
     ref: refs.map,
-    options: {
-      fixed: { token: fixedTokens },
-      rule: { start: startWrapper },
-    },
+    options,
     rule: ruleSpec,
   }
 
@@ -533,19 +621,23 @@ type Segment = {
 function segmentize(
   alt: BnfSequence,
   literals: Map<string, string>,
+  regexTokens: Map<string, string>,
 ): Segment[] {
   const segs: Segment[] = []
   let current: Segment = { terms: [], ref: null }
   for (const el of alt) {
     if (el.kind === 'term') {
       current.terms.push(literals.get(el.literal) as string)
+    } else if (el.kind === 'regex') {
+      const key = regexKey(el)
+      current.terms.push(regexTokens.get(key) as string)
     } else if (el.kind === 'ref') {
       current.ref = el.name
       segs.push(current)
       current = { terms: [], ref: null }
     } else {
-      // `opt`, `star`, `plus` must have been desugared before reaching
-      // the emitter.
+      // `opt`, `star`, `plus`, `group` must have been desugared
+      // before reaching the emitter.
       throw new Error(
         `bnf: internal — unexpected element kind '${el.kind}' in emitter`)
     }
@@ -557,14 +649,22 @@ function segmentize(
 }
 
 
+function regexKey(el: { pattern: string; flags: string }): string {
+  return `/${el.pattern}/${el.flags}`
+}
+
+
 function isSingleSegment(alt: BnfSequence): boolean {
   let sawRef = false
   for (const el of alt) {
     if (el.kind === 'ref') {
       if (sawRef) return false
       sawRef = true
-    } else if (sawRef) {
-      return false // terminal after a ref — multi-segment
+    } else if (el.kind === 'term' || el.kind === 'regex') {
+      if (sawRef) return false // terminal after a ref — multi-segment
+    } else {
+      // Desugar should have eliminated sugar kinds.
+      return false
     }
   }
   return true
@@ -645,6 +745,7 @@ function captureChildRef(refs: RefRegistry): `@${string}` {
 function emitProduction(
   prod: BnfProduction,
   literals: Map<string, string>,
+  regexTokens: Map<string, string>,
   knownRules: Set<string>,
   tag: string,
   ruleSpec: NonNullable<GrammarSpec['rule']>,
@@ -669,7 +770,7 @@ function emitProduction(
       ...prod.alts.filter((alt) => alt.length === 0),
     ]
     const opens = ordered.map((alt) => {
-      const segs = segmentize(alt, literals)
+      const segs = segmentize(alt, literals, regexTokens)
       return segmentToAlt(segs[0], tag, refs, true)
     })
     const rs: any = { open: opens }
@@ -687,7 +788,8 @@ function emitProduction(
   if (prod.alts.length === 1) {
     // Single-alt, multi-segment: chain rules directly on the
     // production.
-    emitChain(prod.name, prod.alts[0], literals, tag, ruleSpec, refs)
+    emitChain(prod.name, prod.alts[0], literals, regexTokens, tag,
+      ruleSpec, refs)
     return
   }
 
@@ -710,12 +812,13 @@ function emitProduction(
       continue
     }
 
-    emitChain(implName, alt, literals, tag, ruleSpec, refs)
+    emitChain(implName, alt, literals, regexTokens, tag, ruleSpec, refs)
 
     // Compute FIRST(alt) to drive the dispatch lookahead. Any token
     // in that set routes to this impl rule. The `b: 1` restores the
     // peeked token so the impl can re-consume it.
-    const firstTokens = firstOfAlt(alt, literals, firstSets, nullable)
+    const firstTokens = firstOfAlt(alt, literals, regexTokens,
+      firstSets, nullable)
     if (firstTokens === null) {
       throw new Error(
         `bnf: rule '${prod.name}' alternative ${i} is nullable but ` +
@@ -759,11 +862,12 @@ function emitChain(
   headName: string,
   alt: BnfSequence,
   literals: Map<string, string>,
+  regexTokens: Map<string, string>,
   tag: string,
   ruleSpec: NonNullable<GrammarSpec['rule']>,
   refs: RefRegistry,
 ) {
-  const segs = segmentize(alt, literals)
+  const segs = segmentize(alt, literals, regexTokens)
   const chainName = (i: number) =>
     i === 0 ? headName : `${headName}$step${i}`
 
@@ -801,6 +905,7 @@ function emitChain(
 function computeFirstSets(
   grammar: BnfGrammar,
   literals: Map<string, string>,
+  regexTokens: Map<string, string>,
 ): { firstSets: Map<string, Set<string>>; nullable: Set<string> } {
   const firstSets = new Map<string, Set<string>>()
   const nullable = new Set<string>()
@@ -816,8 +921,10 @@ function computeFirstSets(
         // position is hit.
         let altNullable = true
         for (const el of alt) {
-          if (el.kind === 'term') {
-            const tok = literals.get(el.literal) as string
+          if (el.kind === 'term' || el.kind === 'regex') {
+            const tok = el.kind === 'term'
+              ? literals.get(el.literal) as string
+              : regexTokens.get(regexKey(el)) as string
             if (!first.has(tok)) { first.add(tok); changed = true }
             altNullable = false
             break
@@ -854,13 +961,17 @@ function computeFirstSets(
 function firstOfAlt(
   alt: BnfSequence,
   literals: Map<string, string>,
+  regexTokens: Map<string, string>,
   firstSets: Map<string, Set<string>>,
   nullable: Set<string>,
 ): Set<string> | null {
   const out = new Set<string>()
   for (const el of alt) {
-    if (el.kind === 'term') {
-      out.add(literals.get(el.literal) as string)
+    if (el.kind === 'term' || el.kind === 'regex') {
+      const tok = el.kind === 'term'
+        ? literals.get(el.literal) as string
+        : regexTokens.get(regexKey(el)) as string
+      out.add(tok)
       return out
     }
     if (el.kind === 'ref') {

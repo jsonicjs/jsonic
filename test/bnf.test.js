@@ -271,6 +271,42 @@ describe('bnf', () => {
   })
 
 
+  describe('regex terminals', () => {
+
+    it('matches a regex terminal as an atom', () => {
+      const j = Jsonic.make()
+      j.bnf('<id> ::= /[a-z]+/')
+      assert.doesNotThrow(() => j('hello'))
+      assert.throws(() => j('HELLO'), /unexpected/)
+    })
+
+
+    it('mixes regex terminals with string terminals', () => {
+      const j = Jsonic.make()
+      j.bnf('<g> ::= "tag=" /[a-z]+/')
+      assert.doesNotThrow(() => j('tag=hello'))
+      assert.throws(() => j('tag=123'), /unexpected/)
+    })
+
+
+    it('repeats a regex terminal', () => {
+      const j = Jsonic.make()
+      j.bnf('<nums> ::= /[0-9]+/+')
+      assert.doesNotThrow(() => j('1 2 3'))
+      assert.throws(() => j('abc'), /unexpected/)
+    })
+
+
+    it('regex flags are honoured (case-insensitive)', () => {
+      const j = Jsonic.make()
+      j.bnf('<id> ::= /[a-z]+/i')
+      assert.doesNotThrow(() => j('Hello'))
+      assert.doesNotThrow(() => j('HELLO'))
+    })
+
+  })
+
+
   describe('jsonic.bnf()', () => {
 
     it('installs grammar and parses matching input', () => {
