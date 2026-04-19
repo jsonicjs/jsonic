@@ -10,12 +10,18 @@
  *  limited to the jsonic two-token lookahead (`s0`, `s1`); longer
  *  sequences are rejected with a clear error.
  *
+ *  The BNF source is itself parsed by a jsonic instance whose grammar
+ *  is defined below in `bnfRules`. That grammar is declarative — a
+ *  table of `open`/`close` alt specs per rule, with small `bo`/`bc`
+ *  state hooks for AST assembly. See `buildBnfParser` for how those
+ *  rules are installed on a fresh jsonic instance.
+ *
  *  Larger BNF features — repetition, optionality, grouping, left
  *  recursion, precedence — are deliberately out of scope for now; see
  *  doc/bnf-to-jsonic-feasibility.md for the full plan.
  */
 
-import type { BnfConvertOptions, GrammarSpec } from './types'
+import type { BnfConvertOptions, GrammarSpec, Rule } from './types'
 
 
 type BnfElement =
@@ -34,99 +40,190 @@ type BnfGrammar = {
 }
 
 
-// Parse a tiny BNF dialect into a grammar AST.
-function parseBnf(src: string): BnfGrammar {
-  const productions: BnfProduction[] = []
-
-  // Strip `#` line comments.
-  const cleaned = src.replace(/(^|\n)[ \t]*#[^\n]*/g, '$1')
-
-  // Split on `::=` to identify production boundaries. The left side of
-  // each `::=` belongs to the previous production's rhs (except the
-  // first), so we slice around them.
-  const parts = cleaned.split('::=')
-  if (parts.length < 2) {
-    throw new Error('bnf: no productions found (missing `::=`)')
+// Declarative definition of the BNF grammar itself, expressed as
+// jsonic rules. Each rule names its `open`/`close` alt list and, where
+// necessary, a `bo`/`bc` state hook for AST assembly.
+//
+// Token vocabulary:
+//   #LT    `<`
+//   #GT    `>`
+//   #DEF   `::=`
+//   #PIPE  `|`
+//   #TX    bare identifier (jsonic default text token)
+//   #ST    quoted string literal (jsonic default string token)
+//   #ZZ    end-of-source
+//
+// Grammar:
+//   bnf        ::= production*
+//   production ::= '<' IDENT '>' '::=' alts
+//   alts       ::= seq ('|' seq)*
+//   seq        ::= element*
+//   element    ::= '<' IDENT '>' | STRING | IDENT
+const bnfRules: Record<
+  string,
+  {
+    bo?: (r: Rule) => void
+    bc?: (r: Rule) => void
+    open?: any[]
+    close?: any[]
   }
+> = {
+  // Top-level: accumulates productions into r.node.
+  bnf: {
+    bo: (r) => { r.node = [] },
+    open: [
+      { s: '#ZZ', g: 'empty' },
+      { p: 'prod' },
+    ],
+    close: [{ s: '#ZZ' }],
+  },
 
-  let lhs = extractLhs(parts[0])
-  for (let i = 1; i < parts.length; i++) {
-    const isLast = i === parts.length - 1
-    const chunk = parts[i]
-
-    let rhsText: string
-    let nextLhs: string | null = null
-
-    if (isLast) {
-      rhsText = chunk
-    } else {
-      // The chunk holds the current rhs followed by the next
-      // production's lhs (a `<name>`). Split at the last `<name>` that
-      // appears in the chunk.
-      const m = chunk.match(/^([\s\S]*?)(<\s*[A-Za-z_][A-Za-z0-9_-]*\s*>)\s*$/)
-      if (!m) {
-        throw new Error('bnf: malformed grammar near: ' + chunk.slice(0, 40))
+  // One production per invocation; tail-recurses (r:'prod') for the
+  // next. Inherits its parent's node (the productions array) and
+  // appends to it in `bc` once its `alts` child has returned.
+  prod: {
+    open: [
+      {
+        s: '#LT #TX #GT #DEF',
+        a: (r: Rule) => { r.u.name = r.o[1].val },
+        p: 'alts',
+      },
+    ],
+    close: [
+      { s: '#LT', b: 1, r: 'prod' },
+      { b: 1 },
+    ],
+    bc: (r) => {
+      if (r.child && r.child.node !== undefined) {
+        r.node.push({ name: r.u.name, alts: r.child.node })
       }
-      rhsText = m[1]
-      nextLhs = extractLhs(m[2])
-    }
+    },
+  },
 
-    productions.push({ name: lhs, alts: parseAlts(rhsText) })
-    if (nextLhs) lhs = nextLhs
-  }
+  // A list of alternative sequences separated by `|`. Owns its own
+  // array (`bo` resets it) and pushes each seq result in `bc`.
+  alts: {
+    bo: (r) => { r.node = [] },
+    open: [{ p: 'seq' }],
+    close: [
+      { s: '#PIPE', p: 'seq' },
+      { b: 1 },
+    ],
+    bc: (r) => {
+      if (r.child && r.child.node !== undefined) {
+        r.node.push(r.child.node)
+      }
+    },
+  },
 
-  if (productions.length === 0) {
-    throw new Error('bnf: no productions parsed')
-  }
+  // A (possibly empty) sequence of elements. The 4-token lookahead
+  // `#LT #TX #GT #DEF` detects a following production boundary and
+  // bails out without consuming the tokens; a plain `#LT #TX #GT`
+  // match (tried second so it loses to the longer alt) is a
+  // reference inside the current sequence.
+  seq: {
+    bo: (r) => { r.node = [] },
+    open: [
+      { s: '#LT #TX #GT #DEF', b: 4, g: 'end' },
+      { s: '#PIPE', b: 1, g: 'end' },
+      { s: '#ZZ', b: 1, g: 'end' },
+      { p: 'elem' },
+    ],
+    close: [
+      { s: '#LT #TX #GT #DEF', b: 4, g: 'end' },
+      { s: '#PIPE', b: 1, g: 'end' },
+      { s: '#ZZ', b: 1, g: 'end' },
+      { s: '#LT', b: 1, p: 'elem' },
+      { s: '#ST', b: 1, p: 'elem' },
+      { s: '#TX', b: 1, p: 'elem' },
+      { b: 1 },
+    ],
+  },
 
-  return { productions }
+  // One element. Pushes directly onto the parent seq's node array
+  // via the `a:` action on each alternative.
+  elem: {
+    open: [
+      {
+        s: '#LT #TX #GT',
+        a: (r: Rule) => {
+          r.node.push({ kind: 'ref', name: r.o[1].val })
+        },
+      },
+      {
+        s: '#ST',
+        a: (r: Rule) => {
+          r.node.push({ kind: 'term', literal: r.o[0].val })
+        },
+      },
+      {
+        s: '#TX',
+        a: (r: Rule) => {
+          r.node.push({ kind: 'ref', name: r.o[0].val })
+        },
+      },
+    ],
+    close: [],
+  },
 }
 
 
-function extractLhs(text: string): string {
-  const m = text.match(/<\s*([A-Za-z_][A-Za-z0-9_-]*)\s*>/)
-  if (!m) {
-    throw new Error('bnf: expected <name> on left of `::=`, got: ' +
-      text.trim().slice(0, 40))
-  }
-  return m[1]
-}
+// Lazily built jsonic instance that parses BNF source. Deferred
+// construction avoids a circular-import failure at module load time.
+let _bnfParser: ((src: string) => BnfProduction[]) | null = null
 
+function getBnfParser(): (src: string) => BnfProduction[] {
+  if (_bnfParser) return _bnfParser
 
-function parseAlts(rhs: string): BnfSequence[] {
-  // Split on `|` at the top level (BNF has no grouping in this subset,
-  // so a plain split is safe).
-  return rhs.split('|').map((altText) => parseSequence(altText))
-    .filter((seq) => seq.length > 0)
-}
+  const { Jsonic } = require('./jsonic')
 
-
-function parseSequence(text: string): BnfSequence {
-  const out: BnfSequence = []
-  const re = /"((?:[^"\\]|\\.)*)"|'((?:[^'\\]|\\.)*)'|<\s*([A-Za-z_][A-Za-z0-9_-]*)\s*>|([A-Za-z_][A-Za-z0-9_-]*)/g
-  let m: RegExpExecArray | null
-  while ((m = re.exec(text)) !== null) {
-    if (m[1] !== undefined) {
-      out.push({ kind: 'term', literal: unescape(m[1]) })
-    } else if (m[2] !== undefined) {
-      out.push({ kind: 'term', literal: unescape(m[2]) })
-    } else if (m[3] !== undefined) {
-      out.push({ kind: 'ref', name: m[3] })
-    } else if (m[4] !== undefined) {
-      out.push({ kind: 'ref', name: m[4] })
-    }
-  }
-  return out
-}
-
-
-function unescape(s: string): string {
-  return s.replace(/\\(.)/g, (_, c) => {
-    if (c === 'n') return '\n'
-    if (c === 't') return '\t'
-    if (c === 'r') return '\r'
-    return c
+  const j = Jsonic.make({
+    rule: { start: 'bnf' },
+    fixed: {
+      token: {
+        '#LT': '<',
+        '#GT': '>',
+        '#DEF': '::=',
+        '#PIPE': '|',
+      },
+    },
   })
+
+  // Drop the default JSON rules — they would otherwise compete with
+  // ours for the starting token set.
+  const existing = j.rule()
+  for (const name of Object.keys(existing)) {
+    j.rule(name, null)
+  }
+
+  for (const name of Object.keys(bnfRules)) {
+    const spec = bnfRules[name]
+    j.rule(name, (rs: any) => {
+      if (spec.bo) rs.bo(spec.bo)
+      if (spec.bc) rs.bc(spec.bc)
+      if (spec.open) rs.open(spec.open)
+      if (spec.close) rs.close(spec.close)
+    })
+  }
+
+  _bnfParser = (src: string) => j(src) as BnfProduction[]
+  return _bnfParser
+}
+
+
+// Parse BNF source into a grammar AST via the jsonic-based parser.
+function parseBnf(src: string): BnfGrammar {
+  const parser = getBnfParser()
+  let productions: BnfProduction[]
+  try {
+    productions = parser(src) ?? []
+  } catch (e: any) {
+    throw new Error('bnf: parse error — ' + (e?.message || String(e)))
+  }
+  if (!Array.isArray(productions) || productions.length === 0) {
+    throw new Error('bnf: no productions found')
+  }
+  return { productions }
 }
 
 
@@ -265,4 +362,4 @@ function bnf(src: string, opts?: BnfConvertOptions): GrammarSpec {
 }
 
 
-export { bnf, parseBnf, emitGrammarSpec }
+export { bnf, parseBnf, emitGrammarSpec, bnfRules }

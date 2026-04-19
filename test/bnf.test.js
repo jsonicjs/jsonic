@@ -7,7 +7,7 @@ const Fs = require('node:fs')
 const Path = require('node:path')
 
 const { Jsonic } = require('..')
-const { bnf } = require('../dist/bnf')
+const { bnf, parseBnf } = require('../dist/bnf')
 const BnfCli = require('../dist/jsonic-bnf-cli')
 
 
@@ -75,6 +75,66 @@ describe('bnf', () => {
 
     it('rejects source with no productions', () => {
       assert.throws(() => bnf('# just a comment\n'), /no productions/)
+    })
+
+  })
+
+
+  describe('parseBnf (jsonic-based)', () => {
+
+    it('parses a single terminal', () => {
+      const g = parseBnf('<g> ::= "x"')
+      assert.deepEqual(g, {
+        productions: [
+          { name: 'g', alts: [[{ kind: 'term', literal: 'x' }]] },
+        ],
+      })
+    })
+
+
+    it('parses alternation', () => {
+      const g = parseBnf('<g> ::= "a" | "b"')
+      assert.deepEqual(g.productions[0].alts, [
+        [{ kind: 'term', literal: 'a' }],
+        [{ kind: 'term', literal: 'b' }],
+      ])
+    })
+
+
+    it('parses sequences and references (angle and bare)', () => {
+      const g = parseBnf('<a> ::= <foo> bar\n<foo> ::= "x"\n<bar> ::= "y"')
+      assert.deepEqual(g.productions[0].alts, [
+        [
+          { kind: 'ref', name: 'foo' },
+          { kind: 'ref', name: 'bar' },
+        ],
+      ])
+      assert.equal(g.productions.length, 3)
+    })
+
+
+    it('preserves empty alternatives', () => {
+      const g = parseBnf('<x> ::= | "y"')
+      assert.deepEqual(g.productions[0].alts, [
+        [],
+        [{ kind: 'term', literal: 'y' }],
+      ])
+    })
+
+
+    it('ignores hash comments', () => {
+      const g = parseBnf('# top comment\n<greet> ::= "hi" # trailing\n')
+      assert.deepEqual(g.productions[0].alts, [
+        [{ kind: 'term', literal: 'hi' }],
+      ])
+    })
+
+
+    it('parses multiple productions on one line', () => {
+      const g = parseBnf('<a> ::= "x" <b> ::= "y"')
+      assert.equal(g.productions.length, 2)
+      assert.equal(g.productions[0].name, 'a')
+      assert.equal(g.productions[1].name, 'b')
     })
 
   })

@@ -1,4 +1,4 @@
-import type { BnfConvertOptions, GrammarSpec } from './types';
+import type { BnfConvertOptions, GrammarSpec, Rule } from './types';
 type BnfElement = {
     kind: 'term';
     literal: string;
@@ -14,7 +14,13 @@ type BnfProduction = {
 type BnfGrammar = {
     productions: BnfProduction[];
 };
+declare const bnfRules: Record<string, {
+    bo?: (r: Rule) => void;
+    bc?: (r: Rule) => void;
+    open?: any[];
+    close?: any[];
+}>;
 declare function parseBnf(src: string): BnfGrammar;
 declare function emitGrammarSpec(grammar: BnfGrammar, opts?: BnfConvertOptions): GrammarSpec;
 declare function bnf(src: string, opts?: BnfConvertOptions): GrammarSpec;
-export { bnf, parseBnf, emitGrammarSpec };
+export { bnf, parseBnf, emitGrammarSpec, bnfRules };
