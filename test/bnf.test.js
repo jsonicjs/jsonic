@@ -24,7 +24,15 @@ describe('bnf', () => {
 
     it('emits spec for alternation of terminals', () => {
       const spec = bnf(loadFixture('greet.bnf'))
-      assert.equal(spec.options.rule.start, 'greet')
+      // A synthetic `__start__` wrapper ensures end-of-source is
+      // always consumed; it pushes the user's start rule.
+      assert.equal(spec.options.rule.start, '__start__')
+      assert.deepEqual(spec.rule.__start__.open, [
+        { p: 'greet', g: 'bnf' },
+      ])
+      assert.deepEqual(spec.rule.__start__.close, [
+        { s: '#ZZ', g: 'bnf' },
+      ])
       assert.deepEqual(spec.options.fixed.token, {
         '#HI': 'hi',
         '#HELLO': 'hello',
@@ -33,15 +41,15 @@ describe('bnf', () => {
         { s: '#HI', g: 'bnf' },
         { s: '#HELLO', g: 'bnf' },
       ])
-      // Start rule has no explicit close — the parser's end-of-source
-      // check fires once the rule pops.
       assert.equal(spec.rule.greet.close, undefined)
     })
 
 
     it('emits spec for two-terminal sequence', () => {
       const spec = bnf(loadFixture('pair.bnf'))
-      assert.equal(spec.options.rule.start, 'pair')
+      assert.deepEqual(spec.rule.__start__.open, [
+        { p: 'pair', g: 'bnf' },
+      ])
       assert.deepEqual(spec.rule.pair.open, [
         { s: '#A #B', g: 'bnf' },
       ])
@@ -50,7 +58,9 @@ describe('bnf', () => {
 
     it('honours override of start rule', () => {
       const spec = bnf('<a> ::= "x"\n<b> ::= "y"', { start: 'b' })
-      assert.equal(spec.options.rule.start, 'b')
+      assert.deepEqual(spec.rule.__start__.open, [
+        { p: 'b', g: 'bnf' },
+      ])
     })
 
 
@@ -157,6 +167,77 @@ describe('bnf', () => {
       assert.equal(g.productions[1].name, 'b')
     })
 
+
+    it('parses EBNF postfix operators', () => {
+      const g = parseBnf('<g> ::= "a"? "b"* "c"+')
+      assert.deepEqual(g.productions[0].alts[0], [
+        { kind: 'opt', inner: { kind: 'term', literal: 'a' } },
+        { kind: 'star', inner: { kind: 'term', literal: 'b' } },
+        { kind: 'plus', inner: { kind: 'term', literal: 'c' } },
+      ])
+    })
+
+  })
+
+
+  describe('EBNF desugaring', () => {
+
+    it('optional: accepts presence or absence', () => {
+      const j = Jsonic.make()
+      j.bnf('<g> ::= "hi" "there"?')
+      assert.doesNotThrow(() => j('hi'))
+      assert.doesNotThrow(() => j('hi there'))
+      assert.throws(() => j('hi nope'), /unexpected/)
+    })
+
+
+    it('star: zero or more', () => {
+      const j = Jsonic.make()
+      j.bnf('<g> ::= "x"* "end"')
+      assert.doesNotThrow(() => j('end'))
+      assert.doesNotThrow(() => j('x end'))
+      assert.doesNotThrow(() => j('x x x end'))
+      assert.throws(() => j('y end'), /unexpected/)
+    })
+
+
+    it('plus: one or more', () => {
+      const j = Jsonic.make()
+      j.bnf('<g> ::= "x"+ "end"')
+      assert.doesNotThrow(() => j('x end'))
+      assert.doesNotThrow(() => j('x x x end'))
+      assert.throws(() => j('end'), /unexpected/)
+    })
+
+
+    it('grouping selects among alternatives', () => {
+      const j = Jsonic.make()
+      j.bnf('<g> ::= ("a" | "b") "c"')
+      assert.doesNotThrow(() => j('a c'))
+      assert.doesNotThrow(() => j('b c'))
+      assert.throws(() => j('c'), /unexpected/)
+      assert.throws(() => j('x c'), /unexpected/)
+    })
+
+
+    it('group with plus: one or more sub-sequences', () => {
+      const j = Jsonic.make()
+      j.bnf('<g> ::= ("a" "b")+ "end"')
+      assert.doesNotThrow(() => j('a b end'))
+      assert.doesNotThrow(() => j('a b a b a b end'))
+      assert.throws(() => j('end'), /unexpected/)
+    })
+
+
+    it('group of alternatives with star', () => {
+      const j = Jsonic.make()
+      j.bnf('<g> ::= ("a" | "b")* "end"')
+      assert.doesNotThrow(() => j('end'))
+      assert.doesNotThrow(() => j('a end'))
+      assert.doesNotThrow(() => j('a b a end'))
+      assert.throws(() => j('c end'), /unexpected/)
+    })
+
   })
 
 
@@ -188,7 +269,7 @@ describe('bnf', () => {
     it('returns the emitted spec', () => {
       const j = Jsonic.make()
       const spec = j.bnf('<g> ::= "x"')
-      assert.equal(spec.options.rule.start, 'g')
+      assert.equal(spec.options.rule.start, '__start__')
       assert.equal(spec.options.fixed.token['#X'], 'x')
     })
 
@@ -204,7 +285,9 @@ describe('bnf', () => {
         cn,
       )
       const out = JSON.parse(cn.d.log[0][0])
-      assert.equal(out.options.rule.start, 'greet')
+      assert.deepEqual(out.rule.__start__.open, [
+        { p: 'greet', g: 'bnf' },
+      ])
       assert.deepEqual(out.options.fixed.token, {
         '#HI': 'hi',
         '#HELLO': 'hello',
@@ -216,7 +299,9 @@ describe('bnf', () => {
       const cn = makeConsole()
       await BnfCli.run([0, 0, '<g> ::= "x"'], cn)
       const out = JSON.parse(cn.d.log[0][0])
-      assert.equal(out.options.rule.start, 'g')
+      assert.deepEqual(out.rule.__start__.open, [
+        { p: 'g', g: 'bnf' },
+      ])
     })
 
 
@@ -227,7 +312,9 @@ describe('bnf', () => {
         cn,
       )
       const out = JSON.parse(cn.d.log[0][0])
-      assert.equal(out.options.rule.start, 'b')
+      assert.deepEqual(out.rule.__start__.open, [
+        { p: 'b', g: 'bnf' },
+      ])
     })
 
 
@@ -236,7 +323,9 @@ describe('bnf', () => {
       cn.test$ = '<g> ::= "x"'
       await BnfCli.run([0, 0, '-'], cn)
       const out = JSON.parse(cn.d.log[0][0])
-      assert.equal(out.options.rule.start, 'g')
+      assert.deepEqual(out.rule.__start__.open, [
+        { p: 'g', g: 'bnf' },
+      ])
     })
 
 

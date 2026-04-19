@@ -14,6 +14,11 @@ exports.emitGrammarSpec = emitGrammarSpec;
 //   #GT    `>`
 //   #DEF   `::=`
 //   #PIPE  `|`
+//   #QM    `?`
+//   #STAR  `*`
+//   #PLUS  `+`
+//   #LP    `(`
+//   #RP    `)`
 //   #TX    bare identifier (jsonic default text token)
 //   #ST    quoted string literal (jsonic default string token)
 //   #ZZ    end-of-source
@@ -23,7 +28,9 @@ exports.emitGrammarSpec = emitGrammarSpec;
 //   production ::= '<' IDENT '>' '::=' alts
 //   alts       ::= seq ('|' seq)*
 //   seq        ::= element*
-//   element    ::= '<' IDENT '>' | STRING | IDENT
+//   element    ::= atom postfix?
+//   atom       ::= '<' IDENT '>' | STRING | IDENT | '(' alts ')'
+//   postfix    ::= '?' | '*' | '+'
 const bnfRules = {
     // Top-level: accumulates productions into r.node.
     bnf: {
@@ -81,42 +88,121 @@ const bnfRules = {
             { s: '#LT #TX #GT #DEF', b: 4, g: 'end' },
             { s: '#PIPE', b: 1, g: 'end' },
             { s: '#ZZ', b: 1, g: 'end' },
+            { s: '#RP', b: 1, g: 'end' },
             { p: 'elem' },
         ],
         close: [
             { s: '#LT #TX #GT #DEF', b: 4, g: 'end' },
             { s: '#PIPE', b: 1, g: 'end' },
             { s: '#ZZ', b: 1, g: 'end' },
+            { s: '#RP', b: 1, g: 'end' },
             { s: '#LT', b: 1, p: 'elem' },
             { s: '#ST', b: 1, p: 'elem' },
             { s: '#TX', b: 1, p: 'elem' },
+            { s: '#LP', b: 1, p: 'elem' },
             { b: 1 },
         ],
     },
-    // One element. Pushes directly onto the parent seq's node array
-    // via the `a:` action on each alternative.
+    // One element: an atom (`<name>`, string, bare ident, or a
+    // parenthesised group of alternatives), optionally followed by a
+    // postfix operator (`?`, `*`, `+`). The atom is stashed on
+    // `r.u.atom` so the close state can wrap it before pushing onto the
+    // parent seq's node array. For groups, the atom is synthesised from
+    // the child `alts` rule's node in the close state.
     elem: {
         open: [
             {
                 s: '#LT #TX #GT',
                 a: (r) => {
-                    r.node.push({ kind: 'ref', name: r.o[1].val });
+                    r.u.atom = { kind: 'ref', name: r.o[1].val };
                 },
             },
             {
                 s: '#ST',
                 a: (r) => {
-                    r.node.push({ kind: 'term', literal: r.o[0].val });
+                    r.u.atom = { kind: 'term', literal: r.o[0].val };
                 },
             },
             {
                 s: '#TX',
                 a: (r) => {
-                    r.node.push({ kind: 'ref', name: r.o[0].val });
+                    r.u.atom = { kind: 'ref', name: r.o[0].val };
                 },
             },
+            {
+                s: '#LP',
+                a: (r) => { r.u.group = true; },
+                p: 'alts',
+            },
         ],
-        close: [],
+        close: [
+            // Group followed by postfix — two-token combos, tried first so
+            // they beat the one-token RP / postfix alts below. Guarded with
+            // a condition to avoid matching a stray `)` in the simple-atom
+            // case.
+            {
+                s: '#RP #QM',
+                c: (r) => r.u.group === true,
+                a: (r) => {
+                    r.node.push({
+                        kind: 'opt',
+                        inner: { kind: 'group', alts: r.child.node },
+                    });
+                },
+            },
+            {
+                s: '#RP #STAR',
+                c: (r) => r.u.group === true,
+                a: (r) => {
+                    r.node.push({
+                        kind: 'star',
+                        inner: { kind: 'group', alts: r.child.node },
+                    });
+                },
+            },
+            {
+                s: '#RP #PLUS',
+                c: (r) => r.u.group === true,
+                a: (r) => {
+                    r.node.push({
+                        kind: 'plus',
+                        inner: { kind: 'group', alts: r.child.node },
+                    });
+                },
+            },
+            // Plain group (no postfix).
+            {
+                s: '#RP',
+                c: (r) => r.u.group === true,
+                a: (r) => {
+                    r.node.push({ kind: 'group', alts: r.child.node });
+                },
+            },
+            // Simple atom + postfix.
+            {
+                s: '#QM',
+                a: (r) => {
+                    r.node.push({ kind: 'opt', inner: r.u.atom });
+                },
+            },
+            {
+                s: '#STAR',
+                a: (r) => {
+                    r.node.push({ kind: 'star', inner: r.u.atom });
+                },
+            },
+            {
+                s: '#PLUS',
+                a: (r) => {
+                    r.node.push({ kind: 'plus', inner: r.u.atom });
+                },
+            },
+            // Simple atom, no postfix.
+            {
+                b: 1,
+                a: (r) => { r.node.push(r.u.atom); },
+            },
+        ],
     },
 };
 exports.bnfRules = bnfRules;
@@ -135,6 +221,11 @@ function getBnfParser() {
                 '#GT': '>',
                 '#DEF': '::=',
                 '#PIPE': '|',
+                '#QM': '?',
+                '#STAR': '*',
+                '#PLUS': '+',
+                '#LP': '(',
+                '#RP': ')',
             },
         },
     });
@@ -160,6 +251,75 @@ function getBnfParser() {
     _bnfParser = (src) => j(src);
     return _bnfParser;
 }
+// Rewrite a grammar so that the only element kinds remaining are
+// `term` and `ref`. Each `X?`, `X*`, `X+` occurrence is replaced by a
+// reference to a newly-generated helper production that expresses the
+// same language in plain BNF.
+function desugar(grammar) {
+    const extra = [];
+    const used = new Set(grammar.productions.map((p) => p.name));
+    function freshName(hint) {
+        // Collision-avoiding name like `_gen1`, `_gen2`, …
+        let i = extra.length;
+        let name;
+        do {
+            i++;
+            name = `_gen${i}_${hint}`;
+        } while (used.has(name));
+        used.add(name);
+        return name;
+    }
+    function desugarAlt(alt) {
+        return alt.map(desugarElement);
+    }
+    function desugarElement(el) {
+        if (el.kind === 'term' || el.kind === 'ref')
+            return el;
+        if (el.kind === 'group') {
+            // Recurse into the group's alts so nested sugar is flattened,
+            // then emit a helper production whose body is those alts.
+            const innerAlts = el.alts.map((a) => desugarAlt(a));
+            const name = freshName('group');
+            extra.push({ name, alts: innerAlts });
+            return { kind: 'ref', name };
+        }
+        // `opt`, `star`, `plus` all wrap a single inner element.
+        const inner = desugarElement(el.inner);
+        const hint = inner.kind === 'ref' ? inner.name :
+            inner.kind === 'term' ? 'term' : 'x';
+        if (el.kind === 'opt') {
+            // H ::= inner | (empty)
+            const name = freshName('opt_' + hint);
+            extra.push({ name, alts: [[inner], []] });
+            return { kind: 'ref', name };
+        }
+        if (el.kind === 'star') {
+            // H ::= inner H | (empty)
+            const name = freshName('star_' + hint);
+            const selfRef = { kind: 'ref', name };
+            extra.push({ name, alts: [[inner, selfRef], []] });
+            return { kind: 'ref', name };
+        }
+        // plus: H ::= inner Tail   where   Tail ::= inner Tail | (empty)
+        const tailName = freshName('star_' + hint);
+        const plusName = freshName('plus_' + hint);
+        const tailRef = { kind: 'ref', name: tailName };
+        extra.push({
+            name: tailName,
+            alts: [[inner, tailRef], []],
+        });
+        extra.push({
+            name: plusName,
+            alts: [[inner, tailRef]],
+        });
+        return { kind: 'ref', name: plusName };
+    }
+    const rewritten = grammar.productions.map((p) => ({
+        name: p.name,
+        alts: p.alts.map(desugarAlt),
+    }));
+    return { productions: [...rewritten, ...extra] };
+}
 // Parse BNF source into a grammar AST via the jsonic-based parser.
 function parseBnf(src) {
     const parser = getBnfParser();
@@ -179,6 +339,8 @@ function parseBnf(src) {
 function emitGrammarSpec(grammar, opts) {
     const start = opts?.start ?? grammar.productions[0].name;
     const tag = opts?.tag ?? 'bnf';
+    // Flatten EBNF sugar (`?`, `*`, `+`) into plain BNF before emitting.
+    grammar = desugar(grammar);
     // Allocate a fixed token for each unique literal.
     const literals = new Map(); // literal -> token name
     const usedNames = new Set();
@@ -195,18 +357,30 @@ function emitGrammarSpec(grammar, opts) {
         }
     }
     const knownRules = new Set(grammar.productions.map((p) => p.name));
+    const { firstSets, nullable } = computeFirstSets(grammar, literals);
     // Emit each production as one or more jsonic rules. Simple
     // (single-segment) alternatives fit directly into `rule.open`;
     // multi-segment alternatives need a chain of auxiliary rules, one
-    // per segment after the first.
+    // per segment after the first; multi-alt productions that mix the
+    // two use a FIRST-set dispatcher.
     const ruleSpec = {};
     for (const prod of grammar.productions) {
-        emitProduction(prod, literals, knownRules, tag, ruleSpec);
+        emitProduction(prod, literals, knownRules, tag, ruleSpec, firstSets, nullable);
     }
+    // Wrap the user-visible start rule in a synthetic rule that
+    // explicitly consumes #ZZ. Without this, a user rule that pops
+    // without matching the end-of-source token lets trailing content
+    // slip past jsonic's post-loop endtkn check (the lookahead buffer
+    // outlives the parse loop).
+    const startWrapper = '__start__';
+    ruleSpec[startWrapper] = {
+        open: [{ p: start, g: tag }],
+        close: [{ s: '#ZZ', g: tag }],
+    };
     const spec = {
         options: {
             fixed: { token: fixedTokens },
-            rule: { start },
+            rule: { start: startWrapper },
         },
         rule: ruleSpec,
     };
@@ -223,10 +397,15 @@ function segmentize(alt, literals) {
         if (el.kind === 'term') {
             current.terms.push(literals.get(el.literal));
         }
-        else {
+        else if (el.kind === 'ref') {
             current.ref = el.name;
             segs.push(current);
             current = { terms: [], ref: null };
+        }
+        else {
+            // `opt`, `star`, `plus` must have been desugared before reaching
+            // the emitter.
+            throw new Error(`bnf: internal — unexpected element kind '${el.kind}' in emitter`);
         }
     }
     if (current.terms.length > 0 || segs.length === 0) {
@@ -263,7 +442,7 @@ function segmentToAlt(seg, tag) {
         spec.p = seg.ref;
     return spec;
 }
-function emitProduction(prod, literals, knownRules, tag, ruleSpec) {
+function emitProduction(prod, literals, knownRules, tag, ruleSpec, firstSets, nullable) {
     for (const alt of prod.alts) {
         validateRefs(alt, knownRules, prod.name);
     }
@@ -278,30 +457,138 @@ function emitProduction(prod, literals, knownRules, tag, ruleSpec) {
         ruleSpec[prod.name] = { open: opens };
         return;
     }
-    if (prod.alts.length !== 1) {
-        throw new Error(`bnf: rule '${prod.name}' has a multi-alternative production ` +
-            `where at least one alternative needs sequence chaining; this ` +
-            `combination is not yet supported by the first-step emitter`);
+    if (prod.alts.length === 1) {
+        // Single-alt, multi-segment: chain rules directly on the
+        // production.
+        emitChain(prod.name, prod.alts[0], literals, tag, ruleSpec);
+        return;
     }
-    // Single-alt, multi-segment: chain rules. Segment 0 lives on the
-    // production's own rule; segments 1..N-1 each get a synthetic
-    // continuation rule (`<name>$stepN`) that the previous step's
-    // close-state replaces into.
-    const alt = prod.alts[0];
+    // Multi-alt with at least one multi-segment alternative: emit a
+    // dispatcher. Each alt becomes its own chained impl rule
+    // (`<prodname>$alt<i>`); the main rule's open peeks the first token
+    // and replaces with the matching impl rule.
+    const dispatchOpen = [];
+    let emptyAltSeen = false;
+    for (let i = 0; i < prod.alts.length; i++) {
+        const alt = prod.alts[i];
+        const implName = `${prod.name}$alt${i}`;
+        if (alt.length === 0) {
+            // Empty alt acts as fallback — handled after the loop.
+            emptyAltSeen = true;
+            continue;
+        }
+        emitChain(implName, alt, literals, tag, ruleSpec);
+        // Compute FIRST(alt) to drive the dispatch lookahead. Any token
+        // in that set routes to this impl rule. The `b: 1` restores the
+        // peeked token so the impl can re-consume it.
+        const firstTokens = firstOfAlt(alt, literals, firstSets, nullable);
+        if (firstTokens === null) {
+            throw new Error(`bnf: rule '${prod.name}' alternative ${i} is nullable but ` +
+                `is not the only empty alt; FIRST set is ambiguous`);
+        }
+        for (const tok of firstTokens) {
+            dispatchOpen.push({ s: tok, b: 1, r: implName, g: tag });
+        }
+    }
+    if (emptyAltSeen) {
+        // Fallback: matches any token (or none), pops immediately.
+        dispatchOpen.push({ g: tag });
+    }
+    ruleSpec[prod.name] = { open: dispatchOpen };
+}
+// Emit a (possibly single-step) chain of rules for one alt under the
+// given head rule name. Segment 0 goes into `headName`; later
+// segments get synthetic `<headName>$stepN` continuations.
+function emitChain(headName, alt, literals, tag, ruleSpec) {
     const segs = segmentize(alt, literals);
-    const chainName = (i) => i === 0 ? prod.name : `${prod.name}$step${i}`;
+    const chainName = (i) => i === 0 ? headName : `${headName}$step${i}`;
     for (let i = 0; i < segs.length; i++) {
         const name = chainName(i);
         const open = [segmentToAlt(segs[i], tag)];
         const rs = { open };
         if (i < segs.length - 1) {
-            // After this segment's push returns, replace with the next
-            // continuation rule. Always-match (no `s:`) so it fires the
-            // first — and only — time close is entered.
             rs.close = [{ r: chainName(i + 1), g: tag }];
         }
         ruleSpec[name] = rs;
     }
+}
+// Compute FIRST(ref) for every production, plus which productions
+// are nullable (can derive the empty string). Iterates to a fixed
+// point. Terminals in FIRST sets are represented by their allocated
+// token names (e.g. `#X`).
+function computeFirstSets(grammar, literals) {
+    const firstSets = new Map();
+    const nullable = new Set();
+    for (const p of grammar.productions)
+        firstSets.set(p.name, new Set());
+    let changed = true;
+    while (changed) {
+        changed = false;
+        for (const prod of grammar.productions) {
+            const first = firstSets.get(prod.name);
+            for (const alt of prod.alts) {
+                // Walk the alt, accumulating FIRST until a non-nullable
+                // position is hit.
+                let altNullable = true;
+                for (const el of alt) {
+                    if (el.kind === 'term') {
+                        const tok = literals.get(el.literal);
+                        if (!first.has(tok)) {
+                            first.add(tok);
+                            changed = true;
+                        }
+                        altNullable = false;
+                        break;
+                    }
+                    if (el.kind === 'ref') {
+                        const refFirst = firstSets.get(el.name) ?? new Set();
+                        for (const tok of refFirst) {
+                            if (!first.has(tok)) {
+                                first.add(tok);
+                                changed = true;
+                            }
+                        }
+                        if (!nullable.has(el.name)) {
+                            altNullable = false;
+                            break;
+                        }
+                        continue;
+                    }
+                    // Desugar should have eliminated other kinds.
+                    throw new Error(`bnf: internal — unexpected kind in FIRST: ${el.kind}`);
+                }
+                if (altNullable && !nullable.has(prod.name)) {
+                    nullable.add(prod.name);
+                    changed = true;
+                }
+            }
+        }
+    }
+    return { firstSets, nullable };
+}
+// FIRST set for a specific alternative (not the whole production).
+// Returns null if the alt is nullable — the caller must treat that
+// case separately (typically as a fallback empty alt).
+function firstOfAlt(alt, literals, firstSets, nullable) {
+    const out = new Set();
+    for (const el of alt) {
+        if (el.kind === 'term') {
+            out.add(literals.get(el.literal));
+            return out;
+        }
+        if (el.kind === 'ref') {
+            const rf = firstSets.get(el.name) ?? new Set();
+            for (const tok of rf)
+                out.add(tok);
+            if (!nullable.has(el.name))
+                return out;
+            // else keep walking into the next element
+            continue;
+        }
+        throw new Error(`bnf: internal — unexpected kind in firstOfAlt: ${el.kind}`);
+    }
+    // Alt is nullable — no non-empty prefix.
+    return null;
 }
 function allocTokenName(literal, used) {
     const base = literal

@@ -5,6 +5,18 @@ type BnfElement = {
 } | {
     kind: 'ref';
     name: string;
+} | {
+    kind: 'opt';
+    inner: BnfElement;
+} | {
+    kind: 'star';
+    inner: BnfElement;
+} | {
+    kind: 'plus';
+    inner: BnfElement;
+} | {
+    kind: 'group';
+    alts: BnfSequence[];
 };
 type BnfSequence = BnfElement[];
 type BnfProduction = {
