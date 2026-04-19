@@ -391,6 +391,23 @@ function desugar(grammar: BnfGrammar): BnfGrammar {
 }
 
 
+// Error raised when the BNF source itself can't be parsed.  Surfaces
+// line and column from the underlying jsonic error so the caller can
+// report them directly. The original error is kept on `.cause`.
+class BnfParseError extends Error {
+  readonly line?: number
+  readonly column?: number
+  readonly cause?: unknown
+  constructor(message: string, location?: { line?: number; column?: number }, cause?: unknown) {
+    super(message)
+    this.name = 'BnfParseError'
+    this.line = location?.line
+    this.column = location?.column
+    this.cause = cause
+  }
+}
+
+
 // Parse BNF source into a grammar AST via the jsonic-based parser.
 function parseBnf(src: string): BnfGrammar {
   const parser = getBnfParser()
@@ -398,10 +415,22 @@ function parseBnf(src: string): BnfGrammar {
   try {
     productions = parser(src) ?? []
   } catch (e: any) {
-    throw new Error('bnf: parse error — ' + (e?.message || String(e)))
+    // JsonicError carries `lineNumber` / `columnNumber`; fall back to
+    // ad-hoc extraction from the error message otherwise.
+    const line = e?.lineNumber ?? e?.row
+    const column = e?.columnNumber ?? e?.col
+    const loc = (line != null && column != null)
+      ? ` at line ${line}, column ${column}`
+      : ''
+    const raw = e?.message ? String(e.message).split('\n')[0] : String(e)
+    throw new BnfParseError(
+      `bnf: parse error${loc}: ${raw}`,
+      { line, column },
+      e,
+    )
   }
   if (!Array.isArray(productions) || productions.length === 0) {
-    throw new Error('bnf: no productions found')
+    throw new BnfParseError('bnf: no productions found')
   }
   return { productions }
 }
@@ -873,4 +902,4 @@ function bnf(src: string, opts?: BnfConvertOptions): GrammarSpec {
 }
 
 
-export { bnf, parseBnf, emitGrammarSpec, bnfRules }
+export { bnf, parseBnf, emitGrammarSpec, bnfRules, BnfParseError }

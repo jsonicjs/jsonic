@@ -32,7 +32,16 @@ declare const bnfRules: Record<string, {
     open?: any[];
     close?: any[];
 }>;
+declare class BnfParseError extends Error {
+    readonly line?: number;
+    readonly column?: number;
+    readonly cause?: unknown;
+    constructor(message: string, location?: {
+        line?: number;
+        column?: number;
+    }, cause?: unknown);
+}
 declare function parseBnf(src: string): BnfGrammar;
 declare function emitGrammarSpec(grammar: BnfGrammar, opts?: BnfConvertOptions): GrammarSpec;
 declare function bnf(src: string, opts?: BnfConvertOptions): GrammarSpec;
-export { bnf, parseBnf, emitGrammarSpec, bnfRules };
+export { bnf, parseBnf, emitGrammarSpec, bnfRules, BnfParseError };

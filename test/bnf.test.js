@@ -7,7 +7,7 @@ const Fs = require('node:fs')
 const Path = require('node:path')
 
 const { Jsonic } = require('..')
-const { bnf, parseBnf } = require('../dist/bnf')
+const { bnf, parseBnf, BnfParseError } = require('../dist/bnf')
 const BnfCli = require('../dist/jsonic-bnf-cli')
 
 
@@ -121,6 +121,20 @@ describe('bnf', () => {
 
     it('rejects source with no productions', () => {
       assert.throws(() => bnf('# just a comment\n'), /no productions/)
+    })
+
+
+    it('surfaces line/column on malformed BNF', () => {
+      try {
+        parseBnf('<a> ::= "x" )')
+        assert.fail('expected BnfParseError')
+      } catch (e) {
+        assert.ok(e instanceof BnfParseError,
+          `expected BnfParseError, got ${e?.constructor?.name}`)
+        assert.equal(e.line, 1)
+        assert.ok(typeof e.column === 'number' && e.column > 0)
+        assert.match(e.message, /bnf: parse error at line 1, column \d+/)
+      }
     })
 
   })
