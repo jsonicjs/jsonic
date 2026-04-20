@@ -369,9 +369,11 @@ describe('rewind', () => {
   })
 
 
-  it('default history is unbounded', () => {
-    // With the default (Infinity), ctx.v grows monotonically within
-    // a parse — no eviction regardless of input length.
+  it('default history is 64 (retains every token for small parses)', () => {
+    // The default cap is 64, which means parses shorter than the cap
+    // retain every consumed token — identical to an unbounded
+    // history for small/medium inputs. Batch eviction only kicks
+    // in once ctx.v crosses 2 * 64 = 128 entries.
     let j = make_norules({
       rule: { start: 'top' },
       fixed: { token: { Ta: 'a' } },
@@ -389,8 +391,36 @@ describe('rewind', () => {
     )
 
     j('a a a a a a a a a a')
-    // All 10 consumed tokens retained.
     assert.equal(finalV, 10)
+  })
+
+
+  it('Infinity history retains every token regardless of input size', () => {
+    // Opt in to unbounded retention by passing Infinity.
+    let j = make_norules({
+      rule: { start: 'top' },
+      fixed: { token: { Ta: 'a' } },
+      rewind: { history: Infinity },
+    })
+    let { Ta } = j.token
+
+    let maxV = 0
+    j.rule('top', (rs) =>
+      rs
+        .open([{
+          s: [Ta],
+          a: (r, ctx) => { if (ctx.v.length > maxV) maxV = ctx.v.length },
+        }])
+        .close([
+          { s: [Ta], b: 1, r: 'top' },
+          { s: '#ZZ' },
+        ]),
+    )
+
+    // 200 a's — would be batch-evicted under the default cap of 64
+    // (max 128), but Infinity keeps every one.
+    j(Array(200).fill('a').join(' '))
+    assert.ok(maxV >= 200, `expected >= 200 retained, got ${maxV}`)
   })
 
 })
