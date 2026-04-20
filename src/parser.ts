@@ -114,6 +114,29 @@ function attachRewind(ctx: any): void {
       )
     }
     const queue: any[] = this.lex.pnt.token
+    const NOTOKEN = this.NOTOKEN
+    // The lookahead buffer (ctx.t) holds tokens the lexer has already
+    // produced past the current consumed position but that haven't
+    // been committed to ctx.v yet. They advanced the lexer's sI — so
+    // if we just invalidated the buffer, those source chars would be
+    // lost. Preserve them by splicing into the front of the pending
+    // queue in the order the lexer produced them, BEHIND the rewound
+    // consumed tokens that come next.
+    const pendingLookahead: any[] = []
+    for (let i = 0; i < this.t.length; i++) {
+      const tkn = this.t[i]
+      if (tkn && tkn !== NOTOKEN) pendingLookahead.push(tkn)
+      this.t[i] = NOTOKEN
+    }
+    // Un-shift pre-lexed lookahead (oldest-first order at the queue
+    // head), so the next lex.next() serves them in the same order they
+    // were originally produced.
+    for (let i = pendingLookahead.length - 1; i >= 0; i--) {
+      queue.unshift(pendingLookahead[i])
+    }
+    // Then unshift the rewound consumed tokens — they go in FRONT of
+    // the lookahead, so the next lex.next() serves the oldest rewound
+    // consumed token first, then the rest in order.
     for (let i = 0; i < k; i++) {
       // Pop newest-first, unshift in that order — the first unshift
       // lands the newest at the queue's head; the next unshift slides
@@ -121,10 +144,11 @@ function attachRewind(ctx: any): void {
       queue.unshift(this.v.pop())
     }
     this.vAbs -= k
-    // Invalidate the lookahead buffer so parse_alts fetches fresh
-    // (which will now come from the restored queue).
-    const NOTOKEN = this.NOTOKEN
-    for (let i = 0; i < this.t.length; i++) this.t[i] = NOTOKEN
+    // Clear the lexer's cached end-of-source token so lex.next serves
+    // from the newly-replenished queue rather than short-circuiting
+    // to #ZZ. (Once the lexer has produced the end token it pins it
+    // to pnt.end; the rewound tokens would otherwise be unreachable.)
+    this.lex.pnt.end = undefined
   }
 }
 

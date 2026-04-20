@@ -17,12 +17,13 @@
 //   - `;` comments
 //
 // The RFC 3986 grammar is not LL(k) — the `authority` production
-// is ambiguous on its `[ userinfo "@" ]` prefix, because
-// `userinfo` can match the same character set as `reg-name` and
-// the parser can't tell them apart without looking past the
-// optional `@`. Static dispatch (what this converter implements)
-// handles every URI shape that doesn't exercise that
-// ambiguity — see the two describe-blocks below.
+// is ambiguous on its `[ userinfo "@" ]` prefix, because `userinfo`
+// can match the same character set as `reg-name`. The converter
+// handles this via the probe + phase-retry dispatcher it emits for
+// every detected `[X D] Y` pattern (see src/bnf.ts and the
+// dedicated coverage in test/probe.test.js). Both authority shapes
+// — with and without userinfo — now parse cleanly; this test drives
+// the end-to-end integration.
 
 const { describe, it } = require('node:test')
 const assert = require('node:assert')
@@ -75,14 +76,29 @@ describe('rfc3986', () => {
       }
     })
 
+
+    it('detects and rewrites the authority ambiguity', () => {
+      // The `[ userinfo "@" ] host [ ":" port ]` shape in `authority`
+      // is ambiguous under FIRST-set dispatch. The rewriter
+      // synthesises a probe + phase-retry dispatcher for it; the
+      // presence of `authority$pdN$probe` / `$with` / `$no` rules in
+      // the spec confirms the rewrite fired.
+      const j = Jsonic.make({ rewind: { history: 4096 } })
+      const spec = j.bnf(GRAMMAR)
+      const names = Object.keys(spec.rule)
+      assert.ok(names.some((n) => /^authority\$pd\d+\$probe$/.test(n)),
+        'expected a probe helper for authority')
+      assert.ok(names.some((n) => /^authority\$pd\d+\$with$/.test(n)),
+        'expected a with-branch rule for authority')
+      assert.ok(names.some((n) => /^authority\$pd\d+\$no$/.test(n)),
+        'expected a no-branch rule for authority')
+    })
+
   })
 
 
   describe('URI acceptance', () => {
 
-    // These URI shapes don't exercise the `authority` LL(k)
-    // ambiguity — the scheme prefix and the no-double-slash path
-    // forms route unambiguously to their alternatives.
     const parser = (() => {
       const j = Jsonic.make({ rewind: { history: 4096 } })
       j.bnf(GRAMMAR)
@@ -96,6 +112,16 @@ describe('rfc3986', () => {
       'tag:yaml.org,2002:int',
       // IP-literal authority (the leading '[' disambiguates)
       'http://[::1]/',
+      // Authority without userinfo (the canonical LL(k)-ambiguous
+      // case the probe dispatcher now resolves):
+      'http://example.com',
+      'http://example.com:8080',
+      // Authority with userinfo (same probe path, different phase):
+      'ftp://user@host',
+      'http://user@example.com:8080',
+      'http://user:pass@example.com:8080/some/path',
+      // Full URI exercising every optional tail:
+      'https://www.example.org/path/to/resource?name=value&other=thing#section',
     ]
 
     for (const uri of ACCEPT) {
@@ -119,36 +145,34 @@ describe('rfc3986', () => {
   })
 
 
-  describe('known LL(k) limitations', () => {
+  describe('remaining LL(k) limitations', () => {
 
-    // These URI shapes are valid per RFC 3986 but the grammar as
-    // written is ambiguous in ways the converter's static
-    // dispatcher can't see through. Documented here so the
-    // limitation is visible in the test output rather than a
-    // silent parse failure in someone else's code.
+    // The probe + phase-retry pattern resolves the specific
+    // `[X D] Y` shape where X and Y share a character vocabulary
+    // and D is a terminal disambiguator. It does NOT handle every
+    // imaginable LL(k) ambiguity — in particular, ambiguities where
+    // the disambiguator is itself a nonterminal, or where two
+    // alternatives share an arbitrarily-deep prefix with no local
+    // tie-breaker, still require true backtracking at the
+    // alt-dispatch level (a catch-and-rewind mechanism the emitter
+    // doesn't provide).
+    //
+    // No such unhandled shape appears in RFC 3986 as written; the
+    // remaining edge cases are documented here rather than asserted
+    // so the converter's capability boundary stays visible. If a
+    // future grammar exposes a genuinely un-probeable ambiguity,
+    // add the concrete failing input as a `.skip` or `.todo` test
+    // with a one-line explanation.
 
-    const parser = (() => {
-      const j = Jsonic.make({ rewind: { history: 4096 } })
-      j.bnf(GRAMMAR)
-      return j
-    })()
-
-    const LIMITATIONS = [
-      ['reg-name authority',    'http://example.com'],
-      ['userinfo "@" authority', 'ftp://user@host'],
-    ]
-
-    for (const [why, uri] of LIMITATIONS) {
-      it(`throws on ${JSON.stringify(uri)} (${why})`, { timeout: 5000 }, () => {
-        // The converter commits to the "userinfo '@' host" branch
-        // of `authority` based on FIRST(userinfo) alone; backing
-        // out on failure would require true LL(k>1) backtracking
-        // at the dispatch level, which the current emitter doesn't
-        // provide. The ctx.rewind primitive makes this possible at
-        // the rule level — a future emitter change could use it.
-        assert.throws(() => parser(uri), /unexpected/)
-      })
-    }
+    it.skip('placeholder for grammars with non-terminal disambiguators', () => {
+      // Example shape:
+      //   rule = [ A B ] C     where A, B, C are all nonterminals,
+      //                        FIRST(A) ∩ FIRST(C) ≠ ∅, and B is
+      //                        not a terminal (so there's no single
+      //                        token to peek for).
+      // The current rewriter requires `D` to be a term / regex
+      // element; detection skips this shape with no rewrite.
+    })
 
   })
 

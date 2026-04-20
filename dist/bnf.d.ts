@@ -33,9 +33,27 @@ type BnfProduction = {
     name: string;
     alts: BnfSequence[];
     incremental?: boolean;
+    probeDispatch?: ProbeDispatchSpec;
+    probeHelper?: {
+        vocabElements: BnfElement[];
+    };
+};
+type ProbeDispatchSpec = {
+    probeRule: string;
+    disambiguator: BnfElement;
+    withBranch: string;
+    noBranch: string;
 };
 type BnfGrammar = {
     productions: BnfProduction[];
+    ambiguities?: AmbiguityReport[];
+};
+type AmbiguityReport = {
+    rule: string;
+    altIdx: number;
+    optIdx: number;
+    reason: string;
+    resolved: boolean;
 };
 declare const bnfRules: Record<string, {
     bo?: (r: Rule) => void;

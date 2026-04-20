@@ -692,10 +692,16 @@ function desugar(grammar) {
         extra.push({ name: repName, alts: [desugarAlt(repAlt)] });
         return { kind: 'ref', name: repName };
     }
-    const rewritten = grammar.productions.map((p) => ({
-        name: p.name,
-        alts: p.alts.map(desugarAlt),
-    }));
+    const rewritten = grammar.productions.map((p) => {
+        const out = { name: p.name, alts: p.alts.map(desugarAlt) };
+        // Probe-dispatch flags survive desugar unchanged — the emitter
+        // routes around the standard alt-compilation path for these.
+        if (p.probeDispatch)
+            out.probeDispatch = p.probeDispatch;
+        if (p.probeHelper)
+            out.probeHelper = p.probeHelper;
+        return out;
+    });
     return { productions: [...rewritten, ...extra] };
 }
 // Error raised when the BNF source itself can't be parsed.  Surfaces
@@ -835,14 +841,330 @@ function mergeIncrementals(prods) {
     }
     return out;
 }
+// -- Probe-dispatch analyser + rewriter -----------------------------
+//
+// ABNF has a large family of grammars that aren't LL(k) for any
+// bounded k. The canonical example is RFC 3986's `authority`:
+//
+//   authority = [ userinfo "@" ] host [ ":" port ]
+//   userinfo  = *( unreserved / pct-encoded / sub-delims / ":" )
+//   host      = IP-literal / IPv4address / reg-name
+//   reg-name  = *( unreserved / pct-encoded / sub-delims )
+//
+// `userinfo` and `reg-name` share a character vocabulary, so a
+// FIRST-set dispatcher can't decide which branch the optional
+// `[ userinfo "@" ]` belongs to — the disambiguating `@` can be
+// arbitrarily far from the start.
+//
+// For the common pattern `[X D] Y` — an optional group whose body
+// ends with a terminal D, followed by a sequence Y whose leading
+// terminals overlap with X's — we handle the ambiguity by rewriting
+// the rule to a probe+phase-retry dispatcher:
+//
+//   1. On first entry (phase 0), mark the token position and push a
+//      failure-proof probe rule that greedily consumes every token
+//      in the joint vocabulary of X and Y.
+//   2. When the probe returns, peek ctx.t[0]:
+//        D seen   → phase = 1 (take the `X D Y` branch)
+//        D absent → phase = 2 (take the `Y` branch)
+//      Rewind to the mark and `r:` back into the dispatcher.
+//   3. The dispatcher's open has a `c:`-guarded alt for each phase
+//      that pushes the corresponding committed branch.
+//
+// The primitives used (`r:`, `k:`, `c:`, `ctx.mark`, `ctx.rewind`,
+// `ctx.t`) are the same building blocks rules/parser already exposes
+// — no new jsonic machinery is needed.
+// Predicate: element is `[ X D ]` where X is one or more elements
+// and D is a terminal literal or a regex terminal.
+function isProbeableOpt(el) {
+    if (el.kind !== 'opt')
+        return null;
+    const inner = el.inner;
+    if (inner.kind !== 'group')
+        return null;
+    if (inner.alts.length !== 1)
+        return null;
+    const seq = inner.alts[0];
+    if (seq.length < 2)
+        return null;
+    const last = seq[seq.length - 1];
+    if (last.kind !== 'term' && last.kind !== 'regex')
+        return null;
+    return { xSeq: seq.slice(0, -1), disambiguator: last };
+}
+// Union of every terminal reachable by walking an element's subtree,
+// following refs transitively. Cycles are broken by the visited set.
+// Returns terminals as BnfElements so the caller isn't tied to the
+// emitter's token-allocation step.
+function collectTerminalVocabElements(el, grammar, out, visited) {
+    if (el.kind === 'term') {
+        const k = termKey(el);
+        if (!out.has(k))
+            out.set(k, el);
+        return;
+    }
+    if (el.kind === 'regex') {
+        const k = regexKey(el);
+        if (!out.has(k))
+            out.set(k, el);
+        return;
+    }
+    if (el.kind === 'ref') {
+        if (visited.has(el.name))
+            return;
+        visited.add(el.name);
+        const prod = grammar.productions.find((p) => p.name === el.name);
+        if (!prod)
+            return;
+        for (const alt of prod.alts)
+            for (const sub of alt)
+                collectTerminalVocabElements(sub, grammar, out, visited);
+        return;
+    }
+    if (el.kind === 'opt' || el.kind === 'star' || el.kind === 'plus' ||
+        el.kind === 'rep') {
+        collectTerminalVocabElements(el.inner, grammar, out, visited);
+        return;
+    }
+    if (el.kind === 'group') {
+        for (const alt of el.alts)
+            for (const sub of alt)
+                collectTerminalVocabElements(sub, grammar, out, visited);
+        return;
+    }
+}
+function collectSeqVocabElements(seq, grammar) {
+    const out = new Map();
+    const visited = new Set();
+    for (const el of seq)
+        collectTerminalVocabElements(el, grammar, out, visited);
+    return out;
+}
+function mapsOverlap(a, b) {
+    for (const x of a.keys())
+        if (b.has(x))
+            return true;
+    return false;
+}
+// Rewrite every ambiguous `[X D] Y` subsequence in `grammar` into a
+// probe-dispatch pattern. The grammar at this point still has `opt`,
+// `group`, `star`, `plus`, `rep` sugar — intentionally, since that's
+// where the pattern is easy to recognise. Runs BEFORE token
+// allocation; probe metadata stores BnfElements, and the emitter
+// resolves them to token names at emit time.
+function rewriteProbeDispatches(grammar) {
+    const reports = grammar.ambiguities ?? [];
+    const extra = [];
+    const used = new Set(grammar.productions.map((p) => p.name));
+    function freshName(hint) {
+        let name = hint;
+        let i = 1;
+        while (used.has(name)) {
+            name = hint + i;
+            i++;
+        }
+        used.add(name);
+        return name;
+    }
+    const rewritten = [];
+    for (const prod of grammar.productions) {
+        let newAlts = [];
+        let touched = false;
+        for (let altIdx = 0; altIdx < prod.alts.length; altIdx++) {
+            const alt = prod.alts[altIdx];
+            let resultAlt = [];
+            for (let i = 0; i < alt.length; i++) {
+                const el = alt[i];
+                const info = isProbeableOpt(el);
+                if (!info) {
+                    resultAlt.push(el);
+                    continue;
+                }
+                const ySeq = alt.slice(i + 1);
+                if (ySeq.length === 0) {
+                    // `[X D]` is the last thing in the alt — nothing follows, so
+                    // there's nothing to disambiguate against. Standard emit.
+                    resultAlt.push(el);
+                    continue;
+                }
+                const xVocab = collectSeqVocabElements(info.xSeq, grammar);
+                const yVocab = collectSeqVocabElements(ySeq, grammar);
+                if (!mapsOverlap(xVocab, yVocab)) {
+                    // The optional's leading tokens don't overlap with the tail's
+                    // leading tokens, so the normal FIRST-based dispatcher can
+                    // decide. No rewrite needed.
+                    resultAlt.push(el);
+                    continue;
+                }
+                // Joint vocab: union of everything the probe might need to
+                // consume. Includes the disambiguator, which we then remove so
+                // the probe stops on it and the peek works.
+                const vocab = new Map([...xVocab, ...yVocab]);
+                const d = info.disambiguator;
+                const dKey = d.kind === 'term' ? termKey(d)
+                    : d.kind === 'regex' ? regexKey(d)
+                        : null;
+                if (dKey)
+                    vocab.delete(dKey);
+                const dispatchName = freshName(`${prod.name}$pd${i}`);
+                const probeName = freshName(`${dispatchName}$probe`);
+                const withName = freshName(`${dispatchName}$with`);
+                const noName = freshName(`${dispatchName}$no`);
+                // Synthesise the probe helper.
+                extra.push({
+                    name: probeName,
+                    alts: [],
+                    probeHelper: { vocabElements: [...vocab.values()] },
+                });
+                // Synthesise the committed branches. `with` = X D Y, `no` = Y.
+                extra.push({
+                    name: withName,
+                    alts: [[...info.xSeq, info.disambiguator, ...ySeq]],
+                });
+                extra.push({
+                    name: noName,
+                    alts: [ySeq],
+                });
+                // Synthesise the dispatcher. The `alts` list is a "virtual"
+                // spec — two ref-only alts — that exists solely to feed
+                // computeFirstSets the right FIRST/nullable answers (FIRST
+                // = FIRST(with) ∪ FIRST(no)). The emitter checks
+                // `probeDispatch` first and emits the phase-retry body
+                // instead of compiling `alts`.
+                extra.push({
+                    name: dispatchName,
+                    alts: [
+                        [{ kind: 'ref', name: withName }],
+                        [{ kind: 'ref', name: noName }],
+                    ],
+                    probeDispatch: {
+                        probeRule: probeName,
+                        disambiguator: info.disambiguator,
+                        withBranch: withName,
+                        noBranch: noName,
+                    },
+                });
+                reports.push({
+                    rule: prod.name, altIdx, optIdx: i,
+                    reason: `optional prefix shares vocabulary with tail`,
+                    resolved: true,
+                });
+                resultAlt.push({ kind: 'ref', name: dispatchName });
+                // Everything that followed the opt is now inside the dispatcher
+                // (withBranch / noBranch), so skip the rest of the alt.
+                i = alt.length;
+                touched = true;
+            }
+            newAlts.push(resultAlt);
+        }
+        if (touched) {
+            rewritten.push({ name: prod.name, alts: newAlts });
+        }
+        else {
+            rewritten.push(prod);
+        }
+    }
+    return {
+        productions: [...rewritten, ...extra],
+        ambiguities: reports,
+    };
+}
+// Emit a probe helper production. A self-looping rule that matches any
+// one of the vocab tokens and restarts; a final empty-alt fallback
+// ensures the rule NEVER fails — if the current lookahead isn't in the
+// vocab (or we're at #ZZ), the rule pops cleanly. This is the
+// failure-proof property the probe pattern relies on.
+function emitProbeHelper(prod, tag, ruleSpec, literals, regexTokens) {
+    const elems = prod.probeHelper.vocabElements;
+    const opens = [];
+    for (const el of elems) {
+        const tok = el.kind === 'term'
+            ? literals.get(termKey(el))
+            : el.kind === 'regex' ? regexTokens.get(regexKey(el))
+                : undefined;
+        if (tok)
+            opens.push({ s: tok, r: prod.name, g: tag });
+    }
+    // Empty fallback — pops without consuming anything. Must be last.
+    opens.push({ g: tag });
+    ruleSpec[prod.name] = { open: opens };
+}
+// Emit a probe-dispatch production. Encodes the three-phase retry
+// pattern; uses only standard jsonic primitives (r:, p:, c:, k:,
+// ctx.mark/rewind/t).
+function emitProbeDispatch(prod, tag, ruleSpec, refs, literals, regexTokens) {
+    const { probeRule, disambiguator, withBranch, noBranch } = prod.probeDispatch;
+    const disambiguatorToken = disambiguator.kind === 'term'
+        ? literals.get(termKey(disambiguator))
+        : disambiguator.kind === 'regex'
+            ? regexTokens.get(regexKey(disambiguator))
+            : undefined;
+    if (!disambiguatorToken) {
+        throw new Error(`bnf: probe-dispatch rule '${prod.name}' has unresolvable ` +
+            `disambiguator (kind=${disambiguator.kind})`);
+    }
+    const initMark = refs.register((r, ctx) => {
+        r.k.pd_phase = 0;
+        r.k.pd_mark = ctx.mark();
+    });
+    const decide = refs.register((r, ctx) => {
+        // ctx.t[0] is the first token the probe didn't consume. The probe
+        // never fails, so this always reflects a real position.
+        const peek = ctx.t[0];
+        ctx.rewind(r.k.pd_mark);
+        const matched = peek && peek.name === disambiguatorToken;
+        r.k.pd_phase = matched ? 1 : 2;
+    });
+    const bubble = refs.register((r) => {
+        if (r.child && r.child.node !== undefined)
+            r.node = r.child.node;
+    });
+    ruleSpec[prod.name] = {
+        open: [
+            // Phase 0 — first pass: mark and probe.
+            {
+                c: refs.register((r) => !r.k.pd_phase),
+                a: initMark,
+                p: probeRule,
+                g: tag,
+            },
+            // Phase 1 — disambiguator was seen: commit to X D Y.
+            {
+                c: refs.register((r) => r.k.pd_phase === 1),
+                p: withBranch,
+                g: tag,
+            },
+            // Phase 2 — disambiguator was not seen: commit to Y alone.
+            {
+                c: refs.register((r) => r.k.pd_phase === 2),
+                p: noBranch,
+                g: tag,
+            },
+        ],
+        close: [
+            // Phase 0 close: decide phase based on peek, rewind, retry self.
+            {
+                c: refs.register((r) => r.k.pd_phase === 0),
+                a: decide,
+                r: prod.name,
+                g: tag,
+            },
+            // Phase 1 / 2 close: lift the committed child's node up.
+            { a: bubble, g: tag },
+        ],
+    };
+}
 // Convert a BNF grammar AST into a jsonic GrammarSpec.
 function emitGrammarSpec(grammar, opts) {
     const start = opts?.start ?? grammar.productions[0].name;
     const tag = opts?.tag ?? 'bnf';
     // Eliminate direct left recursion (P → P α | β) by rewriting to
-    // the equivalent right-recursive form P → β (α)*, then flatten any
-    // EBNF sugar (`?`, `*`, `+`, grouping) into plain BNF.
+    // the equivalent right-recursive form P → β (α)*, then detect
+    // ambiguous `[X D] Y` optional-prefix patterns and rewrite them
+    // into probe-dispatch helpers; finally flatten any EBNF sugar
+    // (`?`, `*`, `+`, grouping) into plain BNF.
     grammar = eliminateLeftRecursion(grammar);
+    grammar = rewriteProbeDispatches(grammar);
     grammar = desugar(grammar);
     // Allocate a fixed token for each unique literal, and a match
     // token for each unique regex terminal. Literals are keyed by
@@ -868,11 +1190,7 @@ function emitGrammarSpec(grammar, opts) {
                             // Insensitive literal with at least one letter — emit
                             // as an anchored regex with the `i` flag. Mark the
                             // matcher `eager$` so jsonic's lexer fires it even
-                            // when the current rule's tcol doesn't list its tin
-                            // — without that, the default text matcher would eat
-                            // the literal as #TX inside a narrower context (e.g.
-                            // a star helper) before the outer rule gets a chance
-                            // to recognise it.
+                            // when the current rule's tcol doesn't list its tin.
                             const re = new RegExp('^' + escapeRegExp(el.literal), 'i');
                             re.eager$ = true;
                             matchTokens[name] = re;
@@ -884,9 +1202,35 @@ function emitGrammarSpec(grammar, opts) {
                     if (!regexTokens.has(key)) {
                         const name = allocTokenName('rx_' + el.pattern, usedNames);
                         regexTokens.set(key, name);
-                        // Anchor at the start of the forward-facing source — the
-                        // lexer calls the matcher with `fwd`, so a leading `^` is
-                        // required to avoid matching mid-stream.
+                        matchTokens[name] = new RegExp('^' + el.pattern, el.flags);
+                    }
+                }
+            }
+        }
+        // Probe-helper productions store their vocab as BnfElements —
+        // walk those too so the required tokens get allocated.
+        if (prod.probeHelper) {
+            for (const el of prod.probeHelper.vocabElements) {
+                if (el.kind === 'term') {
+                    const key = termKey(el);
+                    if (!literals.has(key)) {
+                        const name = allocTokenName(el.literal, usedNames);
+                        literals.set(key, name);
+                        if (isEffectivelyCaseSensitive(el)) {
+                            fixedTokens[name] = el.literal;
+                        }
+                        else {
+                            const re = new RegExp('^' + escapeRegExp(el.literal), 'i');
+                            re.eager$ = true;
+                            matchTokens[name] = re;
+                        }
+                    }
+                }
+                else if (el.kind === 'regex') {
+                    const key = regexKey(el);
+                    if (!regexTokens.has(key)) {
+                        const name = allocTokenName('rx_' + el.pattern, usedNames);
+                        regexTokens.set(key, name);
                         matchTokens[name] = new RegExp('^' + el.pattern, el.flags);
                     }
                 }
@@ -896,13 +1240,19 @@ function emitGrammarSpec(grammar, opts) {
     const knownRules = new Set(grammar.productions.map((p) => p.name));
     const { firstSets, nullable } = computeFirstSets(grammar, literals, regexTokens);
     const refs = new RefRegistry();
-    // Emit each production as one or more jsonic rules. Simple
-    // (single-segment) alternatives fit directly into `rule.open`;
-    // multi-segment alternatives need a chain of auxiliary rules, one
-    // per segment after the first; multi-alt productions that mix the
-    // two use a FIRST-set dispatcher.
     const ruleSpec = {};
     for (const prod of grammar.productions) {
+        if (prod.probeHelper) {
+            emitProbeHelper(prod, tag, ruleSpec, literals, regexTokens);
+            continue;
+        }
+        if (prod.probeDispatch) {
+            emitProbeDispatch(prod, tag, ruleSpec, refs, literals, regexTokens);
+            continue;
+        }
+        // Standard path: a (possibly single-segment) set of alternatives
+        // compiled to jsonic alts. Simple alts collapse into `open` alts
+        // directly; multi-segment alts emit a chain of aux rules.
         emitProduction(prod, grammar, literals, regexTokens, knownRules, tag, ruleSpec, firstSets, nullable, refs);
     }
     // Wrap the user-visible start rule in a synthetic rule that

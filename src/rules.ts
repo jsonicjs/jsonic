@@ -480,7 +480,16 @@ class RuleSpecImpl implements RuleSpec {
     // simply fail at rewind time with a clear error).
     const _cons = rule[is_open ? 'oN' : 'cN'] - (alt.b || 0)
     if (0 < _cons) {
-      for (let i = 0; i < _cons; i++) ctx.v.push(ctx.t[i])
+      // Move consumed tokens from ctx.t → ctx.v. Clear the tbuf slots
+      // so a ctx.rewind call inside the subsequent alt action can
+      // distinguish "token already in v" (NOTOKEN here; will be
+      // replayed from v) from "pre-lexed lookahead past consumed"
+      // (real token in tbuf; needs re-queuing to preserve state).
+      const NOTOKEN = ctx.NOTOKEN
+      for (let i = 0; i < _cons; i++) {
+        ctx.v.push(ctx.t[i])
+        ctx.t[i] = NOTOKEN
+      }
       ;(ctx as any).vAbs += _cons
       // Amortised-O(1) ring-buffer cap: let v grow to twice the
       // capacity, then splice its front back down. Batch-eviction
@@ -682,7 +691,14 @@ function parse_alts(
       const Si = S ? S[i] : null
       if (null != Si) {
         const tin = tkn.tin
-        if (!(Si[(tin / 31) | 0] & ((1 << ((tin % 31) - 1)) | bitAA))) {
+        const part = (tin / 31) | 0
+        // bitAA lives in partition 0 (tin=AA=4). ORing it into the
+        // match mask for any partition other than 0 lets unrelated
+        // tokens in higher partitions collide with alts that merely
+        // set bit 3 of their own partition — a false positive. Apply
+        // bitAA only when testing a partition-0 token.
+        const aaBit = part === 0 ? bitAA : 0
+        if (!(Si[part] & ((1 << ((tin % 31) - 1)) | aaBit))) {
           cond = false
           break
         }
