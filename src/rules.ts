@@ -846,6 +846,18 @@ function normalt(a: AltSpec, rs: RuleState, r: RuleSpec): NormAltSpec {
     for (let i = 0; i < sN; i++) {
       const tins: Tin[] = tinsify([a.s[i]])
       t[i] = tins
+      // `#AA` is the ANY wildcard — a position whose tin list
+      // includes it must match every lexed token regardless of
+      // partition. Represent that by dropping to the existing
+      // `S[i] = null` sentinel ("no constraint"), bypassing the
+      // per-partition bitset check in parse_alts. The t[i] entry
+      // keeps the raw tin list so tcol collation still reflects
+      // what the user wrote.
+      const aaTin = r.ji.token('#AA')
+      if (aaTin != null && tins.includes(aaTin)) {
+        S[i] = null
+        continue
+      }
       S[i] =
         0 < tins.length
           ? new Array(Math.max(...tins.map((tin) => (1 + tin / 31) | 0)))
