@@ -31,7 +31,64 @@ function defineLookaheadAliases(ctx, notoken) {
             get() { return this.t[1] ?? notoken; },
             set(v) { this.t[1] = v; },
         },
+        // v1 / v2 used to be plain data slots; keep them as accessors on
+        // the growing `v` stack so existing grammar code reads the same
+        // "most-recently consumed" tokens.
+        v1: {
+            configurable: true,
+            enumerable: true,
+            get() { return this.v[this.v.length - 1] ?? notoken; },
+            set(t) {
+                if (0 < this.v.length)
+                    this.v[this.v.length - 1] = t;
+                else
+                    this.v.push(t);
+            },
+        },
+        v2: {
+            configurable: true,
+            enumerable: true,
+            get() { return this.v[this.v.length - 2] ?? notoken; },
+            set(t) {
+                const L = this.v.length;
+                if (1 < L)
+                    this.v[L - 2] = t;
+                else if (1 === L)
+                    this.v.unshift(t);
+                else
+                    this.v.push(t);
+            },
+        },
     });
+}
+// Rewind primitives. Attached to `ctx` at parse start so rule
+// actions can reach them via their `ctx` argument. `mark()` returns
+// an opaque index into the history stack `ctx.v`; `rewind(mark)`
+// replays the tokens consumed since that mark by unshifting them
+// back onto the active lexer's pending-token queue, so subsequent
+// `lex.next()` calls re-serve them in forward order.
+function attachRewind(ctx) {
+    ctx.mark = function () {
+        return this.v.length;
+    };
+    ctx.rewind = function (mark) {
+        const v = this.v;
+        let k = v.length - mark;
+        if (k <= 0)
+            return;
+        const queue = this.lex.pnt.token;
+        while (0 < k--) {
+            // Pop newest-first, unshift in that order — the first unshift
+            // lands the newest at the queue's head; the next unshift slides
+            // older tokens in front of it, so the queue reads oldest-first.
+            queue.unshift(v.pop());
+        }
+        // Invalidate the lookahead buffer so parse_alts fetches fresh
+        // (which will now come from the restored queue).
+        const NOTOKEN = this.NOTOKEN;
+        for (let i = 0; i < this.t.length; i++)
+            this.t[i] = NOTOKEN;
+    };
 }
 class ParserImpl {
     constructor(options, cfg, j) {
@@ -79,8 +136,9 @@ class ParserImpl {
             rule: {},
             sub: jsonic.internal().sub,
             xs: -1,
-            v2: endtkn,
-            v1: endtkn,
+            // Consumed-token history. Legacy v1 / v2 accessors (installed by
+            // defineLookaheadAliases) read the top of this stack.
+            v: [],
             // Lookahead buffer. Seeded with two NOTOKEN slots; grows as alts
             // request deeper positions via ctx.t[i].
             t: [notoken, notoken],
@@ -119,6 +177,8 @@ class ParserImpl {
             }
         }
         let lex = (0, utility_1.badlex)((0, lexer_1.makeLex)(ctx), (0, utility_1.tokenize)('#BD', this.cfg), ctx);
+        ctx.lex = lex;
+        attachRewind(ctx);
         let startspec = this.rsm[this.cfg.rule.start];
         if (null == startspec) {
             return undefined;

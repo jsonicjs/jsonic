@@ -306,6 +306,16 @@ class RuleSpecImpl {
         if (alt.k) {
             rule.k = Object.assign(rule.k, alt.k);
         }
+        // Record consumed tokens (matched minus backtrack) on the v
+        // history BEFORE running alt actions, so an action that calls
+        // ctx.rewind sees the just-matched tokens on top of the stack.
+        // The lookahead-buffer shift itself still happens at the end of
+        // process() so non-action paths behave identically.
+        const _cons = rule[is_open ? 'oN' : 'cN'] - (alt.b || 0);
+        if (0 < _cons) {
+            for (let i = 0; i < _cons; i++)
+                ctx.v.push(ctx.t[i]);
+        }
         // TODO: move after rule.next resolution
         // (breaks Expr! - fix first)
         // Action call.
@@ -379,19 +389,9 @@ class RuleSpecImpl {
         if (consumed < 0)
             consumed = 0;
         if (0 < consumed) {
-            // Maintain the 2-slot history (v1 = last consumed, v2 = prior).
-            // Semantics are preserved for consumed==1,2 and extend cleanly
-            // for larger N (history still holds the two most recent).
-            if (1 === consumed) {
-                ctx.v2 = ctx.v1;
-                ctx.v1 = ctx.t[0];
-            }
-            else {
-                ctx.v2 = ctx.t[consumed - 2];
-                ctx.v1 = ctx.t[consumed - 1];
-            }
             // Shift the lookahead buffer left by `consumed` slots, filling
             // vacated tail positions with NOTOKEN so later alts re-fetch.
+            // (The corresponding v-history push ran before alt actions.)
             const L = ctx.t.length;
             for (let i = 0; i < L - consumed; i++)
                 ctx.t[i] = ctx.t[i + consumed];

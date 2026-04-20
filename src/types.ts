@@ -423,9 +423,17 @@ export type Context = {
     rule?: RuleSub[]
   }
   xs: Tin // Lex state tin.
-  v2: Token // Previous previous token.
-  v1: Token // Previous token.
+  v: Token[] // Stack of consumed tokens (newest at top), used for rewind.
+  v2: Token // Previous previous token (alias of v[v.length - 2]).
+  v1: Token // Previous token (alias of v[v.length - 1]).
   t: Token[] // Lookahead buffer; t[i] is NOTOKEN if unfetched.
+
+  // Save a rewind mark at the current parse position. The returned
+  // value can be passed to `rewind` to replay the tokens consumed
+  // since the mark was taken, re-feeding them through the lexer's
+  // pending-token queue.
+  mark: () => number
+  rewind: (mark: number) => void
 
   // Legacy aliases for the first two slots of the lookahead buffer.
   // @deprecated Use t[0] and t[1] instead.

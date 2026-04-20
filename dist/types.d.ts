@@ -300,9 +300,12 @@ export type Context = {
         rule?: RuleSub[];
     };
     xs: Tin;
+    v: Token[];
     v2: Token;
     v1: Token;
     t: Token[];
+    mark: () => number;
+    rewind: (mark: number) => void;
     t0: Token;
     t1: Token;
     tC: number;
