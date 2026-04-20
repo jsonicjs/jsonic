@@ -280,6 +280,60 @@ describe('bnf', () => {
       assert.throws(() => j('x x x end'), /unexpected/)
     })
 
+  })
+
+
+  describe('ABNF numeric values', () => {
+
+    it('single hex value matches as the corresponding char', () => {
+      // %x61 = 'a'
+      const j = Jsonic.make()
+      j.bnf('g = %x61')
+      assert.doesNotThrow(() => j('a'))
+      assert.throws(() => j('b'), /unexpected/)
+    })
+
+
+    it('decimal and binary bases match the same char', () => {
+      // %d97 = %x61 = %b1100001 = 'a'
+      const dec = Jsonic.make()
+      dec.bnf('g = %d97')
+      assert.doesNotThrow(() => dec('a'))
+
+      const bin = Jsonic.make()
+      bin.bnf('g = %b1100001')
+      assert.doesNotThrow(() => bin('a'))
+    })
+
+
+    it('concatenated code points build a multi-char literal', () => {
+      // %x66.6f.6f = 'foo'
+      const j = Jsonic.make()
+      j.bnf('g = %x66.6f.6f')
+      assert.doesNotThrow(() => j('foo'))
+      assert.throws(() => j('bar'), /unexpected/)
+    })
+
+
+    it('ranges match any single char in the range', () => {
+      const j = Jsonic.make()
+      j.bnf('g = %x30-39')
+      assert.doesNotThrow(() => j('0'))
+      assert.doesNotThrow(() => j('5'))
+      assert.doesNotThrow(() => j('9'))
+      assert.throws(() => j('a'), /unexpected/)
+    })
+
+
+    it('ranges compose with ABNF repetition', () => {
+      // 1*DIGIT where DIGIT = %x30-39.
+      const j = Jsonic.make()
+      j.bnf('digits = 1*DIGIT\nDIGIT = %x30-39')
+      assert.doesNotThrow(() => j('1'))
+      assert.doesNotThrow(() => j('12345'))
+      assert.throws(() => j('abc'), /unexpected/)
+    })
+
 
     it('grouping selects among alternatives', () => {
       const j = Jsonic.make()

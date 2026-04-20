@@ -54,16 +54,20 @@ type BnfGrammar = {
 // jsonic rules. Each rule names its `open`/`close` alt list and, where
 // necessary, a `bo`/`bc` state hook for AST assembly.
 //
-// Stage 4 of the move toward RFC 5234 ABNF: the repetition
-// operator is now the prefix form `*A`, `1*A`, `m*nA`, `*nA`,
-// `m*A`, or `nA`. The BNF postfix forms `A*` and `A+` are gone.
-// Only the comment marker (`#`) is still pending conversion.
+// Stage 6: ABNF numeric value notation now works alongside the
+// quoted-string terminal. `%xNN` / `%dNN` / `%bNN` denote a single
+// code point in hex / decimal / binary; a `-` separator turns the
+// form into a character range (`%x30-39`); a `.` separator turns
+// it into a concatenation of code points (`%x66.6f.6f` = "foo").
+// Ranges desugar to a regex character class; concatenations and
+// single values desugar to plain string terminals.
 //
 // Token vocabulary:
 //   #DEF   `=` (rule-definition operator)
 //   #ALT   `/` (alternation)
 //   #STAR  `*` (repetition separator)
 //   #NUM   decimal repetition count (matched via match.token)
+//   #NV    `%[xdb]NN[(-NN|(.NN)*)]` numeric value (match.token)
 //   #LP    `(`
 //   #RP    `)`
 //   #OB    `[` (optional-group open)
@@ -79,7 +83,8 @@ type BnfGrammar = {
 //   seq        = element*
 //   element    = repetition? atom
 //   repetition = NUM '*' NUM / NUM '*' / '*' NUM / '*' / NUM
-//   atom       = IDENT | STRING | '(' alts ')' | '[' alts ']'
+//   atom       = IDENT | STRING | NUMVAL | '(' alts ')' | '[' alts ']'
+//   numval     = '%' ('x' / 'd' / 'b') DIGITS [ '-' DIGITS | ('.' DIGITS)* ]
 const bnfRules: Record<
   string,
   {
@@ -158,6 +163,7 @@ const bnfRules: Record<
       // Listing element-starter tokens in `s:` here ensures the
       // tcol-driven matcher considers each one when lexing.
       { s: '#ST', b: 1, p: 'elem' },
+      { s: '#NV', b: 1, p: 'elem' },
       { s: '#TX', b: 1, p: 'elem' },
       { s: '#LP', b: 1, p: 'elem' },
       { s: '#OB', b: 1, p: 'elem' },
@@ -172,6 +178,7 @@ const bnfRules: Record<
       { s: '#RP', b: 1, g: 'end' },
       { s: '#CB', b: 1, g: 'end' },
       { s: '#ST', b: 1, p: 'elem' },
+      { s: '#NV', b: 1, p: 'elem' },
       { s: '#TX', b: 1, p: 'elem' },
       { s: '#LP', b: 1, p: 'elem' },
       { s: '#OB', b: 1, p: 'elem' },
@@ -189,18 +196,22 @@ const bnfRules: Record<
   elem: {
     bo: (r) => { r.u.min = 1; r.u.max = 1 },
     open: [
-      // NUM '*' NUM — bounded repetition.
+      // NUM '*' NUM — bounded repetition, followed by the atom
+      // itself (listed via the ATOM tokenset so every atom-starter
+      // tin — including `#NV` — is in tcol for this position).
       {
-        s: '#NUM #STAR #NUM',
+        s: '#NUM #STAR #NUM #ATOM',
+        b: 1,
         a: (r: Rule) => {
           r.u.min = parseInt(r.o[0].src, 10)
           r.u.max = parseInt(r.o[2].src, 10)
         },
         p: 'atom',
       },
-      // NUM '*' — at-least-NUM repetition.
+      // NUM '*' — at-least-NUM repetition followed by an atom.
       {
-        s: '#NUM #STAR',
+        s: '#NUM #STAR #ATOM',
+        b: 1,
         a: (r: Rule) => {
           r.u.min = parseInt(r.o[0].src, 10)
           r.u.max = Infinity
@@ -209,7 +220,8 @@ const bnfRules: Record<
       },
       // '*' NUM — at-most-NUM repetition.
       {
-        s: '#STAR #NUM',
+        s: '#STAR #NUM #ATOM',
+        b: 1,
         a: (r: Rule) => {
           r.u.min = 0
           r.u.max = parseInt(r.o[1].src, 10)
@@ -218,13 +230,15 @@ const bnfRules: Record<
       },
       // '*' — zero-or-more.
       {
-        s: '#STAR',
+        s: '#STAR #ATOM',
+        b: 1,
         a: (r: Rule) => { r.u.min = 0; r.u.max = Infinity },
         p: 'atom',
       },
       // NUM — exact repetition count.
       {
-        s: '#NUM',
+        s: '#NUM #ATOM',
+        b: 1,
         a: (r: Rule) => {
           const n = parseInt(r.o[0].src, 10)
           r.u.min = n
@@ -267,6 +281,12 @@ const bnfRules: Record<
         s: '#ST',
         a: (r: Rule) => {
           r.node = { kind: 'term', literal: r.o[0].val }
+        },
+      },
+      {
+        s: '#NV',
+        a: (r: Rule) => {
+          r.node = parseNumericValue(r.o[0].src as string)
         },
       },
       {
@@ -314,6 +334,7 @@ const bnfRules: Record<
       // start of a repetition prefix.
       { s: '#TX', b: 1 },
       { s: '#ST', b: 1 },
+      { s: '#NV', b: 1 },
       { s: '#NUM', b: 1 },
       { s: '#STAR', b: 1 },
       { s: '#LP', b: 1 },
@@ -363,7 +384,25 @@ function getBnfParser(): (src: string) => BnfProduction[] {
       token: {
         // ABNF repetition counts: decimal integers.
         '#NUM': /^[0-9]+/,
+        // ABNF numeric value notation:
+        //   %xNN        single hex code point
+        //   %dNN        single decimal code point
+        //   %bNN        single binary code point
+        //   %xNN-NN     hex range
+        //   %xNN.NN.NN  concatenated hex code points (= string)
+        // Digits are permissive (hex covers the decimal / binary
+        // subsets); `parseNumericValue` re-validates against the
+        // actual base.
+        '#NV': /^%[xdbXDB][0-9a-fA-F]+(?:[-.][0-9a-fA-F]+)*/,
       },
+    },
+    tokenSet: {
+      // Tokens that can legitimately open an atom. Declaring this
+      // as a set lets elem.open use `#ATOM` inside its `s:` patterns
+      // — that way the tcol at the atom-starter position includes
+      // every matcher tin (notably #NV), so the lexer doesn't fall
+      // through to #TX when the actual atom is `%xNN`.
+      ATOM: ['#ST', '#NV', '#TX', '#LP', '#OB'],
     },
     comment: {
       // ABNF uses `;` to start a line comment. Override jsonic's
@@ -1426,6 +1465,43 @@ function altPrefixes(
     if (!seen.has(key)) { seen.add(key); out.push(p.tokens) }
   }
   return out
+}
+
+
+// Decode an ABNF numeric value (`%xNN`, `%dNN`, `%bNN`, or one of
+// the range/concatenation forms) into a `BnfElement`.
+//
+//   %x61            => single-char term "a"
+//   %x66.6f.6f      => concatenated term "foo"
+//   %x30-39         => regex character class [\u0030-\u0039]
+//
+// Hex is case-insensitive; decimal and binary accept only digits
+// in their respective ranges. Range endpoints must be the same
+// base as the prefix (RFC 5234 doesn't allow mixing).
+function parseNumericValue(src: string): BnfElement {
+  const base = src[1].toLowerCase()
+  const radix = base === 'x' ? 16 : base === 'd' ? 10 : 2
+  const body = src.slice(2)
+
+  if (body.includes('-')) {
+    const [loStr, hiStr] = body.split('-')
+    const lo = parseInt(loStr, radix)
+    const hi = parseInt(hiStr, radix)
+    if (lo === hi) {
+      return { kind: 'term', literal: String.fromCharCode(lo) }
+    }
+    const toEsc = (n: number) =>
+      '\\u' + n.toString(16).padStart(4, '0')
+    return {
+      kind: 'regex',
+      pattern: '[' + toEsc(lo) + '-' + toEsc(hi) + ']',
+      flags: '',
+    }
+  }
+
+  const parts = body.split('.')
+  const chars = parts.map((n) => String.fromCharCode(parseInt(n, radix)))
+  return { kind: 'term', literal: chars.join('') }
 }
 
 
