@@ -36,7 +36,6 @@ The following TypeScript features are not yet available in Go:
 | Feature | TS Option | Notes |
 |---|---|---|
 | Custom match matchers | `match.token`, `match.value` | Use `options.lex.match` instead |
-| Strict-JSON mode | `Jsonic.make('json')` | Use `Exclude("jsonic")` as approximation |
 
 ## Go-Specific Features
 

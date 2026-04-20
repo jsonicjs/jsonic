@@ -607,6 +607,37 @@ func Empty(opts ...Options) *Jsonic {
 	return j
 }
 
+// MakeJSON creates a Jsonic instance configured to accept strict JSON only.
+// Mirrors TS Jsonic.make('json') (src/grammar.ts:980). Rejects jsonic
+// relaxations: unquoted keys/values, comments, hex/octal/binary numbers,
+// trailing commas, leading-zero numbers, single-quoted or backtick
+// strings, and empty input.
+func MakeJSON() *Jsonic {
+	f := false
+	return Make(Options{
+		Text: &TextOptions{Lex: &f},
+		Number: &NumberOptions{
+			Hex: &f, Oct: &f, Bin: &f,
+			Sep: "",
+			Exclude: func(s string) bool {
+				return len(s) >= 2 && s[0] == '0' && s[1] == '0'
+			},
+		},
+		String: &StringOptions{
+			Chars:        `"`,
+			MultiChars:   "",
+			AllowUnknown: &f,
+		},
+		Comment: &CommentOptions{Lex: &f},
+		Map:     &MapOptions{Extend: &f},
+		Lex:     &LexOptions{Empty: &f},
+		Rule: &RuleOptions{
+			Finish:  &f,
+			Include: "json",
+		},
+	})
+}
+
 // Parse parses a jsonic string using this instance's configuration.
 func (j *Jsonic) Parse(src string) (any, error) {
 	return j.parseInternal(src, nil)
