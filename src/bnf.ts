@@ -394,10 +394,19 @@ function getBnfParser(): (src: string) => BnfProduction[] {
 // reasonably small (this is a first-step converter, not a full
 // toolchain).
 function eliminateLeftRecursion(grammar: BnfGrammar): BnfGrammar {
-  let prods = grammar.productions.map((p) => ({
-    name: p.name,
-    alts: p.alts.map((a) => a.slice()),
-  }))
+  const originalOrder = grammar.productions.map((p) => p.name)
+
+  // Order productions so that rules referenced at a leading position
+  // are processed before the rules that reference them. Paull's
+  // substitution inlines A_j's alts into A_i for j < i, so putting
+  // dependencies first is what makes nullable-prefixed hidden left
+  // recursion reachable by the substitution step.
+  let prods = topoOrderForPaull(
+    grammar.productions.map((p) => ({
+      name: p.name,
+      alts: p.alts.map((a) => a.slice()),
+    })),
+  )
 
   for (let i = 0; i < prods.length; i++) {
     // For each earlier production A_j, inline any alternative of
@@ -408,7 +417,52 @@ function eliminateLeftRecursion(grammar: BnfGrammar): BnfGrammar {
     prods[i] = eliminateDirectLeftRec(prods[i])
   }
 
-  return { productions: prods }
+  // Restore the caller's declared order, so the start rule still
+  // ends up first (and the user sees their rule names in a
+  // recognisable order when inspecting the spec).
+  const byName = new Map(prods.map((p) => [p.name, p]))
+  const ordered: BnfProduction[] = []
+  for (const name of originalOrder) {
+    const p = byName.get(name)
+    if (p) { ordered.push(p); byName.delete(name) }
+  }
+  // Any generated productions created during substitution (none in
+  // the current implementation) would fall through here.
+  for (const p of byName.values()) ordered.push(p)
+
+  return { productions: ordered }
+}
+
+
+// Topological order over the "leading-position reference" graph:
+// an edge A → B exists when A has at least one alternative whose
+// first element is a reference to B. Cycles are preserved as-is
+// (Paull's handles them via the substitution + direct-LR rewrite).
+function topoOrderForPaull(prods: BnfProduction[]): BnfProduction[] {
+  const byName = new Map(prods.map((p) => [p.name, p]))
+  const colour = new Map<string, number>() // 0 unseen, 1 in-progress, 2 done
+  const order: BnfProduction[] = []
+
+  function visit(name: string) {
+    const c = colour.get(name) ?? 0
+    if (c !== 0) return // already seen or on the current path
+    colour.set(name, 1)
+    const p = byName.get(name)
+    if (p) {
+      for (const alt of p.alts) {
+        if (alt.length > 0 && alt[0].kind === 'ref' && byName.has(alt[0].name)) {
+          visit(alt[0].name)
+        }
+      }
+      colour.set(name, 2)
+      order.push(p)
+    } else {
+      colour.set(name, 2)
+    }
+  }
+
+  for (const p of prods) visit(p.name)
+  return order
 }
 
 
@@ -456,18 +510,21 @@ function eliminateDirectLeftRec(prod: BnfProduction): BnfProduction {
     }
   }
 
-  if (recursive.length === 0) return prod
+  // A trivial recursive alt `[P]` (P ::= P, nothing else) would
+  // derive P from P with no progress — semantically a no-op. Drop
+  // them silently, since nullable-prefix expansion in Paull's can
+  // legitimately produce them and erroring would hide a legal
+  // grammar.
+  const nonTrivialRecursive = recursive.filter((t) => t.length > 0)
+  if (nonTrivialRecursive.length === 0) {
+    // Either no recursion at all, or only trivial self-refs — keep
+    // just the seeds.
+    return { name: prod.name, alts: seeds }
+  }
   if (seeds.length === 0) {
     throw new Error(
       `bnf: rule '${prod.name}' is purely left-recursive ` +
       `(no seed alternative); cannot eliminate`)
-  }
-  for (const tail of recursive) {
-    if (tail.length === 0) {
-      throw new Error(
-        `bnf: rule '${prod.name}' has a trivial left-recursive ` +
-        `alternative (P ::= P) which cannot be desugared`)
-    }
   }
 
   const seedElement: BnfElement =
@@ -476,9 +533,9 @@ function eliminateDirectLeftRec(prod: BnfProduction): BnfProduction {
       : { kind: 'group', alts: seeds }
 
   const tailInner: BnfElement =
-    recursive.length === 1 && recursive[0].length === 1
-      ? recursive[0][0]
-      : { kind: 'group', alts: recursive }
+    nonTrivialRecursive.length === 1 && nonTrivialRecursive[0].length === 1
+      ? nonTrivialRecursive[0][0]
+      : { kind: 'group', alts: nonTrivialRecursive }
 
   return {
     name: prod.name,

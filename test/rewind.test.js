@@ -192,6 +192,49 @@ describe('rewind', () => {
   })
 
 
+  it('rewind enables speculative lookahead', () => {
+    // Use rewind to implement a peek-and-commit pattern: the rule
+    // consumes a token to inspect its value, then rewinds and
+    // dispatches to one of two continuations based on what it saw.
+    // Without rewind this would need either an N-token `s:` pattern
+    // or custom `c:` predicates reading `ctx.t[i]`; rewind gives us
+    // an imperative alternative that's the backbone of any
+    // backtracking or seed-and-grow scheme.
+    let j = make_norules({
+      rule: { start: 'top' },
+      fixed: { token: { Ta: 'a', Tb: 'b', Tc: 'c' } },
+    })
+    const Ta = j.token('Ta')
+    const Tb = j.token('Tb')
+    const Tc = j.token('Tc')
+
+    let branch = null
+
+    j.rule('top', (rs) =>
+      rs
+        .open([{
+          // Peek one token, rewind, then dispatch based on what we saw.
+          s: [Ta],
+          a: (r, ctx) => {
+            const saw = r.o[0].src
+            ctx.rewind(0)       // replay the a we just consumed
+            r.u.branch = saw === 'a' ? 'A' : 'Z'
+          },
+        }])
+        .close([{
+          c: (r) => r.u.branch === 'A',
+          s: [Ta, Tb, Tc],
+          a: () => { branch = 'A' },
+        }, {
+          s: '#ZZ',
+        }]),
+    )
+
+    j('a b c')
+    assert.equal(branch, 'A')
+  })
+
+
   it('rewind from inside a close-state action also replays', () => {
     // Exercise the path where the rewind happens from close-state
     // alt logic. `rule.k` survives an `r:` replacement (`u` does

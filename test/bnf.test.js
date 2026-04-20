@@ -362,8 +362,9 @@ describe('bnf', () => {
       assert.equal(expr.alts.length, 1)
       const alt = expr.alts[0]
       assert.equal(alt.length, 2)
-      // Seed (collapsed to a bare element since there's only one).
-      assert.deepEqual(alt[0], { kind: 'ref', name: 't' })
+      // Seed is t's body inlined (Paull's topo-orders t before e
+      // since e leads with t, so t's alts are substituted in).
+      assert.equal(alt[0].kind, 'regex')
       // Tail wrapped in a star.
       assert.equal(alt[1].kind, 'star')
     })
@@ -395,11 +396,14 @@ describe('bnf', () => {
     })
 
 
-    it('rejects trivial P ::= P', () => {
-      assert.throws(
-        () => bnf('<a> ::= <a> | "x"'),
-        /trivial left-recursive/,
-      )
+    it('silently drops trivial P ::= P alternatives', () => {
+      // `<a> ::= <a>` adds nothing to the language (it just re-derives
+      // P with no progress), so the pass drops it. The remaining alt
+      // defines a's actual language.
+      const j = Jsonic.make()
+      j.bnf('<a> ::= <a> | "x"')
+      assert.doesNotThrow(() => j('x'))
+      assert.throws(() => j('y'), /unexpected/)
     })
 
 
@@ -510,6 +514,35 @@ describe('bnf', () => {
       const j = Jsonic.make()
       j.bnf(INDIRECT_3)
       assert.throws(() => j('x 2'), /unexpected/)
+    })
+
+
+    it('hidden left recursion through a nullable ref (a → b a, b → y|ε)', { timeout: 2000 }, () => {
+      // The leading ref is `b`, not `a`, but `b` is nullable so
+      // `a` is reachable from itself through b's ε-alt. Paull's
+      // topo-orders b before a, inlines b's alts (including ε)
+      // into a, then drops the resulting `[a]` trivial alt.
+      const src = '<a> ::= <b> <a> | "x"\n<b> ::= "y" |'
+      const j = Jsonic.make()
+      j.bnf(src)
+      assert.doesNotThrow(() => j('x'))
+      assert.doesNotThrow(() => j('y x'))
+      assert.doesNotThrow(() => j('y y y x'))
+      assert.throws(() => j('y'), /unexpected/)
+      assert.throws(() => j('z'), /unexpected/)
+    })
+
+
+    it('hidden LR with three-rule nullable chain', { timeout: 2000 }, () => {
+      // a → b a | "x" ; b → c ; c → "y" | ε
+      // A longer chain of nullable leading refs that Paull's has
+      // to collapse in a single topo pass.
+      const src = '<a> ::= <b> <a> | "x"\n<b> ::= <c>\n<c> ::= "y" |'
+      const j = Jsonic.make()
+      j.bnf(src)
+      assert.doesNotThrow(() => j('x'))
+      assert.doesNotThrow(() => j('y x'))
+      assert.doesNotThrow(() => j('y y x'))
     })
 
 
