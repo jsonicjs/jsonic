@@ -10,22 +10,21 @@ exports.eliminateLeftRecursion = eliminateLeftRecursion;
 // jsonic rules. Each rule names its `open`/`close` alt list and, where
 // necessary, a `bo`/`bc` state hook for AST assembly.
 //
-// Stage 2 of the move toward RFC 5234 ABNF: rule headers use
-// ABNF's `name = rhs` form and alternation is now `/`. The regex
-// terminal extension is dropped here because `/` would otherwise
-// be ambiguous with ABNF alternation; ABNF replaces regex with
-// `%x` numeric ranges (added in a later stage). The optional,
-// repetition and comment operators are still BNF-style; later
-// stages replace them with `[…]`, `m*n` and `;`.
+// Stage 3 of the move toward RFC 5234 ABNF: rule headers use
+// `name = rhs`, alternation is `/`, and optional is now the ABNF
+// bracket form `[ alts ]`. Repetition and comment operators are
+// still BNF-style (`*`/`+` postfix, `#` comment); later stages
+// replace them with `m*n` prefix and `;` comment.
 //
 // Token vocabulary:
 //   #DEF   `=` (rule-definition operator)
 //   #ALT   `/` (alternation)
-//   #QM    `?`
-//   #STAR  `*`
-//   #PLUS  `+`
+//   #STAR  `*` (zero-or-more postfix — temporary)
+//   #PLUS  `+` (one-or-more postfix — temporary)
 //   #LP    `(`
 //   #RP    `)`
+//   #OB    `[` (optional-group open)
+//   #CB    `]` (optional-group close)
 //   #TX    bare identifier (jsonic default text token)
 //   #ST    quoted string literal (jsonic default string token)
 //   #ZZ    end-of-source
@@ -36,8 +35,8 @@ exports.eliminateLeftRecursion = eliminateLeftRecursion;
 //   alts       = seq ('/' seq)*
 //   seq        = element*
 //   element    = atom postfix?
-//   atom       = IDENT | STRING | '(' alts ')'
-//   postfix    = '?' | '*' | '+'
+//   atom       = IDENT | STRING | '(' alts ')' | '[' alts ']'
+//   postfix    = '*' | '+'      ; ABNF optional is the bracket form
 const bnfRules = {
     // Top-level: accumulates productions into r.node.
     bnf: {
@@ -101,11 +100,13 @@ const bnfRules = {
             { s: '#ALT', b: 1, g: 'end' },
             { s: '#ZZ', b: 1, g: 'end' },
             { s: '#RP', b: 1, g: 'end' },
+            { s: '#CB', b: 1, g: 'end' },
             // Listing element-starter tokens in `s:` here ensures the
             // tcol-driven matcher considers each one when lexing.
             { s: '#ST', b: 1, p: 'elem' },
             { s: '#TX', b: 1, p: 'elem' },
             { s: '#LP', b: 1, p: 'elem' },
+            { s: '#OB', b: 1, p: 'elem' },
             { p: 'elem' },
         ],
         close: [
@@ -113,19 +114,20 @@ const bnfRules = {
             { s: '#ALT', b: 1, g: 'end' },
             { s: '#ZZ', b: 1, g: 'end' },
             { s: '#RP', b: 1, g: 'end' },
+            { s: '#CB', b: 1, g: 'end' },
             { s: '#ST', b: 1, p: 'elem' },
             { s: '#TX', b: 1, p: 'elem' },
             { s: '#LP', b: 1, p: 'elem' },
+            { s: '#OB', b: 1, p: 'elem' },
             { b: 1 },
         ],
     },
     // One element: an atom (bare identifier ref, quoted string
-    // terminal, or a parenthesised group of alternatives), optionally
-    // followed by a postfix operator (`?`, `*`, `+`). The atom is
-    // stashed on `r.u.atom` so the close state can wrap it before
-    // pushing onto the parent seq's node array. For groups, the atom
-    // is synthesised from the child `alts` rule's node in the close
-    // state.
+    // terminal, parenthesised group `( alts )`, or optional group
+    // `[ alts ]`), optionally followed by a postfix operator (`*`,
+    // `+`). The atom is stashed on `r.u.atom`; `r.u.groupKind`
+    // records whether we pushed a group vs an optional so the close
+    // state knows which terminator to expect.
     elem: {
         open: [
             {
@@ -142,28 +144,23 @@ const bnfRules = {
             },
             {
                 s: '#LP',
-                a: (r) => { r.u.group = true; },
+                a: (r) => { r.u.groupKind = 'group'; },
+                p: 'alts',
+            },
+            {
+                s: '#OB',
+                a: (r) => { r.u.groupKind = 'opt'; },
                 p: 'alts',
             },
         ],
         close: [
-            // Group followed by postfix — two-token combos, tried first so
-            // they beat the one-token RP / postfix alts below. Guarded with
-            // a condition to avoid matching a stray `)` in the simple-atom
+            // `( alts )` followed by postfix — two-token combos first so
+            // they beat the one-token RP alt below. Guarded with a
+            // condition to avoid matching a stray `)` in the simple-atom
             // case.
             {
-                s: '#RP #QM',
-                c: (r) => r.u.group === true,
-                a: (r) => {
-                    r.node.push({
-                        kind: 'opt',
-                        inner: { kind: 'group', alts: r.child.node },
-                    });
-                },
-            },
-            {
                 s: '#RP #STAR',
-                c: (r) => r.u.group === true,
+                c: (r) => r.u.groupKind === 'group',
                 a: (r) => {
                     r.node.push({
                         kind: 'star',
@@ -173,7 +170,7 @@ const bnfRules = {
             },
             {
                 s: '#RP #PLUS',
-                c: (r) => r.u.group === true,
+                c: (r) => r.u.groupKind === 'group',
                 a: (r) => {
                     r.node.push({
                         kind: 'plus',
@@ -184,18 +181,24 @@ const bnfRules = {
             // Plain group (no postfix).
             {
                 s: '#RP',
-                c: (r) => r.u.group === true,
+                c: (r) => r.u.groupKind === 'group',
                 a: (r) => {
                     r.node.push({ kind: 'group', alts: r.child.node });
                 },
             },
-            // Simple atom + postfix.
+            // `[ alts ]` — ABNF optional. There is no postfix form for
+            // optional; the brackets are the whole notation.
             {
-                s: '#QM',
+                s: '#CB',
+                c: (r) => r.u.groupKind === 'opt',
                 a: (r) => {
-                    r.node.push({ kind: 'opt', inner: r.u.atom });
+                    r.node.push({
+                        kind: 'opt',
+                        inner: { kind: 'group', alts: r.child.node },
+                    });
                 },
             },
+            // Simple atom + postfix.
             {
                 s: '#STAR',
                 a: (r) => {
@@ -224,8 +227,12 @@ const bnfRules = {
                 s: '#LP', b: 1,
                 a: (r) => { r.node.push(r.u.atom); },
             },
-            // Final fallback for end-of-sequence markers (`|`, `)`, `#ZZ`,
-            // or a production boundary).
+            {
+                s: '#OB', b: 1,
+                a: (r) => { r.node.push(r.u.atom); },
+            },
+            // Final fallback for end-of-sequence markers (`/`, `)`, `]`,
+            // `#ZZ`, or a production boundary).
             {
                 b: 1,
                 a: (r) => { r.node.push(r.u.atom); },
@@ -245,17 +252,18 @@ function getBnfParser() {
         rule: { start: 'bnf' },
         fixed: {
             token: {
-                // Clear JSON-oriented defaults so `[`, `(`, `:` and `,`
-                // don't get special meaning in BNF source.
-                '#OB': null,
-                '#CB': null,
+                // Clear JSON-oriented defaults we're not using so `:`, `,`
+                // and `{` have no special meaning inside BNF source.
                 '#OS': null,
                 '#CS': null,
                 '#CL': null,
                 '#CA': null,
+                // Re-map `#OB` / `#CB` from JSON's `{` / `}` to ABNF's
+                // `[` / `]` optional-group brackets.
+                '#OB': '[',
+                '#CB': ']',
                 '#DEF': '=',
                 '#ALT': '/',
-                '#QM': '?',
                 '#STAR': '*',
                 '#PLUS': '+',
                 '#LP': '(',

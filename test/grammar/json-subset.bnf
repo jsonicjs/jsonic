@@ -2,8 +2,8 @@
 # Names / strings are simplified to single-letter terminals until
 # ABNF %x ranges arrive.
 value  = digit / letter / object / array
-object = "{" (member ("," member)*)? "}"
+object = "{" [ member ("," member)* ] "}"
 member = letter ":" value
-array  = "[" (value ("," value)*)? "]"
+array  = "[" [ value ("," value)* ] "]"
 digit  = "0" / "1" / "2" / "3" / "4" / "5" / "6" / "7" / "8" / "9"
 letter = "a" / "b" / "c"

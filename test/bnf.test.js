@@ -204,9 +204,13 @@ describe('bnf', () => {
 
 
     it('parses EBNF postfix operators', () => {
-      const g = parseBnf('g = "a"? "b"* "c"+')
+      const g = parseBnf('g = [ "a" ] "b"* "c"+')
       assert.deepEqual(g.productions[0].alts[0], [
-        { kind: 'opt', inner: { kind: 'term', literal: 'a' } },
+        // Optional is desugared as opt(group([[term-a]])).
+        {
+          kind: 'opt',
+          inner: { kind: 'group', alts: [[{ kind: 'term', literal: 'a' }]] },
+        },
         { kind: 'star', inner: { kind: 'term', literal: 'b' } },
         { kind: 'plus', inner: { kind: 'term', literal: 'c' } },
       ])
@@ -219,7 +223,7 @@ describe('bnf', () => {
 
     it('optional: accepts presence or absence', () => {
       const j = Jsonic.make()
-      j.bnf('g = "hi" "there"?')
+      j.bnf('g = "hi" [ "there" ]')
       assert.doesNotThrow(() => j('hi'))
       assert.doesNotThrow(() => j('hi there'))
       assert.throws(() => j('hi nope'), /unexpected/)
