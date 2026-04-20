@@ -53,11 +53,15 @@ type BnfGrammar = {
 // jsonic rules. Each rule names its `open`/`close` alt list and, where
 // necessary, a `bo`/`bc` state hook for AST assembly.
 //
+// This is stage 1 of the move toward RFC 5234 ABNF: the rule header
+// and reference syntax already use ABNF's bare-identifier + `=` form.
+// The remaining operators (alternation `|`, optional `?`, repetition
+// `*`/`+`, comment `#`) are still BNF-style; later stages replace
+// them with ABNF's `/`, `[…]`, `m*n`, and `;` respectively.
+//
 // Token vocabulary:
-//   #LT    `<`
-//   #GT    `>`
-//   #DEF   `::=`
-//   #PIPE  `|`
+//   #DEF   `=` (rule-definition operator)
+//   #PIPE  `|` (alternation)
 //   #QM    `?`
 //   #STAR  `*`
 //   #PLUS  `+`
@@ -69,13 +73,13 @@ type BnfGrammar = {
 //   #ZZ    end-of-source
 //
 // Grammar:
-//   bnf        ::= production*
-//   production ::= '<' IDENT '>' '::=' alts
-//   alts       ::= seq ('|' seq)*
-//   seq        ::= element*
-//   element    ::= atom postfix?
-//   atom       ::= '<' IDENT '>' | STRING | REGEX | IDENT | '(' alts ')'
-//   postfix    ::= '?' | '*' | '+'
+//   bnf        = production*
+//   production = IDENT '=' alts
+//   alts       = seq ('|' seq)*
+//   seq        = element*
+//   element    = atom postfix?
+//   atom       = IDENT | STRING | REGEX | '(' alts ')'
+//   postfix    = '?' | '*' | '+'
 const bnfRules: Record<
   string,
   {
@@ -98,16 +102,20 @@ const bnfRules: Record<
   // One production per invocation; tail-recurses (r:'prod') for the
   // next. Inherits its parent's node (the productions array) and
   // appends to it in `bc` once its `alts` child has returned.
+  // Production header is `IDENT =` — a bareword rule name followed
+  // by the `=` definition operator.
   prod: {
     open: [
       {
-        s: '#LT #TX #GT #DEF',
-        a: (r: Rule) => { r.u.name = r.o[1].val },
+        s: '#TX #DEF',
+        a: (r: Rule) => { r.u.name = r.o[0].val },
         p: 'alts',
       },
     ],
     close: [
-      { s: '#LT', b: 1, r: 'prod' },
+      // A TX followed by `=` means the next production has begun —
+      // back up 2 tokens so a fresh `prod` invocation sees them.
+      { s: '#TX #DEF', b: 2, r: 'prod' },
       { b: 1 },
     ],
     bc: (r) => {
@@ -133,22 +141,21 @@ const bnfRules: Record<
     },
   },
 
-  // A (possibly empty) sequence of elements. The 4-token lookahead
-  // `#LT #TX #GT #DEF` detects a following production boundary and
-  // bails out without consuming the tokens; a plain `#LT #TX #GT`
-  // match (tried second so it loses to the longer alt) is a
+  // A (possibly empty) sequence of elements. The 2-token lookahead
+  // `#TX #DEF` detects a following production boundary and bails
+  // out without consuming the tokens; a plain `#TX` at the leading
+  // position (tried later so the longer alt wins) is a rule
   // reference inside the current sequence.
   seq: {
     bo: (r) => { r.node = [] },
     open: [
-      { s: '#LT #TX #GT #DEF', b: 4, g: 'end' },
+      { s: '#TX #DEF', b: 2, g: 'end' },
       { s: '#PIPE', b: 1, g: 'end' },
       { s: '#ZZ', b: 1, g: 'end' },
       { s: '#RP', b: 1, g: 'end' },
       // Listing element-starter tokens in `s:` here ensures each one
       // appears in the rule's tcol so the match-matcher (for `#RX`)
       // is allowed to fire when the source is lexed.
-      { s: '#LT', b: 1, p: 'elem' },
       { s: '#ST', b: 1, p: 'elem' },
       { s: '#RX', b: 1, p: 'elem' },
       { s: '#TX', b: 1, p: 'elem' },
@@ -156,11 +163,10 @@ const bnfRules: Record<
       { p: 'elem' },
     ],
     close: [
-      { s: '#LT #TX #GT #DEF', b: 4, g: 'end' },
+      { s: '#TX #DEF', b: 2, g: 'end' },
       { s: '#PIPE', b: 1, g: 'end' },
       { s: '#ZZ', b: 1, g: 'end' },
       { s: '#RP', b: 1, g: 'end' },
-      { s: '#LT', b: 1, p: 'elem' },
       { s: '#ST', b: 1, p: 'elem' },
       { s: '#RX', b: 1, p: 'elem' },
       { s: '#TX', b: 1, p: 'elem' },
@@ -169,20 +175,15 @@ const bnfRules: Record<
     ],
   },
 
-  // One element: an atom (`<name>`, string, bare ident, or a
-  // parenthesised group of alternatives), optionally followed by a
-  // postfix operator (`?`, `*`, `+`). The atom is stashed on
-  // `r.u.atom` so the close state can wrap it before pushing onto the
-  // parent seq's node array. For groups, the atom is synthesised from
-  // the child `alts` rule's node in the close state.
+  // One element: an atom (bare identifier ref, quoted string
+  // terminal, regex terminal, or a parenthesised group of
+  // alternatives), optionally followed by a postfix operator (`?`,
+  // `*`, `+`). The atom is stashed on `r.u.atom` so the close state
+  // can wrap it before pushing onto the parent seq's node array.
+  // For groups, the atom is synthesised from the child `alts`
+  // rule's node in the close state.
   elem: {
     open: [
-      {
-        s: '#LT #TX #GT',
-        a: (r: Rule) => {
-          r.u.atom = { kind: 'ref', name: r.o[1].val }
-        },
-      },
       {
         s: '#ST',
         a: (r: Rule) => {
@@ -281,10 +282,6 @@ const bnfRules: Record<
       // matchers to try — emits them as their proper types (in
       // particular `#RX`) rather than as generic text.
       {
-        s: '#LT', b: 1,
-        a: (r: Rule) => { r.node.push(r.u.atom) },
-      },
-      {
         s: '#ST', b: 1,
         a: (r: Rule) => { r.node.push(r.u.atom) },
       },
@@ -333,9 +330,7 @@ function getBnfParser(): (src: string) => BnfProduction[] {
         '#CS': null,
         '#CL': null,
         '#CA': null,
-        '#LT': '<',
-        '#GT': '>',
-        '#DEF': '::=',
+        '#DEF': '=',
         '#PIPE': '|',
         '#QM': '?',
         '#STAR': '*',
