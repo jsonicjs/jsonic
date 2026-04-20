@@ -319,63 +319,94 @@ function getBnfParser() {
 // `term` and `ref`. Each `X?`, `X*`, `X+` occurrence is replaced by a
 // reference to a newly-generated helper production that expresses the
 // same language in plain BNF.
-// Rewrite direct left recursion (P → P α₁ | … | P αₙ | β₁ | … | βₘ)
-// into the equivalent right-recursive form
-//   P → (β₁ | … | βₘ) (α₁ | … | αₙ)*
-// which jsonic's push-down parser can execute without re-entering P
-// at the same source position. Each non-recursive alternative
-// becomes a "seed", and the body following the leading P-reference
-// in each recursive alternative becomes a star-iterated tail.
+// Eliminate left recursion — both direct (P → P α) and indirect
+// (P → Q α, Q → P β) — via Paull's algorithm.
 //
-// Indirect cycles (P → Q α, Q → P β) are *not* rewritten — the doc's
-// runtime guard via `r.k.seenPAt` would be needed for those, and is
-// out of scope for this pass. If detected they're flagged so the
-// emitter doesn't silently fall through.
+// Order the productions, and for each A_i walk back over A_1..A_{i-1}
+// inlining any leading reference into A_i's alternatives. Once the
+// only remaining leading self-reference on A_i is direct, rewrite to
+// the iterative form
+//   P → (β_1 | … | β_m) (α_1 | … | α_n)*
+// which jsonic's push-down parser can execute without re-entering P
+// at the same source position.
+//
+// The substitution step can duplicate alternatives, so pathological
+// grammars will enlarge — caller is expected to keep the grammar
+// reasonably small (this is a first-step converter, not a full
+// toolchain).
 function eliminateLeftRecursion(grammar) {
-    const out = [];
-    for (const prod of grammar.productions) {
-        const recursive = [];
-        const seeds = [];
-        for (const alt of prod.alts) {
-            if (alt.length > 0 &&
-                alt[0].kind === 'ref' &&
-                alt[0].name === prod.name) {
-                // Strip the leading self-reference; the rest is the
-                // operator/tail to iterate.
-                recursive.push(alt.slice(1));
-            }
-            else {
-                seeds.push(alt);
-            }
+    let prods = grammar.productions.map((p) => ({
+        name: p.name,
+        alts: p.alts.map((a) => a.slice()),
+    }));
+    for (let i = 0; i < prods.length; i++) {
+        // For each earlier production A_j, inline any alternative of
+        // A_i whose leading element is a reference to A_j.
+        for (let j = 0; j < i; j++) {
+            prods[i] = substituteLeadingRef(prods[i], prods[j]);
         }
-        if (recursive.length === 0) {
-            out.push(prod);
-            continue;
-        }
-        if (seeds.length === 0) {
-            throw new Error(`bnf: rule '${prod.name}' is purely left-recursive ` +
-                `(no seed alternative); cannot eliminate`);
-        }
-        for (const tail of recursive) {
-            if (tail.length === 0) {
-                // P → P with nothing else would loop forever even after
-                // rewriting (we'd get `P → seed ε*` which is just P → seed).
-                throw new Error(`bnf: rule '${prod.name}' has a trivial left-recursive ` +
-                    `alternative (P ::= P) which cannot be desugared`);
-            }
-        }
-        const seedElement = seeds.length === 1 && seeds[0].length === 1
-            ? seeds[0][0]
-            : { kind: 'group', alts: seeds };
-        const tailInner = recursive.length === 1 && recursive[0].length === 1
-            ? recursive[0][0]
-            : { kind: 'group', alts: recursive };
-        out.push({
-            name: prod.name,
-            alts: [[seedElement, { kind: 'star', inner: tailInner }]],
-        });
+        prods[i] = eliminateDirectLeftRec(prods[i]);
     }
-    return { productions: out };
+    return { productions: prods };
+}
+// For every alternative of `target` that begins with a ref to
+// `source`, replace that alt with |source.alts| copies — each one
+// with the leading source-ref expanded to one of source's alts.
+function substituteLeadingRef(target, source) {
+    const newAlts = [];
+    for (const alt of target.alts) {
+        if (alt.length > 0 &&
+            alt[0].kind === 'ref' &&
+            alt[0].name === source.name) {
+            const tail = alt.slice(1);
+            for (const srcAlt of source.alts) {
+                newAlts.push([...srcAlt, ...tail]);
+            }
+        }
+        else {
+            newAlts.push(alt);
+        }
+    }
+    return { name: target.name, alts: newAlts };
+}
+// Rewrite a single production's direct left recursion to its
+// iterative equivalent. Equivalent to the previous version of
+// `eliminateLeftRecursion` but scoped to one production.
+function eliminateDirectLeftRec(prod) {
+    const recursive = [];
+    const seeds = [];
+    for (const alt of prod.alts) {
+        if (alt.length > 0 &&
+            alt[0].kind === 'ref' &&
+            alt[0].name === prod.name) {
+            recursive.push(alt.slice(1));
+        }
+        else {
+            seeds.push(alt);
+        }
+    }
+    if (recursive.length === 0)
+        return prod;
+    if (seeds.length === 0) {
+        throw new Error(`bnf: rule '${prod.name}' is purely left-recursive ` +
+            `(no seed alternative); cannot eliminate`);
+    }
+    for (const tail of recursive) {
+        if (tail.length === 0) {
+            throw new Error(`bnf: rule '${prod.name}' has a trivial left-recursive ` +
+                `alternative (P ::= P) which cannot be desugared`);
+        }
+    }
+    const seedElement = seeds.length === 1 && seeds[0].length === 1
+        ? seeds[0][0]
+        : { kind: 'group', alts: seeds };
+    const tailInner = recursive.length === 1 && recursive[0].length === 1
+        ? recursive[0][0]
+        : { kind: 'group', alts: recursive };
+    return {
+        name: prod.name,
+        alts: [[seedElement, { kind: 'star', inner: tailInner }]],
+    };
 }
 function desugar(grammar) {
     const extra = [];
@@ -527,7 +558,7 @@ function emitGrammarSpec(grammar, opts) {
     // two use a FIRST-set dispatcher.
     const ruleSpec = {};
     for (const prod of grammar.productions) {
-        emitProduction(prod, literals, regexTokens, knownRules, tag, ruleSpec, firstSets, nullable, refs);
+        emitProduction(prod, grammar, literals, regexTokens, knownRules, tag, ruleSpec, firstSets, nullable, refs);
     }
     // Wrap the user-visible start rule in a synthetic rule that
     // explicitly consumes #ZZ. Without this, a user rule that pops
@@ -680,7 +711,7 @@ function captureChildRef(refs) {
         }
     });
 }
-function emitProduction(prod, literals, regexTokens, knownRules, tag, ruleSpec, firstSets, nullable, refs) {
+function emitProduction(prod, grammar, literals, regexTokens, knownRules, tag, ruleSpec, firstSets, nullable, refs) {
     for (const alt of prod.alts) {
         validateRefs(alt, knownRules, prod.name);
     }
@@ -758,16 +789,34 @@ function emitProduction(prod, literals, regexTokens, knownRules, tag, ruleSpec, 
             continue;
         }
         emitChain(implName, alt, literals, regexTokens, tag, ruleSpec, refs);
-        // Compute FIRST(alt) to drive the dispatch lookahead. Any token
-        // in that set routes to this impl rule. The `b: 1` restores the
-        // peeked token so the impl can re-consume it.
-        const firstTokens = firstOfAlt(alt, literals, regexTokens, firstSets, nullable);
-        if (firstTokens === null) {
-            throw new Error(`bnf: rule '${prod.name}' alternative ${i} is nullable but ` +
-                `is not the only empty alt; FIRST set is ambiguous`);
+        // Fan out this alt into one dispatch entry per concrete token
+        // sequence it can start with. Up to LOOKAHEAD_K tokens per
+        // prefix is enough for the grammars this converter targets; a
+        // ref with multiple alts produces one prefix per sub-alt so
+        // overlapping FIRST sets between competing alts can still be
+        // separated by their second (or later) token.
+        const LOOKAHEAD_K = 4;
+        const prefixes = altPrefixes(alt, grammar, literals, regexTokens, LOOKAHEAD_K);
+        const usable = prefixes.filter((p) => p.length > 0);
+        if (usable.length > 0) {
+            for (const p of usable) {
+                dispatchOpen.push({
+                    s: p.join(' '),
+                    b: p.length,
+                    p: implName,
+                    g: tag,
+                });
+            }
         }
-        for (const tok of firstTokens) {
-            dispatchOpen.push({ s: tok, b: 1, p: implName, g: tag });
+        else {
+            const firstTokens = firstOfAlt(alt, literals, regexTokens, firstSets, nullable);
+            if (firstTokens === null) {
+                throw new Error(`bnf: rule '${prod.name}' alternative ${i} is nullable ` +
+                    `but is not the only empty alt; FIRST set is ambiguous`);
+            }
+            for (const tok of firstTokens) {
+                dispatchOpen.push({ s: tok, b: 1, p: implName, g: tag });
+            }
         }
     }
     if (emptyAltSeen) {
@@ -906,6 +955,135 @@ function firstOfAlt(alt, literals, regexTokens, firstSets, nullable) {
     }
     // Alt is nullable — no non-empty prefix.
     return null;
+}
+// Longest deterministic terminal prefix of a rule — the longest
+// sequence of tokens that every alternative of the rule starts
+// with. Refs are followed into their target rule, with a `visited`
+// set guarding cycles. An empty array means there's no confident
+// prefix (the rule either has divergent alts, starts with a multi-
+// alt ref, or hits a cycle), so the caller should fall back to a
+// single-token FIRST-set lookahead instead.
+function ruleLiteralPrefix(name, grammar, literals, regexTokens, visited) {
+    if (visited.has(name))
+        return [];
+    const next = new Set(visited);
+    next.add(name);
+    const prod = grammar.productions.find((p) => p.name === name);
+    if (!prod || prod.alts.length === 0)
+        return [];
+    const prefixes = prod.alts.map((alt) => altLiteralPrefix(alt, grammar, literals, regexTokens, next));
+    if (prefixes.some((p) => p.length === 0))
+        return [];
+    const minLen = Math.min(...prefixes.map((p) => p.length));
+    const common = [];
+    for (let i = 0; i < minLen; i++) {
+        const tok = prefixes[0][i];
+        if (prefixes.every((p) => p[i] === tok))
+            common.push(tok);
+        else
+            break;
+    }
+    return common;
+}
+function altLiteralPrefix(alt, grammar, literals, regexTokens, visited) {
+    const out = [];
+    for (const el of alt) {
+        if (el.kind === 'term') {
+            out.push(literals.get(el.literal));
+        }
+        else if (el.kind === 'regex') {
+            out.push(regexTokens.get(regexKey(el)));
+        }
+        else if (el.kind === 'ref') {
+            const sub = ruleLiteralPrefix(el.name, grammar, literals, regexTokens, visited);
+            // Take the ref's literal prefix and stop — we can't see past
+            // the ref without more expensive analysis.
+            out.push(...sub);
+            return out;
+        }
+        else {
+            return out;
+        }
+    }
+    return out;
+}
+// Enumerate concrete token-sequence prefixes an alternative can
+// start with, each at most `maxK` tokens long. Refs with multiple
+// alternatives fan out into one prefix per sub-alternative so the
+// caller can emit a dedicated dispatch alt for each path. When a
+// ref cycles back or exhausts depth, the path is *terminated* at
+// the tokens accumulated so far — the `done` flag is propagated
+// out of nested calls so a truncated sub-prefix is never extended
+// with tokens from elements the outer alt happens to list after the
+// cycled ref.
+function altPrefixesRaw(alt, grammar, literals, regexTokens, maxK, visited = new Set()) {
+    let paths = [{ tokens: [], done: false }];
+    for (const el of alt) {
+        const next = [];
+        for (const p of paths) {
+            if (p.done || p.tokens.length >= maxK) {
+                next.push(p);
+                continue;
+            }
+            if (el.kind === 'term') {
+                next.push({
+                    tokens: [...p.tokens, literals.get(el.literal)],
+                    done: false,
+                });
+            }
+            else if (el.kind === 'regex') {
+                next.push({
+                    tokens: [...p.tokens, regexTokens.get(regexKey(el))],
+                    done: false,
+                });
+            }
+            else if (el.kind === 'ref') {
+                if (visited.has(el.name)) {
+                    next.push({ tokens: p.tokens, done: true });
+                    continue;
+                }
+                const childVisited = new Set(visited);
+                childVisited.add(el.name);
+                const target = grammar.productions.find((pr) => pr.name === el.name);
+                if (!target || target.alts.length === 0) {
+                    next.push({ tokens: p.tokens, done: true });
+                    continue;
+                }
+                for (const sub of target.alts) {
+                    const subPaths = altPrefixesRaw(sub, grammar, literals, regexTokens, maxK - p.tokens.length, childVisited);
+                    for (const sp of subPaths) {
+                        next.push({
+                            tokens: [...p.tokens, ...sp.tokens],
+                            // Propagate `done` so the outer loop won't extend a
+                            // cycle-truncated sub-prefix.
+                            done: sp.done,
+                        });
+                    }
+                }
+            }
+            else {
+                // Desugar should have eliminated group/star/etc. at this point.
+                next.push({ tokens: p.tokens, done: true });
+            }
+        }
+        paths = next;
+        if (paths.every((p) => p.done || p.tokens.length >= maxK))
+            break;
+    }
+    return paths;
+}
+function altPrefixes(alt, grammar, literals, regexTokens, maxK) {
+    const raw = altPrefixesRaw(alt, grammar, literals, regexTokens, maxK);
+    const seen = new Set();
+    const out = [];
+    for (const p of raw) {
+        const key = p.tokens.join(' ');
+        if (!seen.has(key)) {
+            seen.add(key);
+            out.push(p.tokens);
+        }
+    }
+    return out;
 }
 function allocTokenName(literal, used) {
     const base = literal
