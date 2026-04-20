@@ -10,17 +10,17 @@ exports.eliminateLeftRecursion = eliminateLeftRecursion;
 // jsonic rules. Each rule names its `open`/`close` alt list and, where
 // necessary, a `bo`/`bc` state hook for AST assembly.
 //
-// Stage 7: quoted-string terminals now match case-insensitively by
-// default, matching RFC 5234 semantics. `%s"foo"` forces a
-// case-sensitive match; `%i"foo"` explicitly requests the default
-// (case-insensitive) behaviour. ABNF numeric values, repetition
-// prefixes, alternation, grouping, optional brackets, and `;`
-// comments are all in place.
+// Stage 8: incremental alternatives via `name =/ alt` now fold
+// into the earlier production with the same name. Quoted strings
+// default to case-insensitive (ABNF semantics), `%s` / `%i` force
+// sensitivity explicitly, numeric values and repetition prefixes
+// work as in previous stages.
 //
 // Token vocabulary:
-//   #DEF   `=` (rule-definition operator)
-//   #ALT   `/` (alternation)
-//   #STAR  `*` (repetition separator)
+//   #DEF   `=`  (rule-definition operator)
+//   #DEFA  `=/` (incremental-alternatives operator)
+//   #ALT   `/`  (alternation)
+//   #STAR  `*`  (repetition separator)
 //   #NUM   decimal repetition count (matched via match.token)
 //   #NV    `%[xdb]NN[(-NN|(.NN)*)]` numeric value (match.token)
 //   #SS    `%s` (case-sensitive string prefix)
@@ -35,7 +35,7 @@ exports.eliminateLeftRecursion = eliminateLeftRecursion;
 //
 // Grammar:
 //   bnf        = production*
-//   production = IDENT '=' alts
+//   production = IDENT ('=' / '=/') alts
 //   alts       = seq ('/' seq)*
 //   seq        = element*
 //   element    = repetition? atom
@@ -60,21 +60,39 @@ const bnfRules = {
     // by the `=` definition operator.
     prod: {
         open: [
+            // Standalone definition:   name = alts
             {
                 s: '#TX #DEF',
-                a: (r) => { r.u.name = r.o[0].val; },
+                a: (r) => {
+                    r.u.name = r.o[0].val;
+                    r.u.incremental = false;
+                },
+                p: 'alts',
+            },
+            // Incremental alternatives:   name =/ alts
+            {
+                s: '#TX #DEFA',
+                a: (r) => {
+                    r.u.name = r.o[0].val;
+                    r.u.incremental = true;
+                },
                 p: 'alts',
             },
         ],
         close: [
-            // A TX followed by `=` means the next production has begun —
-            // back up 2 tokens so a fresh `prod` invocation sees them.
+            // A TX followed by `=` or `=/` means the next production has
+            // begun — back up 2 tokens so a fresh `prod` invocation sees
+            // them.
             { s: '#TX #DEF', b: 2, r: 'prod' },
+            { s: '#TX #DEFA', b: 2, r: 'prod' },
             { b: 1 },
         ],
         bc: (r) => {
             if (r.child && r.child.node !== undefined) {
-                r.node.push({ name: r.u.name, alts: r.child.node });
+                const prod = { name: r.u.name, alts: r.child.node };
+                if (r.u.incremental)
+                    prod.incremental = true;
+                r.node.push(prod);
             }
         },
     },
@@ -103,6 +121,7 @@ const bnfRules = {
         bo: (r) => { r.node = []; },
         open: [
             { s: '#TX #DEF', b: 2, g: 'end' },
+            { s: '#TX #DEFA', b: 2, g: 'end' },
             { s: '#ALT', b: 1, g: 'end' },
             { s: '#ZZ', b: 1, g: 'end' },
             { s: '#RP', b: 1, g: 'end' },
@@ -122,6 +141,7 @@ const bnfRules = {
         ],
         close: [
             { s: '#TX #DEF', b: 2, g: 'end' },
+            { s: '#TX #DEFA', b: 2, g: 'end' },
             { s: '#ALT', b: 1, g: 'end' },
             { s: '#ZZ', b: 1, g: 'end' },
             { s: '#RP', b: 1, g: 'end' },
@@ -346,6 +366,10 @@ function getBnfParser() {
                 '#OB': '[',
                 '#CB': ']',
                 '#DEF': '=',
+                // `=/` — ABNF's incremental-alternatives operator. Longer
+                // than `=`, so jsonic's longest-match-wins fixed matcher
+                // tries it first.
+                '#DEFA': '=/',
                 '#ALT': '/',
                 '#STAR': '*',
                 '#LP': '(',
@@ -708,7 +732,31 @@ function parseBnf(src) {
     if (!Array.isArray(productions) || productions.length === 0) {
         throw new BnfParseError('bnf: no productions found');
     }
-    return { productions };
+    return { productions: mergeIncrementals(productions) };
+}
+// Fold every `name =/ alt` production into the earlier production
+// with the same name by appending its alternatives. Throws if an
+// incremental references a name that hasn't been defined yet — ABNF
+// requires the base production to appear first.
+function mergeIncrementals(prods) {
+    const out = [];
+    const byName = new Map();
+    for (const p of prods) {
+        if (p.incremental) {
+            const base = byName.get(p.name);
+            if (!base) {
+                throw new BnfParseError(`bnf: '${p.name} =/ …' has no earlier '${p.name} = …' to extend`);
+            }
+            base.alts.push(...p.alts);
+            continue;
+        }
+        // Strip the (absent) flag on a cleanly-written production so
+        // downstream code never sees it.
+        const clean = { name: p.name, alts: p.alts };
+        out.push(clean);
+        byName.set(p.name, clean);
+    }
+    return out;
 }
 // Convert a BNF grammar AST into a jsonic GrammarSpec.
 function emitGrammarSpec(grammar, opts) {

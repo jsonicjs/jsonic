@@ -385,6 +385,46 @@ describe('bnf', () => {
       assert.doesNotThrow(() => j('BAR'))
     })
 
+  })
+
+
+  describe('ABNF incremental alternatives', () => {
+
+    it('name =/ alt folds into the earlier production', () => {
+      const j = Jsonic.make()
+      j.bnf('command = "get"\ncommand =/ "post"\ncommand =/ "delete"')
+      assert.doesNotThrow(() => j('get'))
+      assert.doesNotThrow(() => j('post'))
+      assert.doesNotThrow(() => j('delete'))
+      assert.throws(() => j('put'), /unexpected/)
+    })
+
+
+    it('a single =/ appends one alternative', () => {
+      const j = Jsonic.make()
+      j.bnf('g = "a"\ng =/ "b"')
+      assert.doesNotThrow(() => j('a'))
+      assert.doesNotThrow(() => j('b'))
+    })
+
+
+    it('multi-alt increments merge cleanly', () => {
+      // An increment can itself introduce several alternatives.
+      const j = Jsonic.make()
+      j.bnf('g = "a"\ng =/ "b" / "c"')
+      assert.doesNotThrow(() => j('a'))
+      assert.doesNotThrow(() => j('b'))
+      assert.doesNotThrow(() => j('c'))
+    })
+
+
+    it('=/ without an earlier base rule is rejected', () => {
+      assert.throws(
+        () => bnf('g =/ "a"'),
+        /has no earlier .* to extend/,
+      )
+    })
+
 
     it('grouping selects among alternatives', () => {
       const j = Jsonic.make()

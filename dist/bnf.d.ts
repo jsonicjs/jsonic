@@ -32,6 +32,7 @@ type BnfSequence = BnfElement[];
 type BnfProduction = {
     name: string;
     alts: BnfSequence[];
+    incremental?: boolean;
 };
 type BnfGrammar = {
     productions: BnfProduction[];
