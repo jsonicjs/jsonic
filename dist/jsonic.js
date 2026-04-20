@@ -31,6 +31,7 @@ Object.defineProperty(exports, "makeRule", { enumerable: true, get: function () 
 Object.defineProperty(exports, "makeRuleSpec", { enumerable: true, get: function () { return parser_1.makeRuleSpec; } });
 Object.defineProperty(exports, "makeParser", { enumerable: true, get: function () { return parser_1.makeParser; } });
 const grammar_1 = require("./grammar");
+const bnf_1 = require("./bnf");
 // TODO: remove - too much for an API!
 const util = {
     tokenize: utility_1.tokenize,
@@ -236,7 +237,20 @@ function make(param_options, parent) {
                     });
                 }
             }
-        }
+        },
+        // Convert a BNF grammar string into a jsonic GrammarSpec and install
+        // it on this instance. Returns the generated spec so callers can
+        // inspect, serialise or diff it. Use `bnf.toSpec(src, opts)` to
+        // build the spec without installing it.
+        bnf: (() => {
+            const impl = (src, opts) => {
+                const spec = (0, bnf_1.bnf)(src, opts);
+                ji.grammar(spec);
+                return spec;
+            };
+            impl.toSpec = (src, opts) => (0, bnf_1.bnf)(src, opts);
+            return impl;
+        })(),
     };
     // Has to be done indirectly as we are in a fuction named `make`.
     (0, utility_1.defprop)(api.make, utility_1.S.name, { value: utility_1.S.make });

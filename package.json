@@ -41,7 +41,8 @@
     "LICENSE"
   ],
   "bin": {
-    "jsonic": "bin/jsonic"
+    "jsonic": "bin/jsonic",
+    "jsonic-bnf": "bin/jsonic-bnf"
   },
   "exports": {
     ".": "./dist/jsonic.js",
