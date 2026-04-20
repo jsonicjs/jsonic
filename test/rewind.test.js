@@ -268,4 +268,129 @@ describe('rewind', () => {
     assert.equal(attempts, 2)
   })
 
+
+  it('options.rewind.history caps ctx.v size via batch eviction', () => {
+    // With a capacity of 4, ctx.v never exceeds 2*cap = 8 entries
+    // (eviction happens once the array crosses 2*cap; amortised
+    // O(1) per push).
+    let j = make_norules({
+      rule: { start: 'top' },
+      fixed: { token: { Ta: 'a' } },
+      rewind: { history: 4 },
+    })
+    let { Ta } = j.token
+
+    let maxSeen = 0
+    j.rule('top', (rs) =>
+      rs
+        .open([{
+          // Consume a's one at a time via r:self, tracking the peak
+          // size of ctx.v.
+          s: [Ta],
+          a: (r, ctx) => { if (ctx.v.length > maxSeen) maxSeen = ctx.v.length },
+        }])
+        .close([
+          { s: [Ta], b: 1, r: 'top' },
+          { s: '#ZZ' },
+        ]),
+    )
+
+    // 20 a's — well above 2*cap.
+    j('a a a a a a a a a a a a a a a a a a a a')
+    assert.ok(maxSeen <= 2 * 4,
+      `ctx.v grew to ${maxSeen}, expected <= ${2 * 4}`)
+    // The cap never shrinks below `history` itself, so the parser
+    // can still see recent tokens.
+    assert.ok(maxSeen >= 4,
+      `ctx.v only reached ${maxSeen}, expected >= 4`)
+  })
+
+
+  it('marks stay valid across ring-buffer eviction', () => {
+    // Even after the ring evicts older tokens, a mark captured
+    // *within* the retained window rewinds correctly. vAbs is
+    // absolute so the mark's meaning doesn't depend on ctx.v's
+    // current indexing.
+    let j = make_norules({
+      rule: { start: 'top' },
+      fixed: { token: { Ta: 'a' } },
+      rewind: { history: 4 },
+    })
+    let { Ta } = j.token
+
+    let rewound = null
+
+    j.rule('top', (rs) =>
+      rs
+        .open([{
+          // Consume five a's, then rewind to right after the third.
+          s: [Ta, Ta, Ta, Ta, Ta],
+          a: (r, ctx) => {
+            const after3 = ctx.vAbs - 2 // absolute mark after the 3rd a
+            ctx.rewind(after3)
+            rewound = ctx.vAbs
+          },
+        }])
+        .close([
+          { s: [Ta, Ta], a: () => {} }, // re-consume the replayed 4th and 5th
+          { s: '#ZZ' },
+        ]),
+    )
+
+    j('a a a a a')
+    assert.equal(rewound, 3)
+  })
+
+
+  it('rewinding past the retained window throws', () => {
+    let j = make_norules({
+      rule: { start: 'top' },
+      fixed: { token: { Ta: 'a' } },
+      rewind: { history: 2 },
+    })
+    let { Ta } = j.token
+
+    j.rule('top', (rs) =>
+      rs
+        .open([{
+          // Try to rewind to absolute index 0 after consuming six a's;
+          // with history=2 and batch eviction at 2*cap=4, the oldest
+          // mark still in reach is 4, so target=0 is out of range.
+          s: [Ta, Ta, Ta, Ta, Ta, Ta],
+          a: (r, ctx) => { ctx.rewind(0) },
+        }])
+        .close([{ s: '#ZZ' }]),
+    )
+
+    assert.throws(
+      () => j('a a a a a a'),
+      /ctx\.rewind target 0 is outside the retained history/,
+    )
+  })
+
+
+  it('default history is unbounded', () => {
+    // With the default (Infinity), ctx.v grows monotonically within
+    // a parse — no eviction regardless of input length.
+    let j = make_norules({
+      rule: { start: 'top' },
+      fixed: { token: { Ta: 'a' } },
+    })
+    let { Ta } = j.token
+
+    let finalV = 0
+    j.rule('top', (rs) =>
+      rs
+        .open([{
+          s: [Ta, Ta, Ta, Ta, Ta, Ta, Ta, Ta, Ta, Ta],
+          a: (r, ctx) => { finalV = ctx.v.length },
+        }])
+        .close([{ s: '#ZZ' }]),
+    )
+
+    j('a a a a a a a a a a')
+    // All 10 consumed tokens retained.
+    assert.equal(finalV, 10)
+  })
+
 })

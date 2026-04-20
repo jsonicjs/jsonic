@@ -311,10 +311,24 @@ class RuleSpecImpl {
         // ctx.rewind sees the just-matched tokens on top of the stack.
         // The lookahead-buffer shift itself still happens at the end of
         // process() so non-action paths behave identically.
+        //
+        // ctx.vAbs is an absolute monotonic counter used as the mark
+        // value — it's decoupled from ctx.v.length so the ring-buffer
+        // cap can evict old tokens from the front without invalidating
+        // outstanding marks (marks older than the retained window will
+        // simply fail at rewind time with a clear error).
         const _cons = rule[is_open ? 'oN' : 'cN'] - (alt.b || 0);
         if (0 < _cons) {
             for (let i = 0; i < _cons; i++)
                 ctx.v.push(ctx.t[i]);
+            ctx.vAbs += _cons;
+            // Amortised-O(1) ring-buffer cap: let v grow to twice the
+            // capacity, then splice its front back down. Batch-eviction
+            // makes each push O(1) on average even at the cap.
+            const cap = ctx.cfg.rewind.history;
+            if (cap !== Infinity && ctx.v.length > 2 * cap) {
+                ctx.v.splice(0, ctx.v.length - cap);
+            }
         }
         // TODO: move after rule.next resolution
         // (breaks Expr! - fix first)

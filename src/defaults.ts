@@ -373,6 +373,15 @@ Unexpected end of source.`,
     fail: [],
   },
 
+  // Token-rewind options. `history` bounds how many consumed tokens
+  // are retained on ctx.v for ctx.rewind(); the default is unbounded,
+  // which is fine for typical small/medium inputs. Set a finite value
+  // if you need to cap parse-time memory — ctx.rewind(mark) will then
+  // throw if `mark` falls outside the retained window.
+  rewind: {
+    history: Infinity,
+  },
+
   // Configuration options.
   config: {
     // Configuration modifiers.

@@ -89,25 +89,38 @@ function defineLookaheadAliases(ctx: any, notoken: any) {
 
 // Rewind primitives. Attached to `ctx` at parse start so rule
 // actions can reach them via their `ctx` argument. `mark()` returns
-// an opaque index into the history stack `ctx.v`; `rewind(mark)`
-// replays the tokens consumed since that mark by unshifting them
-// back onto the active lexer's pending-token queue, so subsequent
-// `lex.next()` calls re-serve them in forward order.
+// an opaque absolute counter (ctx.vAbs); `rewind(mark)` replays the
+// tokens consumed since that mark by unshifting them back onto the
+// active lexer's pending-token queue, so subsequent `lex.next()`
+// calls re-serve them in forward order.
+//
+// Marks are absolute rather than array-relative so the ring-buffer
+// cap (options.rewind.history) can evict old tokens from the front
+// of ctx.v without invalidating mark values held by in-flight rule
+// actions. A rewind whose target has been evicted throws — the
+// caller's retained-history budget was too small for the grammar.
 function attachRewind(ctx: any): void {
   ctx.mark = function (): number {
-    return this.v.length
+    return this.vAbs
   }
   ctx.rewind = function (mark: number): void {
-    const v: any[] = this.v
-    let k = v.length - mark
+    const k = this.vAbs - mark
     if (k <= 0) return
+    if (k > this.v.length) {
+      throw new Error(
+        `jsonic: ctx.rewind target ${mark} is outside the retained ` +
+        `history window (oldest mark available is ${this.vAbs - this.v.length}, ` +
+        `current is ${this.vAbs}); increase options.rewind.history.`,
+      )
+    }
     const queue: any[] = this.lex.pnt.token
-    while (0 < k--) {
+    for (let i = 0; i < k; i++) {
       // Pop newest-first, unshift in that order — the first unshift
       // lands the newest at the queue's head; the next unshift slides
       // older tokens in front of it, so the queue reads oldest-first.
-      queue.unshift(v.pop())
+      queue.unshift(this.v.pop())
     }
+    this.vAbs -= k
     // Invalidate the lookahead buffer so parse_alts fetches fresh
     // (which will now come from the restored queue).
     const NOTOKEN = this.NOTOKEN
@@ -186,8 +199,12 @@ class ParserImpl implements Parser {
       sub: jsonic.internal().sub,
       xs: -1,
       // Consumed-token history. Legacy v1 / v2 accessors (installed by
-      // defineLookaheadAliases) read the top of this stack.
+      // defineLookaheadAliases) read the top of this stack. ctx.vAbs
+      // is the absolute count of pushed-and-not-rewound tokens since
+      // parse start; ctx.mark() returns it so ring-buffer eviction of
+      // old entries doesn't invalidate outstanding marks.
       v: [],
+      vAbs: 0,
       // Lookahead buffer. Seeded with two NOTOKEN slots; grows as alts
       // request deeper positions via ctx.t[i].
       t: [notoken, notoken],

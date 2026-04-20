@@ -280,6 +280,13 @@ export type Options = {
   result?: {
     fail: any[]
   }
+  rewind?: {
+    // Maximum number of consumed tokens retained in ctx.v for
+    // ctx.rewind(). Defaults to Infinity (unbounded). Set a finite
+    // value to cap parse-time memory; ctx.rewind(mark) will throw
+    // if the mark has been evicted from the retained window.
+    history?: number
+  }
   config?: {
     modify?: {
       [plugin_name: string]: (config: Config, options: Options) => void
@@ -424,6 +431,7 @@ export type Context = {
   }
   xs: Tin // Lex state tin.
   v: Token[] // Stack of consumed tokens (newest at top), used for rewind.
+  vAbs: number // Absolute count of pushed-not-rewound tokens; mark/rewind key.
   v2: Token // Previous previous token (alias of v[v.length - 2]).
   v1: Token // Previous token (alias of v[v.length - 1]).
   t: Token[] // Lookahead buffer; t[i] is NOTOKEN if unfetched.
@@ -659,6 +667,10 @@ export type Config = {
 
   result: {
     fail: any[]
+  }
+
+  rewind: {
+    history: number
   }
 
   error: { [code: string]: string }
