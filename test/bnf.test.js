@@ -422,6 +422,114 @@ describe('bnf', () => {
   })
 
 
+  // Indirect left recursion (cycles through at least one intermediate
+  // rule) is not handled by the static rewrite in
+  // `eliminateLeftRecursion`. The tests below pin the desired
+  // behaviour once the k+sI runtime guard from the feasibility doc
+  // is wired in: legal inputs parse, illegal ones reject, and the
+  // parser never loops. Each test has an explicit timeout so a
+  // runaway parse is reported as a failure rather than hanging CI.
+  //
+  // Until the guard is implemented, these tests are expected to
+  // fail (they fall through the current emitter and either throw
+  // on convert, throw "unexpected" on parse, or — without the
+  // timeout — spin forever).
+  describe('indirect left recursion (runtime guard)', () => {
+
+    const INDIRECT_2 = '<p> ::= <q> "x"\n<q> ::= <p> "y" | "z"'
+    const INDIRECT_3 =
+      '<a> ::= <b> "1"\n<b> ::= <c> "2"\n<c> ::= <a> "3" | "x"'
+
+
+    it('two-rule cycle: accepts shortest seed derivation', { timeout: 2000 }, () => {
+      const j = Jsonic.make()
+      j.bnf(INDIRECT_2)
+      // p = q x ; q = z  → "z x"
+      assert.doesNotThrow(() => j('z x'))
+    })
+
+
+    it('two-rule cycle: accepts one-step unfold', { timeout: 2000 }, () => {
+      const j = Jsonic.make()
+      j.bnf(INDIRECT_2)
+      // q = p y = (z x) y  ⇒  p = q x = z x y x
+      assert.doesNotThrow(() => j('z x y x'))
+    })
+
+
+    it('two-rule cycle: accepts two-step unfold', { timeout: 2000 }, () => {
+      const j = Jsonic.make()
+      j.bnf(INDIRECT_2)
+      // p = z x y x y x (iterate once more)
+      assert.doesNotThrow(() => j('z x y x y x'))
+    })
+
+
+    it('two-rule cycle: rejects input missing required trailing x', { timeout: 2000 }, () => {
+      const j = Jsonic.make()
+      j.bnf(INDIRECT_2)
+      assert.throws(() => j('z'), /unexpected/)
+    })
+
+
+    it('two-rule cycle: rejects input starting on the wrong seed', { timeout: 2000 }, () => {
+      const j = Jsonic.make()
+      j.bnf(INDIRECT_2)
+      // "y x" has no legal derivation — must be preceded by q's seed.
+      assert.throws(() => j('y x'), /unexpected/)
+    })
+
+
+    it('two-rule cycle: does not infinite-loop on a malformed prefix', { timeout: 2000 }, () => {
+      // The test's own timeout is the safety net: the guard must
+      // terminate the parse attempt even when no legal derivation
+      // exists for the input.
+      const j = Jsonic.make()
+      j.bnf(INDIRECT_2)
+      assert.throws(() => j('w'), /unexpected/)
+    })
+
+
+    it('three-rule cycle: accepts shortest seed derivation', { timeout: 2000 }, () => {
+      const j = Jsonic.make()
+      j.bnf(INDIRECT_3)
+      // c = x ; b = x 2 ; a = x 2 1
+      assert.doesNotThrow(() => j('x 2 1'))
+    })
+
+
+    it('three-rule cycle: accepts one-step unfold', { timeout: 2000 }, () => {
+      const j = Jsonic.make()
+      j.bnf(INDIRECT_3)
+      // c = a 3 = (x 2 1) 3 ; b = x 2 1 3 2 ; a = x 2 1 3 2 1
+      assert.doesNotThrow(() => j('x 2 1 3 2 1'))
+    })
+
+
+    it('three-rule cycle: rejects premature stop', { timeout: 2000 }, () => {
+      const j = Jsonic.make()
+      j.bnf(INDIRECT_3)
+      assert.throws(() => j('x 2'), /unexpected/)
+    })
+
+
+    it('indirect cycle alongside a direct seed still parses correctly', { timeout: 2000 }, () => {
+      // `a` has its own seed `"init"`, so the indirect cycle
+      // (a → b → a) is only exercised for `b`-starting inputs.
+      const src =
+        '<a> ::= <b> "x" | "init"\n' +
+        '<b> ::= <a> "y" | "z"'
+      const j = Jsonic.make()
+      j.bnf(src)
+      assert.doesNotThrow(() => j('init'))    // a's direct seed
+      assert.doesNotThrow(() => j('z x'))     // through b's seed
+      assert.doesNotThrow(() => j('init y x')) // a-seed, then b-y, then a-x
+      assert.throws(() => j('z'), /unexpected/)
+    })
+
+  })
+
+
   describe('jsonic.bnf()', () => {
 
     it('installs grammar and parses matching input', () => {
