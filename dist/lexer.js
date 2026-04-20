@@ -179,7 +179,16 @@ let makeMatchMatcher = (cfg, _opts) => {
         }
         for (let tokenMatcher of tokenMatchers) {
             // Only match Token if present in Rule sequence.
+            // Exception: an `eager$` flag on the matcher opts out of
+            // tcol gating — the matcher fires whenever its regex matches
+            // and the downstream parser rejects tokens it doesn't expect
+            // at the current position. This is what ABNF's
+            // case-insensitive literals need: the lexer has to emit the
+            // literal's own tin even when the current rule's tcol is
+            // narrower, so the next rule up the stack can see the token
+            // as its proper type rather than falling through to #TX.
             if (tokenMatcher.tin$ &&
+                !tokenMatcher.eager$ &&
                 !rule.spec.def.tcol[oc][tI].includes(tokenMatcher.tin$)) {
                 continue;
             }

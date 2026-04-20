@@ -2,6 +2,7 @@ import type { BnfConvertOptions, GrammarSpec, Rule } from './types';
 type BnfElement = {
     kind: 'term';
     literal: string;
+    caseSensitive?: boolean;
 } | {
     kind: 'ref';
     name: string;

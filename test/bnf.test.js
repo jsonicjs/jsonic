@@ -54,10 +54,11 @@ describe('bnf', () => {
       assert.deepEqual(stripActions(spec.rule.__start__.close), [
         { s: '#ZZ', g: 'bnf' },
       ])
-      assert.deepEqual(spec.options.fixed.token, {
-        '#HI': 'hi',
-        '#HELLO': 'hello',
-      })
+      // Case-insensitive ABNF strings emit as match.token regexes
+      // (with the `i` flag), not fixed tokens.
+      assert.deepEqual(spec.options.fixed.token, {})
+      assert.ok(spec.options.match.token['#HI'] instanceof RegExp)
+      assert.ok(spec.options.match.token['#HELLO'] instanceof RegExp)
       assert.deepEqual(stripActions(spec.rule.greet.open), [
         { s: '#HI', g: 'bnf' },
         { s: '#HELLO', g: 'bnf' },
@@ -332,6 +333,56 @@ describe('bnf', () => {
       assert.doesNotThrow(() => j('1'))
       assert.doesNotThrow(() => j('12345'))
       assert.throws(() => j('abc'), /unexpected/)
+    })
+
+  })
+
+
+  describe('ABNF case-insensitive strings', () => {
+
+    it('bare "foo" matches in any case (ABNF default)', () => {
+      const j = Jsonic.make()
+      j.bnf('g = "GET"')
+      assert.doesNotThrow(() => j('GET'))
+      assert.doesNotThrow(() => j('get'))
+      assert.doesNotThrow(() => j('Get'))
+      assert.doesNotThrow(() => j('gEt'))
+    })
+
+
+    it('%s"foo" forces a case-sensitive match', () => {
+      const j = Jsonic.make()
+      j.bnf('g = %s"GET"')
+      assert.doesNotThrow(() => j('GET'))
+      assert.throws(() => j('get'), /unexpected/)
+      assert.throws(() => j('Get'), /unexpected/)
+    })
+
+
+    it('%i"foo" is the explicit form of the default', () => {
+      const j = Jsonic.make()
+      j.bnf('g = %i"GET"')
+      assert.doesNotThrow(() => j('GET'))
+      assert.doesNotThrow(() => j('get'))
+    })
+
+
+    it('literal with no letters is case-independent regardless', () => {
+      const j = Jsonic.make()
+      j.bnf('g = "+"')
+      assert.doesNotThrow(() => j('+'))
+    })
+
+
+    it('sensitive and insensitive variants of the same literal are distinct', () => {
+      // %s"foo" (sensitive) only matches "foo" exactly; "foo"
+      // (insensitive) accepts any case. Both should coexist.
+      const j = Jsonic.make()
+      j.bnf('g = %s"foo" / "BAR"')
+      assert.doesNotThrow(() => j('foo'))
+      assert.throws(() => j('FOO'), /unexpected/)  // sensitive
+      assert.doesNotThrow(() => j('bar'))         // insensitive
+      assert.doesNotThrow(() => j('BAR'))
     })
 
 
@@ -655,7 +706,8 @@ describe('bnf', () => {
       const j = Jsonic.make()
       const spec = j.bnf('g = "x"')
       assert.equal(spec.options.rule.start, '__start__')
-      assert.equal(spec.options.fixed.token['#X'], 'x')
+      // Case-insensitive literal emits as a match.token regex.
+      assert.ok(spec.options.match.token['#X'] instanceof RegExp)
     })
 
 
@@ -702,10 +754,10 @@ describe('bnf', () => {
       // CLI output serialises actions as FuncRef strings; only assert
       // that the dispatch to the user's start rule is in place.
       assert.equal(out.rule.__start__.open[0].p, 'greet')
-      assert.deepEqual(out.options.fixed.token, {
-        '#HI': 'hi',
-        '#HELLO': 'hello',
-      })
+      // Case-insensitive literals appear in match.token after
+      // JSON serialisation as the RegExp's stringified form.
+      assert.deepEqual(Object.keys(out.options.match.token).sort(),
+        ['#HELLO', '#HI'])
     })
 
 

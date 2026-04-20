@@ -10,13 +10,12 @@ exports.eliminateLeftRecursion = eliminateLeftRecursion;
 // jsonic rules. Each rule names its `open`/`close` alt list and, where
 // necessary, a `bo`/`bc` state hook for AST assembly.
 //
-// Stage 6: ABNF numeric value notation now works alongside the
-// quoted-string terminal. `%xNN` / `%dNN` / `%bNN` denote a single
-// code point in hex / decimal / binary; a `-` separator turns the
-// form into a character range (`%x30-39`); a `.` separator turns
-// it into a concatenation of code points (`%x66.6f.6f` = "foo").
-// Ranges desugar to a regex character class; concatenations and
-// single values desugar to plain string terminals.
+// Stage 7: quoted-string terminals now match case-insensitively by
+// default, matching RFC 5234 semantics. `%s"foo"` forces a
+// case-sensitive match; `%i"foo"` explicitly requests the default
+// (case-insensitive) behaviour. ABNF numeric values, repetition
+// prefixes, alternation, grouping, optional brackets, and `;`
+// comments are all in place.
 //
 // Token vocabulary:
 //   #DEF   `=` (rule-definition operator)
@@ -24,6 +23,8 @@ exports.eliminateLeftRecursion = eliminateLeftRecursion;
 //   #STAR  `*` (repetition separator)
 //   #NUM   decimal repetition count (matched via match.token)
 //   #NV    `%[xdb]NN[(-NN|(.NN)*)]` numeric value (match.token)
+//   #SS    `%s` (case-sensitive string prefix)
+//   #SI    `%i` (case-insensitive string prefix — same as default)
 //   #LP    `(`
 //   #RP    `)`
 //   #OB    `[` (optional-group open)
@@ -39,7 +40,8 @@ exports.eliminateLeftRecursion = eliminateLeftRecursion;
 //   seq        = element*
 //   element    = repetition? atom
 //   repetition = NUM '*' NUM / NUM '*' / '*' NUM / '*' / NUM
-//   atom       = IDENT | STRING | NUMVAL | '(' alts ')' | '[' alts ']'
+//   atom       = IDENT | STRING | ['%s' | '%i'] STRING | NUMVAL
+//              | '(' alts ')' | '[' alts ']'
 //   numval     = '%' ('x' / 'd' / 'b') DIGITS [ '-' DIGITS | ('.' DIGITS)* ]
 const bnfRules = {
     // Top-level: accumulates productions into r.node.
@@ -109,6 +111,8 @@ const bnfRules = {
             // tcol-driven matcher considers each one when lexing.
             { s: '#ST', b: 1, p: 'elem' },
             { s: '#NV', b: 1, p: 'elem' },
+            { s: '#SS', b: 1, p: 'elem' },
+            { s: '#SI', b: 1, p: 'elem' },
             { s: '#TX', b: 1, p: 'elem' },
             { s: '#LP', b: 1, p: 'elem' },
             { s: '#OB', b: 1, p: 'elem' },
@@ -124,6 +128,8 @@ const bnfRules = {
             { s: '#CB', b: 1, g: 'end' },
             { s: '#ST', b: 1, p: 'elem' },
             { s: '#NV', b: 1, p: 'elem' },
+            { s: '#SS', b: 1, p: 'elem' },
+            { s: '#SI', b: 1, p: 'elem' },
             { s: '#TX', b: 1, p: 'elem' },
             { s: '#LP', b: 1, p: 'elem' },
             { s: '#OB', b: 1, p: 'elem' },
@@ -224,6 +230,26 @@ const bnfRules = {
     atom: {
         bo: (r) => { r.node = undefined; },
         open: [
+            // Case-sensitive string:   %s"foo"
+            {
+                s: '#SS #ST',
+                a: (r) => {
+                    r.node = {
+                        kind: 'term',
+                        literal: r.o[1].val,
+                        caseSensitive: true,
+                    };
+                },
+            },
+            // Case-insensitive string: %i"foo" (same as bare "foo" below,
+            // but spelled explicitly).
+            {
+                s: '#SI #ST',
+                a: (r) => {
+                    r.node = { kind: 'term', literal: r.o[1].val };
+                },
+            },
+            // Bare quoted string — case-insensitive per ABNF default.
             {
                 s: '#ST',
                 a: (r) => {
@@ -282,6 +308,8 @@ const bnfRules = {
             { s: '#TX', b: 1 },
             { s: '#ST', b: 1 },
             { s: '#NV', b: 1 },
+            { s: '#SS', b: 1 },
+            { s: '#SI', b: 1 },
             { s: '#NUM', b: 1 },
             { s: '#STAR', b: 1 },
             { s: '#LP', b: 1 },
@@ -338,6 +366,10 @@ function getBnfParser() {
                 // subsets); `parseNumericValue` re-validates against the
                 // actual base.
                 '#NV': /^%[xdbXDB][0-9a-fA-F]+(?:[-.][0-9a-fA-F]+)*/,
+                // `%s` / `%i` prefixes on a quoted string. The lookahead
+                // requires `"` so they don't steal the `%` of `%xNN`.
+                '#SS': /^%[sS](?=")/,
+                '#SI': /^%[iI](?=")/,
             },
         },
         tokenSet: {
@@ -346,7 +378,7 @@ function getBnfParser() {
             // — that way the tcol at the atom-starter position includes
             // every matcher tin (notably #NV), so the lexer doesn't fall
             // through to #TX when the actual atom is `%xNN`.
-            ATOM: ['#ST', '#NV', '#TX', '#LP', '#OB'],
+            ATOM: ['#ST', '#NV', '#TX', '#LP', '#OB', '#SS', '#SI'],
         },
         comment: {
             // ABNF uses `;` to start a line comment. Override jsonic's
@@ -688,8 +720,10 @@ function emitGrammarSpec(grammar, opts) {
     grammar = eliminateLeftRecursion(grammar);
     grammar = desugar(grammar);
     // Allocate a fixed token for each unique literal, and a match
-    // token for each unique regex terminal.
-    const literals = new Map(); // literal -> token name
+    // token for each unique regex terminal. Literals are keyed by
+    // (literal, effective-case-sensitivity) so a `%s"foo"` (sensitive)
+    // and a bare `"foo"` (insensitive) produce distinct tokens.
+    const literals = new Map(); // literal-key -> token name
     const regexTokens = new Map(); // regex key -> token name
     const usedNames = new Set();
     const fixedTokens = {};
@@ -697,10 +731,28 @@ function emitGrammarSpec(grammar, opts) {
     for (const prod of grammar.productions) {
         for (const alt of prod.alts) {
             for (const el of alt) {
-                if (el.kind === 'term' && !literals.has(el.literal)) {
-                    const name = allocTokenName(el.literal, usedNames);
-                    literals.set(el.literal, name);
-                    fixedTokens[name] = el.literal;
+                if (el.kind === 'term') {
+                    const key = termKey(el);
+                    if (!literals.has(key)) {
+                        const name = allocTokenName(el.literal, usedNames);
+                        literals.set(key, name);
+                        if (isEffectivelyCaseSensitive(el)) {
+                            fixedTokens[name] = el.literal;
+                        }
+                        else {
+                            // Insensitive literal with at least one letter — emit
+                            // as an anchored regex with the `i` flag. Mark the
+                            // matcher `eager$` so jsonic's lexer fires it even
+                            // when the current rule's tcol doesn't list its tin
+                            // — without that, the default text matcher would eat
+                            // the literal as #TX inside a narrower context (e.g.
+                            // a star helper) before the outer rule gets a chance
+                            // to recognise it.
+                            const re = new RegExp('^' + escapeRegExp(el.literal), 'i');
+                            re.eager$ = true;
+                            matchTokens[name] = re;
+                        }
+                    }
                 }
                 else if (el.kind === 'regex') {
                     const key = regexKey(el);
@@ -777,7 +829,7 @@ function segmentize(alt, literals, regexTokens) {
     let current = { terms: [], ref: null };
     for (const el of alt) {
         if (el.kind === 'term') {
-            current.terms.push(literals.get(el.literal));
+            current.terms.push(literals.get(termKey(el)));
         }
         else if (el.kind === 'regex') {
             const key = regexKey(el);
@@ -1062,7 +1114,7 @@ function computeFirstSets(grammar, literals, regexTokens) {
                 for (const el of alt) {
                     if (el.kind === 'term' || el.kind === 'regex') {
                         const tok = el.kind === 'term'
-                            ? literals.get(el.literal)
+                            ? literals.get(termKey(el))
                             : regexTokens.get(regexKey(el));
                         if (!first.has(tok)) {
                             first.add(tok);
@@ -1105,7 +1157,7 @@ function firstOfAlt(alt, literals, regexTokens, firstSets, nullable) {
     for (const el of alt) {
         if (el.kind === 'term' || el.kind === 'regex') {
             const tok = el.kind === 'term'
-                ? literals.get(el.literal)
+                ? literals.get(termKey(el))
                 : regexTokens.get(regexKey(el));
             out.add(tok);
             return out;
@@ -1157,7 +1209,7 @@ function altLiteralPrefix(alt, grammar, literals, regexTokens, visited) {
     const out = [];
     for (const el of alt) {
         if (el.kind === 'term') {
-            out.push(literals.get(el.literal));
+            out.push(literals.get(termKey(el)));
         }
         else if (el.kind === 'regex') {
             out.push(regexTokens.get(regexKey(el)));
@@ -1195,7 +1247,7 @@ function altPrefixesRaw(alt, grammar, literals, regexTokens, maxK, visited = new
             }
             if (el.kind === 'term') {
                 next.push({
-                    tokens: [...p.tokens, literals.get(el.literal)],
+                    tokens: [...p.tokens, literals.get(termKey(el))],
                     done: false,
                 });
             }
@@ -1252,6 +1304,25 @@ function altPrefixes(alt, grammar, literals, regexTokens, maxK) {
         }
     }
     return out;
+}
+// A quoted-string literal is effectively case-sensitive either
+// when the user explicitly wrote `%s"…"` or when it contains no
+// ASCII letters (there's nothing to fold — `"+"` matches `+` in
+// any "case").
+function isEffectivelyCaseSensitive(el) {
+    if (el.caseSensitive === true)
+        return true;
+    return !/[A-Za-z]/.test(el.literal);
+}
+// Map a term element to the key used to look up (or allocate) its
+// emitted token. The key folds together the literal and its
+// effective case-sensitivity so a sensitive and an insensitive
+// occurrence of the same string are distinct tokens.
+function termKey(el) {
+    return (isEffectivelyCaseSensitive(el) ? 'cs:' : 'ci:') + el.literal;
+}
+function escapeRegExp(s) {
+    return s.replace(/[\\^$.*+?()[\]{}|]/g, '\\$&');
 }
 // Decode an ABNF numeric value (`%xNN`, `%dNN`, `%bNN`, or one of
 // the range/concatenation forms) into a `BnfElement`.
