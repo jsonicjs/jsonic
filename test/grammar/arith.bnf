@@ -1,5 +1,5 @@
-# Arithmetic grammar, stratified to avoid left recursion.
-# Single-digit numbers only until ABNF %x ranges arrive.
+; Arithmetic grammar, stratified to avoid left recursion.
+; Single-digit numbers only until ABNF %x ranges arrive.
 expr   = term *("+" term / "-" term)
 term   = factor *("*" factor / "/" factor)
 factor = "(" expr ")" / digit

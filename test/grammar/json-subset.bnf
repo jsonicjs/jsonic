@@ -1,6 +1,6 @@
-# Minimal JSON-like subset: digits, nested objects, arrays.
-# Names / strings are simplified to single-letter terminals until
-# ABNF %x ranges arrive.
+; Minimal JSON-like subset: digits, nested objects, arrays.
+; Names / strings are simplified to single-letter terminals until
+; ABNF %x ranges arrive.
 value  = digit / letter / object / array
 object = "{" [ member *("," member) ] "}"
 member = letter ":" value

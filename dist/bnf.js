@@ -309,6 +309,17 @@ function getBnfParser() {
                 '#NUM': /^[0-9]+/,
             },
         },
+        comment: {
+            // ABNF uses `;` to start a line comment. Override jsonic's
+            // default `hash` definition (which used `#`) and disable the
+            // other comment styles so `//` and `/* */` aren't confused
+            // with the alternation operator.
+            def: {
+                hash: { line: true, start: ';', lex: true, eatline: false },
+                slash: null,
+                multi: null,
+            },
+        },
     });
     // Drop the default JSON rules — they would otherwise compete with
     // ours for the starting token set.

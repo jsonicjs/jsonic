@@ -125,7 +125,7 @@ describe('bnf', () => {
 
 
     it('rejects source with no productions', () => {
-      assert.throws(() => bnf('# just a comment\n'), /no productions/)
+      assert.throws(() => bnf('; just a comment\n'), /no productions/)
     })
 
 
@@ -187,8 +187,8 @@ describe('bnf', () => {
     })
 
 
-    it('ignores hash comments', () => {
-      const g = parseBnf('# top comment\ngreet = "hi" # trailing\n')
+    it('ignores semicolon comments', () => {
+      const g = parseBnf('; top comment\ngreet = "hi" ; trailing\n')
       assert.deepEqual(g.productions[0].alts, [
         [{ kind: 'term', literal: 'hi' }],
       ])
