@@ -5,4 +5,3 @@ expr   = expr "+" term / expr "-" term / term
 term   = term "*" factor / term "/" factor / factor
 factor = "(" expr ")" / number
 number = 1*DIGIT
-DIGIT  = %x30-39

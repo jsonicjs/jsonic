@@ -843,7 +843,87 @@ function parseBnf(src: string): BnfGrammar {
   if (!Array.isArray(productions) || productions.length === 0) {
     throw new BnfParseError('bnf: no productions found')
   }
-  return { productions: mergeIncrementals(productions) }
+  const merged = mergeIncrementals(productions)
+  return { productions: withCoreRules(merged) }
+}
+
+
+// RFC 5234 Appendix B.1 core rules. Parsed lazily on first use
+// and spliced into any user grammar that references them but
+// doesn't define them locally.
+const CORE_RULES_ABNF = `
+ALPHA  = %x41-5A / %x61-7A
+BIT    = "0" / "1"
+CHAR   = %x01-7F
+CR     = %x0D
+LF     = %x0A
+CRLF   = CR LF
+CTL    = %x00-1F / %x7F
+DIGIT  = %x30-39
+DQUOTE = %x22
+HEXDIG = DIGIT / "A" / "B" / "C" / "D" / "E" / "F"
+HTAB   = %x09
+OCTET  = %x00-FF
+SP     = %x20
+VCHAR  = %x21-7E
+WSP    = SP / HTAB
+`
+
+let _coreRules: Map<string, BnfProduction> | null = null
+
+function getCoreRules(): Map<string, BnfProduction> {
+  if (_coreRules) return _coreRules
+  const parser = getBnfParser()
+  const raw = parser(CORE_RULES_ABNF) as BnfProduction[]
+  _coreRules = new Map(raw.map((p) => [p.name, p]))
+  return _coreRules
+}
+
+
+function refsIn(alt: BnfSequence, out: Set<string>): void {
+  for (const el of alt) {
+    if (el.kind === 'ref') out.add(el.name)
+    else if (el.kind === 'opt' || el.kind === 'star' ||
+             el.kind === 'plus' || el.kind === 'rep') {
+      refsIn([el.inner], out)
+    } else if (el.kind === 'group') {
+      for (const a of el.alts) refsIn(a, out)
+    }
+  }
+}
+
+
+// Add each RFC 5234 core rule that the user's grammar references
+// but doesn't define locally. Resolution is transitive: if the
+// user mentions HEXDIG, DIGIT is pulled in too. User definitions
+// always win — a local `DIGIT = …` is left untouched.
+function withCoreRules(user: BnfProduction[]): BnfProduction[] {
+  const core = getCoreRules()
+  const defined = new Set(user.map((p) => p.name))
+  const needed = new Set<string>()
+
+  const scan = (prods: BnfProduction[]) => {
+    for (const p of prods) {
+      for (const alt of p.alts) refsIn(alt, needed)
+    }
+  }
+
+  scan(user)
+  const out: BnfProduction[] = []
+  // Transitively add core rules, in declaration order.
+  let added = true
+  while (added) {
+    added = false
+    for (const [name, prod] of core) {
+      if (defined.has(name)) continue
+      if (!needed.has(name)) continue
+      defined.add(name)
+      out.push(prod)
+      scan([prod])
+      added = true
+    }
+  }
+  return [...user, ...out]
 }
 
 

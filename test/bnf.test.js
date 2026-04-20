@@ -473,6 +473,62 @@ describe('bnf', () => {
       assert.doesNotThrow(() => jverb('POST'))
     })
 
+  })
+
+
+  describe('ABNF core rules (RFC 5234 Appendix B.1)', () => {
+
+    it('DIGIT is auto-included when referenced', () => {
+      const j = Jsonic.make()
+      j.bnf('number = 1*DIGIT')
+      assert.doesNotThrow(() => j('12345'))
+      assert.throws(() => j('abc'), /unexpected/)
+    })
+
+
+    it('ALPHA matches upper and lower letters', () => {
+      const j = Jsonic.make()
+      j.bnf('word = 1*ALPHA')
+      assert.doesNotThrow(() => j('hello'))
+      assert.doesNotThrow(() => j('WORLD'))
+      assert.doesNotThrow(() => j('MixedCase'))
+      assert.throws(() => j('123'), /unexpected/)
+    })
+
+
+    it('HEXDIG transitively pulls in DIGIT', () => {
+      const j = Jsonic.make()
+      j.bnf('hex = 1*HEXDIG')
+      assert.doesNotThrow(() => j('DEADBEEF'))
+      assert.doesNotThrow(() => j('12AB'))
+      assert.throws(() => j('xyz'), /unexpected/)
+    })
+
+
+    it('BIT matches 0 or 1', () => {
+      const j = Jsonic.make()
+      j.bnf('bits = 1*BIT')
+      assert.doesNotThrow(() => j('0101'))
+      assert.throws(() => j('012'), /unexpected/)
+    })
+
+
+    it('user can override a core rule', () => {
+      // Locally redefining DIGIT as "only odd digits" wins over
+      // the core definition.
+      const j = Jsonic.make()
+      j.bnf('number = 1*DIGIT\nDIGIT = "1" / "3" / "5" / "7" / "9"')
+      assert.doesNotThrow(() => j('135'))
+      assert.throws(() => j('246'), /unexpected/)
+    })
+
+
+    it('a grammar that references nothing from the core library has no core rules added', () => {
+      const { parseBnf } = require('../dist/bnf')
+      const g = parseBnf('g = "a" / "b"')
+      assert.deepEqual(g.productions.map((p) => p.name), ['g'])
+    })
+
 
     it('grouping selects among alternatives', () => {
       const j = Jsonic.make()

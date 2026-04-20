@@ -1,7 +1,7 @@
 ; Arithmetic grammar, stratified to avoid left recursion.
-; Multi-digit numbers using ABNF %x range.
+; Uses the RFC 5234 core rule DIGIT — auto-included by the
+; converter when referenced but not locally defined.
 expr   = term *("+" term / "-" term)
 term   = factor *("*" factor / "/" factor)
 factor = "(" expr ")" / number
 number = 1*DIGIT
-DIGIT  = %x30-39
