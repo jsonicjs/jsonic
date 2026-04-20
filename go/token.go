@@ -77,8 +77,18 @@ func (t *Token) IsNoToken() bool {
 	return t.Tin == -1
 }
 
-// ResolveVal returns the token's value (or src for numbers used as keys).
-func (t *Token) ResolveVal() any {
+// TokenValFunc is the signature for a lazy token value. When Token.Val is
+// set to a TokenValFunc, ResolveVal invokes it with the current rule and
+// context to produce the value at parse time. Mirrors TS src/lexer.ts:115.
+type TokenValFunc func(r *Rule, ctx *Context) any
+
+// ResolveVal returns the token's value. If Val is a TokenValFunc, it is
+// invoked with the current rule and context; otherwise Val is returned as-is.
+// The (r, ctx) arguments may be nil when the caller has no rule/context.
+func (t *Token) ResolveVal(r *Rule, ctx *Context) any {
+	if fn, ok := t.Val.(TokenValFunc); ok {
+		return fn(r, ctx)
+	}
 	return t.Val
 }
 

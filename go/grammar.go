@@ -66,7 +66,7 @@ func buildGrammar(rsm map[string]*RuleSpec, cfg *LexConfig) {
 					if r.OS == 0 {
 						r.Node = Undefined
 					} else {
-						val := r.O0.ResolveVal()
+						val := r.O0.ResolveVal(r, ctx)
 						// A nil value from a non-value token (e.g. #CS, #CB)
 						// means "no value", not "null". Keep Undefined to match
 						// TS where resolveVal returns undefined for such tokens.
