@@ -31,11 +31,12 @@ import type { BnfConvertOptions, GrammarSpec, Rule } from './types'
 type BnfElement =
   | { kind: 'term'; literal: string }
   | { kind: 'ref'; name: string }
-  | { kind: 'regex'; pattern: string; flags: string }  // /…/flags
-  | { kind: 'opt'; inner: BnfElement }     // X?
-  | { kind: 'star'; inner: BnfElement }    // X*
-  | { kind: 'plus'; inner: BnfElement }    // X+
-  | { kind: 'group'; alts: BnfSequence[] } // ( A | B )
+  | { kind: 'regex'; pattern: string; flags: string }  // internal: for future %x
+  | { kind: 'opt'; inner: BnfElement }     // [ A ]
+  | { kind: 'star'; inner: BnfElement }    // *A
+  | { kind: 'plus'; inner: BnfElement }    // 1*A
+  | { kind: 'rep'; min: number; max: number; inner: BnfElement } // m*nA
+  | { kind: 'group'; alts: BnfSequence[] } // ( A / B )
 
 type BnfSequence = BnfElement[]
 
@@ -53,17 +54,16 @@ type BnfGrammar = {
 // jsonic rules. Each rule names its `open`/`close` alt list and, where
 // necessary, a `bo`/`bc` state hook for AST assembly.
 //
-// Stage 3 of the move toward RFC 5234 ABNF: rule headers use
-// `name = rhs`, alternation is `/`, and optional is now the ABNF
-// bracket form `[ alts ]`. Repetition and comment operators are
-// still BNF-style (`*`/`+` postfix, `#` comment); later stages
-// replace them with `m*n` prefix and `;` comment.
+// Stage 4 of the move toward RFC 5234 ABNF: the repetition
+// operator is now the prefix form `*A`, `1*A`, `m*nA`, `*nA`,
+// `m*A`, or `nA`. The BNF postfix forms `A*` and `A+` are gone.
+// Only the comment marker (`#`) is still pending conversion.
 //
 // Token vocabulary:
 //   #DEF   `=` (rule-definition operator)
 //   #ALT   `/` (alternation)
-//   #STAR  `*` (zero-or-more postfix — temporary)
-//   #PLUS  `+` (one-or-more postfix — temporary)
+//   #STAR  `*` (repetition separator)
+//   #NUM   decimal repetition count (matched via match.token)
 //   #LP    `(`
 //   #RP    `)`
 //   #OB    `[` (optional-group open)
@@ -77,9 +77,9 @@ type BnfGrammar = {
 //   production = IDENT '=' alts
 //   alts       = seq ('/' seq)*
 //   seq        = element*
-//   element    = atom postfix?
+//   element    = repetition? atom
+//   repetition = NUM '*' NUM / NUM '*' / '*' NUM / '*' / NUM
 //   atom       = IDENT | STRING | '(' alts ')' | '[' alts ']'
-//   postfix    = '*' | '+'      ; ABNF optional is the bracket form
 const bnfRules: Record<
   string,
   {
@@ -161,6 +161,8 @@ const bnfRules: Record<
       { s: '#TX', b: 1, p: 'elem' },
       { s: '#LP', b: 1, p: 'elem' },
       { s: '#OB', b: 1, p: 'elem' },
+      { s: '#STAR', b: 1, p: 'elem' },
+      { s: '#NUM', b: 1, p: 'elem' },
       { p: 'elem' },
     ],
     close: [
@@ -173,28 +175,104 @@ const bnfRules: Record<
       { s: '#TX', b: 1, p: 'elem' },
       { s: '#LP', b: 1, p: 'elem' },
       { s: '#OB', b: 1, p: 'elem' },
+      { s: '#STAR', b: 1, p: 'elem' },
+      { s: '#NUM', b: 1, p: 'elem' },
       { b: 1 },
     ],
   },
 
-  // One element: an atom (bare identifier ref, quoted string
-  // terminal, parenthesised group `( alts )`, or optional group
-  // `[ alts ]`), optionally followed by a postfix operator (`*`,
-  // `+`). The atom is stashed on `r.u.atom`; `r.u.groupKind`
-  // records whether we pushed a group vs an optional so the close
-  // state knows which terminator to expect.
+  // One element: an optional ABNF repetition prefix (`*A`, `1*A`,
+  // `m*nA`, `*nA`, `m*A`, `nA`) followed by an atom. The prefix is
+  // matched up front, stored on `r.u.min`/`r.u.max`; then `atom` is
+  // pushed to parse the actual element body, whose result is wrapped
+  // into an AST node and appended to the parent seq's array in close.
   elem: {
+    bo: (r) => { r.u.min = 1; r.u.max = 1 },
+    open: [
+      // NUM '*' NUM — bounded repetition.
+      {
+        s: '#NUM #STAR #NUM',
+        a: (r: Rule) => {
+          r.u.min = parseInt(r.o[0].src, 10)
+          r.u.max = parseInt(r.o[2].src, 10)
+        },
+        p: 'atom',
+      },
+      // NUM '*' — at-least-NUM repetition.
+      {
+        s: '#NUM #STAR',
+        a: (r: Rule) => {
+          r.u.min = parseInt(r.o[0].src, 10)
+          r.u.max = Infinity
+        },
+        p: 'atom',
+      },
+      // '*' NUM — at-most-NUM repetition.
+      {
+        s: '#STAR #NUM',
+        a: (r: Rule) => {
+          r.u.min = 0
+          r.u.max = parseInt(r.o[1].src, 10)
+        },
+        p: 'atom',
+      },
+      // '*' — zero-or-more.
+      {
+        s: '#STAR',
+        a: (r: Rule) => { r.u.min = 0; r.u.max = Infinity },
+        p: 'atom',
+      },
+      // NUM — exact repetition count.
+      {
+        s: '#NUM',
+        a: (r: Rule) => {
+          const n = parseInt(r.o[0].src, 10)
+          r.u.min = n
+          r.u.max = n
+        },
+        p: 'atom',
+      },
+      // No prefix — push atom directly (min = max = 1).
+      { p: 'atom' },
+    ],
+    close: [{
+      // Wrap the returned atom (r.child.node) based on r.u.min/max
+      // and append to the parent seq's array.
+      a: (r: Rule) => {
+        const item = r.child.node
+        const { min, max } = r.u
+        if (min === 1 && max === 1) {
+          r.node.push(item)
+        } else if (min === 0 && max === Infinity) {
+          r.node.push({ kind: 'star', inner: item })
+        } else if (min === 1 && max === Infinity) {
+          r.node.push({ kind: 'plus', inner: item })
+        } else if (min === 0 && max === 1) {
+          r.node.push({ kind: 'opt', inner: item })
+        } else {
+          r.node.push({ kind: 'rep', min, max, inner: item })
+        }
+      },
+    }],
+  },
+
+  // The atom body — a bareword ref, quoted-string terminal,
+  // parenthesised group, or bracketed optional. Sets its OWN r.node
+  // to the AST element so the enclosing `elem` rule can read it
+  // from `r.child.node` in its close state.
+  atom: {
+    bo: (r) => { r.node = undefined },
     open: [
       {
         s: '#ST',
         a: (r: Rule) => {
-          r.u.atom = { kind: 'term', literal: r.o[0].val }
+          r.node = { kind: 'term', literal: r.o[0].val }
         },
       },
       {
         s: '#TX',
         a: (r: Rule) => {
-          r.u.atom = { kind: 'ref', name: r.o[0].val }
+          r.node = { kind: 'ref', name: r.o[0].val }
         },
       },
       {
@@ -209,89 +287,43 @@ const bnfRules: Record<
       },
     ],
     close: [
-      // `( alts )` followed by postfix — two-token combos first so
-      // they beat the one-token RP alt below. Guarded with a
-      // condition to avoid matching a stray `)` in the simple-atom
-      // case.
-      {
-        s: '#RP #STAR',
-        c: (r: Rule) => r.u.groupKind === 'group',
-        a: (r: Rule) => {
-          r.node.push({
-            kind: 'star',
-            inner: { kind: 'group', alts: r.child.node },
-          })
-        },
-      },
-      {
-        s: '#RP #PLUS',
-        c: (r: Rule) => r.u.groupKind === 'group',
-        a: (r: Rule) => {
-          r.node.push({
-            kind: 'plus',
-            inner: { kind: 'group', alts: r.child.node },
-          })
-        },
-      },
-      // Plain group (no postfix).
       {
         s: '#RP',
         c: (r: Rule) => r.u.groupKind === 'group',
         a: (r: Rule) => {
-          r.node.push({ kind: 'group', alts: r.child.node })
+          r.node = { kind: 'group', alts: r.child.node }
         },
       },
-      // `[ alts ]` — ABNF optional. There is no postfix form for
-      // optional; the brackets are the whole notation.
       {
         s: '#CB',
         c: (r: Rule) => r.u.groupKind === 'opt',
         a: (r: Rule) => {
-          r.node.push({
+          r.node = {
             kind: 'opt',
             inner: { kind: 'group', alts: r.child.node },
-          })
+          }
         },
       },
-      // Simple atom + postfix.
-      {
-        s: '#STAR',
-        a: (r: Rule) => {
-          r.node.push({ kind: 'star', inner: r.u.atom })
-        },
-      },
-      {
-        s: '#PLUS',
-        a: (r: Rule) => {
-          r.node.push({ kind: 'plus', inner: r.u.atom })
-        },
-      },
-      // Simple atom, no postfix. These alts declare the "next atom"
-      // tokens so the lexer — which consults tcol — considers them
-      // when fetching the next token rather than falling through to
-      // generic text.
-      {
-        s: '#ST', b: 1,
-        a: (r: Rule) => { r.node.push(r.u.atom) },
-      },
-      {
-        s: '#TX', b: 1,
-        a: (r: Rule) => { r.node.push(r.u.atom) },
-      },
-      {
-        s: '#LP', b: 1,
-        a: (r: Rule) => { r.node.push(r.u.atom) },
-      },
-      {
-        s: '#OB', b: 1,
-        a: (r: Rule) => { r.node.push(r.u.atom) },
-      },
-      // Final fallback for end-of-sequence markers (`/`, `)`, `]`,
-      // `#ZZ`, or a production boundary).
-      {
-        b: 1,
-        a: (r: Rule) => { r.node.push(r.u.atom) },
-      },
+      // For simple atoms (string/ref), r.node is already set by
+      // open; we want to pop without consuming the next token.
+      // List every token that can legitimately follow an atom so
+      // the lexer's tcol-driven match-matcher emits #NUM, #STAR,
+      // and friends as their proper types here — otherwise the
+      // default number-matcher would lex `1` as #NR and the
+      // enclosing seq.close wouldn't recognise the digit as the
+      // start of a repetition prefix.
+      { s: '#TX', b: 1 },
+      { s: '#ST', b: 1 },
+      { s: '#NUM', b: 1 },
+      { s: '#STAR', b: 1 },
+      { s: '#LP', b: 1 },
+      { s: '#OB', b: 1 },
+      { s: '#RP', b: 1 },
+      { s: '#CB', b: 1 },
+      { s: '#ALT', b: 1 },
+      { s: '#DEF', b: 1 },
+      { s: '#ZZ', b: 1 },
+      { b: 1 },
     ],
   },
 }
@@ -323,9 +355,14 @@ function getBnfParser(): (src: string) => BnfProduction[] {
         '#DEF': '=',
         '#ALT': '/',
         '#STAR': '*',
-        '#PLUS': '+',
         '#LP': '(',
         '#RP': ')',
+      },
+    },
+    match: {
+      token: {
+        // ABNF repetition counts: decimal integers.
+        '#NUM': /^[0-9]+/,
       },
     },
   })
@@ -570,26 +607,71 @@ function desugar(grammar: BnfGrammar): BnfGrammar {
     }
 
     if (el.kind === 'star') {
-      // H ::= inner H | (empty)
+      // H = inner H / (empty)
       const name = freshName('star_' + hint)
       const selfRef: BnfElement = { kind: 'ref', name }
       extra.push({ name, alts: [[inner, selfRef], []] })
       return { kind: 'ref', name }
     }
 
-    // plus: H ::= inner Tail   where   Tail ::= inner Tail | (empty)
-    const tailName = freshName('star_' + hint)
-    const plusName = freshName('plus_' + hint)
-    const tailRef: BnfElement = { kind: 'ref', name: tailName }
-    extra.push({
-      name: tailName,
-      alts: [[inner, tailRef], []],
-    })
-    extra.push({
-      name: plusName,
-      alts: [[inner, tailRef]],
-    })
-    return { kind: 'ref', name: plusName }
+    if (el.kind === 'plus') {
+      // H = inner Tail   where   Tail = inner Tail / (empty)
+      const tailName = freshName('star_' + hint)
+      const plusName = freshName('plus_' + hint)
+      const tailRef: BnfElement = { kind: 'ref', name: tailName }
+      extra.push({
+        name: tailName,
+        alts: [[inner, tailRef], []],
+      })
+      extra.push({
+        name: plusName,
+        alts: [[inner, tailRef]],
+      })
+      return { kind: 'ref', name: plusName }
+    }
+
+    // ABNF m*n bounded repetition. Desugars to a concatenation of
+    // `min` mandatory copies of the inner element followed by a
+    // tail that accepts up to `(max - min)` more.
+    //   m*n A   =>   A{m}  [A[A[A...[A]]]]   (nested optionals)
+    //   m*  A   =>   A{m}  *A                 (mandatory prefix + star)
+    //   *n  A   =>   [A [A ... [A]]]          (n nested optionals)
+    // The helper's single alt has `min` repetitions of inner, then
+    // either a star-helper for (min, ∞) or `max - min` nested
+    // optionals for a finite range.
+    const { min, max } = el
+    const repName = freshName('rep_' + hint)
+    const repAlt: BnfSequence = []
+    for (let i = 0; i < min; i++) repAlt.push(inner)
+
+    if (max === Infinity) {
+      // Tail: unbounded star of inner.
+      const tailStarName = freshName('star_' + hint)
+      const tailStarRef: BnfElement = { kind: 'ref', name: tailStarName }
+      extra.push({
+        name: tailStarName,
+        alts: [[inner, tailStarRef], []],
+      })
+      repAlt.push(tailStarRef)
+    } else {
+      // Nest (max - min) optionals: [A [A [A ...]]].
+      let nested: BnfSequence = []
+      for (let i = 0; i < max - min; i++) {
+        // Wrap current `nested` into an optional and prepend `inner`.
+        if (nested.length === 0) {
+          nested = [{ kind: 'opt', inner: { kind: 'group', alts: [[inner]] } }]
+        } else {
+          nested = [{
+            kind: 'opt',
+            inner: { kind: 'group', alts: [[inner, ...nested]] },
+          }]
+        }
+      }
+      repAlt.push(...nested)
+    }
+
+    extra.push({ name: repName, alts: [desugarAlt(repAlt)] })
+    return { kind: 'ref', name: repName }
   }
 
   const rewritten: BnfProduction[] = grammar.productions.map((p) => ({

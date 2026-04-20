@@ -19,6 +19,11 @@ type BnfElement = {
     kind: 'plus';
     inner: BnfElement;
 } | {
+    kind: 'rep';
+    min: number;
+    max: number;
+    inner: BnfElement;
+} | {
     kind: 'group';
     alts: BnfSequence[];
 };

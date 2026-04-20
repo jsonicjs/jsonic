@@ -1,6 +1,6 @@
 # Same arithmetic language as arith.bnf, in the natural
 # left-recursive form. The converter rewrites direct left recursion
-# automatically (P = P a / b  =>  P = b (a)*).
+# automatically (P = P a / b  =>  P = b *(a)).
 expr   = expr "+" term / expr "-" term / term
 term   = term "*" factor / term "/" factor / factor
 factor = "(" expr ")" / digit

@@ -204,7 +204,7 @@ describe('bnf', () => {
 
 
     it('parses EBNF postfix operators', () => {
-      const g = parseBnf('g = [ "a" ] "b"* "c"+')
+      const g = parseBnf('g = [ "a" ] *"b" 1*"c"')
       assert.deepEqual(g.productions[0].alts[0], [
         // Optional is desugared as opt(group([[term-a]])).
         {
@@ -232,7 +232,7 @@ describe('bnf', () => {
 
     it('star: zero or more', () => {
       const j = Jsonic.make()
-      j.bnf('g = "x"* "end"')
+      j.bnf('g = *"x" "end"')
       assert.doesNotThrow(() => j('end'))
       assert.doesNotThrow(() => j('x end'))
       assert.doesNotThrow(() => j('x x x end'))
@@ -242,10 +242,42 @@ describe('bnf', () => {
 
     it('plus: one or more', () => {
       const j = Jsonic.make()
-      j.bnf('g = "x"+ "end"')
+      j.bnf('g = 1*"x" "end"')
       assert.doesNotThrow(() => j('x end'))
       assert.doesNotThrow(() => j('x x x end'))
       assert.throws(() => j('end'), /unexpected/)
+    })
+
+
+    it('bounded repetition m*n', () => {
+      // ABNF 2*4"x" matches 2, 3, or 4 occurrences.
+      const j = Jsonic.make()
+      j.bnf('g = 2*4"x" "end"')
+      assert.throws(() => j('end'), /unexpected/)        // 0
+      assert.throws(() => j('x end'), /unexpected/)      // 1
+      assert.doesNotThrow(() => j('x x end'))            // 2
+      assert.doesNotThrow(() => j('x x x end'))          // 3
+      assert.doesNotThrow(() => j('x x x x end'))        // 4
+      assert.throws(() => j('x x x x x end'), /unexpected/) // 5
+    })
+
+
+    it('exact repetition n', () => {
+      const j = Jsonic.make()
+      j.bnf('g = 3"x" "end"')
+      assert.throws(() => j('x x end'), /unexpected/)
+      assert.doesNotThrow(() => j('x x x end'))
+      assert.throws(() => j('x x x x end'), /unexpected/)
+    })
+
+
+    it('upper-bounded repetition *n', () => {
+      const j = Jsonic.make()
+      j.bnf('g = *2"x" "end"')
+      assert.doesNotThrow(() => j('end'))
+      assert.doesNotThrow(() => j('x end'))
+      assert.doesNotThrow(() => j('x x end'))
+      assert.throws(() => j('x x x end'), /unexpected/)
     })
 
 
@@ -261,7 +293,7 @@ describe('bnf', () => {
 
     it('group with plus: one or more sub-sequences', () => {
       const j = Jsonic.make()
-      j.bnf('g = ("a" "b")+ "end"')
+      j.bnf('g = 1*("a" "b") "end"')
       assert.doesNotThrow(() => j('a b end'))
       assert.doesNotThrow(() => j('a b a b a b end'))
       assert.throws(() => j('end'), /unexpected/)
@@ -270,7 +302,7 @@ describe('bnf', () => {
 
     it('group of alternatives with star', () => {
       const j = Jsonic.make()
-      j.bnf('g = ("a" / "b")* "end"')
+      j.bnf('g = *("a" / "b") "end"')
       assert.doesNotThrow(() => j('end'))
       assert.doesNotThrow(() => j('a end'))
       assert.doesNotThrow(() => j('a b a end'))
