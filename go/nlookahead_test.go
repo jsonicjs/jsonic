@@ -20,7 +20,7 @@ func TestNLookaheadThreeTokens(t *testing.T) {
 	var gotO []string
 	var gotLegacy string
 
-	j.Rule("val", func(rs *RuleSpec) {
+	j.Rule("val", func(rs *RuleSpec, _ *Parser) {
 		rs.Open = append([]*AltSpec{{
 			S: [][]Tin{{TA}, {TB}, {TC}},
 			A: func(r *Rule, ctx *Context) {
@@ -60,7 +60,7 @@ func TestNLookaheadFiveTokensNoCap(t *testing.T) {
 
 	var matchedN int
 
-	j.Rule("val", func(rs *RuleSpec) {
+	j.Rule("val", func(rs *RuleSpec, _ *Parser) {
 		rs.Open = append([]*AltSpec{{
 			S: [][]Tin{{TA}, {TB}, {TC}, {TD}, {TE}},
 			A: func(r *Rule, ctx *Context) {
@@ -92,7 +92,7 @@ func TestNLookaheadFirstMatchWins(t *testing.T) {
 	TC := j.Token("#TC", "C")
 	TD := j.Token("#TD", "D")
 
-	j.Rule("val", func(rs *RuleSpec) {
+	j.Rule("val", func(rs *RuleSpec, _ *Parser) {
 		rs.Open = append([]*AltSpec{
 			{
 				S: [][]Tin{{TA}, {TB}, {TC}},
@@ -145,7 +145,7 @@ func TestNLookaheadCtxTSlice(t *testing.T) {
 	var seenT0, seenT1, seenT2 string
 	var seenLegacyT0, seenLegacyT1 string
 
-	j.Rule("val", func(rs *RuleSpec) {
+	j.Rule("val", func(rs *RuleSpec, _ *Parser) {
 		rs.Open = append([]*AltSpec{{
 			S: [][]Tin{{TA}, {TB}, {TC}},
 			C: func(r *Rule, ctx *Context) bool {
@@ -189,7 +189,7 @@ func TestNLookaheadNullMiddleSlotIsWildcard(t *testing.T) {
 	TA := j.Token("#TA", "A")
 	TC := j.Token("#TC", "C")
 
-	j.Rule("val", func(rs *RuleSpec) {
+	j.Rule("val", func(rs *RuleSpec, _ *Parser) {
 		rs.Open = append([]*AltSpec{{
 			// Middle position empty = wildcard (no Tin constraint).
 			// Outer positions must still match.
@@ -241,7 +241,7 @@ func TestNLookaheadBacktrackN3(t *testing.T) {
 
 	// val: match A B C with b:3, push to `collect`.
 	// collect: consume A, then B, then C one at a time, logging each.
-	j.Rule("val", func(rs *RuleSpec) {
+	j.Rule("val", func(rs *RuleSpec, _ *Parser) {
 		rs.Open = append([]*AltSpec{{
 			S: [][]Tin{{TA}, {TB}, {TC}},
 			B: 3,
@@ -249,7 +249,7 @@ func TestNLookaheadBacktrackN3(t *testing.T) {
 		}}, rs.Open...)
 	})
 
-	j.Rule("collect", func(rs *RuleSpec) {
+	j.Rule("collect", func(rs *RuleSpec, _ *Parser) {
 		rs.Open = []*AltSpec{{
 			S: [][]Tin{{TA}},
 			A: func(r *Rule, ctx *Context) {
@@ -260,7 +260,7 @@ func TestNLookaheadBacktrackN3(t *testing.T) {
 		rs.Close = []*AltSpec{{}}
 	})
 
-	j.Rule("collectB", func(rs *RuleSpec) {
+	j.Rule("collectB", func(rs *RuleSpec, _ *Parser) {
 		rs.Open = []*AltSpec{{
 			S: [][]Tin{{TB}},
 			A: func(r *Rule, ctx *Context) {
@@ -271,7 +271,7 @@ func TestNLookaheadBacktrackN3(t *testing.T) {
 		rs.Close = []*AltSpec{{}}
 	})
 
-	j.Rule("collectC", func(rs *RuleSpec) {
+	j.Rule("collectC", func(rs *RuleSpec, _ *Parser) {
 		rs.Open = []*AltSpec{{
 			S: [][]Tin{{TC}},
 			A: func(r *Rule, ctx *Context) {

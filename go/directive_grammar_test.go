@@ -16,7 +16,7 @@ import (
 func defineDirective(j *Jsonic, name, open string, action func(any) any) {
 	OPEN := j.Token("#OD_"+name, open)
 
-	j.Rule(name, func(rs *RuleSpec) {
+	j.Rule(name, func(rs *RuleSpec, _ *Parser) {
 		rs.BO = []StateAction{func(r *Rule, ctx *Context) {
 			r.Node = nil
 		}}
@@ -32,7 +32,7 @@ func defineDirective(j *Jsonic, name, open string, action func(any) any) {
 		}}
 	})
 
-	j.Rule("val", func(rs *RuleSpec) {
+	j.Rule("val", func(rs *RuleSpec, _ *Parser) {
 		rs.Open = append([]*AltSpec{{
 			S: [][]Tin{{OPEN}},
 			P: name,

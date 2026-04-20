@@ -96,11 +96,12 @@ fmt.Println(fn("world")) // "hello world"
 ### `(*Jsonic) Rule(name string, definer RuleDefiner) *Jsonic`
 
 Modify or create a grammar rule. The definer callback receives the
-`*RuleSpec` and can modify its `Open`/`Close` alternate lists and state
-actions (`BO`, `BC`, `AO`, `AC`).
+`*RuleSpec` and the owning `*Parser`, and can modify the rule's
+`Open`/`Close` alternate lists and state actions (`BO`, `BC`, `AO`, `AC`).
+The parser is available for inspecting or referencing other rules.
 
 ```go
-j.Rule("val", func(rs *jsonic.RuleSpec) {
+j.Rule("val", func(rs *jsonic.RuleSpec, p *jsonic.Parser) {
     rs.Open = append([]*jsonic.AltSpec{{
         S: [][]jsonic.Tin{{myToken}},
         A: func(r *jsonic.Rule, ctx *jsonic.Context) {

@@ -63,7 +63,7 @@ The parser has named rules, each with `Open` and `Close` alternate lists.
 func myPlugin(j *jsonic.Jsonic, opts map[string]any) {
     TL := j.Token("#TL", "~")
 
-    j.Rule("val", func(rs *jsonic.RuleSpec) {
+    j.Rule("val", func(rs *jsonic.RuleSpec, p *jsonic.Parser) {
         // Prepend a new alternate to the open phase
         rs.Open = append([]*jsonic.AltSpec{{
             S: [][]jsonic.Tin{{TL}},
@@ -103,7 +103,7 @@ Each `RuleSpec` has four hook points:
 | `AC` | After a close alternate matches |
 
 ```go
-j.Rule("map", func(rs *jsonic.RuleSpec) {
+j.Rule("map", func(rs *jsonic.RuleSpec, p *jsonic.Parser) {
     originalAO := rs.AO
     rs.AO = func(r *jsonic.Rule, ctx *jsonic.Context) {
         if originalAO != nil {
@@ -163,7 +163,6 @@ keys   := j.TokenSet("KEY")    // [#TX, #NR, #ST, #VL]
 
 ## Differences from TypeScript Plugins
 
-- `RuleDefiner` receives only `*RuleSpec`, not the full `Parser`
 - No plugin option namespacing or defaults merging
 - `StateAction` has no return value (cannot return error tokens)
 - Custom matchers register via `options.lex.match` (same key/order shape as TS)

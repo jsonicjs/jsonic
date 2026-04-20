@@ -537,7 +537,7 @@ func TestMapRefMetaAvailableInBOPhase(t *testing.T) {
 	j := Make(Options{Info: &InfoOptions{Map: boolPtr(true)}})
 
 	// Add a custom BO action that writes to Meta
-	j.Rule("map", func(rs *RuleSpec) {
+	j.Rule("map", func(rs *RuleSpec, _ *Parser) {
 		rs.AddBO(func(r *Rule, ctx *Context) {
 			if mr, ok := r.Node.(MapRef); ok {
 				mr.Meta["created_in"] = "bo"
@@ -564,7 +564,7 @@ func TestListRefMetaAvailableInBOPhase(t *testing.T) {
 	j := Make(Options{Info: &InfoOptions{List: boolPtr(true)}})
 
 	// Add a custom BO action that writes to Meta
-	j.Rule("list", func(rs *RuleSpec) {
+	j.Rule("list", func(rs *RuleSpec, _ *Parser) {
 		rs.AddBO(func(r *Rule, ctx *Context) {
 			if lr, ok := r.Node.(ListRef); ok {
 				lr.Meta["created_in"] = "bo"

@@ -748,7 +748,7 @@ func TestSetOptionsPreservesRuleModifications(t *testing.T) {
 
 	// Add a custom close alt to val via Rule().
 	tagged := false
-	j.Rule("val", func(rs *RuleSpec) {
+	j.Rule("val", func(rs *RuleSpec, _ *Parser) {
 		rs.Close = append([]*AltSpec{{
 			A: func(r *Rule, ctx *Context) { tagged = true },
 			G: "custom-tag",
@@ -824,7 +824,7 @@ func TestRuleThenOptionsThenParse(t *testing.T) {
 	j := Make()
 
 	customVal := ""
-	j.Rule("val", func(rs *RuleSpec) {
+	j.Rule("val", func(rs *RuleSpec, _ *Parser) {
 		rs.Close = append([]*AltSpec{{
 			A: func(r *Rule, ctx *Context) {
 				if s, ok := r.Node.(string); ok {

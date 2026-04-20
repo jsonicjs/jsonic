@@ -31,7 +31,7 @@ func makeCSV() *Jsonic {
 	}
 
 	// csv: outer list of rows. Fresh bo resets Node for each new parse.
-	j.Rule("csv", func(rs *RuleSpec) {
+	j.Rule("csv", func(rs *RuleSpec, _ *Parser) {
 		rs.BO = []StateAction{func(r *Rule, ctx *Context) {
 			r.Node = []any{}
 		}}
@@ -54,7 +54,7 @@ func makeCSV() *Jsonic {
 
 	// csvcont: tail-call sibling of csv. Inherits the outer-list node so
 	// the replace chain carries the rows accumulated so far.
-	j.Rule("csvcont", func(rs *RuleSpec) {
+	j.Rule("csvcont", func(rs *RuleSpec, _ *Parser) {
 		rs.Open = []*AltSpec{
 			{S: [][]Tin{{TinZZ}}},
 			{P: "row"},
@@ -75,7 +75,7 @@ func makeCSV() *Jsonic {
 	// row: handles the first cell (initialising the row slice) then hands
 	// the continuation to rowcont. Row-ending tokens at open produce an
 	// empty row, which csv.bc drops.
-	j.Rule("row", func(rs *RuleSpec) {
+	j.Rule("row", func(rs *RuleSpec, _ *Parser) {
 		rs.Open = []*AltSpec{
 			{S: [][]Tin{TinSetVAL}, A: func(r *Rule, ctx *Context) {
 				r.Node = []any{r.O[0].Val}
@@ -99,7 +99,7 @@ func makeCSV() *Jsonic {
 
 	// rowcont: continues appending cells into the row slice. pushBack
 	// keeps row.Node (the node parent rule reads) synced after append.
-	j.Rule("rowcont", func(rs *RuleSpec) {
+	j.Rule("rowcont", func(rs *RuleSpec, _ *Parser) {
 		rs.Open = []*AltSpec{
 			{S: [][]Tin{TinSetVAL}, A: func(r *Rule, ctx *Context) {
 				appendCell(r, r.O[0].Val)

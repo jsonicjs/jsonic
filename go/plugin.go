@@ -43,7 +43,9 @@ type MatcherEntry struct {
 
 // RuleDefiner is a callback that modifies a RuleSpec.
 // Plugins use this to add alternates, actions, or conditions to grammar rules.
-type RuleDefiner func(rs *RuleSpec)
+// The parser is passed so definers can inspect or reference other rules.
+// Mirrors TS src/types.ts:841 `(rs: RuleSpec, p: Parser) => void`.
+type RuleDefiner func(rs *RuleSpec, p *Parser)
 
 // LexSub is a subscriber callback invoked after each token is lexed.
 type LexSub func(tkn *Token, rule *Rule, ctx *Context)
@@ -104,7 +106,7 @@ func (j *Jsonic) UseDefaults(plugin Plugin, defaults map[string]any, opts ...map
 //
 // Example:
 //
-//	j.Rule("val", func(rs *RuleSpec) {
+//	j.Rule("val", func(rs *RuleSpec, p *Parser) {
 //	    rs.Open = append([]*AltSpec{{
 //	        S: [][]Tin{{myToken}},
 //	        A: func(r *Rule, ctx *Context) { r.Node = "custom" },
@@ -116,7 +118,7 @@ func (j *Jsonic) Rule(name string, definer RuleDefiner) *Jsonic {
 		rs = &RuleSpec{Name: name}
 		j.parser.RSM[name] = rs
 	}
-	definer(rs)
+	definer(rs, j.parser)
 	return j
 }
 

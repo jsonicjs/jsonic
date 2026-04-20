@@ -159,7 +159,7 @@ func TestPluginCustomFixedToken(t *testing.T) {
 func TestPluginRuleModification(t *testing.T) {
 	// Plugin that makes all string values uppercase.
 	upperPlugin := func(j *Jsonic, opts map[string]any) error {
-		j.Rule("val", func(rs *RuleSpec) {
+		j.Rule("val", func(rs *RuleSpec, _ *Parser) {
 			// Add an after-close action that uppercases string nodes.
 			rs.AC = append(rs.AC, func(r *Rule, ctx *Context) {
 				if s, ok := r.Node.(string); ok {
@@ -189,14 +189,14 @@ func TestPluginRuleAddAlternate(t *testing.T) {
 		TH := j.Token("#TH", "H")
 
 		// Add a new rule that produces 100.
-		j.Rule("hundred", func(rs *RuleSpec) {
+		j.Rule("hundred", func(rs *RuleSpec, _ *Parser) {
 			rs.AO = append(rs.AO, func(r *Rule, ctx *Context) {
 				r.Node = float64(100)
 			})
 		})
 
 		// Modify val rule to recognize 'H' and push to "hundred".
-		j.Rule("val", func(rs *RuleSpec) {
+		j.Rule("val", func(rs *RuleSpec, _ *Parser) {
 			rs.Open = append([]*AltSpec{{
 				S: [][]Tin{{TH}},
 				P: "hundred",
@@ -220,7 +220,7 @@ func TestPluginRuleAddAlternate(t *testing.T) {
 func TestPluginRuleNewRule(t *testing.T) {
 	j := Make()
 	// Verify we can create a new rule.
-	j.Rule("custom", func(rs *RuleSpec) {
+	j.Rule("custom", func(rs *RuleSpec, _ *Parser) {
 		if rs.Name != "custom" {
 			t.Errorf("expected rule name 'custom', got '%s'", rs.Name)
 		}
@@ -495,7 +495,7 @@ func TestMultiCharFixedToken(t *testing.T) {
 	j := Make()
 	TA := j.Token("#TA", "=>")
 
-	j.Rule("val", func(rs *RuleSpec) {
+	j.Rule("val", func(rs *RuleSpec, _ *Parser) {
 		rs.Open = append([]*AltSpec{{
 			S: [][]Tin{{TA}},
 			A: func(r *Rule, ctx *Context) {
@@ -521,7 +521,7 @@ func TestMultiCharFixedTokenLongestMatch(t *testing.T) {
 	matchedEQ := false
 	matchedArrow := false
 
-	j.Rule("val", func(rs *RuleSpec) {
+	j.Rule("val", func(rs *RuleSpec, _ *Parser) {
 		rs.Open = append([]*AltSpec{
 			{
 				S: [][]Tin{{TARROW}},
@@ -900,7 +900,7 @@ func TestExcludeCustomGroup(t *testing.T) {
 
 	// Add a custom alternate with a group tag.
 	TT := j.Token("#TT", "!")
-	j.Rule("val", func(rs *RuleSpec) {
+	j.Rule("val", func(rs *RuleSpec, _ *Parser) {
 		rs.Open = append(rs.Open, &AltSpec{
 			S: [][]Tin{{TT}},
 			G: "custom,test",
@@ -930,7 +930,7 @@ func TestParseMeta(t *testing.T) {
 
 	// Add a rule action that reads metadata.
 	var capturedMeta map[string]any
-	j.Rule("val", func(rs *RuleSpec) {
+	j.Rule("val", func(rs *RuleSpec, _ *Parser) {
 		rs.AO = append(rs.AO, func(r *Rule, ctx *Context) {
 			capturedMeta = ctx.Meta
 		})
@@ -1539,7 +1539,7 @@ func TestRuleExcludeFromOptions(t *testing.T) {
 
 	// Add tagged alternates.
 	TT := j.Token("#TT", "!")
-	j.Rule("val", func(rs *RuleSpec) {
+	j.Rule("val", func(rs *RuleSpec, _ *Parser) {
 		rs.Open = append(rs.Open, &AltSpec{
 			S: [][]Tin{{TT}},
 			G: "experimental",
@@ -1553,7 +1553,7 @@ func TestRuleExcludeFromOptions(t *testing.T) {
 	})
 	// Manually add the same alt.
 	TT2 := j2.Token("#TT", "!")
-	j2.Rule("val", func(rs *RuleSpec) {
+	j2.Rule("val", func(rs *RuleSpec, _ *Parser) {
 		rs.Open = append(rs.Open, &AltSpec{
 			S: [][]Tin{{TT2}},
 			G: "experimental",
@@ -1614,7 +1614,7 @@ func makeTokenPlugin(char, val string) Plugin {
 		j.Token(tn, char)
 		TT := j.Token(tn, "")
 
-		j.Rule("val", func(rs *RuleSpec) {
+		j.Rule("val", func(rs *RuleSpec, _ *Parser) {
 			capturedVal := val
 			capturedTT := TT
 			rs.Open = append([]*AltSpec{{
@@ -1877,7 +1877,7 @@ func TestContextInst(t *testing.T) {
 	j := Make()
 	var capturedInst *Jsonic
 
-	j.Rule("val", func(rs *RuleSpec) {
+	j.Rule("val", func(rs *RuleSpec, _ *Parser) {
 		rs.AO = append(rs.AO, func(r *Rule, ctx *Context) {
 			capturedInst = ctx.Inst
 		})
@@ -1894,7 +1894,7 @@ func TestContextOpts(t *testing.T) {
 	j := Make(Options{Tag: "test-tag"})
 	var capturedOpts *Options
 
-	j.Rule("val", func(rs *RuleSpec) {
+	j.Rule("val", func(rs *RuleSpec, _ *Parser) {
 		rs.AO = append(rs.AO, func(r *Rule, ctx *Context) {
 			capturedOpts = ctx.Opts
 		})
@@ -1914,7 +1914,7 @@ func TestContextCfg(t *testing.T) {
 	j := Make()
 	var capturedCfg *LexConfig
 
-	j.Rule("val", func(rs *RuleSpec) {
+	j.Rule("val", func(rs *RuleSpec, _ *Parser) {
 		rs.AO = append(rs.AO, func(r *Rule, ctx *Context) {
 			capturedCfg = ctx.Cfg
 		})
@@ -1934,7 +1934,7 @@ func TestContextSrc(t *testing.T) {
 	j := Make()
 	var capturedSrc string
 
-	j.Rule("val", func(rs *RuleSpec) {
+	j.Rule("val", func(rs *RuleSpec, _ *Parser) {
 		rs.AO = append(rs.AO, func(r *Rule, ctx *Context) {
 			capturedSrc = ctx.Src
 		})
@@ -1952,7 +1952,7 @@ func TestContextU(t *testing.T) {
 	j := Make()
 	var capturedU map[string]any
 
-	j.Rule("val", func(rs *RuleSpec) {
+	j.Rule("val", func(rs *RuleSpec, _ *Parser) {
 		rs.AO = append(rs.AO, func(r *Rule, ctx *Context) {
 			ctx.U["plugin-data"] = "hello"
 		})
@@ -1975,7 +1975,7 @@ func TestContextMeta(t *testing.T) {
 	j := Make()
 	var capturedMeta map[string]any
 
-	j.Rule("val", func(rs *RuleSpec) {
+	j.Rule("val", func(rs *RuleSpec, _ *Parser) {
 		rs.AO = append(rs.AO, func(r *Rule, ctx *Context) {
 			capturedMeta = ctx.Meta
 		})
@@ -2150,7 +2150,7 @@ func TestFixedOptionsTokenViaMake(t *testing.T) {
 
 func TestModifyOpen(t *testing.T) {
 	j := Make()
-	j.Rule("val", func(rs *RuleSpec) {
+	j.Rule("val", func(rs *RuleSpec, _ *Parser) {
 		origLen := len(rs.Open)
 		// Delete the first alternate.
 		rs.ModifyOpen(&AltModListOpts{Delete: []int{0}})
@@ -2163,7 +2163,7 @@ func TestModifyOpen(t *testing.T) {
 func TestModifyOpenCustom(t *testing.T) {
 	j := Make()
 	var customCalled bool
-	j.Rule("val", func(rs *RuleSpec) {
+	j.Rule("val", func(rs *RuleSpec, _ *Parser) {
 		rs.ModifyOpen(&AltModListOpts{
 			Custom: func(list []*AltSpec) []*AltSpec {
 				customCalled = true
@@ -2182,7 +2182,7 @@ func TestContextRoot(t *testing.T) {
 	j := Make()
 	var capturedRoot *Rule
 
-	j.Rule("val", func(rs *RuleSpec) {
+	j.Rule("val", func(rs *RuleSpec, _ *Parser) {
 		rs.AO = append(rs.AO, func(r *Rule, ctx *Context) {
 			capturedRoot = ctx.Root
 		})
@@ -2205,7 +2205,7 @@ func TestContextSentinels(t *testing.T) {
 	var gotNoToken *Token
 	var gotNoRule *Rule
 
-	j.Rule("val", func(rs *RuleSpec) {
+	j.Rule("val", func(rs *RuleSpec, _ *Parser) {
 		rs.AO = append(rs.AO, func(r *Rule, ctx *Context) {
 			gotNoToken = ctx.NOTOKEN
 			gotNoRule = ctx.NORULE
@@ -2245,7 +2245,7 @@ func TestContextF(t *testing.T) {
 	j := Make()
 	var formatted string
 
-	j.Rule("val", func(rs *RuleSpec) {
+	j.Rule("val", func(rs *RuleSpec, _ *Parser) {
 		rs.AO = append(rs.AO, func(r *Rule, ctx *Context) {
 			if ctx.F != nil {
 				formatted = ctx.F("hello")

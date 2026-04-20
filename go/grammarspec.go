@@ -118,7 +118,7 @@ func (j *Jsonic) Grammar(gs *GrammarSpec, setting ...*GrammarSetting) error {
 		for rulename, rulespec := range gs.Rule {
 			ref := gs.Ref
 			var resolveErr error
-			j.Rule(rulename, func(rs *RuleSpec) {
+			j.Rule(rulename, func(rs *RuleSpec, _ *Parser) {
 				// Process Open alts.
 				if rulespec.Open != nil {
 					if err := applyGrammarAlts(j, rs, rulespec.Open, ref, true, altGTags); err != nil {
