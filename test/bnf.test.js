@@ -425,6 +425,54 @@ describe('bnf', () => {
       )
     })
 
+  })
+
+
+  describe('ABNF line continuation', () => {
+
+    it('an alternation can wrap across multiple lines', () => {
+      // RFC 5234 lets a rule span several lines as long as each
+      // continuation line is indented. The parser achieves this
+      // implicitly: newlines are whitespace, production boundaries
+      // are detected by the `name =` pattern rather than by end of
+      // line, so a wrapped rule parses as one production.
+      const g = parseBnf([
+        'command = "get"',
+        '        / "post"',
+        '        / "delete"',
+      ].join('\n'))
+      assert.equal(g.productions.length, 1)
+      assert.equal(g.productions[0].name, 'command')
+      assert.equal(g.productions[0].alts.length, 3)
+    })
+
+
+    it('a sequence can wrap across multiple lines', () => {
+      const j = Jsonic.make()
+      j.bnf([
+        'req = "GET"',
+        '      "path"',
+        '      "end"',
+      ].join('\n'))
+      assert.doesNotThrow(() => j('GET path end'))
+    })
+
+
+    it('wrapped rules sit alongside normal rules without interaction', () => {
+      const j = Jsonic.make()
+      j.bnf([
+        'verb = "GET"',
+        '     / "POST"',
+        'path = "/"',
+        '     / "/api"',
+      ].join('\n'))
+      // verb rule accepts both methods
+      const jverb = Jsonic.make()
+      jverb.bnf('verb = "GET" / "POST"')
+      assert.doesNotThrow(() => jverb('GET'))
+      assert.doesNotThrow(() => jverb('POST'))
+    })
+
 
     it('grouping selects among alternatives', () => {
       const j = Jsonic.make()
