@@ -10,21 +10,22 @@ exports.eliminateLeftRecursion = eliminateLeftRecursion;
 // jsonic rules. Each rule names its `open`/`close` alt list and, where
 // necessary, a `bo`/`bc` state hook for AST assembly.
 //
-// This is stage 1 of the move toward RFC 5234 ABNF: the rule header
-// and reference syntax already use ABNF's bare-identifier + `=` form.
-// The remaining operators (alternation `|`, optional `?`, repetition
-// `*`/`+`, comment `#`) are still BNF-style; later stages replace
-// them with ABNF's `/`, `[…]`, `m*n`, and `;` respectively.
+// Stage 2 of the move toward RFC 5234 ABNF: rule headers use
+// ABNF's `name = rhs` form and alternation is now `/`. The regex
+// terminal extension is dropped here because `/` would otherwise
+// be ambiguous with ABNF alternation; ABNF replaces regex with
+// `%x` numeric ranges (added in a later stage). The optional,
+// repetition and comment operators are still BNF-style; later
+// stages replace them with `[…]`, `m*n` and `;`.
 //
 // Token vocabulary:
 //   #DEF   `=` (rule-definition operator)
-//   #PIPE  `|` (alternation)
+//   #ALT   `/` (alternation)
 //   #QM    `?`
 //   #STAR  `*`
 //   #PLUS  `+`
 //   #LP    `(`
 //   #RP    `)`
-//   #RX    /pattern/flags (regex terminal, matched via match.token)
 //   #TX    bare identifier (jsonic default text token)
 //   #ST    quoted string literal (jsonic default string token)
 //   #ZZ    end-of-source
@@ -32,10 +33,10 @@ exports.eliminateLeftRecursion = eliminateLeftRecursion;
 // Grammar:
 //   bnf        = production*
 //   production = IDENT '=' alts
-//   alts       = seq ('|' seq)*
+//   alts       = seq ('/' seq)*
 //   seq        = element*
 //   element    = atom postfix?
-//   atom       = IDENT | STRING | REGEX | '(' alts ')'
+//   atom       = IDENT | STRING | '(' alts ')'
 //   postfix    = '?' | '*' | '+'
 const bnfRules = {
     // Top-level: accumulates productions into r.node.
@@ -72,13 +73,14 @@ const bnfRules = {
             }
         },
     },
-    // A list of alternative sequences separated by `|`. Owns its own
-    // array (`bo` resets it) and pushes each seq result in `bc`.
+    // A list of alternative sequences separated by `/` (ABNF
+    // alternation). Owns its own array (`bo` resets it) and pushes
+    // each seq result in `bc`.
     alts: {
         bo: (r) => { r.node = []; },
         open: [{ p: 'seq' }],
         close: [
-            { s: '#PIPE', p: 'seq' },
+            { s: '#ALT', p: 'seq' },
             { b: 1 },
         ],
         bc: (r) => {
@@ -96,56 +98,40 @@ const bnfRules = {
         bo: (r) => { r.node = []; },
         open: [
             { s: '#TX #DEF', b: 2, g: 'end' },
-            { s: '#PIPE', b: 1, g: 'end' },
+            { s: '#ALT', b: 1, g: 'end' },
             { s: '#ZZ', b: 1, g: 'end' },
             { s: '#RP', b: 1, g: 'end' },
-            // Listing element-starter tokens in `s:` here ensures each one
-            // appears in the rule's tcol so the match-matcher (for `#RX`)
-            // is allowed to fire when the source is lexed.
+            // Listing element-starter tokens in `s:` here ensures the
+            // tcol-driven matcher considers each one when lexing.
             { s: '#ST', b: 1, p: 'elem' },
-            { s: '#RX', b: 1, p: 'elem' },
             { s: '#TX', b: 1, p: 'elem' },
             { s: '#LP', b: 1, p: 'elem' },
             { p: 'elem' },
         ],
         close: [
             { s: '#TX #DEF', b: 2, g: 'end' },
-            { s: '#PIPE', b: 1, g: 'end' },
+            { s: '#ALT', b: 1, g: 'end' },
             { s: '#ZZ', b: 1, g: 'end' },
             { s: '#RP', b: 1, g: 'end' },
             { s: '#ST', b: 1, p: 'elem' },
-            { s: '#RX', b: 1, p: 'elem' },
             { s: '#TX', b: 1, p: 'elem' },
             { s: '#LP', b: 1, p: 'elem' },
             { b: 1 },
         ],
     },
     // One element: an atom (bare identifier ref, quoted string
-    // terminal, regex terminal, or a parenthesised group of
-    // alternatives), optionally followed by a postfix operator (`?`,
-    // `*`, `+`). The atom is stashed on `r.u.atom` so the close state
-    // can wrap it before pushing onto the parent seq's node array.
-    // For groups, the atom is synthesised from the child `alts`
-    // rule's node in the close state.
+    // terminal, or a parenthesised group of alternatives), optionally
+    // followed by a postfix operator (`?`, `*`, `+`). The atom is
+    // stashed on `r.u.atom` so the close state can wrap it before
+    // pushing onto the parent seq's node array. For groups, the atom
+    // is synthesised from the child `alts` rule's node in the close
+    // state.
     elem: {
         open: [
             {
                 s: '#ST',
                 a: (r) => {
                     r.u.atom = { kind: 'term', literal: r.o[0].val };
-                },
-            },
-            {
-                s: '#RX',
-                a: (r) => {
-                    // r.o[0].src is the raw text `/pattern/flags`. Split it.
-                    const raw = r.o[0].src;
-                    const lastSlash = raw.lastIndexOf('/');
-                    r.u.atom = {
-                        kind: 'regex',
-                        pattern: raw.slice(1, lastSlash),
-                        flags: raw.slice(lastSlash + 1),
-                    };
                 },
             },
             {
@@ -223,15 +209,11 @@ const bnfRules = {
                 },
             },
             // Simple atom, no postfix. These alts declare the "next atom"
-            // tokens so the lexer — which consults tcol to decide which
-            // matchers to try — emits them as their proper types (in
-            // particular `#RX`) rather than as generic text.
+            // tokens so the lexer — which consults tcol — considers them
+            // when fetching the next token rather than falling through to
+            // generic text.
             {
                 s: '#ST', b: 1,
-                a: (r) => { r.node.push(r.u.atom); },
-            },
-            {
-                s: '#RX', b: 1,
                 a: (r) => { r.node.push(r.u.atom); },
             },
             {
@@ -263,9 +245,8 @@ function getBnfParser() {
         rule: { start: 'bnf' },
         fixed: {
             token: {
-                // Clear JSON-oriented defaults — `[` and friends would
-                // otherwise pre-empt the `#RX` regex matcher for
-                // `/[class]/` terminals.
+                // Clear JSON-oriented defaults so `[`, `(`, `:` and `,`
+                // don't get special meaning in BNF source.
                 '#OB': null,
                 '#CB': null,
                 '#OS': null,
@@ -273,18 +254,12 @@ function getBnfParser() {
                 '#CL': null,
                 '#CA': null,
                 '#DEF': '=',
-                '#PIPE': '|',
+                '#ALT': '/',
                 '#QM': '?',
                 '#STAR': '*',
                 '#PLUS': '+',
                 '#LP': '(',
                 '#RP': ')',
-            },
-        },
-        match: {
-            // Regex terminals inside BNF source: /pattern/flags.
-            token: {
-                '#RX': /^\/(?:[^\/\\]|\\.)*\/[a-z]*/,
             },
         },
     });

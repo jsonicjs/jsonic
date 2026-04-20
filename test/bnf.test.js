@@ -158,7 +158,7 @@ describe('bnf', () => {
 
 
     it('parses alternation', () => {
-      const g = parseBnf('g = "a" | "b"')
+      const g = parseBnf('g = "a" / "b"')
       assert.deepEqual(g.productions[0].alts, [
         [{ kind: 'term', literal: 'a' }],
         [{ kind: 'term', literal: 'b' }],
@@ -179,7 +179,7 @@ describe('bnf', () => {
 
 
     it('preserves empty alternatives', () => {
-      const g = parseBnf('x = | "y"')
+      const g = parseBnf('x = / "y"')
       assert.deepEqual(g.productions[0].alts, [
         [],
         [{ kind: 'term', literal: 'y' }],
@@ -247,7 +247,7 @@ describe('bnf', () => {
 
     it('grouping selects among alternatives', () => {
       const j = Jsonic.make()
-      j.bnf('g = ("a" | "b") "c"')
+      j.bnf('g = ("a" / "b") "c"')
       assert.doesNotThrow(() => j('a c'))
       assert.doesNotThrow(() => j('b c'))
       assert.throws(() => j('c'), /unexpected/)
@@ -266,7 +266,7 @@ describe('bnf', () => {
 
     it('group of alternatives with star', () => {
       const j = Jsonic.make()
-      j.bnf('g = ("a" | "b")* "end"')
+      j.bnf('g = ("a" / "b")* "end"')
       assert.doesNotThrow(() => j('end'))
       assert.doesNotThrow(() => j('a end'))
       assert.doesNotThrow(() => j('a b a end'))
@@ -276,40 +276,10 @@ describe('bnf', () => {
   })
 
 
-  describe('regex terminals', () => {
-
-    it('matches a regex terminal as an atom', () => {
-      const j = Jsonic.make()
-      j.bnf('id = /[a-z]+/')
-      assert.doesNotThrow(() => j('hello'))
-      assert.throws(() => j('HELLO'), /unexpected/)
-    })
-
-
-    it('mixes regex terminals with string terminals', () => {
-      const j = Jsonic.make()
-      j.bnf('g = "tag=" /[a-z]+/')
-      assert.doesNotThrow(() => j('tag=hello'))
-      assert.throws(() => j('tag=123'), /unexpected/)
-    })
-
-
-    it('repeats a regex terminal', () => {
-      const j = Jsonic.make()
-      j.bnf('nums = /[0-9]+/+')
-      assert.doesNotThrow(() => j('1 2 3'))
-      assert.throws(() => j('abc'), /unexpected/)
-    })
-
-
-    it('regex flags are honoured (case-insensitive)', () => {
-      const j = Jsonic.make()
-      j.bnf('id = /[a-z]+/i')
-      assert.doesNotThrow(() => j('Hello'))
-      assert.doesNotThrow(() => j('HELLO'))
-    })
-
-  })
+  // `regex terminals` describe block was dropped when ABNF stage 2
+  // replaced alternation `|` with `/`, which conflicts with the
+  // regex delimiter. Equivalent tests based on ABNF %x numeric
+  // ranges will reappear once that syntax lands.
 
 
   describe('fixture round-trips', () => {
@@ -328,14 +298,17 @@ describe('bnf', () => {
 
 
     it('json-subset.bnf accepts nested structures', () => {
+      // The fixture uses simple single-letter terminals in place of
+      // quoted strings until ABNF %x ranges arrive — exercise it
+      // with matching inputs.
       const j = Jsonic.make()
       j.bnf(loadFixture('json-subset.bnf'))
       assert.doesNotThrow(() => j('1'))
-      assert.doesNotThrow(() => j('"hi"'))
-      assert.doesNotThrow(() => j('{ "a" : 1 }'))
+      assert.doesNotThrow(() => j('a'))
+      assert.doesNotThrow(() => j('{ a : 1 }'))
       assert.doesNotThrow(() => j('[ 1 , 2 , 3 ]'))
-      assert.doesNotThrow(() => j('{ "a" : [ 1 , 2 ] , "b" : "hi" }'))
-      assert.throws(() => j('{ "a" 1 }'), /unexpected/)  // missing colon
+      assert.doesNotThrow(() => j('{ a : [ 1 , 2 ] , b : c }'))
+      assert.throws(() => j('{ a 1 }'), /unexpected/)  // missing colon
     })
 
 
@@ -356,7 +329,7 @@ describe('bnf', () => {
   describe('left-recursion elimination', () => {
 
     it('rewrites P -> P alpha | beta into P -> beta (alpha)*', () => {
-      const g = parseBnf('e = e "+" t | t\nt = /[0-9]+/')
+      const g = parseBnf('e = e "+" t / t\nt = "1"')
       const r = eliminateLeftRecursion(g)
       const expr = r.productions.find((p) => p.name === 'e')
       assert.equal(expr.alts.length, 1)
@@ -364,7 +337,7 @@ describe('bnf', () => {
       assert.equal(alt.length, 2)
       // Seed is t's body inlined (Paull's topo-orders t before e
       // since e leads with t, so t's alts are substituted in).
-      assert.equal(alt[0].kind, 'regex')
+      assert.equal(alt[0].kind, 'term')
       // Tail wrapped in a star.
       assert.equal(alt[1].kind, 'star')
     })
@@ -372,8 +345,8 @@ describe('bnf', () => {
 
     it('handles multiple recursive and seed alternatives', () => {
       const g = parseBnf(
-        'e = e "+" t | e "-" t | t | "(" e ")"\n' +
-        't = /[0-9]+/')
+        'e = e "+" t / e "-" t / t / "(" e ")"\n' +
+        't = "1"')
       const r = eliminateLeftRecursion(g)
       const e = r.productions.find((p) => p.name === 'e')
       assert.equal(e.alts.length, 1)
@@ -401,7 +374,7 @@ describe('bnf', () => {
       // P with no progress), so the pass drops it. The remaining alt
       // defines a's actual language.
       const j = Jsonic.make()
-      j.bnf('a = a | "x"')
+      j.bnf('a = a / "x"')
       assert.doesNotThrow(() => j('x'))
       assert.throws(() => j('y'), /unexpected/)
     })
@@ -440,9 +413,9 @@ describe('bnf', () => {
   // timeout — spin forever).
   describe('indirect left recursion (runtime guard)', () => {
 
-    const INDIRECT_2 = 'p = q "x"\nq = p "y" | "z"'
+    const INDIRECT_2 = 'p = q "x"\nq = p "y" / "z"'
     const INDIRECT_3 =
-      'a = b "1"\nb = c "2"\nc = a "3" | "x"'
+      'a = b "1"\nb = c "2"\nc = a "3" / "x"'
 
 
     it('two-rule cycle: accepts shortest seed derivation', { timeout: 2000 }, () => {
@@ -522,7 +495,7 @@ describe('bnf', () => {
       // `a` is reachable from itself through b's ε-alt. Paull's
       // topo-orders b before a, inlines b's alts (including ε)
       // into a, then drops the resulting `[a]` trivial alt.
-      const src = 'a = b a | "x"\nb = "y" |'
+      const src = 'a = b a / "x"\nb = "y" /'
       const j = Jsonic.make()
       j.bnf(src)
       assert.doesNotThrow(() => j('x'))
@@ -537,7 +510,7 @@ describe('bnf', () => {
       // a → b a | "x" ; b → c ; c → "y" | ε
       // A longer chain of nullable leading refs that Paull's has
       // to collapse in a single topo pass.
-      const src = 'a = b a | "x"\nb = c\nc = "y" |'
+      const src = 'a = b a / "x"\nb = c\nc = "y" /'
       const j = Jsonic.make()
       j.bnf(src)
       assert.doesNotThrow(() => j('x'))
@@ -550,8 +523,8 @@ describe('bnf', () => {
       // `a` has its own seed `"init"`, so the indirect cycle
       // (a → b → a) is only exercised for `b`-starting inputs.
       const src =
-        'a = b "x" | "init"\n' +
-        'b = a "y" | "z"'
+        'a = b "x" / "init"\n' +
+        'b = a "y" / "z"'
       const j = Jsonic.make()
       j.bnf(src)
       assert.doesNotThrow(() => j('init'))    // a's direct seed
@@ -613,7 +586,7 @@ describe('bnf', () => {
       // Terminals are pushed as their source text; nested rules
       // appear as nested arrays.
       const j = Jsonic.make()
-      j.bnf('g = "hi" | "hello"')
+      j.bnf('g = "hi" / "hello"')
       assert.deepEqual(j('hi'), ['hi'])
       assert.deepEqual(j('hello'), ['hello'])
 
@@ -685,7 +658,7 @@ describe('bnf', () => {
       const cn = makeConsole()
       const prevExitCode = process.exitCode
       await BnfCli.run(
-        [0, 0, 'g = "hi" | "hello"', '--parse', 'hi'],
+        [0, 0, 'g = "hi" / "hello"', '--parse', 'hi'],
         cn,
       )
       // Validation prints an `ok:` line to stdout; no spec dump.
