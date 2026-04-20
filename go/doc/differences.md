@@ -36,12 +36,7 @@ The following TypeScript features are not yet available in Go:
 | Feature | TS Option | Notes |
 |---|---|---|
 | Custom match matchers | `match.token`, `match.value` | Use `options.lex.match` instead |
-| Regex-based values | `value.defre` | Only exact string matching |
 | Strict-JSON mode | `Jsonic.make('json')` | Use `Exclude("jsonic")` as approximation |
-| Empty parser | `Jsonic.empty()` | -- |
-| Instance ID | `instance.id` | -- |
-| Utility bag | `instance.util` | -- |
-| Lazy token values | `token.resolveVal` as function | Values are always static |
 
 ## Go-Specific Features
 
