@@ -12,7 +12,7 @@ import (
 )
 
 // Version is the current version of the jsonic Go module.
-const Version = "0.1.20"
+const Version = "0.1.21"
 
 // Error message templates matching TypeScript defaults.
 var errorMessages = map[string]string{
