@@ -1366,4 +1366,38 @@ describe('info-marker', () => {
     assert.notEqual(r.__info__, undefined)
   })
 
+
+  it('fnref-no-reinstall-on-subsequent-call', () => {
+    // Regression: a second fnref call that registers an unrelated reserved
+    // handler (e.g. @pair-ao) must not re-install handlers from earlier
+    // fnref calls (e.g. @pair-bc). Previously the auto-install loop scanned
+    // the accumulated fnref map, so every fnref call added another copy of
+    // every already-registered reserved handler.
+    let mergeCalls = 0
+    let j = Jsonic.make({
+      map: {
+        merge: (prev, curr) => {
+          mergeCalls++
+          return Array.isArray(prev) ? [...prev, curr] : [prev, curr]
+        },
+      },
+    })
+
+    const baseBcCount = j.rule('pair').def.bc.length
+
+    // Installing a rule with an unrelated @pair-ao ref must not touch @pair-bc.
+    j.grammar({
+      rule: { pair: {} },
+      ref: { '@pair-ao': (_r) => { } },
+    })
+
+    assert.equal(j.rule('pair').def.bc.length, baseBcCount,
+      'pair bc actions unchanged by unrelated @pair-ao registration')
+
+    mergeCalls = 0
+    j('a:{x:1},a:{y:2},a:{z:3}')
+    assert.equal(mergeCalls, 2,
+      'merge called once per duplicate key (not twice due to duplicate bc actions)')
+  })
+
 })

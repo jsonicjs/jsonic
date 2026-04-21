@@ -138,20 +138,36 @@ class RuleSpecImpl {
     }
     fnref(frm) {
         Object.assign(this.def.fnref, frm);
+        // Auto-install reserved `@<rulename>-<phase>` handlers as state actions,
+        // but only for keys present in THIS call's frm. Iterating over the
+        // accumulated fnref map would re-install handlers on every call,
+        // producing duplicate state actions when later plugins register
+        // unrelated refs (e.g. @pair-ao) on the same rule.
         const rn = this.name;
-        const reserved = [`@${rn}-bo`, `@${rn}-ao`, `@${rn}-bc`, `@${rn}-ac`];
-        const fr = this.def.fnref;
-        for (let rn of reserved) {
+        const reserved = {
+            [`@${rn}-bo`]: true,
+            [`@${rn}-ao`]: true,
+            [`@${rn}-bc`]: true,
+            [`@${rn}-ac`]: true,
+        };
+        const seen = {};
+        for (let key in frm) {
+            // Strip any /append or /prepend suffix to find the reserved base name.
+            const base = key.replace(/\/(append|prepend)$/, '');
+            if (!reserved[base] || seen[base])
+                continue;
+            seen[base] = true;
+            const fr = this.def.fnref;
             let append = true;
-            let func = fr[rn + '/prepend'];
+            let func = fr[base + '/prepend'];
             if (func) {
                 append = false;
             }
             else {
-                func = fr[rn + '/append'] ?? fr[rn];
+                func = fr[base + '/append'] ?? fr[base];
             }
             if (func) {
-                const aname = rn.replace(/^[^-]+-/, '');
+                const aname = base.replace(/^[^-]+-/, '');
                 this[aname](append, func);
             }
         }
