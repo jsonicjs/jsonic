@@ -1,2 +1,2 @@
-# Simple BNF fixture: alternation of terminal strings.
-<greet> ::= "hi" | "hello"
+; Simple BNF fixture: alternation of terminal strings.
+greet = "hi" / "hello"

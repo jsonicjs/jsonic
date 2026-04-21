@@ -199,6 +199,9 @@ export type Options = {
     result?: {
         fail: any[];
     };
+    rewind?: {
+        history?: number;
+    };
     config?: {
         modify?: {
             [plugin_name: string]: (config: Config, options: Options) => void;
@@ -300,9 +303,13 @@ export type Context = {
         rule?: RuleSub[];
     };
     xs: Tin;
+    v: Token[];
+    vAbs: number;
     v2: Token;
     v1: Token;
     t: Token[];
+    mark: () => number;
+    rewind: (mark: number) => void;
     t0: Token;
     t1: Token;
     tC: number;
@@ -471,6 +478,9 @@ export type Config = {
     };
     result: {
         fail: any[];
+    };
+    rewind: {
+        history: number;
     };
     error: {
         [code: string]: string;

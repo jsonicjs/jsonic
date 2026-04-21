@@ -29,23 +29,89 @@ import type { BnfConvertOptions, GrammarSpec, Rule } from './types'
 
 
 type BnfElement =
-  | { kind: 'term'; literal: string }
+  | {
+      kind: 'term';
+      literal: string;
+      // ABNF quoted strings are case-insensitive by default; `%s"…"`
+      // sets this flag to true. Omitting the flag preserves the
+      // RFC 5234 default so the emitter can lower to a case-fold
+      // match. (Has no effect when the literal contains no ASCII
+      // letters — those match exactly either way.)
+      caseSensitive?: boolean;
+    }
   | { kind: 'ref'; name: string }
-  | { kind: 'regex'; pattern: string; flags: string }  // /…/flags
-  | { kind: 'opt'; inner: BnfElement }     // X?
-  | { kind: 'star'; inner: BnfElement }    // X*
-  | { kind: 'plus'; inner: BnfElement }    // X+
-  | { kind: 'group'; alts: BnfSequence[] } // ( A | B )
+  | { kind: 'regex'; pattern: string; flags: string }  // internal: for future %x
+  | { kind: 'opt'; inner: BnfElement }     // [ A ]
+  | { kind: 'star'; inner: BnfElement }    // *A
+  | { kind: 'plus'; inner: BnfElement }    // 1*A
+  | { kind: 'rep'; min: number; max: number; inner: BnfElement } // m*nA
+  | { kind: 'group'; alts: BnfSequence[] } // ( A / B )
 
 type BnfSequence = BnfElement[]
 
 type BnfProduction = {
   name: string
   alts: BnfSequence[]
+  // ABNF `name =/ alt` — flagged during parse; a post-parse merge
+  // step folds each incremental production's alts into the earlier
+  // production with the same name. The flag is gone by the time
+  // the AST reaches the emitter.
+  incremental?: boolean
+  // Set on synthetic productions introduced by the probe-dispatch
+  // rewriter. The emitter emits a phase-retry rule body instead of
+  // compiling `alts` through the normal path.
+  probeDispatch?: ProbeDispatchSpec
+  // Set on synthetic probe-helper productions (`*(vocab)` style,
+  // failure-proof). The emitter emits a one-rule loop over the vocab
+  // token set with an empty-alt fallback. Vocab is stored as a list
+  // of BnfElements (term / regex) — resolved to token names at emit
+  // time, after token allocation.
+  probeHelper?: { vocabElements: BnfElement[] }
+  // How this rule contributes to the output AST:
+  //   - 'user': emit a tagged node `{ rule, src, kids }`.
+  //   - 'core': the RFC 5234 Appendix B.1 rules — flatten into the
+  //     enclosing rule's `src` (char-class terminals shouldn't clutter
+  //     the tree with one node per matched character).
+  //   - 'helper': synthetic sugar / dispatcher / chain rules — also
+  //     flatten. Their `src` and `kids` roll up into the enclosing
+  //     user rule transparently.
+  // Unset is treated as 'user' (default for freshly parsed productions).
+  nodeKind?: 'user' | 'core' | 'helper'
+}
+
+// Configuration attached to a synthesised dispatcher production. The
+// dispatcher is the replacement for an ambiguous `[X D] Y` subsequence
+// in a user rule: on phase 0 it pushes `probeRule` (a failure-proof
+// *vocab loop), peeks `ctx.t[0]` on return, rewinds to the mark, and
+// sets `r.k.phase` to 1 (saw D → push `withBranch`) or 2 (didn't →
+// push `noBranch`). `r:` retries the dispatcher so the committed
+// branch is taken on the next pass.
+//
+// The disambiguator is stored as a BnfElement (term or regex) rather
+// than a token name so the rewriter doesn't need token allocation to
+// have happened. `emitProbeDispatch` resolves it to a name at emit
+// time from the literals / regex maps.
+type ProbeDispatchSpec = {
+  probeRule: string
+  disambiguator: BnfElement
+  withBranch: string
+  noBranch: string
 }
 
 type BnfGrammar = {
   productions: BnfProduction[]
+  // Diagnostics from the probe-dispatch analyser: one entry per
+  // ambiguous `[X D] Y` pattern detected, populated whether or not
+  // the rewrite was actually applied.
+  ambiguities?: AmbiguityReport[]
+}
+
+type AmbiguityReport = {
+  rule: string
+  altIdx: number
+  optIdx: number
+  reason: string
+  resolved: boolean
 }
 
 
@@ -53,29 +119,39 @@ type BnfGrammar = {
 // jsonic rules. Each rule names its `open`/`close` alt list and, where
 // necessary, a `bo`/`bc` state hook for AST assembly.
 //
+// Stage 8: incremental alternatives via `name =/ alt` now fold
+// into the earlier production with the same name. Quoted strings
+// default to case-insensitive (ABNF semantics), `%s` / `%i` force
+// sensitivity explicitly, numeric values and repetition prefixes
+// work as in previous stages.
+//
 // Token vocabulary:
-//   #LT    `<`
-//   #GT    `>`
-//   #DEF   `::=`
-//   #PIPE  `|`
-//   #QM    `?`
-//   #STAR  `*`
-//   #PLUS  `+`
+//   #DEF   `=`  (rule-definition operator)
+//   #DEFA  `=/` (incremental-alternatives operator)
+//   #ALT   `/`  (alternation)
+//   #STAR  `*`  (repetition separator)
+//   #NUM   decimal repetition count (matched via match.token)
+//   #NV    `%[xdb]NN[(-NN|(.NN)*)]` numeric value (match.token)
+//   #SS    `%s` (case-sensitive string prefix)
+//   #SI    `%i` (case-insensitive string prefix — same as default)
 //   #LP    `(`
 //   #RP    `)`
-//   #RX    /pattern/flags (regex terminal, matched via match.token)
+//   #OB    `[` (optional-group open)
+//   #CB    `]` (optional-group close)
 //   #TX    bare identifier (jsonic default text token)
 //   #ST    quoted string literal (jsonic default string token)
 //   #ZZ    end-of-source
 //
 // Grammar:
-//   bnf        ::= production*
-//   production ::= '<' IDENT '>' '::=' alts
-//   alts       ::= seq ('|' seq)*
-//   seq        ::= element*
-//   element    ::= atom postfix?
-//   atom       ::= '<' IDENT '>' | STRING | REGEX | IDENT | '(' alts ')'
-//   postfix    ::= '?' | '*' | '+'
+//   bnf        = production*
+//   production = IDENT ('=' / '=/') alts
+//   alts       = seq ('/' seq)*
+//   seq        = element*
+//   element    = repetition? atom
+//   repetition = NUM '*' NUM / NUM '*' / '*' NUM / '*' / NUM
+//   atom       = IDENT | STRING | ['%s' | '%i'] STRING | NUMVAL
+//              | '(' alts ')' | '[' alts ']'
+//   numval     = '%' ('x' / 'd' / 'b') DIGITS [ '-' DIGITS | ('.' DIGITS)* ]
 const bnfRules: Record<
   string,
   {
@@ -98,32 +174,54 @@ const bnfRules: Record<
   // One production per invocation; tail-recurses (r:'prod') for the
   // next. Inherits its parent's node (the productions array) and
   // appends to it in `bc` once its `alts` child has returned.
+  // Production header is `IDENT =` — a bareword rule name followed
+  // by the `=` definition operator.
   prod: {
     open: [
+      // Standalone definition:   name = alts
       {
-        s: '#LT #TX #GT #DEF',
-        a: (r: Rule) => { r.u.name = r.o[1].val },
+        s: '#TX #DEF',
+        a: (r: Rule) => {
+          r.u.name = r.o[0].val
+          r.u.incremental = false
+        },
+        p: 'alts',
+      },
+      // Incremental alternatives:   name =/ alts
+      {
+        s: '#TX #DEFA',
+        a: (r: Rule) => {
+          r.u.name = r.o[0].val
+          r.u.incremental = true
+        },
         p: 'alts',
       },
     ],
     close: [
-      { s: '#LT', b: 1, r: 'prod' },
+      // A TX followed by `=` or `=/` means the next production has
+      // begun — back up 2 tokens so a fresh `prod` invocation sees
+      // them.
+      { s: '#TX #DEF', b: 2, r: 'prod' },
+      { s: '#TX #DEFA', b: 2, r: 'prod' },
       { b: 1 },
     ],
     bc: (r) => {
       if (r.child && r.child.node !== undefined) {
-        r.node.push({ name: r.u.name, alts: r.child.node })
+        const prod: any = { name: r.u.name, alts: r.child.node }
+        if (r.u.incremental) prod.incremental = true
+        r.node.push(prod)
       }
     },
   },
 
-  // A list of alternative sequences separated by `|`. Owns its own
-  // array (`bo` resets it) and pushes each seq result in `bc`.
+  // A list of alternative sequences separated by `/` (ABNF
+  // alternation). Owns its own array (`bo` resets it) and pushes
+  // each seq result in `bc`.
   alts: {
     bo: (r) => { r.node = [] },
     open: [{ p: 'seq' }],
     close: [
-      { s: '#PIPE', p: 'seq' },
+      { s: '#ALT', p: 'seq' },
       { b: 1 },
     ],
     bc: (r) => {
@@ -133,179 +231,232 @@ const bnfRules: Record<
     },
   },
 
-  // A (possibly empty) sequence of elements. The 4-token lookahead
-  // `#LT #TX #GT #DEF` detects a following production boundary and
-  // bails out without consuming the tokens; a plain `#LT #TX #GT`
-  // match (tried second so it loses to the longer alt) is a
+  // A (possibly empty) sequence of elements. The 2-token lookahead
+  // `#TX #DEF` detects a following production boundary and bails
+  // out without consuming the tokens; a plain `#TX` at the leading
+  // position (tried later so the longer alt wins) is a rule
   // reference inside the current sequence.
   seq: {
     bo: (r) => { r.node = [] },
     open: [
-      { s: '#LT #TX #GT #DEF', b: 4, g: 'end' },
-      { s: '#PIPE', b: 1, g: 'end' },
+      { s: '#TX #DEF', b: 2, g: 'end' },
+      { s: '#TX #DEFA', b: 2, g: 'end' },
+      { s: '#ALT', b: 1, g: 'end' },
       { s: '#ZZ', b: 1, g: 'end' },
       { s: '#RP', b: 1, g: 'end' },
-      // Listing element-starter tokens in `s:` here ensures each one
-      // appears in the rule's tcol so the match-matcher (for `#RX`)
-      // is allowed to fire when the source is lexed.
-      { s: '#LT', b: 1, p: 'elem' },
+      { s: '#CB', b: 1, g: 'end' },
+      // Listing element-starter tokens in `s:` here ensures the
+      // tcol-driven matcher considers each one when lexing.
       { s: '#ST', b: 1, p: 'elem' },
-      { s: '#RX', b: 1, p: 'elem' },
+      { s: '#NV', b: 1, p: 'elem' },
+      { s: '#SS', b: 1, p: 'elem' },
+      { s: '#SI', b: 1, p: 'elem' },
       { s: '#TX', b: 1, p: 'elem' },
       { s: '#LP', b: 1, p: 'elem' },
+      { s: '#OB', b: 1, p: 'elem' },
+      { s: '#STAR', b: 1, p: 'elem' },
+      { s: '#NUM', b: 1, p: 'elem' },
       { p: 'elem' },
     ],
     close: [
-      { s: '#LT #TX #GT #DEF', b: 4, g: 'end' },
-      { s: '#PIPE', b: 1, g: 'end' },
+      { s: '#TX #DEF', b: 2, g: 'end' },
+      { s: '#TX #DEFA', b: 2, g: 'end' },
+      { s: '#ALT', b: 1, g: 'end' },
       { s: '#ZZ', b: 1, g: 'end' },
       { s: '#RP', b: 1, g: 'end' },
-      { s: '#LT', b: 1, p: 'elem' },
+      { s: '#CB', b: 1, g: 'end' },
       { s: '#ST', b: 1, p: 'elem' },
-      { s: '#RX', b: 1, p: 'elem' },
+      { s: '#NV', b: 1, p: 'elem' },
+      { s: '#SS', b: 1, p: 'elem' },
+      { s: '#SI', b: 1, p: 'elem' },
       { s: '#TX', b: 1, p: 'elem' },
       { s: '#LP', b: 1, p: 'elem' },
+      { s: '#OB', b: 1, p: 'elem' },
+      { s: '#STAR', b: 1, p: 'elem' },
+      { s: '#NUM', b: 1, p: 'elem' },
       { b: 1 },
     ],
   },
 
-  // One element: an atom (`<name>`, string, bare ident, or a
-  // parenthesised group of alternatives), optionally followed by a
-  // postfix operator (`?`, `*`, `+`). The atom is stashed on
-  // `r.u.atom` so the close state can wrap it before pushing onto the
-  // parent seq's node array. For groups, the atom is synthesised from
-  // the child `alts` rule's node in the close state.
+  // One element: an optional ABNF repetition prefix (`*A`, `1*A`,
+  // `m*nA`, `*nA`, `m*A`, `nA`) followed by an atom. The prefix is
+  // matched up front, stored on `r.u.min`/`r.u.max`; then `atom` is
+  // pushed to parse the actual element body, whose result is wrapped
+  // into an AST node and appended to the parent seq's array in close.
   elem: {
+    bo: (r) => { r.u.min = 1; r.u.max = 1 },
     open: [
+      // NUM '*' NUM — bounded repetition, followed by the atom
+      // itself (listed via the ATOM tokenset so every atom-starter
+      // tin — including `#NV` — is in tcol for this position).
       {
-        s: '#LT #TX #GT',
+        s: '#NUM #STAR #NUM #ATOM',
+        b: 1,
         a: (r: Rule) => {
-          r.u.atom = { kind: 'ref', name: r.o[1].val }
+          r.u.min = parseInt(r.o[0].src, 10)
+          r.u.max = parseInt(r.o[2].src, 10)
+        },
+        p: 'atom',
+      },
+      // NUM '*' — at-least-NUM repetition followed by an atom.
+      {
+        s: '#NUM #STAR #ATOM',
+        b: 1,
+        a: (r: Rule) => {
+          r.u.min = parseInt(r.o[0].src, 10)
+          r.u.max = Infinity
+        },
+        p: 'atom',
+      },
+      // '*' NUM — at-most-NUM repetition.
+      {
+        s: '#STAR #NUM #ATOM',
+        b: 1,
+        a: (r: Rule) => {
+          r.u.min = 0
+          r.u.max = parseInt(r.o[1].src, 10)
+        },
+        p: 'atom',
+      },
+      // '*' — zero-or-more.
+      {
+        s: '#STAR #ATOM',
+        b: 1,
+        a: (r: Rule) => { r.u.min = 0; r.u.max = Infinity },
+        p: 'atom',
+      },
+      // NUM — exact repetition count.
+      {
+        s: '#NUM #ATOM',
+        b: 1,
+        a: (r: Rule) => {
+          const n = parseInt(r.o[0].src, 10)
+          r.u.min = n
+          r.u.max = n
+        },
+        p: 'atom',
+      },
+      // No prefix — push atom directly (min = max = 1).
+      { p: 'atom' },
+    ],
+    close: [{
+      // Wrap the returned atom (r.child.node) based on r.u.min/max
+      // and append to the parent seq's array.
+      a: (r: Rule) => {
+        const item = r.child.node
+        const { min, max } = r.u
+        if (min === 1 && max === 1) {
+          r.node.push(item)
+        } else if (min === 0 && max === Infinity) {
+          r.node.push({ kind: 'star', inner: item })
+        } else if (min === 1 && max === Infinity) {
+          r.node.push({ kind: 'plus', inner: item })
+        } else if (min === 0 && max === 1) {
+          r.node.push({ kind: 'opt', inner: item })
+        } else {
+          r.node.push({ kind: 'rep', min, max, inner: item })
+        }
+      },
+    }],
+  },
+
+  // The atom body — a bareword ref, quoted-string terminal,
+  // parenthesised group, or bracketed optional. Sets its OWN r.node
+  // to the AST element so the enclosing `elem` rule can read it
+  // from `r.child.node` in its close state.
+  atom: {
+    bo: (r) => { r.node = undefined },
+    open: [
+      // Case-sensitive string:   %s"foo"
+      {
+        s: '#SS #ST',
+        a: (r: Rule) => {
+          r.node = {
+            kind: 'term',
+            literal: r.o[1].val,
+            caseSensitive: true,
+          }
         },
       },
+      // Case-insensitive string: %i"foo" (same as bare "foo" below,
+      // but spelled explicitly).
+      {
+        s: '#SI #ST',
+        a: (r: Rule) => {
+          r.node = { kind: 'term', literal: r.o[1].val }
+        },
+      },
+      // Bare quoted string — case-insensitive per ABNF default.
       {
         s: '#ST',
         a: (r: Rule) => {
-          r.u.atom = { kind: 'term', literal: r.o[0].val }
+          r.node = { kind: 'term', literal: r.o[0].val }
         },
       },
       {
-        s: '#RX',
+        s: '#NV',
         a: (r: Rule) => {
-          // r.o[0].src is the raw text `/pattern/flags`. Split it.
-          const raw = r.o[0].src as string
-          const lastSlash = raw.lastIndexOf('/')
-          r.u.atom = {
-            kind: 'regex',
-            pattern: raw.slice(1, lastSlash),
-            flags: raw.slice(lastSlash + 1),
-          }
+          r.node = parseNumericValue(r.o[0].src as string)
         },
       },
       {
         s: '#TX',
         a: (r: Rule) => {
-          r.u.atom = { kind: 'ref', name: r.o[0].val }
+          r.node = { kind: 'ref', name: r.o[0].val }
         },
       },
       {
         s: '#LP',
-        a: (r: Rule) => { r.u.group = true },
+        a: (r: Rule) => { r.u.groupKind = 'group' },
+        p: 'alts',
+      },
+      {
+        s: '#OB',
+        a: (r: Rule) => { r.u.groupKind = 'opt' },
         p: 'alts',
       },
     ],
     close: [
-      // Group followed by postfix — two-token combos, tried first so
-      // they beat the one-token RP / postfix alts below. Guarded with
-      // a condition to avoid matching a stray `)` in the simple-atom
-      // case.
-      {
-        s: '#RP #QM',
-        c: (r: Rule) => r.u.group === true,
-        a: (r: Rule) => {
-          r.node.push({
-            kind: 'opt',
-            inner: { kind: 'group', alts: r.child.node },
-          })
-        },
-      },
-      {
-        s: '#RP #STAR',
-        c: (r: Rule) => r.u.group === true,
-        a: (r: Rule) => {
-          r.node.push({
-            kind: 'star',
-            inner: { kind: 'group', alts: r.child.node },
-          })
-        },
-      },
-      {
-        s: '#RP #PLUS',
-        c: (r: Rule) => r.u.group === true,
-        a: (r: Rule) => {
-          r.node.push({
-            kind: 'plus',
-            inner: { kind: 'group', alts: r.child.node },
-          })
-        },
-      },
-      // Plain group (no postfix).
       {
         s: '#RP',
-        c: (r: Rule) => r.u.group === true,
+        c: (r: Rule) => r.u.groupKind === 'group',
         a: (r: Rule) => {
-          r.node.push({ kind: 'group', alts: r.child.node })
-        },
-      },
-      // Simple atom + postfix.
-      {
-        s: '#QM',
-        a: (r: Rule) => {
-          r.node.push({ kind: 'opt', inner: r.u.atom })
+          r.node = { kind: 'group', alts: r.child.node }
         },
       },
       {
-        s: '#STAR',
+        s: '#CB',
+        c: (r: Rule) => r.u.groupKind === 'opt',
         a: (r: Rule) => {
-          r.node.push({ kind: 'star', inner: r.u.atom })
+          r.node = {
+            kind: 'opt',
+            inner: { kind: 'group', alts: r.child.node },
+          }
         },
       },
-      {
-        s: '#PLUS',
-        a: (r: Rule) => {
-          r.node.push({ kind: 'plus', inner: r.u.atom })
-        },
-      },
-      // Simple atom, no postfix. These alts declare the "next atom"
-      // tokens so the lexer — which consults tcol to decide which
-      // matchers to try — emits them as their proper types (in
-      // particular `#RX`) rather than as generic text.
-      {
-        s: '#LT', b: 1,
-        a: (r: Rule) => { r.node.push(r.u.atom) },
-      },
-      {
-        s: '#ST', b: 1,
-        a: (r: Rule) => { r.node.push(r.u.atom) },
-      },
-      {
-        s: '#RX', b: 1,
-        a: (r: Rule) => { r.node.push(r.u.atom) },
-      },
-      {
-        s: '#TX', b: 1,
-        a: (r: Rule) => { r.node.push(r.u.atom) },
-      },
-      {
-        s: '#LP', b: 1,
-        a: (r: Rule) => { r.node.push(r.u.atom) },
-      },
-      // Final fallback for end-of-sequence markers (`|`, `)`, `#ZZ`,
-      // or a production boundary).
-      {
-        b: 1,
-        a: (r: Rule) => { r.node.push(r.u.atom) },
-      },
+      // For simple atoms (string/ref), r.node is already set by
+      // open; we want to pop without consuming the next token.
+      // List every token that can legitimately follow an atom so
+      // the lexer's tcol-driven match-matcher emits #NUM, #STAR,
+      // and friends as their proper types here — otherwise the
+      // default number-matcher would lex `1` as #NR and the
+      // enclosing seq.close wouldn't recognise the digit as the
+      // start of a repetition prefix.
+      { s: '#TX', b: 1 },
+      { s: '#ST', b: 1 },
+      { s: '#NV', b: 1 },
+      { s: '#SS', b: 1 },
+      { s: '#SI', b: 1 },
+      { s: '#NUM', b: 1 },
+      { s: '#STAR', b: 1 },
+      { s: '#LP', b: 1 },
+      { s: '#OB', b: 1 },
+      { s: '#RP', b: 1 },
+      { s: '#CB', b: 1 },
+      { s: '#ALT', b: 1 },
+      { s: '#DEF', b: 1 },
+      { s: '#ZZ', b: 1 },
+      { b: 1 },
     ],
   },
 }
@@ -324,30 +475,64 @@ function getBnfParser(): (src: string) => BnfProduction[] {
     rule: { start: 'bnf' },
     fixed: {
       token: {
-        // Clear JSON-oriented defaults — `[` and friends would
-        // otherwise pre-empt the `#RX` regex matcher for
-        // `/[class]/` terminals.
-        '#OB': null,
-        '#CB': null,
+        // Clear JSON-oriented defaults we're not using so `:`, `,`
+        // and `{` have no special meaning inside BNF source.
         '#OS': null,
         '#CS': null,
         '#CL': null,
         '#CA': null,
-        '#LT': '<',
-        '#GT': '>',
-        '#DEF': '::=',
-        '#PIPE': '|',
-        '#QM': '?',
+        // Re-map `#OB` / `#CB` from JSON's `{` / `}` to ABNF's
+        // `[` / `]` optional-group brackets.
+        '#OB': '[',
+        '#CB': ']',
+        '#DEF': '=',
+        // `=/` — ABNF's incremental-alternatives operator. Longer
+        // than `=`, so jsonic's longest-match-wins fixed matcher
+        // tries it first.
+        '#DEFA': '=/',
+        '#ALT': '/',
         '#STAR': '*',
-        '#PLUS': '+',
         '#LP': '(',
         '#RP': ')',
       },
     },
     match: {
-      // Regex terminals inside BNF source: /pattern/flags.
       token: {
-        '#RX': /^\/(?:[^\/\\]|\\.)*\/[a-z]*/,
+        // ABNF repetition counts: decimal integers.
+        '#NUM': /^[0-9]+/,
+        // ABNF numeric value notation:
+        //   %xNN        single hex code point
+        //   %dNN        single decimal code point
+        //   %bNN        single binary code point
+        //   %xNN-NN     hex range
+        //   %xNN.NN.NN  concatenated hex code points (= string)
+        // Digits are permissive (hex covers the decimal / binary
+        // subsets); `parseNumericValue` re-validates against the
+        // actual base.
+        '#NV': /^%[xdbXDB][0-9a-fA-F]+(?:[-.][0-9a-fA-F]+)*/,
+        // `%s` / `%i` prefixes on a quoted string. The lookahead
+        // requires `"` so they don't steal the `%` of `%xNN`.
+        '#SS': /^%[sS](?=")/,
+        '#SI': /^%[iI](?=")/,
+      },
+    },
+    tokenSet: {
+      // Tokens that can legitimately open an atom. Declaring this
+      // as a set lets elem.open use `#ATOM` inside its `s:` patterns
+      // — that way the tcol at the atom-starter position includes
+      // every matcher tin (notably #NV), so the lexer doesn't fall
+      // through to #TX when the actual atom is `%xNN`.
+      ATOM: ['#ST', '#NV', '#TX', '#LP', '#OB', '#SS', '#SI'],
+    },
+    comment: {
+      // ABNF uses `;` to start a line comment. Override jsonic's
+      // default `hash` definition (which used `#`) and disable the
+      // other comment styles so `//` and `/* */` aren't confused
+      // with the alternation operator.
+      def: {
+        hash: { line: true, start: ';', lex: true, eatline: false },
+        slash: null as any,
+        multi: null as any,
       },
     },
   })
@@ -378,72 +563,247 @@ function getBnfParser(): (src: string) => BnfProduction[] {
 // `term` and `ref`. Each `X?`, `X*`, `X+` occurrence is replaced by a
 // reference to a newly-generated helper production that expresses the
 // same language in plain BNF.
-// Rewrite direct left recursion (P → P α₁ | … | P αₙ | β₁ | … | βₘ)
-// into the equivalent right-recursive form
-//   P → (β₁ | … | βₘ) (α₁ | … | αₙ)*
-// which jsonic's push-down parser can execute without re-entering P
-// at the same source position. Each non-recursive alternative
-// becomes a "seed", and the body following the leading P-reference
-// in each recursive alternative becomes a star-iterated tail.
+// Eliminate left recursion — both direct (P → P α) and indirect
+// (P → Q α, Q → P β) — via Paull's algorithm.
 //
-// Indirect cycles (P → Q α, Q → P β) are *not* rewritten — the doc's
-// runtime guard via `r.k.seenPAt` would be needed for those, and is
-// out of scope for this pass. If detected they're flagged so the
-// emitter doesn't silently fall through.
+// Order the productions, and for each A_i walk back over A_1..A_{i-1}
+// inlining any leading reference into A_i's alternatives. Once the
+// only remaining leading self-reference on A_i is direct, rewrite to
+// the iterative form
+//   P → (β_1 | … | β_m) (α_1 | … | α_n)*
+// which jsonic's push-down parser can execute without re-entering P
+// at the same source position.
+//
+// The substitution step can duplicate alternatives, so pathological
+// grammars will enlarge — caller is expected to keep the grammar
+// reasonably small (this is a first-step converter, not a full
+// toolchain).
 function eliminateLeftRecursion(grammar: BnfGrammar): BnfGrammar {
-  const out: BnfProduction[] = []
-  for (const prod of grammar.productions) {
-    const recursive: BnfSequence[] = []
-    const seeds: BnfSequence[] = []
-    for (const alt of prod.alts) {
-      if (
-        alt.length > 0 &&
-        alt[0].kind === 'ref' &&
-        alt[0].name === prod.name
-      ) {
-        // Strip the leading self-reference; the rest is the
-        // operator/tail to iterate.
-        recursive.push(alt.slice(1))
-      } else {
-        seeds.push(alt)
-      }
-    }
+  const originalOrder = grammar.productions.map((p) => p.name)
 
-    if (recursive.length === 0) {
-      out.push(prod)
-      continue
-    }
-    if (seeds.length === 0) {
-      throw new Error(
-        `bnf: rule '${prod.name}' is purely left-recursive ` +
-        `(no seed alternative); cannot eliminate`)
-    }
-    for (const tail of recursive) {
-      if (tail.length === 0) {
-        // P → P with nothing else would loop forever even after
-        // rewriting (we'd get `P → seed ε*` which is just P → seed).
-        throw new Error(
-          `bnf: rule '${prod.name}' has a trivial left-recursive ` +
-          `alternative (P ::= P) which cannot be desugared`)
-      }
-    }
+  // Order productions so that rules referenced at a leading position
+  // are processed before the rules that reference them. Paull's
+  // substitution inlines A_j's alts into A_i for j < i, so putting
+  // dependencies first is what makes nullable-prefixed hidden left
+  // recursion reachable by the substitution step.
+  //
+  // Note: substitution here always runs, even for cycle-free
+  // grammars. The reason is pragmatic rather than theoretical —
+  // populating tcol from multi-token altPrefixes (needed so the
+  // lexer's regex matchers fire with the right tin in nested
+  // contexts) requires the full inlined shape. A future refactor
+  // could compute tcol from the un-substituted grammar and only
+  // apply Paull's to the cyclic SCCs, which would preserve more
+  // named-rule structure in the emitted AST.
+  let prods = topoOrderForPaull(
+    grammar.productions.map((p) => ({
+      name: p.name,
+      alts: p.alts.map((a) => a.slice()),
+      nodeKind: p.nodeKind,
+    })),
+  )
 
-    const seedElement: BnfElement =
-      seeds.length === 1 && seeds[0].length === 1
-        ? seeds[0][0]
-        : { kind: 'group', alts: seeds }
-
-    const tailInner: BnfElement =
-      recursive.length === 1 && recursive[0].length === 1
-        ? recursive[0][0]
-        : { kind: 'group', alts: recursive }
-
-    out.push({
-      name: prod.name,
-      alts: [[seedElement, { kind: 'star', inner: tailInner }]],
-    })
+  for (let i = 0; i < prods.length; i++) {
+    // For each earlier production A_j, inline any alternative of
+    // A_i whose leading element is a reference to A_j.
+    for (let j = 0; j < i; j++) {
+      prods[i] = substituteLeadingRef(prods[i], prods[j])
+    }
+    prods[i] = eliminateDirectLeftRec(prods[i])
   }
-  return { productions: out }
+
+  // Restore the caller's declared order, so the start rule still
+  // ends up first (and the user sees their rule names in a
+  // recognisable order when inspecting the spec).
+  const byName = new Map(prods.map((p) => [p.name, p]))
+  const ordered: BnfProduction[] = []
+  for (const name of originalOrder) {
+    const p = byName.get(name)
+    if (p) { ordered.push(p); byName.delete(name) }
+  }
+  // Any generated productions created during substitution (none in
+  // the current implementation) would fall through here.
+  for (const p of byName.values()) ordered.push(p)
+
+  return { productions: ordered }
+}
+
+
+// Tarjan-flavoured SCC scan over the leading-reference graph:
+// returns the names of productions that participate in at least one
+// cycle (self-loop or longer). Used to scope Paull's substitution to
+// only the rules that actually need it.
+function findLeadingRefCycleMembers(prods: BnfProduction[]): Set<string> {
+  const byName = new Map(prods.map((p) => [p.name, p]))
+  const leadingRefs = (p: BnfProduction): string[] => {
+    const out: string[] = []
+    for (const alt of p.alts) {
+      if (alt.length === 0) continue
+      const first = alt[0]
+      if (first.kind === 'ref' && byName.has(first.name)) out.push(first.name)
+    }
+    return out
+  }
+
+  // Tarjan's SCC algorithm.
+  let index = 0
+  const stack: string[] = []
+  const onStack = new Set<string>()
+  const indices = new Map<string, number>()
+  const lowlinks = new Map<string, number>()
+  const cyclic = new Set<string>()
+
+  function strongConnect(name: string) {
+    indices.set(name, index)
+    lowlinks.set(name, index)
+    index++
+    stack.push(name)
+    onStack.add(name)
+
+    const prod = byName.get(name)
+    if (prod) {
+      for (const target of leadingRefs(prod)) {
+        if (!indices.has(target)) {
+          strongConnect(target)
+          lowlinks.set(name, Math.min(lowlinks.get(name)!, lowlinks.get(target)!))
+        } else if (onStack.has(target)) {
+          lowlinks.set(name, Math.min(lowlinks.get(name)!, indices.get(target)!))
+        }
+      }
+    }
+
+    if (lowlinks.get(name) === indices.get(name)) {
+      // Pop the SCC. If it has more than one member, or it's a
+      // single member with a self-loop, mark as cyclic.
+      const scc: string[] = []
+      let w: string
+      do {
+        w = stack.pop() as string
+        onStack.delete(w)
+        scc.push(w)
+      } while (w !== name)
+      const isCycle =
+        scc.length > 1 ||
+        (scc.length === 1 && leadingRefs(byName.get(scc[0])!).includes(scc[0]))
+      if (isCycle) for (const n of scc) cyclic.add(n)
+    }
+  }
+
+  for (const p of prods) {
+    if (!indices.has(p.name)) strongConnect(p.name)
+  }
+  return cyclic
+}
+
+
+// Topological order over the "leading-position reference" graph:
+// an edge A → B exists when A has at least one alternative whose
+// first element is a reference to B. Cycles are preserved as-is
+// (Paull's handles them via the substitution + direct-LR rewrite).
+function topoOrderForPaull(prods: BnfProduction[]): BnfProduction[] {
+  const byName = new Map(prods.map((p) => [p.name, p]))
+  const colour = new Map<string, number>() // 0 unseen, 1 in-progress, 2 done
+  const order: BnfProduction[] = []
+
+  function visit(name: string) {
+    const c = colour.get(name) ?? 0
+    if (c !== 0) return // already seen or on the current path
+    colour.set(name, 1)
+    const p = byName.get(name)
+    if (p) {
+      for (const alt of p.alts) {
+        if (alt.length > 0 && alt[0].kind === 'ref' && byName.has(alt[0].name)) {
+          visit(alt[0].name)
+        }
+      }
+      colour.set(name, 2)
+      order.push(p)
+    } else {
+      colour.set(name, 2)
+    }
+  }
+
+  for (const p of prods) visit(p.name)
+  return order
+}
+
+
+// For every alternative of `target` that begins with a ref to
+// `source`, replace that alt with |source.alts| copies — each one
+// with the leading source-ref expanded to one of source's alts.
+function substituteLeadingRef(
+  target: BnfProduction,
+  source: BnfProduction,
+): BnfProduction {
+  const newAlts: BnfSequence[] = []
+  for (const alt of target.alts) {
+    if (
+      alt.length > 0 &&
+      alt[0].kind === 'ref' &&
+      alt[0].name === source.name
+    ) {
+      const tail = alt.slice(1)
+      for (const srcAlt of source.alts) {
+        newAlts.push([...srcAlt, ...tail])
+      }
+    } else {
+      newAlts.push(alt)
+    }
+  }
+  return { name: target.name, alts: newAlts, nodeKind: target.nodeKind }
+}
+
+
+// Rewrite a single production's direct left recursion to its
+// iterative equivalent. Equivalent to the previous version of
+// `eliminateLeftRecursion` but scoped to one production.
+function eliminateDirectLeftRec(prod: BnfProduction): BnfProduction {
+  const recursive: BnfSequence[] = []
+  const seeds: BnfSequence[] = []
+  for (const alt of prod.alts) {
+    if (
+      alt.length > 0 &&
+      alt[0].kind === 'ref' &&
+      alt[0].name === prod.name
+    ) {
+      recursive.push(alt.slice(1))
+    } else {
+      seeds.push(alt)
+    }
+  }
+
+  // A trivial recursive alt `[P]` (P ::= P, nothing else) would
+  // derive P from P with no progress — semantically a no-op. Drop
+  // them silently, since nullable-prefix expansion in Paull's can
+  // legitimately produce them and erroring would hide a legal
+  // grammar.
+  const nonTrivialRecursive = recursive.filter((t) => t.length > 0)
+  if (nonTrivialRecursive.length === 0) {
+    // Either no recursion at all, or only trivial self-refs — keep
+    // just the seeds.
+    return { name: prod.name, alts: seeds, nodeKind: prod.nodeKind }
+  }
+  if (seeds.length === 0) {
+    throw new Error(
+      `bnf: rule '${prod.name}' is purely left-recursive ` +
+      `(no seed alternative); cannot eliminate`)
+  }
+
+  const seedElement: BnfElement =
+    seeds.length === 1 && seeds[0].length === 1
+      ? seeds[0][0]
+      : { kind: 'group', alts: seeds }
+
+  const tailInner: BnfElement =
+    nonTrivialRecursive.length === 1 && nonTrivialRecursive[0].length === 1
+      ? nonTrivialRecursive[0][0]
+      : { kind: 'group', alts: nonTrivialRecursive }
+
+  return {
+    name: prod.name,
+    alts: [[seedElement, { kind: 'star', inner: tailInner }]],
+    nodeKind: prod.nodeKind,
+  }
 }
 
 
@@ -477,7 +837,7 @@ function desugar(grammar: BnfGrammar): BnfGrammar {
       // then emit a helper production whose body is those alts.
       const innerAlts = el.alts.map((a) => desugarAlt(a))
       const name = freshName('group')
-      extra.push({ name, alts: innerAlts })
+      extra.push({ name, alts: innerAlts, nodeKind: 'helper' })
       return { kind: 'ref', name }
     }
 
@@ -490,37 +850,93 @@ function desugar(grammar: BnfGrammar): BnfGrammar {
     if (el.kind === 'opt') {
       // H ::= inner | (empty)
       const name = freshName('opt_' + hint)
-      extra.push({ name, alts: [[inner], []] })
+      extra.push({ name, alts: [[inner], []], nodeKind: 'helper' })
       return { kind: 'ref', name }
     }
 
     if (el.kind === 'star') {
-      // H ::= inner H | (empty)
+      // H = inner H / (empty)
       const name = freshName('star_' + hint)
       const selfRef: BnfElement = { kind: 'ref', name }
-      extra.push({ name, alts: [[inner, selfRef], []] })
+      extra.push({ name, alts: [[inner, selfRef], []], nodeKind: 'helper' })
       return { kind: 'ref', name }
     }
 
-    // plus: H ::= inner Tail   where   Tail ::= inner Tail | (empty)
-    const tailName = freshName('star_' + hint)
-    const plusName = freshName('plus_' + hint)
-    const tailRef: BnfElement = { kind: 'ref', name: tailName }
-    extra.push({
-      name: tailName,
-      alts: [[inner, tailRef], []],
-    })
-    extra.push({
-      name: plusName,
-      alts: [[inner, tailRef]],
-    })
-    return { kind: 'ref', name: plusName }
+    if (el.kind === 'plus') {
+      // H = inner Tail   where   Tail = inner Tail / (empty)
+      const tailName = freshName('star_' + hint)
+      const plusName = freshName('plus_' + hint)
+      const tailRef: BnfElement = { kind: 'ref', name: tailName }
+      extra.push({
+        name: tailName,
+        alts: [[inner, tailRef], []],
+        nodeKind: 'helper',
+      })
+      extra.push({
+        name: plusName,
+        alts: [[inner, tailRef]],
+        nodeKind: 'helper',
+      })
+      return { kind: 'ref', name: plusName }
+    }
+
+    // ABNF m*n bounded repetition. Desugars to a concatenation of
+    // `min` mandatory copies of the inner element followed by a
+    // tail that accepts up to `(max - min)` more.
+    //   m*n A   =>   A{m}  [A[A[A...[A]]]]   (nested optionals)
+    //   m*  A   =>   A{m}  *A                 (mandatory prefix + star)
+    //   *n  A   =>   [A [A ... [A]]]          (n nested optionals)
+    // The helper's single alt has `min` repetitions of inner, then
+    // either a star-helper for (min, ∞) or `max - min` nested
+    // optionals for a finite range.
+    const { min, max } = el
+    const repName = freshName('rep_' + hint)
+    const repAlt: BnfSequence = []
+    for (let i = 0; i < min; i++) repAlt.push(inner)
+
+    if (max === Infinity) {
+      // Tail: unbounded star of inner.
+      const tailStarName = freshName('star_' + hint)
+      const tailStarRef: BnfElement = { kind: 'ref', name: tailStarName }
+      extra.push({
+        name: tailStarName,
+        alts: [[inner, tailStarRef], []],
+        nodeKind: 'helper',
+      })
+      repAlt.push(tailStarRef)
+    } else {
+      // Nest (max - min) optionals: [A [A [A ...]]].
+      let nested: BnfSequence = []
+      for (let i = 0; i < max - min; i++) {
+        // Wrap current `nested` into an optional and prepend `inner`.
+        if (nested.length === 0) {
+          nested = [{ kind: 'opt', inner: { kind: 'group', alts: [[inner]] } }]
+        } else {
+          nested = [{
+            kind: 'opt',
+            inner: { kind: 'group', alts: [[inner, ...nested]] },
+          }]
+        }
+      }
+      repAlt.push(...nested)
+    }
+
+    extra.push({ name: repName, alts: [desugarAlt(repAlt)], nodeKind: 'helper' })
+    return { kind: 'ref', name: repName }
   }
 
-  const rewritten: BnfProduction[] = grammar.productions.map((p) => ({
-    name: p.name,
-    alts: p.alts.map(desugarAlt),
-  }))
+  const rewritten: BnfProduction[] = grammar.productions.map((p) => {
+    const out: BnfProduction = {
+      name: p.name,
+      alts: p.alts.map(desugarAlt),
+      nodeKind: p.nodeKind,
+    }
+    // Probe-dispatch flags survive desugar unchanged — the emitter
+    // routes around the standard alt-compilation path for these.
+    if (p.probeDispatch) out.probeDispatch = p.probeDispatch
+    if (p.probeHelper) out.probeHelper = p.probeHelper
+    return out
+  })
 
   return { productions: [...rewritten, ...extra] }
 }
@@ -567,7 +983,474 @@ function parseBnf(src: string): BnfGrammar {
   if (!Array.isArray(productions) || productions.length === 0) {
     throw new BnfParseError('bnf: no productions found')
   }
-  return { productions }
+  const merged = mergeIncrementals(productions)
+  return { productions: withCoreRules(merged) }
+}
+
+
+// RFC 5234 Appendix B.1 core rules. Parsed lazily on first use
+// and spliced into any user grammar that references them but
+// doesn't define them locally.
+const CORE_RULES_ABNF = `
+ALPHA  = %x41-5A / %x61-7A
+BIT    = "0" / "1"
+CHAR   = %x01-7F
+CR     = %x0D
+LF     = %x0A
+CRLF   = CR LF
+CTL    = %x00-1F / %x7F
+DIGIT  = %x30-39
+DQUOTE = %x22
+HEXDIG = DIGIT / "A" / "B" / "C" / "D" / "E" / "F"
+HTAB   = %x09
+OCTET  = %x00-FF
+SP     = %x20
+VCHAR  = %x21-7E
+WSP    = SP / HTAB
+`
+
+let _coreRules: Map<string, BnfProduction> | null = null
+
+function getCoreRules(): Map<string, BnfProduction> {
+  if (_coreRules) return _coreRules
+  const parser = getBnfParser()
+  const raw = parser(CORE_RULES_ABNF) as BnfProduction[]
+  // Core rules flatten to `src` in the output AST — they're
+  // character-class bricks, not structural nodes users want to see
+  // one-per-matched-character.
+  for (const p of raw) p.nodeKind = 'core'
+  _coreRules = new Map(raw.map((p) => [p.name, p]))
+  return _coreRules
+}
+
+
+function refsIn(alt: BnfSequence, out: Set<string>): void {
+  for (const el of alt) {
+    if (el.kind === 'ref') out.add(el.name)
+    else if (el.kind === 'opt' || el.kind === 'star' ||
+             el.kind === 'plus' || el.kind === 'rep') {
+      refsIn([el.inner], out)
+    } else if (el.kind === 'group') {
+      for (const a of el.alts) refsIn(a, out)
+    }
+  }
+}
+
+
+// Add each RFC 5234 core rule that the user's grammar references
+// but doesn't define locally. Resolution is transitive: if the
+// user mentions HEXDIG, DIGIT is pulled in too. User definitions
+// always win — a local `DIGIT = …` is left untouched.
+function withCoreRules(user: BnfProduction[]): BnfProduction[] {
+  const core = getCoreRules()
+  const defined = new Set(user.map((p) => p.name))
+  const needed = new Set<string>()
+
+  const scan = (prods: BnfProduction[]) => {
+    for (const p of prods) {
+      for (const alt of p.alts) refsIn(alt, needed)
+    }
+  }
+
+  scan(user)
+  const out: BnfProduction[] = []
+  // Transitively add core rules, in declaration order.
+  let added = true
+  while (added) {
+    added = false
+    for (const [name, prod] of core) {
+      if (defined.has(name)) continue
+      if (!needed.has(name)) continue
+      defined.add(name)
+      out.push(prod)
+      scan([prod])
+      added = true
+    }
+  }
+  return [...user, ...out]
+}
+
+
+// Fold every `name =/ alt` production into the earlier production
+// with the same name by appending its alternatives. Throws if an
+// incremental references a name that hasn't been defined yet — ABNF
+// requires the base production to appear first.
+function mergeIncrementals(prods: BnfProduction[]): BnfProduction[] {
+  const out: BnfProduction[] = []
+  const byName = new Map<string, BnfProduction>()
+  for (const p of prods) {
+    if (p.incremental) {
+      const base = byName.get(p.name)
+      if (!base) {
+        throw new BnfParseError(
+          `bnf: '${p.name} =/ …' has no earlier '${p.name} = …' to extend`,
+        )
+      }
+      base.alts.push(...p.alts)
+      continue
+    }
+    // Strip the (absent) flag on a cleanly-written production so
+    // downstream code never sees it.
+    const clean: BnfProduction = { name: p.name, alts: p.alts }
+    if (p.nodeKind) clean.nodeKind = p.nodeKind
+    out.push(clean)
+    byName.set(p.name, clean)
+  }
+  return out
+}
+
+
+// -- Probe-dispatch analyser + rewriter -----------------------------
+//
+// ABNF has a large family of grammars that aren't LL(k) for any
+// bounded k. The canonical example is RFC 3986's `authority`:
+//
+//   authority = [ userinfo "@" ] host [ ":" port ]
+//   userinfo  = *( unreserved / pct-encoded / sub-delims / ":" )
+//   host      = IP-literal / IPv4address / reg-name
+//   reg-name  = *( unreserved / pct-encoded / sub-delims )
+//
+// `userinfo` and `reg-name` share a character vocabulary, so a
+// FIRST-set dispatcher can't decide which branch the optional
+// `[ userinfo "@" ]` belongs to — the disambiguating `@` can be
+// arbitrarily far from the start.
+//
+// For the common pattern `[X D] Y` — an optional group whose body
+// ends with a terminal D, followed by a sequence Y whose leading
+// terminals overlap with X's — we handle the ambiguity by rewriting
+// the rule to a probe+phase-retry dispatcher:
+//
+//   1. On first entry (phase 0), mark the token position and push a
+//      failure-proof probe rule that greedily consumes every token
+//      in the joint vocabulary of X and Y.
+//   2. When the probe returns, peek ctx.t[0]:
+//        D seen   → phase = 1 (take the `X D Y` branch)
+//        D absent → phase = 2 (take the `Y` branch)
+//      Rewind to the mark and `r:` back into the dispatcher.
+//   3. The dispatcher's open has a `c:`-guarded alt for each phase
+//      that pushes the corresponding committed branch.
+//
+// The primitives used (`r:`, `k:`, `c:`, `ctx.mark`, `ctx.rewind`,
+// `ctx.t`) are the same building blocks rules/parser already exposes
+// — no new jsonic machinery is needed.
+
+
+// Predicate: element is `[ X D ]` where X is one or more elements
+// and D is a terminal literal or a regex terminal.
+function isProbeableOpt(el: BnfElement): null | {
+  xSeq: BnfSequence
+  disambiguator: BnfElement
+} {
+  if (el.kind !== 'opt') return null
+  const inner = el.inner
+  if (inner.kind !== 'group') return null
+  if (inner.alts.length !== 1) return null
+  const seq = inner.alts[0]
+  if (seq.length < 2) return null
+  const last = seq[seq.length - 1]
+  if (last.kind !== 'term' && last.kind !== 'regex') return null
+  return { xSeq: seq.slice(0, -1), disambiguator: last }
+}
+
+
+// Union of every terminal reachable by walking an element's subtree,
+// following refs transitively. Cycles are broken by the visited set.
+// Returns terminals as BnfElements so the caller isn't tied to the
+// emitter's token-allocation step.
+function collectTerminalVocabElements(
+  el: BnfElement,
+  grammar: BnfGrammar,
+  out: Map<string, BnfElement>,
+  visited: Set<string>,
+): void {
+  if (el.kind === 'term') {
+    const k = termKey(el)
+    if (!out.has(k)) out.set(k, el)
+    return
+  }
+  if (el.kind === 'regex') {
+    const k = regexKey(el)
+    if (!out.has(k)) out.set(k, el)
+    return
+  }
+  if (el.kind === 'ref') {
+    if (visited.has(el.name)) return
+    visited.add(el.name)
+    const prod = grammar.productions.find((p) => p.name === el.name)
+    if (!prod) return
+    for (const alt of prod.alts)
+      for (const sub of alt)
+        collectTerminalVocabElements(sub, grammar, out, visited)
+    return
+  }
+  if (el.kind === 'opt' || el.kind === 'star' || el.kind === 'plus' ||
+      el.kind === 'rep') {
+    collectTerminalVocabElements(el.inner, grammar, out, visited)
+    return
+  }
+  if (el.kind === 'group') {
+    for (const alt of el.alts)
+      for (const sub of alt)
+        collectTerminalVocabElements(sub, grammar, out, visited)
+    return
+  }
+}
+
+
+function collectSeqVocabElements(
+  seq: BnfSequence,
+  grammar: BnfGrammar,
+): Map<string, BnfElement> {
+  const out = new Map<string, BnfElement>()
+  const visited = new Set<string>()
+  for (const el of seq)
+    collectTerminalVocabElements(el, grammar, out, visited)
+  return out
+}
+
+
+function mapsOverlap<K, V>(a: Map<K, V>, b: Map<K, V>): boolean {
+  for (const x of a.keys()) if (b.has(x)) return true
+  return false
+}
+
+
+// Rewrite every ambiguous `[X D] Y` subsequence in `grammar` into a
+// probe-dispatch pattern. The grammar at this point still has `opt`,
+// `group`, `star`, `plus`, `rep` sugar — intentionally, since that's
+// where the pattern is easy to recognise. Runs BEFORE token
+// allocation; probe metadata stores BnfElements, and the emitter
+// resolves them to token names at emit time.
+function rewriteProbeDispatches(grammar: BnfGrammar): BnfGrammar {
+  const reports: AmbiguityReport[] = grammar.ambiguities ?? []
+  const extra: BnfProduction[] = []
+  const used = new Set<string>(grammar.productions.map((p) => p.name))
+
+  function freshName(hint: string): string {
+    let name = hint
+    let i = 1
+    while (used.has(name)) { name = hint + i; i++ }
+    used.add(name)
+    return name
+  }
+
+  const rewritten: BnfProduction[] = []
+
+  for (const prod of grammar.productions) {
+    let newAlts: BnfSequence[] = []
+    let touched = false
+    for (let altIdx = 0; altIdx < prod.alts.length; altIdx++) {
+      const alt = prod.alts[altIdx]
+      let resultAlt: BnfSequence = []
+      for (let i = 0; i < alt.length; i++) {
+        const el = alt[i]
+        const info = isProbeableOpt(el)
+        if (!info) { resultAlt.push(el); continue }
+        const ySeq = alt.slice(i + 1)
+        if (ySeq.length === 0) {
+          // `[X D]` is the last thing in the alt — nothing follows, so
+          // there's nothing to disambiguate against. Standard emit.
+          resultAlt.push(el); continue
+        }
+        const xVocab = collectSeqVocabElements(info.xSeq, grammar)
+        const yVocab = collectSeqVocabElements(ySeq, grammar)
+        if (!mapsOverlap(xVocab, yVocab)) {
+          // The optional's leading tokens don't overlap with the tail's
+          // leading tokens, so the normal FIRST-based dispatcher can
+          // decide. No rewrite needed.
+          resultAlt.push(el); continue
+        }
+
+        // Joint vocab: union of everything the probe might need to
+        // consume. Includes the disambiguator, which we then remove so
+        // the probe stops on it and the peek works.
+        const vocab = new Map<string, BnfElement>([...xVocab, ...yVocab])
+        const d = info.disambiguator
+        const dKey = d.kind === 'term' ? termKey(d)
+          : d.kind === 'regex' ? regexKey(d)
+          : null
+        if (dKey) vocab.delete(dKey)
+
+        const dispatchName = freshName(`${prod.name}$pd${i}`)
+        const probeName = freshName(`${dispatchName}$probe`)
+        const withName = freshName(`${dispatchName}$with`)
+        const noName = freshName(`${dispatchName}$no`)
+
+        // Synthesise the probe helper.
+        extra.push({
+          name: probeName,
+          alts: [],
+          probeHelper: { vocabElements: [...vocab.values()] },
+          nodeKind: 'helper',
+        })
+        // Synthesise the committed branches. `with` = X D Y, `no` = Y.
+        extra.push({
+          name: withName,
+          alts: [[...info.xSeq, info.disambiguator, ...ySeq]],
+          nodeKind: 'helper',
+        })
+        extra.push({
+          name: noName,
+          alts: [ySeq],
+          nodeKind: 'helper',
+        })
+        // Synthesise the dispatcher. The `alts` list is a "virtual"
+        // spec — two ref-only alts — that exists solely to feed
+        // computeFirstSets the right FIRST/nullable answers (FIRST
+        // = FIRST(with) ∪ FIRST(no)). The emitter checks
+        // `probeDispatch` first and emits the phase-retry body
+        // instead of compiling `alts`.
+        extra.push({
+          name: dispatchName,
+          alts: [
+            [{ kind: 'ref', name: withName }],
+            [{ kind: 'ref', name: noName }],
+          ],
+          probeDispatch: {
+            probeRule: probeName,
+            disambiguator: info.disambiguator,
+            withBranch: withName,
+            noBranch: noName,
+          },
+          nodeKind: 'helper',
+        })
+
+        reports.push({
+          rule: prod.name, altIdx, optIdx: i,
+          reason: `optional prefix shares vocabulary with tail`,
+          resolved: true,
+        })
+
+        resultAlt.push({ kind: 'ref', name: dispatchName })
+        // Everything that followed the opt is now inside the dispatcher
+        // (withBranch / noBranch), so skip the rest of the alt.
+        i = alt.length
+        touched = true
+      }
+      newAlts.push(resultAlt)
+    }
+    if (touched) {
+      rewritten.push({
+        name: prod.name,
+        alts: newAlts,
+        nodeKind: prod.nodeKind,
+      })
+    } else {
+      rewritten.push(prod)
+    }
+  }
+
+  return {
+    productions: [...rewritten, ...extra],
+    ambiguities: reports,
+  }
+}
+
+
+// Emit a probe helper production. A self-looping rule that matches any
+// one of the vocab tokens and restarts; a final empty-alt fallback
+// ensures the rule NEVER fails — if the current lookahead isn't in the
+// vocab (or we're at #ZZ), the rule pops cleanly. This is the
+// failure-proof property the probe pattern relies on.
+function emitProbeHelper(
+  prod: BnfProduction,
+  tag: string,
+  ruleSpec: NonNullable<GrammarSpec['rule']>,
+  literals: Map<string, string>,
+  regexTokens: Map<string, string>,
+): void {
+  const elems = prod.probeHelper!.vocabElements
+  const opens: any[] = []
+  for (const el of elems) {
+    const tok = el.kind === 'term'
+      ? literals.get(termKey(el))
+      : el.kind === 'regex' ? regexTokens.get(regexKey(el))
+      : undefined
+    if (tok) opens.push({ s: tok, r: prod.name, g: tag })
+  }
+  // Empty fallback — pops without consuming anything. Must be last.
+  opens.push({ g: tag })
+  ruleSpec[prod.name] = { open: opens }
+}
+
+
+// Emit a probe-dispatch production. Encodes the three-phase retry
+// pattern; uses only standard jsonic primitives (r:, p:, c:, k:,
+// ctx.mark/rewind/t).
+function emitProbeDispatch(
+  prod: BnfProduction,
+  tag: string,
+  ruleSpec: NonNullable<GrammarSpec['rule']>,
+  refs: RefRegistry,
+  literals: Map<string, string>,
+  regexTokens: Map<string, string>,
+): void {
+  const { probeRule, disambiguator, withBranch, noBranch } =
+    prod.probeDispatch!
+  const disambiguatorToken =
+    disambiguator.kind === 'term'
+      ? literals.get(termKey(disambiguator))
+      : disambiguator.kind === 'regex'
+        ? regexTokens.get(regexKey(disambiguator))
+        : undefined
+  if (!disambiguatorToken) {
+    throw new Error(
+      `bnf: probe-dispatch rule '${prod.name}' has unresolvable ` +
+      `disambiguator (kind=${disambiguator.kind})`)
+  }
+
+  const initMark = refs.register((r: Rule, ctx: any) => {
+    r.k.pd_phase = 0
+    r.k.pd_mark = ctx.mark()
+  })
+
+  const decide = refs.register((r: Rule, ctx: any) => {
+    // ctx.t[0] is the first token the probe didn't consume. The probe
+    // never fails, so this always reflects a real position.
+    const peek = ctx.t[0]
+    ctx.rewind(r.k.pd_mark)
+    const matched = peek && peek.name === disambiguatorToken
+    r.k.pd_phase = matched ? 1 : 2
+  })
+
+  const bubble = refs.register((r: Rule) => {
+    if (r.child && r.child.node !== undefined) r.node = r.child.node
+  })
+
+  ruleSpec[prod.name] = {
+    open: [
+      // Phase 0 — first pass: mark and probe.
+      {
+        c: refs.register((r: Rule) => !r.k.pd_phase),
+        a: initMark,
+        p: probeRule,
+        g: tag,
+      },
+      // Phase 1 — disambiguator was seen: commit to X D Y.
+      {
+        c: refs.register((r: Rule) => r.k.pd_phase === 1),
+        p: withBranch,
+        g: tag,
+      },
+      // Phase 2 — disambiguator was not seen: commit to Y alone.
+      {
+        c: refs.register((r: Rule) => r.k.pd_phase === 2),
+        p: noBranch,
+        g: tag,
+      },
+    ],
+    close: [
+      // Phase 0 close: decide phase based on peek, rewind, retry self.
+      {
+        c: refs.register((r: Rule) => r.k.pd_phase === 0),
+        a: decide,
+        r: prod.name,
+        g: tag,
+      },
+      // Phase 1 / 2 close: lift the committed child's node up.
+      { a: bubble, g: tag },
+    ],
+  }
 }
 
 
@@ -580,14 +1463,19 @@ function emitGrammarSpec(
   const tag = opts?.tag ?? 'bnf'
 
   // Eliminate direct left recursion (P → P α | β) by rewriting to
-  // the equivalent right-recursive form P → β (α)*, then flatten any
-  // EBNF sugar (`?`, `*`, `+`, grouping) into plain BNF.
+  // the equivalent right-recursive form P → β (α)*, then detect
+  // ambiguous `[X D] Y` optional-prefix patterns and rewrite them
+  // into probe-dispatch helpers; finally flatten any EBNF sugar
+  // (`?`, `*`, `+`, grouping) into plain BNF.
   grammar = eliminateLeftRecursion(grammar)
+  grammar = rewriteProbeDispatches(grammar)
   grammar = desugar(grammar)
 
   // Allocate a fixed token for each unique literal, and a match
-  // token for each unique regex terminal.
-  const literals = new Map<string, string>()        // literal -> token name
+  // token for each unique regex terminal. Literals are keyed by
+  // (literal, effective-case-sensitivity) so a `%s"foo"` (sensitive)
+  // and a bare `"foo"` (insensitive) produce distinct tokens.
+  const literals = new Map<string, string>()        // literal-key -> token name
   const regexTokens = new Map<string, string>()     // regex key -> token name
   const usedNames = new Set<string>()
   const fixedTokens: Record<string, string> = {}
@@ -595,22 +1483,62 @@ function emitGrammarSpec(
   for (const prod of grammar.productions) {
     for (const alt of prod.alts) {
       for (const el of alt) {
-        if (el.kind === 'term' && !literals.has(el.literal)) {
-          const name = allocTokenName(el.literal, usedNames)
-          literals.set(el.literal, name)
-          fixedTokens[name] = el.literal
+        if (el.kind === 'term') {
+          const key = termKey(el)
+          if (!literals.has(key)) {
+            const name = allocTokenName(el.literal, usedNames)
+            literals.set(key, name)
+            if (isEffectivelyCaseSensitive(el)) {
+              fixedTokens[name] = el.literal
+            } else {
+              // Insensitive literal with at least one letter — emit
+              // as an anchored regex with the `i` flag. Mark the
+              // matcher `eager$` so jsonic's lexer fires it even
+              // when the current rule's tcol doesn't list its tin.
+              const re = new RegExp(
+                '^' + escapeRegExp(el.literal),
+                'i',
+              ) as RegExp & { eager$?: boolean }
+              re.eager$ = true
+              matchTokens[name] = re
+            }
+          }
         } else if (el.kind === 'regex') {
           const key = regexKey(el)
           if (!regexTokens.has(key)) {
             const name = allocTokenName('rx_' + el.pattern, usedNames)
             regexTokens.set(key, name)
-            // Anchor at the start of the forward-facing source — the
-            // lexer calls the matcher with `fwd`, so a leading `^` is
-            // required to avoid matching mid-stream.
-            matchTokens[name] = new RegExp(
-              '^' + el.pattern,
-              el.flags,
-            )
+            matchTokens[name] = new RegExp('^' + el.pattern, el.flags)
+          }
+        }
+      }
+    }
+    // Probe-helper productions store their vocab as BnfElements —
+    // walk those too so the required tokens get allocated.
+    if (prod.probeHelper) {
+      for (const el of prod.probeHelper.vocabElements) {
+        if (el.kind === 'term') {
+          const key = termKey(el)
+          if (!literals.has(key)) {
+            const name = allocTokenName(el.literal, usedNames)
+            literals.set(key, name)
+            if (isEffectivelyCaseSensitive(el)) {
+              fixedTokens[name] = el.literal
+            } else {
+              const re = new RegExp(
+                '^' + escapeRegExp(el.literal),
+                'i',
+              ) as RegExp & { eager$?: boolean }
+              re.eager$ = true
+              matchTokens[name] = re
+            }
+          }
+        } else if (el.kind === 'regex') {
+          const key = regexKey(el)
+          if (!regexTokens.has(key)) {
+            const name = allocTokenName('rx_' + el.pattern, usedNames)
+            regexTokens.set(key, name)
+            matchTokens[name] = new RegExp('^' + el.pattern, el.flags)
           }
         }
       }
@@ -622,15 +1550,21 @@ function emitGrammarSpec(
     grammar, literals, regexTokens)
   const refs = new RefRegistry()
 
-  // Emit each production as one or more jsonic rules. Simple
-  // (single-segment) alternatives fit directly into `rule.open`;
-  // multi-segment alternatives need a chain of auxiliary rules, one
-  // per segment after the first; multi-alt productions that mix the
-  // two use a FIRST-set dispatcher.
   const ruleSpec: NonNullable<GrammarSpec['rule']> = {}
   for (const prod of grammar.productions) {
+    if (prod.probeHelper) {
+      emitProbeHelper(prod, tag, ruleSpec, literals, regexTokens)
+      continue
+    }
+    if (prod.probeDispatch) {
+      emitProbeDispatch(prod, tag, ruleSpec, refs, literals, regexTokens)
+      continue
+    }
+    // Standard path: a (possibly single-segment) set of alternatives
+    // compiled to jsonic alts. Simple alts collapse into `open` alts
+    // directly; multi-segment alts emit a chain of aux rules.
     emitProduction(
-      prod, literals, regexTokens, knownRules, tag, ruleSpec,
+      prod, grammar, literals, regexTokens, knownRules, tag, ruleSpec,
       firstSets, nullable, refs,
     )
   }
@@ -644,15 +1578,14 @@ function emitGrammarSpec(
   ruleSpec[startWrapper] = {
     open: [{
       p: start,
-      // Initialise the top-level node so descendants can accumulate.
-      a: refs.register((r: Rule) => { r.node = [] }),
       g: tag,
     }],
     close: [{
       s: '#ZZ',
-      // Lift the child's result into this rule's node so the value
-      // returned to the caller of `jsonic(...)` is the tree, not the
-      // initial empty array.
+      // Return the start rule's AST node directly — the `__start__`
+      // wrapper exists only to ensure end-of-source gets consumed.
+      // The caller of `jsonic(src)` receives the tagged user-rule
+      // node (e.g. `{rule: 'URI', src, kids: [...]}`) unadorned.
       a: refs.register((r: Rule) => {
         if (r.child && r.child.node !== undefined) {
           r.node = r.child.node
@@ -699,7 +1632,7 @@ function segmentize(
   let current: Segment = { terms: [], ref: null }
   for (const el of alt) {
     if (el.kind === 'term') {
-      current.terms.push(literals.get(el.literal) as string)
+      current.terms.push(literals.get(termKey(el)) as string)
     } else if (el.kind === 'regex') {
       const key = regexKey(el)
       current.terms.push(regexTokens.get(key) as string)
@@ -775,47 +1708,87 @@ class RefRegistry {
 }
 
 
+// Output AST node shape. Every rule produces a `{src, kids}` object.
+// User-declared rules additionally carry a `rule` tag so callers can
+// navigate the tree by grammar-rule name. Core rules (ALPHA, DIGIT
+// …) and synthesised helpers (desugar / dispatcher / chain steps)
+// leave `rule` unset — their contribution flattens into the
+// enclosing user rule (src accumulates; kids extend).
+type AstNode = {
+  rule?: string
+  src: string
+  kids: AstNode[]
+}
+
+function mkAstNode(ruleName: string, nodeKind: BnfProduction['nodeKind']): AstNode {
+  return nodeKind === 'user'
+    ? { rule: ruleName, src: '', kids: [] }
+    : { src: '', kids: [] }
+}
+
+
 function segmentToAlt(
   seg: Segment,
   tag: string,
   refs: RefRegistry,
   initNode: boolean,
+  ruleName: string,
+  nodeKind: BnfProduction['nodeKind'],
 ): any {
   const spec: any = { g: tag }
   if (seg.terms.length > 0) spec.s = seg.terms.join(' ')
   if (seg.ref) spec.p = seg.ref
 
-  // Default tree-building: push each matched terminal's source text
-  // into the rule's node. The first alt of a head rule also resets
-  // `r.node` to a fresh array — otherwise a child rule would inherit
-  // (and then mutate) its parent's node, giving a circular tree.
+  // Default tree-building: accumulate each matched terminal's source
+  // text into `r.node.src`. Head alts also allocate a fresh AST node
+  // so the child doesn't inherit (and then mutate) its parent's.
   const nterms = seg.terms.length
   if (nterms > 0 || initNode) {
     spec.a = refs.register((r: Rule) => {
-      if (initNode) r.node = []
-      for (let i = 0; i < nterms; i++) {
-        r.node.push(r.o[i].src)
-      }
+      if (initNode) r.node = mkAstNode(ruleName, nodeKind)
+      const n = r.node as AstNode
+      for (let i = 0; i < nterms; i++) n.src += r.o[i].src
     })
   }
   return spec
 }
 
 
-// Close-state action: append the just-returned child rule's node
-// (if any) to the current rule's node array.
-function captureChildRef(refs: RefRegistry): `@${string}` {
+// Close-state action: merge the just-returned child rule's AST node
+// into the current rule's. Tagged children (user rules) get pushed
+// verbatim into `kids`; untagged (helper / core) flatten — their
+// `src` appends and their `kids` extend. Either way `src`
+// concatenates so every ancestor's `.src` reflects everything it
+// matched.
+function captureChildRef(
+  refs: RefRegistry,
+  ruleName: string,
+  nodeKind: BnfProduction['nodeKind'],
+): `@${string}` {
   return refs.register((r: Rule) => {
-    if (r.node == null) r.node = []
-    if (r.child && r.child.node !== undefined) {
-      r.node.push(r.child.node)
+    if (r.node == null) r.node = mkAstNode(ruleName, nodeKind)
+    const n = r.node as AstNode
+    const c = r.child && r.child.node as AstNode | undefined
+    if (c == null) return
+    if (typeof c !== 'object' || !('src' in c)) {
+      // Legacy shape — wrap as a leaf kid.
+      n.kids.push(c as any)
+      return
     }
+    // Defensive: if the child somehow shares this rule's node
+    // object, skip the merge rather than push a self-reference. (A
+    // properly-emitted grammar always allocates fresh child nodes.)
+    if (c === n) return
+    n.src += c.src
+    if (c.rule) n.kids.push(c)
+    else if (Array.isArray(c.kids)) n.kids.push(...c.kids)
   })
 }
 
 
 function emitProduction(
   prod: BnfProduction,
+  grammar: BnfGrammar,
   literals: Map<string, string>,
   regexTokens: Map<string, string>,
   knownRules: Set<string>,
@@ -856,6 +1829,7 @@ function emitProduction(
         seg.terms.length === 0 &&
         seg.ref != null
 
+      const prodKind = prod.nodeKind ?? 'user'
       if (needsPeek && isRefOnly) {
         const firstTokens = firstOfAlt(
           alt, literals, regexTokens, firstSets, nullable)
@@ -865,14 +1839,16 @@ function emitProduction(
               s: tok,
               b: 1,
               p: seg.ref,
-              a: refs.register((r: Rule) => { r.node = [] }),
+              a: refs.register((r: Rule) => {
+                r.node = mkAstNode(prod.name, prodKind)
+              }),
               g: tag,
             })
           }
           continue
         }
       }
-      opens.push(segmentToAlt(seg, tag, refs, true))
+      opens.push(segmentToAlt(seg, tag, refs, true, prod.name, prodKind))
     }
 
     const rs: any = { open: opens }
@@ -881,7 +1857,10 @@ function emitProduction(
     // returned child. Add a universal fallback close alt whose
     // action is a no-op when there was no push.
     if (prod.alts.some((alt) => alt.some((el) => el.kind === 'ref'))) {
-      rs.close = [{ a: captureChildRef(refs), g: tag }]
+      rs.close = [{
+        a: captureChildRef(refs, prod.name, prod.nodeKind ?? 'user'),
+        g: tag,
+      }]
     }
     ruleSpec[prod.name] = rs
     return
@@ -891,7 +1870,7 @@ function emitProduction(
     // Single-alt, multi-segment: chain rules directly on the
     // production.
     emitChain(prod.name, prod.alts[0], literals, regexTokens, tag,
-      ruleSpec, refs)
+      ruleSpec, refs, prod.nodeKind ?? 'user')
     return
   }
 
@@ -914,28 +1893,65 @@ function emitProduction(
       continue
     }
 
-    emitChain(implName, alt, literals, regexTokens, tag, ruleSpec, refs)
+    emitChain(implName, alt, literals, regexTokens, tag, ruleSpec, refs,
+      'helper')
 
-    // Compute FIRST(alt) to drive the dispatch lookahead. Any token
-    // in that set routes to this impl rule. The `b: 1` restores the
-    // peeked token so the impl can re-consume it.
-    const firstTokens = firstOfAlt(alt, literals, regexTokens,
-      firstSets, nullable)
-    if (firstTokens === null) {
-      throw new Error(
-        `bnf: rule '${prod.name}' alternative ${i} is nullable but ` +
-        `is not the only empty alt; FIRST set is ambiguous`)
-    }
-    for (const tok of firstTokens) {
-      dispatchOpen.push({ s: tok, b: 1, p: implName, g: tag })
+    // Fan out this alt into one dispatch entry per concrete token
+    // sequence it can start with. Up to LOOKAHEAD_K tokens per
+    // prefix is enough for the grammars this converter targets; a
+    // ref with multiple alts produces one prefix per sub-alt so
+    // overlapping FIRST sets between competing alts can still be
+    // separated by their second (or later) token.
+    // The dispatcher itself is a user (or helper) rule — it must
+    // allocate its own AST node on every dispatch alt, otherwise the
+    // node inherited from the parent via makeRule(ctx, rule.node)
+    // would be shared and the dispatcher's captureChildRef would
+    // mutate the parent's tree.
+    const dispatchKind = prod.nodeKind ?? 'user'
+    const initDispatchNode = refs.register((r: Rule) => {
+      r.node = mkAstNode(prod.name, dispatchKind)
+    })
+
+    const LOOKAHEAD_K = 4
+    const prefixes = altPrefixes(
+      alt, grammar, literals, regexTokens, LOOKAHEAD_K)
+    const usable = prefixes.filter((p) => p.length > 0)
+    if (usable.length > 0) {
+      for (const p of usable) {
+        dispatchOpen.push({
+          s: p.join(' '),
+          b: p.length,
+          p: implName,
+          a: initDispatchNode,
+          g: tag,
+        })
+      }
+    } else {
+      const firstTokens = firstOfAlt(
+        alt, literals, regexTokens, firstSets, nullable)
+      if (firstTokens === null) {
+        throw new Error(
+          `bnf: rule '${prod.name}' alternative ${i} is nullable ` +
+          `but is not the only empty alt; FIRST set is ambiguous`)
+      }
+      for (const tok of firstTokens) {
+        dispatchOpen.push({
+          s: tok, b: 1, p: implName, a: initDispatchNode, g: tag,
+        })
+      }
     }
   }
 
   if (emptyAltSeen) {
     // Fallback: matches any token (or none), pops immediately with
-    // an empty tree.
+    // an empty tree. Tagged with the user rule name so a consumer
+    // walking the tree still gets a placeholder node for the empty
+    // alternative.
+    const fallbackKind = prod.nodeKind ?? 'user'
     dispatchOpen.push({
-      a: refs.register((r: Rule) => { r.node = [] }),
+      a: refs.register((r: Rule) => {
+        r.node = mkAstNode(prod.name, fallbackKind)
+      }),
       g: tag,
     })
   }
@@ -943,14 +1959,11 @@ function emitProduction(
   ruleSpec[prod.name] = {
     open: dispatchOpen,
     close: [{
-      // Promote the chosen impl's result up to the dispatcher's node
-      // so the calling rule sees the impl's tree (not the
-      // dispatcher's empty placeholder).
-      a: refs.register((r: Rule) => {
-        if (r.child && r.child.node !== undefined) {
-          r.node = r.child.node
-        }
-      }),
+      // Merge the chosen impl's result up into the dispatcher's node,
+      // tagged with the user rule name (so the enclosing rule sees a
+      // `{rule, src, kids}` child, not the impl chain's transparent
+      // `{src, kids}`).
+      a: captureChildRef(refs, prod.name, prod.nodeKind ?? 'user'),
       g: tag,
     }],
   }
@@ -960,6 +1973,12 @@ function emitProduction(
 // Emit a (possibly single-step) chain of rules for one alt under the
 // given head rule name. Segment 0 goes into `headName`; later
 // segments get synthetic `<headName>$stepN` continuations.
+//
+// `headKind` controls the head rule's AST node shape: 'user' tags
+// the head's node with the rule name; 'helper' leaves it untagged
+// (transparent to the enclosing user rule). Step rules are always
+// helpers — they inherit and accumulate into the head's node via
+// `r:` replacement.
 function emitChain(
   headName: string,
   alt: BnfSequence,
@@ -968,6 +1987,7 @@ function emitChain(
   tag: string,
   ruleSpec: NonNullable<GrammarSpec['rule']>,
   refs: RefRegistry,
+  headKind: BnfProduction['nodeKind'] = 'helper',
 ) {
   const segs = segmentize(alt, literals, regexTokens)
   const chainName = (i: number) =>
@@ -976,9 +1996,10 @@ function emitChain(
   for (let i = 0; i < segs.length; i++) {
     const name = chainName(i)
     const seg = segs[i]
-    // Only the head of the chain initialises the node array; later
-    // steps inherit and continue to accumulate into it.
-    const open = [segmentToAlt(seg, tag, refs, i === 0)]
+    const kind = i === 0 ? headKind : 'helper'
+    // Only the head of the chain initialises the node object; later
+    // steps inherit and continue to accumulate into it via `r:`.
+    const open = [segmentToAlt(seg, tag, refs, i === 0, name, kind)]
     const rs: any = { open }
 
     const isLast = i === segs.length - 1
@@ -987,13 +2008,13 @@ function emitChain(
       // node and replace with the next step rule.
       rs.close = [{
         r: chainName(i + 1),
-        a: captureChildRef(refs),
+        a: captureChildRef(refs, name, kind),
         g: tag,
       }]
     } else if (seg.ref) {
       // Last step, but it had a push — we still need to capture the
       // final child before popping.
-      rs.close = [{ a: captureChildRef(refs), g: tag }]
+      rs.close = [{ a: captureChildRef(refs, name, kind), g: tag }]
     }
     ruleSpec[name] = rs
   }
@@ -1025,7 +2046,7 @@ function computeFirstSets(
         for (const el of alt) {
           if (el.kind === 'term' || el.kind === 'regex') {
             const tok = el.kind === 'term'
-              ? literals.get(el.literal) as string
+              ? literals.get(termKey(el)) as string
               : regexTokens.get(regexKey(el)) as string
             if (!first.has(tok)) { first.add(tok); changed = true }
             altNullable = false
@@ -1071,7 +2092,7 @@ function firstOfAlt(
   for (const el of alt) {
     if (el.kind === 'term' || el.kind === 'regex') {
       const tok = el.kind === 'term'
-        ? literals.get(el.literal) as string
+        ? literals.get(termKey(el)) as string
         : regexTokens.get(regexKey(el)) as string
       out.add(tok)
       return out
@@ -1087,6 +2108,222 @@ function firstOfAlt(
   }
   // Alt is nullable — no non-empty prefix.
   return null
+}
+
+
+// Longest deterministic terminal prefix of a rule — the longest
+// sequence of tokens that every alternative of the rule starts
+// with. Refs are followed into their target rule, with a `visited`
+// set guarding cycles. An empty array means there's no confident
+// prefix (the rule either has divergent alts, starts with a multi-
+// alt ref, or hits a cycle), so the caller should fall back to a
+// single-token FIRST-set lookahead instead.
+function ruleLiteralPrefix(
+  name: string,
+  grammar: BnfGrammar,
+  literals: Map<string, string>,
+  regexTokens: Map<string, string>,
+  visited: Set<string>,
+): string[] {
+  if (visited.has(name)) return []
+  const next = new Set(visited); next.add(name)
+  const prod = grammar.productions.find((p) => p.name === name)
+  if (!prod || prod.alts.length === 0) return []
+
+  const prefixes = prod.alts.map((alt) =>
+    altLiteralPrefix(alt, grammar, literals, regexTokens, next))
+  if (prefixes.some((p) => p.length === 0)) return []
+  const minLen = Math.min(...prefixes.map((p) => p.length))
+  const common: string[] = []
+  for (let i = 0; i < minLen; i++) {
+    const tok = prefixes[0][i]
+    if (prefixes.every((p) => p[i] === tok)) common.push(tok)
+    else break
+  }
+  return common
+}
+
+
+function altLiteralPrefix(
+  alt: BnfSequence,
+  grammar: BnfGrammar,
+  literals: Map<string, string>,
+  regexTokens: Map<string, string>,
+  visited: Set<string>,
+): string[] {
+  const out: string[] = []
+  for (const el of alt) {
+    if (el.kind === 'term') {
+      out.push(literals.get(termKey(el)) as string)
+    } else if (el.kind === 'regex') {
+      out.push(regexTokens.get(regexKey(el)) as string)
+    } else if (el.kind === 'ref') {
+      const sub = ruleLiteralPrefix(
+        el.name, grammar, literals, regexTokens, visited)
+      // Take the ref's literal prefix and stop — we can't see past
+      // the ref without more expensive analysis.
+      out.push(...sub)
+      return out
+    } else {
+      return out
+    }
+  }
+  return out
+}
+
+
+type PrefixPath = { tokens: string[]; done: boolean }
+
+
+// Enumerate concrete token-sequence prefixes an alternative can
+// start with, each at most `maxK` tokens long. Refs with multiple
+// alternatives fan out into one prefix per sub-alternative so the
+// caller can emit a dedicated dispatch alt for each path. When a
+// ref cycles back or exhausts depth, the path is *terminated* at
+// the tokens accumulated so far — the `done` flag is propagated
+// out of nested calls so a truncated sub-prefix is never extended
+// with tokens from elements the outer alt happens to list after the
+// cycled ref.
+function altPrefixesRaw(
+  alt: BnfSequence,
+  grammar: BnfGrammar,
+  literals: Map<string, string>,
+  regexTokens: Map<string, string>,
+  maxK: number,
+  visited: Set<string> = new Set(),
+): PrefixPath[] {
+  let paths: PrefixPath[] = [{ tokens: [], done: false }]
+
+  for (const el of alt) {
+    const next: PrefixPath[] = []
+    for (const p of paths) {
+      if (p.done || p.tokens.length >= maxK) { next.push(p); continue }
+      if (el.kind === 'term') {
+        next.push({
+          tokens: [...p.tokens, literals.get(termKey(el)) as string],
+          done: false,
+        })
+      } else if (el.kind === 'regex') {
+        next.push({
+          tokens: [...p.tokens, regexTokens.get(regexKey(el)) as string],
+          done: false,
+        })
+      } else if (el.kind === 'ref') {
+        if (visited.has(el.name)) {
+          next.push({ tokens: p.tokens, done: true })
+          continue
+        }
+        const childVisited = new Set(visited); childVisited.add(el.name)
+        const target = grammar.productions.find((pr) => pr.name === el.name)
+        if (!target || target.alts.length === 0) {
+          next.push({ tokens: p.tokens, done: true })
+          continue
+        }
+        for (const sub of target.alts) {
+          const subPaths = altPrefixesRaw(
+            sub, grammar, literals, regexTokens,
+            maxK - p.tokens.length, childVisited)
+          for (const sp of subPaths) {
+            next.push({
+              tokens: [...p.tokens, ...sp.tokens],
+              // Propagate `done` so the outer loop won't extend a
+              // cycle-truncated sub-prefix.
+              done: sp.done,
+            })
+          }
+        }
+      } else {
+        // Desugar should have eliminated group/star/etc. at this point.
+        next.push({ tokens: p.tokens, done: true })
+      }
+    }
+    paths = next
+    if (paths.every((p) => p.done || p.tokens.length >= maxK)) break
+  }
+
+  return paths
+}
+
+
+function altPrefixes(
+  alt: BnfSequence,
+  grammar: BnfGrammar,
+  literals: Map<string, string>,
+  regexTokens: Map<string, string>,
+  maxK: number,
+): string[][] {
+  const raw = altPrefixesRaw(alt, grammar, literals, regexTokens, maxK)
+  const seen = new Set<string>()
+  const out: string[][] = []
+  for (const p of raw) {
+    const key = p.tokens.join(' ')
+    if (!seen.has(key)) { seen.add(key); out.push(p.tokens) }
+  }
+  return out
+}
+
+
+// A quoted-string literal is effectively case-sensitive either
+// when the user explicitly wrote `%s"…"` or when it contains no
+// ASCII letters (there's nothing to fold — `"+"` matches `+` in
+// any "case").
+function isEffectivelyCaseSensitive(el: {
+  literal: string
+  caseSensitive?: boolean
+}): boolean {
+  if (el.caseSensitive === true) return true
+  return !/[A-Za-z]/.test(el.literal)
+}
+
+
+// Map a term element to the key used to look up (or allocate) its
+// emitted token. The key folds together the literal and its
+// effective case-sensitivity so a sensitive and an insensitive
+// occurrence of the same string are distinct tokens.
+function termKey(el: { literal: string; caseSensitive?: boolean }): string {
+  return (isEffectivelyCaseSensitive(el) ? 'cs:' : 'ci:') + el.literal
+}
+
+
+function escapeRegExp(s: string): string {
+  return s.replace(/[\\^$.*+?()[\]{}|]/g, '\\$&')
+}
+
+
+// Decode an ABNF numeric value (`%xNN`, `%dNN`, `%bNN`, or one of
+// the range/concatenation forms) into a `BnfElement`.
+//
+//   %x61            => single-char term "a"
+//   %x66.6f.6f      => concatenated term "foo"
+//   %x30-39         => regex character class [\u0030-\u0039]
+//
+// Hex is case-insensitive; decimal and binary accept only digits
+// in their respective ranges. Range endpoints must be the same
+// base as the prefix (RFC 5234 doesn't allow mixing).
+function parseNumericValue(src: string): BnfElement {
+  const base = src[1].toLowerCase()
+  const radix = base === 'x' ? 16 : base === 'd' ? 10 : 2
+  const body = src.slice(2)
+
+  if (body.includes('-')) {
+    const [loStr, hiStr] = body.split('-')
+    const lo = parseInt(loStr, radix)
+    const hi = parseInt(hiStr, radix)
+    if (lo === hi) {
+      return { kind: 'term', literal: String.fromCharCode(lo) }
+    }
+    const toEsc = (n: number) =>
+      '\\u' + n.toString(16).padStart(4, '0')
+    return {
+      kind: 'regex',
+      pattern: '[' + toEsc(lo) + '-' + toEsc(hi) + ']',
+      flags: '',
+    }
+  }
+
+  const parts = body.split('.')
+  const chars = parts.map((n) => String.fromCharCode(parseInt(n, radix)))
+  return { kind: 'term', literal: chars.join('') }
 }
 
 

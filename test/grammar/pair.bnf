@@ -1,2 +1,2 @@
-# Simple BNF fixture: two-terminal sequence.
-<pair> ::= "a" "b"
+; Simple BNF fixture: two-terminal sequence.
+pair = "a" "b"

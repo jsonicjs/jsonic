@@ -31,7 +31,99 @@ function defineLookaheadAliases(ctx, notoken) {
             get() { return this.t[1] ?? notoken; },
             set(v) { this.t[1] = v; },
         },
+        // v1 / v2 used to be plain data slots; keep them as accessors on
+        // the growing `v` stack so existing grammar code reads the same
+        // "most-recently consumed" tokens.
+        v1: {
+            configurable: true,
+            enumerable: true,
+            get() { return this.v[this.v.length - 1] ?? notoken; },
+            set(t) {
+                if (0 < this.v.length)
+                    this.v[this.v.length - 1] = t;
+                else
+                    this.v.push(t);
+            },
+        },
+        v2: {
+            configurable: true,
+            enumerable: true,
+            get() { return this.v[this.v.length - 2] ?? notoken; },
+            set(t) {
+                const L = this.v.length;
+                if (1 < L)
+                    this.v[L - 2] = t;
+                else if (1 === L)
+                    this.v.unshift(t);
+                else
+                    this.v.push(t);
+            },
+        },
     });
+}
+// Rewind primitives. Attached to `ctx` at parse start so rule
+// actions can reach them via their `ctx` argument. `mark()` returns
+// an opaque absolute counter (ctx.vAbs); `rewind(mark)` replays the
+// tokens consumed since that mark by unshifting them back onto the
+// active lexer's pending-token queue, so subsequent `lex.next()`
+// calls re-serve them in forward order.
+//
+// Marks are absolute rather than array-relative so the ring-buffer
+// cap (options.rewind.history) can evict old tokens from the front
+// of ctx.v without invalidating mark values held by in-flight rule
+// actions. A rewind whose target has been evicted throws — the
+// caller's retained-history budget was too small for the grammar.
+function attachRewind(ctx) {
+    ctx.mark = function () {
+        return this.vAbs;
+    };
+    ctx.rewind = function (mark) {
+        const k = this.vAbs - mark;
+        if (k <= 0)
+            return;
+        if (k > this.v.length) {
+            throw new Error(`jsonic: ctx.rewind target ${mark} is outside the retained ` +
+                `history window (oldest mark available is ${this.vAbs - this.v.length}, ` +
+                `current is ${this.vAbs}); increase options.rewind.history.`);
+        }
+        const queue = this.lex.pnt.token;
+        const NOTOKEN = this.NOTOKEN;
+        // The lookahead buffer (ctx.t) holds tokens the lexer has already
+        // produced past the current consumed position but that haven't
+        // been committed to ctx.v yet. They advanced the lexer's sI — so
+        // if we just invalidated the buffer, those source chars would be
+        // lost. Preserve them by splicing into the front of the pending
+        // queue in the order the lexer produced them, BEHIND the rewound
+        // consumed tokens that come next.
+        const pendingLookahead = [];
+        for (let i = 0; i < this.t.length; i++) {
+            const tkn = this.t[i];
+            if (tkn && tkn !== NOTOKEN)
+                pendingLookahead.push(tkn);
+            this.t[i] = NOTOKEN;
+        }
+        // Un-shift pre-lexed lookahead (oldest-first order at the queue
+        // head), so the next lex.next() serves them in the same order they
+        // were originally produced.
+        for (let i = pendingLookahead.length - 1; i >= 0; i--) {
+            queue.unshift(pendingLookahead[i]);
+        }
+        // Then unshift the rewound consumed tokens — they go in FRONT of
+        // the lookahead, so the next lex.next() serves the oldest rewound
+        // consumed token first, then the rest in order.
+        for (let i = 0; i < k; i++) {
+            // Pop newest-first, unshift in that order — the first unshift
+            // lands the newest at the queue's head; the next unshift slides
+            // older tokens in front of it, so the queue reads oldest-first.
+            queue.unshift(this.v.pop());
+        }
+        this.vAbs -= k;
+        // Clear the lexer's cached end-of-source token so lex.next serves
+        // from the newly-replenished queue rather than short-circuiting
+        // to #ZZ. (Once the lexer has produced the end token it pins it
+        // to pnt.end; the rewound tokens would otherwise be unreachable.)
+        this.lex.pnt.end = undefined;
+    };
 }
 class ParserImpl {
     constructor(options, cfg, j) {
@@ -79,8 +171,13 @@ class ParserImpl {
             rule: {},
             sub: jsonic.internal().sub,
             xs: -1,
-            v2: endtkn,
-            v1: endtkn,
+            // Consumed-token history. Legacy v1 / v2 accessors (installed by
+            // defineLookaheadAliases) read the top of this stack. ctx.vAbs
+            // is the absolute count of pushed-and-not-rewound tokens since
+            // parse start; ctx.mark() returns it so ring-buffer eviction of
+            // old entries doesn't invalidate outstanding marks.
+            v: [],
+            vAbs: 0,
             // Lookahead buffer. Seeded with two NOTOKEN slots; grows as alts
             // request deeper positions via ctx.t[i].
             t: [notoken, notoken],
@@ -119,6 +216,8 @@ class ParserImpl {
             }
         }
         let lex = (0, utility_1.badlex)((0, lexer_1.makeLex)(ctx), (0, utility_1.tokenize)('#BD', this.cfg), ctx);
+        ctx.lex = lex;
+        attachRewind(ctx);
         let startspec = this.rsm[this.cfg.rule.start];
         if (null == startspec) {
             return undefined;
