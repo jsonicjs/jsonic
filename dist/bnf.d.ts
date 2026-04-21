@@ -2,6 +2,7 @@ import type { BnfConvertOptions, GrammarSpec, Rule } from './types';
 type BnfElement = {
     kind: 'term';
     literal: string;
+    caseSensitive?: boolean;
 } | {
     kind: 'ref';
     name: string;
@@ -19,6 +20,11 @@ type BnfElement = {
     kind: 'plus';
     inner: BnfElement;
 } | {
+    kind: 'rep';
+    min: number;
+    max: number;
+    inner: BnfElement;
+} | {
     kind: 'group';
     alts: BnfSequence[];
 };
@@ -26,9 +32,29 @@ type BnfSequence = BnfElement[];
 type BnfProduction = {
     name: string;
     alts: BnfSequence[];
+    incremental?: boolean;
+    probeDispatch?: ProbeDispatchSpec;
+    probeHelper?: {
+        vocabElements: BnfElement[];
+    };
+    nodeKind?: 'user' | 'core' | 'helper';
+};
+type ProbeDispatchSpec = {
+    probeRule: string;
+    disambiguator: BnfElement;
+    withBranch: string;
+    noBranch: string;
 };
 type BnfGrammar = {
     productions: BnfProduction[];
+    ambiguities?: AmbiguityReport[];
+};
+type AmbiguityReport = {
+    rule: string;
+    altIdx: number;
+    optIdx: number;
+    reason: string;
+    resolved: boolean;
 };
 declare const bnfRules: Record<string, {
     bo?: (r: Rule) => void;

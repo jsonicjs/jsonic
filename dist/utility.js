@@ -359,6 +359,10 @@ function configure(jsonic, incfg, opts) {
     if (opts.result) {
         cfg.result.fail = [...opts.result.fail];
     }
+    // Parse-time consumed-token history cap (for ctx.rewind).
+    cfg.rewind = {
+        history: null == opts.rewind?.history ? Infinity : opts.rewind.history,
+    };
     const optscolor = opts.color ?? {};
     cfg.color = cfg.color ?? {};
     cfg.color.active = optscolor.active ?? cfg.color.active ?? true;

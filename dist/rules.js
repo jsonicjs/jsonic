@@ -306,6 +306,39 @@ class RuleSpecImpl {
         if (alt.k) {
             rule.k = Object.assign(rule.k, alt.k);
         }
+        // Record consumed tokens (matched minus backtrack) on the v
+        // history BEFORE running alt actions, so an action that calls
+        // ctx.rewind sees the just-matched tokens on top of the stack.
+        // The lookahead-buffer shift itself still happens at the end of
+        // process() so non-action paths behave identically.
+        //
+        // ctx.vAbs is an absolute monotonic counter used as the mark
+        // value — it's decoupled from ctx.v.length so the ring-buffer
+        // cap can evict old tokens from the front without invalidating
+        // outstanding marks (marks older than the retained window will
+        // simply fail at rewind time with a clear error).
+        const _cons = rule[is_open ? 'oN' : 'cN'] - (alt.b || 0);
+        if (0 < _cons) {
+            // Move consumed tokens from ctx.t → ctx.v. Clear the tbuf slots
+            // so a ctx.rewind call inside the subsequent alt action can
+            // distinguish "token already in v" (NOTOKEN here; will be
+            // replayed from v) from "pre-lexed lookahead past consumed"
+            // (real token in tbuf; needs re-queuing to preserve state).
+            const NOTOKEN = ctx.NOTOKEN;
+            for (let i = 0; i < _cons; i++) {
+                ctx.v.push(ctx.t[i]);
+                ctx.t[i] = NOTOKEN;
+            }
+            ;
+            ctx.vAbs += _cons;
+            // Amortised-O(1) ring-buffer cap: let v grow to twice the
+            // capacity, then splice its front back down. Batch-eviction
+            // makes each push O(1) on average even at the cap.
+            const cap = ctx.cfg.rewind.history;
+            if (cap !== Infinity && ctx.v.length > 2 * cap) {
+                ctx.v.splice(0, ctx.v.length - cap);
+            }
+        }
         // TODO: move after rule.next resolution
         // (breaks Expr! - fix first)
         // Action call.
@@ -344,6 +377,15 @@ class RuleSpecImpl {
                 if (0 < Object.keys(rule.k).length) {
                     next.k = { ...rule.k };
                 }
+                // Rewire the parent's `child` pointer so the parent's
+                // close-state actions (e.g. capture-child) see the NEW rule
+                // after it pops, not the stale replaced one. Without this,
+                // an action inspecting `r.child.node` gets whatever state
+                // the replaced rule left behind rather than the replacement's
+                // final result.
+                if (rule.parent && rule.parent.child === rule) {
+                    rule.parent.child = next;
+                }
                 why += 'R`' + alt.r + '`';
             }
             else {
@@ -379,19 +421,9 @@ class RuleSpecImpl {
         if (consumed < 0)
             consumed = 0;
         if (0 < consumed) {
-            // Maintain the 2-slot history (v1 = last consumed, v2 = prior).
-            // Semantics are preserved for consumed==1,2 and extend cleanly
-            // for larger N (history still holds the two most recent).
-            if (1 === consumed) {
-                ctx.v2 = ctx.v1;
-                ctx.v1 = ctx.t[0];
-            }
-            else {
-                ctx.v2 = ctx.t[consumed - 2];
-                ctx.v1 = ctx.t[consumed - 1];
-            }
             // Shift the lookahead buffer left by `consumed` slots, filling
             // vacated tail positions with NOTOKEN so later alts re-fetch.
+            // (The corresponding v-history push ran before alt actions.)
             const L = ctx.t.length;
             for (let i = 0; i < L - consumed; i++)
                 ctx.t[i] = ctx.t[i + consumed];
@@ -471,7 +503,14 @@ function parse_alts(is_open, alts, lex, rule, ctx) {
             const Si = S ? S[i] : null;
             if (null != Si) {
                 const tin = tkn.tin;
-                if (!(Si[(tin / 31) | 0] & ((1 << ((tin % 31) - 1)) | bitAA))) {
+                const part = (tin / 31) | 0;
+                // bitAA lives in partition 0 (tin=AA=4). ORing it into the
+                // match mask for any partition other than 0 lets unrelated
+                // tokens in higher partitions collide with alts that merely
+                // set bit 3 of their own partition — a false positive. Apply
+                // bitAA only when testing a partition-0 token.
+                const aaBit = part === 0 ? bitAA : 0;
+                if (!(Si[part] & ((1 << ((tin % 31) - 1)) | aaBit))) {
                     cond = false;
                     break;
                 }
@@ -592,6 +631,18 @@ function normalt(a, rs, r) {
         for (let i = 0; i < sN; i++) {
             const tins = tinsify([a.s[i]]);
             t[i] = tins;
+            // `#AA` is the ANY wildcard — a position whose tin list
+            // includes it must match every lexed token regardless of
+            // partition. Represent that by dropping to the existing
+            // `S[i] = null` sentinel ("no constraint"), bypassing the
+            // per-partition bitset check in parse_alts. The t[i] entry
+            // keeps the raw tin list so tcol collation still reflects
+            // what the user wrote.
+            const aaTin = r.ji.token('#AA');
+            if (aaTin != null && tins.includes(aaTin)) {
+                S[i] = null;
+                continue;
+            }
             S[i] =
                 0 < tins.length
                     ? new Array(Math.max(...tins.map((tin) => (1 + tin / 31) | 0)))

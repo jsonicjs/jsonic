@@ -1,7 +1,9 @@
-# Minimal JSON-like subset: numbers, lowercase-letter string tokens,
-# nested objects and arrays. The string regex is intentionally narrow
-# so the grammar stays easy to exercise.
-<value>  ::= /[0-9]+/ | /"[a-z]+"/ | <object> | <array>
-<object> ::= "{" ( <member> ( "," <member> )* )? "}"
-<member> ::= /"[a-z]+"/ ":" <value>
-<array>  ::= "[" ( <value> ( "," <value> )* )? "]"
+; Minimal JSON-like subset: digits, nested objects, arrays.
+; Names / strings are simplified to single-letter terminals until
+; ABNF %x ranges arrive.
+value  = digit / letter / object / array
+object = "{" [ member *("," member) ] "}"
+member = letter ":" value
+array  = "[" [ value *("," value) ] "]"
+digit  = "0" / "1" / "2" / "3" / "4" / "5" / "6" / "7" / "8" / "9"
+letter = "a" / "b" / "c"
