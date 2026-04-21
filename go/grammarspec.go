@@ -2,6 +2,7 @@ package jsonic
 
 import (
 	"fmt"
+	"reflect"
 	"strings"
 )
 
@@ -635,6 +636,13 @@ func (j *Jsonic) resolveTokenName(name string) []Tin {
 // wireStateActions auto-wires reserved FuncRef names to state action slices.
 // Names: @{rulename}-bo, @{rulename}-ao, @{rulename}-bc, @{rulename}-ac
 // Variants: /prepend prepends, /append or plain appends.
+//
+// Dedupe by function identity per phase: registering the same StateAction
+// twice (directly, or via a later Grammar() call that also passes it)
+// installs only one action, but distinct functions for the same phase all
+// install. Mirrors the TypeScript fnref behaviour — accommodates grammars
+// that layer handlers while preventing unrelated Grammar() calls from
+// re-stacking previously-registered reserved handlers.
 func wireStateActions(rs *RuleSpec, ref map[FuncRef]any) {
 	type target struct {
 		suffix string
@@ -646,25 +654,46 @@ func wireStateActions(rs *RuleSpec, ref map[FuncRef]any) {
 		{"bc", &rs.BC},
 		{"ac", &rs.AC},
 	}
+	if rs.fnrefInstalled == nil {
+		rs.fnrefInstalled = map[string]map[uintptr]bool{}
+	}
 	for _, t := range targets {
 		base := "@" + rs.Name + "-" + t.suffix
-		append_ := true
-		fn := ref[base+"/prepend"]
-		if fn != nil {
-			append_ = false
-		} else {
-			fn = ref[base+"/append"]
-			if fn == nil {
-				fn = ref[base]
-			}
+		phaseSet, ok := rs.fnrefInstalled[base]
+		if !ok {
+			phaseSet = map[uintptr]bool{}
+			rs.fnrefInstalled[base] = phaseSet
 		}
-		if fn != nil {
-			if sa, ok := fn.(StateAction); ok {
-				if append_ {
-					*t.dest = append(*t.dest, sa)
-				} else {
-					*t.dest = append([]StateAction{sa}, *t.dest...)
-				}
+
+		// Check /prepend first, then /append, then plain.
+		type variant struct {
+			key    string
+			append bool
+		}
+		for _, v := range []variant{
+			{base + "/prepend", false},
+			{base + "/append", true},
+			{base, true},
+		} {
+			fn, present := ref[v.key]
+			if !present || fn == nil {
+				continue
+			}
+			sa, ok := fn.(StateAction)
+			if !ok {
+				continue
+			}
+			// Dedupe by function pointer so the same StateAction can't
+			// be wired twice for the same phase across Grammar() calls.
+			ptr := reflect.ValueOf(sa).Pointer()
+			if phaseSet[ptr] {
+				continue
+			}
+			phaseSet[ptr] = true
+			if v.append {
+				*t.dest = append(*t.dest, sa)
+			} else {
+				*t.dest = append([]StateAction{sa}, *t.dest...)
 			}
 		}
 	}

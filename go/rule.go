@@ -141,6 +141,13 @@ type RuleSpec struct {
 	BC    []StateAction // Before-close actions
 	AO    []StateAction // After-open actions
 	AC    []StateAction // After-close actions
+
+	// fnrefInstalled tracks which StateAction functions have already
+	// been wired into each phase via wireStateActions, deduped by
+	// function pointer. Prevents multiple Grammar() calls from stacking
+	// duplicate state actions when they re-register the same handler
+	// for the same reserved `@<rulename>-<phase>` slot.
+	fnrefInstalled map[string]map[uintptr]bool
 }
 
 // Clear removes all alternates and state actions from this RuleSpec.

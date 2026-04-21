@@ -138,37 +138,34 @@ class RuleSpecImpl {
     }
     fnref(frm) {
         Object.assign(this.def.fnref, frm);
-        // Auto-install reserved `@<rulename>-<phase>` handlers as state actions,
-        // but only for keys present in THIS call's frm. Iterating over the
-        // accumulated fnref map would re-install handlers on every call,
-        // producing duplicate state actions when later plugins register
-        // unrelated refs (e.g. @pair-ao) on the same rule.
+        // Auto-install reserved `@<rulename>-<phase>` handlers as state
+        // actions. Dedupe by function identity per phase: registering the
+        // same function twice (directly or via a later fnref() call that
+        // also passes it) installs only one action, but distinct functions
+        // for the same phase all install. This accommodates grammars that
+        // layer handlers (e.g. core sets a basic @list-bo, then a richer
+        // one replaces/augments it) while preventing the old bug where
+        // iterating the accumulated fnref map re-installed every
+        // previously-registered handler on every call.
         const rn = this.name;
-        const reserved = {
-            [`@${rn}-bo`]: true,
-            [`@${rn}-ao`]: true,
-            [`@${rn}-bc`]: true,
-            [`@${rn}-ac`]: true,
-        };
-        const seen = {};
-        for (let key in frm) {
-            // Strip any /append or /prepend suffix to find the reserved base name.
-            const base = key.replace(/\/(append|prepend)$/, '');
-            if (!reserved[base] || seen[base])
-                continue;
-            seen[base] = true;
-            const fr = this.def.fnref;
-            let append = true;
-            let func = fr[base + '/prepend'];
-            if (func) {
-                append = false;
+        const fr = this.def.fnref;
+        const installed = (this.def.fnrefInstalled =
+            this.def.fnrefInstalled || new Map());
+        const reserved = [`@${rn}-bo`, `@${rn}-ao`, `@${rn}-bc`, `@${rn}-ac`];
+        for (let base of reserved) {
+            let phaseSet = installed.get(base);
+            if (!phaseSet)
+                installed.set(base, phaseSet = new WeakSet());
+            const aname = base.replace(/^[^-]+-/, '');
+            const prependFn = fr[base + '/prepend'];
+            const appendFn = fr[base + '/append'] ?? fr[base];
+            if (prependFn && !phaseSet.has(prependFn)) {
+                phaseSet.add(prependFn);
+                this[aname](false, prependFn);
             }
-            else {
-                func = fr[base + '/append'] ?? fr[base];
-            }
-            if (func) {
-                const aname = base.replace(/^[^-]+-/, '');
-                this[aname](append, func);
+            if (appendFn && !phaseSet.has(appendFn)) {
+                phaseSet.add(appendFn);
+                this[aname](true, appendFn);
             }
         }
         return this;
@@ -392,15 +389,6 @@ class RuleSpecImpl {
                 next.n = { ...rule.n };
                 if (0 < Object.keys(rule.k).length) {
                     next.k = { ...rule.k };
-                }
-                // Rewire the parent's `child` pointer so the parent's
-                // close-state actions (e.g. capture-child) see the NEW rule
-                // after it pops, not the stale replaced one. Without this,
-                // an action inspecting `r.child.node` gets whatever state
-                // the replaced rule left behind rather than the replacement's
-                // final result.
-                if (rule.parent && rule.parent.child === rule) {
-                    rule.parent.child = next;
                 }
                 why += 'R`' + alt.r + '`';
             }
