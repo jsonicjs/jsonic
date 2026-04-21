@@ -37,6 +37,7 @@ type BnfProduction = {
     probeHelper?: {
         vocabElements: BnfElement[];
     };
+    nodeKind?: 'user' | 'core' | 'helper';
 };
 type ProbeDispatchSpec = {
     probeRule: string;

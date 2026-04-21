@@ -464,9 +464,19 @@ function eliminateLeftRecursion(grammar) {
     // substitution inlines A_j's alts into A_i for j < i, so putting
     // dependencies first is what makes nullable-prefixed hidden left
     // recursion reachable by the substitution step.
+    //
+    // Note: substitution here always runs, even for cycle-free
+    // grammars. The reason is pragmatic rather than theoretical —
+    // populating tcol from multi-token altPrefixes (needed so the
+    // lexer's regex matchers fire with the right tin in nested
+    // contexts) requires the full inlined shape. A future refactor
+    // could compute tcol from the un-substituted grammar and only
+    // apply Paull's to the cyclic SCCs, which would preserve more
+    // named-rule structure in the emitted AST.
     let prods = topoOrderForPaull(grammar.productions.map((p) => ({
         name: p.name,
         alts: p.alts.map((a) => a.slice()),
+        nodeKind: p.nodeKind,
     })));
     for (let i = 0; i < prods.length; i++) {
         // For each earlier production A_j, inline any alternative of
@@ -493,6 +503,71 @@ function eliminateLeftRecursion(grammar) {
     for (const p of byName.values())
         ordered.push(p);
     return { productions: ordered };
+}
+// Tarjan-flavoured SCC scan over the leading-reference graph:
+// returns the names of productions that participate in at least one
+// cycle (self-loop or longer). Used to scope Paull's substitution to
+// only the rules that actually need it.
+function findLeadingRefCycleMembers(prods) {
+    const byName = new Map(prods.map((p) => [p.name, p]));
+    const leadingRefs = (p) => {
+        const out = [];
+        for (const alt of p.alts) {
+            if (alt.length === 0)
+                continue;
+            const first = alt[0];
+            if (first.kind === 'ref' && byName.has(first.name))
+                out.push(first.name);
+        }
+        return out;
+    };
+    // Tarjan's SCC algorithm.
+    let index = 0;
+    const stack = [];
+    const onStack = new Set();
+    const indices = new Map();
+    const lowlinks = new Map();
+    const cyclic = new Set();
+    function strongConnect(name) {
+        indices.set(name, index);
+        lowlinks.set(name, index);
+        index++;
+        stack.push(name);
+        onStack.add(name);
+        const prod = byName.get(name);
+        if (prod) {
+            for (const target of leadingRefs(prod)) {
+                if (!indices.has(target)) {
+                    strongConnect(target);
+                    lowlinks.set(name, Math.min(lowlinks.get(name), lowlinks.get(target)));
+                }
+                else if (onStack.has(target)) {
+                    lowlinks.set(name, Math.min(lowlinks.get(name), indices.get(target)));
+                }
+            }
+        }
+        if (lowlinks.get(name) === indices.get(name)) {
+            // Pop the SCC. If it has more than one member, or it's a
+            // single member with a self-loop, mark as cyclic.
+            const scc = [];
+            let w;
+            do {
+                w = stack.pop();
+                onStack.delete(w);
+                scc.push(w);
+            } while (w !== name);
+            const isCycle = scc.length > 1 ||
+                (scc.length === 1 && leadingRefs(byName.get(scc[0])).includes(scc[0]));
+            if (isCycle)
+                for (const n of scc)
+                    cyclic.add(n);
+        }
+    }
+    for (const p of prods) {
+        if (!indices.has(p.name))
+            strongConnect(p.name);
+    }
+    return cyclic;
 }
 // Topological order over the "leading-position reference" graph:
 // an edge A → B exists when A has at least one alternative whose
@@ -543,7 +618,7 @@ function substituteLeadingRef(target, source) {
             newAlts.push(alt);
         }
     }
-    return { name: target.name, alts: newAlts };
+    return { name: target.name, alts: newAlts, nodeKind: target.nodeKind };
 }
 // Rewrite a single production's direct left recursion to its
 // iterative equivalent. Equivalent to the previous version of
@@ -570,7 +645,7 @@ function eliminateDirectLeftRec(prod) {
     if (nonTrivialRecursive.length === 0) {
         // Either no recursion at all, or only trivial self-refs — keep
         // just the seeds.
-        return { name: prod.name, alts: seeds };
+        return { name: prod.name, alts: seeds, nodeKind: prod.nodeKind };
     }
     if (seeds.length === 0) {
         throw new Error(`bnf: rule '${prod.name}' is purely left-recursive ` +
@@ -585,6 +660,7 @@ function eliminateDirectLeftRec(prod) {
     return {
         name: prod.name,
         alts: [[seedElement, { kind: 'star', inner: tailInner }]],
+        nodeKind: prod.nodeKind,
     };
 }
 function desugar(grammar) {
@@ -613,7 +689,7 @@ function desugar(grammar) {
             // then emit a helper production whose body is those alts.
             const innerAlts = el.alts.map((a) => desugarAlt(a));
             const name = freshName('group');
-            extra.push({ name, alts: innerAlts });
+            extra.push({ name, alts: innerAlts, nodeKind: 'helper' });
             return { kind: 'ref', name };
         }
         // `opt`, `star`, `plus` all wrap a single inner element.
@@ -623,14 +699,14 @@ function desugar(grammar) {
         if (el.kind === 'opt') {
             // H ::= inner | (empty)
             const name = freshName('opt_' + hint);
-            extra.push({ name, alts: [[inner], []] });
+            extra.push({ name, alts: [[inner], []], nodeKind: 'helper' });
             return { kind: 'ref', name };
         }
         if (el.kind === 'star') {
             // H = inner H / (empty)
             const name = freshName('star_' + hint);
             const selfRef = { kind: 'ref', name };
-            extra.push({ name, alts: [[inner, selfRef], []] });
+            extra.push({ name, alts: [[inner, selfRef], []], nodeKind: 'helper' });
             return { kind: 'ref', name };
         }
         if (el.kind === 'plus') {
@@ -641,10 +717,12 @@ function desugar(grammar) {
             extra.push({
                 name: tailName,
                 alts: [[inner, tailRef], []],
+                nodeKind: 'helper',
             });
             extra.push({
                 name: plusName,
                 alts: [[inner, tailRef]],
+                nodeKind: 'helper',
             });
             return { kind: 'ref', name: plusName };
         }
@@ -669,6 +747,7 @@ function desugar(grammar) {
             extra.push({
                 name: tailStarName,
                 alts: [[inner, tailStarRef], []],
+                nodeKind: 'helper',
             });
             repAlt.push(tailStarRef);
         }
@@ -689,11 +768,15 @@ function desugar(grammar) {
             }
             repAlt.push(...nested);
         }
-        extra.push({ name: repName, alts: [desugarAlt(repAlt)] });
+        extra.push({ name: repName, alts: [desugarAlt(repAlt)], nodeKind: 'helper' });
         return { kind: 'ref', name: repName };
     }
     const rewritten = grammar.productions.map((p) => {
-        const out = { name: p.name, alts: p.alts.map(desugarAlt) };
+        const out = {
+            name: p.name,
+            alts: p.alts.map(desugarAlt),
+            nodeKind: p.nodeKind,
+        };
         // Probe-dispatch flags survive desugar unchanged — the emitter
         // routes around the standard alt-compilation path for these.
         if (p.probeDispatch)
@@ -767,6 +850,11 @@ function getCoreRules() {
         return _coreRules;
     const parser = getBnfParser();
     const raw = parser(CORE_RULES_ABNF);
+    // Core rules flatten to `src` in the output AST — they're
+    // character-class bricks, not structural nodes users want to see
+    // one-per-matched-character.
+    for (const p of raw)
+        p.nodeKind = 'core';
     _coreRules = new Map(raw.map((p) => [p.name, p]));
     return _coreRules;
 }
@@ -836,6 +924,8 @@ function mergeIncrementals(prods) {
         // Strip the (absent) flag on a cleanly-written production so
         // downstream code never sees it.
         const clean = { name: p.name, alts: p.alts };
+        if (p.nodeKind)
+            clean.nodeKind = p.nodeKind;
         out.push(clean);
         byName.set(p.name, clean);
     }
@@ -1015,15 +1105,18 @@ function rewriteProbeDispatches(grammar) {
                     name: probeName,
                     alts: [],
                     probeHelper: { vocabElements: [...vocab.values()] },
+                    nodeKind: 'helper',
                 });
                 // Synthesise the committed branches. `with` = X D Y, `no` = Y.
                 extra.push({
                     name: withName,
                     alts: [[...info.xSeq, info.disambiguator, ...ySeq]],
+                    nodeKind: 'helper',
                 });
                 extra.push({
                     name: noName,
                     alts: [ySeq],
+                    nodeKind: 'helper',
                 });
                 // Synthesise the dispatcher. The `alts` list is a "virtual"
                 // spec — two ref-only alts — that exists solely to feed
@@ -1043,6 +1136,7 @@ function rewriteProbeDispatches(grammar) {
                         withBranch: withName,
                         noBranch: noName,
                     },
+                    nodeKind: 'helper',
                 });
                 reports.push({
                     rule: prod.name, altIdx, optIdx: i,
@@ -1058,7 +1152,11 @@ function rewriteProbeDispatches(grammar) {
             newAlts.push(resultAlt);
         }
         if (touched) {
-            rewritten.push({ name: prod.name, alts: newAlts });
+            rewritten.push({
+                name: prod.name,
+                alts: newAlts,
+                nodeKind: prod.nodeKind,
+            });
         }
         else {
             rewritten.push(prod);
@@ -1264,15 +1362,14 @@ function emitGrammarSpec(grammar, opts) {
     ruleSpec[startWrapper] = {
         open: [{
                 p: start,
-                // Initialise the top-level node so descendants can accumulate.
-                a: refs.register((r) => { r.node = []; }),
                 g: tag,
             }],
         close: [{
                 s: '#ZZ',
-                // Lift the child's result into this rule's node so the value
-                // returned to the caller of `jsonic(...)` is the tree, not the
-                // initial empty array.
+                // Return the start rule's AST node directly — the `__start__`
+                // wrapper exists only to ensure end-of-source gets consumed.
+                // The caller of `jsonic(src)` receives the tagged user-rule
+                // node (e.g. `{rule: 'URI', src, kids: [...]}`) unadorned.
                 a: refs.register((r) => {
                     if (r.child && r.child.node !== undefined) {
                         r.node = r.child.node;
@@ -1373,37 +1470,61 @@ class RefRegistry {
         return this.refs;
     }
 }
-function segmentToAlt(seg, tag, refs, initNode) {
+function mkAstNode(ruleName, nodeKind) {
+    return nodeKind === 'user'
+        ? { rule: ruleName, src: '', kids: [] }
+        : { src: '', kids: [] };
+}
+function segmentToAlt(seg, tag, refs, initNode, ruleName, nodeKind) {
     const spec = { g: tag };
     if (seg.terms.length > 0)
         spec.s = seg.terms.join(' ');
     if (seg.ref)
         spec.p = seg.ref;
-    // Default tree-building: push each matched terminal's source text
-    // into the rule's node. The first alt of a head rule also resets
-    // `r.node` to a fresh array — otherwise a child rule would inherit
-    // (and then mutate) its parent's node, giving a circular tree.
+    // Default tree-building: accumulate each matched terminal's source
+    // text into `r.node.src`. Head alts also allocate a fresh AST node
+    // so the child doesn't inherit (and then mutate) its parent's.
     const nterms = seg.terms.length;
     if (nterms > 0 || initNode) {
         spec.a = refs.register((r) => {
             if (initNode)
-                r.node = [];
-            for (let i = 0; i < nterms; i++) {
-                r.node.push(r.o[i].src);
-            }
+                r.node = mkAstNode(ruleName, nodeKind);
+            const n = r.node;
+            for (let i = 0; i < nterms; i++)
+                n.src += r.o[i].src;
         });
     }
     return spec;
 }
-// Close-state action: append the just-returned child rule's node
-// (if any) to the current rule's node array.
-function captureChildRef(refs) {
+// Close-state action: merge the just-returned child rule's AST node
+// into the current rule's. Tagged children (user rules) get pushed
+// verbatim into `kids`; untagged (helper / core) flatten — their
+// `src` appends and their `kids` extend. Either way `src`
+// concatenates so every ancestor's `.src` reflects everything it
+// matched.
+function captureChildRef(refs, ruleName, nodeKind) {
     return refs.register((r) => {
         if (r.node == null)
-            r.node = [];
-        if (r.child && r.child.node !== undefined) {
-            r.node.push(r.child.node);
+            r.node = mkAstNode(ruleName, nodeKind);
+        const n = r.node;
+        const c = r.child && r.child.node;
+        if (c == null)
+            return;
+        if (typeof c !== 'object' || !('src' in c)) {
+            // Legacy shape — wrap as a leaf kid.
+            n.kids.push(c);
+            return;
         }
+        // Defensive: if the child somehow shares this rule's node
+        // object, skip the merge rather than push a self-reference. (A
+        // properly-emitted grammar always allocates fresh child nodes.)
+        if (c === n)
+            return;
+        n.src += c.src;
+        if (c.rule)
+            n.kids.push(c);
+        else if (Array.isArray(c.kids))
+            n.kids.push(...c.kids);
     });
 }
 function emitProduction(prod, grammar, literals, regexTokens, knownRules, tag, ruleSpec, firstSets, nullable, refs) {
@@ -1434,6 +1555,7 @@ function emitProduction(prod, grammar, literals, regexTokens, knownRules, tag, r
                 alt.every((el) => el.kind === 'ref') &&
                 seg.terms.length === 0 &&
                 seg.ref != null;
+            const prodKind = prod.nodeKind ?? 'user';
             if (needsPeek && isRefOnly) {
                 const firstTokens = firstOfAlt(alt, literals, regexTokens, firstSets, nullable);
                 if (firstTokens) {
@@ -1442,21 +1564,26 @@ function emitProduction(prod, grammar, literals, regexTokens, knownRules, tag, r
                             s: tok,
                             b: 1,
                             p: seg.ref,
-                            a: refs.register((r) => { r.node = []; }),
+                            a: refs.register((r) => {
+                                r.node = mkAstNode(prod.name, prodKind);
+                            }),
                             g: tag,
                         });
                     }
                     continue;
                 }
             }
-            opens.push(segmentToAlt(seg, tag, refs, true));
+            opens.push(segmentToAlt(seg, tag, refs, true, prod.name, prodKind));
         }
         const rs = { open: opens };
         // If any alt has a push, the close state must capture the
         // returned child. Add a universal fallback close alt whose
         // action is a no-op when there was no push.
         if (prod.alts.some((alt) => alt.some((el) => el.kind === 'ref'))) {
-            rs.close = [{ a: captureChildRef(refs), g: tag }];
+            rs.close = [{
+                    a: captureChildRef(refs, prod.name, prod.nodeKind ?? 'user'),
+                    g: tag,
+                }];
         }
         ruleSpec[prod.name] = rs;
         return;
@@ -1464,7 +1591,7 @@ function emitProduction(prod, grammar, literals, regexTokens, knownRules, tag, r
     if (prod.alts.length === 1) {
         // Single-alt, multi-segment: chain rules directly on the
         // production.
-        emitChain(prod.name, prod.alts[0], literals, regexTokens, tag, ruleSpec, refs);
+        emitChain(prod.name, prod.alts[0], literals, regexTokens, tag, ruleSpec, refs, prod.nodeKind ?? 'user');
         return;
     }
     // Multi-alt with at least one multi-segment alternative: emit a
@@ -1483,13 +1610,22 @@ function emitProduction(prod, grammar, literals, regexTokens, knownRules, tag, r
             emptyAltSeen = true;
             continue;
         }
-        emitChain(implName, alt, literals, regexTokens, tag, ruleSpec, refs);
+        emitChain(implName, alt, literals, regexTokens, tag, ruleSpec, refs, 'helper');
         // Fan out this alt into one dispatch entry per concrete token
         // sequence it can start with. Up to LOOKAHEAD_K tokens per
         // prefix is enough for the grammars this converter targets; a
         // ref with multiple alts produces one prefix per sub-alt so
         // overlapping FIRST sets between competing alts can still be
         // separated by their second (or later) token.
+        // The dispatcher itself is a user (or helper) rule — it must
+        // allocate its own AST node on every dispatch alt, otherwise the
+        // node inherited from the parent via makeRule(ctx, rule.node)
+        // would be shared and the dispatcher's captureChildRef would
+        // mutate the parent's tree.
+        const dispatchKind = prod.nodeKind ?? 'user';
+        const initDispatchNode = refs.register((r) => {
+            r.node = mkAstNode(prod.name, dispatchKind);
+        });
         const LOOKAHEAD_K = 4;
         const prefixes = altPrefixes(alt, grammar, literals, regexTokens, LOOKAHEAD_K);
         const usable = prefixes.filter((p) => p.length > 0);
@@ -1499,6 +1635,7 @@ function emitProduction(prod, grammar, literals, regexTokens, knownRules, tag, r
                     s: p.join(' '),
                     b: p.length,
                     p: implName,
+                    a: initDispatchNode,
                     g: tag,
                 });
             }
@@ -1510,29 +1647,33 @@ function emitProduction(prod, grammar, literals, regexTokens, knownRules, tag, r
                     `but is not the only empty alt; FIRST set is ambiguous`);
             }
             for (const tok of firstTokens) {
-                dispatchOpen.push({ s: tok, b: 1, p: implName, g: tag });
+                dispatchOpen.push({
+                    s: tok, b: 1, p: implName, a: initDispatchNode, g: tag,
+                });
             }
         }
     }
     if (emptyAltSeen) {
         // Fallback: matches any token (or none), pops immediately with
-        // an empty tree.
+        // an empty tree. Tagged with the user rule name so a consumer
+        // walking the tree still gets a placeholder node for the empty
+        // alternative.
+        const fallbackKind = prod.nodeKind ?? 'user';
         dispatchOpen.push({
-            a: refs.register((r) => { r.node = []; }),
+            a: refs.register((r) => {
+                r.node = mkAstNode(prod.name, fallbackKind);
+            }),
             g: tag,
         });
     }
     ruleSpec[prod.name] = {
         open: dispatchOpen,
         close: [{
-                // Promote the chosen impl's result up to the dispatcher's node
-                // so the calling rule sees the impl's tree (not the
-                // dispatcher's empty placeholder).
-                a: refs.register((r) => {
-                    if (r.child && r.child.node !== undefined) {
-                        r.node = r.child.node;
-                    }
-                }),
+                // Merge the chosen impl's result up into the dispatcher's node,
+                // tagged with the user rule name (so the enclosing rule sees a
+                // `{rule, src, kids}` child, not the impl chain's transparent
+                // `{src, kids}`).
+                a: captureChildRef(refs, prod.name, prod.nodeKind ?? 'user'),
                 g: tag,
             }],
     };
@@ -1540,15 +1681,22 @@ function emitProduction(prod, grammar, literals, regexTokens, knownRules, tag, r
 // Emit a (possibly single-step) chain of rules for one alt under the
 // given head rule name. Segment 0 goes into `headName`; later
 // segments get synthetic `<headName>$stepN` continuations.
-function emitChain(headName, alt, literals, regexTokens, tag, ruleSpec, refs) {
+//
+// `headKind` controls the head rule's AST node shape: 'user' tags
+// the head's node with the rule name; 'helper' leaves it untagged
+// (transparent to the enclosing user rule). Step rules are always
+// helpers — they inherit and accumulate into the head's node via
+// `r:` replacement.
+function emitChain(headName, alt, literals, regexTokens, tag, ruleSpec, refs, headKind = 'helper') {
     const segs = segmentize(alt, literals, regexTokens);
     const chainName = (i) => i === 0 ? headName : `${headName}$step${i}`;
     for (let i = 0; i < segs.length; i++) {
         const name = chainName(i);
         const seg = segs[i];
-        // Only the head of the chain initialises the node array; later
-        // steps inherit and continue to accumulate into it.
-        const open = [segmentToAlt(seg, tag, refs, i === 0)];
+        const kind = i === 0 ? headKind : 'helper';
+        // Only the head of the chain initialises the node object; later
+        // steps inherit and continue to accumulate into it via `r:`.
+        const open = [segmentToAlt(seg, tag, refs, i === 0, name, kind)];
         const rs = { open };
         const isLast = i === segs.length - 1;
         if (!isLast) {
@@ -1556,14 +1704,14 @@ function emitChain(headName, alt, literals, regexTokens, tag, ruleSpec, refs) {
             // node and replace with the next step rule.
             rs.close = [{
                     r: chainName(i + 1),
-                    a: captureChildRef(refs),
+                    a: captureChildRef(refs, name, kind),
                     g: tag,
                 }];
         }
         else if (seg.ref) {
             // Last step, but it had a push — we still need to capture the
             // final child before popping.
-            rs.close = [{ a: captureChildRef(refs), g: tag }];
+            rs.close = [{ a: captureChildRef(refs, name, kind), g: tag }];
         }
         ruleSpec[name] = rs;
     }

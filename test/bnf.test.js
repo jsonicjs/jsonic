@@ -864,23 +864,73 @@ describe('bnf', () => {
       assert.deepEqual(j('a:1'), { a: 1 })
       // A second call to install still works afterwards.
       j.bnf('g = "x"')
-      assert.deepEqual(j('x'), ['x'])
+      assert.deepEqual(j('x'), { rule: 'g', src: 'x', kids: [] })
     })
 
 
-    it('produces a parse tree of matched terminals', () => {
-      // Terminals are pushed as their source text; nested rules
-      // appear as nested arrays.
+    it('produces an AST tagged by rule name', () => {
+      // Every user-declared rule becomes a `{rule, src, kids}`
+      // node. Leaf rules (only terminals / char classes) have empty
+      // kids and carry the matched text as `src`.
       const j = Jsonic.make()
       j.bnf('g = "hi" / "hello"')
-      assert.deepEqual(j('hi'), ['hi'])
-      assert.deepEqual(j('hello'), ['hello'])
+      assert.deepEqual(j('hi'), { rule: 'g', src: 'hi', kids: [] })
+      assert.deepEqual(j('hello'), { rule: 'g', src: 'hello', kids: [] })
 
+      // Note: under current Paull-style LR elimination, a leading
+      // ref to another user rule gets inlined, so that rule does
+      // NOT appear as a child node. `p = "a" q, q = "b"` works
+      // because `q` is NOT at the leading position of p's alt —
+      // it's preceded by the `"a"` terminal.
       const j2 = Jsonic.make()
       j2.bnf('p = "a" q\nq = "b"')
-      // 'a' is a terminal of p; q's result [b] is appended as a
-      // nested array.
-      assert.deepEqual(j2('a b'), ['a', ['b']])
+      assert.deepEqual(j2('a b'), {
+        rule: 'p',
+        src: 'ab',
+        kids: [{ rule: 'q', src: 'b', kids: [] }],
+      })
+    })
+
+
+    it('ergonomic AST for composite rules (pair = name "=" value)', () => {
+      const j = Jsonic.make()
+      j.bnf(`
+x = "x" name "=" value
+name = 1*ALPHA
+value = 1*DIGIT
+`)
+      // "x" at the leading position keeps name/value as kids; both
+      // leaf rules return as `{rule, src, kids: []}`.
+      assert.deepEqual(j('xfoo=42'), {
+        rule: 'x',
+        src: 'xfoo=42',
+        kids: [
+          { rule: 'name', src: 'foo', kids: [] },
+          { rule: 'value', src: '42', kids: [] },
+        ],
+      })
+    })
+
+
+    it('ergonomic AST for star-with-leading-terminal', () => {
+      // Star repetition with a leading terminal `[` keeps inner
+      // named rules visible in the AST (Paull's substitution only
+      // inlines LEADING refs; a `[` term at the alt's head blocks
+      // the inlining).
+      const j = Jsonic.make()
+      j.bnf(`
+list = "[" item *("," item) "]"
+item = 1*ALPHA
+`)
+      assert.deepEqual(j('[a,b,c]'), {
+        rule: 'list',
+        src: '[a,b,c]',
+        kids: [
+          { rule: 'item', src: 'a', kids: [] },
+          { rule: 'item', src: 'b', kids: [] },
+          { rule: 'item', src: 'c', kids: [] },
+        ],
+      })
     })
 
   })

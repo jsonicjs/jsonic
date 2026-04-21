@@ -540,6 +540,15 @@ class RuleSpecImpl implements RuleSpec {
         if (0 < Object.keys(rule.k).length) {
           next.k = { ...rule.k }
         }
+        // Rewire the parent's `child` pointer so the parent's
+        // close-state actions (e.g. capture-child) see the NEW rule
+        // after it pops, not the stale replaced one. Without this,
+        // an action inspecting `r.child.node` gets whatever state
+        // the replaced rule left behind rather than the replacement's
+        // final result.
+        if (rule.parent && rule.parent.child === rule) {
+          rule.parent.child = next
+        }
         why += 'R`' + alt.r + '`'
       }
       else {
