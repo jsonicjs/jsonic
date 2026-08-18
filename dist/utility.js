@@ -1,7 +1,7 @@
 "use strict";
 /* Copyright (c) 2013-2024 Richard Rodger, MIT License */
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.values = exports.keys = exports.omap = exports.isarr = exports.entries = exports.defprop = exports.assign = exports.S = void 0;
+exports.values = exports.keys = exports.omap = exports.isarr = exports.entries = exports.defprop = exports.UNSAFE_KEY = exports.assign = exports.S = void 0;
 exports.badlex = badlex;
 exports.charset = charset;
 exports.clean = clean;
@@ -422,6 +422,20 @@ function escre(s) {
             .replace(/\r/g, '\\r')
             .replace(/\n/g, '\\n');
 }
+// Key names that reach the prototype chain when assigned with `obj[k] = v`
+// or read with `obj[k]`. Shared by `deep` and `prop`; see the commentary at
+// each use for what goes wrong without it.
+// Built rather than written as a literal, for two reasons that are the same
+// two reasons this table exists at all: `{__proto__: true}` sets the
+// prototype instead of storing the key, and a lookup on a normal object
+// INHERITS — `lit['toString']` is truthy, so every inherited name would test
+// as unsafe. Without a prototype there is nothing to inherit and nothing to
+// set, so the table answers only for what was put in it.
+const UNSAFE_KEY = Object.create(null);
+exports.UNSAFE_KEY = UNSAFE_KEY;
+UNSAFE_KEY['__proto__'] = true;
+UNSAFE_KEY['constructor'] = true;
+UNSAFE_KEY['prototype'] = true;
 // Deep override for plain data. Mutates base object and array.
 // Array merge by `over` index, `over` wins non-matching types, except:
 // `undefined` always loses, `over` plain objects inject into functions,
@@ -438,7 +452,40 @@ function deep(base, ...rest) {
             !over_isf &&
             Array.isArray(base) === Array.isArray(over)) {
             for (let k in over) {
-                base[k] = deep(base[k], over[k]);
+                // A KEY THAT NAMES THE PROTOTYPE CHAIN IS DATA, NOT A CHAIN STEP.
+                //
+                // `over` is routinely a jsonic parse result, and a parse result can
+                // legitimately carry an OWN `__proto__` key: map nodes are built with
+                // `Object.create(null)`, so `{"__proto__":{...}}` stores the name
+                // rather than setting anything. Merging that into an ordinary object
+                // with `base[k] = …` does set something — the prototype — and
+                // `Jsonic.make(parsedOptions)` reaches this line, so untrusted text
+                // could pollute every object in the process without the caller ever
+                // touching `deep` directly.
+                //
+                // `constructor` is the same defect one step further out: `base[k]`
+                // reads the INHERITED constructor, and the recursion then merges
+                // `over.constructor.prototype` into the real `Object.prototype`.
+                //
+                // Both are fixed by refusing to leave the object: read only what
+                // `base` owns, and write with `defineProperty`, which creates an own
+                // data property for `__proto__` instead of invoking the setter. The
+                // key survives with its value, exactly as it does when the parser
+                // stores it — nothing is dropped, it just cannot reach a prototype.
+                if (UNSAFE_KEY[k]) {
+                    const prev = Object.prototype.hasOwnProperty.call(base, k)
+                        ? base[k]
+                        : undefined;
+                    Object.defineProperty(base, k, {
+                        value: deep(prev, over[k]),
+                        writable: true,
+                        enumerable: true,
+                        configurable: true,
+                    });
+                }
+                else {
+                    base[k] = deep(base[k], over[k]);
+                }
             }
         }
         else {
@@ -593,7 +640,14 @@ function prop(obj, path, val) {
         let pn;
         for (let pI = 0; pI < parts.length; pI++) {
             pn = parts[pI];
-            if ('__proto__' === pn) {
+            // `__proto__` was the only name refused here, which left the OTHER
+            // route open: `constructor.prototype.x` walks `obj.constructor` to the
+            // class, `.prototype` to its prototype object, and assigns there —
+            // polluting every instance of that class. It looked safe only because
+            // a plain `{}` leads to `Object.prototype`, whose `prototype` property
+            // is not writable, so the walk happened to throw. Any other class has
+            // a writable one and the walk succeeds.
+            if (UNSAFE_KEY[pn]) {
                 throw new Error(pn);
             }
             if (pI < parts.length - 1) {
@@ -601,7 +655,7 @@ function prop(obj, path, val) {
             }
         }
         if (undefined !== val) {
-            if ('__proto__' === pn) {
+            if (UNSAFE_KEY[pn]) {
                 throw new Error(pn);
             }
             obj[pn] = val;

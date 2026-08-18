@@ -60,6 +60,9 @@ declare function regexp(flags: string | null, ...parts: (string | (String & {
     esc?: boolean;
 }))[]): RegExp;
 declare function escre(s: string | undefined): string;
+declare const UNSAFE_KEY: {
+    [key: string]: boolean;
+};
 declare function deep(base?: any, ...rest: any): any;
 declare function badlex(lex: Lex, BD: Tin, ctx: Context): Lex;
 declare function makelog(ctx: Context, meta: any): ((...rest: any) => void) | undefined;
@@ -76,4 +79,4 @@ declare function parserwrap(parser: any): {
 };
 declare function getpath(root: any, path: string | string[]): any;
 declare function resolveFuncRefs(obj: any, ref?: Record<string, Function>): any;
-export { S, assign, badlex, charset, clean, clone, configure, deep, defprop, entries, escre, filterRules, getpath, isarr, makelog, mesc, regexp, snip, srcfmt, tokenize, parserwrap, str, omap, keys, values, findTokenSet, modlist, resolveFuncRefs, };
+export { S, assign, UNSAFE_KEY, badlex, charset, clean, clone, configure, deep, defprop, entries, escre, filterRules, getpath, isarr, makelog, mesc, regexp, snip, srcfmt, tokenize, parserwrap, str, omap, keys, values, findTokenSet, modlist, resolveFuncRefs, };
