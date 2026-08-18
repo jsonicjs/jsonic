@@ -431,11 +431,9 @@ function escre(s) {
 // INHERITS — `lit['toString']` is truthy, so every inherited name would test
 // as unsafe. Without a prototype there is nothing to inherit and nothing to
 // set, so the table answers only for what was put in it.
-const UNSAFE_KEY = Object.create(null);
+const UNSAFE_KEY = ['__proto__', 'constructor', 'prototype']
+    .reduce((a, k) => (a[k] = true, a), Object.create(null));
 exports.UNSAFE_KEY = UNSAFE_KEY;
-UNSAFE_KEY['__proto__'] = true;
-UNSAFE_KEY['constructor'] = true;
-UNSAFE_KEY['prototype'] = true;
 // Deep override for plain data. Mutates base object and array.
 // Array merge by `over` index, `over` wins non-matching types, except:
 // `undefined` always loses, `over` plain objects inject into functions,
