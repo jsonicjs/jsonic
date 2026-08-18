@@ -315,7 +315,13 @@ function prop(obj, path, val) {
         let pn;
         for (let pI = 0; pI < parts.length; pI++) {
             pn = parts[pI];
-            if ('__proto__' === pn) {
+            // Guarded against the whole prototype chain, not just `__proto__` —
+            // `constructor.prototype.x` reaches a class prototype and pollutes
+            // every instance. This function is a COPY of `prop` in utility.ts,
+            // kept because utility.ts and error.ts already import from each other;
+            // the guard is shared so the two cannot drift apart again, which is
+            // how the same defect came to exist in both.
+            if (utility_1.UNSAFE_KEY[pn]) {
                 throw new Error(pn);
             }
             if (pI < parts.length - 1) {
@@ -323,7 +329,7 @@ function prop(obj, path, val) {
             }
         }
         if (undefined !== val) {
-            if ('__proto__' === pn) {
+            if (utility_1.UNSAFE_KEY[pn]) {
                 throw new Error(pn);
             }
             obj[pn] = val;

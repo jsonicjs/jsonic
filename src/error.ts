@@ -14,7 +14,7 @@ import type {
 
 import { EMPTY, STRING } from './types'
 import { makeToken, makePoint } from './lexer'
-import { assign, deep, entries, keys, escre, tokenize } from './utility'
+import { assign, deep, entries, keys, escre, tokenize, UNSAFE_KEY } from './utility'
 
 const S = {
   function: 'function',
@@ -438,7 +438,13 @@ function prop(obj: any, path: string, val?: any): any {
     let pn: any
     for (let pI = 0; pI < parts.length; pI++) {
       pn = parts[pI]
-      if ('__proto__' === pn) {
+      // Guarded against the whole prototype chain, not just `__proto__` —
+      // `constructor.prototype.x` reaches a class prototype and pollutes
+      // every instance. This function is a COPY of `prop` in utility.ts,
+      // kept because utility.ts and error.ts already import from each other;
+      // the guard is shared so the two cannot drift apart again, which is
+      // how the same defect came to exist in both.
+      if (UNSAFE_KEY[pn]) {
         throw new Error(pn)
       }
       if (pI < parts.length - 1) {
@@ -446,7 +452,7 @@ function prop(obj: any, path: string, val?: any): any {
       }
     }
     if (undefined !== val) {
-      if ('__proto__' === pn) {
+      if (UNSAFE_KEY[pn]) {
         throw new Error(pn)
       }
       obj[pn] = val
